@@ -17,7 +17,8 @@ if [ "$status" -ne 0 ]; then
 fi
 
 # An empty diff prints only comments such as "-- This is an empty migration."
-if printf '%s' "$sql" | grep -vE '^\s*(--.*)?$' >/dev/null; then
+# (plus Prisma's own "Loaded Prisma config..." notice).
+if printf '%s' "$sql" | grep -vE '^\s*(--.*)?$' | grep -v '^Loaded Prisma config' >/dev/null; then
   body="$(printf '%s' "$sql" | sed -e 's/%/%25/g' | awk 'BEGIN { ORS = "%0A" } { print }')"
   echo "::error title=Schema changes without a migration::${body}"
   exit 1
