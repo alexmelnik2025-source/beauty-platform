@@ -414,3 +414,28 @@ describe('permissions', () => {
       .expect(201);
   });
 });
+
+describe('database integrity rules', () => {
+  it('the database itself rejects impossible working hours and time off', async () => {
+    const { staffId } = await setupStaff([]);
+    await expect(
+      ctx.prisma.workingHours.create({
+        data: { staffId, weekday: 1, startMinute: 600, endMinute: 540 },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      ctx.prisma.workingHours.create({
+        data: { staffId, weekday: 8, startMinute: 540, endMinute: 600 },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      ctx.prisma.timeOff.create({
+        data: {
+          staffId,
+          startsAt: new Date('2027-01-04T10:00Z'),
+          endsAt: new Date('2027-01-04T09:00Z'),
+        },
+      }),
+    ).rejects.toThrow();
+  });
+});
