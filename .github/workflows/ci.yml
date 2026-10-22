@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write # feature branches only: commit the refreshed pnpm-lock.yaml
 
 jobs:
   check:
@@ -43,8 +43,27 @@ jobs:
         with:
           node-version-file: .node-version
 
+      # main and pull requests: the lockfile must match exactly.
+      # Feature branches: refresh the lockfile and commit it back (dependencies cannot be
+      # resolved in the cloud workspace where most code is written).
       - name: Install dependencies
-        run: .github/scripts/run.sh pnpm install --frozen-lockfile
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ] || [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            .github/scripts/run.sh pnpm install --frozen-lockfile
+          else
+            .github/scripts/run.sh pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Commit refreshed lockfile (feature branches)
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+        run: |
+          if [ -n "$(git status --porcelain pnpm-lock.yaml)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pnpm-lock.yaml
+            git commit -m "chore: refresh pnpm-lock.yaml"
+            git push
+          fi
 
       - name: Format check
         run: .github/scripts/run.sh pnpm format:check
