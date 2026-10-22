@@ -33,20 +33,20 @@ jobs:
       TEST_DATABASE_URL: postgresql://beauty:beauty_ci@localhost:5432/beauty_test?schema=public
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
 
       - name: Install dependencies
         run: |
           if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile
+            .github/scripts/run.sh pnpm install --frozen-lockfile
           else
-            pnpm install --no-frozen-lockfile
+            .github/scripts/run.sh pnpm install --no-frozen-lockfile
           fi
 
       - name: Commit generated lockfile (first run only)
@@ -61,16 +61,16 @@ jobs:
           fi
 
       - name: Format check
-        run: pnpm format:check
+        run: .github/scripts/run.sh pnpm format:check
 
       - name: Lint
-        run: pnpm lint
+        run: .github/scripts/run.sh pnpm lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: .github/scripts/run.sh pnpm typecheck
 
       - name: Build
-        run: pnpm build
+        run: .github/scripts/run.sh pnpm build
 
       - name: Test (real PostgreSQL)
-        run: pnpm test
+        run: .github/scripts/run.sh pnpm test
