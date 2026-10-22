@@ -1,0 +1,294 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { CurrentAuth } from '../auth/decorators';
+import { notFound } from '../common/app-exception';
+import { ApiZodBody } from '../common/openapi';
+import type { AuthContext, MembershipContext } from '../common/request-context';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { CurrentMembership, MembershipGuard, RequireRoles } from '../organizations/membership.guard';
+import { AvailabilityService, type AvailabilityResponse } from './availability.service';
+import { CatalogService, type ServiceResponse, type StaffResponse } from './catalog.service';
+import { ScheduleService, type TimeOffResponse, type WorkingHoursResponse } from './schedule.service';
+import {
+  availabilityQuerySchema,
+  createServiceSchema,
+  createStaffSchema,
+  createTimeOffSchema,
+  localDateSchema,
+  overrideSchema,
+  staffServicesSchema,
+  updateServiceSchema,
+  updateStaffSchema,
+  weeklyHoursSchema,
+  type AvailabilityQuery,
+  type CreateServiceInput,
+  type CreateStaffInput,
+  type CreateTimeOffInput,
+  type OverrideInput,
+  type UpdateServiceInput,
+  type UpdateStaffInput,
+  type WeeklyHoursInput,
+} from './scheduling.schemas';
+
+const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
+const datePipe = new ZodValidationPipe(localDateSchema);
+
+@ApiTags('services')
+@ApiBearerAuth()
+@Controller('organizations/:orgId/locations/:locationId/services')
+@UseGuards(MembershipGuard)
+export class ServicesController {
+  constructor(private readonly catalog: CatalogService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Services of the location (incl. inactive)' })
+  list(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+  ): Promise<ServiceResponse[]> {
+    return this.catalog.listServices(m, locationId);
+  }
+
+  @Post()
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Add a service. Price in grosze (50 PLN = 5000)' })
+  @ApiZodBody(createServiceSchema)
+  create(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(createServiceSchema)) body: CreateServiceInput,
+  ): Promise<ServiceResponse> {
+    return this.catalog.createService(m, auth.userId, locationId, body);
+  }
+
+  @Get(':serviceId')
+  @ApiOperation({ summary: 'One service' })
+  get(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceId', uuid('Service')) serviceId: string,
+  ): Promise<ServiceResponse> {
+    return this.catalog.getService(m, locationId, serviceId);
+  }
+
+  @Patch(':serviceId')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Update a service; set active=false to hide it. Send the version you read' })
+  @ApiZodBody(updateServiceSchema)
+  update(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceId', uuid('Service')) serviceId: string,
+    @Body(new ZodValidationPipe(updateServiceSchema)) body: UpdateServiceInput,
+  ): Promise<ServiceResponse> {
+    return this.catalog.updateService(m, auth.userId, locationId, serviceId, body);
+  }
+}
+
+@ApiTags('staff')
+@ApiBearerAuth()
+@Controller('organizations/:orgId/locations/:locationId/staff')
+@UseGuards(MembershipGuard)
+export class StaffController {
+  constructor(
+    private readonly catalog: CatalogService,
+    private readonly schedule: ScheduleService,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Staff of the location' })
+  list(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+  ): Promise<StaffResponse[]> {
+    return this.catalog.listStaff(m, locationId);
+  }
+
+  @Post()
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Add a staff member (no user account needed)' })
+  @ApiZodBody(createStaffSchema)
+  create(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(createStaffSchema)) body: CreateStaffInput,
+  ): Promise<StaffResponse> {
+    return this.catalog.createStaff(m, auth.userId, locationId, body);
+  }
+
+  @Get(':staffId')
+  @ApiOperation({ summary: 'One staff member' })
+  get(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+  ): Promise<StaffResponse> {
+    return this.catalog.getStaff(m, locationId, staffId);
+  }
+
+  @Patch(':staffId')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Update a staff member. Send the version you read' })
+  @ApiZodBody(updateStaffSchema)
+  update(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Body(new ZodValidationPipe(updateStaffSchema)) body: UpdateStaffInput,
+  ): Promise<StaffResponse> {
+    return this.catalog.updateStaff(m, auth.userId, locationId, staffId, body);
+  }
+
+  @Put(':staffId/services')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Set which services this staff member performs (replaces the list)' })
+  @ApiZodBody(staffServicesSchema)
+  setServices(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Body(new ZodValidationPipe(staffServicesSchema)) body: { serviceIds: string[] },
+  ): Promise<StaffResponse> {
+    return this.catalog.setStaffServices(m, auth.userId, locationId, staffId, body.serviceIds);
+  }
+
+  @Get(':staffId/working-hours')
+  @ApiOperation({ summary: 'Weekly hours and upcoming special days (location-local time)' })
+  workingHours(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+  ): Promise<WorkingHoursResponse> {
+    return this.schedule.getWorkingHours(m, locationId, staffId);
+  }
+
+  @Put(':staffId/working-hours')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Replace the weekly hours',
+    description:
+      'Example: {"days":[{"weekday":1,"intervals":[{"start":"09:00","end":"13:00"},{"start":"14:00","end":"18:00"}]}]}. Weekday 1 = Monday. Days not listed are days off; gaps are breaks.',
+  })
+  @ApiZodBody(weeklyHoursSchema)
+  setWorkingHours(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Body(new ZodValidationPipe(weeklyHoursSchema)) body: WeeklyHoursInput,
+  ): Promise<WorkingHoursResponse> {
+    return this.schedule.setWeeklyHours(m, auth.userId, locationId, staffId, body);
+  }
+
+  @Put(':staffId/working-hours/overrides/:date')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Special hours for one date (YYYY-MM-DD); replace the weekly hours that day' })
+  @ApiZodBody(overrideSchema)
+  setOverride(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Param('date', datePipe) date: string,
+    @Body(new ZodValidationPipe(overrideSchema)) body: OverrideInput,
+  ): Promise<WorkingHoursResponse> {
+    return this.schedule.setOverride(m, auth.userId, locationId, staffId, date, body);
+  }
+
+  @Delete(':staffId/working-hours/overrides/:date')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove special hours for a date' })
+  removeOverride(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Param('date', datePipe) date: string,
+  ): Promise<void> {
+    return this.schedule.removeOverride(m, locationId, staffId, date);
+  }
+
+  @Get(':staffId/time-off')
+  @ApiOperation({ summary: 'Current and future time off' })
+  listTimeOff(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+  ): Promise<TimeOffResponse[]> {
+    return this.schedule.listTimeOff(m, locationId, staffId);
+  }
+
+  @Post(':staffId/time-off')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Add time off (vacation, sick leave, blocked hours)',
+    description: 'Location-local times, e.g. {"start":"2026-12-24T00:00","end":"2026-12-27T00:00"}.',
+  })
+  @ApiZodBody(createTimeOffSchema)
+  addTimeOff(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Body(new ZodValidationPipe(createTimeOffSchema)) body: CreateTimeOffInput,
+  ): Promise<TimeOffResponse> {
+    return this.schedule.addTimeOff(m, auth.userId, locationId, staffId, body);
+  }
+
+  @Delete(':staffId/time-off/:timeOffId')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove time off' })
+  removeTimeOff(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Param('timeOffId', uuid('Time off')) timeOffId: string,
+  ): Promise<void> {
+    return this.schedule.removeTimeOff(m, locationId, staffId, timeOffId);
+  }
+}
+
+@ApiTags('availability')
+@ApiBearerAuth()
+@Controller('organizations/:orgId/locations/:locationId/availability')
+@UseGuards(MembershipGuard)
+export class AvailabilityController {
+  constructor(private readonly availability: AvailabilityService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Free start times for a service (for staff booking on behalf of a client)',
+    description: 'No minimum lead time or horizon; only times in the past are excluded. Max 31 days per request.',
+  })
+  @ApiQuery({ name: 'serviceId', required: true })
+  @ApiQuery({ name: 'staffId', required: false, description: 'Omit for "any staff member"' })
+  @ApiQuery({ name: 'from', required: true, example: '2026-11-02' })
+  @ApiQuery({ name: 'to', required: true, example: '2026-11-08' })
+  get(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Query(new ZodValidationPipe(availabilityQuerySchema)) query: AvailabilityQuery,
+  ): Promise<AvailabilityResponse> {
+    return this.availability.forStaff(m, locationId, query);
+  }
+}

@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { AppException, forbidden, notFound } from '../common/app-exception';
+import { AppException } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
 import type { Location, MembershipRole, Organization } from '../generated/prisma/client';
@@ -10,6 +10,7 @@ import type {
   UpdateLocationInput,
   UpdateOrganizationInput,
 } from './organizations.schemas';
+import { LocationAccessService } from './location-access.service';
 import { slugify } from './slug';
 
 export interface OrganizationResponse {
@@ -59,6 +60,7 @@ export class OrganizationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly access: LocationAccessService,
   ) {}
 
   /** The creator becomes the owner. */
@@ -179,7 +181,7 @@ export class OrganizationsService {
   }
 
   async getLocation(membership: MembershipContext, locationId: string): Promise<LocationResponse> {
-    return toLocation(await this.findAccessibleLocation(membership, locationId));
+    return toLocation(await this.access.readable(membership, locationId));
   }
 
   /** Owners, and managers of this location. Rejects stale versions instead of overwriting. */
@@ -189,10 +191,7 @@ export class OrganizationsService {
     locationId: string,
     input: UpdateLocationInput,
   ): Promise<LocationResponse> {
-    await this.findAccessibleLocation(membership, locationId);
-    if (membership.role === 'staff') {
-      throw forbidden();
-    }
+    await this.access.writable(membership, locationId);
 
     const { version, ...fields } = input;
     try {
@@ -226,21 +225,5 @@ export class OrganizationsService {
       if (isUniqueViolation(error)) throw slugTaken();
       throw error;
     }
-  }
-
-  private async findAccessibleLocation(
-    membership: MembershipContext,
-    locationId: string,
-  ): Promise<Location> {
-    const location = await this.prisma.location.findFirst({
-      where: { id: locationId, organizationId: membership.organizationId },
-    });
-    if (!location) {
-      throw notFound('Location');
-    }
-    if (membership.role !== 'owner' && !membership.locationIds.includes(location.id)) {
-      throw notFound('Location');
-    }
-    return location;
   }
 }

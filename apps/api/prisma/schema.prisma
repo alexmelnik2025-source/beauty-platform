@@ -43,6 +43,15 @@ enum ClientType {
   @@map("client_type")
 }
 
+enum ScheduleExceptionType {
+  /// Not working (vacation, day off, sick leave). Blocks any slots in the period.
+  time_off
+  /// Working hours that replace the weekly template for the days they cover.
+  custom_hours
+
+  @@map("schedule_exception_type")
+}
+
 enum EmailTokenType {
   verify_email
   reset_password
@@ -62,9 +71,10 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions    Session[]
-  emailTokens EmailToken[]
-  memberships Membership[]
+  sessions     Session[]
+  emailTokens  EmailToken[]
+  memberships  Membership[]
+  staffMembers StaffMember[]
 
   @@map("app_user")
 }
@@ -175,11 +185,129 @@ model Location {
   createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  memberships  MembershipLocation[]
+  organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships       MembershipLocation[]
+  serviceCategories ServiceCategory[]
+  services          Service[]
+  staffMembers      StaffMember[]
 
   @@index([organizationId])
   @@map("location")
+}
+
+/// Groups services on the booking page ("Strzyżenie", "Broda").
+model ServiceCategory {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  locationId   String   @map("location_id") @db.Uuid
+  name         String
+  /// { "uk": { "name": "..." }, ... } — names in other interface languages.
+  translations Json     @default("{}")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  services Service[]
+
+  @@index([locationId])
+  @@map("service_category")
+}
+
+/// A service of a location. Never deleted (appointments keep referring to it) — deactivated instead.
+model Service {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  locationId      String   @map("location_id") @db.Uuid
+  categoryId      String?  @map("category_id") @db.Uuid
+  name            String
+  description     String?
+  /// { "uk": { "name": "...", "description": "..." }, ... }
+  translations    Json     @default("{}")
+  durationMinutes Int      @map("duration_minutes")
+  /// Cleanup / preparation after the service; blocks the staff member but is not shown to clients.
+  bufferMinutes   Int      @default(0) @map("buffer_minutes")
+  /// Price in grosze (1 PLN = 100), never a float.
+  priceGrosze     Int      @map("price_grosze")
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0) @map("sort_order")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  category ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  staff    StaffService[]
+
+  @@index([locationId])
+  @@map("service")
+}
+
+/// A person who performs services at a location. May or may not have a user account.
+model StaffMember {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  name       String
+  bio        String?
+  active     Boolean  @default(true)
+  sortOrder  Int      @default(0) @map("sort_order")
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location     Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user         User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  services     StaffService[]
+  workingHours WorkingHours[]
+  exceptions   ScheduleException[]
+
+  @@unique([locationId, userId])
+  @@index([locationId])
+  @@map("staff_member")
+}
+
+model StaffService {
+  staffId   String @map("staff_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+
+  staff   StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, serviceId])
+  @@index([serviceId])
+  @@map("staff_service")
+}
+
+/// Weekly template in the location's local time. A break = two intervals on the same day.
+model WorkingHours {
+  id          String @id @default(uuid(7)) @db.Uuid
+  staffId     String @map("staff_id") @db.Uuid
+  /// ISO weekday: 1 = Monday … 7 = Sunday.
+  weekday     Int
+  /// Minutes from local midnight, 0…1439.
+  startMinute Int    @map("start_minute")
+  /// Minutes from local midnight, 1…1440 (1440 = end of day).
+  endMinute   Int    @map("end_minute")
+
+  staff StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@map("working_hours")
+}
+
+/// Vacation, day off or special hours for a period (UTC instants).
+model ScheduleException {
+  id        String                @id @default(uuid(7)) @db.Uuid
+  staffId   String                @map("staff_id") @db.Uuid
+  type      ScheduleExceptionType
+  startAt   DateTime              @map("start_at") @db.Timestamptz(3)
+  endAt     DateTime              @map("end_at") @db.Timestamptz(3)
+  note      String?
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  staff StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startAt])
+  @@map("schedule_exception")
 }
 
 /// Who did what. Never contains passwords or tokens.
