@@ -14,4 +14,11 @@ if [ "$status" -ne 0 ]; then
     | { read -r body; echo "::error title=Failed: $*::${body}"; }
 fi
 
+if [ "$status" -eq 0 ] && [ "${SUMMARY:-}" = "1" ]; then
+  # Publish the result lines (e.g. test counts) as a notice in the run summary.
+  grep -E "Test Files|Tests " "$log" | sed -e 's/\x1b\[[0-9;]*m//g' \
+    | awk 'BEGIN { ORS = "%0A" } { print }' \
+    | { read -r body; [ -n "$body" ] && echo "::notice title=Result: $*::${body}"; }
+fi
+
 exit "$status"
