@@ -12,7 +12,12 @@ import {
 
 @Module({
   imports: [OrganizationsModule],
-  controllers: [ServicesController, StaffController, AvailabilityController, PublicLocationsController],
+  controllers: [
+    ServicesController,
+    StaffController,
+    AvailabilityController,
+    PublicLocationsController,
+  ],
   providers: [CatalogService, ScheduleService, AvailabilityService],
 })
 export class SchedulingModule {}

@@ -89,7 +89,8 @@ export class PublicLocationsController {
   @Get('availability')
   @ApiOperation({
     summary: 'Free start times for clients',
-    description: "The salon's minimum lead time and booking horizon apply. Max 31 days per request.",
+    description:
+      "The salon's minimum lead time and booking horizon apply. Max 31 days per request.",
   })
   @ApiQuery({ name: 'serviceId', required: true })
   @ApiQuery({ name: 'staffId', required: false, description: 'Omit for "any staff member"' })

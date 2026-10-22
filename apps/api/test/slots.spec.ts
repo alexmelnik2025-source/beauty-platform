@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { mergeSlots, staffSlots, type SlotQuery, type StaffSchedule } from '../src/scheduling/slots';
+import {
+  mergeSlots,
+  staffSlots,
+  type SlotQuery,
+  type StaffSchedule,
+} from '../src/scheduling/slots';
 import { instantToLocal, zonedToInstant } from '../src/scheduling/time';
 
 const WARSAW = 'Europe/Warsaw';
@@ -43,7 +48,12 @@ describe('slot calculation', () => {
   it('offers start times only where the service and its buffer fit', () => {
     // Thursday 22.10.2026, 09:00–13:00 and 14:00–17:00 (lunch break), 45 min + 15 min buffer.
     const slots = staffSlots(
-      schedule({ 4: [[h(9), h(13)], [h(14), h(17)]] }),
+      schedule({
+        4: [
+          [h(9), h(13)],
+          [h(14), h(17)],
+        ],
+      }),
       query('2026-10-22', { durationMinutes: 45, bufferMinutes: 15, stepMinutes: 15 }),
     );
     const t = times(slots);

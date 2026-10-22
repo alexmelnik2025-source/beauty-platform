@@ -87,10 +87,7 @@ export function staffSlots(schedule: StaffSchedule, query: SlotQuery): number[] 
 }
 
 /** Merges per-staff slots into one sorted list; each slot lists who is free. */
-export function mergeSlots(
-  schedules: StaffSchedule[],
-  query: SlotQuery,
-): Slot[] {
+export function mergeSlots(schedules: StaffSchedule[], query: SlotQuery): Slot[] {
   const byStart = new Map<number, string[]>();
   for (const schedule of schedules) {
     for (const start of staffSlots(schedule, query)) {

@@ -36,10 +36,22 @@ beforeEach(async () => {
   base = `/v1/organizations/${orgId}/locations/${locationId}`;
 });
 
-const haircut = { name: 'Strzyżenie męskie', durationMinutes: 45, bufferMinutes: 15, priceGrosze: 8000 };
+const haircut = {
+  name: 'Strzyżenie męskie',
+  durationMinutes: 45,
+  bufferMinutes: 15,
+  priceGrosze: 8000,
+};
 
-async function setupStaff(hours: { weekday: number; intervals: { start: string; end: string }[] }[]) {
-  const service = await ctx.http().post(`${base}/services`).set(owner.auth).send(haircut).expect(201);
+async function setupStaff(
+  hours: { weekday: number; intervals: { start: string; end: string }[] }[],
+) {
+  const service = await ctx
+    .http()
+    .post(`${base}/services`)
+    .set(owner.auth)
+    .send(haircut)
+    .expect(201);
   const staff = await ctx
     .http()
     .post(`${base}/staff`)
@@ -64,7 +76,12 @@ const availability = (serviceId: string, from: string, to = from, staffId?: stri
 
 describe('services', () => {
   it('creates, lists and updates with optimistic locking', async () => {
-    const created = await ctx.http().post(`${base}/services`).set(owner.auth).send(haircut).expect(201);
+    const created = await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(owner.auth)
+      .send(haircut)
+      .expect(201);
     expect(created.body).toMatchObject({ ...haircut, active: true, version: 1 });
 
     const updated = await ctx
@@ -102,9 +119,19 @@ describe('services', () => {
 describe('staff and working hours', () => {
   it('stores weekly hours with breaks and returns them in local time', async () => {
     const { staffId } = await setupStaff([
-      { weekday: 1, intervals: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '18:00' }] },
+      {
+        weekday: 1,
+        intervals: [
+          { start: '09:00', end: '13:00' },
+          { start: '14:00', end: '18:00' },
+        ],
+      },
     ]);
-    const res = await ctx.http().get(`${base}/staff/${staffId}/working-hours`).set(owner.auth).expect(200);
+    const res = await ctx
+      .http()
+      .get(`${base}/staff/${staffId}/working-hours`)
+      .set(owner.auth)
+      .expect(200);
     expect(res.body).toMatchObject({
       timezone: 'Europe/Warsaw',
       weekly: [
@@ -125,7 +152,17 @@ describe('staff and working hours', () => {
       .http()
       .put(`${base}/staff/${staffId}/working-hours`)
       .set(owner.auth)
-      .send({ days: [{ weekday: 1, intervals: [{ start: '09:00', end: '13:00' }, { start: '12:00', end: '15:00' }] }] })
+      .send({
+        days: [
+          {
+            weekday: 1,
+            intervals: [
+              { start: '09:00', end: '13:00' },
+              { start: '12:00', end: '15:00' },
+            ],
+          },
+        ],
+      })
       .expect(400);
     await ctx
       .http()
@@ -156,7 +193,13 @@ describe('staff and working hours', () => {
 describe('availability', () => {
   it('computes slots from hours, breaks, service length and buffer', async () => {
     const { serviceId } = await setupStaff([
-      { weekday: 1, intervals: [{ start: '09:00', end: '11:00' }, { start: '12:00', end: '13:00' }] },
+      {
+        weekday: 1,
+        intervals: [
+          { start: '09:00', end: '11:00' },
+          { start: '12:00', end: '13:00' },
+        ],
+      },
     ]);
     const res = await availability(serviceId, MONDAY).expect(200);
     expect(res.body.timezone).toBe('Europe/Warsaw');
@@ -182,7 +225,9 @@ describe('availability', () => {
       .set(owner.auth)
       .send({ start: `${MONDAY}T09:00`, end: `${MONDAY}T10:00`, note: 'Lekarz' })
       .expect(201);
-    let times = (await availability(serviceId, MONDAY)).body.slots.map((s: { time: string }) => s.time);
+    let times = (await availability(serviceId, MONDAY)).body.slots.map(
+      (s: { time: string }) => s.time,
+    );
     expect(times[0]).toBe('10:00');
 
     const nextMonday = addDays(MONDAY, 7);
@@ -192,7 +237,9 @@ describe('availability', () => {
       .set(owner.auth)
       .send({ intervals: [{ start: '16:00', end: '17:00' }] })
       .expect(200);
-    times = (await availability(serviceId, nextMonday)).body.slots.map((s: { time: string }) => s.time);
+    times = (await availability(serviceId, nextMonday)).body.slots.map(
+      (s: { time: string }) => s.time,
+    );
     expect(times).toEqual(['16:00']);
 
     await ctx
@@ -200,7 +247,9 @@ describe('availability', () => {
       .delete(`${base}/staff/${staffId}/working-hours/overrides/${nextMonday}`)
       .set(owner.auth)
       .expect(204);
-    times = (await availability(serviceId, nextMonday)).body.slots.map((s: { time: string }) => s.time);
+    times = (await availability(serviceId, nextMonday)).body.slots.map(
+      (s: { time: string }) => s.time,
+    );
     expect(times[0]).toBe('09:00');
   });
 
@@ -208,10 +257,20 @@ describe('availability', () => {
     const { serviceId, staffId } = await setupStaff([
       { weekday: 1, intervals: [{ start: '09:00', end: '12:00' }] },
     ]);
-    await ctx.http().patch(`${base}/staff/${staffId}`).set(owner.auth).send({ version: 1, active: false }).expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/staff/${staffId}`)
+      .set(owner.auth)
+      .send({ version: 1, active: false })
+      .expect(200);
     expect((await availability(serviceId, MONDAY)).body.slots).toEqual([]);
 
-    await ctx.http().patch(`${base}/services/${serviceId}`).set(owner.auth).send({ version: 1, active: false }).expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/services/${serviceId}`)
+      .set(owner.auth)
+      .send({ version: 1, active: false })
+      .expect(200);
     await availability(serviceId, MONDAY).expect(404);
   });
 
@@ -249,7 +308,9 @@ describe('public booking page', () => {
   });
 
   it('shows only bookable services and never internal details', async () => {
-    const { serviceId } = await setupStaff([{ weekday: 1, intervals: [{ start: '09:00', end: '17:00' }] }]);
+    const { serviceId } = await setupStaff([
+      { weekday: 1, intervals: [{ start: '09:00', end: '17:00' }] },
+    ]);
     await ctx
       .http()
       .post(`${base}/services`)
@@ -299,7 +360,9 @@ describe('public booking page', () => {
 
 describe('permissions', () => {
   it('staff can read the schedule but not change it', async () => {
-    const { serviceId, staffId } = await setupStaff([{ weekday: 1, intervals: [{ start: '09:00', end: '12:00' }] }]);
+    const { serviceId, staffId } = await setupStaff([
+      { weekday: 1, intervals: [{ start: '09:00', end: '12:00' }] },
+    ]);
     const member = await signUp(ctx, 'staff@example.com');
     await ctx.prisma.membership.create({
       data: {

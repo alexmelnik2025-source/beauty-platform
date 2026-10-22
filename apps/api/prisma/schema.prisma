@@ -43,15 +43,6 @@ enum ClientType {
   @@map("client_type")
 }
 
-enum ScheduleExceptionType {
-  /// Not working (vacation, day off, sick leave). Blocks any slots in the period.
-  time_off
-  /// Working hours that replace the weekly template for the days they cover.
-  custom_hours
-
-  @@map("schedule_exception_type")
-}
-
 enum EmailTokenType {
   verify_email
   reset_password
@@ -187,7 +178,6 @@ model Location {
 
   organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships       MembershipLocation[]
-  serviceCategories ServiceCategory[]
   services          Service[]
   staffMembers      StaffMember[]
 
@@ -195,33 +185,12 @@ model Location {
   @@map("location")
 }
 
-/// Groups services on the booking page ("Strzyżenie", "Broda").
-model ServiceCategory {
-  id           String   @id @default(uuid(7)) @db.Uuid
-  locationId   String   @map("location_id") @db.Uuid
-  name         String
-  /// { "uk": { "name": "..." }, ... } — names in other interface languages.
-  translations Json     @default("{}")
-  sortOrder    Int      @default(0) @map("sort_order")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-
-  location Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  services Service[]
-
-  @@index([locationId])
-  @@map("service_category")
-}
-
 /// A service of a location. Never deleted (appointments keep referring to it) — deactivated instead.
 model Service {
   id              String   @id @default(uuid(7)) @db.Uuid
   locationId      String   @map("location_id") @db.Uuid
-  categoryId      String?  @map("category_id") @db.Uuid
   name            String
   description     String?
-  /// { "uk": { "name": "...", "description": "..." }, ... }
-  translations    Json     @default("{}")
   durationMinutes Int      @map("duration_minutes")
   /// Cleanup / preparation after the service; blocks the staff member but is not shown to clients.
   bufferMinutes   Int      @default(0) @map("buffer_minutes")
@@ -233,8 +202,7 @@ model Service {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  category ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  location Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
   staff    StaffService[]
 
   @@index([locationId])
@@ -245,9 +213,10 @@ model Service {
 model StaffMember {
   id         String   @id @default(uuid(7)) @db.Uuid
   locationId String   @map("location_id") @db.Uuid
-  userId     String?  @map("user_id") @db.Uuid
-  name       String
-  bio        String?
+  userId      String?  @map("user_id") @db.Uuid
+  /// Shown to clients, e.g. "Kasia".
+  displayName String   @map("display_name")
+  bio         String?
   active     Boolean  @default(true)
   sortOrder  Int      @default(0) @map("sort_order")
   version    Int      @default(1)
@@ -258,7 +227,8 @@ model StaffMember {
   user         User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
   services     StaffService[]
   workingHours WorkingHours[]
-  exceptions   ScheduleException[]
+  overrides    WorkingHoursOverride[]
+  timeOff      TimeOff[]
 
   @@unique([locationId, userId])
   @@index([locationId])
@@ -294,20 +264,34 @@ model WorkingHours {
   @@map("working_hours")
 }
 
-/// Vacation, day off or special hours for a period (UTC instants).
-model ScheduleException {
-  id        String                @id @default(uuid(7)) @db.Uuid
-  staffId   String                @map("staff_id") @db.Uuid
-  type      ScheduleExceptionType
-  startAt   DateTime              @map("start_at") @db.Timestamptz(3)
-  endAt     DateTime              @map("end_at") @db.Timestamptz(3)
-  note      String?
-  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+/// Special hours for one local date; replace the weekly template on that date.
+model WorkingHoursOverride {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  staffId     String   @map("staff_id") @db.Uuid
+  /// Local date at the location.
+  date        DateTime @db.Date
+  startMinute Int      @map("start_minute")
+  endMinute   Int      @map("end_minute")
 
   staff StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
-  @@index([staffId, startAt])
-  @@map("schedule_exception")
+  @@index([staffId, date])
+  @@map("working_hours_override")
+}
+
+/// Vacation, sick leave or blocked hours (UTC instants). Blocks slots in the period.
+model TimeOff {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  staffId   String   @map("staff_id") @db.Uuid
+  startsAt  DateTime @map("starts_at") @db.Timestamptz(3)
+  endsAt    DateTime @map("ends_at") @db.Timestamptz(3)
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  staff StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startsAt])
+  @@map("time_off")
 }
 
 /// Who did what. Never contains passwords or tokens.

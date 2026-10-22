@@ -203,8 +203,7 @@ describe('tenant isolation', () => {
     {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
-      applies: (r) =>
-        /:(serviceId|staffId)/.test(r.path) || r.path.endsWith('/availability'),
+      applies: (r) => /:(serviceId|staffId)/.test(r.path) || r.path.endsWith('/availability'),
     },
     {
       name: "B's time off under A's own staff member",
@@ -244,7 +243,7 @@ describe('tenant isolation', () => {
     expect(orgs.body.map((o: { name: string }) => o.name)).toEqual(['Alice Salon']);
   });
 
-  it('cannot assign another location\'s service to own staff', async () => {
+  it("cannot assign another location's service to own staff", async () => {
     const res = await ctx
       .http()
       .put(

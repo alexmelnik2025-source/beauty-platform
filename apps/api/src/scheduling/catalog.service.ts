@@ -70,7 +70,11 @@ export class CatalogService {
     return services.map(toService);
   }
 
-  async getService(m: MembershipContext, locationId: string, serviceId: string): Promise<ServiceResponse> {
+  async getService(
+    m: MembershipContext,
+    locationId: string,
+    serviceId: string,
+  ): Promise<ServiceResponse> {
     await this.access.readable(m, locationId);
     return toService(await this.findService(locationId, serviceId));
   }
@@ -107,7 +111,15 @@ export class CatalogService {
         data: { ...fields, version: { increment: 1 } },
       });
       if (result.count !== 1) throw versionConflict('service');
-      await this.record(tx, m, actorUserId, 'service.updated', 'service', serviceId, Object.keys(fields));
+      await this.record(
+        tx,
+        m,
+        actorUserId,
+        'service.updated',
+        'service',
+        serviceId,
+        Object.keys(fields),
+      );
       return tx.service.findUniqueOrThrow({ where: { id: serviceId } });
     });
     return toService(service);
@@ -125,7 +137,11 @@ export class CatalogService {
     return staff.map(toStaff);
   }
 
-  async getStaff(m: MembershipContext, locationId: string, staffId: string): Promise<StaffResponse> {
+  async getStaff(
+    m: MembershipContext,
+    locationId: string,
+    staffId: string,
+  ): Promise<StaffResponse> {
     await this.access.readable(m, locationId);
     return toStaff(await this.findStaff(locationId, staffId));
   }
@@ -137,7 +153,8 @@ export class CatalogService {
     input: CreateStaffInput,
   ): Promise<StaffResponse> {
     await this.access.writable(m, locationId);
-    const { serviceIds, ...fields } = input;
+    const { serviceIds: requested, ...fields } = input;
+    const serviceIds = [...new Set(requested)];
     await this.assertServicesInLocation(locationId, serviceIds);
     const staff = await this.prisma.$transaction(async (tx) => {
       const created = await tx.staffMember.create({
@@ -170,7 +187,15 @@ export class CatalogService {
         data: { ...fields, version: { increment: 1 } },
       });
       if (result.count !== 1) throw versionConflict('staff member');
-      await this.record(tx, m, actorUserId, 'staff.updated', 'staff_member', staffId, Object.keys(fields));
+      await this.record(
+        tx,
+        m,
+        actorUserId,
+        'staff.updated',
+        'staff_member',
+        staffId,
+        Object.keys(fields),
+      );
       return tx.staffMember.findUniqueOrThrow({ where: { id: staffId }, include: withServices });
     });
     return toStaff(staff);
@@ -190,7 +215,9 @@ export class CatalogService {
     await this.assertServicesInLocation(locationId, unique);
     const staff = await this.prisma.$transaction(async (tx) => {
       await tx.staffService.deleteMany({ where: { staffId } });
-      await tx.staffService.createMany({ data: unique.map((serviceId) => ({ staffId, serviceId })) });
+      await tx.staffService.createMany({
+        data: unique.map((serviceId) => ({ staffId, serviceId })),
+      });
       await this.record(tx, m, actorUserId, 'staff.services_set', 'staff_member', staffId);
       return tx.staffMember.findUniqueOrThrow({ where: { id: staffId }, include: withServices });
     });
@@ -220,7 +247,9 @@ export class CatalogService {
   /** Services from another location (or organization) are rejected, never linked. */
   private async assertServicesInLocation(locationId: string, serviceIds: string[]): Promise<void> {
     if (serviceIds.length === 0) return;
-    const count = await this.prisma.service.count({ where: { id: { in: serviceIds }, locationId } });
+    const count = await this.prisma.service.count({
+      where: { id: { in: serviceIds }, locationId },
+    });
     if (count !== new Set(serviceIds).size) {
       throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Unknown service', [
         { path: 'serviceIds', message: 'every service must belong to this location' },

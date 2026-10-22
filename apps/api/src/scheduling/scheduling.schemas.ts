@@ -124,10 +124,10 @@ export const availabilityQuerySchema = z
     to: localDateSchema,
   })
   .refine((q) => q.from <= q.to, { message: 'from must not be after to', path: ['to'] })
-  .refine(
-    (q) => (Date.parse(q.to) - Date.parse(q.from)) / 86_400_000 < MAX_RANGE_DAYS,
-    { message: `at most ${MAX_RANGE_DAYS} days per request`, path: ['to'] },
-  );
+  .refine((q) => (Date.parse(q.to) - Date.parse(q.from)) / 86_400_000 < MAX_RANGE_DAYS, {
+    message: `at most ${MAX_RANGE_DAYS} days per request`,
+    path: ['to'],
+  });
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;

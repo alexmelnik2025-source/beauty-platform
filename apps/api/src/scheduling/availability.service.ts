@@ -5,7 +5,13 @@ import type { Location } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AvailabilityQuery } from './scheduling.schemas';
-import { mergeSlots, type InstantRange, type LocalInterval, type Slot, type StaffSchedule } from './slots';
+import {
+  mergeSlots,
+  type InstantRange,
+  type LocalInterval,
+  type Slot,
+  type StaffSchedule,
+} from './slots';
 import { addDays, localToday, zonedToInstant } from './time';
 
 export interface AvailabilityResponse {
@@ -36,11 +42,18 @@ export class AvailabilityService {
     now = Date.now(),
   ): Promise<AvailabilityResponse> {
     const location = await this.access.readable(m, locationId);
-    return this.compute(location, query, { earliestStart: now, latestStart: Number.POSITIVE_INFINITY });
+    return this.compute(location, query, {
+      earliestStart: now,
+      latestStart: Number.POSITIVE_INFINITY,
+    });
   }
 
   /** For the public booking page: the location's minimum lead time and booking horizon apply. */
-  async forPublic(location: Location, query: AvailabilityQuery, now = Date.now()): Promise<AvailabilityResponse> {
+  async forPublic(
+    location: Location,
+    query: AvailabilityQuery,
+    now = Date.now(),
+  ): Promise<AvailabilityResponse> {
     const horizonEnd = zonedToInstant(
       addDays(localToday(now, location.timezone), location.bookingHorizonDays + 1),
       0,
@@ -89,7 +102,10 @@ export class AvailabilityService {
       this.prisma.workingHoursOverride.findMany({
         where: {
           staffId: { in: staffIds },
-          date: { gte: new Date(`${query.from}T00:00:00Z`), lte: new Date(`${query.to}T00:00:00Z`) },
+          date: {
+            gte: new Date(`${query.from}T00:00:00Z`),
+            lte: new Date(`${query.to}T00:00:00Z`),
+          },
         },
       }),
       this.prisma.timeOff.findMany({

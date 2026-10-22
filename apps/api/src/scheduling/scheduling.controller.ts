@@ -19,10 +19,18 @@ import { notFound } from '../common/app-exception';
 import { ApiZodBody } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { CurrentMembership, MembershipGuard, RequireRoles } from '../organizations/membership.guard';
+import {
+  CurrentMembership,
+  MembershipGuard,
+  RequireRoles,
+} from '../organizations/membership.guard';
 import { AvailabilityService, type AvailabilityResponse } from './availability.service';
 import { CatalogService, type ServiceResponse, type StaffResponse } from './catalog.service';
-import { ScheduleService, type TimeOffResponse, type WorkingHoursResponse } from './schedule.service';
+import {
+  ScheduleService,
+  type TimeOffResponse,
+  type WorkingHoursResponse,
+} from './schedule.service';
 import {
   availabilityQuerySchema,
   createServiceSchema,
@@ -88,7 +96,9 @@ export class ServicesController {
 
   @Patch(':serviceId')
   @RequireRoles('owner', 'manager')
-  @ApiOperation({ summary: 'Update a service; set active=false to hide it. Send the version you read' })
+  @ApiOperation({
+    summary: 'Update a service; set active=false to hide it. Send the version you read',
+  })
   @ApiZodBody(updateServiceSchema)
   update(
     @CurrentAuth() auth: AuthContext,
@@ -201,7 +211,9 @@ export class StaffController {
 
   @Put(':staffId/working-hours/overrides/:date')
   @RequireRoles('owner', 'manager')
-  @ApiOperation({ summary: 'Special hours for one date (YYYY-MM-DD); replace the weekly hours that day' })
+  @ApiOperation({
+    summary: 'Special hours for one date (YYYY-MM-DD); replace the weekly hours that day',
+  })
   @ApiZodBody(overrideSchema)
   setOverride(
     @CurrentAuth() auth: AuthContext,
@@ -219,12 +231,13 @@ export class StaffController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove special hours for a date' })
   removeOverride(
+    @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
     @Param('staffId', uuid('Staff member')) staffId: string,
     @Param('date', datePipe) date: string,
   ): Promise<void> {
-    return this.schedule.removeOverride(m, locationId, staffId, date);
+    return this.schedule.removeOverride(m, auth.userId, locationId, staffId, date);
   }
 
   @Get(':staffId/time-off')
@@ -241,7 +254,8 @@ export class StaffController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({
     summary: 'Add time off (vacation, sick leave, blocked hours)',
-    description: 'Location-local times, e.g. {"start":"2026-12-24T00:00","end":"2026-12-27T00:00"}.',
+    description:
+      'Location-local times, e.g. {"start":"2026-12-24T00:00","end":"2026-12-27T00:00"}.',
   })
   @ApiZodBody(createTimeOffSchema)
   addTimeOff(
@@ -259,12 +273,13 @@ export class StaffController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove time off' })
   removeTimeOff(
+    @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
     @Param('staffId', uuid('Staff member')) staffId: string,
     @Param('timeOffId', uuid('Time off')) timeOffId: string,
   ): Promise<void> {
-    return this.schedule.removeTimeOff(m, locationId, staffId, timeOffId);
+    return this.schedule.removeTimeOff(m, auth.userId, locationId, staffId, timeOffId);
   }
 }
 
@@ -278,7 +293,8 @@ export class AvailabilityController {
   @Get()
   @ApiOperation({
     summary: 'Free start times for a service (for staff booking on behalf of a client)',
-    description: 'No minimum lead time or horizon; only times in the past are excluded. Max 31 days per request.',
+    description:
+      'No minimum lead time or horizon; only times in the past are excluded. Max 31 days per request.',
   })
   @ApiQuery({ name: 'serviceId', required: true })
   @ApiQuery({ name: 'staffId', required: false, description: 'Omit for "any staff member"' })

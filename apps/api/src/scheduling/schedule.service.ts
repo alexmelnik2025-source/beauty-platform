@@ -95,7 +95,12 @@ export class ScheduleService {
     await this.access.writable(m, locationId);
     await this.catalog.findStaff(locationId, staffId);
     const rows = input.days.flatMap((day) =>
-      day.intervals.map((i) => ({ staffId, weekday: day.weekday, startMinute: i.start, endMinute: i.end })),
+      day.intervals.map((i) => ({
+        staffId,
+        weekday: day.weekday,
+        startMinute: i.start,
+        endMinute: i.end,
+      })),
     );
     await this.prisma.$transaction(async (tx) => {
       await tx.workingHours.deleteMany({ where: { staffId } });
@@ -152,20 +157,38 @@ export class ScheduleService {
 
   async removeOverride(
     m: MembershipContext,
+    actorUserId: string,
     locationId: string,
     staffId: string,
     date: string,
   ): Promise<void> {
     await this.access.writable(m, locationId);
     await this.catalog.findStaff(locationId, staffId);
-    const result = await this.prisma.workingHoursOverride.deleteMany({
-      where: { staffId, date: dateValue(date) },
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.workingHoursOverride.deleteMany({
+        where: { staffId, date: dateValue(date) },
+      });
+      if (result.count === 0) throw notFound('Special day');
+      await this.audit.record(
+        {
+          organizationId: m.organizationId,
+          actorUserId,
+          action: 'staff.override_removed',
+          entityType: 'staff_member',
+          entityId: staffId,
+          metadata: { date },
+        },
+        tx,
+      );
     });
-    if (result.count === 0) throw notFound('Special day');
   }
 
   /** Time off that has not ended yet. */
-  async listTimeOff(m: MembershipContext, locationId: string, staffId: string): Promise<TimeOffResponse[]> {
+  async listTimeOff(
+    m: MembershipContext,
+    locationId: string,
+    staffId: string,
+  ): Promise<TimeOffResponse[]> {
     const location = await this.access.readable(m, locationId);
     await this.catalog.findStaff(locationId, staffId);
     const rows = await this.prisma.timeOff.findMany({
@@ -187,9 +210,12 @@ export class ScheduleService {
     const startsAt = parseLocalDateTime(input.start, location.timezone);
     const endsAt = parseLocalDateTime(input.end, location.timezone);
     if (startsAt === null || endsAt === null || endsAt <= startsAt) {
-      throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Invalid time off period', [
-        { path: 'end', message: 'end must be a valid local time after start' },
-      ]);
+      throw new AppException(
+        HttpStatus.BAD_REQUEST,
+        'VALIDATION_ERROR',
+        'Invalid time off period',
+        [{ path: 'end', message: 'end must be a valid local time after start' }],
+      );
     }
     if (endsAt - startsAt > MAX_TIME_OFF_DAYS * 86_400_000) {
       throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Time off is too long', [
@@ -217,14 +243,27 @@ export class ScheduleService {
 
   async removeTimeOff(
     m: MembershipContext,
+    actorUserId: string,
     locationId: string,
     staffId: string,
     timeOffId: string,
   ): Promise<void> {
     await this.access.writable(m, locationId);
     await this.catalog.findStaff(locationId, staffId);
-    const result = await this.prisma.timeOff.deleteMany({ where: { id: timeOffId, staffId } });
-    if (result.count === 0) throw notFound('Time off');
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.timeOff.deleteMany({ where: { id: timeOffId, staffId } });
+      if (result.count === 0) throw notFound('Time off');
+      await this.audit.record(
+        {
+          organizationId: m.organizationId,
+          actorUserId,
+          action: 'staff.time_off_removed',
+          entityType: 'time_off',
+          entityId: timeOffId,
+        },
+        tx,
+      );
+    });
   }
 
   private toTimeOff(
