@@ -7,12 +7,12 @@
 
 ## Что нужно на компьютере
 
-| Инструмент | Версия | Проверка |
-| --- | --- | --- |
-| Node.js | 24 LTS (через fnm) | `node --version` |
-| pnpm | 12 (через corepack) | `pnpm --version` |
-| Docker (Colima на Mac) | любая текущая | `docker compose version` |
-| Git | любая текущая | `git --version` |
+| Инструмент             | Версия              | Проверка                 |
+| ---------------------- | ------------------- | ------------------------ |
+| Node.js                | 24 LTS (через fnm)  | `node --version`         |
+| pnpm                   | 12 (через corepack) | `pnpm --version`         |
+| Docker (Colima на Mac) | любая текущая       | `docker compose version` |
+| Git                    | любая текущая       | `git --version`          |
 
 ## Первый запуск
 
