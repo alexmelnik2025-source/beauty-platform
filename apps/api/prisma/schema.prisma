@@ -1,0 +1,12 @@
+// Database schema. Domain tables arrive in task 2 onwards (see docs/README.md).
+// Connection settings live in prisma.config.ts.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}

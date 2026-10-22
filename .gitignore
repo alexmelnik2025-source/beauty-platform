@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+
+# Generated Prisma client
+apps/api/src/generated/
+
+# Local environment files with real values — never commit
+.env
+.env.*
+!.env.example
+
+.DS_Store
+*.log

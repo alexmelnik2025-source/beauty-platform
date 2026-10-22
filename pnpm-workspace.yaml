@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Packages allowed to run install scripts (Prisma downloads its engines).
+onlyBuiltDependencies:
+  - prisma
+  - '@prisma/engines'
+  - '@swc/core'

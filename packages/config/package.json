@@ -1,0 +1,14 @@
+{
+  "name": "@beauty/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared TypeScript and ESLint settings",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./eslint": "./eslint.base.mjs"
+  },
+  "peerDependencies": {
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

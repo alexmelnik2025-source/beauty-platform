@@ -1,0 +1,45 @@
+{
+  "name": "@beauty/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Beauty platform REST API (NestJS)",
+  "scripts": {
+    "postinstall": "prisma generate",
+    "dev": "nest start --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "prisma generate",
+    "db:deploy": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.1.0",
+    "@nestjs/core": "^12.1.0",
+    "@nestjs/platform-express": "^12.1.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@beauty/config": "workspace:*",
+    "@eslint/js": "^9.30.0",
+    "@nestjs/cli": "^12.0.0",
+    "@nestjs/testing": "^12.1.0",
+    "@swc/core": "^1.13.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^9.30.0",
+    "prisma": "7.10.0",
+    "supertest": "^7.1.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.40.0",
+    "unplugin-swc": "^1.5.5",
+    "vitest": "^3.2.0"
+  }
+}
