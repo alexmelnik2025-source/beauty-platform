@@ -56,5 +56,8 @@ jobs:
       - name: Build
         run: .github/scripts/run.sh pnpm build
 
+      - name: Migrations match schema
+        run: .github/scripts/check-migrations.sh
+
       - name: Test (real PostgreSQL)
         run: SUMMARY=1 .github/scripts/run.sh pnpm test

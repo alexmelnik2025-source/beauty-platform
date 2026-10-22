@@ -1,5 +1,6 @@
-// Database schema. Domain tables arrive in task 2 onwards (see docs/README.md).
-// Connection settings live in prisma.config.ts.
+// Database schema. Connection settings live in prisma.config.ts.
+// Conventions: UUIDv7 ids, snake_case tables/columns, timestamps in UTC (timestamptz).
+// Spec: docs/README.md → MVP v3, section "Структура данных".
 
 generator client {
   provider     = "prisma-client"
@@ -9,4 +10,191 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Locale {
+  pl
+  uk
+  ru
+  en
+
+  @@map("locale")
+}
+
+enum MembershipRole {
+  owner
+  manager
+  staff
+
+  @@map("membership_role")
+}
+
+enum MembershipStatus {
+  invited
+  active
+
+  @@map("membership_status")
+}
+
+enum ClientType {
+  web
+  mobile
+
+  @@map("client_type")
+}
+
+enum EmailTokenType {
+  verify_email
+  reset_password
+
+  @@map("email_token_type")
+}
+
+/// A person who can sign in (owner, manager, staff). Salon customers are separate (task 4).
+model User {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  /// Stored lower-cased and trimmed.
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  name            String
+  locale          Locale    @default(pl)
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions    Session[]
+  emailTokens EmailToken[]
+  memberships Membership[]
+
+  @@map("app_user")
+}
+
+/// One signed-in device. The refresh token rotates on every use; reuse of an old one revokes the session.
+model Session {
+  id                       String     @id @default(uuid(7)) @db.Uuid
+  userId                   String     @map("user_id") @db.Uuid
+  clientType               ClientType @map("client_type")
+  deviceName               String?    @map("device_name")
+  userAgent                String?    @map("user_agent")
+  refreshTokenHash         String     @unique @map("refresh_token_hash")
+  previousRefreshTokenHash String?    @unique @map("previous_refresh_token_hash")
+  createdAt                DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt               DateTime   @default(now()) @map("last_used_at") @db.Timestamptz(3)
+  expiresAt                DateTime   @map("expires_at") @db.Timestamptz(3)
+  revokedAt                DateTime?  @map("revoked_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+/// Single-use tokens sent by email (verification, password reset). Only the hash is stored.
+model EmailToken {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  type      EmailTokenType
+  tokenHash String         @unique @map("token_hash")
+  expiresAt DateTime       @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime?      @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("email_token")
+}
+
+model Organization {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  nip       String?
+  country   String   @default("PL") @db.Char(2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  memberships Membership[]
+  locations   Location[]
+  auditLogs   AuditLog[]
+
+  @@map("organization")
+}
+
+/// A user's role in an organization. Managers and staff are limited to their locations.
+model Membership {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  role           MembershipRole
+  status         MembershipStatus @default(active)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  locations    MembershipLocation[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("membership")
+}
+
+model MembershipLocation {
+  membershipId String @map("membership_id") @db.Uuid
+  locationId   String @map("location_id") @db.Uuid
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  location   Location   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, locationId])
+  @@index([locationId])
+  @@map("membership_location")
+}
+
+/// A salon / branch. Booking settings live here.
+model Location {
+  id                          String   @id @default(uuid(7)) @db.Uuid
+  organizationId              String   @map("organization_id") @db.Uuid
+  name                        String
+  /// Public booking link: /b/<slug>
+  slug                        String   @unique
+  timezone                    String   @default("Europe/Warsaw")
+  addressLine                 String   @map("address_line")
+  city                        String
+  postalCode                  String   @map("postal_code")
+  phone                       String?
+  email                       String?
+  defaultLocale               Locale   @default(pl) @map("default_locale")
+  slotStepMinutes             Int      @default(15) @map("slot_step_minutes")
+  minLeadMinutes              Int      @default(60) @map("min_lead_minutes")
+  bookingHorizonDays          Int      @default(30) @map("booking_horizon_days")
+  clientCancelDeadlineMinutes Int      @default(120) @map("client_cancel_deadline_minutes")
+  onlineBookingEnabled        Boolean  @default(false) @map("online_booking_enabled")
+  /// Optimistic locking: every update must send the version it read.
+  version                     Int      @default(1)
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships  MembershipLocation[]
+
+  @@index([organizationId])
+  @@map("location")
+}
+
+/// Who did what. Never contains passwords or tokens.
+model AuditLog {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String?  @map("organization_id") @db.Uuid
+  actorUserId    String?  @map("actor_user_id") @db.Uuid
+  action         String
+  entityType     String   @map("entity_type")
+  entityId       String?  @map("entity_id") @db.Uuid
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@map("audit_log")
 }
