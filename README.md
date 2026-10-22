@@ -1,7 +1,7 @@
 # Beauty Platform
 
 Платформа онлайн-записи для барбершопов и салонов красоты в Польше.
-Сейчас реализован каркас проекта (задача 1): API с проверкой состояния, база данных в Docker, тесты и CI.
+Готово: каркас проекта (задача 1); вход владельца, организации, филиалы и роли (задача 2). Пока только API, без интерфейса.
 
 Спецификация MVP и план — в [docs/README.md](docs/README.md).
 
@@ -33,7 +33,7 @@ cp apps/api/.env.example apps/api/.env
 # 4. Установить зависимости
 pnpm install
 
-# 5. Запустить базу данных
+# 5. Запустить базу данных и почтовый ящик Mailpit
 docker compose up -d
 
 # 6. Применить миграции базы
@@ -45,6 +45,11 @@ pnpm dev
 
 Проверка: открой в браузере <http://localhost:4000/v1/health>.
 Ожидаемый ответ: `{"status":"ok","checks":{"database":"up"},...}`.
+
+| Адрес                           | Что там                                                   |
+| ------------------------------- | --------------------------------------------------------- |
+| <http://localhost:4000/v1/docs> | Документация API: можно вызывать запросы прямо в браузере |
+| <http://localhost:8025>         | Mailpit — все письма, которые отправляет API              |
 
 Остановить API — `Control + C` в Терминале. Остановить базу — `docker compose down` (данные сохраняются).
 
@@ -59,6 +64,21 @@ pnpm install        # если изменились зависимости
 pnpm db:deploy      # если появились новые миграции
 pnpm dev
 ```
+
+## Как проверить вход и организации (задача 2)
+
+Всё делается на странице <http://localhost:4000/v1/docs>: раскрой нужный запрос → **Try it out** → поправь пример → **Execute**.
+
+1. `POST /v1/auth/register` — укажи свой email, пароль (от 10 символов) и имя.
+2. Открой <http://localhost:8025>, найди письмо и скопируй строку после «Kod:».
+3. `POST /v1/auth/verify-email` — вставь код в поле `token`.
+4. `POST /v1/auth/login` — тот же email и пароль. Скопируй `accessToken` из ответа.
+5. Нажми **Authorize** вверху страницы, вставь токен, **Authorize**.
+6. `POST /v1/organizations` — `{"name": "Мой салон"}`. Скопируй `id`.
+7. `POST /v1/organizations/{orgId}/locations` — вставь `id` в `orgId`, в теле: название, адрес, город, индекс.
+8. `GET /v1/me` — увидишь себя и свою организацию с ролью `owner`.
+
+Токен доступа живёт 15 минут; после этого снова выполни шаг 4.
 
 ## Проверки
 
@@ -88,5 +108,6 @@ docs/               спецификация и решения
 
 - **`Cannot connect to the Docker daemon`** — Docker не запущен: `colima start`.
 - **`port 5432 is already allocated`** — порт занят другой PostgreSQL. Останови её или напиши в чат проекта.
-- **`Invalid environment configuration — DATABASE_URL`** — нет файла `apps/api/.env`: шаг 3 первого запуска.
+- **`Invalid environment configuration — DATABASE_URL`** или **`JWT_ACCESS_SECRET`** — нет файла `apps/api/.env` или он устарел: `cp apps/api/.env.example apps/api/.env`.
+- **Письма не приходят в Mailpit** — `docker compose up -d` (запускает и базу, и Mailpit).
 - **Тесты падают с ошибкой подключения к `beauty_test`** — база создана старой версией проекта: `docker compose down -v && docker compose up -d` (удалит локальные данные).
