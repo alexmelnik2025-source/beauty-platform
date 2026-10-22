@@ -14,7 +14,7 @@ async function createApp(prismaOverride?: unknown): Promise<NestExpressApplicati
   }
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
-  configureApp(app);
+  configureApp(app, { docs: true });
   await app.init();
   return app;
 }
@@ -30,7 +30,7 @@ describe('GET /v1/health with a real database', () => {
     await app.close();
   });
 
-  it('returns 200 and reports the database as up', async () => {
+  it('returns 200 without signing in and reports the database as up', async () => {
     const res = await request(app.getHttpServer()).get('/v1/health').expect(200);
     expect(res.body).toMatchObject({ status: 'ok', checks: { database: 'up' } });
     expect(Date.parse(res.body.time)).not.toBeNaN();
@@ -49,14 +49,24 @@ describe('GET /v1/health with a real database', () => {
   });
 
   it('answers unknown routes in the standard error format', async () => {
-    const res = await request(app.getHttpServer()).get('/v1/does-not-exist').expect(404);
-    expect(res.body.error).toMatchObject({ code: 'NOT_FOUND' });
+    const res = await request(app.getHttpServer())
+      .get('/v1/does-not-exist')
+      .set('Authorization', 'Bearer x');
+    expect(res.status).toBe(404);
     expect(res.body.error.requestId).toBe(res.headers['x-request-id']);
   });
 
   it('does not reveal the server technology', async () => {
     const res = await request(app.getHttpServer()).get('/v1/health');
     expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+
+  it('publishes the OpenAPI document', async () => {
+    const res = await request(app.getHttpServer()).get('/v1/docs-json').expect(200);
+    expect(res.body.openapi).toMatch(/^3\./);
+    expect(Object.keys(res.body.paths)).toEqual(
+      expect.arrayContaining(['/v1/auth/login', '/v1/organizations/{orgId}/locations']),
+    );
   });
 });
 

@@ -12,10 +12,14 @@ async function bootstrap(): Promise<void> {
     // JSON logs in production for log collectors; readable logs locally.
     logger: new ConsoleLogger({ json: config.NODE_ENV === 'production' }),
   });
-  configureApp(app);
+  configureApp(app, { docs: config.NODE_ENV !== 'production' });
   app.enableShutdownHooks();
   await app.listen(config.PORT);
-  new Logger('Bootstrap').log(`API listening on http://localhost:${config.PORT}/v1`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`API listening on http://localhost:${config.PORT}/v1`);
+  if (config.NODE_ENV !== 'production') {
+    logger.log(`API docs: http://localhost:${config.PORT}/v1/docs`);
+  }
 }
 
 void bootstrap();

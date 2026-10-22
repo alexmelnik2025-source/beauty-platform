@@ -19,5 +19,14 @@ services:
       timeout: 3s
       retries: 10
 
+  # Catches all outgoing email locally. Inbox: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: beauty-mailpit
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:1025:1025'
+      - '127.0.0.1:8025:8025'
+
 volumes:
   postgres-data:

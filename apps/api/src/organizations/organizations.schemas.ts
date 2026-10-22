@@ -1,0 +1,78 @@
+import { z } from 'zod';
+import { LOCALES } from '../auth/auth.schemas';
+
+const TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
+
+export const createOrganizationSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  /** Polish tax id; spaces and dashes are removed. */
+  nip: z
+    .string()
+    .transform((value) => value.replace(/[\s-]/g, ''))
+    .pipe(z.string().regex(/^\d{10}$/, 'must be 10 digits'))
+    .optional(),
+});
+
+export const updateOrganizationSchema = createOrganizationSchema.partial();
+
+const slug = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$/, 'use 3–60 latin letters, digits and dashes');
+
+const locationFields = {
+  name: z.string().trim().min(1).max(100),
+  slug,
+  timezone: z.string().refine((value) => TIMEZONES.has(value), 'unknown time zone'),
+  addressLine: z.string().trim().min(1).max(200),
+  city: z.string().trim().min(1).max(100),
+  postalCode: z.string().trim().min(3).max(12),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+[1-9]\d{6,14}$/, 'use international format, e.g. +48123456789')
+    .nullable(),
+  email: z.string().trim().toLowerCase().pipe(z.email()).nullable(),
+  defaultLocale: z.enum(LOCALES),
+  slotStepMinutes: z.union([z.literal(5), z.literal(10), z.literal(15), z.literal(30)]),
+  minLeadMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(7 * 24 * 60),
+  bookingHorizonDays: z.number().int().min(1).max(365),
+  clientCancelDeadlineMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(7 * 24 * 60),
+  onlineBookingEnabled: z.boolean(),
+};
+
+export const createLocationSchema = z.object({
+  ...locationFields,
+  slug: locationFields.slug.optional(),
+  timezone: locationFields.timezone.default('Europe/Warsaw'),
+  phone: locationFields.phone.optional(),
+  email: locationFields.email.optional(),
+  defaultLocale: locationFields.defaultLocale.default('pl'),
+  slotStepMinutes: locationFields.slotStepMinutes.default(15),
+  minLeadMinutes: locationFields.minLeadMinutes.default(60),
+  bookingHorizonDays: locationFields.bookingHorizonDays.default(30),
+  clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
+  onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
+});
+
+export const updateLocationSchema = z
+  .object(locationFields)
+  .partial()
+  .extend({
+    /** The version you read; a mismatch means someone else changed the location meanwhile. */
+    version: z.number().int().min(1),
+  });
+
+export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
+export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
+export type CreateLocationInput = z.infer<typeof createLocationSchema>;
+export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;

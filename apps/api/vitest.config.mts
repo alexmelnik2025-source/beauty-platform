@@ -20,6 +20,12 @@ export default defineConfig({
     env: {
       NODE_ENV: 'test',
       DATABASE_URL: testDatabaseUrl,
+      JWT_ACCESS_SECRET:
+        process.env.JWT_ACCESS_SECRET ?? 'test-only-secret-not-used-anywhere-else-012345',
+      // Tests read emails from memory instead of sending them.
+      MAIL_TRANSPORT: 'memory',
     },
+    // One shared test database: run test files one after another.
+    fileParallelism: false,
   },
 });

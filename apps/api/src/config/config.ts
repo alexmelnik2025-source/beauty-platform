@@ -3,16 +3,36 @@ import { z } from 'zod';
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
 
-const configSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().min(1).max(65535).default(4000),
-  DATABASE_URL: z
-    .string()
-    .min(1)
-    .refine((value) => value.startsWith('postgres://') || value.startsWith('postgresql://'), {
-      message: 'must be a PostgreSQL connection URL',
-    }),
-});
+const postgresUrl = z
+  .string()
+  .min(1)
+  .refine((value) => value.startsWith('postgres://') || value.startsWith('postgresql://'), {
+    message: 'must be a PostgreSQL connection URL',
+  });
+
+const configSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+    DATABASE_URL: postgresUrl,
+    /** HMAC key for access tokens. Generate: openssl rand -base64 48 */
+    JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters'),
+    /** Base URL of the owner web app; used in links inside emails. */
+    APP_WEB_URL: z.url().default('http://localhost:3000'),
+    /** smtp = real sending (Mailpit locally); memory = kept in memory, for tests. */
+    MAIL_TRANSPORT: z.enum(['smtp', 'memory']).default('smtp'),
+    SMTP_URL: z.string().default('smtp://localhost:1025'),
+    MAIL_FROM: z.string().default('Beauty Platform <no-reply@localhost>'),
+  })
+  .superRefine((config, ctx) => {
+    if (config.NODE_ENV === 'production' && config.MAIL_TRANSPORT === 'memory') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAIL_TRANSPORT'],
+        message: 'memory is not allowed in production',
+      });
+    }
+  });
 
 export type AppConfig = z.infer<typeof configSchema>;
 

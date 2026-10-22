@@ -11,7 +11,7 @@
     "lint": {},
     "test": {
       "cache": false,
-      "passThroughEnv": ["DATABASE_URL", "TEST_DATABASE_URL"]
+      "passThroughEnv": ["DATABASE_URL", "TEST_DATABASE_URL", "JWT_ACCESS_SECRET", "MAIL_TRANSPORT"]
     },
     "dev": {
       "cache": false,

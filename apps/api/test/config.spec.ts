@@ -1,20 +1,43 @@
 import { describe, expect, it } from 'vitest';
 import { ConfigError, parseConfig } from '../src/config/config';
 
-const valid = { DATABASE_URL: 'postgresql://user:secret-password@localhost:5432/db' };
+const valid = {
+  DATABASE_URL: 'postgresql://user:secret-password@localhost:5432/db',
+  JWT_ACCESS_SECRET: 'a-test-secret-that-is-long-enough-0123',
+};
 
 describe('parseConfig', () => {
   it('applies defaults', () => {
-    expect(parseConfig(valid)).toMatchObject({ NODE_ENV: 'development', PORT: 4000 });
+    expect(parseConfig(valid)).toMatchObject({
+      NODE_ENV: 'development',
+      PORT: 4000,
+      MAIL_TRANSPORT: 'smtp',
+    });
+  });
+
+  it('requires a long enough token signing secret', () => {
+    expect(() => parseConfig({ ...valid, JWT_ACCESS_SECRET: 'short' })).toThrow(
+      /JWT_ACCESS_SECRET/,
+    );
+  });
+
+  it('refuses in-memory email in production', () => {
+    expect(() =>
+      parseConfig({ ...valid, NODE_ENV: 'production', MAIL_TRANSPORT: 'memory' }),
+    ).toThrow(/MAIL_TRANSPORT/);
   });
 
   it('rejects a missing DATABASE_URL', () => {
-    expect(() => parseConfig({})).toThrow(ConfigError);
-    expect(() => parseConfig({})).toThrow(/DATABASE_URL/);
+    expect(() => parseConfig({ JWT_ACCESS_SECRET: valid.JWT_ACCESS_SECRET })).toThrow(ConfigError);
+    expect(() => parseConfig({ JWT_ACCESS_SECRET: valid.JWT_ACCESS_SECRET })).toThrow(
+      /DATABASE_URL/,
+    );
   });
 
   it('rejects a non-PostgreSQL URL', () => {
-    expect(() => parseConfig({ DATABASE_URL: 'mysql://localhost/db' })).toThrow(/DATABASE_URL/);
+    expect(() => parseConfig({ ...valid, DATABASE_URL: 'mysql://localhost/db' })).toThrow(
+      /DATABASE_URL/,
+    );
   });
 
   it('rejects an invalid port', () => {

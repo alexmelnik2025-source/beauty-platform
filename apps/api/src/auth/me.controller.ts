@@ -1,0 +1,96 @@
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { notFound } from '../common/app-exception';
+import type { AuthContext } from '../common/request-context';
+import type { ClientType, MembershipRole } from '../generated/prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { toPublicUser, type PublicUser } from './auth.service';
+import { CurrentAuth } from './decorators';
+
+interface MeResponse {
+  user: PublicUser;
+  organizations: { id: string; name: string; role: MembershipRole }[];
+}
+
+interface SessionResponse {
+  id: string;
+  clientType: ClientType;
+  deviceName: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  lastUsedAt: string;
+  current: boolean;
+}
+
+@ApiTags('me')
+@ApiBearerAuth()
+@Controller('me')
+export class MeController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'The signed-in user and their organizations' })
+  async me(@CurrentAuth() auth: AuthContext): Promise<MeResponse> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: auth.userId },
+      include: {
+        memberships: {
+          where: { status: 'active' },
+          include: { organization: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+    return {
+      user: toPublicUser(user),
+      organizations: user.memberships.map((m) => ({
+        id: m.organization.id,
+        name: m.organization.name,
+        role: m.role,
+      })),
+    };
+  }
+
+  @Get('sessions')
+  @ApiOperation({ summary: 'Devices where the user is signed in' })
+  async sessions(@CurrentAuth() auth: AuthContext): Promise<SessionResponse[]> {
+    const sessions = await this.prisma.session.findMany({
+      where: { userId: auth.userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { lastUsedAt: 'desc' },
+    });
+    return sessions.map((s) => ({
+      id: s.id,
+      clientType: s.clientType,
+      deviceName: s.deviceName,
+      userAgent: s.userAgent,
+      createdAt: s.createdAt.toISOString(),
+      lastUsedAt: s.lastUsedAt.toISOString(),
+      current: s.id === auth.sessionId,
+    }));
+  }
+
+  @Delete('sessions/:sessionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Sign out a device' })
+  async revokeSession(
+    @CurrentAuth() auth: AuthContext,
+    @Param('sessionId', new ParseUUIDPipe({ exceptionFactory: () => notFound('Session') }))
+    sessionId: string,
+  ): Promise<void> {
+    const result = await this.prisma.session.updateMany({
+      where: { id: sessionId, userId: auth.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    if (result.count === 0) {
+      throw notFound('Session');
+    }
+  }
+}

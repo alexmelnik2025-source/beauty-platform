@@ -7,10 +7,11 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { AppException } from './app-exception';
 
 /**
  * Single error format for every client (web and mobile):
- * { "error": { "code": "NOT_FOUND", "message": "...", "requestId": "..." } }
+ * { "error": { "code": "NOT_FOUND", "message": "...", "requestId": "...", "details"?: [...] } }
  * `code` is machine-readable; clients translate it into the user's language.
  * Unexpected errors never leak internal details.
  */
@@ -23,6 +24,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     const requestId = response.getHeader('x-request-id')?.toString();
+
+    if (exception instanceof AppException) {
+      response.status(exception.getStatus()).json({
+        error: {
+          code: exception.code,
+          message: exception.message,
+          requestId,
+          ...(exception.details ? { details: exception.details } : {}),
+        },
+      });
+      return;
+    }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
