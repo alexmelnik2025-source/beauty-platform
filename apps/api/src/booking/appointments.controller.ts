@@ -17,7 +17,11 @@ import { Idempotent } from '../common/idempotency.interceptor';
 import { ApiZodBody } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { CurrentMembership, MembershipGuard, RequireRoles } from '../organizations/membership.guard';
+import {
+  CurrentMembership,
+  MembershipGuard,
+  RequireRoles,
+} from '../organizations/membership.guard';
 import {
   AppointmentsService,
   type AppointmentDetailResponse,

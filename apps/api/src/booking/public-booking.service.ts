@@ -63,7 +63,14 @@ export interface PublicAppointmentResponse {
   timezone: string;
   service: { id: string; name: string; durationMinutes: number; priceGrosze: number };
   staff: { id: string; displayName: string };
-  salon: { name: string; slug: string; addressLine: string; city: string; postalCode: string; phone: string | null };
+  salon: {
+    name: string;
+    slug: string;
+    addressLine: string;
+    city: string;
+    postalCode: string;
+    phone: string | null;
+  };
   /** Until when the client can still move or cancel online. */
   changeableUntil: string;
   canChange: boolean;
@@ -193,7 +200,11 @@ export class PublicBookingService {
 
   // ── 2. Contact details and email code ─────────────────
 
-  async sendCode(holdId: string, input: SendCodeInput, ip: string): Promise<{ codeExpiresAt: string }> {
+  async sendCode(
+    holdId: string,
+    input: SendCodeInput,
+    ip: string,
+  ): Promise<{ codeExpiresAt: string }> {
     this.limiter.hit(`code:email:${input.email}`, 10, 60 * MINUTE_MS);
     const hold = await this.activeHold(holdId, input.holdToken);
     const existing = await this.prisma.verificationCode.findUnique({
@@ -366,7 +377,10 @@ export class PublicBookingService {
     return this.toPublic(await this.byToken(token));
   }
 
-  async cancelByToken(token: string, reason: string | undefined): Promise<PublicAppointmentResponse> {
+  async cancelByToken(
+    token: string,
+    reason: string | undefined,
+  ): Promise<PublicAppointmentResponse> {
     const appointment = await this.byToken(token);
     this.assertChangeable(appointment);
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -427,15 +441,21 @@ export class PublicBookingService {
     });
     for (const staffId of free) {
       try {
-        await this.writer.move(appointment, staffId, times, appointment.version, async (tx, version) => {
-          await this.writer.event(tx, appointment.id, 'rescheduled', 'customer', null, {
-            from: appointment.startAt.toISOString(),
-            to: times.startAt.toISOString(),
-            staffId,
-          });
-          const moved = { ...appointment, ...times, version };
-          await this.notifyBooked(tx, moved, 'client_rescheduled', 'salon_client_rescheduled');
-        });
+        await this.writer.move(
+          appointment,
+          staffId,
+          times,
+          appointment.version,
+          async (tx, version) => {
+            await this.writer.event(tx, appointment.id, 'rescheduled', 'customer', null, {
+              from: appointment.startAt.toISOString(),
+              to: times.startAt.toISOString(),
+              staffId,
+            });
+            const moved = { ...appointment, ...times, version };
+            await this.notifyBooked(tx, moved, 'client_rescheduled', 'salon_client_rescheduled');
+          },
+        );
         return this.getByToken(token);
       } catch (error) {
         if (error instanceof AppException && error.code === 'SLOT_TAKEN') continue;
@@ -457,7 +477,11 @@ export class PublicBookingService {
       include: { location: true },
     });
     if (!hold) throw notFound('Hold');
-    if (hold.status !== 'held' || !hold.holdExpiresAt || hold.holdExpiresAt.getTime() <= Date.now()) {
+    if (
+      hold.status !== 'held' ||
+      !hold.holdExpiresAt ||
+      hold.holdExpiresAt.getTime() <= Date.now()
+    ) {
       throw holdExpired();
     }
     return hold;
@@ -486,7 +510,11 @@ export class PublicBookingService {
   }
 
   /** Order candidates so the least busy staff member that day is tried first. */
-  private async leastBusyFirst(staffIds: string[], location: Location, start: number): Promise<string[]> {
+  private async leastBusyFirst(
+    staffIds: string[],
+    location: Location,
+    start: number,
+  ): Promise<string[]> {
     if (staffIds.length <= 1) return staffIds;
     const dayStart = new Date(start - 12 * 60 * MINUTE_MS);
     const dayEnd = new Date(start + 12 * 60 * MINUTE_MS);

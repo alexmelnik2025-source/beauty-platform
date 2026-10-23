@@ -90,7 +90,10 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       await this.expireHolds();
       await this.drain();
     } catch (error) {
-      this.logger.error('Outbox cycle failed', error instanceof Error ? error.stack : String(error));
+      this.logger.error(
+        'Outbox cycle failed',
+        error instanceof Error ? error.stack : String(error),
+      );
     } finally {
       this.running = false;
     }
@@ -175,7 +178,9 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       },
     });
     if (failed) {
-      this.logger.error(`Giving up on ${row.type} ${row.id} after ${row.attempts} attempts: ${message}`);
+      this.logger.error(
+        `Giving up on ${row.type} ${row.id} after ${row.attempts} attempts: ${message}`,
+      );
     }
   }
 

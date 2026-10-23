@@ -36,7 +36,9 @@ export class SmtpMailService extends MailService {
     await this.transporter.sendMail({
       from: this.from,
       ...message,
-      ...(options.idempotencyKey ? { messageId: `<${options.idempotencyKey}@beauty-platform>` } : {}),
+      ...(options.idempotencyKey
+        ? { messageId: `<${options.idempotencyKey}@beauty-platform>` }
+        : {}),
     });
     // Log the type of mail, never its content (it may contain codes or links).
     this.logger.log(`Sent "${message.subject}"`);

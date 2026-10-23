@@ -209,7 +209,9 @@ export function renderAppointmentEmail(
     `${w.staff}: ${d.staffName}`,
     `${w.when}: ${d.when}`,
     `${w.price}: ${d.price}`,
-    forSalon ? `${w.client}: ${d.customerName}, ${d.customerPhone}` : `${w.where}: ${d.salonName}, ${d.address}`,
+    forSalon
+      ? `${w.client}: ${d.customerName}, ${d.customerPhone}`
+      : `${w.where}: ${d.salonName}, ${d.address}`,
   ];
   if (d.reason) lines.push(`${w.reason}: ${d.reason}`);
   if (d.manageLink) lines.push('', `${w.manage}:`, d.manageLink);

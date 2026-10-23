@@ -45,7 +45,10 @@ export interface Times {
   blockedUntil: Date;
 }
 
-export function timesFor(start: number, service: Pick<Service, 'durationMinutes' | 'bufferMinutes'>): Times {
+export function timesFor(
+  start: number,
+  service: Pick<Service, 'durationMinutes' | 'bufferMinutes'>,
+): Times {
   const end = start + service.durationMinutes * MINUTE_MS;
   return {
     startAt: new Date(start),
@@ -67,7 +70,11 @@ export class AppointmentWriter {
    * Holds whose 10 minutes are over still occupy their range in the constraint
    * until marked expired, so they are marked inside the same transaction first.
    */
-  async releaseExpiredHolds(tx: Prisma.TransactionClient, staffId: string, times: Times): Promise<void> {
+  async releaseExpiredHolds(
+    tx: Prisma.TransactionClient,
+    staffId: string,
+    times: Times,
+  ): Promise<void> {
     await tx.$executeRaw`
       UPDATE appointment SET status = 'expired', updated_at = now()
       WHERE staff_id = ${staffId}::uuid

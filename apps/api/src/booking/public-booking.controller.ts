@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
@@ -57,7 +67,8 @@ export class PublicBookingController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     summary: '2. Send contact details; a 6-digit code is emailed',
-    description: 'Call again to resend (at most 3 codes per hold). The code never outlives the hold.',
+    description:
+      'Call again to resend (at most 3 codes per hold). The code never outlives the hold.',
   })
   @ApiZodBody(sendCodeSchema)
   sendCode(

@@ -410,7 +410,12 @@ export class AppointmentsService {
       return customer;
     }
     return this.prisma.customer.create({
-      data: { organizationId: location.organizationId, name: c.name, phone: c.phone, locale: c.locale },
+      data: {
+        organizationId: location.organizationId,
+        name: c.name,
+        phone: c.phone,
+        locale: c.locale,
+      },
     });
   }
 
@@ -444,7 +449,12 @@ export class AppointmentsService {
       staff: { id: a.staff.id, displayName: a.staff.displayName },
       service: { id: a.service.id, name: a.service.name },
       customer: a.customer
-        ? { id: a.customer.id, name: a.customer.name, phone: a.customer.phone, email: a.customer.email }
+        ? {
+            id: a.customer.id,
+            name: a.customer.name,
+            phone: a.customer.phone,
+            email: a.customer.email,
+          }
         : null,
       priceGrosze: a.priceGrosze,
       durationMinutes: a.durationMinutes,
@@ -460,6 +470,11 @@ export class AppointmentsService {
   }
 }
 
-function toHistory(e: AppointmentEvent): { type: string; actor: string; at: string; data: unknown } {
+function toHistory(e: AppointmentEvent): {
+  type: string;
+  actor: string;
+  at: string;
+  data: unknown;
+} {
   return { type: e.type, actor: e.actor, at: e.createdAt.toISOString(), data: e.data };
 }
