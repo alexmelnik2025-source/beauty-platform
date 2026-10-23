@@ -36,7 +36,8 @@ type Ids = Record<
   | 'categoryId'
   | 'membershipId'
   | 'blockId'
-  | 'serviceCategoryId',
+  | 'serviceCategoryId'
+  | 'invitationId',
   string
 >;
 
@@ -77,6 +78,9 @@ function discoverRoutes(ctx: TestContext): Route[] {
  */
 function validBody(route: Route): object {
   const p = route.path;
+  if (p.endsWith('/invitations')) {
+    return { email: 'hacker@example.com', role: 'staff', locationIds: [currentIds?.locationId] };
+  }
   if (p.endsWith('/members/:membershipId/permissions')) {
     return { version: 1, staffCategoryId: null, overrides: { viewClientContacts: true } };
   }
@@ -246,6 +250,16 @@ async function seedLocation(
       locations: { create: [{ locationId: org.locationId }] },
     },
   });
+  const invitation = await ctx
+    .http()
+    .post(`/v1/organizations/${org.orgId}/invitations`)
+    .set(user.auth)
+    .send({
+      email: `invited-${org.orgId}@example.com`,
+      role: 'staff',
+      locationIds: [org.locationId],
+    })
+    .expect(201);
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -259,6 +273,7 @@ async function seedLocation(
     membershipId: membership.id,
     blockId: block.body.id,
     serviceCategoryId: serviceCategory.body.id,
+    invitationId: invitation.body.id,
   };
 }
 
@@ -285,6 +300,7 @@ async function snapshotOf(ids: Ids) {
     serviceCategories: await ctx.prisma.serviceCategory.findMany({
       where: { locationId: ids.locationId },
     }),
+    invitations: await ctx.prisma.invitation.findMany({ where: { organizationId: ids.orgId } }),
   };
 }
 
@@ -328,7 +344,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId|invitationId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },
@@ -393,5 +409,28 @@ describe('tenant isolation', () => {
       .send({ version: 1, categoryId: bobIds.serviceCategoryId })
       .expect(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it("cannot invite into another organization's location or staff profile", async () => {
+    const url = `/v1/organizations/${aliceIds.orgId}/invitations`;
+    const other = await ctx
+      .http()
+      .post(url)
+      .set(alice.auth)
+      .send({ email: 'x1@example.com', role: 'staff', locationIds: [bobIds.locationId] })
+      .expect(400);
+    expect(other.body.error.code).toBe('VALIDATION_ERROR');
+    const profile = await ctx
+      .http()
+      .post(url)
+      .set(alice.auth)
+      .send({
+        email: 'x2@example.com',
+        role: 'staff',
+        locationIds: [aliceIds.locationId],
+        staffMemberId: bobIds.staffId,
+      })
+      .expect(400);
+    expect(profile.body.error.code).toBe('VALIDATION_ERROR');
   });
 });

@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException } from '../common/app-exception';
 import type { Appointment, Prisma, Service } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from './notifications.service';
 
 const MINUTE_MS = 60_000;
 
@@ -103,7 +104,10 @@ export async function blockedAt(
  */
 @Injectable()
 export class AppointmentWriter {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * Holds whose 10 minutes are over still occupy their range in the constraint
@@ -180,16 +184,28 @@ export class AppointmentWriter {
     });
   }
 
-  event(
+  /** Records an appointment event and, in the same transaction, the in-app notifications. */
+  async event(
     tx: Prisma.TransactionClient,
     appointmentId: string,
     type: string,
     actor: 'customer' | 'staff' | 'system',
     actorUserId: string | null,
     data?: Prisma.InputJsonValue,
-  ): Promise<unknown> {
-    return tx.appointmentEvent.create({
+  ): Promise<void> {
+    await tx.appointmentEvent.create({
       data: { appointmentId, type, actor, actorUserId, data },
     });
+    const previousStaffId =
+      typeof data === 'object' && data !== null && 'fromStaffId' in data
+        ? String((data as { fromStaffId: unknown }).fromStaffId)
+        : undefined;
+    await this.notifications.onAppointmentEvent(
+      tx,
+      appointmentId,
+      type,
+      actor === 'customer' ? null : actorUserId,
+      previousStaffId,
+    );
   }
 }

@@ -246,6 +246,7 @@ export class AppointmentsService {
         from: appointment.startAt.toISOString(),
         to: times.startAt.toISOString(),
         staffId,
+        fromStaffId: appointment.staffId,
       });
       await this.notifyClient(tx, { ...appointment, ...times, version }, 'client_rescheduled');
     });

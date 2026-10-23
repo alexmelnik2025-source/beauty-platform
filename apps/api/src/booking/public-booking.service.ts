@@ -452,6 +452,7 @@ export class PublicBookingService {
               from: appointment.startAt.toISOString(),
               to: times.startAt.toISOString(),
               staffId,
+              fromStaffId: appointment.staffId,
             });
             const moved = { ...appointment, ...times, version };
             await this.notifyBooked(tx, moved, 'client_rescheduled', 'salon_client_rescheduled');

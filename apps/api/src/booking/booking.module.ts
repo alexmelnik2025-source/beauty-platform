@@ -9,6 +9,8 @@ import { AppointmentsService } from './appointments.service';
 import { CalendarController } from './calendar.controller';
 import { CalendarService } from './calendar.service';
 import { CustomersService } from './customers.service';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsService } from './notifications.service';
 import { OutboxService } from './outbox.service';
 import { PublicBookingController } from './public-booking.controller';
 import { PublicBookingService } from './public-booking.service';
@@ -23,12 +25,14 @@ import { TimeBlocksService } from './time-blocks.service';
     CustomersController,
     TimeBlocksController,
     CalendarController,
+    NotificationsController,
   ],
   providers: [
     AppointmentWriter,
     AppointmentsService,
     CalendarService,
     CustomersService,
+    NotificationsService,
     OutboxService,
     PublicBookingService,
     TimeBlocksService,

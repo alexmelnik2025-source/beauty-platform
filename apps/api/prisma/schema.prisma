@@ -108,10 +108,11 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions     Session[]
-  emailTokens  EmailToken[]
-  memberships  Membership[]
-  staffMembers StaffMember[]
+  sessions      Session[]
+  emailTokens   EmailToken[]
+  memberships   Membership[]
+  staffMembers  StaffMember[]
+  notifications Notification[]
 
   @@map("app_user")
 }
@@ -165,6 +166,8 @@ model Organization {
   auditLogs       AuditLog[]
   customers       Customer[]
   staffCategories StaffCategory[]
+  invitations     Invitation[]
+  notifications   Notification[]
 
   @@map("organization")
 }
@@ -193,6 +196,51 @@ model Membership {
   @@index([organizationId])
   @@index([staffCategoryId])
   @@map("membership")
+}
+
+/// An emailed invitation to join an organization as a manager or staff member.
+/// Only the token hash is stored; accepting needs a signed-in user with the same verified email.
+model Invitation {
+  id              String         @id @default(uuid(7)) @db.Uuid
+  organizationId  String         @map("organization_id") @db.Uuid
+  /// Lower-cased.
+  email           String
+  role            MembershipRole
+  locationIds     String[]       @map("location_ids") @db.Uuid
+  /// Staff profile in the calendar that the new account takes over.
+  staffMemberId   String?        @map("staff_member_id") @db.Uuid
+  staffCategoryId String?        @map("staff_category_id") @db.Uuid
+  tokenHash       String         @unique @map("token_hash")
+  expiresAt       DateTime       @map("expires_at") @db.Timestamptz(3)
+  acceptedAt      DateTime?      @map("accepted_at") @db.Timestamptz(3)
+  revokedAt       DateTime?      @map("revoked_at") @db.Timestamptz(3)
+  invitedByUserId String         @map("invited_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, email])
+  @@map("invitation")
+}
+
+/// In-app notification for a salon user (new, cancelled, moved appointment).
+/// Written in the same transaction as the change; push notifications (1.1) will read the same rows.
+model Notification {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  type           String
+  appointmentId  String?   @map("appointment_id") @db.Uuid
+  /// What to show without another request: time, service, staff and client name. Never contacts.
+  data           Json
+  readAt         DateTime? @map("read_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notification")
 }
 
 /// A group of staff members with the same permissions ("Senior barber", "Trainee").
