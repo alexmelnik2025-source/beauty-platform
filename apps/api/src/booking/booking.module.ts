@@ -6,6 +6,8 @@ import { SchedulingModule } from '../scheduling/scheduling.module';
 import { AppointmentWriter } from './appointment-writer';
 import { AppointmentsController, CustomersController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
+import { CalendarController } from './calendar.controller';
+import { CalendarService } from './calendar.service';
 import { CustomersService } from './customers.service';
 import { OutboxService } from './outbox.service';
 import { PublicBookingController } from './public-booking.controller';
@@ -20,10 +22,12 @@ import { TimeBlocksService } from './time-blocks.service';
     AppointmentsController,
     CustomersController,
     TimeBlocksController,
+    CalendarController,
   ],
   providers: [
     AppointmentWriter,
     AppointmentsService,
+    CalendarService,
     CustomersService,
     OutboxService,
     PublicBookingService,
