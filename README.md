@@ -105,6 +105,17 @@ pnpm dev
 6. `PATCH /v1/organizations/{orgId}/locations/{locationId}` — `{"version": <из ответа шага 7>, "onlineBookingEnabled": true}`.
    Теперь публичная страница салона доступна без входа: `GET /v1/public/locations/{slug}`.
 
+## Как проверить запись клиента (задача 4)
+
+Продолжение предыдущего раздела. Почта приходит в Mailpit: <http://localhost:8025>.
+
+1. `GET /v1/public/locations/{slug}/availability` — `serviceId`, `from`, `to`. Скопируй `start` любого слота.
+2. `POST /v1/public/locations/{slug}/holds` — `{"serviceId": "<id>", "start": "<start>"}`. Скопируй `holdId` и `holdToken`. Слот исчез из шага 1.
+3. `POST /v1/public/holds/{holdId}/code` — `{"holdToken": "...", "name": "Anna", "phone": "+48600100200", "email": "anna@example.com", "acceptTerms": true}`.
+4. Открой Mailpit, возьми 6 цифр из письма. `POST /v1/public/holds/{holdId}/confirm` — `{"holdToken": "...", "code": "123456"}`.
+5. `GET /v1/organizations/{orgId}/locations/{locationId}/appointments?from=<дата>&to=<дата>` (с входом владельца) — запись в календаре.
+   В Mailpit пришли письма клиенту и владельцу (очередь проверяет их раз в 2 секунды).
+
 ## Проверки
 
 ```bash
