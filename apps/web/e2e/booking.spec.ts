@@ -228,6 +228,37 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByRole('button', { name: /Jan Kowalski/ })).toBeVisible();
   await shot(ownerPage, '11-owner-calendar-after');
 
+  // The other sections of the cabinet.
+  await ownerPage.goto('/pl/app/services');
+  await expect(ownerPage.getByText('Strzyżenie + broda').first()).toBeVisible();
+  await shot(ownerPage, '15-owner-services');
+  await ownerPage.goto('/pl/app/team');
+  await expect(ownerPage.getByRole('button', { name: /Kasia/ })).toBeVisible();
+  await shot(ownerPage, '16-owner-team');
+  await ownerPage.getByRole('button', { name: /Ola/ }).click();
+  await expect(ownerPage.getByRole('dialog')).toContainText('Godziny pracy');
+  await shot(ownerPage, '17-owner-staff-hours');
+  await ownerPage.keyboard.press('Escape');
+  await ownerPage.getByRole('button', { name: 'Dostęp i uprawnienia' }).click();
+  await expect(ownerPage.getByText('Kasia Nowak')).toBeVisible();
+  await ownerPage.getByRole('button', { name: /Kasia Nowak/ }).click();
+  await expect(ownerPage.getByRole('dialog')).toContainText('Widzi telefon i e-mail klienta');
+  await shot(ownerPage, '18-owner-permissions');
+  await ownerPage.keyboard.press('Escape');
+  await ownerPage.goto('/pl/app/clients');
+  await ownerPage.getByRole('button', { name: /Anna Kowalska/ }).click();
+  await expect(ownerPage.getByRole('dialog')).toContainText('Strzyżenie męskie');
+  await shot(ownerPage, '19-owner-client');
+  await ownerPage.keyboard.press('Escape');
+  await ownerPage.goto('/pl/app/notifications');
+  await expect(ownerPage.getByText('Nowa rezerwacja online').first()).toBeVisible();
+  await shot(ownerPage, '20-owner-notifications');
+  await ownerPage.goto('/pl/app/settings');
+  await expect(ownerPage.getByLabel('Link dla klientów')).toHaveValue(
+    new RegExp(`/pl/b/${location.slug}$`),
+  );
+  await shot(ownerPage, '21-owner-settings');
+
   // The owner's calendar on a phone.
   const ownerPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
   const ownerMobile = await ownerPhone.newPage();
@@ -251,4 +282,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(staffDialog).toContainText('Kontakt widoczny tylko z uprawnieniem');
   await expect(staffDialog).not.toContainText('600100200');
   await shot(kasiaPage, '14-staff-appointment-phone');
+  await kasiaPage.keyboard.press('Escape');
+
+  // Staff: no client list; notifications and their own schedule.
+  await expect(kasiaPage.locator('.bottom-nav')).not.toContainText('Klienci');
+  await kasiaPage.goto('/pl/app/notifications');
+  await expect(kasiaPage.getByText('Nowa rezerwacja online').first()).toBeVisible();
+  await shot(kasiaPage, '22-staff-notifications-phone');
+  await kasiaPage.goto('/pl/app/schedule');
+  await expect(kasiaPage.getByText('08:00–21:00').first()).toBeVisible();
+  await shot(kasiaPage, '23-staff-schedule-phone');
 });

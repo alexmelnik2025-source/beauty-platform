@@ -27,7 +27,9 @@ export default function LoginPage() {
         body: { email, password, clientType: 'web' },
       });
       setAccessToken(res.accessToken);
-      router.push(`/${locale}/app`);
+      // Only paths inside this site: never redirect to another address.
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.push(next && /^\/[a-z]{2}\//.test(next) ? next : `/${locale}/app`);
     } catch (err) {
       setError(errorText(t, err));
       setBusy(false);

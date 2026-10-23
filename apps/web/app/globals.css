@@ -1117,3 +1117,231 @@ h3 {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ── Lists and cabinet pages ──────────────────────────── */
+
+.page {
+  display: grid;
+  gap: 24px;
+  max-width: 920px;
+  padding: 0 24px 48px;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 0 16px 32px;
+  }
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+}
+
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.list > li {
+  border-bottom: 1px solid var(--line);
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 4px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.list-row:hover .grow strong {
+  text-decoration: underline;
+}
+
+.list-row .grow {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.list-row .grow > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 36px;
+  border-radius: 2px;
+  background: var(--sw, var(--ink));
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatches button {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow: 0 0 0 1px var(--steel);
+  cursor: pointer;
+}
+
+.swatches button[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.day-row .intervals {
+  display: grid;
+  gap: 6px;
+}
+
+.interval {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.interval input {
+  width: 110px;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-s);
+}
+
+@media (max-width: 760px) {
+  .day-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.perm-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.perm-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+}
+
+.seg button {
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-left: 1px solid var(--steel);
+  background: var(--paper);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.seg button:first-child {
+  border-left: 0;
+}
+
+.seg button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--signal);
+  color: var(--paper);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.notice-row {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 12px;
+  padding: 14px 4px;
+}
+
+.notice-row .dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.notice-row.is-read .dot {
+  background: transparent;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.stat b {
+  font-family: var(--font-display), var(--font-body);
+  font-weight: 400;
+  font-size: 1.5rem;
+}
+
+.copy-field {
+  display: flex;
+  gap: 8px;
+}
+
+.copy-field input {
+  flex: 1;
+  min-width: 0;
+}
