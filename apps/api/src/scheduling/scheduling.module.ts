@@ -19,5 +19,6 @@ import {
     PublicLocationsController,
   ],
   providers: [CatalogService, ScheduleService, AvailabilityService],
+  exports: [AvailabilityService],
 })
 export class SchedulingModule {}

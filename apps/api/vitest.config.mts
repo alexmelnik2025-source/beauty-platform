@@ -24,6 +24,8 @@ export default defineConfig({
         process.env.JWT_ACCESS_SECRET ?? 'test-only-secret-not-used-anywhere-else-012345',
       // Tests read emails from memory instead of sending them.
       MAIL_TRANSPORT: 'memory',
+      // Tests run the email queue explicitly instead of on a timer.
+      OUTBOX_POLL_MS: '0',
     },
     // One shared test database: run test files one after another.
     fileParallelism: false,

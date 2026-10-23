@@ -23,6 +23,8 @@ const configSchema = z
     MAIL_TRANSPORT: z.enum(['smtp', 'memory']).default('smtp'),
     SMTP_URL: z.string().default('smtp://localhost:1025'),
     MAIL_FROM: z.string().default('Beauty Platform <no-reply@localhost>'),
+    /** How often the email queue is checked, ms. 0 = background worker off (tests drain it by hand). */
+    OUTBOX_POLL_MS: z.coerce.number().int().min(0).max(600_000).default(2000),
   })
   .superRefine((config, ctx) => {
     if (config.NODE_ENV === 'production' && config.MAIL_TRANSPORT === 'memory') {

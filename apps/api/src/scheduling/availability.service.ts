@@ -12,13 +12,26 @@ import {
   type Slot,
   type StaffSchedule,
 } from './slots';
-import { addDays, localToday, zonedToInstant } from './time';
+import { addDays, instantToLocal, localToday, zonedToInstant } from './time';
 
 export interface AvailabilityResponse {
   timezone: string;
   serviceId: string;
   durationMinutes: number;
   slots: Slot[];
+}
+
+export interface BookingWindow {
+  earliestStart: number;
+  latestStart: number;
+}
+
+export interface ComputeOptions {
+  /** Ignore this appointment's own time (used when moving it). */
+  excludeAppointmentId?: string;
+  /** Step between start times; defaults to the location's slot step. */
+  stepMinutes?: number;
+  now?: number;
 }
 
 const MINUTE_MS = 60_000;
@@ -42,34 +55,62 @@ export class AvailabilityService {
     now = Date.now(),
   ): Promise<AvailabilityResponse> {
     const location = await this.access.readable(m, locationId);
-    return this.compute(location, query, {
-      earliestStart: now,
-      latestStart: Number.POSITIVE_INFINITY,
-    });
+    return this.compute(location, query, this.staffWindow(now), { now });
   }
 
   /** For the public booking page: the location's minimum lead time and booking horizon apply. */
   async forPublic(
     location: Location,
     query: AvailabilityQuery,
-    now = Date.now(),
+    options: ComputeOptions = {},
   ): Promise<AvailabilityResponse> {
+    const now = options.now ?? Date.now();
+    return this.compute(location, query, this.publicWindow(location, now), options);
+  }
+
+  staffWindow(now: number): BookingWindow {
+    return { earliestStart: now, latestStart: Number.POSITIVE_INFINITY };
+  }
+
+  publicWindow(location: Location, now: number): BookingWindow {
+    // With a 30-day horizon the last bookable day is today + 30.
     const horizonEnd = zonedToInstant(
       addDays(localToday(now, location.timezone), location.bookingHorizonDays + 1),
       0,
       location.timezone,
     );
-    return this.compute(location, query, {
-      earliestStart: now + location.minLeadMinutes * MINUTE_MS,
-      latestStart: horizonEnd,
-    });
+    return { earliestStart: now + location.minLeadMinutes * MINUTE_MS, latestStart: horizonEnd };
   }
 
-  private async compute(
+  /**
+   * Who can take the service at exactly `start` (instant, ms)? Empty if nobody.
+   * Uses the same calculation as the slot list, so what is offered is what can be booked.
+   */
+  async staffFreeAt(
+    location: Location,
+    serviceId: string,
+    staffId: string | undefined,
+    start: number,
+    window: BookingWindow,
+    options: ComputeOptions = {},
+  ): Promise<string[]> {
+    const date = instantToLocal(start, location.timezone).date;
+    const result = await this.compute(
+      location,
+      { serviceId, staffId, from: date, to: date },
+      window,
+      options,
+    );
+    return result.slots.find((slot) => Date.parse(slot.start) === start)?.staffIds ?? [];
+  }
+
+  async compute(
     location: Location,
     query: AvailabilityQuery,
-    window: { earliestStart: number; latestStart: number },
+    window: BookingWindow,
+    options: ComputeOptions = {},
   ): Promise<AvailabilityResponse> {
+    const now = options.now ?? Date.now();
     const service = await this.prisma.service.findFirst({
       where: { id: query.serviceId, locationId: location.id, active: true },
     });
@@ -97,7 +138,7 @@ export class AvailabilityService {
     const rangeStart = zonedToInstant(query.from, 0, location.timezone) - DAY_MS;
     const rangeEnd = zonedToInstant(addDays(query.to, 1), 0, location.timezone) + DAY_MS;
 
-    const [weekly, overrides, timeOff] = await Promise.all([
+    const [weekly, overrides, timeOff, appointments] = await Promise.all([
       this.prisma.workingHours.findMany({ where: { staffId: { in: staffIds } } }),
       this.prisma.workingHoursOverride.findMany({
         where: {
@@ -115,9 +156,20 @@ export class AvailabilityService {
           endsAt: { gt: new Date(rangeStart) },
         },
       }),
+      // The same rows the no-double-booking constraint protects: confirmed bookings
+      // and holds that have not expired yet. An expired hold is free time, even if
+      // the cleanup job has not marked it yet.
+      this.prisma.appointment.findMany({
+        where: {
+          staffId: { in: staffIds },
+          startAt: { lt: new Date(rangeEnd) },
+          blockedUntil: { gt: new Date(rangeStart) },
+          OR: [{ status: 'confirmed' }, { status: 'held', holdExpiresAt: { gt: new Date(now) } }],
+          ...(options.excludeAppointmentId ? { id: { not: options.excludeAppointmentId } } : {}),
+        },
+        select: { staffId: true, startAt: true, blockedUntil: true },
+      }),
     ]);
-    // Booked appointments join `busy` in task 4, from the same table that enforces
-    // the no-double-booking constraint.
 
     const schedules: StaffSchedule[] = staffIds.map((staffId) => {
       const week = new Map<number, LocalInterval[]>();
@@ -129,9 +181,14 @@ export class AvailabilityService {
         const date = row.date.toISOString().slice(0, 10);
         special.set(date, [...(special.get(date) ?? []), row]);
       }
-      const busy: InstantRange[] = timeOff
-        .filter((t) => t.staffId === staffId)
-        .map((t) => ({ start: t.startsAt.getTime(), end: t.endsAt.getTime() }));
+      const busy: InstantRange[] = [
+        ...timeOff
+          .filter((t) => t.staffId === staffId)
+          .map((t) => ({ start: t.startsAt.getTime(), end: t.endsAt.getTime() })),
+        ...appointments
+          .filter((a) => a.staffId === staffId)
+          .map((a) => ({ start: a.startAt.getTime(), end: a.blockedUntil.getTime() })),
+      ];
       return { staffId, weekly: week, overrides: special, busy };
     });
 
@@ -141,7 +198,7 @@ export class AvailabilityService {
       to: query.to,
       durationMinutes: service.durationMinutes,
       bufferMinutes: service.bufferMinutes,
-      stepMinutes: location.slotStepMinutes,
+      stepMinutes: options.stepMinutes ?? location.slotStepMinutes,
       ...window,
     });
 

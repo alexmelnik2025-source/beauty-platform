@@ -13,9 +13,12 @@ interface Window {
 @Injectable()
 export class RateLimiterService {
   private readonly windows = new Map<string, Window>();
+  /** Tests that fire many requests at once switch limits off explicitly. */
+  enabled = true;
 
   /** Throws 429 RATE_LIMITED when `key` exceeded `limit` hits within `windowMs`. */
   hit(key: string, limit: number, windowMs: number): void {
+    if (!this.enabled) return;
     const now = Date.now();
     const current = this.windows.get(key);
     if (!current || current.resetAt <= now) {
@@ -36,6 +39,7 @@ export class RateLimiterService {
 
   reset(): void {
     this.windows.clear();
+    this.enabled = true;
   }
 
   private cleanup(now: number): void {
