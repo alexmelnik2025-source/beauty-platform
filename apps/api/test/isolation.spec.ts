@@ -24,7 +24,20 @@ interface Route {
   path: string;
 }
 
-type Ids = Record<'orgId' | 'locationId' | 'serviceId' | 'staffId' | 'timeOffId' | 'date', string>;
+type Ids = Record<
+  | 'orgId'
+  | 'locationId'
+  | 'serviceId'
+  | 'staffId'
+  | 'timeOffId'
+  | 'date'
+  | 'appointmentId'
+  | 'customerId',
+  string
+>;
+
+/** Monday 11.01.2027 09:00 in Warsaw. */
+const APPOINTMENT_START = '2027-01-11T08:00:00.000Z';
 
 // Nest's own metadata keys (PATH_METADATA / METHOD_METADATA).
 const PATH = 'path';
@@ -60,6 +73,14 @@ function discoverRoutes(ctx: TestContext): Route[] {
  */
 function validBody(route: Route): object {
   const p = route.path;
+  if (p.endsWith('/appointments/:appointmentId/reschedule')) {
+    return { version: 1, start: '2027-01-11T10:00:00.000Z', allowOutsideHours: true };
+  }
+  if (p.endsWith('/appointments/:appointmentId/cancel')) return { version: 1, reason: 'Hacked' };
+  if (p.endsWith('/appointments/:appointmentId/status')) return { version: 1, status: 'no_show' };
+  if (p.endsWith('/appointments')) {
+    return { ...appointmentBody(), allowOutsideHours: true };
+  }
   if (p.endsWith('/working-hours/overrides/:date')) {
     return { intervals: [{ start: '09:00', end: '10:00' }] };
   }
@@ -81,9 +102,22 @@ function urlFor(route: Route, ids: Ids): string {
     if (param in ids) return ids[param as keyof Ids];
     throw new Error(`isolation.spec.ts: add an id for ":${param}" (${route.path})`);
   });
-  return path.endsWith('/availability')
-    ? `${path}?serviceId=${ids.serviceId}&from=${DATE}&to=${DATE}`
-    : path;
+  if (path.endsWith('/availability')) {
+    return `${path}?serviceId=${ids.serviceId}&from=${DATE}&to=${DATE}`;
+  }
+  if (path.endsWith('/appointments')) return `${path}?from=${DATE}&to=${DATE}`;
+  return path;
+}
+
+/** Body for creating an appointment; ids filled in per request by `send`. */
+let currentIds: Ids | undefined;
+function appointmentBody(): object {
+  return {
+    serviceId: currentIds?.serviceId,
+    staffId: currentIds?.staffId,
+    start: '2027-01-11T12:00:00.000Z',
+    customer: { name: 'Hacker', phone: '+48500000000' },
+  };
 }
 
 function send(route: Route, url: string, user: SignedInUser) {
@@ -141,6 +175,17 @@ async function seedLocation(
     .set(user.auth)
     .send({ start: '2027-02-01T00:00', end: '2027-02-08T00:00' })
     .expect(201);
+  const appointment = await ctx
+    .http()
+    .post(`${base}/appointments`)
+    .set(user.auth)
+    .send({
+      serviceId: service.body.id,
+      staffId: staff.body.id,
+      start: APPOINTMENT_START,
+      customer: { name: 'Jan Kowalski', phone: '+48600100200', email: 'jan@example.com' },
+    })
+    .expect(201);
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -148,6 +193,8 @@ async function seedLocation(
     staffId: staff.body.id,
     timeOffId: timeOff.body.id,
     date: DATE,
+    appointmentId: appointment.body.id,
+    customerId: appointment.body.customer.id,
   };
 }
 
@@ -161,6 +208,11 @@ async function snapshotOf(ids: Ids) {
       where: { locationId: ids.locationId },
       include: { services: true, workingHours: true, overrides: true, timeOff: true },
     }),
+    appointments: await ctx.prisma.appointment.findMany({
+      where: { locationId: ids.locationId },
+      include: { events: true },
+    }),
+    customers: await ctx.prisma.customer.findMany({ where: { organizationId: ids.orgId } }),
   };
 }
 
@@ -203,7 +255,9 @@ describe('tenant isolation', () => {
     {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
-      applies: (r) => /:(serviceId|staffId)/.test(r.path) || r.path.endsWith('/availability'),
+      applies: (r) =>
+        /:(serviceId|staffId|appointmentId|customerId)/.test(r.path) ||
+        r.path.endsWith('/availability'),
     },
     {
       name: "B's time off under A's own staff member",
@@ -219,7 +273,8 @@ describe('tenant isolation', () => {
       expect(routes.length).toBeGreaterThan(0);
 
       for (const route of routes) {
-        const res = await send(route, urlFor(route, scenario.ids()), alice);
+        currentIds = scenario.ids();
+        const res = await send(route, urlFor(route, currentIds), alice);
         const label = `${route.method.toUpperCase()} ${route.path}`;
         expect(res.status, label).toBe(404);
         expect(res.body.error?.code, label).toBe('NOT_FOUND');
