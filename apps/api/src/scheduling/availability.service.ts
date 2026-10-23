@@ -138,7 +138,7 @@ export class AvailabilityService {
     const rangeStart = zonedToInstant(query.from, 0, location.timezone) - DAY_MS;
     const rangeEnd = zonedToInstant(addDays(query.to, 1), 0, location.timezone) + DAY_MS;
 
-    const [weekly, overrides, timeOff, appointments] = await Promise.all([
+    const [weekly, overrides, timeOff, appointments, blocks] = await Promise.all([
       this.prisma.workingHours.findMany({ where: { staffId: { in: staffIds } } }),
       this.prisma.workingHoursOverride.findMany({
         where: {
@@ -169,6 +169,17 @@ export class AvailabilityService {
         },
         select: { staffId: true, startAt: true, blockedUntil: true },
       }),
+      // Time blocks of a staff member or of the whole location (staffId null).
+      this.prisma.timeBlock.findMany({
+        where: {
+          locationId: location.id,
+          deletedAt: null,
+          OR: [{ staffId: { in: staffIds } }, { staffId: null }],
+          startAt: { lt: new Date(rangeEnd) },
+          endAt: { gt: new Date(rangeStart) },
+        },
+        select: { staffId: true, startAt: true, endAt: true },
+      }),
     ]);
 
     const schedules: StaffSchedule[] = staffIds.map((staffId) => {
@@ -188,6 +199,9 @@ export class AvailabilityService {
         ...appointments
           .filter((a) => a.staffId === staffId)
           .map((a) => ({ start: a.startAt.getTime(), end: a.blockedUntil.getTime() })),
+        ...blocks
+          .filter((b) => b.staffId === staffId || b.staffId === null)
+          .map((b) => ({ start: b.startAt.getTime(), end: b.endAt.getTime() })),
       ];
       return { staffId, weekly: week, overrides: special, busy };
     });

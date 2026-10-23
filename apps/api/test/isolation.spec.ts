@@ -34,7 +34,8 @@ type Ids = Record<
   | 'appointmentId'
   | 'customerId'
   | 'categoryId'
-  | 'membershipId',
+  | 'membershipId'
+  | 'blockId',
   string
 >;
 
@@ -78,6 +79,10 @@ function validBody(route: Route): object {
   if (p.endsWith('/members/:membershipId/permissions')) {
     return { version: 1, staffCategoryId: null, overrides: { viewClientContacts: true } };
   }
+  if (p.endsWith('/time-blocks/:blockId')) return { version: 1, reason: 'Hacked' };
+  if (p.endsWith('/time-blocks')) {
+    return { staffId: null, start: '2027-01-12T10:00:00.000Z', end: '2027-01-12T11:00:00.000Z' };
+  }
   if (p.endsWith('/staff-categories/:categoryId')) return { version: 1, name: 'Hacked' };
   if (p.endsWith('/staff-categories')) return { name: 'Hacked' };
   if (p.endsWith('/appointments/:appointmentId/reschedule')) {
@@ -112,7 +117,9 @@ function urlFor(route: Route, ids: Ids): string {
   if (path.endsWith('/availability')) {
     return `${path}?serviceId=${ids.serviceId}&from=${DATE}&to=${DATE}`;
   }
-  if (path.endsWith('/appointments')) return `${path}?from=${DATE}&to=${DATE}`;
+  if (path.endsWith('/appointments') || path.endsWith('/time-blocks')) {
+    return `${path}?from=${DATE}&to=${DATE}`;
+  }
   return path;
 }
 
@@ -193,6 +200,17 @@ async function seedLocation(
       customer: { name: 'Jan Kowalski', phone: '+48600100200', email: 'jan@example.com' },
     })
     .expect(201);
+  const block = await ctx
+    .http()
+    .post(`${base}/time-blocks`)
+    .set(user.auth)
+    .send({
+      staffId: staff.body.id,
+      start: '2027-01-12T08:00:00.000Z',
+      end: '2027-01-12T09:00:00.000Z',
+      reason: 'Szkolenie',
+    })
+    .expect(201);
   const category = await ctx
     .http()
     .post(`/v1/organizations/${org.orgId}/staff-categories`)
@@ -222,6 +240,7 @@ async function seedLocation(
     customerId: appointment.body.customer.id,
     categoryId: category.body.id,
     membershipId: membership.id,
+    blockId: block.body.id,
   };
 }
 
@@ -244,6 +263,7 @@ async function snapshotOf(ids: Ids) {
       where: { organizationId: ids.orgId },
     }),
     memberships: await ctx.prisma.membership.findMany({ where: { organizationId: ids.orgId } }),
+    timeBlocks: await ctx.prisma.timeBlock.findMany({ where: { locationId: ids.locationId } }),
   };
 }
 
@@ -287,8 +307,9 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId)/.test(r.path) ||
-        r.path.endsWith('/availability'),
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId)/.test(
+          r.path,
+        ) || r.path.endsWith('/availability'),
     },
     {
       name: "B's time off under A's own staff member",

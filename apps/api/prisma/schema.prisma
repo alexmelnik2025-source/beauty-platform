@@ -254,6 +254,7 @@ model Location {
   services          Service[]
   staffMembers      StaffMember[]
   appointments      Appointment[]
+  timeBlocks        TimeBlock[]
 
   @@index([organizationId])
   @@map("location")
@@ -305,6 +306,7 @@ model StaffMember {
   overrides    WorkingHoursOverride[]
   timeOff      TimeOff[]
   appointments Appointment[]
+  timeBlocks   TimeBlock[]
 
   @@unique([locationId, userId])
   @@index([locationId])
@@ -368,6 +370,31 @@ model TimeOff {
 
   @@index([staffId, startsAt])
   @@map("time_off")
+}
+
+/// Time taken out of the calendar with a reason ("training", "lunch"): for one staff member
+/// or, with no staff member, for the whole location. Never overlaps a live appointment.
+/// Deleted blocks are kept (deletedAt) so calendars can learn about the deletion.
+model TimeBlock {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  locationId      String    @map("location_id") @db.Uuid
+  staffId         String?   @map("staff_id") @db.Uuid
+  startAt         DateTime  @map("start_at") @db.Timestamptz(3)
+  endAt           DateTime  @map("end_at") @db.Timestamptz(3)
+  reason          String?
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  version         Int       @default(1)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff    StaffMember? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, startAt])
+  @@index([staffId, startAt])
+  @@index([locationId, updatedAt])
+  @@map("time_block")
 }
 
 /// A salon's client. Belongs to the organization; no login in the MVP (client accounts come in 2.0).

@@ -14,6 +14,7 @@ export const PERMISSIONS = {
   createOwnAppointments: true,
   changeOwnAppointments: true,
   bookOutsideHours: false,
+  blockOwnTime: false,
   viewClientContacts: false,
   viewClientHistory: false,
   viewClientNotes: false,

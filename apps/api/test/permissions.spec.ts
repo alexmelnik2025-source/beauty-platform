@@ -111,12 +111,15 @@ async function memberVersion(): Promise<number> {
   return row.version;
 }
 
-const setKasia = async (staffCategoryId: string | null, overrides: object = {}) =>
-  ctx
+/** Sets Kasia's category and exceptions as the owner (expects 200). */
+async function setKasia(staffCategoryId: string | null, overrides: object = {}) {
+  return ctx
     .http()
     .put(`/v1/organizations/${orgId}/members/${kasiaMembershipId}/permissions`)
     .set(owner.auth)
-    .send({ version: await memberVersion(), staffCategoryId, overrides });
+    .send({ version: await memberVersion(), staffCategoryId, overrides })
+    .expect(200);
+}
 
 const createCategory = (name: string, permissions: object) =>
   ctx
@@ -217,12 +220,12 @@ describe('categories and personal exceptions', () => {
       viewOwnEarnings: true,
     }).expect(201);
 
-    await setKasia(senior.body.id).expect(200);
+    await setKasia(senior.body.id);
     let res = await calendar().expect(200);
     expect(res.body[0].customer.phone).toBe('+48600000002');
     expect(res.body[0].priceGrosze).toBe(8000);
 
-    const member = await setKasia(senior.body.id, { viewClientContacts: false }).expect(200);
+    const member = await setKasia(senior.body.id, { viewClientContacts: false });
     expect(member.body.permissions).toMatchObject({
       viewClientContacts: false,
       viewOwnEarnings: true,
@@ -234,15 +237,15 @@ describe('categories and personal exceptions', () => {
 
   it('a personal exception can also grant what the category denies', async () => {
     const trainee = await createCategory('Trainee', { createOwnAppointments: false }).expect(201);
-    await setKasia(trainee.body.id).expect(200);
+    await setKasia(trainee.body.id);
     await book(kasiaStaffId, 10, kasia.auth).expect(403);
-    await setKasia(trainee.body.id, { createOwnAppointments: true }).expect(200);
+    await setKasia(trainee.body.id, { createOwnAppointments: true });
     await book(kasiaStaffId, 10, kasia.auth).expect(201);
   });
 
   it('viewing all appointments does not allow changing them', async () => {
     const ola = await book(olaStaffId, 10).expect(201);
-    await setKasia(null, { viewAllAppointments: true }).expect(200);
+    await setKasia(null, { viewAllAppointments: true });
     const res = await calendar().expect(200);
     expect(res.body.map((a: { id: string }) => a.id)).toEqual([ola.body.id]);
     await ctx
@@ -251,7 +254,7 @@ describe('categories and personal exceptions', () => {
       .set(kasia.auth)
       .send({ version: 1, reason: 'x' })
       .expect(403);
-    await setKasia(null, { viewAllAppointments: true, manageAllAppointments: true }).expect(200);
+    await setKasia(null, { viewAllAppointments: true, manageAllAppointments: true });
     await ctx
       .http()
       .post(`${base}/appointments/${ola.body.id}/cancel`)
@@ -262,7 +265,7 @@ describe('categories and personal exceptions', () => {
 
   it('turning off "change own appointments" blocks cancel and move', async () => {
     const own = await book(kasiaStaffId, 10, kasia.auth).expect(201);
-    await setKasia(null, { changeOwnAppointments: false }).expect(200);
+    await setKasia(null, { changeOwnAppointments: false });
     await ctx
       .http()
       .post(`${base}/appointments/${own.body.id}/cancel`)
@@ -274,7 +277,7 @@ describe('categories and personal exceptions', () => {
   it('deleting a category returns its members to the defaults', async () => {
     await book(kasiaStaffId, 10).expect(201);
     const senior = await createCategory('Senior', { viewClientContacts: true }).expect(201);
-    await setKasia(senior.body.id).expect(200);
+    await setKasia(senior.body.id);
     await ctx
       .http()
       .delete(`/v1/organizations/${orgId}/staff-categories/${senior.body.id}`)
@@ -298,7 +301,7 @@ describe('categories and personal exceptions', () => {
     await createCategory('Senior', {}).expect(201);
     expectError((await createCategory('Senior', {}).expect(409)).body, 'CATEGORY_NAME_TAKEN');
 
-    await setKasia(null, { viewClientContacts: true }).expect(200);
+    await setKasia(null, { viewClientContacts: true });
     expectError(
       (
         await ctx
@@ -358,7 +361,7 @@ describe('categories and personal exceptions', () => {
 
   it('every change of permissions is written to the audit log', async () => {
     const senior = await createCategory('Senior', { viewClientContacts: true }).expect(201);
-    await setKasia(senior.body.id, { viewOwnEarnings: true }).expect(200);
+    await setKasia(senior.body.id, { viewOwnEarnings: true });
     const log = await ctx.prisma.auditLog.findMany({
       where: { organizationId: orgId, action: { startsWith: 'staff_category' } },
     });
