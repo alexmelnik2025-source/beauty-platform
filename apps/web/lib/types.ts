@@ -1,8 +1,15 @@
 /** Shapes of the API responses the web app uses (see /v1/docs). */
 
 export type Role = 'owner' | 'manager' | 'staff';
-const STATUSES = ['held', 'confirmed', 'cancelled', 'expired', 'completed', 'no_show'] as const;
-export type AppointmentStatus = (typeof STATUSES)[number];
+export const APPOINTMENT_STATUSES = [
+  'held',
+  'confirmed',
+  'cancelled',
+  'expired',
+  'completed',
+  'no_show',
+] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
 export interface Me {
   user: { id: string; email: string; name: string; locale: string; emailVerified: boolean };
