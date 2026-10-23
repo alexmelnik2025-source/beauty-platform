@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { generateToken, hashToken } from '../common/crypto';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Locale, Prisma } from '../generated/prisma/client';
-import { MailService, type MailMessage } from '../mail/mail.service';
+import { MailService, maskEmails, type MailMessage } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   formatPrice,
@@ -19,10 +19,41 @@ export interface AppointmentNotification {
 }
 
 const MAX_ATTEMPTS = 5;
-const BATCH = 20;
-const LOCK_SECONDS = 60;
+/**
+ * A claimed email is locked for 5 minutes — far longer than one send may take
+ * (SEND_TIMEOUT_MS = 1 min) — so another server never takes it while it is being sent.
+ * Emails are claimed one at a time for the same reason.
+ */
+export const LOCK_SECONDS = 300;
+/** Sent and skipped rows are kept 30 days, failed ones 90 days (to investigate). */
+const KEEP_SENT_DAYS = 30;
+const KEEP_FAILED_DAYS = 90;
+const CLEANUP_EVERY_MS = 60 * 60_000;
+const ALERT_CHECK_EVERY_MS = 5 * 60_000;
+const ALERT_REPEAT_MS = 60 * 60_000;
 const MANAGE_LINK_DAYS_AFTER_VISIT = 7;
 const DAY_MS = 86_400_000;
+
+export interface OutboxStats {
+  status: 'ok' | 'warning';
+  /** failed = some emails were given up on; stuck = a due email waits too long. */
+  problems: string[];
+  pending: number;
+  due: number;
+  oldestDueSeconds: number;
+  failed: number;
+  sentLast24h: number;
+}
+
+export interface FailedEmail {
+  id: string;
+  type: string;
+  appointmentId: string | null;
+  attempts: number;
+  lastError: string | null;
+  createdAt: string;
+  lastAttemptAt: string;
+}
 
 interface ClaimedRow {
   id: string;
@@ -46,6 +77,9 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger('Outbox');
   private timer: NodeJS.Timeout | undefined;
   private running = false;
+  private lastCleanupAt = 0;
+  private lastAlertCheckAt = 0;
+  private lastAlertAt = 0;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -90,6 +124,15 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.expireHolds();
       await this.drain();
+      const now = Date.now();
+      if (now - this.lastCleanupAt >= CLEANUP_EVERY_MS) {
+        this.lastCleanupAt = now;
+        await this.cleanup();
+      }
+      if (now - this.lastAlertCheckAt >= ALERT_CHECK_EVERY_MS) {
+        this.lastAlertCheckAt = now;
+        await this.checkAlerts();
+      }
     } catch (error) {
       this.logger.error(
         'Outbox cycle failed',
@@ -122,26 +165,20 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   async drain(options: { afterSend?: () => void } = {}): Promise<number> {
     let processed = 0;
     for (;;) {
+      // One email per claim: the lock covers exactly the email being sent.
       const rows = await this.prisma.$queryRaw<ClaimedRow[]>`
         UPDATE notification_outbox
         SET locked_until = now() + make_interval(secs => ${LOCK_SECONDS}::int), attempts = attempts + 1
-        WHERE id IN (
+        WHERE id = (
           SELECT id FROM notification_outbox
           WHERE status = 'pending' AND next_attempt_at <= now()
             AND (locked_until IS NULL OR locked_until < now())
-          ORDER BY next_attempt_at
-          LIMIT ${BATCH}::int
+          ORDER BY next_attempt_at, id
+          LIMIT 1
           FOR UPDATE SKIP LOCKED
         )
         RETURNING id, type, payload, attempts, next_attempt_at`;
       if (rows.length === 0) return processed;
-      // RETURNING has no guaranteed order: send in the order the events happened
-      // (ids are UUIDv7, so they sort by creation time).
-      rows.sort(
-        (a, b) =>
-          a.next_attempt_at.getTime() - b.next_attempt_at.getTime() ||
-          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
-      );
 
       for (const row of rows) {
         processed += 1;
@@ -172,7 +209,8 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async retryLater(row: ClaimedRow, error: unknown): Promise<void> {
-    const message = error instanceof Error ? error.message : String(error);
+    // Provider messages may quote the recipient: never store or log addresses.
+    const message = maskEmails(error instanceof Error ? error.message : String(error));
     const failed = row.attempts >= MAX_ATTEMPTS;
     // 30 s, 2 min, 4.5 min, 8 min…
     const delayMs = row.attempts * row.attempts * 30_000;
@@ -190,6 +228,114 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         `Giving up on ${row.type} ${row.id} after ${row.attempts} attempts: ${message}`,
       );
     }
+  }
+
+  // ── Housekeeping, monitoring and manual retry ─────────
+
+  /** Deletes old rows: sent/skipped after 30 days, failed after 90 days. */
+  async cleanup(): Promise<number> {
+    return this.prisma.$executeRaw`
+      DELETE FROM notification_outbox
+      WHERE (status IN ('sent', 'skipped') AND created_at < now() - make_interval(days => ${KEEP_SENT_DAYS}::int))
+         OR (status = 'failed' AND created_at < now() - make_interval(days => ${KEEP_FAILED_DAYS}::int))`;
+  }
+
+  /** Queue health for the administrator page and alerts. */
+  async stats(): Promise<OutboxStats> {
+    const [row] = await this.prisma.$queryRaw<
+      {
+        pending: number;
+        due: number;
+        oldest_due_seconds: number | null;
+        failed: number;
+        sent_24h: number;
+      }[]
+    >`
+      SELECT
+        count(*) FILTER (WHERE status = 'pending')::int AS pending,
+        count(*) FILTER (WHERE status = 'pending' AND next_attempt_at <= now())::int AS due,
+        floor(extract(epoch FROM now() - min(next_attempt_at) FILTER (
+          WHERE status = 'pending' AND next_attempt_at <= now())))::int AS oldest_due_seconds,
+        count(*) FILTER (WHERE status = 'failed')::int AS failed,
+        count(*) FILTER (WHERE status = 'sent' AND sent_at > now() - interval '24 hours')::int AS sent_24h
+      FROM notification_outbox`;
+    const oldestDueSeconds = row?.oldest_due_seconds ?? 0;
+    const problems: string[] = [];
+    if ((row?.failed ?? 0) > 0) problems.push('failed');
+    if (oldestDueSeconds > this.config.OUTBOX_ALERT_AFTER_MINUTES * 60) problems.push('stuck');
+    return {
+      status: problems.length === 0 ? 'ok' : 'warning',
+      problems,
+      pending: row?.pending ?? 0,
+      due: row?.due ?? 0,
+      oldestDueSeconds,
+      failed: row?.failed ?? 0,
+      sentLast24h: row?.sent_24h ?? 0,
+    };
+  }
+
+  /** Emails that were given up on, newest first. No addresses: only type and appointment. */
+  async listFailed(limit = 100): Promise<FailedEmail[]> {
+    const rows = await this.prisma.notificationOutbox.findMany({
+      where: { status: 'failed' },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      appointmentId: (r.payload as unknown as AppointmentNotification).appointmentId ?? null,
+      attempts: r.attempts,
+      lastError: r.lastError,
+      createdAt: r.createdAt.toISOString(),
+      lastAttemptAt: r.nextAttemptAt.toISOString(),
+    }));
+  }
+
+  /** Puts failed emails back in the queue with fresh attempts. Same keys: no duplicates. */
+  async retryFailed(ids: string[] | 'all'): Promise<number> {
+    if (ids === 'all') {
+      return this.prisma.$executeRaw`
+        UPDATE notification_outbox
+        SET status = 'pending', attempts = 0, next_attempt_at = now(), locked_until = NULL
+        WHERE status = 'failed'`;
+    }
+    return this.prisma.$executeRaw`
+      UPDATE notification_outbox
+      SET status = 'pending', attempts = 0, next_attempt_at = now(), locked_until = NULL
+      WHERE status = 'failed' AND id = ANY(${ids}::uuid[])`;
+  }
+
+  /**
+   * Logs an error and emails the platform administrators when emails failed or are
+   * stuck. At most once an hour per server; the hourly idempotency key makes a
+   * provider like Resend drop the copies sent by other servers.
+   */
+  async checkAlerts(now = Date.now()): Promise<boolean> {
+    const stats = await this.stats();
+    if (stats.status === 'ok') return false;
+    if (now - this.lastAlertAt < ALERT_REPEAT_MS) return false;
+    this.lastAlertAt = now;
+    const summary = `Email queue: ${stats.problems.join(', ')} — failed ${stats.failed}, due ${stats.due}, oldest due ${Math.round(stats.oldestDueSeconds / 60)} min`;
+    this.logger.error(summary);
+    const hour = Math.floor(now / ALERT_REPEAT_MS);
+    for (const to of this.config.PLATFORM_ADMIN_EMAILS) {
+      try {
+        await this.mail.send(
+          {
+            to,
+            subject: 'Beauty Platform: problem with the email queue',
+            text: `${summary}\n\nOpen ${this.config.APP_WEB_URL}/pl/app/admin/outbox to see and resend failed emails.`,
+          },
+          { idempotencyKey: `outbox-alert-${hour}-${to}` },
+        );
+      } catch (error) {
+        this.logger.error(
+          `Could not send the queue alert: ${maskEmails(error instanceof Error ? error.message : String(error))}`,
+        );
+      }
+    }
+    return true;
   }
 
   /** Builds the emails from current data; null = nothing to send any more. */

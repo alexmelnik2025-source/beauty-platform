@@ -9,15 +9,23 @@ export interface MailMessage {
 
 export interface SendOptions {
   /**
-   * Same key = same email. Sent as the Message-ID, so a retry after a crash is
-   * recognised as a duplicate (providers with an idempotency API get it too).
+   * Same key = same email. A provider that supports idempotency keys (Resend) sends
+   * it at most once within its window, so a retry after a crash is not a duplicate.
    */
   idempotencyKey?: string;
 }
 
-/** Sends transactional email. Implementations: SMTP (Mailpit locally) and in-memory (tests). */
+/** Sends transactional email. Implementations: SMTP (Mailpit locally), Resend API, in-memory (tests). */
 export abstract class MailService {
   abstract send(message: MailMessage, options?: SendOptions): Promise<void>;
+}
+
+/** No send may hang longer than this; the email queue locks a row for 5 minutes. */
+export const SEND_TIMEOUT_MS = 60_000;
+
+/** Removes email addresses from text that is stored or logged (provider error messages). */
+export function maskEmails(text: string): string {
+  return text.replace(/[^\s<>"'@,;:]+@[^\s<>"'@,;:]+/g, '***@***');
 }
 
 export class SmtpMailService extends MailService {
@@ -29,7 +37,11 @@ export class SmtpMailService extends MailService {
     private readonly from: string,
   ) {
     super();
-    this.transporter = nodemailer.createTransport(smtpUrl);
+    this.transporter = nodemailer.createTransport(smtpUrl, {
+      connectionTimeout: 30_000,
+      greetingTimeout: 30_000,
+      socketTimeout: SEND_TIMEOUT_MS,
+    });
   }
 
   async send(message: MailMessage, options: SendOptions = {}): Promise<void> {
@@ -37,11 +49,75 @@ export class SmtpMailService extends MailService {
       from: this.from,
       ...message,
       ...(options.idempotencyKey
-        ? { messageId: `<${options.idempotencyKey}@beauty-platform>` }
+        ? {
+            messageId: `<${options.idempotencyKey}@beauty-platform>`,
+            // Honoured by Resend's SMTP relay; other servers ignore unknown headers.
+            headers: { 'Resend-Idempotency-Key': options.idempotencyKey },
+          }
         : {}),
     });
     // Log the type of mail, never its content (it may contain codes or links).
     this.logger.log(`Sent "${message.subject}"`);
+  }
+}
+
+/** Error that is worth retrying later (the provider is busy with the same key, rate limit, 5xx). */
+export class MailRetryableError extends Error {}
+
+/**
+ * Resend HTTP API. The `Idempotency-Key` header makes Resend send an email with a
+ * given key at most once in 24 hours: a repeat returns the first response.
+ * https://resend.com/docs/dashboard/emails/idempotency-keys
+ */
+export class ResendMailService extends MailService {
+  private readonly logger = new Logger('Mail');
+
+  constructor(
+    private readonly apiUrl: string,
+    private readonly apiKey: string,
+    private readonly from: string,
+  ) {
+    super();
+  }
+
+  async send(message: MailMessage, options: SendOptions = {}): Promise<void> {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.apiKey}`,
+      'Content-Type': 'application/json',
+    };
+    if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey.slice(0, 256);
+    const response = await fetch(`${this.apiUrl.replace(/\/+$/, '')}/emails`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        from: this.from,
+        to: [message.to],
+        subject: message.subject,
+        text: message.text,
+      }),
+      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+    });
+    if (response.ok) {
+      this.logger.log(`Sent "${message.subject}"`);
+      return;
+    }
+    let name = '';
+    try {
+      const body = (await response.json()) as { name?: unknown };
+      name = typeof body.name === 'string' ? body.name : '';
+    } catch {
+      // not JSON
+    }
+    const text = `Resend answered ${response.status}${name ? ` ${name}` : ''}`;
+    // Same key still being processed, rate limit, provider trouble: try again later.
+    if (
+      response.status === 429 ||
+      response.status >= 500 ||
+      name === 'concurrent_idempotent_requests'
+    ) {
+      throw new MailRetryableError(text);
+    }
+    throw new Error(text);
   }
 }
 
@@ -51,11 +127,12 @@ export class MemoryMailService extends MailService {
   readonly sent: MailMessage[] = [];
   private readonly keys = new Set<string>();
   private failures = 0;
+  private failureMessage = 'Simulated provider outage';
 
   async send(message: MailMessage, options: SendOptions = {}): Promise<void> {
     if (this.failures > 0) {
       this.failures -= 1;
-      throw new Error('Simulated provider outage');
+      throw new Error(this.failureMessage);
     }
     if (options.idempotencyKey) {
       if (this.keys.has(options.idempotencyKey)) return;
@@ -64,9 +141,10 @@ export class MemoryMailService extends MailService {
     this.sent.push(message);
   }
 
-  /** Test helper: the next `count` sends fail. */
-  failNext(count: number): void {
+  /** Test helper: the next `count` sends fail (with `message`, if given). */
+  failNext(count: number, message = 'Simulated provider outage'): void {
     this.failures = count;
+    this.failureMessage = message;
   }
 
   /** Test helper: the last message sent to `to`. */

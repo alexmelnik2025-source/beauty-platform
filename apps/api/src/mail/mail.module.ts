@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_CONFIG, type AppConfig } from '../config/config';
-import { MailService, MemoryMailService, SmtpMailService } from './mail.service';
+import { MailService, MemoryMailService, ResendMailService, SmtpMailService } from './mail.service';
 
 @Global()
 @Module({
@@ -8,10 +8,20 @@ import { MailService, MemoryMailService, SmtpMailService } from './mail.service'
     {
       provide: MailService,
       inject: [APP_CONFIG],
-      useFactory: (config: AppConfig): MailService =>
-        config.MAIL_TRANSPORT === 'memory'
-          ? new MemoryMailService()
-          : new SmtpMailService(config.SMTP_URL, config.MAIL_FROM),
+      useFactory: (config: AppConfig): MailService => {
+        switch (config.MAIL_TRANSPORT) {
+          case 'memory':
+            return new MemoryMailService();
+          case 'resend':
+            return new ResendMailService(
+              config.RESEND_API_URL,
+              config.RESEND_API_KEY ?? '',
+              config.MAIL_FROM,
+            );
+          default:
+            return new SmtpMailService(config.SMTP_URL, config.MAIL_FROM);
+        }
+      },
     },
   ],
   exports: [MailService],

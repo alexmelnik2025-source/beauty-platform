@@ -26,6 +26,7 @@ export default defineConfig({
       MAIL_TRANSPORT: 'memory',
       // Tests run the email queue explicitly instead of on a timer.
       OUTBOX_POLL_MS: '0',
+      PLATFORM_ADMIN_EMAILS: 'admin@example.com',
     },
     // One shared test database: run test files one after another.
     fileParallelism: false,

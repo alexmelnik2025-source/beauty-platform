@@ -1,5 +1,6 @@
 import {
   Controller,
+  Inject,
   Delete,
   Get,
   HttpCode,
@@ -8,7 +9,9 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { isPlatformAdmin } from '../admin/platform-admin.guard';
 import { notFound } from '../common/app-exception';
+import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { AuthContext } from '../common/request-context';
 import type { ClientType, MembershipRole } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,6 +21,8 @@ import { CurrentAuth } from './decorators';
 interface MeResponse {
   user: PublicUser;
   organizations: { id: string; name: string; role: MembershipRole }[];
+  /** Platform administrator (email queue page). */
+  isPlatformAdmin: boolean;
 }
 
 interface SessionResponse {
@@ -34,7 +39,10 @@ interface SessionResponse {
 @ApiBearerAuth()
 @Controller('me')
 export class MeController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'The signed-in user and their organizations' })
@@ -56,6 +64,7 @@ export class MeController {
         name: m.organization.name,
         role: m.role,
       })),
+      isPlatformAdmin: isPlatformAdmin(this.config, user),
     };
   }
 

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { BookingModule } from './booking/booking.module';
 import { CommonModule } from './common/common.module';
@@ -20,6 +21,7 @@ import { SchedulingModule } from './scheduling/scheduling.module';
     SchedulingModule,
     BookingModule,
     HealthModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
