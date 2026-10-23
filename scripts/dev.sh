@@ -51,10 +51,14 @@ pnpm install || fail "pnpm install завершился с ошибкой"
 step "5/6 Миграции базы"
 pnpm db:deploy || fail "Миграции не применились"
 
-step "6/6 API"
+step "6/6 API и веб-кабинет"
 if command -v lsof >/dev/null 2>&1 && lsof -nP -iTCP:4000 -sTCP:LISTEN >/dev/null 2>&1; then
   fail "Порт 4000 уже занят — возможно, сервер запущен в другом окне Терминала. Закрой его и запусти снова"
 fi
-echo "Когда появится «API docs: http://localhost:4000/v1/docs» — открывай в браузере."
-echo "Письма: http://localhost:8025. Остановить сервер: Control + C."
+if command -v lsof >/dev/null 2>&1 && lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; then
+  fail "Порт 3000 уже занят — закрой другую программу или окно Терминала с сервером и запусти снова"
+fi
+echo "Когда в окне появится «Ready» — открывай в браузере http://localhost:3000"
+echo "Документация API: http://localhost:4000/v1/docs. Письма: http://localhost:8025."
+echo "Остановить: Control + C."
 exec pnpm dev
