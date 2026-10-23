@@ -282,7 +282,7 @@ test('visual set: owner (desktop + mobile), staff (mobile), client (mobile + des
       ['settings', 'A-owner-mobile-10-settings', 'Rezerwacje online'],
     ] as const) {
       await page.goto(`/pl/app/${path}`);
-      await expect(page.getByText(check).first()).toBeVisible();
+      await expect(page.getByText(check).filter({ visible: true }).first()).toBeVisible();
       await shot(page, name, true);
       if (path === 'team') {
         await page.getByRole('button', { name: /Marta/ }).click();
@@ -317,7 +317,7 @@ test('visual set: owner (desktop + mobile), staff (mobile), client (mobile + des
     await expect(page.getByText('09:00–19:00').first()).toBeVisible();
     await shot(page, 'B-staff-mobile-05-schedule', true);
     await page.goto('/pl/app/more');
-    await expect(page.getByText('Mój grafik').first()).toBeVisible();
+    await expect(page.getByText('Mój grafik').filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText('Klienci')).toHaveCount(0);
     await shot(page, 'B-staff-mobile-06-more', true);
     await ctx.close();
