@@ -95,6 +95,11 @@ export class AppointmentWriter {
   ): Promise<T> {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        // One writer per staff member at a time. Without this, two transactions
+        // inserting overlapping rows can each wait for the other inside the
+        // exclusion constraint (PostgreSQL then aborts one as a deadlock after 1 s).
+        // The constraint stays the guarantee; the lock only queues the writers.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${staffId}, 0))`;
         await this.releaseExpiredHolds(tx, staffId, times);
         return write(tx);
       });

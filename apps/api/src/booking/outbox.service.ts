@@ -29,6 +29,7 @@ interface ClaimedRow {
   type: string;
   payload: AppointmentNotification;
   attempts: number;
+  next_attempt_at: Date;
 }
 
 /**
@@ -132,8 +133,15 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
           LIMIT ${BATCH}::int
           FOR UPDATE SKIP LOCKED
         )
-        RETURNING id, type, payload, attempts`;
+        RETURNING id, type, payload, attempts, next_attempt_at`;
       if (rows.length === 0) return processed;
+      // RETURNING has no guaranteed order: send in the order the events happened
+      // (ids are UUIDv7, so they sort by creation time).
+      rows.sort(
+        (a, b) =>
+          a.next_attempt_at.getTime() - b.next_attempt_at.getTime() ||
+          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+      );
 
       for (const row of rows) {
         processed += 1;

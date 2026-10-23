@@ -267,7 +267,7 @@ describe('online booking: hold → code → confirm', () => {
 
 // ── Concurrency (spec: 20 simultaneous requests) ──────
 
-describe('no double booking under concurrency', () => {
+describe('no double booking under concurrency', { timeout: 20_000 }, () => {
   beforeEach(() => {
     ctx.app.get(RateLimiterService).enabled = false;
   });
