@@ -20,7 +20,7 @@ import { BlockSheet } from './BlockSheet';
 import { NewItemSheet, type NewItemDraft } from './NewItemSheet';
 
 const REFRESH_MS = 30_000;
-const HOUR_PX = 72;
+const HOUR_PX = 80;
 
 /** Monday of the week that contains `date`. */
 function weekStart(date: string): string {
@@ -55,6 +55,8 @@ export function Calendar() {
   const [draft, setDraft] = useState<NewItemDraft | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const etag = useRef<string | null>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const scrolledFor = useRef<string | null>(null);
 
   const load = useCallback(
     async (fresh = false) => {
@@ -143,6 +145,16 @@ export function Calendar() {
 
   const px = (minutes: number) => ((minutes - (view?.startMin ?? 0)) / 60) * HOUR_PX;
 
+  // Once per day shown: scroll to the current time (today) or to the first visit.
+  useEffect(() => {
+    if (!view || !scroller.current || scrolledFor.current === `${location.id}:${date}`) return;
+    scrolledFor.current = `${location.id}:${date}`;
+    const nowLocal = toLocal(Date.now(), tz);
+    const first = view.appointments.map((a) => clockToMinutes(a.time)).sort((x, y) => x - y)[0];
+    const target = date === nowLocal.date ? nowLocal.minute : (first ?? view.startMin + 60);
+    scroller.current.scrollTop = Math.max(0, ((target - view.startMin) / 60) * HOUR_PX - HOUR_PX);
+  }, [view, date, location.id, tz]);
+
   /** Minutes of an ISO instant within the shown day (clipped to the day). */
   const dayMinute = (iso: string) => {
     const local = toLocal(iso, tz);
@@ -172,7 +184,7 @@ export function Calendar() {
         </div>
         <button
           type="button"
-          className="icon-btn"
+          className="icon-btn hide-mobile"
           aria-label={t.calendar.previousDay}
           onClick={() => setDate(addDays(date, -1))}
         >
@@ -183,7 +195,7 @@ export function Calendar() {
         </button>
         <button
           type="button"
-          className="icon-btn"
+          className="icon-btn hide-mobile"
           aria-label={t.calendar.nextDay}
           onClick={() => setDate(addDays(date, 1))}
         >
@@ -201,6 +213,7 @@ export function Calendar() {
         <button
           type="button"
           className="btn btn--small"
+          aria-label={t.calendar.newAppointment}
           onClick={() =>
             setDraft({
               kind: 'appointment',
@@ -210,11 +223,19 @@ export function Calendar() {
             })
           }
         >
-          + {t.calendar.newAppointment}
+          +<span className="hide-mobile">&nbsp;{t.calendar.newAppointment}</span>
         </button>
       </div>
 
       <div className="week-strip" role="group" aria-label={formatDay(monday, tag)}>
+        <button
+          type="button"
+          className="week-arrow"
+          aria-label={t.calendar.previousWeek}
+          onClick={() => setDate(addDays(date, -7))}
+        >
+          ‹
+        </button>
         {week.map((d) => (
           <button
             key={d}
@@ -227,6 +248,14 @@ export function Calendar() {
             <b>{Number(d.slice(8))}</b>
           </button>
         ))}
+        <button
+          type="button"
+          className="week-arrow"
+          aria-label={t.calendar.nextWeek}
+          onClick={() => setDate(addDays(date, 7))}
+        >
+          ›
+        </button>
       </div>
 
       {error ? (
@@ -240,7 +269,7 @@ export function Calendar() {
       ) : data.staff.length === 0 ? (
         <div className="cal-empty muted">{t.calendar.noStaff}</div>
       ) : (
-        <div className="cal-scroll">
+        <div className="cal-scroll" ref={scroller}>
           <div className="cal-grid" style={{ '--cols': data.staff.length } as CSSProperties}>
             <div className="cal-head">
               <div className="corner" />

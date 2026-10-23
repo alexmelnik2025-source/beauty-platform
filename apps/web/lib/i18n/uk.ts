@@ -87,6 +87,8 @@ export const uk: Dict = {
     nextDay: 'Наступний день',
     updated: 'Оновлено',
     showCancelled: 'Показати скасовані',
+    previousWeek: 'Попередній тиждень',
+    nextWeek: 'Наступний тиждень',
   },
   appointment: {
     title: 'Запис',

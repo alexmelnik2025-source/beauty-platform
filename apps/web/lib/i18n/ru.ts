@@ -87,6 +87,8 @@ export const ru: Dict = {
     nextDay: 'Следующий день',
     updated: 'Обновлено',
     showCancelled: 'Показать отменённые',
+    previousWeek: 'Предыдущая неделя',
+    nextWeek: 'Следующая неделя',
   },
   appointment: {
     title: 'Запись',

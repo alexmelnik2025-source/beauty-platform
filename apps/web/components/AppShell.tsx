@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="muted">{session.location.city}</div>
           </div>
         )}
-        <nav>
+        <nav className="menu">
           {items.map((item) => (
             <Link
               key={item.href}

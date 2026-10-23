@@ -133,7 +133,7 @@ export function AppointmentSheet({
 
   return (
     <Sheet title={t.appointment.title} onClose={onClose} footer={footer}>
-      <div className="row" style={{ gap: 6 }}>
+      <div className="chips">
         <span className="chip">{t.appointment.status[a.status]}</span>
         <span className="chip">
           {a.source === 'online' ? t.appointment.online : t.appointment.manual}

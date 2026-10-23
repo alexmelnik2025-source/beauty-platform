@@ -86,6 +86,8 @@ export const pl = {
     nextDay: 'Następny dzień',
     updated: 'Zaktualizowano',
     showCancelled: 'Pokaż odwołane',
+    previousWeek: 'Poprzedni tydzień',
+    nextWeek: 'Następny tydzień',
   },
   appointment: {
     title: 'Wizyta',
