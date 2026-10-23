@@ -119,6 +119,8 @@ describe('sending one email at a time', () => {
 
 describe('failed emails: monitoring and manual retry', () => {
   async function failCompletely(): Promise<void> {
+    // Only the confirmation should take the simulated failures, not tomorrow's reminder.
+    await ctx.prisma.notificationOutbox.deleteMany({ where: { type: 'client_reminder' } });
     ctx.mail.failNext(5, 'Mailbox anna@example.com rejected the message');
     for (let i = 0; i < 5; i += 1) {
       await makeQueueDue();
