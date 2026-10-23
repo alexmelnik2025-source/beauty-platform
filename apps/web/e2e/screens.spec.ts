@@ -355,6 +355,8 @@ test('visual set: owner (desktop + mobile), staff (mobile), client (mobile + des
     await expect(page.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
     await shot(page, `C-client-${label}-06-done`, mobile);
     await page.getByRole('link', { name: 'Zmień lub odwołaj wizytę' }).click();
+    await page.waitForURL(/\/m\//);
+    await expect(page.getByRole('button', { name: 'Odwołaj wizytę' })).toBeVisible();
     await expect(page.getByText('Potwierdzona')).toBeVisible();
     await shot(page, `C-client-${label}-07-manage`, mobile);
     await ctx.close();
