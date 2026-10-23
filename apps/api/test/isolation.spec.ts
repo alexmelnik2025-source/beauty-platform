@@ -32,7 +32,9 @@ type Ids = Record<
   | 'timeOffId'
   | 'date'
   | 'appointmentId'
-  | 'customerId',
+  | 'customerId'
+  | 'categoryId'
+  | 'membershipId',
   string
 >;
 
@@ -73,6 +75,11 @@ function discoverRoutes(ctx: TestContext): Route[] {
  */
 function validBody(route: Route): object {
   const p = route.path;
+  if (p.endsWith('/members/:membershipId/permissions')) {
+    return { version: 1, staffCategoryId: null, overrides: { viewClientContacts: true } };
+  }
+  if (p.endsWith('/staff-categories/:categoryId')) return { version: 1, name: 'Hacked' };
+  if (p.endsWith('/staff-categories')) return { name: 'Hacked' };
   if (p.endsWith('/appointments/:appointmentId/reschedule')) {
     return { version: 1, start: '2027-01-11T10:00:00.000Z', allowOutsideHours: true };
   }
@@ -186,6 +193,24 @@ async function seedLocation(
       customer: { name: 'Jan Kowalski', phone: '+48600100200', email: 'jan@example.com' },
     })
     .expect(201);
+  const category = await ctx
+    .http()
+    .post(`/v1/organizations/${org.orgId}/staff-categories`)
+    .set(user.auth)
+    .send({ name: 'Senior', permissions: { viewClientContacts: true } })
+    .expect(201);
+  const staffUser = await ctx.prisma.user.create({
+    data: { email: `staff-${org.orgId}@example.com`, passwordHash: 'not-used', name: 'Staff' },
+  });
+  const membership = await ctx.prisma.membership.create({
+    data: {
+      userId: staffUser.id,
+      organizationId: org.orgId,
+      role: 'staff',
+      staffCategoryId: category.body.id,
+      locations: { create: [{ locationId: org.locationId }] },
+    },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -195,6 +220,8 @@ async function seedLocation(
     date: DATE,
     appointmentId: appointment.body.id,
     customerId: appointment.body.customer.id,
+    categoryId: category.body.id,
+    membershipId: membership.id,
   };
 }
 
@@ -213,6 +240,10 @@ async function snapshotOf(ids: Ids) {
       include: { events: true },
     }),
     customers: await ctx.prisma.customer.findMany({ where: { organizationId: ids.orgId } }),
+    staffCategories: await ctx.prisma.staffCategory.findMany({
+      where: { organizationId: ids.orgId },
+    }),
+    memberships: await ctx.prisma.membership.findMany({ where: { organizationId: ids.orgId } }),
   };
 }
 
@@ -256,7 +287,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId)/.test(r.path) ||
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId)/.test(r.path) ||
         r.path.endsWith('/availability'),
     },
     {

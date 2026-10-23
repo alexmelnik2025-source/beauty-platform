@@ -160,10 +160,11 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  memberships Membership[]
-  locations   Location[]
-  auditLogs   AuditLog[]
-  customers   Customer[]
+  memberships     Membership[]
+  locations       Location[]
+  auditLogs       AuditLog[]
+  customers       Customer[]
+  staffCategories StaffCategory[]
 
   @@map("organization")
 }
@@ -175,16 +176,41 @@ model Membership {
   organizationId String           @map("organization_id") @db.Uuid
   role           MembershipRole
   status         MembershipStatus @default(active)
+  /// Staff role only: the category whose permissions apply.
+  staffCategoryId String?          @map("staff_category_id") @db.Uuid
+  /// Staff role only: personal exceptions, { "<permission>": true | false }.
+  permissionOverrides Json         @default("{}") @map("permission_overrides")
+  version        Int              @default(1)
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  locations    MembershipLocation[]
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization  Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  staffCategory StaffCategory?       @relation(fields: [staffCategoryId], references: [id], onDelete: SetNull)
+  locations     MembershipLocation[]
 
   @@unique([userId, organizationId])
   @@index([organizationId])
+  @@index([staffCategoryId])
   @@map("membership")
+}
+
+/// A group of staff members with the same permissions ("Senior barber", "Trainee").
+model StaffCategory {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  /// { "<permission>": true | false }; a missing key falls back to the default.
+  permissions    Json     @default("{}")
+  version        Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships  Membership[]
+
+  @@unique([organizationId, name])
+  @@map("staff_category")
 }
 
 model MembershipLocation {

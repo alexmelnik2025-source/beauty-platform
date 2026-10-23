@@ -38,8 +38,10 @@ export interface AppointmentResponse {
   time: string;
   staff: { id: string; displayName: string };
   service: { id: string; name: string };
-  customer: { id: string; name: string; phone: string; email: string | null } | null;
-  priceGrosze: number;
+  /** phone and email are null when the caller may not see client contacts. */
+  customer: { id: string; name: string; phone: string | null; email: string | null } | null;
+  /** null when a staff member may not see prices. */
+  priceGrosze: number | null;
   durationMinutes: number;
   bufferMinutes: number;
   note: string | null;
@@ -78,7 +80,8 @@ const outsideHours = (): AppException =>
 
 /**
  * Appointments as the salon sees them. Owners and managers: every appointment of
- * their locations. Staff (masters): only appointments of their own staff profile.
+ * their locations. Staff (masters): their own appointments, plus what their
+ * permissions add (see organizations/permissions.ts).
  */
 @Injectable()
 export class AppointmentsService {
@@ -97,7 +100,7 @@ export class AppointmentsService {
     query: ListAppointmentsQuery,
   ): Promise<AppointmentResponse[]> {
     const location = await this.access.readable(m, locationId);
-    const ownStaffIds = await this.ownStaffIds(m, userId, locationId);
+    const ownStaffIds = await this.visibleStaffIds(m, userId, locationId);
     const from = zonedToInstant(query.from, 0, location.timezone);
     const to = zonedToInstant(addDays(query.to, 1), 0, location.timezone);
     const rows = await this.prisma.appointment.findMany({
@@ -114,7 +117,7 @@ export class AppointmentsService {
       include,
       orderBy: [{ startAt: 'asc' }, { staffId: 'asc' }],
     });
-    return rows.map((row) => this.toResponse(row));
+    return rows.map((row) => this.toResponse(row, m));
   }
 
   async get(
@@ -128,7 +131,7 @@ export class AppointmentsService {
       where: { appointmentId },
       orderBy: { createdAt: 'asc' },
     });
-    return { ...this.toResponse(appointment), history: events.map(toHistory) };
+    return { ...this.toResponse(appointment, m), history: events.map(toHistory) };
   }
 
   /** A booking entered by the salon (phone call, walk-in). Confirmed immediately. */
@@ -139,7 +142,8 @@ export class AppointmentsService {
     input: CreateAppointmentInput,
   ): Promise<AppointmentDetailResponse> {
     const location = await this.access.readable(m, locationId);
-    await this.assertMayActFor(m, userId, locationId, input.staffId);
+    await this.assertMayActFor(m, userId, locationId, input.staffId, 'createOwnAppointments');
+    this.assertMayBookOutsideHours(m, input.allowOutsideHours);
 
     const service = await this.prisma.service.findFirst({
       where: { id: input.serviceId, locationId, active: true },
@@ -202,7 +206,9 @@ export class AppointmentsService {
   ): Promise<AppointmentDetailResponse> {
     const appointment = await this.findVisible(m, userId, locationId, appointmentId);
     const staffId = input.staffId ?? appointment.staffId;
-    await this.assertMayActFor(m, userId, locationId, staffId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    await this.assertMayActFor(m, userId, locationId, staffId, 'changeOwnAppointments');
+    this.assertMayBookOutsideHours(m, input.allowOutsideHours);
     if (appointment.status !== 'confirmed') throw versionConflict();
     if (staffId !== appointment.staffId) {
       const offers = await this.prisma.staffService.count({
@@ -248,7 +254,7 @@ export class AppointmentsService {
     input: CancelInput,
   ): Promise<AppointmentDetailResponse> {
     const appointment = await this.findVisible(m, userId, locationId, appointmentId);
-    await this.assertMayActFor(m, userId, locationId, appointment.staffId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
     await this.prisma.$transaction(async (tx) => {
       const result = await tx.appointment.updateMany({
         where: {
@@ -288,7 +294,7 @@ export class AppointmentsService {
     input: SetStatusInput,
   ): Promise<AppointmentDetailResponse> {
     const appointment = await this.findVisible(m, userId, locationId, appointmentId);
-    await this.assertMayActFor(m, userId, locationId, appointment.staffId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
     if (appointment.startAt.getTime() > Date.now()) {
       throw new AppException(
         HttpStatus.BAD_REQUEST,
@@ -327,14 +333,35 @@ export class AppointmentsService {
     return own.map((s) => s.id);
   }
 
+  /** Whose appointments the caller may see: null = everyone's at the location. */
+  private async visibleStaffIds(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+  ): Promise<string[] | null> {
+    if (m.permissions.viewAllAppointments) return null;
+    return this.ownStaffIds(m, userId, locationId);
+  }
+
+  /**
+   * Own appointments need `ownPermission`; someone else's need manageAllAppointments.
+   * Owners and managers have both.
+   */
   private async assertMayActFor(
     m: MembershipContext,
     userId: string,
     locationId: string,
     staffId: string,
+    ownPermission: 'createOwnAppointments' | 'changeOwnAppointments',
   ): Promise<void> {
     const own = await this.ownStaffIds(m, userId, locationId);
-    if (own && !own.includes(staffId)) throw forbidden();
+    const isOwn = own === null || own.includes(staffId);
+    const allowed = isOwn ? m.permissions[ownPermission] : m.permissions.manageAllAppointments;
+    if (!allowed) throw forbidden();
+  }
+
+  private assertMayBookOutsideHours(m: MembershipContext, requested: boolean): void {
+    if (requested && !m.permissions.bookOutsideHours) throw forbidden();
   }
 
   private async findVisible(
@@ -349,8 +376,8 @@ export class AppointmentsService {
       include,
     });
     if (!appointment) throw notFound('Appointment');
-    const own = await this.ownStaffIds(m, userId, locationId);
-    if (own && !own.includes(appointment.staffId)) throw notFound('Appointment');
+    const visible = await this.visibleStaffIds(m, userId, locationId);
+    if (visible && !visible.includes(appointment.staffId)) throw notFound('Appointment');
     return appointment;
   }
 
@@ -434,8 +461,9 @@ export class AppointmentsService {
     }
   }
 
-  private toResponse(a: Loaded): AppointmentResponse {
+  private toResponse(a: Loaded, m: MembershipContext): AppointmentResponse {
     const local = instantToLocal(a.startAt.getTime(), a.location.timezone);
+    const contacts = m.permissions.viewClientContacts;
     return {
       id: a.id,
       locationId: a.locationId,
@@ -452,11 +480,11 @@ export class AppointmentsService {
         ? {
             id: a.customer.id,
             name: a.customer.name,
-            phone: a.customer.phone,
-            email: a.customer.email,
+            phone: contacts ? a.customer.phone : null,
+            email: contacts ? a.customer.email : null,
           }
         : null,
-      priceGrosze: a.priceGrosze,
+      priceGrosze: m.permissions.viewOwnEarnings ? a.priceGrosze : null,
       durationMinutes: a.durationMinutes,
       bufferMinutes: a.bufferMinutes,
       note: a.note,

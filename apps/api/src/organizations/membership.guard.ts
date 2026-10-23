@@ -10,6 +10,7 @@ import { forbidden, notFound } from '../common/app-exception';
 import type { AppRequest, MembershipContext } from '../common/request-context';
 import type { MembershipRole } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { effectivePermissions, readPermissionMap } from './permissions';
 
 const ROLES = 'membershipRoles';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,7 +51,7 @@ export class MembershipGuard implements CanActivate {
 
     const membership = await this.prisma.membership.findUnique({
       where: { userId_organizationId: { userId: request.auth.userId, organizationId: orgId } },
-      include: { locations: { select: { locationId: true } } },
+      include: { locations: { select: { locationId: true } }, staffCategory: true },
     });
     if (!membership || membership.status !== 'active') {
       throw notFound('Organization');
@@ -69,6 +70,11 @@ export class MembershipGuard implements CanActivate {
       organizationId: orgId,
       role: membership.role,
       locationIds: membership.role === 'owner' ? [] : membership.locations.map((l) => l.locationId),
+      permissions: effectivePermissions(
+        membership.role,
+        membership.staffCategory ? readPermissionMap(membership.staffCategory.permissions) : null,
+        readPermissionMap(membership.permissionOverrides),
+      ),
     };
     return true;
   }
