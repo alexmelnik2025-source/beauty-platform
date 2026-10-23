@@ -925,6 +925,41 @@ h3 {
   letter-spacing: 0.04em;
 }
 
+/* Desktop: the salon stays on the left, the steps get their own column on the right. */
+@media (min-width: 1024px) {
+  .booking {
+    display: grid;
+    grid-template-columns: minmax(340px, 5fr) minmax(0, 7fr);
+    align-items: start;
+  }
+
+  .salon-head {
+    position: sticky;
+    top: 0;
+    min-height: 100dvh;
+    align-content: start;
+    padding: 56px 48px;
+    border-bottom: 0;
+    border-right: 1px solid var(--ink);
+  }
+
+  .salon-head-inner {
+    max-width: 420px;
+    margin: 0 0 0 auto;
+    gap: 14px;
+  }
+
+  .salon-name {
+    font-size: clamp(2rem, 2.8vw, 2.8rem);
+  }
+
+  .booking > .narrow {
+    max-width: 680px;
+    margin: 0;
+    padding: 56px 56px 80px;
+  }
+}
+
 .progress {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
