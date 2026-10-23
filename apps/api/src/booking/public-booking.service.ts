@@ -158,6 +158,7 @@ export class PublicBookingService {
               serviceId: service.id,
               status: 'held',
               source: 'online',
+              staffChosenByClient: input.staffId !== undefined,
               ...times,
               holdExpiresAt: expiresAt,
               holdTokenHash: hashToken(holdToken),

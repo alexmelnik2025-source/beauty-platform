@@ -19,8 +19,11 @@ export interface PublicLocationResponse {
   phone: string | null;
   timezone: string;
   defaultLocale: string;
+  /** Price-list groups in display order; services without a category come last. */
+  categories: { id: string; name: string }[];
   services: {
     id: string;
+    categoryId: string | null;
     name: string;
     description: string | null;
     durationMinutes: number;
@@ -59,6 +62,13 @@ export class PublicLocationsController {
       where: { locationId: location.id, active: true, id: { in: [...offered] } },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
+    const used = new Set(
+      services.map((s) => s.categoryId).filter((id): id is string => id !== null),
+    );
+    const categories = await this.prisma.serviceCategory.findMany({
+      where: { locationId: location.id, id: { in: [...used] } },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
     return {
       slug: location.slug,
       name: location.name,
@@ -68,8 +78,10 @@ export class PublicLocationsController {
       phone: location.phone,
       timezone: location.timezone,
       defaultLocale: location.defaultLocale,
+      categories: categories.map((c) => ({ id: c.id, name: c.name })),
       services: services.map((s) => ({
         id: s.id,
+        categoryId: s.categoryId,
         name: s.name,
         description: s.description,
         durationMinutes: s.durationMinutes,

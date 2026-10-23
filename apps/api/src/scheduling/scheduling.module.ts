@@ -6,6 +6,7 @@ import { PublicLocationsController } from './public.controller';
 import { ScheduleService } from './schedule.service';
 import {
   AvailabilityController,
+  ServiceCategoriesController,
   ServicesController,
   StaffController,
 } from './scheduling.controller';
@@ -13,6 +14,7 @@ import {
 @Module({
   imports: [OrganizationsModule],
   controllers: [
+    ServiceCategoriesController,
     ServicesController,
     StaffController,
     AvailabilityController,

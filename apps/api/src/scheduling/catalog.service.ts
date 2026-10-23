@@ -2,15 +2,40 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
-import type { Prisma, Service, StaffMember } from '../generated/prisma/client';
+import type { Prisma, Service, ServiceCategory, StaffMember } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
+  CreateServiceCategoryInput,
   CreateServiceInput,
   CreateStaffInput,
+  UpdateServiceCategoryInput,
   UpdateServiceInput,
   UpdateStaffInput,
 } from './scheduling.schemas';
+
+export interface ServiceCategoryResponse {
+  id: string;
+  name: string;
+  sortOrder: number;
+  version: number;
+}
+
+const toCategory = (c: ServiceCategory): ServiceCategoryResponse => ({
+  id: c.id,
+  name: c.name,
+  sortOrder: c.sortOrder,
+  version: c.version,
+});
+
+const categoryNameTaken = (): AppException =>
+  new AppException(HttpStatus.CONFLICT, 'CATEGORY_NAME_TAKEN', 'A category with this name exists');
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002'
+  );
+}
 
 export type ServiceResponse = Omit<Service, 'createdAt' | 'updatedAt'> & {
   createdAt: string;
@@ -86,6 +111,7 @@ export class CatalogService {
     input: CreateServiceInput,
   ): Promise<ServiceResponse> {
     await this.access.writable(m, locationId);
+    await this.assertCategory(locationId, input.categoryId);
     const service = await this.prisma.$transaction(async (tx) => {
       const created = await tx.service.create({ data: { ...input, locationId } });
       await this.record(tx, m, actorUserId, 'service.created', 'service', created.id);
@@ -104,6 +130,7 @@ export class CatalogService {
   ): Promise<ServiceResponse> {
     await this.access.writable(m, locationId);
     await this.findService(locationId, serviceId);
+    await this.assertCategory(locationId, input.categoryId);
     const { version, ...fields } = input;
     const service = await this.prisma.$transaction(async (tx) => {
       const result = await tx.service.updateMany({
@@ -123,6 +150,126 @@ export class CatalogService {
       return tx.service.findUniqueOrThrow({ where: { id: serviceId } });
     });
     return toService(service);
+  }
+
+  // ── Service categories ─────────────────────────────────
+
+  async listCategories(
+    m: MembershipContext,
+    locationId: string,
+  ): Promise<ServiceCategoryResponse[]> {
+    await this.access.readable(m, locationId);
+    const rows = await this.prisma.serviceCategory.findMany({
+      where: { locationId },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    return rows.map(toCategory);
+  }
+
+  async createCategory(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    input: CreateServiceCategoryInput,
+  ): Promise<ServiceCategoryResponse> {
+    await this.access.writable(m, locationId);
+    try {
+      const row = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.serviceCategory.create({ data: { ...input, locationId } });
+        await this.record(
+          tx,
+          m,
+          actorUserId,
+          'service_category.created',
+          'service_category',
+          created.id,
+        );
+        return created;
+      });
+      return toCategory(row);
+    } catch (error) {
+      if (isUniqueViolation(error)) throw categoryNameTaken();
+      throw error;
+    }
+  }
+
+  async updateCategory(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    categoryId: string,
+    input: UpdateServiceCategoryInput,
+  ): Promise<ServiceCategoryResponse> {
+    await this.access.writable(m, locationId);
+    await this.findCategory(locationId, categoryId);
+    const { version, ...fields } = input;
+    try {
+      const row = await this.prisma.$transaction(async (tx) => {
+        const result = await tx.serviceCategory.updateMany({
+          where: { id: categoryId, locationId, version },
+          data: { ...fields, version: { increment: 1 } },
+        });
+        if (result.count !== 1) throw versionConflict('category');
+        await this.record(
+          tx,
+          m,
+          actorUserId,
+          'service_category.updated',
+          'service_category',
+          categoryId,
+        );
+        return tx.serviceCategory.findUniqueOrThrow({ where: { id: categoryId } });
+      });
+      return toCategory(row);
+    } catch (error) {
+      if (isUniqueViolation(error)) throw categoryNameTaken();
+      throw error;
+    }
+  }
+
+  /** Its services stay, without a category. */
+  async deleteCategory(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    categoryId: string,
+  ): Promise<void> {
+    await this.access.writable(m, locationId);
+    await this.findCategory(locationId, categoryId);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.serviceCategory.delete({ where: { id: categoryId } });
+      await this.record(
+        tx,
+        m,
+        actorUserId,
+        'service_category.deleted',
+        'service_category',
+        categoryId,
+      );
+    });
+  }
+
+  private async findCategory(locationId: string, categoryId: string): Promise<ServiceCategory> {
+    const category = await this.prisma.serviceCategory.findFirst({
+      where: { id: categoryId, locationId },
+    });
+    if (!category) throw notFound('Category');
+    return category;
+  }
+
+  private async assertCategory(
+    locationId: string,
+    categoryId: string | null | undefined,
+  ): Promise<void> {
+    if (!categoryId) return;
+    const count = await this.prisma.serviceCategory.count({
+      where: { id: categoryId, locationId },
+    });
+    if (count === 0) {
+      throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Unknown category', [
+        { path: 'categoryId', message: 'the category must belong to this location' },
+      ]);
+    }
   }
 
   // ── Staff ──────────────────────────────────────────────

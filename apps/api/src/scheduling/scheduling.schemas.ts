@@ -20,11 +20,19 @@ const serviceFields = {
   priceGrosze: z.number().int().min(0).max(10_000_000),
   active: z.boolean(),
   sortOrder: z.number().int().min(0).max(10_000),
+  categoryId: z.uuid().nullable(),
+  /** Calendar colour "#RRGGBB". */
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'use #RRGGBB')
+    .nullable(),
 };
 
 export const createServiceSchema = z.object({
   ...serviceFields,
   description: serviceFields.description.optional(),
+  categoryId: serviceFields.categoryId.optional(),
+  color: serviceFields.color.optional(),
   bufferMinutes: serviceFields.bufferMinutes.default(0),
   active: serviceFields.active.default(true),
   sortOrder: serviceFields.sortOrder.default(0),
@@ -32,6 +40,15 @@ export const createServiceSchema = z.object({
 
 export const updateServiceSchema = z
   .object(serviceFields)
+  .partial()
+  .extend({ version: z.number().int().min(1) });
+
+export const createServiceCategorySchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  sortOrder: z.number().int().min(0).max(10_000).default(0),
+});
+
+export const updateServiceCategorySchema = createServiceCategorySchema
   .partial()
   .extend({ version: z.number().int().min(1) });
 
@@ -131,6 +148,8 @@ export const availabilityQuerySchema = z
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
+export type CreateServiceCategoryInput = z.infer<typeof createServiceCategorySchema>;
+export type UpdateServiceCategoryInput = z.infer<typeof updateServiceCategorySchema>;
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 export type WeeklyHoursInput = z.infer<typeof weeklyHoursSchema>;

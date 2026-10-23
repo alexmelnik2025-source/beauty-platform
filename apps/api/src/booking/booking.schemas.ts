@@ -118,6 +118,33 @@ export const setStatusSchema = z.object({
   status: z.enum(['completed', 'no_show']),
 });
 
+const tags = z
+  .array(z.string().trim().min(1).max(30))
+  .max(10)
+  .transform((list) => [...new Set(list)]);
+
+export const createCustomerSchema = z.object({
+  name,
+  phone,
+  email: email.optional(),
+  locale: z.enum(LOCALES).default('pl'),
+  note: z.string().trim().max(1000).optional(),
+  tags: tags.default([]),
+  /** Create even if another client already has this phone number. */
+  allowDuplicatePhone: z.boolean().default(false),
+});
+
+/** Staff members with editClientNotes may send only note and tags. */
+export const updateCustomerSchema = z.object({
+  version: z.number().int().min(1),
+  name: name.optional(),
+  phone: phone.optional(),
+  email: email.nullable().optional(),
+  locale: z.enum(LOCALES).optional(),
+  note: z.string().trim().max(1000).nullable().optional(),
+  tags: tags.optional(),
+});
+
 export const listCustomersSchema = z.object({
   search: z.string().trim().max(100).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -133,3 +160,5 @@ export type RescheduleInput = z.infer<typeof rescheduleSchema>;
 export type CancelInput = z.infer<typeof cancelSchema>;
 export type SetStatusInput = z.infer<typeof setStatusSchema>;
 export type ListCustomersQuery = z.infer<typeof listCustomersSchema>;
+export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
+export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;

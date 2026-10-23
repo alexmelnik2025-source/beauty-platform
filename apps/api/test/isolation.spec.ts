@@ -35,7 +35,8 @@ type Ids = Record<
   | 'customerId'
   | 'categoryId'
   | 'membershipId'
-  | 'blockId',
+  | 'blockId'
+  | 'serviceCategoryId',
   string
 >;
 
@@ -79,6 +80,10 @@ function validBody(route: Route): object {
   if (p.endsWith('/members/:membershipId/permissions')) {
     return { version: 1, staffCategoryId: null, overrides: { viewClientContacts: true } };
   }
+  if (p.endsWith('/service-categories/:serviceCategoryId')) return { version: 1, name: 'Hacked' };
+  if (p.endsWith('/service-categories')) return { name: 'Hacked' };
+  if (p.endsWith('/customers/:customerId')) return { version: 1, name: 'Hacked' };
+  if (p.endsWith('/customers')) return { name: 'Hacker', phone: '+48500000001' };
   if (p.endsWith('/time-blocks/:blockId')) return { version: 1, reason: 'Hacked' };
   if (p.endsWith('/time-blocks')) {
     return { staffId: null, start: '2027-01-12T10:00:00.000Z', end: '2027-01-12T11:00:00.000Z' };
@@ -158,11 +163,23 @@ async function seedLocation(
   org: { orgId: string; locationId: string },
 ): Promise<Ids> {
   const base = `/v1/organizations/${org.orgId}/locations/${org.locationId}`;
+  const serviceCategory = await ctx
+    .http()
+    .post(`${base}/service-categories`)
+    .set(user.auth)
+    .send({ name: 'Włosy' })
+    .expect(201);
   const service = await ctx
     .http()
     .post(`${base}/services`)
     .set(user.auth)
-    .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 6000 })
+    .send({
+      name: 'Strzyżenie',
+      durationMinutes: 30,
+      priceGrosze: 6000,
+      categoryId: serviceCategory.body.id,
+      color: '#3366FF',
+    })
     .expect(201);
   const staff = await ctx
     .http()
@@ -241,6 +258,7 @@ async function seedLocation(
     categoryId: category.body.id,
     membershipId: membership.id,
     blockId: block.body.id,
+    serviceCategoryId: serviceCategory.body.id,
   };
 }
 
@@ -264,6 +282,9 @@ async function snapshotOf(ids: Ids) {
     }),
     memberships: await ctx.prisma.membership.findMany({ where: { organizationId: ids.orgId } }),
     timeBlocks: await ctx.prisma.timeBlock.findMany({ where: { locationId: ids.locationId } }),
+    serviceCategories: await ctx.prisma.serviceCategory.findMany({
+      where: { locationId: ids.locationId },
+    }),
   };
 }
 
@@ -307,7 +328,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },
@@ -358,6 +379,18 @@ describe('tenant isolation', () => {
       )
       .set(alice.auth)
       .send({ serviceIds: [bobIds.serviceId] })
+      .expect(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it("cannot put own service into another location's category", async () => {
+    const res = await ctx
+      .http()
+      .patch(
+        `/v1/organizations/${aliceIds.orgId}/locations/${aliceIds.locationId}/services/${aliceIds.serviceId}`,
+      )
+      .set(alice.auth)
+      .send({ version: 1, categoryId: bobIds.serviceCategoryId })
       .expect(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });

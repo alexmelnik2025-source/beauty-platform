@@ -25,7 +25,12 @@ import {
   RequireRoles,
 } from '../organizations/membership.guard';
 import { AvailabilityService, type AvailabilityResponse } from './availability.service';
-import { CatalogService, type ServiceResponse, type StaffResponse } from './catalog.service';
+import {
+  CatalogService,
+  type ServiceCategoryResponse,
+  type ServiceResponse,
+  type StaffResponse,
+} from './catalog.service';
 import {
   ScheduleService,
   type TimeOffResponse,
@@ -33,20 +38,24 @@ import {
 } from './schedule.service';
 import {
   availabilityQuerySchema,
+  createServiceCategorySchema,
   createServiceSchema,
   createStaffSchema,
   createTimeOffSchema,
   localDateSchema,
   overrideSchema,
   staffServicesSchema,
+  updateServiceCategorySchema,
   updateServiceSchema,
   updateStaffSchema,
   weeklyHoursSchema,
   type AvailabilityQuery,
+  type CreateServiceCategoryInput,
   type CreateServiceInput,
   type CreateStaffInput,
   type CreateTimeOffInput,
   type OverrideInput,
+  type UpdateServiceCategoryInput,
   type UpdateServiceInput,
   type UpdateStaffInput,
   type WeeklyHoursInput,
@@ -54,6 +63,63 @@ import {
 
 const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
 const datePipe = new ZodValidationPipe(localDateSchema);
+
+@ApiTags('services')
+@ApiBearerAuth()
+@Controller('organizations/:orgId/locations/:locationId/service-categories')
+@UseGuards(MembershipGuard)
+export class ServiceCategoriesController {
+  constructor(private readonly catalog: CatalogService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Service categories of the price list, in display order' })
+  list(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+  ): Promise<ServiceCategoryResponse[]> {
+    return this.catalog.listCategories(m, locationId);
+  }
+
+  @Post()
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Create a category' })
+  @ApiZodBody(createServiceCategorySchema)
+  create(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(createServiceCategorySchema)) body: CreateServiceCategoryInput,
+  ): Promise<ServiceCategoryResponse> {
+    return this.catalog.createCategory(m, auth.userId, locationId, body);
+  }
+
+  @Patch(':serviceCategoryId')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Rename or reorder a category. Send the version you read' })
+  @ApiZodBody(updateServiceCategorySchema)
+  update(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceCategoryId', uuid('Category')) categoryId: string,
+    @Body(new ZodValidationPipe(updateServiceCategorySchema)) body: UpdateServiceCategoryInput,
+  ): Promise<ServiceCategoryResponse> {
+    return this.catalog.updateCategory(m, auth.userId, locationId, categoryId, body);
+  }
+
+  @Delete(':serviceCategoryId')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a category; its services stay, without a category' })
+  remove(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceCategoryId', uuid('Category')) categoryId: string,
+  ): Promise<void> {
+    return this.catalog.deleteCategory(m, auth.userId, locationId, categoryId);
+  }
+}
 
 @ApiTags('services')
 @ApiBearerAuth()

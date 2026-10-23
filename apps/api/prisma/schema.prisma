@@ -255,6 +255,7 @@ model Location {
   staffMembers      StaffMember[]
   appointments      Appointment[]
   timeBlocks        TimeBlock[]
+  serviceCategories ServiceCategory[]
 
   @@index([organizationId])
   @@map("location")
@@ -273,16 +274,38 @@ model Service {
   priceGrosze     Int      @map("price_grosze")
   active          Boolean  @default(true)
   sortOrder       Int      @default(0) @map("sort_order")
+  categoryId      String?  @map("category_id") @db.Uuid
+  /// Calendar colour, "#RRGGBB".
+  color           String?
   version         Int      @default(1)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location     Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location     Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  category     ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   staff        StaffService[]
   appointments Appointment[]
 
   @@index([locationId])
+  @@index([categoryId])
   @@map("service")
+}
+
+/// A group of services in the price list ("Haircuts", "Beard").
+model ServiceCategory {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  name       String
+  sortOrder  Int      @default(0) @map("sort_order")
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  services Service[]
+
+  @@unique([locationId, name])
+  @@map("service_category")
 }
 
 /// A person who performs services at a location. May or may not have a user account.
@@ -407,6 +430,11 @@ model Customer {
   /// Lower-cased. Optional for bookings entered by the salon.
   email          String?
   locale         Locale   @default(pl)
+  /// The salon's own note (preferences, allergies). Not shown to the client.
+  note           String?
+  /// Simple labels without any mailing ("regular", "short fade"). At most 10.
+  tags           String[] @default([])
+  version        Int      @default(1)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -458,6 +486,8 @@ model Appointment {
   holdContact     Json?             @map("hold_contact")
   /// Language of the client's emails.
   locale          Locale            @default(pl)
+  /// The client picked this staff member (not "any staff member").
+  staffChosenByClient Boolean       @default(false) @map("staff_chosen_by_client")
   /// Snapshot at booking time; later price changes do not affect it.
   priceGrosze     Int               @map("price_grosze")
   durationMinutes Int               @map("duration_minutes")

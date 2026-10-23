@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -30,16 +31,20 @@ import {
 import {
   cancelSchema,
   createAppointmentSchema,
+  createCustomerSchema,
   listAppointmentsSchema,
   listCustomersSchema,
   rescheduleSchema,
   setStatusSchema,
+  updateCustomerSchema,
   type CancelInput,
   type CreateAppointmentInput,
+  type CreateCustomerInput,
   type ListAppointmentsQuery,
   type ListCustomersQuery,
   type RescheduleInput,
   type SetStatusInput,
+  type UpdateCustomerInput,
 } from './booking.schemas';
 import {
   CustomersService,
@@ -164,13 +169,48 @@ export class CustomersController {
     return this.customers.list(m, query);
   }
 
-  @Get(':customerId')
+  @Post()
   @RequireRoles('owner', 'manager')
-  @ApiOperation({ summary: 'One client with visit history' })
+  @ApiOperation({
+    summary: 'Add a client',
+    description:
+      '409 CUSTOMER_EMAIL_EXISTS / CUSTOMER_PHONE_EXISTS with the existing client id in details; send allowDuplicatePhone=true to add anyway.',
+  })
+  @ApiZodBody(createCustomerSchema)
+  create(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Body(new ZodValidationPipe(createCustomerSchema)) body: CreateCustomerInput,
+  ): Promise<CustomerDetailResponse> {
+    return this.customers.create(m, auth.userId, body);
+  }
+
+  @Get(':customerId')
+  @ApiOperation({
+    summary: 'One client card with visit history',
+    description:
+      'Staff members: clients they have (had) an appointment with; contacts, history and notes depend on their permissions.',
+  })
   get(
+    @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
     @Param('customerId', uuid('Customer')) customerId: string,
   ): Promise<CustomerDetailResponse> {
-    return this.customers.get(m, customerId);
+    return this.customers.get(m, auth.userId, customerId);
+  }
+
+  @Patch(':customerId')
+  @ApiOperation({
+    summary: 'Edit a client. Send the version you read',
+    description: 'Staff members with editClientNotes may change only note and tags.',
+  })
+  @ApiZodBody(updateCustomerSchema)
+  update(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('customerId', uuid('Customer')) customerId: string,
+    @Body(new ZodValidationPipe(updateCustomerSchema)) body: UpdateCustomerInput,
+  ): Promise<CustomerDetailResponse> {
+    return this.customers.update(m, auth.userId, customerId, body);
   }
 }

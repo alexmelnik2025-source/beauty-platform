@@ -42,6 +42,10 @@ export interface AppointmentResponse {
   customer: { id: string; name: string; phone: string | null; email: string | null } | null;
   /** null when a staff member may not see prices. */
   priceGrosze: number | null;
+  /** The client chose this staff member themselves (not "any staff member"). */
+  staffChosenByClient: boolean;
+  /** No completed visit of this client before this appointment. */
+  firstVisit: boolean;
   durationMinutes: number;
   bufferMinutes: number;
   note: string | null;
@@ -117,7 +121,8 @@ export class AppointmentsService {
       include,
       orderBy: [{ startAt: 'asc' }, { staffId: 'asc' }],
     });
-    return rows.map((row) => this.toResponse(row, m));
+    const firsts = await this.firstCompleted(rows);
+    return rows.map((row) => this.toResponse(row, m, firsts));
   }
 
   async get(
@@ -131,7 +136,8 @@ export class AppointmentsService {
       where: { appointmentId },
       orderBy: { createdAt: 'asc' },
     });
-    return { ...this.toResponse(appointment, m), history: events.map(toHistory) };
+    const firsts = await this.firstCompleted([appointment]);
+    return { ...this.toResponse(appointment, m, firsts), history: events.map(toHistory) };
   }
 
   /** A booking entered by the salon (phone call, walk-in). Confirmed immediately. */
@@ -461,7 +467,29 @@ export class AppointmentsService {
     }
   }
 
-  private toResponse(a: Loaded, m: MembershipContext): AppointmentResponse {
+  /** Earliest completed visit per client, to mark first visits. */
+  private async firstCompleted(rows: Appointment[]): Promise<Map<string, number>> {
+    const ids = [
+      ...new Set(rows.map((r) => r.customerId).filter((id): id is string => id !== null)),
+    ];
+    if (ids.length === 0) return new Map();
+    const groups = await this.prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: { customerId: { in: ids }, status: 'completed' },
+      _min: { startAt: true },
+    });
+    return new Map(
+      groups
+        .filter((g) => g.customerId !== null && g._min.startAt !== null)
+        .map((g) => [g.customerId!, g._min.startAt!.getTime()]),
+    );
+  }
+
+  private toResponse(
+    a: Loaded,
+    m: MembershipContext,
+    firstCompleted: Map<string, number>,
+  ): AppointmentResponse {
     const local = instantToLocal(a.startAt.getTime(), a.location.timezone);
     const contacts = m.permissions.viewClientContacts;
     return {
@@ -485,6 +513,10 @@ export class AppointmentsService {
           }
         : null,
       priceGrosze: m.permissions.viewOwnEarnings ? a.priceGrosze : null,
+      staffChosenByClient: a.staffChosenByClient,
+      firstVisit:
+        a.customerId !== null &&
+        (firstCompleted.get(a.customerId) ?? Infinity) >= a.startAt.getTime(),
       durationMinutes: a.durationMinutes,
       bufferMinutes: a.bufferMinutes,
       note: a.note,
