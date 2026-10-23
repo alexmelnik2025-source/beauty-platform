@@ -13,6 +13,7 @@ async function bootstrap(): Promise<void> {
     logger: new ConsoleLogger({ json: config.NODE_ENV === 'production' }),
   });
   configureApp(app, { docs: config.NODE_ENV !== 'production' });
+  if (config.TRUST_PROXY > 0) app.set('trust proxy', config.TRUST_PROXY);
   app.enableShutdownHooks();
   await app.listen(config.PORT);
   const logger = new Logger('Bootstrap');

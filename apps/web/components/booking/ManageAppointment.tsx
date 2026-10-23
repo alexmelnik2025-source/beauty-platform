@@ -1,0 +1,246 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { api, ApiError, newIdempotencyKey } from '@/lib/api';
+import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { addDays, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
+import type { PublicAppointment, Slot } from '@/lib/types';
+import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
+import { downloadIcs } from './ics';
+
+type Mode = 'view' | 'move' | 'cancel';
+
+export function ManageAppointment({ token }: { token: string }) {
+  const { t, locale } = useI18n();
+  const tag = LOCALE_TAGS[locale];
+  const [a, setA] = useState<PublicAppointment | null>(null);
+  const [missing, setMissing] = useState(false);
+  const [mode, setMode] = useState<Mode>('view');
+  const [reason, setReason] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [day, setDay] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      setA(await api<PublicAppointment>(`/v1/public/appointments/${token}`, { auth: false }));
+    } catch {
+      setMissing(true);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (mode !== 'move' || !a) return;
+    const from = todayIn(a.timezone);
+    setSlots(null);
+    api<{ slots: Slot[] }>(`/v1/public/locations/${a.salon.slug}/availability`, {
+      auth: false,
+      query: { serviceId: a.service.id, staffId: a.staff.id, from, to: addDays(from, 20) },
+    })
+      .then((res) => {
+        setSlots(res.slots);
+        setDay(res.slots[0]?.date ?? '');
+      })
+      .catch((err) => setError(errorText(t, err)));
+  }, [mode, a, t]);
+
+  async function run(action: () => Promise<PublicAppointment>, done: string) {
+    setBusy(true);
+    setError('');
+    try {
+      setA(await action());
+      setMessage(done);
+      setMode('view');
+    } catch (err) {
+      setError(errorText(t, err));
+      if (err instanceof ApiError && err.code === 'TOO_LATE_TO_CHANGE') await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (missing) {
+    return (
+      <div className="narrow">
+        <p className="note">{t.errors.NOT_FOUND}</p>
+      </div>
+    );
+  }
+  if (!a) return <Spinner />;
+
+  const until = new Intl.DateTimeFormat(tag, {
+    timeZone: a.timezone,
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(a.changeableUntil));
+  const days = Array.from(new Set((slots ?? []).map((s) => s.date)));
+
+  return (
+    <div className="booking">
+      <header className="salon-head">
+        <div className="salon-head-inner">
+          <div className="top">
+            <span className="small muted">{t.manage.title}</span>
+            <LanguageSwitch />
+          </div>
+          <h1 className="salon-name">{a.salon.name}</h1>
+          <span className="muted small">
+            {a.salon.addressLine}, {a.salon.postalCode} {a.salon.city}
+          </span>
+        </div>
+      </header>
+      <main className="narrow stack">
+        {message ? (
+          <p className="note" role="status">
+            {message}
+          </p>
+        ) : null}
+        <ErrorBox>{error}</ErrorBox>
+        <div className="summary">
+          <span className="big">
+            {a.time} · {formatDay(a.date, tag, { short: true })}
+          </span>
+          <span>
+            {a.service.name} · {a.staff.displayName} · {formatPrice(a.service.priceGrosze, tag)}
+          </span>
+          <span className="small">{t.appointment.status[a.status]}</span>
+        </div>
+
+        {a.status === 'confirmed' && mode === 'view' ? (
+          <>
+            <p className="small muted">
+              {a.canChange ? fill(t.manage.changeUntil, { time: until }) : t.manage.tooLate}
+            </p>
+            <button
+              type="button"
+              className="btn btn--quiet btn--block"
+              onClick={() => downloadIcs(a)}
+            >
+              {t.booking.addToCalendar}
+            </button>
+            {a.canChange ? (
+              <>
+                <button type="button" className="btn btn--block" onClick={() => setMode('move')}>
+                  {t.manage.move}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--danger btn--block"
+                  onClick={() => setMode('cancel')}
+                >
+                  {t.manage.cancel}
+                </button>
+              </>
+            ) : a.salon.phone ? (
+              <a className="btn btn--quiet btn--block" href={`tel:${a.salon.phone}`}>
+                {a.salon.phone}
+              </a>
+            ) : null}
+          </>
+        ) : null}
+
+        {mode === 'cancel' ? (
+          <form
+            className="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void run(
+                () =>
+                  api<PublicAppointment>(`/v1/public/appointments/${token}/cancel`, {
+                    method: 'POST',
+                    auth: false,
+                    idempotencyKey: newIdempotencyKey(),
+                    body: reason ? { reason } : {},
+                  }),
+                t.manage.cancelled,
+              );
+            }}
+          >
+            <label className="field">
+              <span>{t.manage.cancelReason}</span>
+              <textarea
+                value={reason}
+                maxLength={300}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </label>
+            <div className="row">
+              <button type="button" className="btn btn--quiet" onClick={() => setMode('view')}>
+                {t.manage.keep}
+              </button>
+              <button className="btn btn--danger" disabled={busy}>
+                {t.manage.confirmCancel}
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {mode === 'move' ? (
+          <section className="stack">
+            {slots === null ? (
+              <Spinner />
+            ) : slots.length === 0 ? (
+              <p className="note">{t.booking.noSlotsAtAll}</p>
+            ) : (
+              <>
+                <div className="day-strip" role="group">
+                  {days.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-pressed={d === day}
+                      aria-label={formatDay(d, tag)}
+                      onClick={() => setDay(d)}
+                    >
+                      <span>{weekdayShort(d, tag)}</span>
+                      <b>{Number(d.slice(8))}</b>
+                    </button>
+                  ))}
+                </div>
+                <div className="times">
+                  {slots
+                    .filter((s) => s.date === day)
+                    .map((s) => (
+                      <button
+                        key={s.start}
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          void run(
+                            () =>
+                              api<PublicAppointment>(
+                                `/v1/public/appointments/${token}/reschedule`,
+                                {
+                                  method: 'POST',
+                                  auth: false,
+                                  idempotencyKey: newIdempotencyKey(),
+                                  body: { start: s.start },
+                                },
+                              ),
+                            t.manage.moved,
+                          )
+                        }
+                      >
+                        {s.time}
+                      </button>
+                    ))}
+                </div>
+              </>
+            )}
+            <button type="button" className="link-btn small" onClick={() => setMode('view')}>
+              {t.common.back}
+            </button>
+          </section>
+        ) : null}
+      </main>
+    </div>
+  );
+}

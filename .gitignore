@@ -13,3 +13,10 @@ apps/api/src/generated/
 
 .DS_Store
 *.log
+
+# Next.js and Playwright output
+.next/
+playwright-report/
+test-results/
+*.tsbuildinfo
+e2e/screenshots/*.png

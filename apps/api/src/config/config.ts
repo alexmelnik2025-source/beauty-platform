@@ -14,6 +14,12 @@ const configSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+    /**
+     * Number of proxies in front of the API whose X-Forwarded-For can be trusted
+     * (the web server passes /v1 on, so 1 behind it). 0 = use the direct address.
+     * Rate limits per IP depend on this.
+     */
+    TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
     DATABASE_URL: postgresUrl,
     /** HMAC key for access tokens. Generate: openssl rand -base64 48 */
     JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters'),

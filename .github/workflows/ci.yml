@@ -83,3 +83,93 @@ jobs:
 
       - name: Test (real PostgreSQL)
         run: SUMMARY=1 .github/scripts/run.sh pnpm test
+
+  # The main scenario in a real browser: web app + API + PostgreSQL + Mailpit.
+  # Screenshots of every step are uploaded as the "e2e-screenshots" artifact.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: beauty
+          POSTGRES_PASSWORD: beauty_ci
+          POSTGRES_DB: beauty_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U beauty -d beauty_e2e"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    env:
+      TURBO_TELEMETRY_DISABLED: '1'
+      NODE_ENV: development
+      DATABASE_URL: postgresql://beauty:beauty_ci@localhost:5432/beauty_e2e?schema=public
+      JWT_ACCESS_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      MAIL_TRANSPORT: smtp
+      SMTP_URL: smtp://localhost:1025
+      MAIL_FROM: GESTALT <no-reply@example.com>
+      APP_WEB_URL: http://localhost:3000
+      OUTBOX_POLL_MS: '1000'
+      TRUST_PROXY: '1'
+      API_URL: http://localhost:4000
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The check job may have committed a refreshed lockfile to this branch.
+          ref: ${{ github.ref }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
+      - name: Install dependencies
+        run: .github/scripts/run.sh pnpm install --frozen-lockfile
+
+      - name: Build
+        run: .github/scripts/run.sh pnpm build
+
+      - name: Database
+        run: .github/scripts/run.sh pnpm --filter @beauty/api db:deploy
+
+      - name: Start API and web app
+        run: |
+          (cd apps/api && node dist/main.js > ../../api.log 2>&1 &)
+          (cd apps/web && pnpm start > ../../web.log 2>&1 &)
+          for url in http://localhost:4000/v1/health http://localhost:3000/pl/login; do
+            for i in $(seq 1 60); do curl -sf "$url" > /dev/null && break; sleep 1; done
+            curl -sf "$url" > /dev/null || { echo "::error title=Not started::$url"; tail -50 api.log web.log; exit 1; }
+          done
+
+      - name: Install browser
+        run: .github/scripts/run.sh pnpm --filter @beauty/web exec playwright install --with-deps chromium
+
+      - name: Main scenario in the browser
+        run: SUMMARY=1 .github/scripts/run.sh pnpm --filter @beauty/web e2e
+
+      - name: Server logs
+        if: failure()
+        run: tail -n 120 api.log web.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: |
+            apps/web/e2e/screenshots/*.png
+            apps/web/playwright-report
+            apps/web/test-results
+          if-no-files-found: ignore
