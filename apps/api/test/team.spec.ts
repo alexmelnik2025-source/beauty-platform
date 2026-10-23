@@ -165,15 +165,12 @@ describe('inviting staff and managers', () => {
     await invite(body).expect(201);
     const first = inviteToken('kasia@example.com');
     const second = await invite(body).expect(201);
+    const secondToken = inviteToken('kasia@example.com');
     const kasia = await signUp(ctx, 'kasia@example.com');
     await ctx.http().post(`/v1/invitations/${first}/accept`).set(kasia.auth).expect(410);
 
     await ctx.http().delete(`${invitations()}/${second.body.id}`).set(owner.auth).expect(204);
-    await ctx
-      .http()
-      .post(`/v1/invitations/${inviteToken('kasia@example.com')}/accept`)
-      .set(kasia.auth)
-      .expect(410);
+    await ctx.http().post(`/v1/invitations/${secondToken}/accept`).set(kasia.auth).expect(410);
     expect((await ctx.http().get(invitations()).set(owner.auth).expect(200)).body).toHaveLength(0);
   });
 
@@ -181,13 +178,10 @@ describe('inviting staff and managers', () => {
     await invite({ email: 'kasia@example.com', role: 'staff', locationIds: [locationId] }).expect(
       201,
     );
+    const token = inviteToken('kasia@example.com');
     await ctx.prisma.invitation.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
     const kasia = await signUp(ctx, 'kasia@example.com');
-    await ctx
-      .http()
-      .post(`/v1/invitations/${inviteToken('kasia@example.com')}/accept`)
-      .set(kasia.auth)
-      .expect(410);
+    await ctx.http().post(`/v1/invitations/${token}/accept`).set(kasia.auth).expect(410);
   });
 
   it('managers invite staff to their own locations only; staff cannot invite', async () => {
@@ -200,12 +194,9 @@ describe('inviting staff and managers', () => {
     await invite({ email: 'boss@example.com', role: 'manager', locationIds: [locationId] }).expect(
       201,
     );
+    const bossToken = inviteToken('boss@example.com');
     const manager = await signUp(ctx, 'boss@example.com');
-    await ctx
-      .http()
-      .post(`/v1/invitations/${inviteToken('boss@example.com')}/accept`)
-      .set(manager.auth)
-      .expect(200);
+    await ctx.http().post(`/v1/invitations/${bossToken}/accept`).set(manager.auth).expect(200);
 
     await invite(
       { email: 's1@example.com', role: 'staff', locationIds: [locationId] },
