@@ -19,4 +19,4 @@ apps/api/src/generated/
 playwright-report/
 test-results/
 *.tsbuildinfo
-e2e/screenshots/*.png
+**/e2e/screenshots/**/*.png

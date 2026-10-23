@@ -292,7 +292,7 @@ export const uk: Dict = {
     },
     categories: 'Категорії майстрів',
     addCategory: 'Нова категорія',
-    categoryName: 'Назва (напр. Старший барбер)',
+    categoryName: 'Назва (напр. Старший майстер)',
     members: 'людей: {count}',
     permissions: {
       createOwnAppointments: 'Додає свої записи',
@@ -318,7 +318,7 @@ export const uk: Dict = {
     language: 'Мова повідомлень',
     note: 'Нотатка салону',
     tags: 'Теги (через кому)',
-    tagsHint: 'Напр. постійний клієнт, борода, цікавиться косметикою',
+    tagsHint: 'Напр. постійний клієнт, зручно зранку, цікавиться косметикою',
     visits: 'Візити',
     noVisits: 'Ще без візитів.',
     marketing: 'Згода на повідомлення від салону',

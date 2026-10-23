@@ -292,7 +292,7 @@ export const en: Dict = {
     },
     categories: 'Specialist categories',
     addCategory: 'New category',
-    categoryName: 'Name (e.g. Senior barber)',
+    categoryName: 'Name (e.g. Senior stylist)',
     members: 'people: {count}',
     permissions: {
       createOwnAppointments: 'Adds own appointments',
@@ -318,7 +318,7 @@ export const en: Dict = {
     language: 'Message language',
     note: 'Salon note',
     tags: 'Tags (comma-separated)',
-    tagsHint: 'E.g. regular, beard, interested in products',
+    tagsHint: 'E.g. regular, prefers mornings, interested in products',
     visits: 'Visits',
     noVisits: 'No visits yet.',
     marketing: 'Agreed to salon messages',

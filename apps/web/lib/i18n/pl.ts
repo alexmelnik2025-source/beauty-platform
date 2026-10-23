@@ -292,7 +292,7 @@ export const pl = {
     },
     categories: 'Kategorie specjalistów',
     addCategory: 'Nowa kategoria',
-    categoryName: 'Nazwa (np. Starszy barber)',
+    categoryName: 'Nazwa (np. Starszy stylista)',
     members: 'osób: {count}',
     permissions: {
       createOwnAppointments: 'Dodaje swoje wizyty',
@@ -318,7 +318,7 @@ export const pl = {
     language: 'Język wiadomości',
     note: 'Notatka salonu',
     tags: 'Tagi (przez przecinek)',
-    tagsHint: 'Np. stały klient, broda, interesują go kosmetyki',
+    tagsHint: 'Np. stały klient, woli poranki, interesują go kosmetyki',
     visits: 'Wizyty',
     noVisits: 'Jeszcze bez wizyt.',
     marketing: 'Zgoda na wiadomości od salonu',
