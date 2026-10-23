@@ -203,7 +203,7 @@ export class PublicBookingService {
   async sendCode(
     holdId: string,
     input: SendCodeInput,
-    ip: string,
+    ip: string | null,
   ): Promise<{ codeExpiresAt: string }> {
     this.limiter.hit(`code:email:${input.email}`, 10, 60 * MINUTE_MS);
     const hold = await this.activeHold(holdId, input.holdToken);
