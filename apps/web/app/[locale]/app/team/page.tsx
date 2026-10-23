@@ -133,7 +133,7 @@ export default function TeamPage() {
                     <span className="grow">
                       <strong>{s.displayName}</strong>
                       <span className="small muted">
-                        {s.serviceIds.length} ·{' '}
+                        {t.nav.services}: {s.serviceIds.length} ·{' '}
                         {s.userId ? (emailOf(s.userId) ?? '✓') : t.team.notLinked.split('.')[0]}
                       </span>
                     </span>

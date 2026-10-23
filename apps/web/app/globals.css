@@ -370,6 +370,22 @@ h3 {
     color: var(--ink);
     font-weight: 600;
   }
+
+  /* The unread count sits on the label's corner, so the label stays on one line. */
+  .bottom-nav a > span {
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .bottom-nav .badge {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 0.62rem;
+  }
 }
 
 .page-head {
@@ -683,6 +699,14 @@ h3 {
 @media (max-width: 760px) {
   :root {
     --rail: 48px;
+  }
+
+  /* The wide display face does not fit the narrow phone rail. */
+  .rail div {
+    padding: 0 6px;
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
   .cal-toolbar {
@@ -1237,6 +1261,16 @@ h3 {
   padding: 6px 8px;
   border: 1px solid var(--steel);
   border-radius: var(--radius-s);
+}
+
+/* A side panel is phone-narrow on every device: the day goes above its hours. */
+.sheet .day-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.interval > button {
+  flex: none;
 }
 
 @media (max-width: 760px) {
