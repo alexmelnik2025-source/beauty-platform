@@ -754,6 +754,7 @@ h3 {
   overflow: auto;
   padding: 20px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 20px;
 }
@@ -1210,7 +1211,7 @@ h3 {
 
 .day-row {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 110px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
   padding: 10px 0;
@@ -1229,7 +1230,9 @@ h3 {
 }
 
 .interval input {
-  width: 110px;
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
   min-height: 38px;
   padding: 6px 8px;
   border: 1px solid var(--steel);
