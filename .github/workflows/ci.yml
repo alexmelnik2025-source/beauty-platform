@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    # e2e-screenshots only stores pictures for review (see the e2e job).
+    branches: ['**', '!e2e-screenshots']
   pull_request:
 
 permissions:
@@ -163,6 +164,21 @@ jobs:
       - name: Server logs
         if: failure()
         run: tail -n 120 api.log web.log
+
+      # Screenshots also go to the e2e-screenshots branch, where they can be read with git.
+      - name: Publish screenshots to a branch
+        if: always() && github.event_name == 'push'
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          ls apps/web/e2e/screenshots/*.png > /dev/null 2>&1 || exit 0
+          dir="$(mktemp -d)"
+          cp apps/web/e2e/screenshots/*.png "$dir"/
+          cd "$dir"
+          git init -q -b shots
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Screenshots of $GITHUB_SHA ($GITHUB_REF_NAME)"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/e2e-screenshots
 
       - uses: actions/upload-artifact@v4
         if: always()
