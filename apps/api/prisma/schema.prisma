@@ -43,6 +43,52 @@ enum ClientType {
   @@map("client_type")
 }
 
+enum AppointmentStatus {
+  /// Slot reserved for 10 minutes while the client confirms by email code.
+  held
+  confirmed
+  cancelled
+  /// A hold that was never confirmed.
+  expired
+  completed
+  no_show
+
+  @@map("appointment_status")
+}
+
+enum AppointmentSource {
+  online
+  manual
+
+  @@map("appointment_source")
+}
+
+enum CancelledBy {
+  customer
+  salon
+
+  @@map("cancelled_by")
+}
+
+enum ConsentType {
+  /// Acceptance of the booking terms (regulamin). Legal basis for the data: the contract.
+  booking_terms
+  /// Optional consent to marketing emails from the salon.
+  marketing
+
+  @@map("consent_type")
+}
+
+enum OutboxStatus {
+  pending
+  sent
+  failed
+  /// Not needed any more (e.g. reminder for a cancelled appointment).
+  skipped
+
+  @@map("outbox_status")
+}
+
 enum EmailTokenType {
   verify_email
   reset_password
@@ -117,6 +163,7 @@ model Organization {
   memberships Membership[]
   locations   Location[]
   auditLogs   AuditLog[]
+  customers   Customer[]
 
   @@map("organization")
 }
@@ -180,6 +227,7 @@ model Location {
   memberships       MembershipLocation[]
   services          Service[]
   staffMembers      StaffMember[]
+  appointments      Appointment[]
 
   @@index([organizationId])
   @@map("location")
@@ -202,8 +250,9 @@ model Service {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  staff    StaffService[]
+  location     Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff        StaffService[]
+  appointments Appointment[]
 
   @@index([locationId])
   @@map("service")
@@ -229,6 +278,7 @@ model StaffMember {
   workingHours WorkingHours[]
   overrides    WorkingHoursOverride[]
   timeOff      TimeOff[]
+  appointments Appointment[]
 
   @@unique([locationId, userId])
   @@index([locationId])
@@ -292,6 +342,180 @@ model TimeOff {
 
   @@index([staffId, startsAt])
   @@map("time_off")
+}
+
+/// A salon's client. Belongs to the organization; no login in the MVP (client accounts come in 2.0).
+model Customer {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  /// E.164, e.g. +48123456789.
+  phone          String
+  /// Lower-cased. Optional for bookings entered by the salon.
+  email          String?
+  locale         Locale   @default(pl)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  consents     ConsentRecord[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId, name])
+  @@map("customer")
+}
+
+/// What the client accepted or agreed to, with the text version and time (GDPR evidence).
+model ConsentRecord {
+  id         String      @id @default(uuid(7)) @db.Uuid
+  customerId String      @map("customer_id") @db.Uuid
+  type       ConsentType
+  version    String
+  granted    Boolean
+  ip         String?
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, type])
+  @@map("consent_record")
+}
+
+/// A booking — or a 10-minute hold on a slot before the client confirms it.
+/// No two held/confirmed rows of one staff member may overlap: enforced by the
+/// exclusion constraint "appointment_no_overlap" (see the migration).
+model Appointment {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  locationId      String            @map("location_id") @db.Uuid
+  staffId         String            @map("staff_id") @db.Uuid
+  serviceId       String            @map("service_id") @db.Uuid
+  /// Empty while the slot is only held.
+  customerId      String?           @map("customer_id") @db.Uuid
+  status          AppointmentStatus
+  source          AppointmentSource
+  startAt         DateTime          @map("start_at") @db.Timestamptz(3)
+  /// Start + service duration (what the client sees).
+  endAt           DateTime          @map("end_at") @db.Timestamptz(3)
+  /// End + buffer: until when the staff member is busy.
+  blockedUntil    DateTime          @map("blocked_until") @db.Timestamptz(3)
+  holdExpiresAt   DateTime?         @map("hold_expires_at") @db.Timestamptz(3)
+  holdTokenHash   String?           @unique @map("hold_token_hash")
+  /// Contact details entered during a hold, before the email is confirmed.
+  holdContact     Json?             @map("hold_contact")
+  /// Language of the client's emails.
+  locale          Locale            @default(pl)
+  /// Snapshot at booking time; later price changes do not affect it.
+  priceGrosze     Int               @map("price_grosze")
+  durationMinutes Int               @map("duration_minutes")
+  bufferMinutes   Int               @map("buffer_minutes")
+  note            String?
+  cancelledAt     DateTime?         @map("cancelled_at") @db.Timestamptz(3)
+  cancelledBy     CancelledBy?      @map("cancelled_by")
+  cancelReason    String?           @map("cancel_reason")
+  createdByUserId String?           @map("created_by_user_id") @db.Uuid
+  version         Int               @default(1)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location         Location                 @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff            StaffMember              @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  service          Service                  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  customer         Customer?                @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  events           AppointmentEvent[]
+  verificationCode VerificationCode?
+  accessTokens     AppointmentAccessToken[]
+
+  @@index([locationId, startAt])
+  @@index([staffId, startAt])
+  @@index([customerId])
+  @@index([status, holdExpiresAt])
+  @@map("appointment")
+}
+
+/// Full history of an appointment: who changed what and when.
+model AppointmentEvent {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  appointmentId String   @map("appointment_id") @db.Uuid
+  type          String
+  /// customer | staff | system
+  actor         String
+  actorUserId   String?  @map("actor_user_id") @db.Uuid
+  data          Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId, createdAt])
+  @@map("appointment_event")
+}
+
+/// The 6-digit email code that confirms a hold. Only the hash is stored.
+model VerificationCode {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  appointmentId String   @unique @map("appointment_id") @db.Uuid
+  email         String
+  codeHash      String   @map("code_hash")
+  /// Never later than the hold itself.
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz(3)
+  attempts      Int      @default(0)
+  sendCount     Int      @default(1) @map("send_count")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("verification_code")
+}
+
+/// Secret link from the confirmation email to view, move or cancel the appointment.
+model AppointmentAccessToken {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  appointmentId String   @map("appointment_id") @db.Uuid
+  tokenHash     String   @unique @map("token_hash")
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@map("appointment_access_token")
+}
+
+/// Emails waiting to be sent. Written in the same transaction as the change that
+/// causes them, so a crash never loses a message; `dedupeKey` prevents doubles.
+model NotificationOutbox {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  type          String
+  payload       Json
+  status        OutboxStatus @default(pending)
+  attempts      Int          @default(0)
+  nextAttemptAt DateTime     @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lockedUntil   DateTime?    @map("locked_until") @db.Timestamptz(3)
+  lastError     String?      @map("last_error")
+  sentAt        DateTime?    @map("sent_at") @db.Timestamptz(3)
+  dedupeKey     String       @unique @map("dedupe_key")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([status, nextAttemptAt])
+  @@map("notification_outbox")
+}
+
+/// Stored responses for requests sent with an Idempotency-Key header: a retry after
+/// a dropped connection gets the same answer instead of creating a duplicate.
+model IdempotencyKey {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  scope          String
+  key            String
+  requestHash    String   @map("request_hash")
+  completed      Boolean  @default(false)
+  responseStatus Int?     @map("response_status")
+  responseBody   Json?    @map("response_body")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(3)
+
+  @@unique([scope, key])
+  @@map("idempotency_key")
 }
 
 /// Who did what. Never contains passwords or tokens.
