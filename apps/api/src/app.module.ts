@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { BookingModule } from './booking/booking.module';
+import { ClientModule } from './client/client.module';
 import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
@@ -21,6 +22,7 @@ import { SchedulingModule } from './scheduling/scheduling.module';
     OrganizationsModule,
     SchedulingModule,
     BookingModule,
+    ClientModule,
     PushModule,
     HealthModule,
     AdminModule,

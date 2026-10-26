@@ -515,6 +515,7 @@ model Customer {
 
   @@unique([organizationId, email])
   @@index([organizationId, name])
+  @@index([email])
   @@map("customer")
 }
 
@@ -687,4 +688,49 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@map("audit_log")
+}
+
+/// A client across all salons, identified by a confirmed email ("My visits" app).
+/// Appointments are found through salon customer cards with the same email.
+model Person {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  /// Lower-cased; confirmed by a one-time code at every sign-in.
+  email      String   @unique
+  locale     Locale   @default(pl)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+
+  sessions ClientSession[]
+
+  @@map("person")
+}
+
+/// One-time 6-digit sign-in code for the client app. Only the hash is stored.
+model ClientLoginCode {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  /// One active code per address: a new request replaces the previous code.
+  email     String   @unique
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("client_login_code")
+}
+
+/// A signed-in device of a client (web cookie or mobile token). Only the hash is stored.
+model ClientSession {
+  id         String     @id @default(uuid(7)) @db.Uuid
+  personId   String     @map("person_id") @db.Uuid
+  clientType ClientType @map("client_type")
+  tokenHash  String     @unique @map("token_hash")
+  userAgent  String?    @map("user_agent")
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt DateTime   @default(now()) @map("last_used_at") @db.Timestamptz(3)
+  expiresAt  DateTime   @map("expires_at") @db.Timestamptz(3)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@map("client_session")
 }

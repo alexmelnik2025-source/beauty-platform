@@ -38,6 +38,6 @@ import { TimeBlocksService } from './time-blocks.service';
     TimeBlocksService,
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
-  exports: [OutboxService],
+  exports: [OutboxService, PublicBookingService],
 })
 export class BookingModule {}

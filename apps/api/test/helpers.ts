@@ -48,7 +48,7 @@ export async function createTestApp(): Promise<TestContext> {
 /** Empties every table (fast, keeps migrations) and resets in-memory state. */
 export async function resetState(ctx: TestContext): Promise<void> {
   await ctx.prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE app_user, organization, audit_log, notification_outbox, idempotency_key RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE app_user, organization, audit_log, notification_outbox, idempotency_key, person, client_login_code RESTART IDENTITY CASCADE',
   );
   ctx.mail.clear();
   ctx.push.clear();

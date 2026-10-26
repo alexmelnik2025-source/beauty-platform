@@ -76,6 +76,13 @@ export interface PublicAppointmentResponse {
   canChange: boolean;
 }
 
+/** An appointment with what client-facing responses and checks need. */
+export type ClientAppointment = Appointment & {
+  location: Location;
+  service: { id: string; name: string };
+  staff: { id: string; displayName: string };
+};
+
 const holdExpired = (): AppException =>
   new AppException(
     HttpStatus.GONE,
@@ -382,7 +389,23 @@ export class PublicBookingService {
     token: string,
     reason: string | undefined,
   ): Promise<PublicAppointmentResponse> {
-    const appointment = await this.byToken(token);
+    return this.cancelAsClient(await this.byToken(token), reason);
+  }
+
+  async rescheduleByToken(
+    token: string,
+    input: ClientRescheduleInput,
+  ): Promise<PublicAppointmentResponse> {
+    return this.rescheduleAsClient(await this.byToken(token), input);
+  }
+
+  // ── Client changes (manage link and the "My visits" app) ──
+
+  /** Cancels on behalf of the client, until the salon's deadline. */
+  async cancelAsClient(
+    appointment: ClientAppointment,
+    reason: string | undefined,
+  ): Promise<PublicAppointmentResponse> {
     this.assertChangeable(appointment);
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.appointment.updateMany({
@@ -414,11 +437,11 @@ export class PublicBookingService {
     return this.toPublic(updated);
   }
 
-  async rescheduleByToken(
-    token: string,
+  /** Moves to another free time on behalf of the client, until the salon's deadline. */
+  async rescheduleAsClient(
+    appointment: ClientAppointment,
     input: ClientRescheduleInput,
   ): Promise<PublicAppointmentResponse> {
-    const appointment = await this.byToken(token);
     this.assertChangeable(appointment);
     const location = appointment.location;
     const window = this.availability.publicWindow(location, Date.now());
@@ -458,7 +481,12 @@ export class PublicBookingService {
             await this.notifyBooked(tx, moved, 'client_rescheduled', 'salon_client_rescheduled');
           },
         );
-        return this.getByToken(token);
+        return this.toPublic(
+          await this.prisma.appointment.findUniqueOrThrow({
+            where: { id: appointment.id },
+            include: { location: true, service: true, staff: true },
+          }),
+        );
       } catch (error) {
         if (error instanceof AppException && error.code === 'SLOT_TAKEN') continue;
         throw error;

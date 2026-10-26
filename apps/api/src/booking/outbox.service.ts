@@ -155,6 +155,10 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     await this.prisma.$executeRaw`
       UPDATE appointment SET hold_contact = NULL
       WHERE status = 'expired' AND hold_contact IS NOT NULL AND updated_at < now() - interval '24 hours'`;
+    // Client app: unused sign-in codes (they hold an email address) and expired sessions.
+    await this.prisma
+      .$executeRaw`DELETE FROM client_login_code WHERE expires_at < now() - interval '1 day'`;
+    await this.prisma.$executeRaw`DELETE FROM client_session WHERE expires_at < now()`;
     return expired;
   }
 
