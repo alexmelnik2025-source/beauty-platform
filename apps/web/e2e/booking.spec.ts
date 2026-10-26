@@ -19,6 +19,7 @@ const run = Date.now().toString(36);
 const OWNER = `owner-${run}@example.com`;
 const KASIA = `kasia-${run}@example.com`;
 const CLIENT = `anna-${run}@example.com`;
+const CLIENT2 = `ola-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 
@@ -344,4 +345,45 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await kasiaPage.goto('/pl/app/schedule');
   await expect(kasiaPage.getByText('08:00–21:00').first()).toBeVisible();
   await shot(kasiaPage, '23-staff-schedule-phone');
+
+  // ── "Remember me": a second client books; the visit is already in "My visits" ──
+  const olaPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  const ola = await olaPhone.newPage();
+  await ola.goto(`/pl/b/${location.slug}`);
+  await ola.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+  await ola.getByRole('button', { name: /Kasia/ }).click();
+  await ola.locator('.times button').last().click();
+  await expect(ola.getByText(/Termin czeka na Ciebie/)).toBeVisible();
+  await ola.getByLabel('Imię i nazwisko').fill('Ola Wiśniewska');
+  await ola.getByLabel('Telefon').fill('600 300 400');
+  await ola.getByLabel('E-mail').fill(CLIENT2);
+  await ola.getByLabel(/Akceptuję zasady/).check();
+  await ola.getByLabel(/Zapamiętaj mnie/).check();
+  await shot(ola, '24-client-remember-me');
+  await ola.getByRole('button', { name: 'Wyślij kod' }).click();
+  const olaMail = await waitForEmail(CLIENT2, /Kod potwierdzenia/);
+  await ola.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(olaMail.text)![1]!);
+  await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(ola.getByText('Wizyta jest już w aplikacji')).toBeVisible();
+  await shot(ola, '25-client-done-app');
+  // No sign-in code needed: the booking code already confirmed the email.
+  await ola.getByRole('link', { name: 'Zainstaluj aplikację' }).click();
+  await expect(ola).toHaveURL(/\/pl\/c$/);
+  await expect(ola.getByText(`Zalogowano jako ${CLIENT2}`)).toBeVisible();
+  await expect(ola.getByRole('link', { name: /Strzyżenie męskie/ })).toHaveCount(1);
+  await expect(ola.getByRole('button', { name: 'Zainstaluj aplikację' })).toBeVisible();
+  await shot(ola, '26-client-visits-after-booking');
+  // Next time the details are filled in; "not me" clears them.
+  await ola.goto(`/pl/b/${location.slug}`);
+  await ola.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+  await ola.getByRole('button', { name: /Kasia/ }).click();
+  await ola.locator('.times button').last().click();
+  await expect(ola.getByLabel('Imię i nazwisko')).toHaveValue('Ola Wiśniewska');
+  await expect(ola.getByLabel('E-mail')).toHaveValue(CLIENT2);
+  await expect(ola.getByLabel('Telefon')).toHaveValue('+48600300400');
+  await expect(ola.getByLabel(/Zapamiętaj mnie/)).toBeChecked();
+  await shot(ola, '27-client-details-remembered');
+  await ola.getByRole('button', { name: 'To nie ja — wyczyść dane' }).click();
+  await expect(ola.getByLabel('Imię i nazwisko')).toHaveValue('');
+  await expect(ola.getByLabel(/Zapamiętaj mnie/)).not.toBeChecked();
 });

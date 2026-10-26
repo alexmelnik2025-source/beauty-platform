@@ -194,6 +194,11 @@ h3 {
   font-size: 0.9rem;
 }
 
+.check .remember-hint {
+  display: block;
+  margin-top: 2px;
+}
+
 .check input {
   width: 20px;
   height: 20px;

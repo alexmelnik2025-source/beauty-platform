@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { createClientSession, type NewClientSession } from '../client/client-session';
 import { AppException, notFound } from '../common/app-exception';
 import { generateToken, hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
@@ -277,7 +278,12 @@ export class PublicBookingService {
   async confirm(
     holdId: string,
     input: ConfirmInput,
-  ): Promise<{ appointment: PublicAppointmentResponse; manageToken: string }> {
+    userAgent: string | null = null,
+  ): Promise<{
+    appointment: PublicAppointmentResponse;
+    manageToken: string;
+    clientSession: NewClientSession | null;
+  }> {
     const hold = await this.activeHold(holdId, input.holdToken);
     const code = await this.prisma.verificationCode.findUnique({
       where: { appointmentId: hold.id },
@@ -373,10 +379,22 @@ export class PublicBookingService {
         source: 'online',
       });
       await this.notifyBooked(tx, appointment, 'client_confirmation', 'salon_new_booking');
-      return appointment;
+      const clientSession = input.signIn
+        ? await createClientSession(tx, {
+            email: contact.email,
+            locale: contact.locale,
+            clientType: 'web',
+            userAgent,
+          })
+        : null;
+      return { appointment, clientSession };
     });
 
-    return { appointment: this.toPublic(confirmed), manageToken };
+    return {
+      appointment: this.toPublic(confirmed.appointment),
+      manageToken,
+      clientSession: confirmed.clientSession,
+    };
   }
 
   // ── 4. Manage via the link from the email ─────────────

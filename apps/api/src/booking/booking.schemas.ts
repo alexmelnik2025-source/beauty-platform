@@ -47,6 +47,11 @@ export const sendCodeSchema = z.object({
 export const confirmSchema = z.object({
   holdToken: token,
   code: z.string().regex(/^\d{6}$/, 'the code has 6 digits'),
+  /**
+   * Web: also sign in to "My visits" on this device (httpOnly cookie), so the new
+   * visit is already in the client app. The code just confirmed the email.
+   */
+  signIn: z.boolean().default(false),
 });
 
 export const releaseHoldSchema = z.object({ holdToken: token });

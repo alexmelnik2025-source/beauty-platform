@@ -5,30 +5,15 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
 import { AppException } from '../common/app-exception';
 import type { AppRequest } from '../common/request-context';
+import { CLIENT_COOKIE } from './client-session';
 import { ClientService, type ClientAuth } from './client.service';
 
-export const CLIENT_COOKIE = 'bp_client';
-/** The cookie is only sent to the client app endpoints, never to the salon API. */
-const COOKIE_PATH = '/v1/client';
+export { clearClientCookie, CLIENT_COOKIE, setClientCookie } from './client-session';
 
 type ClientRequest = AppRequest & { client?: ClientAuth };
-
-export function setClientCookie(res: Response, token: string, expiresAt: Date, secure: boolean) {
-  res.cookie(CLIENT_COOKIE, token, {
-    httpOnly: true,
-    secure,
-    sameSite: 'strict',
-    path: COOKIE_PATH,
-    expires: expiresAt,
-  });
-}
-
-export function clearClientCookie(res: Response, secure: boolean): void {
-  res.clearCookie(CLIENT_COOKIE, { httpOnly: true, secure, sameSite: 'strict', path: COOKIE_PATH });
-}
 
 /** Web: the httpOnly cookie. Mobile: `Authorization: Bearer <token>`. */
 export function readClientToken(req: Request): string | undefined {

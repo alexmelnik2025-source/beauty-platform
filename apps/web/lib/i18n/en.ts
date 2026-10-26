@@ -189,6 +189,14 @@ export const en: Dict = {
     manage: 'Change or cancel',
     salonClosed: 'This salon is not taking online bookings right now.',
     changeTime: 'Change',
+    rememberMe: 'Remember me on this device',
+    rememberMeHint:
+      'Next time your details fill in by themselves, and your visits are in the “My visits” app. Do not tick this on someone else’s device.',
+    notMe: 'Not me — clear the details',
+    appTitle: 'Your visit is already in the app',
+    appLead:
+      'In “My visits” you can move or cancel the visit and book again. Install the app to keep it at hand with an icon on your phone’s home screen.',
+    installApp: 'Install the app',
   },
   manage: {
     title: 'Your appointment',

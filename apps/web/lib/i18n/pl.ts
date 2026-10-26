@@ -189,6 +189,14 @@ export const pl = {
     manage: 'Zmień lub odwołaj wizytę',
     salonClosed: 'Ten salon nie przyjmuje teraz rezerwacji online.',
     changeTime: 'Zmień',
+    rememberMe: 'Zapamiętaj mnie na tym urządzeniu',
+    rememberMeHint:
+      'Następnym razem dane wpiszą się same, a wizyty zobaczysz w aplikacji „Moje wizyty”. Nie zaznaczaj na cudzym urządzeniu.',
+    notMe: 'To nie ja — wyczyść dane',
+    appTitle: 'Wizyta jest już w aplikacji',
+    appLead:
+      'W „Moich wizytach” zmienisz lub odwołasz wizytę i umówisz się ponownie. Zainstaluj aplikację — będzie pod ręką z ikoną na ekranie telefonu.',
+    installApp: 'Zainstaluj aplikację',
   },
   manage: {
     title: 'Twoja wizyta',

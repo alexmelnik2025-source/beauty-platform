@@ -20,6 +20,39 @@ import { downloadIcs } from './ics';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
 const DAYS_SHOWN = 21;
+/** Name, phone and email kept on this device when the client ticks "remember me". */
+const REMEMBER_KEY = 'bp_booking_contact';
+
+interface RememberedContact {
+  name: string;
+  phone: string;
+  email: string;
+}
+
+function loadRemembered(): RememberedContact | null {
+  try {
+    const raw = window.localStorage.getItem(REMEMBER_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<RememberedContact>;
+    if (typeof value.name !== 'string' || typeof value.email !== 'string') return null;
+    return {
+      name: value.name,
+      phone: typeof value.phone === 'string' ? value.phone : '',
+      email: value.email,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveRemembered(value: RememberedContact | null): void {
+  try {
+    if (value) window.localStorage.setItem(REMEMBER_KEY, JSON.stringify(value));
+    else window.localStorage.removeItem(REMEMBER_KEY);
+  } catch {
+    // Private mode or blocked storage: the form simply is not prefilled next time.
+  }
+}
 
 export function BookingFlow({ slug }: { slug: string }) {
   const { t, locale } = useI18n();
@@ -40,8 +73,30 @@ export function BookingFlow({ slug }: { slug: string }) {
     acceptTerms: false,
     marketingConsent: false,
   });
+  const [remember, setRemember] = useState(false);
+  const [remembered, setRemembered] = useState(false);
   const [code, setCode] = useState('');
-  const [result, setResult] = useState<{ appointment: PublicAppointment; manageToken: string }>();
+  const [result, setResult] = useState<{
+    appointment: PublicAppointment;
+    manageToken: string;
+    signedIn: boolean;
+  }>();
+
+  // Details remembered on this device after an earlier booking.
+  useEffect(() => {
+    const saved = loadRemembered();
+    if (!saved) return;
+    setContact((c) => ({ ...c, ...saved, phone: saved.phone || c.phone }));
+    setRemember(true);
+    setRemembered(true);
+  }, []);
+
+  function forgetMe() {
+    saveRemembered(null);
+    setRemember(false);
+    setRemembered(false);
+    setContact((c) => ({ ...c, name: '', phone: '+48 ', email: '' }));
+  }
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -157,14 +212,21 @@ export function BookingFlow({ slug }: { slug: string }) {
     setBusy(true);
     setError('');
     try {
-      const done = await api<{ appointment: PublicAppointment; manageToken: string }>(
-        `/v1/public/holds/${hold.holdId}/confirm`,
-        {
-          method: 'POST',
-          auth: false,
-          idempotencyKey: `confirm-${hold.holdId}-${code}`,
-          body: { holdToken: hold.holdToken, code },
-        },
+      const done = await api<{
+        appointment: PublicAppointment;
+        manageToken: string;
+        signedIn: boolean;
+      }>(`/v1/public/holds/${hold.holdId}/confirm`, {
+        method: 'POST',
+        auth: false,
+        idempotencyKey: `confirm-${hold.holdId}-${code}`,
+        // "Remember me" also signs in to "My visits" on this device: the visit is already there.
+        body: { holdToken: hold.holdToken, code, signIn: remember },
+      });
+      saveRemembered(
+        remember
+          ? { name: contact.name, phone: normalizePhone(contact.phone), email: contact.email }
+          : null,
       );
       setResult(done);
       setStep('done');
@@ -368,6 +430,11 @@ export function BookingFlow({ slug }: { slug: string }) {
         {step === 'details' && hold ? (
           <form className="form" onSubmit={sendCode}>
             <h2>{t.booking.yourDetails}</h2>
+            {remembered ? (
+              <button type="button" className="link-btn small" onClick={forgetMe}>
+                {t.booking.notMe}
+              </button>
+            ) : null}
             <label className="field">
               <span>{t.booking.name}</span>
               <input
@@ -414,6 +481,17 @@ export function BookingFlow({ slug }: { slug: string }) {
                 onChange={(e) => setContact({ ...contact, marketingConsent: e.target.checked })}
               />
               <span>{t.booking.marketing}</span>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              <span>
+                {t.booking.rememberMe}
+                <small className="muted remember-hint">{t.booking.rememberMeHint}</small>
+              </span>
             </label>
             <button className="btn btn--block" disabled={busy}>
               {t.booking.sendCode}
@@ -479,9 +557,19 @@ export function BookingFlow({ slug }: { slug: string }) {
             <Link className="btn btn--quiet btn--block" href={`/${locale}/m/${result.manageToken}`}>
               {t.booking.manage}
             </Link>
-            <Link className="link-btn small" href={`/${locale}/c`}>
-              {t.visits.allVisits}
-            </Link>
+            {result.signedIn ? (
+              <section className="install-app install-app--card">
+                <strong>{t.booking.appTitle}</strong>
+                <p className="small muted">{t.booking.appLead}</p>
+                <Link className="btn btn--block" href={`/${locale}/c`}>
+                  {t.booking.installApp}
+                </Link>
+              </section>
+            ) : (
+              <Link className="link-btn small" href={`/${locale}/c`}>
+                {t.visits.allVisits}
+              </Link>
+            )}
           </section>
         ) : null}
       </main>

@@ -81,8 +81,8 @@ function lastCode(email: string): string {
   return match[1];
 }
 
-/** Books online in `salon` as the client with `email`; returns the appointment id. */
-async function book(salon: Salon, start: string, email = ANNA): Promise<string> {
+/** Books online in `salon` as the client with `email`; returns the confirm response. */
+async function bookOnline(salon: Salon, start: string, email = ANNA, signIn?: boolean) {
   const hold = await ctx
     .http()
     .post(`/v1/public/locations/${salon.slug}/holds`)
@@ -100,12 +100,21 @@ async function book(salon: Salon, start: string, email = ANNA): Promise<string> 
       acceptTerms: true,
     })
     .expect(202);
-  const confirmed = await ctx
+  return ctx
     .http()
     .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
-    .send({ holdToken: hold.body.holdToken, code: lastCode(email) })
+    .send({
+      holdToken: hold.body.holdToken,
+      code: lastCode(email),
+      ...(signIn === undefined ? {} : { signIn }),
+    })
     .expect(200);
-  return confirmed.body.appointment.id;
+}
+
+/** Books online in `salon` as the client with `email`; returns the appointment id. */
+async function book(salon: Salon, start: string, email = ANNA): Promise<string> {
+  const confirmed = await bookOnline(salon, start, email);
+  return confirmed.body.appointment.id as string;
 }
 
 const requestCode = (email: string, locale = 'pl') =>
@@ -377,5 +386,125 @@ describe('client app: my visits in all salons', () => {
     const auth = await signIn(ANNA);
     const res = await ctx.http().get(`/v1/client/appointments/${id}`).set(auth).expect(200);
     expect(res.body.bookAgain).toBeNull();
+  });
+});
+
+describe('client app: signed in right after booking online', () => {
+  it('signIn=true sets the client session cookie; the new visit is already in "My visits"', async () => {
+    const res = await bookOnline(first, at(day, 10), ANNA, true);
+    expect(res.body.signedIn).toBe(true);
+    expect(res.body.manageToken).toEqual(expect.any(String));
+    const cookie = String(res.headers['set-cookie']);
+    // The session token is never in the body.
+    expect(JSON.stringify(res.body)).not.toContain(
+      cookie.split(';')[0]!.slice('bp_client='.length),
+    );
+    expect(cookie).toMatch(/^bp_client=/);
+    expect(cookie).toMatch(/HttpOnly/);
+    expect(cookie).toMatch(/Path=\/v1\/client/);
+    expect(cookie).toMatch(/SameSite=Strict/);
+
+    const pair = cookie.split(';')[0]!;
+    const me = await ctx.http().get('/v1/client/me').set('Cookie', pair).expect(200);
+    expect(me.body).toMatchObject({ email: ANNA, locale: 'pl' });
+    const list = await ctx
+      .http()
+      .get('/v1/client/appointments?scope=upcoming')
+      .set('Cookie', pair)
+      .expect(200);
+    expect(list.body.items.map((a: { id: string }) => a.id)).toEqual([res.body.appointment.id]);
+
+    // Only the hash is stored; the session is a web session.
+    const sessions = await ctx.prisma.clientSession.findMany();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]!.clientType).toBe('web');
+    expect(cookie).not.toContain(sessions[0]!.tokenHash);
+  });
+
+  it('without signIn nothing changes: no cookie, no session', async () => {
+    const res = await bookOnline(first, at(day, 10));
+    expect(res.body.signedIn).toBe(false);
+    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(await ctx.prisma.clientSession.count()).toBe(0);
+    expect(await ctx.prisma.person.count()).toBe(0);
+  });
+
+  it('a later booking with the same email reuses the person; the session sees both salons', async () => {
+    await book(second, at(day, 12));
+    const res = await bookOnline(first, at(day, 10), ANNA, true);
+    const pair = String(res.headers['set-cookie']).split(';')[0]!;
+    const list = await ctx
+      .http()
+      .get('/v1/client/appointments?scope=upcoming')
+      .set('Cookie', pair)
+      .expect(200);
+    expect(list.body.items).toHaveLength(2);
+    expect(await ctx.prisma.person.count()).toBe(1);
+  });
+
+  it('a retried confirm (same Idempotency-Key) does not create a second session', async () => {
+    const hold = await ctx
+      .http()
+      .post(`/v1/public/locations/${first.slug}/holds`)
+      .send({ serviceId: first.serviceId, staffId: first.staffId, start: at(day, 10) })
+      .expect(201);
+    await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.body.holdId}/code`)
+      .send({
+        holdToken: hold.body.holdToken,
+        name: 'Anna Kowalska',
+        phone: '+48600100200',
+        email: ANNA,
+        locale: 'pl',
+        acceptTerms: true,
+      })
+      .expect(202);
+    const body = { holdToken: hold.body.holdToken, code: lastCode(ANNA), signIn: true };
+    const confirm = () =>
+      ctx
+        .http()
+        .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
+        .set('Idempotency-Key', 'confirm-retry-0001')
+        .send(body)
+        .expect(200);
+    const res = await confirm();
+    const token = String(res.headers['set-cookie']).split(';')[0]!.slice('bp_client='.length);
+    const retry = await confirm();
+    expect(retry.body.appointment.id).toBe(res.body.appointment.id);
+    expect(await ctx.prisma.clientSession.count()).toBe(1);
+    // The stored response has no session token in it.
+    const stored = await ctx.prisma.idempotencyKey.findMany();
+    expect(stored.length).toBeGreaterThan(0);
+    expect(JSON.stringify(stored)).not.toContain(token);
+  });
+
+  it('a wrong code signs nobody in', async () => {
+    const hold = await ctx
+      .http()
+      .post(`/v1/public/locations/${first.slug}/holds`)
+      .send({ serviceId: first.serviceId, staffId: first.staffId, start: at(day, 10) })
+      .expect(201);
+    await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.body.holdId}/code`)
+      .send({
+        holdToken: hold.body.holdToken,
+        name: 'Anna Kowalska',
+        phone: '+48600100200',
+        email: ANNA,
+        locale: 'pl',
+        acceptTerms: true,
+      })
+      .expect(202);
+    const wrong = lastCode(ANNA) === '000000' ? '111111' : '000000';
+    const res = await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
+      .send({ holdToken: hold.body.holdToken, code: wrong, signIn: true })
+      .expect(400);
+    expectError(res.body, 'INVALID_CODE');
+    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(await ctx.prisma.clientSession.count()).toBe(0);
   });
 });

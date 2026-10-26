@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
-import { generateToken, hashToken } from '../common/crypto';
+import { hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppointmentStatus, Locale, Person, Prisma } from '../generated/prisma/client';
 import { MailService } from '../mail/mail.service';
@@ -11,6 +11,7 @@ import {
   PublicBookingService,
   type PublicAppointmentResponse,
 } from '../booking/public-booking.service';
+import { createClientSession } from './client-session';
 import { renderClientCodeEmail } from './client-templates';
 import type {
   ListClientAppointmentsInput,
@@ -19,10 +20,8 @@ import type {
 } from './client.schemas';
 
 const MINUTE_MS = 60_000;
-const DAY_MS = 86_400_000;
 const CODE_MINUTES = 10;
 const MAX_CODE_ATTEMPTS = 5;
-export const CLIENT_SESSION_DAYS = 90;
 const PAST_LIMIT = 50;
 
 /** Statuses a client sees in "My visits" (never holds that were not confirmed). */
@@ -119,9 +118,7 @@ export class ClientService {
       ]);
     }
 
-    const token = generateToken();
-    const expiresAt = new Date(Date.now() + CLIENT_SESSION_DAYS * DAY_MS);
-    const person = await this.prisma.$transaction(async (tx) => {
+    const session = await this.prisma.$transaction(async (tx) => {
       // The code is single use, even when two requests race with it.
       const used = await tx.clientLoginCode.deleteMany({
         where: { id: stored.id, codeHash: stored.codeHash },
@@ -129,23 +126,18 @@ export class ClientService {
       if (used.count !== 1) {
         throw new AppException(HttpStatus.BAD_REQUEST, 'CODE_NOT_SENT', 'Request a code first');
       }
-      const person = await tx.person.upsert({
-        where: { email: input.email },
-        create: { email: input.email, locale: input.locale ?? 'pl' },
-        update: { lastSeenAt: new Date(), ...(input.locale ? { locale: input.locale } : {}) },
+      return createClientSession(tx, {
+        email: input.email,
+        locale: input.locale,
+        clientType: input.clientType,
+        userAgent,
       });
-      await tx.clientSession.create({
-        data: {
-          personId: person.id,
-          clientType: input.clientType,
-          tokenHash: hashToken(token),
-          userAgent: userAgent?.slice(0, 300) ?? null,
-          expiresAt,
-        },
-      });
-      return person;
     });
-    return { person: this.toPerson(person), token, expiresAt };
+    return {
+      person: this.toPerson(session.person),
+      token: session.token,
+      expiresAt: session.expiresAt,
+    };
   }
 
   /** Resolves a session token; null when unknown or expired. */
