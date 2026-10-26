@@ -47,7 +47,19 @@ export function BookingFlow({ slug }: { slug: string }) {
 
   useEffect(() => {
     api<PublicLocation>(`/v1/public/locations/${slug}`, { auth: false })
-      .then(setSalon)
+      .then((loaded) => {
+        setSalon(loaded);
+        // "Book again" from the client app: ?service=…&staff=… skips straight to the times.
+        const params = new URLSearchParams(window.location.search);
+        const preService = loaded.services.find((s) => s.id === params.get('service'));
+        if (!preService) return;
+        setServiceId(preService.id);
+        const preStaff = loaded.staff.find(
+          (s) => s.id === params.get('staff') && s.serviceIds.includes(preService.id),
+        );
+        setStaffId(preStaff?.id);
+        setStep(preStaff ? 'time' : 'staff');
+      })
       .catch(() => setClosed(true));
   }, [slug]);
 
@@ -466,6 +478,9 @@ export function BookingFlow({ slug }: { slug: string }) {
             </button>
             <Link className="btn btn--quiet btn--block" href={`/${locale}/m/${result.manageToken}`}>
               {t.booking.manage}
+            </Link>
+            <Link className="link-btn small" href={`/${locale}/c`}>
+              {t.visits.allVisits}
             </Link>
           </section>
         ) : null}

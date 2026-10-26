@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
@@ -10,10 +10,32 @@ import { downloadIcs } from './ics';
 
 type Mode = 'view' | 'move' | 'cancel';
 
+/** The "manage my appointment" page behind the secret link from the email. */
 export function ManageAppointment({ token }: { token: string }) {
+  return <AppointmentManager endpoint={`/v1/public/appointments/${token}`} />;
+}
+
+/**
+ * View, move and cancel one appointment as the client. `endpoint` is the API path of the
+ * appointment (manage link or the "My visits" app); cancel and reschedule live under it.
+ */
+export function AppointmentManager<T extends PublicAppointment>({
+  endpoint,
+  title,
+  top,
+  extra,
+}: {
+  endpoint: string;
+  /** Small caption above the salon name. */
+  title?: string;
+  /** Shown first in the page body (e.g. a link back to the list). */
+  top?: ReactNode;
+  /** Extra actions below the appointment (e.g. "book again"). */
+  extra?: (appointment: T) => ReactNode;
+}) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
-  const [a, setA] = useState<PublicAppointment | null>(null);
+  const [a, setA] = useState<T | null>(null);
   const [missing, setMissing] = useState(false);
   const [mode, setMode] = useState<Mode>('view');
   const [reason, setReason] = useState('');
@@ -25,11 +47,11 @@ export function ManageAppointment({ token }: { token: string }) {
 
   const load = useCallback(async () => {
     try {
-      setA(await api<PublicAppointment>(`/v1/public/appointments/${token}`, { auth: false }));
+      setA(await api<T>(endpoint, { auth: false }));
     } catch {
       setMissing(true);
     }
-  }, [token]);
+  }, [endpoint]);
 
   useEffect(() => {
     void load();
@@ -50,7 +72,7 @@ export function ManageAppointment({ token }: { token: string }) {
       .catch((err) => setError(errorText(t, err)));
   }, [mode, a, t]);
 
-  async function run(action: () => Promise<PublicAppointment>, done: string) {
+  async function run(action: () => Promise<T>, done: string) {
     setBusy(true);
     setError('');
     try {
@@ -67,7 +89,8 @@ export function ManageAppointment({ token }: { token: string }) {
 
   if (missing) {
     return (
-      <div className="narrow">
+      <div className="narrow stack">
+        {top}
         <p className="note">{t.errors.NOT_FOUND}</p>
       </div>
     );
@@ -88,7 +111,7 @@ export function ManageAppointment({ token }: { token: string }) {
       <header className="salon-head">
         <div className="salon-head-inner">
           <div className="top">
-            <span className="small muted">{t.manage.title}</span>
+            <span className="small muted">{title ?? t.manage.title}</span>
             <LanguageSwitch />
           </div>
           <h1 className="salon-name">{a.salon.name}</h1>
@@ -98,6 +121,7 @@ export function ManageAppointment({ token }: { token: string }) {
         </div>
       </header>
       <main className="narrow stack">
+        {top}
         {message ? (
           <p className="note" role="status">
             {message}
@@ -147,6 +171,8 @@ export function ManageAppointment({ token }: { token: string }) {
           </>
         ) : null}
 
+        {mode === 'view' && extra ? extra(a) : null}
+
         {mode === 'cancel' ? (
           <form
             className="form"
@@ -154,7 +180,7 @@ export function ManageAppointment({ token }: { token: string }) {
               e.preventDefault();
               void run(
                 () =>
-                  api<PublicAppointment>(`/v1/public/appointments/${token}/cancel`, {
+                  api<T>(`${endpoint}/cancel`, {
                     method: 'POST',
                     auth: false,
                     idempotencyKey: newIdempotencyKey(),
@@ -216,15 +242,12 @@ export function ManageAppointment({ token }: { token: string }) {
                         onClick={() =>
                           void run(
                             () =>
-                              api<PublicAppointment>(
-                                `/v1/public/appointments/${token}/reschedule`,
-                                {
-                                  method: 'POST',
-                                  auth: false,
-                                  idempotencyKey: newIdempotencyKey(),
-                                  body: { start: s.start },
-                                },
-                              ),
+                              api<T>(`${endpoint}/reschedule`, {
+                                method: 'POST',
+                                auth: false,
+                                idempotencyKey: newIdempotencyKey(),
+                                body: { start: s.start },
+                              }),
                             t.manage.moved,
                           )
                         }

@@ -1151,6 +1151,11 @@ h3 {
   border-bottom: 1px solid var(--line);
 }
 
+/* "Book again" under a past visit in the client app. */
+.list > li > .btn {
+  margin: 0 0 12px 4px;
+}
+
 .list-row {
   display: flex;
   align-items: center;

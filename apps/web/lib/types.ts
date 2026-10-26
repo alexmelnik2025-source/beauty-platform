@@ -175,3 +175,15 @@ export interface PublicAppointment {
   changeableUntil: string;
   canChange: boolean;
 }
+
+/** "My visits" client app. */
+export interface ClientPerson {
+  id: string;
+  email: string;
+  locale: string;
+}
+
+export interface ClientAppointment extends PublicAppointment {
+  /** Same service and staff member again; null when the salon no longer takes it online. */
+  bookAgain: { slug: string; serviceId: string; staffId: string | null } | null;
+}

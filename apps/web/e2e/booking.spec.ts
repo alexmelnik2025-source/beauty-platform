@@ -186,6 +186,34 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(client.getByText('Potwierdzona')).toBeVisible();
   await shot(client, '07-client-manage');
 
+  // ── "My visits": the client signs in with an emailed code, no password ──
+  await client.goto('/pl/c');
+  await client.getByLabel('E-mail').fill(CLIENT);
+  await client.getByRole('button', { name: 'Wyślij kod' }).click();
+  const loginMail = await waitForEmail(CLIENT, /Kod logowania/);
+  const loginCode = /\b(\d{6})\b/.exec(loginMail.text)![1]!;
+  await client.getByLabel('Kod z e-maila').fill(loginCode);
+  await shot(client, '07b-client-visits-code');
+  await client.getByRole('button', { name: 'Zaloguj się' }).click();
+  const visitRow = client.getByRole('link', { name: /Strzyżenie męskie/ });
+  await expect(visitRow).toContainText('Gestalt Barbershop');
+  await expect(visitRow).toContainText('Kasia');
+  await shot(client, '07c-client-visits');
+  await client.getByRole('button', { name: 'Historia' }).click();
+  await expect(client.getByText('Tu pojawią się Twoje wcześniejsze wizyty.')).toBeVisible();
+  await client.getByRole('button', { name: 'Nadchodzące' }).click();
+  await client.getByRole('link', { name: /Strzyżenie męskie/ }).click();
+  await expect(client.getByText('Potwierdzona')).toBeVisible();
+  await expect(client.getByRole('button', { name: 'Zmień termin' })).toBeVisible();
+  await shot(client, '07d-client-visit');
+  // "Book again" opens the booking page at the times of the same service and staff member.
+  await client.getByRole('link', { name: 'Umów ponownie' }).click();
+  await expect(client.locator('.times button').first()).toBeVisible();
+  await shot(client, '07e-client-book-again');
+  // The session survives a reload (httpOnly cookie).
+  await client.goto('/pl/c');
+  await expect(client.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+
   // The booked day, as the salon's API sees it.
   const calendar = await json<{
     appointments: { date: string; time: string; customer: { name: string } | null }[];
