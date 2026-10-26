@@ -220,6 +220,9 @@ export const en: Dict = {
     bookAgain: 'Book again',
     allVisits: 'All my visits',
     signedInAs: 'Signed in as {email}',
+    installLead:
+      'Your appointments always at hand — an icon on your phone, no hunting for links in emails.',
+    appName: 'Visits',
   },
   more: {
     title: 'More',

@@ -192,7 +192,10 @@
 | После записи           | На экране «Do zobaczenia!» — ссылка «Wszystkie moje wizyty»                                            |
 
 Проверка в браузере: шаг в основном e2e-сценарии (вход по коду из Mailpit, список, визит, «Umów ponownie»).
-Дальше: свой манифест PWA «GESTALT · Wizyty» и установка на телефон.
+**Установка на телефон.** «Мои визиты» — отдельное приложение, не кабинет салона: свой манифест
+(`public/manifests/visits-{pl,uk,ru,en}.webmanifest`, `id: /c`, запуск — `/{язык}/c`), название
+«GESTALT · Wizyty» (UA «Візити», RU «Визиты», EN «Visits»), тот же service worker. Кнопка «Zainstaluj aplikację»
+и шаги для iPhone — под списком визитов.
 
 ## Формат ошибок API
 

@@ -220,6 +220,9 @@ export const uk: Dict = {
     bookAgain: 'Записатися знову',
     allVisits: 'Усі мої візити',
     signedInAs: 'Ви увійшли як {email}',
+    installLead:
+      'Ваші візити завжди під рукою — з іконкою на екрані телефону, без пошуку посилань у листах.',
+    appName: 'Візити',
   },
   more: {
     title: 'Більше',

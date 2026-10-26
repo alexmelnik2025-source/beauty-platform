@@ -220,6 +220,9 @@ export const pl = {
     bookAgain: 'Umów ponownie',
     allVisits: 'Wszystkie moje wizyty',
     signedInAs: 'Zalogowano jako {email}',
+    installLead:
+      'Twoje wizyty zawsze pod ręką — z ikoną na ekranie telefonu, bez szukania linków w e-mailach.',
+    appName: 'Wizyty',
   },
   more: {
     title: 'Więcej',

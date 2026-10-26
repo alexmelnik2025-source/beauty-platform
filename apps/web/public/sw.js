@@ -1,5 +1,5 @@
 /*
- * Service worker of the installed app (salon cabinet).
+ * Service worker of the installed apps: the salon cabinet and the client's "My visits".
  *
  * It does not keep any salon data on the device: API answers (/v1/*) and pages always come
  * from the network. Only a small offline page is stored, shown when there is no connection.

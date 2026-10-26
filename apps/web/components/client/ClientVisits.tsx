@@ -6,6 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
 import type { ClientAppointment, ClientPerson } from '@/lib/types';
+import { InstallApp } from '../InstallApp';
 import { ErrorBox, LanguageSwitch, Spinner, Wordmark } from '../ui';
 
 type Scope = 'upcoming' | 'past';
@@ -257,6 +258,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
           })}
         </ul>
       )}
+      <InstallApp lead={t.visits.installLead} />
       <p className="small muted">{fill(t.visits.signedInAs, { email: person.email })}</p>
       <button type="button" className="link-btn small" onClick={() => void signOut()}>
         {t.common.signOut}

@@ -8,7 +8,14 @@ import { installMode, onInstallChange, promptInstall, type InstallMode } from '@
  * "Install the app" block: a button where the browser can install it, the Safari steps on
  * iPhone and iPad, nothing once the app is already installed.
  */
-export function InstallApp({ compact = false }: { compact?: boolean }) {
+export function InstallApp({
+  compact = false,
+  lead,
+}: {
+  compact?: boolean;
+  /** What the app is for (default: the salon cabinet text). */
+  lead?: string;
+}) {
   const { t } = useI18n();
   const [mode, setMode] = useState<InstallMode>('installed');
   const [open, setOpen] = useState(false);
@@ -57,7 +64,7 @@ export function InstallApp({ compact = false }: { compact?: boolean }) {
   return (
     <section className="install-app install-app--card">
       <strong>{t.install.title}</strong>
-      <p className="small muted">{t.install.lead}</p>
+      <p className="small muted">{lead ?? t.install.lead}</p>
       {button}
       {open ? help : null}
     </section>

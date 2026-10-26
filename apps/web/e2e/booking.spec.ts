@@ -213,6 +213,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // The session survives a reload (httpOnly cookie).
   await client.goto('/pl/c');
   await expect(client.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+  // "My visits" installs as its own app, separate from the salon cabinet.
+  const visitsManifestHref = await client.locator('link[rel="manifest"]').getAttribute('href');
+  expect(visitsManifestHref).toBe('/manifests/visits-pl.webmanifest');
+  const visitsManifest = await (await client.request.get(visitsManifestHref!)).json();
+  expect(visitsManifest).toMatchObject({
+    id: '/c',
+    name: 'GESTALT · Wizyty',
+    start_url: '/pl/c',
+    display: 'standalone',
+  });
+  await expect(client.getByRole('button', { name: 'Zainstaluj aplikację' })).toBeVisible();
+  await shot(client, '07f-client-install-app');
 
   // The booked day, as the salon's API sees it.
   const calendar = await json<{
