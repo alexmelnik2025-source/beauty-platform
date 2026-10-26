@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
+import { LanguagePicker, type Spoken } from '@/components/Languages';
 import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -20,6 +21,7 @@ interface LocationSettings {
   bookingHorizonDays: number;
   clientCancelDeadlineMinutes: number;
   slotStepMinutes: number;
+  languages: Spoken[];
   version: number;
 }
 
@@ -71,6 +73,7 @@ export default function SettingsPage() {
           bookingHorizonDays: form.bookingHorizonDays,
           clientCancelDeadlineMinutes: form.clientCancelDeadlineMinutes,
           slotStepMinutes: form.slotStepMinutes,
+          languages: form.languages,
         },
       });
       setLoc(saved);
@@ -191,6 +194,12 @@ export default function SettingsPage() {
             <span>{t.settings.phone}</span>
             <input type="tel" value={form.phone ?? ''} onChange={text('phone')} />
           </label>
+          <LanguagePicker
+            title={t.languages.salonTitle}
+            hint={t.languages.salonHint}
+            value={form.languages ?? []}
+            onChange={(languages) => setForm({ ...form, languages })}
+          />
         </section>
         <button className="btn" disabled={busy}>
           {t.common.save}

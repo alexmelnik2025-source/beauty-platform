@@ -21,6 +21,18 @@ enum Locale {
   @@map("locale")
 }
 
+/// Languages a location or a staff member speaks with clients (shown on the booking page).
+/// be = Belarusian. Not the same list as Locale (interface languages).
+enum Language {
+  pl
+  uk
+  ru
+  be
+  en
+
+  @@map("language")
+}
+
 enum MembershipRole {
   owner
   manager
@@ -315,6 +327,8 @@ model Location {
   bookingHorizonDays          Int      @default(30) @map("booking_horizon_days")
   clientCancelDeadlineMinutes Int      @default(120) @map("client_cancel_deadline_minutes")
   onlineBookingEnabled        Boolean  @default(false) @map("online_booking_enabled")
+  /// Languages the salon speaks with clients, in the order chosen by the salon.
+  languages                   Language[] @default([])
   /// Optimistic locking: every update must send the version it read.
   version                     Int      @default(1)
   createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -387,6 +401,8 @@ model StaffMember {
   /// Shown to clients, e.g. "Kasia".
   displayName String   @map("display_name")
   bio         String?
+  /// Languages this staff member speaks with clients.
+  languages   Language[] @default([])
   active     Boolean  @default(true)
   sortOrder  Int      @default(0) @map("sort_order")
   version    Int      @default(1)

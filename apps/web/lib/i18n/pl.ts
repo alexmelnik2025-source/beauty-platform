@@ -238,6 +238,20 @@ export const pl = {
     admin: 'Kolejka e-maili',
     language: 'Język',
   },
+  languages: {
+    salonTitle: 'Języki w salonie',
+    salonHint: 'W jakich językach rozmawiacie z klientami. Pokażemy je na stronie rezerwacji.',
+    staffTitle: 'Języki',
+    staffHint: 'W jakich językach ten specjalista rozmawia z klientami.',
+    speaks: 'Mówimy po',
+    names: {
+      pl: 'polski',
+      uk: 'ukraiński',
+      ru: 'rosyjski',
+      be: 'białoruski',
+      en: 'angielski',
+    },
+  },
   install: {
     title: 'Aplikacja na telefon i komputer',
     lead: 'Kalendarz otwiera się jak zwykła aplikacja — z ikoną na ekranie, bez paska przeglądarki.',

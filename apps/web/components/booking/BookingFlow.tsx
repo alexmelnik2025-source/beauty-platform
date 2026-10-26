@@ -15,6 +15,7 @@ import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
 import type { Hold, PublicAppointment, PublicLocation, Slot } from '@/lib/types';
 import { normalizePhone } from '../calendar/NewItemSheet';
+import { LanguageBadges } from '../Languages';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 
@@ -287,6 +288,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           <span className="muted small">
             {salon.addressLine}, {salon.postalCode} {salon.city}
           </span>
+          <LanguageBadges codes={salon.languages ?? []} label={t.languages.speaks} />
         </div>
       </header>
 
@@ -346,6 +348,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                   >
                     <span className="c-name">{s.displayName}</span>
                     {s.bio ? <span className="c-meta">{s.bio}</span> : null}
+                    <LanguageBadges codes={s.languages ?? []} />
                   </button>
                 </li>
               ))}

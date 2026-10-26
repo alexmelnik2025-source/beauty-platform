@@ -3,6 +3,15 @@ import { LOCALES } from '../auth/auth.schemas';
 
 const TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
 
+/** Languages spoken with clients (be = Belarusian). Separate from interface locales. */
+export const LANGUAGES = ['pl', 'uk', 'ru', 'be', 'en'] as const;
+
+/** A list of spoken languages; repeats are dropped, the order is kept. */
+export const languagesSchema = z
+  .array(z.enum(LANGUAGES))
+  .max(20)
+  .transform((list) => [...new Set(list)]);
+
 export const createOrganizationSchema = z.object({
   name: z.string().trim().min(1).max(120),
   /** Polish tax id; spaces and dashes are removed. */
@@ -48,6 +57,7 @@ const locationFields = {
     .min(0)
     .max(7 * 24 * 60),
   onlineBookingEnabled: z.boolean(),
+  languages: languagesSchema,
 };
 
 export const createLocationSchema = z.object({
@@ -62,6 +72,7 @@ export const createLocationSchema = z.object({
   bookingHorizonDays: locationFields.bookingHorizonDays.default(30),
   clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
+  languages: locationFields.languages.default([]),
 });
 
 export const updateLocationSchema = z

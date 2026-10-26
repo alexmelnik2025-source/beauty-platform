@@ -82,7 +82,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await json(
     await request.patch(base, {
       headers: owner,
-      data: { version: location.version, onlineBookingEnabled: true, minLeadMinutes: 30 },
+      data: {
+        version: location.version,
+        onlineBookingEnabled: true,
+        minLeadMinutes: 30,
+        languages: ['pl', 'uk', 'ru'],
+      },
     }),
   );
   const category = await json<{ id: string }>(
@@ -111,11 +116,15 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     );
   }
   const staffIds: string[] = [];
-  for (const displayName of ['Kasia', 'Ola', 'Alex']) {
+  for (const [displayName, languages] of [
+    ['Kasia', ['pl', 'uk']],
+    ['Ola', ['pl']],
+    ['Alex', ['pl', 'en']],
+  ] as const) {
     const staff = await json<{ id: string }>(
       await request.post(`${base}/staff`, {
         headers: owner,
-        data: { displayName, serviceIds: services.map((s) => s.id) },
+        data: { displayName, languages, serviceIds: services.map((s) => s.id) },
       }),
     );
     await json(
@@ -149,9 +158,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const client = await phone.newPage();
   await client.goto(`/pl/b/${location.slug}`);
   await expect(client.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+  // Languages of the salon under the address.
+  await expect(
+    client.getByRole('note', { name: 'Mówimy po: polski, ukraiński, rosyjski' }),
+  ).toBeVisible();
   await shot(client, '01-client-services');
 
   await client.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+  // Each specialist with their own languages.
+  await expect(client.getByRole('button', { name: /Kasia/ })).toContainText('UA');
+  await expect(client.getByRole('button', { name: /Alex/ })).toContainText('EN');
   await shot(client, '02-client-staff');
   await client.getByRole('button', { name: /Kasia/ }).click();
   await expect(client.locator('.times button').first()).toBeVisible();
@@ -278,6 +294,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(ownerPage, '16-owner-team');
   await ownerPage.getByRole('button', { name: /Ola/ }).click();
   await expect(ownerPage.getByRole('dialog')).toContainText('Godziny pracy');
+  await expect(
+    ownerPage.getByRole('dialog').getByRole('button', { name: 'PL polski' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    ownerPage.getByRole('dialog').getByRole('button', { name: 'EN angielski' }),
+  ).toHaveAttribute('aria-pressed', 'false');
   await shot(ownerPage, '17-owner-staff-hours');
   await ownerPage.keyboard.press('Escape');
   await ownerPage.getByRole('button', { name: 'Dostęp i uprawnienia' }).click();
@@ -298,7 +320,23 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByLabel('Link dla klientów')).toHaveValue(
     new RegExp(`/pl/b/${location.slug}$`),
   );
+  // Languages of the salon: PL, UA, RU chosen; add BY and save.
+  await expect(ownerPage.getByRole('button', { name: 'PL polski' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await ownerPage.getByRole('button', { name: 'BY białoruski' }).click();
+  await expect(ownerPage.getByRole('button', { name: 'BY białoruski' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await shot(ownerPage, '21-owner-settings');
+  await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ownerPage.getByText('Zapisano')).toBeVisible();
+  const savedLocation = await json<{ languages: string[] }>(
+    await request.get(base, { headers: owner }),
+  );
+  expect(savedLocation.languages).toEqual(['pl', 'uk', 'ru', 'be']);
 
   // The owner's calendar on a phone.
   const ownerPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });

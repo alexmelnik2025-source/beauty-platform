@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { LanguagePicker, type Spoken } from '../Languages';
 import { ErrorBox, Sheet, Spinner } from '../ui';
 
 export interface StaffRow {
   id: string;
   displayName: string;
   bio: string | null;
+  languages: Spoken[];
   active: boolean;
   serviceIds: string[];
   userId: string | null;
@@ -53,6 +55,7 @@ export function StaffSheet({
   const [profile, setProfile] = useState({
     displayName: staff?.displayName ?? '',
     bio: staff?.bio ?? '',
+    languages: staff?.languages ?? ([] as Spoken[]),
     active: staff?.active ?? true,
     serviceIds: staff?.serviceIds ?? services.filter((s) => s.active).map((s) => s.id),
   });
@@ -99,6 +102,7 @@ export function StaffSheet({
             version: staff.version,
             displayName: profile.displayName,
             bio: profile.bio || null,
+            languages: profile.languages,
             active: profile.active,
           },
         });
@@ -112,6 +116,7 @@ export function StaffSheet({
           body: {
             displayName: profile.displayName,
             ...(profile.bio ? { bio: profile.bio } : {}),
+            languages: profile.languages,
             serviceIds: profile.serviceIds,
           },
         });
@@ -197,6 +202,12 @@ export function StaffSheet({
             onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
           />
         </label>
+        <LanguagePicker
+          title={t.languages.staffTitle}
+          hint={t.languages.staffHint}
+          value={profile.languages}
+          onChange={(languages) => setProfile({ ...profile, languages })}
+        />
         {staff ? (
           <label className="check">
             <input

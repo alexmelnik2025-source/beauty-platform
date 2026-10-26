@@ -5,7 +5,7 @@ import { notFound } from '../common/app-exception';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import type { Location } from '../generated/prisma/client';
+import type { Language, Location } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService, type AvailabilityResponse } from './availability.service';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
@@ -19,6 +19,8 @@ export interface PublicLocationResponse {
   phone: string | null;
   timezone: string;
   defaultLocale: string;
+  /** Languages the salon speaks with clients (pl, uk, ru, be, en), in the salon's order. */
+  languages: Language[];
   /** Price-list groups in display order; services without a category come last. */
   categories: { id: string; name: string }[];
   services: {
@@ -29,7 +31,14 @@ export interface PublicLocationResponse {
     durationMinutes: number;
     priceGrosze: number;
   }[];
-  staff: { id: string; displayName: string; bio: string | null; serviceIds: string[] }[];
+  staff: {
+    id: string;
+    displayName: string;
+    bio: string | null;
+    /** Languages this staff member speaks with clients. */
+    languages: Language[];
+    serviceIds: string[];
+  }[];
 }
 
 /**
@@ -78,6 +87,7 @@ export class PublicLocationsController {
       phone: location.phone,
       timezone: location.timezone,
       defaultLocale: location.defaultLocale,
+      languages: location.languages,
       categories: categories.map((c) => ({ id: c.id, name: c.name })),
       services: services.map((s) => ({
         id: s.id,
@@ -93,6 +103,7 @@ export class PublicLocationsController {
           id: s.id,
           displayName: s.displayName,
           bio: s.bio,
+          languages: s.languages,
           serviceIds: s.services.map((x) => x.serviceId).sort(),
         })),
     };

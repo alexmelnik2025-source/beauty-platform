@@ -101,6 +101,7 @@ describe('locations', () => {
       bookingHorizonDays: 30,
       clientCancelDeadlineMinutes: 120,
       onlineBookingEnabled: false,
+      languages: [],
       version: 1,
     });
 

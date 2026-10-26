@@ -238,6 +238,20 @@ export const en: Dict = {
     admin: 'Email queue',
     language: 'Language',
   },
+  languages: {
+    salonTitle: 'Languages at the salon',
+    salonHint: 'Which languages you speak with clients. We show them on the booking page.',
+    staffTitle: 'Languages',
+    staffHint: 'Which languages this specialist speaks with clients.',
+    speaks: 'We speak',
+    names: {
+      pl: 'Polish',
+      uk: 'Ukrainian',
+      ru: 'Russian',
+      be: 'Belarusian',
+      en: 'English',
+    },
+  },
   install: {
     title: 'App for your phone and computer',
     lead: 'The calendar opens like a regular app — with an icon on your screen and no browser bar.',

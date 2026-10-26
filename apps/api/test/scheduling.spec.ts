@@ -326,6 +326,7 @@ describe('public booking page', () => {
       id: expect.any(String),
       displayName: 'Kasia',
       bio: null,
+      languages: [],
       serviceIds: [serviceId],
     });
     expect(res.body).not.toHaveProperty('organizationId');
@@ -355,6 +356,87 @@ describe('public booking page', () => {
     const slots = (await get(inThreeDays, inThreeDays)).body.slots;
     expect(slots.length).toBeGreaterThan(10);
     expect(isoWeekday(inThreeDays)).toBeGreaterThan(0);
+  });
+});
+
+describe('spoken languages', () => {
+  const enable = async (extra: Record<string, unknown>) => {
+    const current = await ctx.http().get(base).set(owner.auth).expect(200);
+    return ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({ version: current.body.version, ...extra });
+  };
+
+  it('the salon and each staff member keep their languages; the booking page shows them', async () => {
+    const { staffId } = await setupStaff([
+      { weekday: 1, intervals: [{ start: '09:00', end: '17:00' }] },
+    ]);
+    const loc = await enable({ onlineBookingEnabled: true, languages: ['pl', 'uk', 'ru', 'uk'] });
+    expect(loc.status).toBe(200);
+    // Repeats are dropped, the salon's order is kept.
+    expect(loc.body.languages).toEqual(['pl', 'uk', 'ru']);
+
+    const staff = await ctx.http().get(`${base}/staff/${staffId}`).set(owner.auth).expect(200);
+    expect(staff.body.languages).toEqual([]);
+    const updated = await ctx
+      .http()
+      .patch(`${base}/staff/${staffId}`)
+      .set(owner.auth)
+      .send({ version: staff.body.version, languages: ['be', 'ru', 'pl'] })
+      .expect(200);
+    expect(updated.body.languages).toEqual(['be', 'ru', 'pl']);
+
+    const created = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Oksana', languages: ['uk', 'en'] })
+      .expect(201);
+    expect(created.body.languages).toEqual(['uk', 'en']);
+
+    const page = await ctx.http().get(`/v1/public/locations/${loc.body.slug}`).expect(200);
+    expect(page.body.languages).toEqual(['pl', 'uk', 'ru']);
+    expect(page.body.staff).toEqual([
+      expect.objectContaining({ id: staffId, languages: ['be', 'ru', 'pl'] }),
+    ]);
+
+    // An empty list clears them.
+    const cleared = await enable({ languages: [] });
+    expect(cleared.body.languages).toEqual([]);
+  });
+
+  it('rejects unknown languages', async () => {
+    const res = await enable({ languages: ['pl', 'de'] });
+    expect(res.status).toBe(400);
+    expectError(res.body, 'VALIDATION_ERROR');
+    const bad = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'X', languages: 'pl' })
+      .expect(400);
+    expectError(bad.body, 'VALIDATION_ERROR');
+  });
+
+  it('staff cannot change the salon languages', async () => {
+    const member = await signUp(ctx, 'staff@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: member.userId,
+        organizationId: orgId,
+        role: 'staff',
+        locations: { create: [{ locationId }] },
+      },
+    });
+    const current = await ctx.http().get(base).set(member.auth).expect(200);
+    await ctx
+      .http()
+      .patch(base)
+      .set(member.auth)
+      .send({ version: current.body.version, languages: ['en'] })
+      .expect(403);
   });
 });
 

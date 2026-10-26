@@ -1,6 +1,9 @@
 /** Shapes of the API responses the web app uses (see /v1/docs). */
 
 export type Role = 'owner' | 'manager' | 'staff';
+/** Languages spoken with clients (be = Belarusian). Not the interface languages. */
+export const SPOKEN = ['pl', 'uk', 'ru', 'be', 'en'] as const;
+export type Spoken = (typeof SPOKEN)[number];
 export const APPOINTMENT_STATUSES = [
   'held',
   'confirmed',
@@ -121,6 +124,7 @@ export interface PublicLocation {
   phone: string | null;
   timezone: string;
   defaultLocale: string;
+  languages: Spoken[];
   categories: { id: string; name: string }[];
   services: {
     id: string;
@@ -130,7 +134,13 @@ export interface PublicLocation {
     durationMinutes: number;
     priceGrosze: number;
   }[];
-  staff: { id: string; displayName: string; bio: string | null; serviceIds: string[] }[];
+  staff: {
+    id: string;
+    displayName: string;
+    bio: string | null;
+    languages: Spoken[];
+    serviceIds: string[];
+  }[];
 }
 
 export interface Slot {

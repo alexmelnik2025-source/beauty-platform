@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isValidLocalDate, parseClock } from './time';
+import { languagesSchema } from '../organizations/organizations.schemas';
 
 const fiveMinuteSteps = (min: number, max: number) =>
   z
@@ -57,6 +58,7 @@ export const updateServiceCategorySchema = createServiceCategorySchema
 const staffFields = {
   displayName: z.string().trim().min(1).max(80),
   bio: z.string().trim().max(500).nullable(),
+  languages: languagesSchema,
   active: z.boolean(),
   sortOrder: z.number().int().min(0).max(10_000),
 };
@@ -66,6 +68,7 @@ const serviceIds = z.array(z.uuid()).max(200);
 export const createStaffSchema = z.object({
   ...staffFields,
   bio: staffFields.bio.optional(),
+  languages: staffFields.languages.default([]),
   active: staffFields.active.default(true),
   sortOrder: staffFields.sortOrder.default(0),
   serviceIds: serviceIds.default([]),
