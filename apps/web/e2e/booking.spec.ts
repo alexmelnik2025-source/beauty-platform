@@ -490,7 +490,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const salonSite = createServer((_req, res) => {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(
-      `<!doctype html><html lang="pl"><body><h1>Gestalt — strona salonu</h1>` +
+      `<!doctype html><html lang="pl"><meta name="viewport" content="width=device-width"><body><h1>Gestalt — strona salonu</h1>` +
         `<a href="#" data-bp-book>Zarezerwuj online</a>` +
         `<script src="${web.origin}/embed.js" data-salon="${location.slug}" data-lang="pl" async></script>` +
         `</body></html>`,
