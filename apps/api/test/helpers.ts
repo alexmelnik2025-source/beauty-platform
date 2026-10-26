@@ -9,6 +9,7 @@ import { configureApp } from '../src/app.setup';
 import { RateLimiterService } from '../src/common/rate-limiter.service';
 import { MailService, MemoryMailService } from '../src/mail/mail.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { MemoryPushSender, PushSender } from '../src/push/push.sender';
 
 export const PASSWORD = 'correct-horse-battery';
 
@@ -16,6 +17,7 @@ export interface TestContext {
   app: NestExpressApplication;
   prisma: PrismaService;
   mail: MemoryMailService;
+  push: MemoryPushSender;
   http: () => ReturnType<typeof request>;
 }
 
@@ -30,10 +32,15 @@ export async function createTestApp(): Promise<TestContext> {
   if (!(mail instanceof MemoryMailService)) {
     throw new Error('Tests must run with MAIL_TRANSPORT=memory');
   }
+  const push = app.get(PushSender);
+  if (!(push instanceof MemoryPushSender)) {
+    throw new Error('Tests must run with PUSH_TRANSPORT=memory');
+  }
   return {
     app,
     prisma: app.get(PrismaService),
     mail,
+    push,
     http: () => request(app.getHttpServer()),
   };
 }
@@ -44,6 +51,7 @@ export async function resetState(ctx: TestContext): Promise<void> {
     'TRUNCATE TABLE app_user, organization, audit_log, notification_outbox, idempotency_key RESTART IDENTITY CASCADE',
   );
   ctx.mail.clear();
+  ctx.push.clear();
   ctx.app.get(RateLimiterService).reset();
 }
 

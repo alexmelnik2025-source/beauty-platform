@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { PushToggle } from '@/components/PushToggle';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
@@ -64,6 +65,7 @@ export default function NotificationsPage() {
         ) : null}
       </div>
       <div className="page">
+        <PushToggle />
         <ErrorBox>{error}</ErrorBox>
         {items === null ? (
           <Spinner />

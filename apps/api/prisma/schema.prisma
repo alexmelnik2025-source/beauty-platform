@@ -111,8 +111,9 @@ model User {
   sessions      Session[]
   emailTokens   EmailToken[]
   memberships   Membership[]
-  staffMembers  StaffMember[]
-  notifications Notification[]
+  staffMembers      StaffMember[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 
   @@map("app_user")
 }
@@ -234,6 +235,9 @@ model Notification {
   /// What to show without another request: time, service, staff and client name. Never contacts.
   data           Json
   readAt         DateTime? @map("read_at") @db.Timestamptz(3)
+  /// When it was sent as a push message (null = not yet, or the user has no device for push).
+  pushedAt       DateTime? @map("pushed_at") @db.Timestamptz(3)
+  pushAttempts   Int       @default(0) @map("push_attempts")
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -241,6 +245,25 @@ model Notification {
 
   @@index([userId, createdAt])
   @@map("notification")
+}
+
+/// A browser or installed app that receives push messages (Web Push). One per device.
+model PushSubscription {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  /// Address at the browser's push service; unique per device.
+  endpoint      String    @unique
+  /// Public key and auth secret of the device (base64url) — needed to encrypt messages.
+  p256dh        String
+  auth          String
+  userAgent     String?   @map("user_agent")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSuccessAt DateTime? @map("last_success_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscription")
 }
 
 /// A group of staff members with the same permissions ("Senior barber", "Trainee").

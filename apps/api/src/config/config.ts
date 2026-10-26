@@ -48,6 +48,16 @@ const configSchema = z
       ),
     /** Alert when a due email has waited longer than this, minutes. */
     OUTBOX_ALERT_AFTER_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
+    /**
+     * Push messages to installed apps and browsers. webpush = real Web Push (needs the VAPID
+     * keys below, otherwise push is off); memory = kept in memory, for tests.
+     */
+    PUSH_TRANSPORT: z.enum(['webpush', 'memory']).default('webpush'),
+    /** VAPID key pair (base64url). Generate: node scripts/vapid-keys.mjs */
+    VAPID_PUBLIC_KEY: z.string().optional(),
+    VAPID_PRIVATE_KEY: z.string().optional(),
+    /** Contact for push services: mailto: or https: address of the platform. */
+    VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
   })
   .superRefine((config, ctx) => {
     if (config.NODE_ENV === 'production' && config.MAIL_TRANSPORT === 'memory') {
@@ -55,6 +65,20 @@ const configSchema = z
         code: 'custom',
         path: ['MAIL_TRANSPORT'],
         message: 'memory is not allowed in production',
+      });
+    }
+    if (config.NODE_ENV === 'production' && config.PUSH_TRANSPORT === 'memory') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PUSH_TRANSPORT'],
+        message: 'memory is not allowed in production',
+      });
+    }
+    if (Boolean(config.VAPID_PUBLIC_KEY) !== Boolean(config.VAPID_PRIVATE_KEY)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['VAPID_PRIVATE_KEY'],
+        message: 'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are set together',
       });
     }
     if (config.MAIL_TRANSPORT === 'resend' && !config.RESEND_API_KEY) {

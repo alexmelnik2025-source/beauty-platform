@@ -218,6 +218,18 @@ export const pl = {
     manual:
       'W menu przeglądarki wybierz „Zainstaluj aplikację” lub „Dodaj do ekranu głównego”. Najlepiej działa w Chrome, Edge i Safari.',
   },
+  push: {
+    title: 'Powiadomienia na tym urządzeniu',
+    lead: 'Nowe, przeniesione i odwołane wizyty od razu na ekranie — nawet gdy aplikacja jest zamknięta.',
+    onLead: 'Włączone. Dostaniesz powiadomienie o każdej nowej, przeniesionej i odwołanej wizycie.',
+    turnOn: 'Włącz powiadomienia',
+    turnOff: 'Wyłącz na tym urządzeniu',
+    needsInstall:
+      'Na iPhonie i iPadzie powiadomienia działają w aplikacji: najpierw zainstaluj ją (powyżej), potem otwórz ją z ekranu początkowego.',
+    denied:
+      'Powiadomienia są zablokowane w ustawieniach przeglądarki dla tej strony. Zezwól na nie i odśwież stronę.',
+    unsupported: 'Ta przeglądarka nie obsługuje powiadomień. Użyj Chrome, Edge lub Safari.',
+  },
   actions: {
     edit: 'Edytuj',
     delete: 'Usuń',

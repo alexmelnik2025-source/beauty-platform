@@ -218,6 +218,18 @@ export const en: Dict = {
     manual:
       'In your browser menu choose “Install app” or “Add to Home screen”. Works best in Chrome, Edge and Safari.',
   },
+  push: {
+    title: 'Notifications on this device',
+    lead: 'New, moved and cancelled appointments on your screen right away — even when the app is closed.',
+    onLead: 'On. You will be notified about every new, moved and cancelled appointment.',
+    turnOn: 'Turn on notifications',
+    turnOff: 'Turn off on this device',
+    needsInstall:
+      'On iPhone and iPad notifications work in the app: install it first (above), then open it from the Home Screen.',
+    denied:
+      'Notifications are blocked for this site in your browser settings. Allow them and reload the page.',
+    unsupported: 'This browser does not support notifications. Use Chrome, Edge or Safari.',
+  },
   actions: {
     edit: 'Edit',
     delete: 'Delete',

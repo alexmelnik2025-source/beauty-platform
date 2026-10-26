@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PushModule } from './push/push.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { SchedulingModule } from './scheduling/scheduling.module';
     OrganizationsModule,
     SchedulingModule,
     BookingModule,
+    PushModule,
     HealthModule,
     AdminModule,
   ],

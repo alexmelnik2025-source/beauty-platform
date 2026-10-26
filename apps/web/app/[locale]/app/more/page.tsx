@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { InstallApp } from '@/components/InstallApp';
+import { PushToggle } from '@/components/PushToggle';
 import { useSession } from '@/components/Session';
 import { LanguageSwitch } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
@@ -50,6 +51,7 @@ export default function MorePage() {
           ))}
         </ul>
         <InstallApp />
+        <PushToggle />
         <div className="field">
           <span className="small muted">{t.more.language}</span>
           <LanguageSwitch />

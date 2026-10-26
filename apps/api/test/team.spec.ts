@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { PushService } from '../src/push/push.service';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
@@ -418,5 +419,114 @@ describe('notification feed', () => {
     expect((await feed(kasia)).body).toHaveLength(1);
     await ctx.prisma.membership.deleteMany({ where: { userId: kasia.userId } });
     expect((await feed(kasia)).body).toHaveLength(0);
+  });
+
+  describe('push messages to installed apps', () => {
+    const KEYS = { p256dh: 'BPublicKeyOfTheDevice_123', auth: 'AuthSecret_456' };
+    const device = (name: string) => `https://push.example.com/send/${name}`;
+    const subscribe = (user: SignedInUser, endpoint: string) =>
+      ctx
+        .http()
+        .post('/v1/me/push-subscriptions')
+        .set(user.auth)
+        .send({ endpoint, keys: KEYS })
+        .expect(204);
+    const deliver = () => ctx.app.get(PushService).deliver();
+
+    it("the staff member's phone gets the online booking, without client contacts", async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      const key = await ctx
+        .http()
+        .get('/v1/me/push-subscriptions/public-key')
+        .set(kasia.auth)
+        .expect(200);
+      expect(key.body.publicKey).toEqual(expect.any(String));
+      await subscribe(kasia, device('kasia-phone'));
+
+      await bookOnline(kasiaId, 10);
+      await deliver();
+
+      expect(ctx.push.sent).toHaveLength(1);
+      const message = ctx.push.sent[0]!;
+      expect(message).toMatchObject({
+        endpoint: device('kasia-phone'),
+        title: 'Nowa rezerwacja online',
+        url: `/pl/app/calendar?date=${day}`,
+      });
+      expect(message.body).toContain('10:00');
+      expect(message.body).toContain('Strzyżenie');
+      expect(message.body).toContain('Anna Kowalska');
+      expect(JSON.stringify(message)).not.toContain('600100200');
+      expect(JSON.stringify(message)).not.toContain('anna@example.com');
+
+      // Pushed once: the next cycle sends nothing; the owner has no device for push.
+      await deliver();
+      expect(ctx.push.sent).toHaveLength(1);
+    });
+
+    it('a device that unsubscribed is forgotten; a temporary failure is retried', async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      await subscribe(kasia, device('old-phone'));
+      await subscribe(kasia, device('laptop'));
+      ctx.push.gone.add(device('old-phone'));
+      ctx.push.failing.add(device('laptop'));
+
+      await bookOnline(kasiaId, 10);
+      await deliver();
+      expect(ctx.push.sent).toHaveLength(0);
+      const left = await ctx.prisma.pushSubscription.findMany({ where: { userId: kasia.userId } });
+      expect(left.map((s) => s.endpoint)).toEqual([device('laptop')]);
+
+      ctx.push.failing.clear();
+      await deliver();
+      expect(ctx.push.sent.map((m) => m.endpoint)).toEqual([device('laptop')]);
+    });
+
+    it('gives up after 3 attempts', async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      await subscribe(kasia, device('laptop'));
+      ctx.push.failing.add(device('laptop'));
+      await bookOnline(kasiaId, 10);
+      for (let i = 0; i < 5; i += 1) await deliver();
+      const [row] = await ctx.prisma.notification.findMany({ where: { userId: kasia.userId } });
+      expect(row).toMatchObject({ pushAttempts: 3, pushedAt: null });
+    });
+
+    it('only https push addresses; a device is removed only by its owner', async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      const bad = await ctx
+        .http()
+        .post('/v1/me/push-subscriptions')
+        .set(kasia.auth)
+        .send({ endpoint: 'http://push.example.com/x', keys: KEYS })
+        .expect(400);
+      expectError(bad.body, 'VALIDATION_ERROR');
+      await subscribe(kasia, device('kasia-phone'));
+
+      await ctx
+        .http()
+        .post('/v1/me/push-subscriptions/remove')
+        .set(owner.auth)
+        .send({ endpoint: device('kasia-phone') })
+        .expect(204);
+      expect(await ctx.prisma.pushSubscription.count()).toBe(1);
+
+      await ctx
+        .http()
+        .post('/v1/me/push-subscriptions/remove')
+        .set(kasia.auth)
+        .send({ endpoint: device('kasia-phone') })
+        .expect(204);
+      expect(await ctx.prisma.pushSubscription.count()).toBe(0);
+    });
+
+    it('no push after leaving the team', async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      await subscribe(kasia, device('kasia-phone'));
+      await bookOnline(kasiaId, 10);
+      await ctx.prisma.membership.deleteMany({ where: { userId: kasia.userId } });
+      await deliver();
+      expect(ctx.push.sent).toHaveLength(0);
+    });
   });
 });
