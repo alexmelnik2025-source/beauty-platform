@@ -119,7 +119,7 @@ describe('booking code by SMS', () => {
     const res = await sendCode(hold, { codeChannel: 'sms' }).expect(202);
     expect(res.body.channel).toBe('sms');
     const sms = ctx.sms.lastTo(PHONE);
-    expect(sms?.text).toMatch(/^\d{6} — kod rezerwacji w Barber\. Ważny 10 min\.$/);
+    expect(sms?.text).toMatch(/^\d{6} — kod rezerwacji w Barber Centrum\. Ważny 10 min\.$/);
     expect(ctx.mail.lastTo(EMAIL)).toBeUndefined();
 
     const confirmed = await ctx
@@ -144,7 +144,9 @@ describe('booking code by SMS', () => {
 
   it('writes the SMS in the language of the client', async () => {
     await sendCode(await newHold(), { codeChannel: 'sms', locale: 'uk' }).expect(202);
-    expect(ctx.sms.lastTo(PHONE)?.text).toMatch(/^\d{6} — код запису в Barber\. Дійсний 10 хв\.$/);
+    expect(ctx.sms.lastTo(PHONE)?.text).toMatch(
+      /^\d{6} — код запису в Barber Centrum\. Дійсний 10 хв\.$/,
+    );
   });
 
   it('a wrong SMS code is refused; at most 3 codes per hold', async () => {
@@ -165,12 +167,16 @@ describe('booking code by SMS', () => {
   });
 
   it('at most 5 SMS per phone number an hour, across holds', async () => {
-    for (const hh of [9, 10, 11, 12, 13]) {
-      await sendCode(await newHold(hh), { codeChannel: 'sms' }).expect(202);
-    }
-    const res = await sendCode(await newHold(14), { codeChannel: 'sms' }).expect(429);
+    // 3 codes for the first hold, 2 more for the second; the 6th SMS is refused.
+    const first = await newHold(10);
+    for (let i = 0; i < 3; i++) await sendCode(first, { codeChannel: 'sms' }).expect(202);
+    const second = await newHold(12);
+    for (let i = 0; i < 2; i++) await sendCode(second, { codeChannel: 'sms' }).expect(202);
+    const res = await sendCode(second, { codeChannel: 'sms' }).expect(429);
     expectError(res.body, 'RATE_LIMITED');
     expect(ctx.sms.sent).toHaveLength(5);
+    // Email still works for this client.
+    await sendCode(second).expect(202);
   });
 
   it('an email confirmed only by SMS does not rewrite the salon card of that address', async () => {
