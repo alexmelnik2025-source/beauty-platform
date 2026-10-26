@@ -24,8 +24,17 @@ const config: NextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-Frame-Options', value: 'DENY' },
         ],
+      },
+      {
+        // Nothing may be shown inside another site's frame…
+        source: '/:path((?!(?:pl|uk|ru|en)/b/).*)',
+        headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+      },
+      {
+        // …except the booking page: the salon's own site shows it in a window (public/embed.js).
+        source: '/:locale(pl|uk|ru|en)/b/:slug',
+        headers: [{ key: 'Content-Security-Policy', value: 'frame-ancestors *' }],
       },
     ];
   },

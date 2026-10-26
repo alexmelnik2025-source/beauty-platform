@@ -5,6 +5,8 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { clearMailbox, listTo, waitForEmail } from './mailpit';
 import { waitForSmsCode } from './sms-log';
 
@@ -333,6 +335,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'true',
   );
   await shot(ownerPage, '21-owner-settings');
+  // Short link for Instagram and the booking button for the salon's own site.
+  await expect(ownerPage.getByLabel('Krótki link')).toHaveValue(new RegExp(`/s/${location.slug}$`));
+  await expect(ownerPage.getByLabel('Przycisk rezerwacji na Twoją stronę')).toHaveValue(
+    new RegExp(`/embed\\.js" data-salon="${location.slug}" data-lang="pl"`),
+  );
+  await ownerPage.getByLabel('Krótki link').scrollIntoViewIfNeeded();
+  await shot(ownerPage, '30-owner-share');
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
   const savedLocation = await json<{ languages: string[] }>(
@@ -454,4 +463,56 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // Details of the visit still come by email; the code did not.
   await waitForEmail(CLIENT3, /Wizyta potwierdzona/);
   expect((await listTo(CLIENT3)).some((m) => /Kod potwierdzenia/.test(m.Subject))).toBe(false);
+
+  // ── Short link and the booking button on the salon's own site ─────────
+  // The short link opens booking in the visitor's language and keeps utm_… parameters.
+  const short = await request.get(`/s/${location.slug}?utm_source=instagram`, {
+    maxRedirects: 0,
+    headers: { 'accept-language': 'uk-UA,uk;q=0.9,en;q=0.8' },
+  });
+  expect(short.status()).toBe(307);
+  expect(short.headers()['location']).toMatch(
+    new RegExp(`/uk/b/${location.slug}\\?utm_source=instagram$`),
+  );
+  const anyone = await request.get(`/s/${location.slug}`, {
+    maxRedirects: 0,
+    headers: { 'accept-language': 'de-DE,de;q=0.9' },
+  });
+  expect(anyone.headers()['location']).toMatch(new RegExp(`/pl/b/${location.slug}$`));
+  // Only the booking page may be shown in another site's frame.
+  expect(
+    (await request.get(`/pl/b/${location.slug}`)).headers()['x-frame-options'],
+  ).toBeUndefined();
+  expect((await request.get('/pl/login')).headers()['x-frame-options']).toBe('DENY');
+
+  // A salon website on another address with the code from the cabinet.
+  const web = new URL(process.env.WEB_URL ?? 'http://localhost:3000');
+  const salonSite = createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end(
+      `<!doctype html><html lang="pl"><body><h1>Gestalt — strona salonu</h1>` +
+        `<a href="#" data-bp-book>Zarezerwuj online</a>` +
+        `<script src="${web.origin}/embed.js" data-salon="${location.slug}" data-lang="pl" async></script>` +
+        `</body></html>`,
+    );
+  });
+  await new Promise<void>((done) => salonSite.listen(0, '127.0.0.1', done));
+  try {
+    const visitor = await (await browser.newContext({ viewport: PHONE, isMobile: true })).newPage();
+    await visitor.goto(`http://127.0.0.1:${(salonSite.address() as AddressInfo).port}/`);
+    await visitor.getByRole('button', { name: 'Umów wizytę' }).click();
+    const widget = visitor.frameLocator('iframe[title="Umów wizytę"]');
+    await expect(widget.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+    await expect(widget.getByRole('button', { name: /Strzyżenie męskie/ })).toBeVisible();
+    await shot(visitor, '31-salon-site-booking-window');
+    await visitor.getByRole('button', { name: 'Zamknij' }).click();
+    await expect(visitor.getByRole('dialog')).toBeHidden();
+    // The salon's own link opens the same window.
+    await visitor.getByRole('link', { name: 'Zarezerwuj online' }).click();
+    await expect(widget.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+    await visitor.keyboard.press('Escape');
+    await expect(visitor.getByRole('dialog')).toBeHidden();
+  } finally {
+    salonSite.close();
+  }
 });

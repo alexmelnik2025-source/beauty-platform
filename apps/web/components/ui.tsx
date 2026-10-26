@@ -14,15 +14,15 @@ export function Wordmark({ href }: { href?: string }) {
   );
 }
 
-/** Links to the same page in the other languages. */
-export function LanguageSwitch() {
+/** Links to the same page in the other languages; `query` (e.g. "?embed=1") is kept. */
+export function LanguageSwitch({ query = '' }: { query?: string }) {
   const { locale } = useI18n();
   const pathname = usePathname() ?? `/${locale}`;
   const rest = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '');
   return (
     <nav className="lang" aria-label="Language">
       {LOCALES.map((l) => (
-        <a key={l} href={`/${l}${rest}`} aria-current={l === locale} lang={l}>
+        <a key={l} href={`/${l}${rest}${query}`} aria-current={l === locale} lang={l}>
           {l.toUpperCase()}
         </a>
       ))}

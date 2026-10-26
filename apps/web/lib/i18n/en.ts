@@ -413,6 +413,17 @@ export const en: Dict = {
     byClient: 'by the client',
     open: 'Show in the calendar',
   },
+  share: {
+    title: 'Instagram and your website',
+    shortLink: 'Short link',
+    shortHint:
+      "For your Instagram bio, business card or Google. Opens booking in the language of the client's phone.",
+    embed: 'Booking button for your website',
+    embedHint:
+      'Paste this code into your website before </body>. A "Book a visit" button appears in the corner and booking opens in a window — the client stays on your site.',
+    ownButton:
+      'Have your own button? Give it the data-bp-book attribute and add data-button="none" to the code.',
+  },
   settings: {
     title: 'Settings',
     salon: 'Salon',

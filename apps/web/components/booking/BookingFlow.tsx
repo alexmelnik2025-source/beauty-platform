@@ -75,6 +75,9 @@ export function BookingFlow({ slug }: { slug: string }) {
     marketingConsent: false,
   });
   const [codeChannel, setCodeChannel] = useState<'email' | 'sms'>('email');
+  // Shown in a window on the salon's own site (public/embed.js): another site's frame cannot
+  // keep the client's details or the "My visits" sign-in, and links open in a new tab.
+  const [embed, setEmbed] = useState(false);
   const [remember, setRemember] = useState(false);
   const [remembered, setRemembered] = useState(false);
   const [code, setCode] = useState('');
@@ -86,6 +89,10 @@ export function BookingFlow({ slug }: { slug: string }) {
 
   // Details remembered on this device after an earlier booking.
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('embed') === '1') {
+      setEmbed(true);
+      return;
+    }
     const saved = loadRemembered();
     if (!saved) return;
     setContact((c) => ({ ...c, ...saved, phone: saved.phone || c.phone }));
@@ -229,11 +236,13 @@ export function BookingFlow({ slug }: { slug: string }) {
         // "Remember me" also signs in to "My visits" on this device: the visit is already there.
         body: { holdToken: hold.holdToken, code, signIn: remember },
       });
-      saveRemembered(
-        remember
-          ? { name: contact.name, phone: normalizePhone(contact.phone), email: contact.email }
-          : null,
-      );
+      if (!embed) {
+        saveRemembered(
+          remember
+            ? { name: contact.name, phone: normalizePhone(contact.phone), email: contact.email }
+            : null,
+        );
+      }
       setResult(done);
       setStep('done');
     } catch (err) {
@@ -266,6 +275,7 @@ export function BookingFlow({ slug }: { slug: string }) {
     t.booking.stepTime,
     t.booking.stepDetails,
   ];
+  const newTab = embed ? { target: '_blank', rel: 'noopener' } : {};
   const staffForService = salon.staff.filter((s) => s.serviceIds.includes(serviceId));
   const daySlots = (slots ?? []).filter((s) => s.date === day);
   const daysWithSlots = new Set((slots ?? []).map((s) => s.date));
@@ -282,12 +292,12 @@ export function BookingFlow({ slug }: { slug: string }) {
   ].filter((g) => g.slots.length > 0);
 
   return (
-    <div className="booking">
+    <div className={embed ? 'booking booking--embed' : 'booking'}>
       <header className="salon-head">
         <div className="salon-head-inner">
           <div className="top">
             <span className="small muted">{t.booking.bookVisit}</span>
-            <LanguageSwitch />
+            <LanguageSwitch query={embed ? '?embed=1' : ''} />
           </div>
           <h1 className="salon-name">{salon.name}</h1>
           <span className="muted small">
@@ -490,17 +500,19 @@ export function BookingFlow({ slug }: { slug: string }) {
               />
               <span>{t.booking.marketing}</span>
             </label>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-              />
-              <span>
-                {t.booking.rememberMe}
-                <small className="muted remember-hint">{t.booking.rememberMeHint}</small>
-              </span>
-            </label>
+            {embed ? null : (
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span>
+                  {t.booking.rememberMe}
+                  <small className="muted remember-hint">{t.booking.rememberMeHint}</small>
+                </span>
+              </label>
+            )}
             {salon.codeChannels?.includes('sms') ? (
               <div className="field">
                 <span id="code-via">{t.booking.codeVia}</span>
@@ -587,7 +599,11 @@ export function BookingFlow({ slug }: { slug: string }) {
             >
               {t.booking.addToCalendar}
             </button>
-            <Link className="btn btn--quiet btn--block" href={`/${locale}/m/${result.manageToken}`}>
+            <Link
+              className="btn btn--quiet btn--block"
+              href={`/${locale}/m/${result.manageToken}`}
+              {...newTab}
+            >
               {t.booking.manage}
             </Link>
             {result.signedIn ? (
@@ -599,7 +615,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                 </Link>
               </section>
             ) : (
-              <Link className="link-btn small" href={`/${locale}/c`}>
+              <Link className="link-btn small" href={`/${locale}/c`} {...newTab}>
                 {t.visits.allVisits}
               </Link>
             )}

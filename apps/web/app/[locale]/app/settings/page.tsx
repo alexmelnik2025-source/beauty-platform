@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
 import { LanguagePicker, type Spoken } from '@/components/Languages';
+import { ShareBooking } from '@/components/ShareBooking';
 import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -170,6 +171,7 @@ export default function SettingsPage() {
             </label>
           </div>
         </section>
+        <ShareBooking slug={loc.slug} />
         <section className="section">
           <h2>{t.settings.salon}</h2>
           <label className="field">

@@ -899,6 +899,15 @@ h3 {
   align-items: center;
 }
 
+/* Booking page in a window on the salon's own site (public/embed.js): room for its close button. */
+.booking--embed .salon-head {
+  padding-top: 16px;
+}
+
+.booking--embed .salon-head .top {
+  padding-right: 44px;
+}
+
 .salon-name {
   font-family: var(--font-display), var(--font-body);
   font-size: clamp(1.4rem, 6vw, 2rem);
@@ -1357,6 +1366,19 @@ h3 {
 .copy-field input {
   flex: 1;
   min-width: 0;
+}
+
+.copy-field--code {
+  align-items: flex-start;
+}
+
+.copy-field--code textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 96px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  resize: vertical;
 }
 
 /* Install the cabinet as an app (PWA) */

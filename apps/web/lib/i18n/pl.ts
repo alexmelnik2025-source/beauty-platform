@@ -413,6 +413,17 @@ export const pl = {
     byClient: 'przez klienta',
     open: 'Pokaż w kalendarzu',
   },
+  share: {
+    title: 'Instagram i Twoja strona',
+    shortLink: 'Krótki link',
+    shortHint:
+      'Do bio na Instagramie, wizytówki lub Google. Otwiera rezerwację w języku telefonu klienta.',
+    embed: 'Przycisk rezerwacji na Twoją stronę',
+    embedHint:
+      'Wklej ten kod na swojej stronie przed </body>. W rogu pojawi się przycisk „Umów wizytę”, a rezerwacja otworzy się w okienku — klient nie opuszcza strony.',
+    ownButton:
+      'Masz własny przycisk? Dodaj mu atrybut data-bp-book, a do kodu — data-button="none".',
+  },
   settings: {
     title: 'Ustawienia',
     salon: 'Salon',

@@ -24,3 +24,27 @@ export function isLocale(value: string): value is Locale {
 export function fill(text: string, values: Record<string, string>): string {
   return text.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? `{${key}}`);
 }
+
+/** First supported language in an Accept-Language header, by quality; Polish otherwise. */
+export function pickLocale(header: string | null): Locale {
+  const wanted = (header ?? '')
+    .split(',')
+    .map((part, index) => {
+      const [tag = '', ...rest] = part.trim().split(';');
+      const q = rest.map((r) => r.trim()).find((r) => r.startsWith('q='));
+      const quality = q ? Number(q.slice(2)) : 1;
+      return {
+        lang: tag.slice(0, 2).toLowerCase(),
+        quality: Number.isFinite(quality) ? quality : 0,
+        index,
+      };
+    })
+    .filter((w) => w.quality > 0)
+    .sort((a, b) => b.quality - a.quality || a.index - b.index);
+  for (const { lang } of wanted) {
+    // "ua" is not a language code, but people write it for Ukrainian.
+    const code = lang === 'ua' ? 'uk' : lang;
+    if (isLocale(code)) return code;
+  }
+  return 'pl';
+}
