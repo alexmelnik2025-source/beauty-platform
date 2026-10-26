@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { useI18n, type Locale } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
+import { InstallApp } from './InstallApp';
 import { useSession } from './Session';
 import { LanguageSwitch, Wordmark } from './ui';
 
@@ -110,6 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="sidebar-foot">
           <span className="muted">{session.me.user.name}</span>
           <LanguageSwitch />
+          <InstallApp compact />
           <button type="button" className="link-btn" onClick={() => void session.signOut()}>
             {t.common.signOut}
           </button>

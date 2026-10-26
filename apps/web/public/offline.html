@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GESTALT — brak połączenia</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        background: #fff;
+        color: #111;
+        text-align: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      img {
+        width: 160px;
+        margin-bottom: 24px;
+      }
+      p {
+        margin: 6px 0;
+        color: #555;
+      }
+      button {
+        margin-top: 20px;
+        padding: 12px 20px;
+        border: 0;
+        border-radius: 6px;
+        background: #111;
+        color: #fff;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="GESTALT" />
+      <h1>Brak połączenia</h1>
+      <p>Sprawdź internet i spróbuj ponownie.</p>
+      <p lang="uk">Немає з’єднання. Перевірте інтернет.</p>
+      <p lang="ru">Нет соединения. Проверьте интернет.</p>
+      <p lang="en">No connection. Check your internet.</p>
+      <button type="button" onclick="location.reload()">Spróbuj ponownie</button>
+    </main>
+  </body>
+</html>

@@ -267,6 +267,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerMobile.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
   await shot(ownerMobile, '12-owner-calendar-phone');
 
+  // The cabinet can be installed as an app: manifest in the page's language, service worker.
+  const manifestHref = await ownerMobile.locator('link[rel="manifest"]').getAttribute('href');
+  expect(manifestHref).toBe('/manifests/salon-pl.webmanifest');
+  const manifest = await (await ownerMobile.request.get(manifestHref!)).json();
+  expect(manifest).toMatchObject({ id: '/app', start_url: '/pl/app', display: 'standalone' });
+  expect((await ownerMobile.request.get('/sw.js')).ok()).toBe(true);
+  await ownerMobile.goto('/pl/app/more');
+  await expect(
+    ownerMobile.getByRole('main').getByRole('button', { name: 'Zainstaluj aplikację' }),
+  ).toBeVisible();
+  await shot(ownerMobile, '12b-owner-install-app');
+
   // ── Kasia's own calendar on her phone: the visit, but not the client's phone ──
   const staffPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
   const kasiaPage = await staffPhone.newPage();

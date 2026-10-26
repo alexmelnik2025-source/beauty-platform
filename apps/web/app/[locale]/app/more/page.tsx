@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { InstallApp } from '@/components/InstallApp';
 import { useSession } from '@/components/Session';
 import { LanguageSwitch } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
@@ -48,6 +49,7 @@ export default function MorePage() {
             </li>
           ))}
         </ul>
+        <InstallApp />
         <div className="field">
           <span className="small muted">{t.more.language}</span>
           <LanguageSwitch />

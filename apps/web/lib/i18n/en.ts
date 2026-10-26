@@ -208,6 +208,16 @@ export const en: Dict = {
     admin: 'Email queue',
     language: 'Language',
   },
+  install: {
+    title: 'App for your phone and computer',
+    lead: 'The calendar opens like a regular app — with an icon on your screen and no browser bar.',
+    button: 'Install the app',
+    iosStep1: 'Open this page in Safari.',
+    iosStep2: 'Tap Share (the square with an arrow pointing up).',
+    iosStep3: 'Choose “Add to Home Screen”, then “Add”.',
+    manual:
+      'In your browser menu choose “Install app” or “Add to Home screen”. Works best in Chrome, Edge and Safari.',
+  },
   actions: {
     edit: 'Edit',
     delete: 'Delete',

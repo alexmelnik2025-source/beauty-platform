@@ -208,6 +208,16 @@ export const pl = {
     admin: 'Kolejka e-maili',
     language: 'Język',
   },
+  install: {
+    title: 'Aplikacja na telefon i komputer',
+    lead: 'Kalendarz otwiera się jak zwykła aplikacja — z ikoną na ekranie, bez paska przeglądarki.',
+    button: 'Zainstaluj aplikację',
+    iosStep1: 'Otwórz tę stronę w Safari.',
+    iosStep2: 'Stuknij „Udostępnij” (kwadrat ze strzałką w górę).',
+    iosStep3: 'Wybierz „Do ekranu początkowego” i „Dodaj”.',
+    manual:
+      'W menu przeglądarki wybierz „Zainstaluj aplikację” lub „Dodaj do ekranu głównego”. Najlepiej działa w Chrome, Edge i Safari.',
+  },
   actions: {
     edit: 'Edytuj',
     delete: 'Usuń',
