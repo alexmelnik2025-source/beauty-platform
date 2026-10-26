@@ -45,6 +45,7 @@ export const en: Dict = {
     ALREADY_MEMBER: 'This person is already in the team.',
     STAFF_ALREADY_LINKED: 'This profile already has an account.',
     CANNOT_REMOVE_OWNER: 'The owner cannot be removed.',
+    SMS_UNAVAILABLE: 'Codes by SMS are not available right now. Choose email.',
   },
   auth: {
     loginTitle: 'Salon dashboard',
@@ -189,6 +190,11 @@ export const en: Dict = {
     manage: 'Change or cancel',
     salonClosed: 'This salon is not taking online bookings right now.',
     changeTime: 'Change',
+    codeVia: 'Send the confirmation code by',
+    viaEmail: 'Email',
+    viaSms: 'SMS',
+    codeTitleSms: 'Code from the SMS',
+    codeLeadSms: 'We texted 6 digits to {phone}.',
     rememberMe: 'Remember me on this device',
     rememberMeHint:
       'Next time your details fill in by themselves, and your visits are in the “My visits” app. Do not tick this on someone else’s device.',

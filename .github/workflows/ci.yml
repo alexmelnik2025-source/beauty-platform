@@ -123,6 +123,8 @@ jobs:
       APP_WEB_URL: http://localhost:3000
       OUTBOX_POLL_MS: '1000'
       TRUST_PROXY: '1'
+      # SMS codes go to api.log; the browser test reads them from there.
+      SMS_TRANSPORT: log
       API_URL: http://localhost:4000
 
     steps:

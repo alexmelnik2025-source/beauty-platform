@@ -7,10 +7,11 @@ import { RateLimiterService } from '../common/rate-limiter.service';
 import type { Appointment, Locale, Location, Prisma } from '../generated/prisma/client';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SmsService } from '../sms/sms.service';
 import { AvailabilityService } from '../scheduling/availability.service';
 import { instantToLocal } from '../scheduling/time';
 import { AppointmentWriter, slotTaken, timesFor } from './appointment-writer';
-import { renderCodeEmail } from './booking-templates';
+import { renderCodeEmail, renderCodeSms } from './booking-templates';
 import type {
   ClientRescheduleInput,
   ConfirmInput,
@@ -37,6 +38,8 @@ interface HoldContact {
   locale: Locale;
   marketingConsent: boolean;
   ip: string | null;
+  /** Which contact the code confirmed. Older holds without it used email. */
+  codeChannel?: 'email' | 'sms';
 }
 
 export interface HoldResponse {
@@ -110,6 +113,7 @@ export class PublicBookingService {
     private readonly writer: AppointmentWriter,
     private readonly outbox: OutboxService,
     private readonly mail: MailService,
+    private readonly sms: SmsService,
     private readonly limiter: RateLimiterService,
   ) {}
 
@@ -213,8 +217,18 @@ export class PublicBookingService {
     holdId: string,
     input: SendCodeInput,
     ip: string | null,
-  ): Promise<{ codeExpiresAt: string }> {
+  ): Promise<{ codeExpiresAt: string; channel: 'email' | 'sms' }> {
+    const channel = input.codeChannel;
+    if (channel === 'sms' && !this.sms.available) {
+      throw new AppException(
+        HttpStatus.BAD_REQUEST,
+        'SMS_UNAVAILABLE',
+        'Codes by SMS are not available. Choose email',
+      );
+    }
     this.limiter.hit(`code:email:${input.email}`, 10, 60 * MINUTE_MS);
+    // Every SMS costs money: at most 5 per phone number an hour.
+    if (channel === 'sms') this.limiter.hit(`code:phone:${input.phone}`, 5, 60 * MINUTE_MS);
     const hold = await this.activeHold(holdId, input.holdToken);
     const existing = await this.prisma.verificationCode.findUnique({
       where: { appointmentId: hold.id },
@@ -239,6 +253,7 @@ export class PublicBookingService {
       locale: input.locale,
       marketingConsent: input.marketingConsent,
       ip,
+      codeChannel: channel,
     };
 
     await this.prisma.$transaction([
@@ -268,9 +283,16 @@ export class PublicBookingService {
       }),
     ]);
 
-    const { subject, text } = renderCodeEmail(input.locale, code, hold.location.name);
-    await this.mail.send({ to: input.email, subject, text });
-    return { codeExpiresAt: expiresAt.toISOString() };
+    if (channel === 'sms') {
+      await this.sms.send({
+        to: input.phone,
+        text: renderCodeSms(input.locale, code, hold.location.name),
+      });
+    } else {
+      const { subject, text } = renderCodeEmail(input.locale, code, hold.location.name);
+      await this.mail.send({ to: input.email, subject, text });
+    }
+    return { codeExpiresAt: expiresAt.toISOString(), channel };
   }
 
   // ── 3. Confirm ────────────────────────────────────────
@@ -312,6 +334,8 @@ export class PublicBookingService {
     }
 
     const contact = hold.holdContact as unknown as HoldContact;
+    // An SMS code confirms the phone, not the email address.
+    const emailConfirmed = contact.codeChannel !== 'sms';
     const manageToken = generateToken();
 
     const confirmed = await this.prisma.$transaction(async (tx) => {
@@ -336,7 +360,10 @@ export class PublicBookingService {
           email: contact.email,
           locale: contact.locale,
         },
-        update: { name: contact.name, phone: contact.phone, locale: contact.locale },
+        // An email that was not confirmed must not rewrite the salon's card of that address.
+        update: emailConfirmed
+          ? { name: contact.name, phone: contact.phone, locale: contact.locale }
+          : {},
       });
       await tx.consentRecord.createMany({
         data: [
@@ -379,14 +406,16 @@ export class PublicBookingService {
         source: 'online',
       });
       await this.notifyBooked(tx, appointment, 'client_confirmation', 'salon_new_booking');
-      const clientSession = input.signIn
-        ? await createClientSession(tx, {
-            email: contact.email,
-            locale: contact.locale,
-            clientType: 'web',
-            userAgent,
-          })
-        : null;
+      // "My visits" is keyed by email: sign in only when the code went to that email.
+      const clientSession =
+        input.signIn && emailConfirmed
+          ? await createClientSession(tx, {
+              email: contact.email,
+              locale: contact.locale,
+              clientType: 'web',
+              userAgent,
+            })
+          : null;
       return { appointment, clientSession };
     });
 

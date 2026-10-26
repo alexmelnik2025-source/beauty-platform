@@ -42,6 +42,11 @@ export const sendCodeSchema = z.object({
   acceptTerms: z.literal(true, { message: 'the booking terms must be accepted' }),
   /** Optional, unticked by default. */
   marketingConsent: z.boolean().default(false),
+  /**
+   * Where the code goes: email (default) or SMS to `phone`. SMS only when the salon page
+   * lists it in codeChannels (an SMS gateway is connected); otherwise SMS_UNAVAILABLE.
+   */
+  codeChannel: z.enum(['email', 'sms']).default('email'),
 });
 
 export const confirmSchema = z.object({

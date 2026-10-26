@@ -1423,3 +1423,13 @@ h3 {
 .choice-list .lang-badges {
   grid-column: 1;
 }
+
+.seg--wide {
+  display: flex;
+}
+
+.seg--wide button {
+  flex: 1;
+  min-height: 40px;
+  font-size: 0.9rem;
+}

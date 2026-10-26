@@ -44,6 +44,7 @@ export const pl = {
     ALREADY_MEMBER: 'Ta osoba jest już w zespole.',
     STAFF_ALREADY_LINKED: 'Ten profil ma już konto.',
     CANNOT_REMOVE_OWNER: 'Właściciela nie można usunąć.',
+    SMS_UNAVAILABLE: 'Kod przez SMS jest teraz niedostępny. Wybierz e-mail.',
   },
   auth: {
     loginTitle: 'Panel salonu',
@@ -189,6 +190,11 @@ export const pl = {
     manage: 'Zmień lub odwołaj wizytę',
     salonClosed: 'Ten salon nie przyjmuje teraz rezerwacji online.',
     changeTime: 'Zmień',
+    codeVia: 'Kod potwierdzenia wyślij przez',
+    viaEmail: 'E-mail',
+    viaSms: 'SMS',
+    codeTitleSms: 'Kod z SMS-a',
+    codeLeadSms: 'Wysłaliśmy SMS z 6 cyframi na {phone}.',
     rememberMe: 'Zapamiętaj mnie na tym urządzeniu',
     rememberMeHint:
       'Następnym razem dane wpiszą się same, a wizyty zobaczysz w aplikacji „Moje wizyty”. Nie zaznaczaj na cudzym urządzeniu.',

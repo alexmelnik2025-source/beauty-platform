@@ -74,6 +74,7 @@ export function BookingFlow({ slug }: { slug: string }) {
     acceptTerms: false,
     marketingConsent: false,
   });
+  const [codeChannel, setCodeChannel] = useState<'email' | 'sms'>('email');
   const [remember, setRemember] = useState(false);
   const [remembered, setRemembered] = useState(false);
   const [code, setCode] = useState('');
@@ -193,12 +194,16 @@ export function BookingFlow({ slug }: { slug: string }) {
           locale,
           acceptTerms: contact.acceptTerms,
           marketingConsent: contact.marketingConsent,
+          codeChannel,
         },
       });
       setStep('code');
     } catch (err) {
       if (err instanceof ApiError && ['HOLD_EXPIRED', 'NOT_FOUND'].includes(err.code)) {
         backToTime(err);
+      } else if (err instanceof ApiError && err.code === 'SMS_UNAVAILABLE') {
+        setCodeChannel('email');
+        setError(errorText(t, err));
       } else {
         setError(errorText(t, err));
       }
@@ -496,6 +501,27 @@ export function BookingFlow({ slug }: { slug: string }) {
                 <small className="muted remember-hint">{t.booking.rememberMeHint}</small>
               </span>
             </label>
+            {salon.codeChannels?.includes('sms') ? (
+              <div className="field">
+                <span id="code-via">{t.booking.codeVia}</span>
+                <span className="seg seg--wide" role="group" aria-labelledby="code-via">
+                  <button
+                    type="button"
+                    aria-pressed={codeChannel === 'email'}
+                    onClick={() => setCodeChannel('email')}
+                  >
+                    {t.booking.viaEmail}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={codeChannel === 'sms'}
+                    onClick={() => setCodeChannel('sms')}
+                  >
+                    {t.booking.viaSms}
+                  </button>
+                </span>
+              </div>
+            ) : null}
             <button className="btn btn--block" disabled={busy}>
               {t.booking.sendCode}
             </button>
@@ -504,8 +530,12 @@ export function BookingFlow({ slug }: { slug: string }) {
 
         {step === 'code' && hold ? (
           <form className="form" onSubmit={confirm}>
-            <h2>{t.booking.codeTitle}</h2>
-            <p className="muted">{fill(t.booking.codeLead, { email: contact.email })}</p>
+            <h2>{codeChannel === 'sms' ? t.booking.codeTitleSms : t.booking.codeTitle}</h2>
+            <p className="muted">
+              {codeChannel === 'sms'
+                ? fill(t.booking.codeLeadSms, { phone: normalizePhone(contact.phone) })
+                : fill(t.booking.codeLead, { email: contact.email })}
+            </p>
             <input
               className="code-input"
               inputMode="numeric"
@@ -513,7 +543,7 @@ export function BookingFlow({ slug }: { slug: string }) {
               pattern="\d{6}"
               maxLength={6}
               required
-              aria-label={t.booking.codeTitle}
+              aria-label={codeChannel === 'sms' ? t.booking.codeTitleSms : t.booking.codeTitle}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             />

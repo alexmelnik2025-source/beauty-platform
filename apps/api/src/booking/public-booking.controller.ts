@@ -76,16 +76,18 @@ export class PublicBookingController {
   @Post('holds/:holdId/code')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
-    summary: '2. Send contact details; a 6-digit code is emailed',
+    summary: '2. Send contact details; a 6-digit code goes by email or SMS',
     description:
-      'Call again to resend (at most 3 codes per hold). The code never outlives the hold.',
+      'Call again to resend (at most 3 codes per hold). The code never outlives the hold. ' +
+      'codeChannel=sms sends it to the phone when the salon page lists sms in codeChannels; ' +
+      'an SMS code confirms the phone, not the email (no "My visits" sign-in on confirm).',
   })
   @ApiZodBody(sendCodeSchema)
   sendCode(
     @Req() req: AppRequest,
     @Param('holdId', holdIdPipe) holdId: string,
     @Body(new ZodValidationPipe(sendCodeSchema)) body: SendCodeInput,
-  ): Promise<{ codeExpiresAt: string }> {
+  ): Promise<{ codeExpiresAt: string; channel: 'email' | 'sms' }> {
     this.limiter.hit(`code:ip:${req.ip}`, 20, 60 * MINUTE);
     return this.booking.sendCode(holdId, body, req.ip ?? null);
   }

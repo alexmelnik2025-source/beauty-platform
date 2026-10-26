@@ -58,6 +58,12 @@ const configSchema = z
     VAPID_PRIVATE_KEY: z.string().optional(),
     /** Contact for push services: mailto: or https: address of the platform. */
     VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
+    /**
+     * One-time codes by SMS. none = no SMS gateway, clients get codes by email only;
+     * log = local development, the text goes to the API log; memory = tests.
+     * A real (paid) Polish SMS gateway is connected only after the owner decides.
+     */
+    SMS_TRANSPORT: z.enum(['none', 'log', 'memory']).default('none'),
   })
   .superRefine((config, ctx) => {
     if (config.NODE_ENV === 'production' && config.MAIL_TRANSPORT === 'memory') {
@@ -72,6 +78,13 @@ const configSchema = z
         code: 'custom',
         path: ['PUSH_TRANSPORT'],
         message: 'memory is not allowed in production',
+      });
+    }
+    if (config.NODE_ENV === 'production' && config.SMS_TRANSPORT !== 'none') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SMS_TRANSPORT'],
+        message: `${config.SMS_TRANSPORT} is not allowed in production`,
       });
     }
     if (Boolean(config.VAPID_PUBLIC_KEY) !== Boolean(config.VAPID_PRIVATE_KEY)) {

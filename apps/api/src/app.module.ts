@@ -7,6 +7,7 @@ import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
+import { SmsModule } from './sms/sms.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PushModule } from './push/push.module';
@@ -18,6 +19,7 @@ import { SchedulingModule } from './scheduling/scheduling.module';
     PrismaModule,
     CommonModule,
     MailModule,
+    SmsModule,
     AuthModule,
     OrganizationsModule,
     SchedulingModule,

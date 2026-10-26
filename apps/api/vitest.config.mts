@@ -26,6 +26,8 @@ export default defineConfig({
       MAIL_TRANSPORT: 'memory',
       // Push messages are kept in memory too.
       PUSH_TRANSPORT: 'memory',
+      // SMS codes too.
+      SMS_TRANSPORT: 'memory',
       // Tests run the email queue explicitly instead of on a timer.
       OUTBOX_POLL_MS: '0',
       PLATFORM_ADMIN_EMAILS: 'admin@example.com',

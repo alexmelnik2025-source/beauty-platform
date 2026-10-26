@@ -45,6 +45,7 @@ export const uk: Dict = {
     ALREADY_MEMBER: 'Ця людина вже в команді.',
     STAFF_ALREADY_LINKED: 'Цей профіль уже має акаунт.',
     CANNOT_REMOVE_OWNER: 'Власника не можна видалити.',
+    SMS_UNAVAILABLE: 'Код через SMS зараз недоступний. Виберіть e-mail.',
   },
   auth: {
     loginTitle: 'Кабінет салону',
@@ -189,6 +190,11 @@ export const uk: Dict = {
     manage: 'Змінити або скасувати запис',
     salonClosed: 'Цей салон зараз не приймає онлайн-записи.',
     changeTime: 'Змінити',
+    codeVia: 'Код підтвердження надіслати через',
+    viaEmail: 'E-mail',
+    viaSms: 'SMS',
+    codeTitleSms: 'Код з SMS',
+    codeLeadSms: 'Ми надіслали SMS із 6 цифрами на {phone}.',
     rememberMe: "Запам'ятати мене на цьому пристрої",
     rememberMeHint:
       'Наступного разу дані заповняться самі, а візити буде видно в застосунку «Мої візити». Не позначайте на чужому пристрої.',

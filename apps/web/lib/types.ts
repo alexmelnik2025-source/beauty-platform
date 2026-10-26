@@ -125,6 +125,8 @@ export interface PublicLocation {
   timezone: string;
   defaultLocale: string;
   languages: Spoken[];
+  /** Where the booking code can go: always email; sms when an SMS gateway is connected. */
+  codeChannels: ('email' | 'sms')[];
   categories: { id: string; name: string }[];
   services: {
     id: string;

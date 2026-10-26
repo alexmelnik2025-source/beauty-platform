@@ -7,6 +7,7 @@ import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import type { Language, Location } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SmsService } from '../sms/sms.service';
 import { AvailabilityService, type AvailabilityResponse } from './availability.service';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
 
@@ -21,6 +22,8 @@ export interface PublicLocationResponse {
   defaultLocale: string;
   /** Languages the salon speaks with clients (pl, uk, ru, be, en), in the salon's order. */
   languages: Language[];
+  /** Where the booking code can be sent: always email; sms when an SMS gateway is connected. */
+  codeChannels: ('email' | 'sms')[];
   /** Price-list groups in display order; services without a category come last. */
   categories: { id: string; name: string }[];
   services: {
@@ -54,6 +57,7 @@ export class PublicLocationsController {
     private readonly prisma: PrismaService,
     private readonly availability: AvailabilityService,
     private readonly limiter: RateLimiterService,
+    private readonly sms: SmsService,
   ) {}
 
   @Get()
@@ -88,6 +92,7 @@ export class PublicLocationsController {
       timezone: location.timezone,
       defaultLocale: location.defaultLocale,
       languages: location.languages,
+      codeChannels: this.sms.available ? ['email', 'sms'] : ['email'],
       categories: categories.map((c) => ({ id: c.id, name: c.name })),
       services: services.map((s) => ({
         id: s.id,

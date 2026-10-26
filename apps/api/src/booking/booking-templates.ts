@@ -41,6 +41,8 @@ interface Words {
   reason: string;
   codeSubject: string;
   codeText: (code: string, salon: string) => string;
+  /** Short: an SMS with Polish or Cyrillic letters holds 70 characters. */
+  codeSms: (code: string, salon: string) => string;
 }
 
 const WORDS: Record<Locale, Words> = {
@@ -74,6 +76,7 @@ const WORDS: Record<Locale, Words> = {
     codeSubject: 'Kod potwierdzenia rezerwacji',
     codeText: (code, salon) =>
       `Twój kod potwierdzenia rezerwacji w ${salon}: ${code}\n\nKod jest ważny 10 minut. Jeśli to nie Ty rezerwowałeś, zignoruj tę wiadomość.`,
+    codeSms: (code, salon) => `${code} — kod rezerwacji w ${salon}. Ważny 10 min.`,
   },
   uk: {
     subjects: {
@@ -105,6 +108,7 @@ const WORDS: Record<Locale, Words> = {
     codeSubject: 'Код підтвердження запису',
     codeText: (code, salon) =>
       `Ваш код підтвердження запису в ${salon}: ${code}\n\nКод дійсний 10 хвилин. Якщо ви не записувалися, проігноруйте цей лист.`,
+    codeSms: (code, salon) => `${code} — код запису в ${salon}. Дійсний 10 хв.`,
   },
   ru: {
     subjects: {
@@ -136,6 +140,7 @@ const WORDS: Record<Locale, Words> = {
     codeSubject: 'Код подтверждения записи',
     codeText: (code, salon) =>
       `Ваш код подтверждения записи в ${salon}: ${code}\n\nКод действует 10 минут. Если вы не записывались, проигнорируйте это письмо.`,
+    codeSms: (code, salon) => `${code} — код записи в ${salon}. Действует 10 мин.`,
   },
   en: {
     subjects: {
@@ -167,6 +172,7 @@ const WORDS: Record<Locale, Words> = {
     codeSubject: 'Your booking confirmation code',
     codeText: (code, salon) =>
       `Your confirmation code for ${salon}: ${code}\n\nThe code is valid for 10 minutes. If you did not make a booking, ignore this email.`,
+    codeSms: (code, salon) => `${code} is your booking code for ${salon}. Valid 10 min.`,
   },
 };
 
@@ -225,6 +231,11 @@ export function renderCodeEmail(
 ): { subject: string; text: string } {
   const w = WORDS[locale];
   return { subject: w.codeSubject, text: w.codeText(code, salonName) };
+}
+
+/** The booking code by SMS (no subject, kept short). */
+export function renderCodeSms(locale: Locale, code: string, salonName: string): string {
+  return WORDS[locale].codeSms(code, salonName.slice(0, 30));
 }
 
 export type NotificationKind = Kind;

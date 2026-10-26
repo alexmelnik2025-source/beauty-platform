@@ -27,6 +27,17 @@ describe('parseConfig', () => {
     ).toThrow(/MAIL_TRANSPORT/);
   });
 
+  it('SMS: off by default; the log and memory transports are refused in production', () => {
+    expect(parseConfig(valid).SMS_TRANSPORT).toBe('none');
+    expect(() => parseConfig({ ...valid, NODE_ENV: 'production', SMS_TRANSPORT: 'log' })).toThrow(
+      /SMS_TRANSPORT/,
+    );
+    expect(() =>
+      parseConfig({ ...valid, NODE_ENV: 'production', SMS_TRANSPORT: 'memory' }),
+    ).toThrow(/SMS_TRANSPORT/);
+    expect(parseConfig({ ...valid, SMS_TRANSPORT: 'log' }).SMS_TRANSPORT).toBe('log');
+  });
+
   it('rejects a missing DATABASE_URL', () => {
     expect(() => parseConfig({ JWT_ACCESS_SECRET: valid.JWT_ACCESS_SECRET })).toThrow(ConfigError);
     expect(() => parseConfig({ JWT_ACCESS_SECRET: valid.JWT_ACCESS_SECRET })).toThrow(

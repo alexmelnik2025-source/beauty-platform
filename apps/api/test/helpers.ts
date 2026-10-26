@@ -9,6 +9,7 @@ import { configureApp } from '../src/app.setup';
 import { RateLimiterService } from '../src/common/rate-limiter.service';
 import { MailService, MemoryMailService } from '../src/mail/mail.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { MemorySmsService, SmsService } from '../src/sms/sms.service';
 import { MemoryPushSender, PushSender } from '../src/push/push.sender';
 
 export const PASSWORD = 'correct-horse-battery';
@@ -18,6 +19,7 @@ export interface TestContext {
   prisma: PrismaService;
   mail: MemoryMailService;
   push: MemoryPushSender;
+  sms: MemorySmsService;
   http: () => ReturnType<typeof request>;
 }
 
@@ -36,11 +38,16 @@ export async function createTestApp(): Promise<TestContext> {
   if (!(push instanceof MemoryPushSender)) {
     throw new Error('Tests must run with PUSH_TRANSPORT=memory');
   }
+  const sms = app.get(SmsService);
+  if (!(sms instanceof MemorySmsService)) {
+    throw new Error('Tests must run with SMS_TRANSPORT=memory');
+  }
   return {
     app,
     prisma: app.get(PrismaService),
     mail,
     push,
+    sms,
     http: () => request(app.getHttpServer()),
   };
 }
@@ -52,6 +59,7 @@ export async function resetState(ctx: TestContext): Promise<void> {
   );
   ctx.mail.clear();
   ctx.push.clear();
+  ctx.sms.clear();
   ctx.app.get(RateLimiterService).reset();
 }
 

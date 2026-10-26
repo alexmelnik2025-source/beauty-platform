@@ -5,7 +5,8 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
-import { clearMailbox, waitForEmail } from './mailpit';
+import { clearMailbox, listTo, waitForEmail } from './mailpit';
+import { waitForSmsCode } from './sms-log';
 
 /**
  * The main scenario end to end, through the real web app, API, database and email:
@@ -20,6 +21,7 @@ const OWNER = `owner-${run}@example.com`;
 const KASIA = `kasia-${run}@example.com`;
 const CLIENT = `anna-${run}@example.com`;
 const CLIENT2 = `ola-${run}@example.com`;
+const CLIENT3 = `piotr-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 
@@ -424,4 +426,32 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ola.getByRole('button', { name: 'To nie ja — wyczyść dane' }).click();
   await expect(ola.getByLabel('Imię i nazwisko')).toHaveValue('');
   await expect(ola.getByLabel(/Zapamiętaj mnie/)).not.toBeChecked();
+
+  // ── The code by SMS instead of email (no gateway: the API logs the SMS) ──
+  const piotrPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  const piotr = await piotrPhone.newPage();
+  await piotr.goto(`/pl/b/${location.slug}`);
+  await piotr.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+  await piotr.getByRole('button', { name: /Alex/ }).click();
+  await piotr.locator('.times button').first().click();
+  await expect(piotr.getByText(/Termin czeka na Ciebie/)).toBeVisible();
+  await piotr.getByLabel('Imię i nazwisko').fill('Piotr Zieliński');
+  await piotr.getByLabel('Telefon').fill('600 500 600');
+  await piotr.getByLabel('E-mail').fill(CLIENT3);
+  await piotr.getByLabel(/Akceptuję zasady/).check();
+  await expect(piotr.getByRole('button', { name: 'E-mail', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await piotr.getByRole('button', { name: 'SMS', exact: true }).click();
+  await shot(piotr, '28-client-code-by-sms');
+  await piotr.getByRole('button', { name: 'Wyślij kod' }).click();
+  await expect(piotr.getByText('Wysłaliśmy SMS z 6 cyframi na +48600500600.')).toBeVisible();
+  await piotr.getByLabel('Kod z SMS-a').fill(await waitForSmsCode('+48600500600'));
+  await shot(piotr, '29-client-sms-code');
+  await piotr.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(piotr.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+  // Details of the visit still come by email; the code did not.
+  await waitForEmail(CLIENT3, /Wizyta potwierdzona/);
+  expect((await listTo(CLIENT3)).some((m) => /Kod potwierdzenia/.test(m.Subject))).toBe(false);
 });
