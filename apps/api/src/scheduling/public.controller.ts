@@ -1,24 +1,25 @@
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiZodResponse } from '../common/openapi';
 import { Public } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import type { Language, Location } from '../generated/prisma/client';
+import type { Location } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
-import { AvailabilityService, type AvailabilityResponse } from './availability.service';
+import { AvailabilityService } from './availability.service';
 import { photoUrl } from './photos.service';
+import {
+  availabilitySchema,
+  publicLocationSchema,
+  type AvailabilityResponse,
+  type OpeningDay,
+  type PublicLocationResponse,
+} from './public.responses';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
 import { formatClock } from './time';
-
-export interface OpeningDay {
-  /** ISO weekday: 1 = Monday … 7 = Sunday. */
-  weekday: number;
-  /** Merged hours of everyone who takes online bookings; empty = closed. */
-  intervals: { start: string; end: string }[];
-}
 
 /**
  * Opening hours as the client sees them: for each weekday, the union of the regular weekly
@@ -47,47 +48,6 @@ export function openingHours(
   });
 }
 
-export interface PublicLocationResponse {
-  slug: string;
-  name: string;
-  addressLine: string;
-  city: string;
-  postalCode: string;
-  phone: string | null;
-  timezone: string;
-  defaultLocale: string;
-  /** Languages the salon speaks with clients (pl, uk, ru, be, en), in the salon's order. */
-  languages: Language[];
-  /** What the salon writes about itself; null when empty. */
-  description: string | null;
-  /** Monday to Sunday, from the team's regular weekly hours. */
-  openingHours: OpeningDay[];
-  /** Salon photos, oldest first: links to /v1/public/photos/<id>. */
-  photos: { id: string; url: string }[];
-  /** Where the booking code can be sent: always email; sms when an SMS gateway is connected. */
-  codeChannels: ('email' | 'sms')[];
-  /** Price-list groups in display order; services without a category come last. */
-  categories: { id: string; name: string }[];
-  services: {
-    id: string;
-    categoryId: string | null;
-    name: string;
-    description: string | null;
-    durationMinutes: number;
-    priceGrosze: number;
-  }[];
-  staff: {
-    id: string;
-    displayName: string;
-    bio: string | null;
-    /** Languages this staff member speaks with clients. */
-    languages: Language[];
-    serviceIds: string[];
-    /** Link to the staff member's photo; null when there is none. */
-    photoUrl: string | null;
-  }[];
-}
-
 /**
  * What the public booking page (/b/<slug>) and the client app see. Only locations
  * with online booking switched on; only active services that someone performs.
@@ -108,6 +68,7 @@ export class PublicLocationsController {
   @ApiOperation({
     summary: 'Salon page: address, description, opening hours, services with prices, staff',
   })
+  @ApiZodResponse(publicLocationSchema)
   async get(@Req() req: AppRequest, @Param('slug') slug: string): Promise<PublicLocationResponse> {
     this.limiter.hit(`public:ip:${req.ip}`, 300, 60_000);
     const location = await this.findBookable(slug);
@@ -182,6 +143,7 @@ export class PublicLocationsController {
   @ApiQuery({ name: 'staffId', required: false, description: 'Omit for "any staff member"' })
   @ApiQuery({ name: 'from', required: true, example: '2026-11-02' })
   @ApiQuery({ name: 'to', required: true, example: '2026-11-08' })
+  @ApiZodResponse(availabilitySchema)
   async availabilityFor(
     @Req() req: AppRequest,
     @Param('slug') slug: string,

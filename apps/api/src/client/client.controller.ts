@@ -24,7 +24,7 @@ import {
 } from '../booking/booking.schemas';
 import { notFound } from '../common/app-exception';
 import { Idempotent } from '../common/idempotency.interceptor';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
@@ -41,21 +41,19 @@ import {
   type VerifyClientCodeInput,
 } from './client.schemas';
 import {
-  ClientService,
+  clientAppointmentListSchema,
+  clientAppointmentSchema,
+  clientCodeSentSchema,
+  clientPersonSchema,
+  clientSignInSchema,
   type ClientAppointmentResponse,
-  type ClientAuth,
+  type ClientSignInResponse,
   type PersonResponse,
-} from './client.service';
+} from './client.responses';
+import { ClientService, type ClientAuth } from './client.service';
 
 const MINUTE = 60_000;
 const idPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Appointment') });
-
-interface ClientSignInResponse {
-  person: PersonResponse;
-  expiresAt: string;
-  /** Mobile only: keep it in the Keychain/Keystore and send as `Authorization: Bearer`. */
-  token?: string;
-}
 
 /** "My visits" — the client app. Separate sign-in from salon accounts. */
 @ApiTags('client app')
@@ -80,6 +78,7 @@ export class ClientController {
       'Always 202, whether or not the address has visits. A new code replaces the previous one.',
   })
   @ApiZodBody(requestClientCodeSchema)
+  @ApiZodResponse(clientCodeSentSchema, HttpStatus.ACCEPTED)
   requestCode(
     @Req() req: AppRequest,
     @Body(new ZodValidationPipe(requestClientCodeSchema)) body: RequestClientCodeInput,
@@ -96,6 +95,7 @@ export class ClientController {
       'clientType=web: the session is an httpOnly cookie (90 days). clientType=mobile: the token is returned in the body.',
   })
   @ApiZodBody(verifyClientCodeSchema)
+  @ApiZodResponse(clientSignInSchema)
   async verify(
     @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
@@ -129,6 +129,7 @@ export class ClientController {
   @UseGuards(ClientGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'The signed-in client' })
+  @ApiZodResponse(clientPersonSchema)
   me(@CurrentClient() client: ClientAuth): Promise<PersonResponse> {
     return this.clients.me(client);
   }
@@ -138,6 +139,7 @@ export class ClientController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change the language of the client app and emails' })
   @ApiZodBody(updatePersonSchema)
+  @ApiZodResponse(clientPersonSchema)
   updateMe(
     @CurrentClient() client: ClientAuth,
     @Body(new ZodValidationPipe(updatePersonSchema)) body: UpdatePersonInput,
@@ -153,6 +155,7 @@ export class ClientController {
     description:
       'Found by the confirmed email of the client. scope=upcoming (soonest first) or past (latest 50).',
   })
+  @ApiZodResponse(clientAppointmentListSchema)
   list(
     @CurrentClient() client: ClientAuth,
     @Query(new ZodValidationPipe(listClientAppointmentsSchema)) query: ListClientAppointmentsInput,
@@ -164,6 +167,7 @@ export class ClientController {
   @UseGuards(ClientGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'One of my visits' })
+  @ApiZodResponse(clientAppointmentSchema)
   get(
     @CurrentClient() client: ClientAuth,
     @Param('id', idPipe) id: string,
@@ -178,6 +182,7 @@ export class ClientController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel (until the salon’s deadline, default 2 h before)' })
   @ApiZodBody(clientCancelSchema)
+  @ApiZodResponse(clientAppointmentSchema)
   cancel(
     @CurrentClient() client: ClientAuth,
     @Param('id', idPipe) id: string,
@@ -196,6 +201,7 @@ export class ClientController {
     description: 'start = a slot from GET /v1/public/locations/{slug}/availability.',
   })
   @ApiZodBody(clientRescheduleSchema)
+  @ApiZodResponse(clientAppointmentSchema)
   reschedule(
     @CurrentClient() client: ClientAuth,
     @Param('id', idPipe) id: string,

@@ -17,7 +17,7 @@ import { Public } from '../auth/decorators';
 import { setClientCookie } from '../client/client-session';
 import { notFound } from '../common/app-exception';
 import { Idempotent } from '../common/idempotency.interceptor';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
@@ -35,10 +35,16 @@ import {
   type SendCodeInput,
 } from './booking.schemas';
 import {
-  PublicBookingService,
+  bookingConfirmedSchema,
+  codeSentSchema,
+  holdSchema,
+  publicAppointmentSchema,
+  type BookingConfirmedResponse,
+  type CodeSentResponse,
   type HoldResponse,
   type PublicAppointmentResponse,
-} from './public-booking.service';
+} from './public-booking.responses';
+import { PublicBookingService } from './public-booking.service';
 
 const holdIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Hold') });
 const MINUTE = 60_000;
@@ -65,6 +71,7 @@ export class PublicBookingController {
       'start = a slot "start" from the availability list. Omit staffId for "any staff member". Send releaseHoldToken to free a previous hold.',
   })
   @ApiZodBody(createHoldSchema)
+  @ApiZodResponse(holdSchema, HttpStatus.CREATED)
   createHold(
     @Req() req: AppRequest,
     @Param('slug') slug: string,
@@ -83,11 +90,12 @@ export class PublicBookingController {
       'an SMS code confirms the phone, not the email (no "My visits" sign-in on confirm).',
   })
   @ApiZodBody(sendCodeSchema)
+  @ApiZodResponse(codeSentSchema, HttpStatus.ACCEPTED)
   sendCode(
     @Req() req: AppRequest,
     @Param('holdId', holdIdPipe) holdId: string,
     @Body(new ZodValidationPipe(sendCodeSchema)) body: SendCodeInput,
-  ): Promise<{ codeExpiresAt: string; channel: 'email' | 'sms' }> {
+  ): Promise<CodeSentResponse> {
     this.limiter.hit(`code:ip:${req.ip}`, 20, 60 * MINUTE);
     return this.booking.sendCode(holdId, body, req.ip ?? null);
   }
@@ -103,12 +111,13 @@ export class PublicBookingController {
       'cookie is set and signedIn is true.',
   })
   @ApiZodBody(confirmSchema)
+  @ApiZodResponse(bookingConfirmedSchema)
   async confirm(
     @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
     @Param('holdId', holdIdPipe) holdId: string,
     @Body(new ZodValidationPipe(confirmSchema)) body: ConfirmInput,
-  ): Promise<{ appointment: PublicAppointmentResponse; manageToken: string; signedIn: boolean }> {
+  ): Promise<BookingConfirmedResponse> {
     this.limiter.hit(`confirm:ip:${req.ip}`, 30, 10 * MINUTE);
     const { appointment, manageToken, clientSession } = await this.booking.confirm(
       holdId,
@@ -135,6 +144,7 @@ export class PublicBookingController {
 
   @Get('appointments/:token')
   @ApiOperation({ summary: 'The appointment behind a "manage" link' })
+  @ApiZodResponse(publicAppointmentSchema)
   get(@Req() req: AppRequest, @Param('token') token: string): Promise<PublicAppointmentResponse> {
     this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * MINUTE);
     return this.booking.getByToken(token);
@@ -145,6 +155,7 @@ export class PublicBookingController {
   @Idempotent()
   @ApiOperation({ summary: 'Client cancels (until the salon’s deadline, default 2 h before)' })
   @ApiZodBody(clientCancelSchema)
+  @ApiZodResponse(publicAppointmentSchema)
   cancel(
     @Req() req: AppRequest,
     @Param('token') token: string,
@@ -159,6 +170,7 @@ export class PublicBookingController {
   @Idempotent()
   @ApiOperation({ summary: 'Client moves the appointment to another free time' })
   @ApiZodBody(clientRescheduleSchema)
+  @ApiZodResponse(publicAppointmentSchema)
   reschedule(
     @Req() req: AppRequest,
     @Param('token') token: string,

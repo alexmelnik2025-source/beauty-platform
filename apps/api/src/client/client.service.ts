@@ -7,11 +7,9 @@ import type { AppointmentStatus, Locale, Person, Prisma } from '../generated/pri
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ClientRescheduleInput } from '../booking/booking.schemas';
-import {
-  PublicBookingService,
-  type PublicAppointmentResponse,
-} from '../booking/public-booking.service';
+import { PublicBookingService } from '../booking/public-booking.service';
 import { createClientSession } from './client-session';
+import type { ClientAppointmentResponse, PersonResponse } from './client.responses';
 import { renderClientCodeEmail } from './client-templates';
 import type {
   ListClientAppointmentsInput,
@@ -27,11 +25,7 @@ const PAST_LIMIT = 50;
 /** Statuses a client sees in "My visits" (never holds that were not confirmed). */
 const VISIBLE: AppointmentStatus[] = ['confirmed', 'cancelled', 'completed', 'no_show'];
 
-export interface PersonResponse {
-  id: string;
-  email: string;
-  locale: Locale;
-}
+export type { ClientAppointmentResponse, PersonResponse } from './client.responses';
 
 export interface ClientSessionIssued {
   person: PersonResponse;
@@ -43,11 +37,6 @@ export interface ClientAuth {
   personId: string;
   sessionId: string;
   email: string;
-}
-
-export interface ClientAppointmentResponse extends PublicAppointmentResponse {
-  /** "Book again": same service and staff member. Null when the salon no longer takes it online. */
-  bookAgain: { slug: string; serviceId: string; staffId: string | null } | null;
 }
 
 const include = {

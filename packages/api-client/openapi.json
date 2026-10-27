@@ -1,0 +1,6241 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 128
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Register an owner account and send a verification email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-email": {
+      "post": {
+        "operationId": "AuthController_verifyEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Confirm the email address with the code from the email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/resend-verification": {
+      "post": {
+        "operationId": "AuthController_resendVerification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Send the verification email again",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "description": "clientType=web: refresh token is set as an httpOnly cookie. clientType=mobile: refresh token is returned in the body; store it in the Keychain/Keystore.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "clientType": {
+                    "default": "web",
+                    "type": "string",
+                    "enum": [
+                      "web",
+                      "mobile"
+                    ]
+                  },
+                  "deviceName": {
+                    "type": "string",
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Sign in",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "description": "Web: uses the cookie. Mobile: send refreshToken in the body. The refresh token rotates every time.",
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a new access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out of this device",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Send a password reset email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "token",
+                  "newPassword"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Set a new password with the code from the email; signs out all devices",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "operationId": "MeController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The signed-in user and their organizations",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/sessions": {
+      "get": {
+        "operationId": "MeController_sessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Devices where the user is signed in",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "MeController_revokeSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out a device",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/organizations": {
+      "post": {
+        "operationId": "OrganizationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "nip": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an organization; you become its owner",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "get": {
+        "operationId": "OrganizationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Organizations you belong to",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}": {
+      "get": {
+        "operationId": "OrganizationsController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One organization (members only)",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "patch": {
+        "operationId": "OrganizationsController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "nip": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update organization details (owner)",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations": {
+      "post": {
+        "operationId": "LocationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$"
+                  },
+                  "timezone": {
+                    "default": "Europe/Warsaw",
+                    "type": "string"
+                  },
+                  "addressLine": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 12
+                  },
+                  "phone": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\+[1-9]\\d{6,14}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "defaultLocale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  },
+                  "slotStepMinutes": {
+                    "default": 15,
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "const": 5
+                      },
+                      {
+                        "type": "number",
+                        "const": 10
+                      },
+                      {
+                        "type": "number",
+                        "const": 15
+                      },
+                      {
+                        "type": "number",
+                        "const": 30
+                      }
+                    ]
+                  },
+                  "minLeadMinutes": {
+                    "default": 60,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10080
+                  },
+                  "bookingHorizonDays": {
+                    "default": 30,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365
+                  },
+                  "clientCancelDeadlineMinutes": {
+                    "default": 120,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10080
+                  },
+                  "onlineBookingEnabled": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "languages": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pl",
+                        "uk",
+                        "ru",
+                        "be",
+                        "en"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "addressLine",
+                  "city",
+                  "postalCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a location (owner). Slug is generated from the name if omitted",
+        "tags": [
+          "locations"
+        ]
+      },
+      "get": {
+        "operationId": "LocationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Locations you can access",
+        "tags": [
+          "locations"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}": {
+      "get": {
+        "operationId": "LocationsController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One location",
+        "tags": [
+          "locations"
+        ]
+      },
+      "patch": {
+        "operationId": "LocationsController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "addressLine": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 12
+                  },
+                  "phone": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\+[1-9]\\d{6,14}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "defaultLocale": {
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  },
+                  "slotStepMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "const": 5
+                      },
+                      {
+                        "type": "number",
+                        "const": 10
+                      },
+                      {
+                        "type": "number",
+                        "const": 15
+                      },
+                      {
+                        "type": "number",
+                        "const": 30
+                      }
+                    ]
+                  },
+                  "minLeadMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10080
+                  },
+                  "bookingHorizonDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365
+                  },
+                  "clientCancelDeadlineMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10080
+                  },
+                  "onlineBookingEnabled": {
+                    "type": "boolean"
+                  },
+                  "languages": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pl",
+                        "uk",
+                        "ru",
+                        "be",
+                        "en"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a location (owner, or its manager). Send the version you read",
+        "tags": [
+          "locations"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/permissions": {
+      "get": {
+        "operationId": "PermissionsController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The list of staff permissions with defaults, and what you may do yourself",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/staff-categories": {
+      "get": {
+        "operationId": "PermissionsController_listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Staff categories (\"Senior barber\", \"Trainee\") with their permissions",
+        "tags": [
+          "team and permissions"
+        ]
+      },
+      "post": {
+        "operationId": "PermissionsController_createCategory",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "permissions": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                      "createOwnAppointments": {
+                        "type": "boolean"
+                      },
+                      "changeOwnAppointments": {
+                        "type": "boolean"
+                      },
+                      "bookOutsideHours": {
+                        "type": "boolean"
+                      },
+                      "blockOwnTime": {
+                        "type": "boolean"
+                      },
+                      "viewClientContacts": {
+                        "type": "boolean"
+                      },
+                      "viewClientHistory": {
+                        "type": "boolean"
+                      },
+                      "viewClientNotes": {
+                        "type": "boolean"
+                      },
+                      "editClientNotes": {
+                        "type": "boolean"
+                      },
+                      "viewAllAppointments": {
+                        "type": "boolean"
+                      },
+                      "manageAllAppointments": {
+                        "type": "boolean"
+                      },
+                      "viewOwnEarnings": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a staff category (owner)",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/staff-categories/{categoryId}": {
+      "patch": {
+        "operationId": "PermissionsController_updateCategory",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "permissions": {
+                    "type": "object",
+                    "properties": {
+                      "createOwnAppointments": {
+                        "type": "boolean"
+                      },
+                      "changeOwnAppointments": {
+                        "type": "boolean"
+                      },
+                      "bookOutsideHours": {
+                        "type": "boolean"
+                      },
+                      "blockOwnTime": {
+                        "type": "boolean"
+                      },
+                      "viewClientContacts": {
+                        "type": "boolean"
+                      },
+                      "viewClientHistory": {
+                        "type": "boolean"
+                      },
+                      "viewClientNotes": {
+                        "type": "boolean"
+                      },
+                      "editClientNotes": {
+                        "type": "boolean"
+                      },
+                      "viewAllAppointments": {
+                        "type": "boolean"
+                      },
+                      "manageAllAppointments": {
+                        "type": "boolean"
+                      },
+                      "viewOwnEarnings": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a category or change its permissions (owner)",
+        "tags": [
+          "team and permissions"
+        ]
+      },
+      "delete": {
+        "operationId": "PermissionsController_deleteCategory",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a category; its members fall back to the defaults (owner)",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/members": {
+      "get": {
+        "operationId": "PermissionsController_listMembers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "People with access to the organization and their effective permissions",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/members/{membershipId}/permissions": {
+      "put": {
+        "description": "Takes effect on the staff member’s next request, without signing in again.",
+        "operationId": "PermissionsController_setMemberPermissions",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "staffCategoryId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "overrides": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                      "createOwnAppointments": {
+                        "type": "boolean"
+                      },
+                      "changeOwnAppointments": {
+                        "type": "boolean"
+                      },
+                      "bookOutsideHours": {
+                        "type": "boolean"
+                      },
+                      "blockOwnTime": {
+                        "type": "boolean"
+                      },
+                      "viewClientContacts": {
+                        "type": "boolean"
+                      },
+                      "viewClientHistory": {
+                        "type": "boolean"
+                      },
+                      "viewClientNotes": {
+                        "type": "boolean"
+                      },
+                      "editClientNotes": {
+                        "type": "boolean"
+                      },
+                      "viewAllAppointments": {
+                        "type": "boolean"
+                      },
+                      "manageAllAppointments": {
+                        "type": "boolean"
+                      },
+                      "viewOwnEarnings": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "version",
+                  "staffCategoryId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a staff member's category and personal exceptions (owner)",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/invitations": {
+      "post": {
+        "description": "Managers may invite staff to their own locations only. Inviting the same email again cancels the previous link.",
+        "operationId": "InvitationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "manager",
+                      "staff"
+                    ]
+                  },
+                  "locationIds": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "staffMemberId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "staffCategoryId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "role",
+                  "locationIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invite a manager or staff member by email",
+        "tags": [
+          "team and permissions"
+        ]
+      },
+      "get": {
+        "operationId": "InvitationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invitations of the last 30 days",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/invitations/{invitationId}": {
+      "delete": {
+        "operationId": "InvitationsController_revoke",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel an invitation; its link stops working",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/members/{membershipId}": {
+      "delete": {
+        "description": "Access ends at once. Their staff profile and appointments stay in the calendar.",
+        "operationId": "InvitationsController_remove",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a manager or staff member (owner)",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/invitations/{token}": {
+      "get": {
+        "operationId": "AcceptInvitationController_preview",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "What an invitation link is for (before signing in)",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/invitations/{token}/accept": {
+      "post": {
+        "operationId": "AcceptInvitationController_accept",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Join the team (signed in with the invited, verified email)",
+        "tags": [
+          "team and permissions"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/service-categories": {
+      "get": {
+        "operationId": "ServiceCategoriesController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Service categories of the price list, in display order",
+        "tags": [
+          "services"
+        ]
+      },
+      "post": {
+        "operationId": "ServiceCategoriesController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "sortOrder": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a category",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/service-categories/{serviceCategoryId}": {
+      "patch": {
+        "operationId": "ServiceCategoriesController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceCategoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "sortOrder": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename or reorder a category. Send the version you read",
+        "tags": [
+          "services"
+        ]
+      },
+      "delete": {
+        "operationId": "ServiceCategoriesController_remove",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceCategoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a category; its services stay, without a category",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/services": {
+      "get": {
+        "operationId": "ServicesController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Services of the location (incl. inactive)",
+        "tags": [
+          "services"
+        ]
+      },
+      "post": {
+        "operationId": "ServicesController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 480
+                  },
+                  "bufferMinutes": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120
+                  },
+                  "priceGrosze": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  },
+                  "active": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "categoryId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "durationMinutes",
+                  "priceGrosze"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a service. Price in grosze (50 PLN = 5000)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}": {
+      "get": {
+        "operationId": "ServicesController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One service",
+        "tags": [
+          "services"
+        ]
+      },
+      "patch": {
+        "operationId": "ServicesController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 480
+                  },
+                  "bufferMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120
+                  },
+                  "priceGrosze": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "categoryId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a service; set active=false to hide it. Send the version you read",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff": {
+      "get": {
+        "operationId": "StaffController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Staff of the location",
+        "tags": [
+          "staff"
+        ]
+      },
+      "post": {
+        "operationId": "StaffController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "bio": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "languages": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pl",
+                        "uk",
+                        "ru",
+                        "be",
+                        "en"
+                      ]
+                    }
+                  },
+                  "active": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "serviceIds": {
+                    "default": [],
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "displayName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a staff member (no user account needed)",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}": {
+      "get": {
+        "operationId": "StaffController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One staff member",
+        "tags": [
+          "staff"
+        ]
+      },
+      "patch": {
+        "operationId": "StaffController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "bio": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "languages": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pl",
+                        "uk",
+                        "ru",
+                        "be",
+                        "en"
+                      ]
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a staff member. Send the version you read",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/services": {
+      "put": {
+        "operationId": "StaffController_setServices",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceIds": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "serviceIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set which services this staff member performs (replaces the list)",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/working-hours": {
+      "get": {
+        "operationId": "StaffController_workingHours",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Weekly hours and upcoming special days (location-local time)",
+        "tags": [
+          "staff"
+        ]
+      },
+      "put": {
+        "description": "Example: {\"days\":[{\"weekday\":1,\"intervals\":[{\"start\":\"09:00\",\"end\":\"13:00\"},{\"start\":\"14:00\",\"end\":\"18:00\"}]}]}. Weekday 1 = Monday. Days not listed are days off; gaps are breaks.",
+        "operationId": "StaffController_setWorkingHours",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "days": {
+                    "maxItems": 7,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "weekday": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 7
+                        },
+                        "intervals": {
+                          "maxItems": 6,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "start": {
+                                "type": "string"
+                              },
+                              "end": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "start",
+                              "end"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "weekday",
+                        "intervals"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "days"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the weekly hours",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/working-hours/overrides/{date}": {
+      "put": {
+        "operationId": "StaffController_setOverride",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "intervals": {
+                    "minItems": 1,
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "type": "string"
+                        },
+                        "end": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "start",
+                        "end"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "intervals"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Special hours for one date (YYYY-MM-DD); replace the weekly hours that day",
+        "tags": [
+          "staff"
+        ]
+      },
+      "delete": {
+        "operationId": "StaffController_removeOverride",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove special hours for a date",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/time-off": {
+      "get": {
+        "operationId": "StaffController_listTimeOff",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current and future time off",
+        "tags": [
+          "staff"
+        ]
+      },
+      "post": {
+        "description": "Location-local times, e.g. {\"start\":\"2026-12-24T00:00\",\"end\":\"2026-12-27T00:00\"}.",
+        "operationId": "StaffController_addTimeOff",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$"
+                  },
+                  "end": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "start",
+                  "end"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add time off (vacation, sick leave, blocked hours)",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/time-off/{timeOffId}": {
+      "delete": {
+        "operationId": "StaffController_removeTimeOff",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeOffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove time off",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/availability": {
+      "get": {
+        "description": "No minimum lead time or horizon; only times in the past are excluded. Max 31 days per request.",
+        "operationId": "AvailabilityController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-08"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-02"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": false,
+            "in": "query",
+            "description": "Omit for \"any staff member\"",
+            "schema": {}
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Free start times for a service (for staff booking on behalf of a client)",
+        "tags": [
+          "availability"
+        ]
+      }
+    },
+    "/v1/public/locations/{slug}": {
+      "get": {
+        "operationId": "PublicLocationsController_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLocation"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Salon page: address, description, opening hours, services with prices, staff",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/locations/{slug}/availability": {
+      "get": {
+        "description": "The salon's minimum lead time and booking horizon apply. Max 31 days per request.",
+        "operationId": "PublicLocationsController_availabilityFor",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-08"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-02"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": false,
+            "in": "query",
+            "description": "Omit for \"any staff member\"",
+            "schema": {}
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Availability"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Free start times for clients",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/photos": {
+      "get": {
+        "operationId": "LocationPhotosController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Salon photos for the booking page, oldest first",
+        "tags": [
+          "photos"
+        ]
+      },
+      "post": {
+        "operationId": "LocationPhotosController_add",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The picture itself (not a form), at most 3 MB",
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a salon photo (JPEG, PNG or WebP; at most 10)",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/photos/{photoId}": {
+      "delete": {
+        "operationId": "LocationPhotosController_remove",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "photoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a salon photo",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/photo": {
+      "put": {
+        "operationId": "StaffPhotoController_set",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The picture itself (not a form), at most 3 MB",
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the staff member's photo (replaces the old one)",
+        "tags": [
+          "photos"
+        ]
+      },
+      "delete": {
+        "operationId": "StaffPhotoController_remove",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove the staff member's photo",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
+    "/v1/public/photos/{photoId}": {
+      "get": {
+        "description": "A new photo always gets a new link, so browsers may keep it for a year.",
+        "operationId": "PublicPhotosController_get",
+        "parameters": [
+          {
+            "name": "photoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "A salon or staff photo",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/locations/{slug}/holds": {
+      "post": {
+        "description": "start = a slot \"start\" from the availability list. Omit staffId for \"any staff member\". Send releaseHoldToken to free a previous hold.",
+        "operationId": "PublicBookingController_createHold",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "staffId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "releaseHoldToken": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "serviceId",
+                  "start"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Hold"
+                }
+              }
+            }
+          }
+        },
+        "summary": "1. Hold a slot for 10 minutes",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/holds/{holdId}/code": {
+      "post": {
+        "description": "Call again to resend (at most 3 codes per hold). The code never outlives the hold. codeChannel=sms sends it to the phone when the salon page lists sms in codeChannels; an SMS code confirms the phone, not the email (no \"My visits\" sign-in on confirm).",
+        "operationId": "PublicBookingController_sendCode",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "holdToken": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  },
+                  "acceptTerms": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "marketingConsent": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "codeChannel": {
+                    "default": "email",
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  }
+                },
+                "required": [
+                  "holdToken",
+                  "name",
+                  "phone",
+                  "email",
+                  "acceptTerms"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeSent"
+                }
+              }
+            }
+          }
+        },
+        "summary": "2. Send contact details; a 6-digit code goes by email or SMS",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/holds/{holdId}/confirm": {
+      "post": {
+        "description": "Returns manageToken for the \"manage my appointment\" link (also sent by email). signIn=true (web): also signs the client in to \"My visits\" on this device — the session cookie is set and signedIn is true.",
+        "operationId": "PublicBookingController_confirm",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "holdToken": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$"
+                  },
+                  "signIn": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "holdToken",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingConfirmed"
+                }
+              }
+            }
+          }
+        },
+        "summary": "3. Confirm with the code — the appointment is booked",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/holds/{holdId}/release": {
+      "post": {
+        "operationId": "PublicBookingController_release",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "holdToken": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "holdToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Give the held slot back (client closed the form)",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}": {
+      "get": {
+        "operationId": "PublicBookingController_get",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointment"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The appointment behind a \"manage\" link",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/cancel": {
+      "post": {
+        "operationId": "PublicBookingController_cancel",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 300
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointment"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Client cancels (until the salon’s deadline, default 2 h before)",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/reschedule": {
+      "post": {
+        "operationId": "PublicBookingController_reschedule",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "staffId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "start"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointment"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Client moves the appointment to another free time",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments": {
+      "get": {
+        "description": "Staff members (role \"staff\") only see their own appointments.",
+        "operationId": "AppointmentsController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-08"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-02"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Calendar: appointments between two local dates (max 42 days)",
+        "tags": [
+          "appointments"
+        ]
+      },
+      "post": {
+        "description": "start: ISO instant on a 5-minute mark. Outside working hours → 409 OUTSIDE_WORKING_HOURS unless allowOutsideHours=true. Never over another booking.",
+        "operationId": "AppointmentsController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "staffId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "customerId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "customer": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      "phone": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string",
+                        "maxLength": 254
+                      },
+                      "locale": {
+                        "default": "pl",
+                        "type": "string",
+                        "enum": [
+                          "pl",
+                          "uk",
+                          "ru",
+                          "en"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "phone"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "allowOutsideHours": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "serviceId",
+                  "staffId",
+                  "start"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Book on behalf of a client (phone, walk-in)",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}": {
+      "get": {
+        "operationId": "AppointmentsController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One appointment with its history",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reschedule": {
+      "post": {
+        "operationId": "AppointmentsController_reschedule",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "staffId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "allowOutsideHours": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "version",
+                  "start"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move to another time or staff member. Send the version you read",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/cancel": {
+      "post": {
+        "operationId": "AppointmentsController_cancel",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "version",
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel with a reason; the client gets an email",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/status": {
+      "post": {
+        "operationId": "AppointmentsController_setStatus",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "completed",
+                      "no_show"
+                    ]
+                  }
+                },
+                "required": [
+                  "version",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark \"came\" (completed) or \"did not come\" (no_show)",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/customers": {
+      "get": {
+        "operationId": "CustomersController_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clients (search by name, phone or email)",
+        "tags": [
+          "customers"
+        ]
+      },
+      "post": {
+        "description": "409 CUSTOMER_EMAIL_EXISTS / CUSTOMER_PHONE_EXISTS with the existing client id in details; send allowDuplicatePhone=true to add anyway.",
+        "operationId": "CustomersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "tags": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 30
+                    }
+                  },
+                  "allowDuplicatePhone": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "phone"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a client",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/customers/{customerId}": {
+      "get": {
+        "description": "Staff members: clients they have (had) an appointment with; contacts, history and notes depend on their permissions.",
+        "operationId": "CustomersController_get",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One client card with visit history",
+        "tags": [
+          "customers"
+        ]
+      },
+      "patch": {
+        "description": "Staff members with editClientNotes may change only note and tags.",
+        "operationId": "CustomersController_update",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 254
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "locale": {
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tags": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 30
+                    }
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a client. Send the version you read",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/time-blocks": {
+      "get": {
+        "operationId": "TimeBlocksController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-08"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-02"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Time blocks between two local dates (max 42 days)",
+        "tags": [
+          "calendar"
+        ]
+      },
+      "post": {
+        "description": "Refused with 409 APPOINTMENTS_IN_THE_WAY when live appointments overlap (their ids are in details). Staff members need the blockOwnTime permission and may block only their own time.",
+        "operationId": "TimeBlocksController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "staffId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "end": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "staffId",
+                  "start",
+                  "end"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Block time for one staff member or (staffId: null) the whole location",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/time-blocks/{blockId}": {
+      "patch": {
+        "operationId": "TimeBlocksController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "staffId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "end": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "reason": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move, resize or re-assign a block. Send the version you read",
+        "tags": [
+          "calendar"
+        ]
+      },
+      "delete": {
+        "operationId": "TimeBlocksController_remove",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a block; the time becomes free again",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/calendar": {
+      "get": {
+        "description": "Refresh every 30 s with If-None-Match: <ETag of the last response>; 304 means nothing visible has changed.",
+        "operationId": "CalendarController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-02"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-02"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Calendar: staff hours, time off, appointments and blocks for a date range",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/v1/me/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Id of the last item of the previous page",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "unreadOnly",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My notifications: new, cancelled and moved appointments (newest first)",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unread",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Number for the bell badge",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/notifications/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "ids": {
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "ids"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "all": {
+                        "type": "boolean",
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "all"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark as read: {\"ids\": [...]} or {\"all\": true}",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/client/auth/code": {
+      "post": {
+        "description": "Always 202, whether or not the address has visits. A new code replaces the previous one.",
+        "operationId": "ClientController_requestCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientCodeSent"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Email a 6-digit sign-in code",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/auth/verify": {
+      "post": {
+        "description": "clientType=web: the session is an httpOnly cookie (90 days). clientType=mobile: the token is returned in the body.",
+        "operationId": "ClientController_verify",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$"
+                  },
+                  "locale": {
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  },
+                  "clientType": {
+                    "default": "web",
+                    "type": "string",
+                    "enum": [
+                      "web",
+                      "mobile"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientSignIn"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sign in with the code",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/auth/logout": {
+      "post": {
+        "operationId": "ClientController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out of this device",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/me": {
+      "get": {
+        "operationId": "ClientController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientPerson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The signed-in client",
+        "tags": [
+          "client app"
+        ]
+      },
+      "patch": {
+        "operationId": "ClientController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "locale": {
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "locale"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientPerson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the language of the client app and emails",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments": {
+      "get": {
+        "description": "Found by the confirmed email of the client. scope=upcoming (soonest first) or past (latest 50).",
+        "operationId": "ClientController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAppointmentList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My visits in all salons",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments/{id}": {
+      "get": {
+        "operationId": "ClientController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAppointment"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One of my visits",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments/{id}/cancel": {
+      "post": {
+        "operationId": "ClientController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 300
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAppointment"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel (until the salon’s deadline, default 2 h before)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments/{id}/reschedule": {
+      "post": {
+        "description": "start = a slot from GET /v1/public/locations/{slug}/availability.",
+        "operationId": "ClientController_reschedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "staffId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "start"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAppointment"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move to another free time",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/me/push-subscriptions/public-key": {
+      "get": {
+        "operationId": "PushController_publicKey",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Key the browser subscribes with (Web Push). publicKey = null: push is off",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/push-subscriptions": {
+      "post": {
+        "operationId": "PushController_subscribe",
+        "parameters": [
+          {
+            "name": "user-agent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "endpoint": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "format": "uri"
+                  },
+                  "keys": {
+                    "type": "object",
+                    "properties": {
+                      "p256dh": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 256,
+                        "pattern": "^[A-Za-z0-9_-]+=*$"
+                      },
+                      "auth": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 256,
+                        "pattern": "^[A-Za-z0-9_-]+=*$"
+                      }
+                    },
+                    "required": [
+                      "p256dh",
+                      "auth"
+                    ]
+                  }
+                },
+                "required": [
+                  "endpoint",
+                  "keys"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn on push on this device: the PushSubscription from the browser",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/push-subscriptions/remove": {
+      "post": {
+        "operationId": "PushController_unsubscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "endpoint": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "endpoint"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn off push on this device",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/v1/admin/outbox": {
+      "get": {
+        "operationId": "AdminOutboxController_stats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Email queue health: waiting, failed, sent in the last 24 h",
+        "tags": [
+          "platform admin"
+        ]
+      }
+    },
+    "/v1/admin/outbox/failed": {
+      "get": {
+        "operationId": "AdminOutboxController_failed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Emails that were given up on (newest first)",
+        "tags": [
+          "platform admin"
+        ]
+      }
+    },
+    "/v1/admin/outbox/retry": {
+      "post": {
+        "description": "The same idempotency keys are used, so an email the provider already sent is not sent twice.",
+        "operationId": "AdminOutboxController_retry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "ids": {
+                        "minItems": 1,
+                        "maxItems": 500,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "ids"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "all": {
+                        "type": "boolean",
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "all"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send failed emails again: {\"ids\": [...]} or {\"all\": true}",
+        "tags": [
+          "platform admin"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Beauty Platform API",
+    "description": "One API for the owner web app and the iOS/Android apps. Errors: { error: { code, message, requestId } }.",
+    "version": "v1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "Availability": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string"
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "string",
+                  "description": "Instant, ISO 8601 UTC"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Local date at the location, YYYY-MM-DD"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "Local wall-clock time, HH:MM"
+                },
+                "staffIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Staff members free at this time"
+                }
+              },
+              "required": [
+                "start",
+                "date",
+                "time",
+                "staffIds"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "timezone",
+          "serviceId",
+          "durationMinutes",
+          "slots"
+        ],
+        "additionalProperties": false
+      },
+      "BookingConfirmed": {
+        "type": "object",
+        "properties": {
+          "appointment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "held",
+                  "confirmed",
+                  "cancelled",
+                  "expired",
+                  "completed",
+                  "no_show"
+                ]
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "description": "Location-local date, YYYY-MM-DD"
+              },
+              "time": {
+                "type": "string",
+                "description": "Location-local time, HH:MM"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "service": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "priceGrosze": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "durationMinutes",
+                  "priceGrosze"
+                ],
+                "additionalProperties": false
+              },
+              "staff": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ],
+                "additionalProperties": false
+              },
+              "salon": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "slug": {
+                    "type": "string"
+                  },
+                  "addressLine": {
+                    "type": "string"
+                  },
+                  "city": {
+                    "type": "string"
+                  },
+                  "postalCode": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "slug",
+                  "addressLine",
+                  "city",
+                  "postalCode",
+                  "phone"
+                ],
+                "additionalProperties": false
+              },
+              "changeableUntil": {
+                "type": "string",
+                "description": "Until when the client can still move or cancel online"
+              },
+              "canChange": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "start",
+              "end",
+              "date",
+              "time",
+              "timezone",
+              "service",
+              "staff",
+              "salon",
+              "changeableUntil",
+              "canChange"
+            ],
+            "additionalProperties": false,
+            "description": "An appointment as the client sees it"
+          },
+          "manageToken": {
+            "type": "string",
+            "description": "For the \"manage my appointment\" link (also sent by email)"
+          },
+          "signedIn": {
+            "type": "boolean",
+            "description": "True when the client was also signed in to \"My visits\""
+          }
+        },
+        "required": [
+          "appointment",
+          "manageToken",
+          "signedIn"
+        ],
+        "additionalProperties": false
+      },
+      "ClientAppointment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "held",
+              "confirmed",
+              "cancelled",
+              "expired",
+              "completed",
+              "no_show"
+            ]
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "Location-local date, YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "description": "Location-local time, HH:MM"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "service": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "priceGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "durationMinutes",
+              "priceGrosze"
+            ],
+            "additionalProperties": false
+          },
+          "staff": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "displayName"
+            ],
+            "additionalProperties": false
+          },
+          "salon": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "addressLine": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "postalCode": {
+                "type": "string"
+              },
+              "phone": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug",
+              "addressLine",
+              "city",
+              "postalCode",
+              "phone"
+            ],
+            "additionalProperties": false
+          },
+          "changeableUntil": {
+            "type": "string",
+            "description": "Until when the client can still move or cancel online"
+          },
+          "canChange": {
+            "type": "boolean"
+          },
+          "bookAgain": {
+            "nullable": true,
+            "description": "Same service and staff member again; null when the salon no longer takes it online",
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "serviceId": {
+                "type": "string"
+              },
+              "staffId": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "slug",
+              "serviceId",
+              "staffId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "start",
+          "end",
+          "date",
+          "time",
+          "timezone",
+          "service",
+          "staff",
+          "salon",
+          "changeableUntil",
+          "canChange",
+          "bookAgain"
+        ],
+        "additionalProperties": false
+      },
+      "ClientAppointmentList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "held",
+                    "confirmed",
+                    "cancelled",
+                    "expired",
+                    "completed",
+                    "no_show"
+                  ]
+                },
+                "start": {
+                  "type": "string"
+                },
+                "end": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Location-local date, YYYY-MM-DD"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "Location-local time, HH:MM"
+                },
+                "timezone": {
+                  "type": "string"
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "durationMinutes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "priceGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "durationMinutes",
+                    "priceGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ],
+                  "additionalProperties": false
+                },
+                "salon": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "addressLine": {
+                      "type": "string"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "postalCode": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "slug",
+                    "addressLine",
+                    "city",
+                    "postalCode",
+                    "phone"
+                  ],
+                  "additionalProperties": false
+                },
+                "changeableUntil": {
+                  "type": "string",
+                  "description": "Until when the client can still move or cancel online"
+                },
+                "canChange": {
+                  "type": "boolean"
+                },
+                "bookAgain": {
+                  "nullable": true,
+                  "description": "Same service and staff member again; null when the salon no longer takes it online",
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "type": "string"
+                    },
+                    "serviceId": {
+                      "type": "string"
+                    },
+                    "staffId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "serviceId",
+                    "staffId"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "start",
+                "end",
+                "date",
+                "time",
+                "timezone",
+                "service",
+                "staff",
+                "salon",
+                "changeableUntil",
+                "canChange",
+                "bookAgain"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "ClientCodeSent": {
+        "type": "object",
+        "properties": {
+          "codeExpiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "codeExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "ClientPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "pl",
+              "uk",
+              "ru",
+              "en"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "locale"
+        ],
+        "additionalProperties": false
+      },
+      "ClientSignIn": {
+        "type": "object",
+        "properties": {
+          "person": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string",
+                "enum": [
+                  "pl",
+                  "uk",
+                  "ru",
+                  "en"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "locale"
+            ],
+            "additionalProperties": false
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "token": {
+            "description": "Mobile only: keep it in the Keychain/Keystore and send as `Authorization: Bearer`",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person",
+          "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "CodeSent": {
+        "type": "object",
+        "properties": {
+          "codeExpiresAt": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "sms"
+            ]
+          }
+        },
+        "required": [
+          "codeExpiresAt",
+          "channel"
+        ],
+        "additionalProperties": false
+      },
+      "Hold": {
+        "type": "object",
+        "properties": {
+          "holdId": {
+            "type": "string"
+          },
+          "holdToken": {
+            "type": "string",
+            "description": "Proves this browser made the hold; send it with the next steps"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "staffId": {
+            "type": "string"
+          },
+          "staffName": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "priceGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "holdId",
+          "holdToken",
+          "expiresAt",
+          "start",
+          "end",
+          "date",
+          "time",
+          "staffId",
+          "staffName",
+          "serviceName",
+          "priceGrosze"
+        ],
+        "additionalProperties": false,
+        "description": "A slot kept for the client for 10 minutes"
+      },
+      "PublicAppointment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "held",
+              "confirmed",
+              "cancelled",
+              "expired",
+              "completed",
+              "no_show"
+            ]
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "Location-local date, YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "description": "Location-local time, HH:MM"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "service": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "priceGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "durationMinutes",
+              "priceGrosze"
+            ],
+            "additionalProperties": false
+          },
+          "staff": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "displayName"
+            ],
+            "additionalProperties": false
+          },
+          "salon": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "addressLine": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "postalCode": {
+                "type": "string"
+              },
+              "phone": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug",
+              "addressLine",
+              "city",
+              "postalCode",
+              "phone"
+            ],
+            "additionalProperties": false
+          },
+          "changeableUntil": {
+            "type": "string",
+            "description": "Until when the client can still move or cancel online"
+          },
+          "canChange": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "start",
+          "end",
+          "date",
+          "time",
+          "timezone",
+          "service",
+          "staff",
+          "salon",
+          "changeableUntil",
+          "canChange"
+        ],
+        "additionalProperties": false,
+        "description": "An appointment as the client sees it"
+      },
+      "PublicLocation": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "addressLine": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "defaultLocale": {
+            "type": "string"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "be",
+                "en"
+              ]
+            },
+            "description": "Languages the salon speaks with clients, in the salon’s order"
+          },
+          "description": {
+            "nullable": true,
+            "description": "What the salon writes about itself",
+            "type": "string"
+          },
+          "openingHours": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weekday": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 7,
+                  "description": "ISO weekday: 1 = Monday … 7 = Sunday"
+                },
+                "intervals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "start": {
+                        "type": "string"
+                      },
+                      "end": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "start",
+                      "end"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Merged hours of everyone who takes online bookings; empty = closed"
+                }
+              },
+              "required": [
+                "weekday",
+                "intervals"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Monday to Sunday, from the team’s regular weekly hours"
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "url"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Salon photos, oldest first: links to /v1/public/photos/<id>"
+          },
+          "codeChannels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "email",
+                "sms"
+              ]
+            },
+            "description": "Where the booking code can be sent: always email; sms when a gateway is connected"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Price-list groups in display order; services without a category come last"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "categoryId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "durationMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "categoryId",
+                "name",
+                "description",
+                "durationMinutes",
+                "priceGrosze"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "bio": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "languages": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "be",
+                      "en"
+                    ]
+                  }
+                },
+                "serviceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "photoUrl": {
+                  "nullable": true,
+                  "description": "Link to the photo; null when there is none",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "displayName",
+                "bio",
+                "languages",
+                "serviceIds",
+                "photoUrl"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "addressLine",
+          "city",
+          "postalCode",
+          "phone",
+          "timezone",
+          "defaultLocale",
+          "languages",
+          "description",
+          "openingHours",
+          "photos",
+          "codeChannels",
+          "categories",
+          "services",
+          "staff"
+        ],
+        "additionalProperties": false,
+        "description": "The public salon page: no buffers, staff accounts or organization details"
+      },
+      "Slot": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "description": "Instant, ISO 8601 UTC"
+          },
+          "date": {
+            "type": "string",
+            "description": "Local date at the location, YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "description": "Local wall-clock time, HH:MM"
+          },
+          "staffIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Staff members free at this time"
+          }
+        },
+        "required": [
+          "start",
+          "date",
+          "time",
+          "staffIds"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

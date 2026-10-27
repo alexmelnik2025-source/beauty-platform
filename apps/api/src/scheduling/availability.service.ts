@@ -4,22 +4,12 @@ import type { MembershipContext } from '../common/request-context';
 import type { Location } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type { AvailabilityResponse } from './public.responses';
 import type { AvailabilityQuery } from './scheduling.schemas';
-import {
-  mergeSlots,
-  type InstantRange,
-  type LocalInterval,
-  type Slot,
-  type StaffSchedule,
-} from './slots';
+import { mergeSlots, type InstantRange, type LocalInterval, type StaffSchedule } from './slots';
 import { addDays, instantToLocal, localToday, zonedToInstant } from './time';
 
-export interface AvailabilityResponse {
-  timezone: string;
-  serviceId: string;
-  durationMinutes: number;
-  slots: Slot[];
-}
+export type { AvailabilityResponse } from './public.responses';
 
 export interface BookingWindow {
   earliestStart: number;

@@ -82,6 +82,15 @@ jobs:
       - name: Migrations match schema
         run: .github/scripts/check-migrations.sh
 
+      # openapi.json itself is compared with the code by apps/api/test/openapi.spec.ts.
+      - name: API client matches OpenAPI
+        run: |
+          .github/scripts/run.sh pnpm --filter @beauty/api-client generate
+          git diff --exit-code -- packages/api-client || {
+            echo "::error::packages/api-client/src/schema.d.ts is out of date: run pnpm --filter @beauty/api-client generate"
+            exit 1
+          }
+
       - name: Test (real PostgreSQL)
         run: SUMMARY=1 .github/scripts/run.sh pnpm test
 

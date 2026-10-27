@@ -19,6 +19,7 @@ import type {
   SendCodeInput,
 } from './booking.schemas';
 import { OutboxService } from './outbox.service';
+import type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
 
 export const HOLD_MINUTES = 10;
 const CODE_MINUTES = 10;
@@ -42,43 +43,7 @@ interface HoldContact {
   codeChannel?: 'email' | 'sms';
 }
 
-export interface HoldResponse {
-  holdId: string;
-  holdToken: string;
-  expiresAt: string;
-  start: string;
-  end: string;
-  date: string;
-  time: string;
-  staffId: string;
-  staffName: string;
-  serviceName: string;
-  priceGrosze: number;
-}
-
-export interface PublicAppointmentResponse {
-  id: string;
-  status: Appointment['status'];
-  start: string;
-  end: string;
-  /** Location-local date and time. */
-  date: string;
-  time: string;
-  timezone: string;
-  service: { id: string; name: string; durationMinutes: number; priceGrosze: number };
-  staff: { id: string; displayName: string };
-  salon: {
-    name: string;
-    slug: string;
-    addressLine: string;
-    city: string;
-    postalCode: string;
-    phone: string | null;
-  };
-  /** Until when the client can still move or cancel online. */
-  changeableUntil: string;
-  canChange: boolean;
-}
+export type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
 
 /** An appointment with what client-facing responses and checks need. */
 export type ClientAppointment = Appointment & {

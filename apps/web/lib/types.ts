@@ -1,4 +1,4 @@
-/** Shapes of the API responses the web app uses (see /v1/docs). */
+/** Shapes of the API responses the web app uses (see /v1/docs). Salon-side shapes are still written by hand. */
 
 export type Role = 'owner' | 'manager' | 'staff';
 /** Languages spoken with clients (be = Belarusian). Not the interface languages. */
@@ -117,94 +117,15 @@ export interface MyPermissions {
   me: { role: Role; permissions: Record<string, boolean> };
 }
 
-export interface PublicLocation {
-  slug: string;
-  name: string;
-  addressLine: string;
-  city: string;
-  postalCode: string;
-  phone: string | null;
-  timezone: string;
-  defaultLocale: string;
-  languages: Spoken[];
-  /** What the salon writes about itself. */
-  description: string | null;
-  /** Monday (1) to Sunday (7), from the team's regular weekly hours; empty intervals = closed. */
-  openingHours: { weekday: number; intervals: { start: string; end: string }[] }[];
-  /** Where the booking code can go: always email; sms when an SMS gateway is connected. */
-  codeChannels: ('email' | 'sms')[];
-  /** Salon photos, oldest first. */
-  photos: { id: string; url: string }[];
-  categories: { id: string; name: string }[];
-  services: {
-    id: string;
-    categoryId: string | null;
-    name: string;
-    description: string | null;
-    durationMinutes: number;
-    priceGrosze: number;
-  }[];
-  staff: {
-    id: string;
-    displayName: string;
-    bio: string | null;
-    languages: Spoken[];
-    serviceIds: string[];
-    photoUrl: string | null;
-  }[];
-}
-
-export interface Slot {
-  start: string;
-  date: string;
-  time: string;
-  staffIds: string[];
-}
-
-export interface Hold {
-  holdId: string;
-  holdToken: string;
-  expiresAt: string;
-  start: string;
-  end: string;
-  date: string;
-  time: string;
-  staffId: string;
-  staffName: string;
-  serviceName: string;
-  priceGrosze: number;
-}
-
-export interface PublicAppointment {
-  id: string;
-  status: AppointmentStatus;
-  start: string;
-  end: string;
-  date: string;
-  time: string;
-  timezone: string;
-  service: { id: string; name: string; durationMinutes: number; priceGrosze: number };
-  staff: { id: string; displayName: string };
-  salon: {
-    name: string;
-    slug: string;
-    addressLine: string;
-    city: string;
-    postalCode: string;
-    phone: string | null;
-  };
-  changeableUntil: string;
-  canChange: boolean;
-}
-
-/** "My visits" client app. */
-export interface ClientPerson {
-  id: string;
-  email: string;
-  locale: string;
-}
-
-export interface ClientAppointment extends PublicAppointment {
-  /** Same service and staff member again; null when the salon no longer takes it online. */
-  bookAgain: { slug: string; serviceId: string; staffId: string | null } | null;
-}
+/**
+ * What clients see (booking page, manage link, "My visits"): generated from the API's
+ * OpenAPI document, so these can never drift from the server.
+ */
+export type {
+  ClientAppointment,
+  ClientPerson,
+  Hold,
+  PublicAppointment,
+  PublicLocation,
+  Slot,
+} from '@beauty/api-client';

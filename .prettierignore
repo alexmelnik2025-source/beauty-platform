@@ -8,3 +8,6 @@ apps/web/.next
 apps/web/playwright-report
 apps/web/test-results
 apps/web/next-env.d.ts
+# Generated from the API (see packages/api-client/src/index.ts)
+packages/api-client/openapi.json
+packages/api-client/src/schema.d.ts
