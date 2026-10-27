@@ -126,7 +126,9 @@ test('a client books online; the visit is in the salon and staff calendars; emai
       data: {
         version: location.version,
         onlineBookingEnabled: true,
-        minLeadMinutes: 30,
+        // Longer than the 2-hour change deadline: the first free time can always be changed
+        // online, whatever time of day the test runs.
+        minLeadMinutes: 180,
         languages: ['pl', 'uk', 'ru'],
         description: 'Barbershop na Woli.\nKawa i parking dla klientów.',
       },
