@@ -3692,7 +3692,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3796,7 +3803,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3833,7 +3847,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3905,7 +3926,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3968,7 +3996,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4033,7 +4068,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4066,7 +4108,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4140,7 +4189,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4170,7 +4226,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4266,7 +4329,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4317,7 +4387,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeBlockList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4388,7 +4465,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeBlock"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4478,7 +4562,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeBlock"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4573,7 +4664,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Calendar"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Nothing visible has changed"
           }
         },
         "security": [
@@ -5363,6 +5464,614 @@
       }
     },
     "schemas": {
+      "Appointment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "held",
+              "confirmed",
+              "cancelled",
+              "expired",
+              "completed",
+              "no_show"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "online",
+              "manual"
+            ],
+            "description": "online = booked by the client, manual = by the salon"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "blockedUntil": {
+            "type": "string",
+            "description": "end plus the cleanup time of the service"
+          },
+          "date": {
+            "type": "string",
+            "description": "Location-local date, YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "description": "Location-local start time, HH:MM"
+          },
+          "staff": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "displayName"
+            ],
+            "additionalProperties": false
+          },
+          "service": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "customer": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "nullable": true,
+                "description": "null when the caller may not see client contacts",
+                "type": "string"
+              },
+              "email": {
+                "nullable": true,
+                "description": "null when the caller may not see client contacts",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone",
+              "email"
+            ],
+            "additionalProperties": false
+          },
+          "priceGrosze": {
+            "nullable": true,
+            "description": "1 PLN = 100; null when a staff member may not see prices",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "staffChosenByClient": {
+            "type": "boolean",
+            "description": "The client chose this staff member themselves (not \"any staff member\")"
+          },
+          "firstVisit": {
+            "type": "boolean",
+            "description": "No completed visit of this client before this appointment"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "bufferMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          },
+          "holdExpiresAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelledAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelledBy": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "customer",
+              "salon"
+            ]
+          },
+          "cancelReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "status",
+          "source",
+          "start",
+          "end",
+          "blockedUntil",
+          "date",
+          "time",
+          "staff",
+          "service",
+          "customer",
+          "priceGrosze",
+          "staffChosenByClient",
+          "firstVisit",
+          "durationMinutes",
+          "bufferMinutes",
+          "note",
+          "holdExpiresAt",
+          "cancelledAt",
+          "cancelledBy",
+          "cancelReason",
+          "version",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "AppointmentDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "held",
+              "confirmed",
+              "cancelled",
+              "expired",
+              "completed",
+              "no_show"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "online",
+              "manual"
+            ],
+            "description": "online = booked by the client, manual = by the salon"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "blockedUntil": {
+            "type": "string",
+            "description": "end plus the cleanup time of the service"
+          },
+          "date": {
+            "type": "string",
+            "description": "Location-local date, YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "description": "Location-local start time, HH:MM"
+          },
+          "staff": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "displayName"
+            ],
+            "additionalProperties": false
+          },
+          "service": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "customer": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "nullable": true,
+                "description": "null when the caller may not see client contacts",
+                "type": "string"
+              },
+              "email": {
+                "nullable": true,
+                "description": "null when the caller may not see client contacts",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone",
+              "email"
+            ],
+            "additionalProperties": false
+          },
+          "priceGrosze": {
+            "nullable": true,
+            "description": "1 PLN = 100; null when a staff member may not see prices",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "staffChosenByClient": {
+            "type": "boolean",
+            "description": "The client chose this staff member themselves (not \"any staff member\")"
+          },
+          "firstVisit": {
+            "type": "boolean",
+            "description": "No completed visit of this client before this appointment"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "bufferMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          },
+          "holdExpiresAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelledAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelledBy": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "customer",
+              "salon"
+            ]
+          },
+          "cancelReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "actor": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "data": {}
+              },
+              "required": [
+                "type",
+                "actor",
+                "at",
+                "data"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "status",
+          "source",
+          "start",
+          "end",
+          "blockedUntil",
+          "date",
+          "time",
+          "staff",
+          "service",
+          "customer",
+          "priceGrosze",
+          "staffChosenByClient",
+          "firstVisit",
+          "durationMinutes",
+          "bufferMinutes",
+          "note",
+          "holdExpiresAt",
+          "cancelledAt",
+          "cancelledBy",
+          "cancelReason",
+          "version",
+          "createdAt",
+          "history"
+        ],
+        "additionalProperties": false
+      },
+      "AppointmentList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "locationId": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "held",
+                "confirmed",
+                "cancelled",
+                "expired",
+                "completed",
+                "no_show"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "enum": [
+                "online",
+                "manual"
+              ],
+              "description": "online = booked by the client, manual = by the salon"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            },
+            "blockedUntil": {
+              "type": "string",
+              "description": "end plus the cleanup time of the service"
+            },
+            "date": {
+              "type": "string",
+              "description": "Location-local date, YYYY-MM-DD"
+            },
+            "time": {
+              "type": "string",
+              "description": "Location-local start time, HH:MM"
+            },
+            "staff": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "displayName"
+              ],
+              "additionalProperties": false
+            },
+            "service": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "customer": {
+              "nullable": true,
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "phone": {
+                  "nullable": true,
+                  "description": "null when the caller may not see client contacts",
+                  "type": "string"
+                },
+                "email": {
+                  "nullable": true,
+                  "description": "null when the caller may not see client contacts",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "phone",
+                "email"
+              ],
+              "additionalProperties": false
+            },
+            "priceGrosze": {
+              "nullable": true,
+              "description": "1 PLN = 100; null when a staff member may not see prices",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "staffChosenByClient": {
+              "type": "boolean",
+              "description": "The client chose this staff member themselves (not \"any staff member\")"
+            },
+            "firstVisit": {
+              "type": "boolean",
+              "description": "No completed visit of this client before this appointment"
+            },
+            "durationMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "bufferMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "note": {
+              "nullable": true,
+              "type": "string"
+            },
+            "holdExpiresAt": {
+              "nullable": true,
+              "type": "string"
+            },
+            "cancelledAt": {
+              "nullable": true,
+              "type": "string"
+            },
+            "cancelledBy": {
+              "nullable": true,
+              "type": "string",
+              "enum": [
+                "customer",
+                "salon"
+              ]
+            },
+            "cancelReason": {
+              "nullable": true,
+              "type": "string"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "locationId",
+            "status",
+            "source",
+            "start",
+            "end",
+            "blockedUntil",
+            "date",
+            "time",
+            "staff",
+            "service",
+            "customer",
+            "priceGrosze",
+            "staffChosenByClient",
+            "firstVisit",
+            "durationMinutes",
+            "bufferMinutes",
+            "note",
+            "holdExpiresAt",
+            "cancelledAt",
+            "cancelledBy",
+            "cancelReason",
+            "version",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      },
       "Availability": {
         "type": "object",
         "properties": {
@@ -5572,6 +6281,399 @@
           "appointment",
           "manageToken",
           "signedIn"
+        ],
+        "additionalProperties": false
+      },
+      "Calendar": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "slotStepMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "timezone",
+              "slotStepMinutes"
+            ],
+            "additionalProperties": false
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "days": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string"
+                      },
+                      "intervals": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "start": {
+                              "type": "string"
+                            },
+                            "end": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "start",
+                            "end"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "date",
+                      "intervals"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Working hours per local date (special days already applied). Empty = day off"
+                }
+              },
+              "required": [
+                "id",
+                "displayName",
+                "days"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "timeOff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "staffId": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "string"
+                },
+                "end": {
+                  "type": "string"
+                },
+                "note": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "staffId",
+                "start",
+                "end",
+                "note"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "locationId": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "held",
+                    "confirmed",
+                    "cancelled",
+                    "expired",
+                    "completed",
+                    "no_show"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "online",
+                    "manual"
+                  ],
+                  "description": "online = booked by the client, manual = by the salon"
+                },
+                "start": {
+                  "type": "string"
+                },
+                "end": {
+                  "type": "string"
+                },
+                "blockedUntil": {
+                  "type": "string",
+                  "description": "end plus the cleanup time of the service"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Location-local date, YYYY-MM-DD"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "Location-local start time, HH:MM"
+                },
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ],
+                  "additionalProperties": false
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "customer": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "nullable": true,
+                      "description": "null when the caller may not see client contacts",
+                      "type": "string"
+                    },
+                    "email": {
+                      "nullable": true,
+                      "description": "null when the caller may not see client contacts",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "phone",
+                    "email"
+                  ],
+                  "additionalProperties": false
+                },
+                "priceGrosze": {
+                  "nullable": true,
+                  "description": "1 PLN = 100; null when a staff member may not see prices",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "staffChosenByClient": {
+                  "type": "boolean",
+                  "description": "The client chose this staff member themselves (not \"any staff member\")"
+                },
+                "firstVisit": {
+                  "type": "boolean",
+                  "description": "No completed visit of this client before this appointment"
+                },
+                "durationMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "bufferMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "note": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "holdExpiresAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "cancelledAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "cancelledBy": {
+                  "nullable": true,
+                  "type": "string",
+                  "enum": [
+                    "customer",
+                    "salon"
+                  ]
+                },
+                "cancelReason": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "locationId",
+                "status",
+                "source",
+                "start",
+                "end",
+                "blockedUntil",
+                "date",
+                "time",
+                "staff",
+                "service",
+                "customer",
+                "priceGrosze",
+                "staffChosenByClient",
+                "firstVisit",
+                "durationMinutes",
+                "bufferMinutes",
+                "note",
+                "holdExpiresAt",
+                "cancelledAt",
+                "cancelledBy",
+                "cancelReason",
+                "version",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "locationId": {
+                  "type": "string"
+                },
+                "staffId": {
+                  "nullable": true,
+                  "description": "null = the whole location",
+                  "type": "string"
+                },
+                "start": {
+                  "type": "string"
+                },
+                "end": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Location-local start date, YYYY-MM-DD"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "Location-local start time, HH:MM"
+                },
+                "reason": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "deleted": {
+                  "type": "boolean"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "locationId",
+                "staffId",
+                "start",
+                "end",
+                "date",
+                "time",
+                "reason",
+                "version",
+                "deleted",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "location",
+          "from",
+          "to",
+          "staff",
+          "timeOff",
+          "appointments",
+          "blocks"
         ],
         "additionalProperties": false
       },
@@ -6005,6 +7107,246 @@
           "channel"
         ],
         "additionalProperties": false
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "description": "null when the caller may not see client contacts",
+            "type": "string"
+          },
+          "email": {
+            "nullable": true,
+            "description": "null when the caller may not see client contacts",
+            "type": "string"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "pl",
+              "uk",
+              "ru",
+              "en"
+            ]
+          },
+          "note": {
+            "nullable": true,
+            "description": "null when the caller may not see notes and tags",
+            "type": "string"
+          },
+          "tags": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "email",
+          "locale",
+          "note",
+          "tags",
+          "version",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "CustomerDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "description": "null when the caller may not see client contacts",
+            "type": "string"
+          },
+          "email": {
+            "nullable": true,
+            "description": "null when the caller may not see client contacts",
+            "type": "string"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "pl",
+              "uk",
+              "ru",
+              "en"
+            ]
+          },
+          "note": {
+            "nullable": true,
+            "description": "null when the caller may not see notes and tags",
+            "type": "string"
+          },
+          "tags": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "marketingConsent": {
+            "nullable": true,
+            "description": "null for staff members",
+            "type": "boolean"
+          },
+          "visits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "locationId": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "held",
+                    "confirmed",
+                    "cancelled",
+                    "expired",
+                    "completed",
+                    "no_show"
+                  ]
+                },
+                "serviceName": {
+                  "type": "string"
+                },
+                "staffName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "locationId",
+                "start",
+                "status",
+                "serviceName",
+                "staffName"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Staff without viewClientHistory get only their own appointments with this client"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "email",
+          "locale",
+          "note",
+          "tags",
+          "version",
+          "createdAt",
+          "marketingConsent",
+          "visits"
+        ],
+        "additionalProperties": false
+      },
+      "CustomerList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "phone": {
+              "nullable": true,
+              "description": "null when the caller may not see client contacts",
+              "type": "string"
+            },
+            "email": {
+              "nullable": true,
+              "description": "null when the caller may not see client contacts",
+              "type": "string"
+            },
+            "locale": {
+              "type": "string",
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ]
+            },
+            "note": {
+              "nullable": true,
+              "description": "null when the caller may not see notes and tags",
+              "type": "string"
+            },
+            "tags": {
+              "nullable": true,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "phone",
+            "email",
+            "locale",
+            "note",
+            "tags",
+            "version",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
       },
       "Hold": {
         "type": "object",
@@ -7338,6 +8680,127 @@
             "serviceIds",
             "photoUrl",
             "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "TimeBlock": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "staffId": {
+            "nullable": true,
+            "description": "null = the whole location",
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "Location-local start date, YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "description": "Location-local start time, HH:MM"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "staffId",
+          "start",
+          "end",
+          "date",
+          "time",
+          "reason",
+          "version",
+          "deleted",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "TimeBlockList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "locationId": {
+              "type": "string"
+            },
+            "staffId": {
+              "nullable": true,
+              "description": "null = the whole location",
+              "type": "string"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "description": "Location-local start date, YYYY-MM-DD"
+            },
+            "time": {
+              "type": "string",
+              "description": "Location-local start time, HH:MM"
+            },
+            "reason": {
+              "nullable": true,
+              "type": "string"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "deleted": {
+              "type": "boolean"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "locationId",
+            "staffId",
+            "start",
+            "end",
+            "date",
+            "time",
+            "reason",
+            "version",
+            "deleted",
             "updatedAt"
           ],
           "additionalProperties": false

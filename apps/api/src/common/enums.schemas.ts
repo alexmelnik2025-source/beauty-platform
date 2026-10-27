@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type {
+  AppointmentSource,
   AppointmentStatus,
+  CancelledBy,
   ClientType,
   Language,
   Locale,
@@ -22,6 +24,12 @@ export const appointmentStatusSchema = z.enum([
   'no_show',
 ] satisfies AppointmentStatus[]);
 
+/** online = booked by the client, manual = entered by the salon. */
+export const appointmentSourceSchema = z.enum(['online', 'manual'] satisfies AppointmentSource[]);
+
+/** Who cancelled an appointment. */
+export const cancelledBySchema = z.enum(['customer', 'salon'] satisfies CancelledBy[]);
+
 /** Role of a salon team member in an organization. */
 export const membershipRoleSchema = z.enum([
   'owner',
@@ -41,5 +49,7 @@ const _everyValueListed: [
   Missing<AppointmentStatus, z.infer<typeof appointmentStatusSchema>>,
   Missing<MembershipRole, z.infer<typeof membershipRoleSchema>>,
   Missing<ClientType, z.infer<typeof clientTypeSchema>>,
-] = [true, true, true, true, true];
+  Missing<AppointmentSource, z.infer<typeof appointmentSourceSchema>>,
+  Missing<CancelledBy, z.infer<typeof cancelledBySchema>>,
+] = [true, true, true, true, true, true, true];
 void _everyValueListed;

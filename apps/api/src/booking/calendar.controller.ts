@@ -1,5 +1,6 @@
 import {
   Controller,
+  HttpStatus,
   Get,
   Headers,
   Param,
@@ -8,14 +9,23 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiHeader,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
+import { ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CurrentMembership, MembershipGuard } from '../organizations/membership.guard';
 import { listAppointmentsSchema, type ListAppointmentsQuery } from './booking.schemas';
+import { calendarSchema } from './booking.responses';
 import { CalendarService, type CalendarResponse } from './calendar.service';
 
 const locationIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Location') });
@@ -37,6 +47,8 @@ export class CalendarController {
   @ApiQuery({ name: 'to', example: '2026-11-02' })
   @ApiQuery({ name: 'staffId', required: false })
   @ApiHeader({ name: 'If-None-Match', required: false })
+  @ApiResponse({ status: HttpStatus.NOT_MODIFIED, description: 'Nothing visible has changed' })
+  @ApiZodResponse(calendarSchema)
   async get(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,

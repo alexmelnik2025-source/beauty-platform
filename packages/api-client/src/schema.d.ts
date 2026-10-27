@@ -1432,6 +1432,165 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Appointment: {
+            id: string;
+            locationId: string;
+            /** @enum {string} */
+            status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+            /**
+             * @description online = booked by the client, manual = by the salon
+             * @enum {string}
+             */
+            source: "online" | "manual";
+            start: string;
+            end: string;
+            /** @description end plus the cleanup time of the service */
+            blockedUntil: string;
+            /** @description Location-local date, YYYY-MM-DD */
+            date: string;
+            /** @description Location-local start time, HH:MM */
+            time: string;
+            staff: {
+                id: string;
+                displayName: string;
+            };
+            service: {
+                id: string;
+                name: string;
+            };
+            customer: {
+                id: string;
+                name: string;
+                /** @description null when the caller may not see client contacts */
+                phone: string | null;
+                /** @description null when the caller may not see client contacts */
+                email: string | null;
+            } | null;
+            /** @description 1 PLN = 100; null when a staff member may not see prices */
+            priceGrosze: number | null;
+            /** @description The client chose this staff member themselves (not "any staff member") */
+            staffChosenByClient: boolean;
+            /** @description No completed visit of this client before this appointment */
+            firstVisit: boolean;
+            durationMinutes: number;
+            bufferMinutes: number;
+            note: string | null;
+            holdExpiresAt: string | null;
+            cancelledAt: string | null;
+            /** @enum {string|null} */
+            cancelledBy: "customer" | "salon" | null;
+            cancelReason: string | null;
+            version: number;
+            createdAt: string;
+        };
+        AppointmentDetail: {
+            id: string;
+            locationId: string;
+            /** @enum {string} */
+            status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+            /**
+             * @description online = booked by the client, manual = by the salon
+             * @enum {string}
+             */
+            source: "online" | "manual";
+            start: string;
+            end: string;
+            /** @description end plus the cleanup time of the service */
+            blockedUntil: string;
+            /** @description Location-local date, YYYY-MM-DD */
+            date: string;
+            /** @description Location-local start time, HH:MM */
+            time: string;
+            staff: {
+                id: string;
+                displayName: string;
+            };
+            service: {
+                id: string;
+                name: string;
+            };
+            customer: {
+                id: string;
+                name: string;
+                /** @description null when the caller may not see client contacts */
+                phone: string | null;
+                /** @description null when the caller may not see client contacts */
+                email: string | null;
+            } | null;
+            /** @description 1 PLN = 100; null when a staff member may not see prices */
+            priceGrosze: number | null;
+            /** @description The client chose this staff member themselves (not "any staff member") */
+            staffChosenByClient: boolean;
+            /** @description No completed visit of this client before this appointment */
+            firstVisit: boolean;
+            durationMinutes: number;
+            bufferMinutes: number;
+            note: string | null;
+            holdExpiresAt: string | null;
+            cancelledAt: string | null;
+            /** @enum {string|null} */
+            cancelledBy: "customer" | "salon" | null;
+            cancelReason: string | null;
+            version: number;
+            createdAt: string;
+            history: {
+                type: string;
+                actor: string;
+                at: string;
+                data: unknown;
+            }[];
+        };
+        AppointmentList: {
+            id: string;
+            locationId: string;
+            /** @enum {string} */
+            status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+            /**
+             * @description online = booked by the client, manual = by the salon
+             * @enum {string}
+             */
+            source: "online" | "manual";
+            start: string;
+            end: string;
+            /** @description end plus the cleanup time of the service */
+            blockedUntil: string;
+            /** @description Location-local date, YYYY-MM-DD */
+            date: string;
+            /** @description Location-local start time, HH:MM */
+            time: string;
+            staff: {
+                id: string;
+                displayName: string;
+            };
+            service: {
+                id: string;
+                name: string;
+            };
+            customer: {
+                id: string;
+                name: string;
+                /** @description null when the caller may not see client contacts */
+                phone: string | null;
+                /** @description null when the caller may not see client contacts */
+                email: string | null;
+            } | null;
+            /** @description 1 PLN = 100; null when a staff member may not see prices */
+            priceGrosze: number | null;
+            /** @description The client chose this staff member themselves (not "any staff member") */
+            staffChosenByClient: boolean;
+            /** @description No completed visit of this client before this appointment */
+            firstVisit: boolean;
+            durationMinutes: number;
+            bufferMinutes: number;
+            note: string | null;
+            holdExpiresAt: string | null;
+            cancelledAt: string | null;
+            /** @enum {string|null} */
+            cancelledBy: "customer" | "salon" | null;
+            cancelReason: string | null;
+            version: number;
+            createdAt: string;
+        }[];
         Availability: {
             timezone: string;
             serviceId: string;
@@ -1486,6 +1645,102 @@ export interface components {
             manageToken: string;
             /** @description True when the client was also signed in to "My visits" */
             signedIn: boolean;
+        };
+        Calendar: {
+            location: {
+                id: string;
+                name: string;
+                timezone: string;
+                slotStepMinutes: number;
+            };
+            from: string;
+            to: string;
+            staff: {
+                id: string;
+                displayName: string;
+                /** @description Working hours per local date (special days already applied). Empty = day off */
+                days: {
+                    date: string;
+                    intervals: {
+                        start: string;
+                        end: string;
+                    }[];
+                }[];
+            }[];
+            timeOff: {
+                id: string;
+                staffId: string;
+                start: string;
+                end: string;
+                note: string | null;
+            }[];
+            appointments: {
+                id: string;
+                locationId: string;
+                /** @enum {string} */
+                status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+                /**
+                 * @description online = booked by the client, manual = by the salon
+                 * @enum {string}
+                 */
+                source: "online" | "manual";
+                start: string;
+                end: string;
+                /** @description end plus the cleanup time of the service */
+                blockedUntil: string;
+                /** @description Location-local date, YYYY-MM-DD */
+                date: string;
+                /** @description Location-local start time, HH:MM */
+                time: string;
+                staff: {
+                    id: string;
+                    displayName: string;
+                };
+                service: {
+                    id: string;
+                    name: string;
+                };
+                customer: {
+                    id: string;
+                    name: string;
+                    /** @description null when the caller may not see client contacts */
+                    phone: string | null;
+                    /** @description null when the caller may not see client contacts */
+                    email: string | null;
+                } | null;
+                /** @description 1 PLN = 100; null when a staff member may not see prices */
+                priceGrosze: number | null;
+                /** @description The client chose this staff member themselves (not "any staff member") */
+                staffChosenByClient: boolean;
+                /** @description No completed visit of this client before this appointment */
+                firstVisit: boolean;
+                durationMinutes: number;
+                bufferMinutes: number;
+                note: string | null;
+                holdExpiresAt: string | null;
+                cancelledAt: string | null;
+                /** @enum {string|null} */
+                cancelledBy: "customer" | "salon" | null;
+                cancelReason: string | null;
+                version: number;
+                createdAt: string;
+            }[];
+            blocks: {
+                id: string;
+                locationId: string;
+                /** @description null = the whole location */
+                staffId: string | null;
+                start: string;
+                end: string;
+                /** @description Location-local start date, YYYY-MM-DD */
+                date: string;
+                /** @description Location-local start time, HH:MM */
+                time: string;
+                reason: string | null;
+                version: number;
+                deleted: boolean;
+                updatedAt: string;
+            }[];
         };
         ClientAppointment: {
             id: string;
@@ -1592,6 +1847,63 @@ export interface components {
             /** @enum {string} */
             channel: "email" | "sms";
         };
+        Customer: {
+            id: string;
+            name: string;
+            /** @description null when the caller may not see client contacts */
+            phone: string | null;
+            /** @description null when the caller may not see client contacts */
+            email: string | null;
+            /** @enum {string} */
+            locale: "pl" | "uk" | "ru" | "en";
+            /** @description null when the caller may not see notes and tags */
+            note: string | null;
+            tags: string[] | null;
+            version: number;
+            createdAt: string;
+        };
+        CustomerDetail: {
+            id: string;
+            name: string;
+            /** @description null when the caller may not see client contacts */
+            phone: string | null;
+            /** @description null when the caller may not see client contacts */
+            email: string | null;
+            /** @enum {string} */
+            locale: "pl" | "uk" | "ru" | "en";
+            /** @description null when the caller may not see notes and tags */
+            note: string | null;
+            tags: string[] | null;
+            version: number;
+            createdAt: string;
+            /** @description null for staff members */
+            marketingConsent: boolean | null;
+            /** @description Staff without viewClientHistory get only their own appointments with this client */
+            visits: {
+                id: string;
+                locationId: string;
+                start: string;
+                /** @enum {string} */
+                status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+                serviceName: string;
+                staffName: string;
+            }[];
+        };
+        CustomerList: {
+            id: string;
+            name: string;
+            /** @description null when the caller may not see client contacts */
+            phone: string | null;
+            /** @description null when the caller may not see client contacts */
+            email: string | null;
+            /** @enum {string} */
+            locale: "pl" | "uk" | "ru" | "en";
+            /** @description null when the caller may not see notes and tags */
+            note: string | null;
+            tags: string[] | null;
+            version: number;
+            createdAt: string;
+        }[];
         /** @description A slot kept for the client for 10 minutes */
         Hold: {
             holdId: string;
@@ -1903,6 +2215,38 @@ export interface components {
             /** @description /v1/public/photos/<id>; null when there is none */
             photoUrl: string | null;
             createdAt: string;
+            updatedAt: string;
+        }[];
+        TimeBlock: {
+            id: string;
+            locationId: string;
+            /** @description null = the whole location */
+            staffId: string | null;
+            start: string;
+            end: string;
+            /** @description Location-local start date, YYYY-MM-DD */
+            date: string;
+            /** @description Location-local start time, HH:MM */
+            time: string;
+            reason: string | null;
+            version: number;
+            deleted: boolean;
+            updatedAt: string;
+        };
+        TimeBlockList: {
+            id: string;
+            locationId: string;
+            /** @description null = the whole location */
+            staffId: string | null;
+            start: string;
+            end: string;
+            /** @description Location-local start date, YYYY-MM-DD */
+            date: string;
+            /** @description Location-local start time, HH:MM */
+            time: string;
+            reason: string | null;
+            version: number;
+            deleted: boolean;
             updatedAt: string;
         }[];
         TimeOff: {
@@ -3760,7 +4104,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AppointmentList"];
+                };
             };
         };
     };
@@ -3805,7 +4151,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
             };
         };
     };
@@ -3825,7 +4173,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
             };
         };
     };
@@ -3857,7 +4207,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
             };
         };
     };
@@ -3884,7 +4236,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
             };
         };
     };
@@ -3912,7 +4266,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
             };
         };
     };
@@ -3932,7 +4288,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerList"];
+                };
             };
         };
     };
@@ -3966,7 +4324,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerDetail"];
+                };
             };
         };
     };
@@ -3985,7 +4345,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerDetail"];
+                };
             };
         };
     };
@@ -4017,7 +4379,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerDetail"];
+                };
             };
         };
     };
@@ -4040,7 +4404,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TimeBlockList"];
+                };
             };
         };
     };
@@ -4070,7 +4436,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TimeBlock"];
+                };
             };
         };
     };
@@ -4122,7 +4490,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TimeBlock"];
+                };
             };
         };
     };
@@ -4144,6 +4514,15 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Calendar"];
+                };
+            };
+            /** @description Nothing visible has changed */
+            304: {
                 headers: {
                     [name: string]: unknown;
                 };

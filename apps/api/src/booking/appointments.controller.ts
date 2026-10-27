@@ -15,7 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { Idempotent } from '../common/idempotency.interceptor';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
@@ -28,6 +28,12 @@ import {
   type AppointmentDetailResponse,
   type AppointmentResponse,
 } from './appointments.service';
+import {
+  appointmentDetailSchema,
+  appointmentListSchema,
+  customerDetailSchema,
+  customerListSchema,
+} from './booking.responses';
 import {
   cancelSchema,
   createAppointmentSchema,
@@ -69,6 +75,7 @@ export class AppointmentsController {
   @ApiQuery({ name: 'from', example: '2026-11-02' })
   @ApiQuery({ name: 'to', example: '2026-11-08' })
   @ApiQuery({ name: 'staffId', required: false })
+  @ApiZodResponse(appointmentListSchema)
   list(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -86,6 +93,7 @@ export class AppointmentsController {
       'start: ISO instant on a 5-minute mark. Outside working hours → 409 OUTSIDE_WORKING_HOURS unless allowOutsideHours=true. Never over another booking.',
   })
   @ApiZodBody(createAppointmentSchema)
+  @ApiZodResponse(appointmentDetailSchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -97,6 +105,7 @@ export class AppointmentsController {
 
   @Get(':appointmentId')
   @ApiOperation({ summary: 'One appointment with its history' })
+  @ApiZodResponse(appointmentDetailSchema)
   get(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -111,6 +120,7 @@ export class AppointmentsController {
   @Idempotent()
   @ApiOperation({ summary: 'Move to another time or staff member. Send the version you read' })
   @ApiZodBody(rescheduleSchema)
+  @ApiZodResponse(appointmentDetailSchema)
   reschedule(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -125,6 +135,7 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancel with a reason; the client gets an email' })
   @ApiZodBody(cancelSchema)
+  @ApiZodResponse(appointmentDetailSchema)
   cancel(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -139,6 +150,7 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark "came" (completed) or "did not come" (no_show)' })
   @ApiZodBody(setStatusSchema)
+  @ApiZodResponse(appointmentDetailSchema)
   setStatus(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -162,6 +174,7 @@ export class CustomersController {
   @ApiOperation({ summary: 'Clients (search by name, phone or email)' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
     @Query(new ZodValidationPipe(listCustomersSchema)) query: ListCustomersQuery,
@@ -177,6 +190,7 @@ export class CustomersController {
       '409 CUSTOMER_EMAIL_EXISTS / CUSTOMER_PHONE_EXISTS with the existing client id in details; send allowDuplicatePhone=true to add anyway.',
   })
   @ApiZodBody(createCustomerSchema)
+  @ApiZodResponse(customerDetailSchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -191,6 +205,7 @@ export class CustomersController {
     description:
       'Staff members: clients they have (had) an appointment with; contacts, history and notes depend on their permissions.',
   })
+  @ApiZodResponse(customerDetailSchema)
   get(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -205,6 +220,7 @@ export class CustomersController {
     description: 'Staff members with editClientNotes may change only note and tags.',
   })
   @ApiZodBody(updateCustomerSchema)
+  @ApiZodResponse(customerDetailSchema)
   update(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,

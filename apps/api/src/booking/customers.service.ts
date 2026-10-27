@@ -9,34 +9,9 @@ import type {
   ListCustomersQuery,
   UpdateCustomerInput,
 } from './booking.schemas';
+import type { CustomerDetailResponse, CustomerResponse } from './booking.responses';
 
-export interface CustomerResponse {
-  id: string;
-  name: string;
-  /** null when the caller may not see client contacts. */
-  phone: string | null;
-  email: string | null;
-  locale: string;
-  /** null when the caller may not see notes and tags. */
-  note: string | null;
-  tags: string[] | null;
-  version: number;
-  createdAt: string;
-}
-
-export interface CustomerDetailResponse extends CustomerResponse {
-  /** null for staff members. */
-  marketingConsent: boolean | null;
-  /** Staff without viewClientHistory get only their own appointments with this client. */
-  visits: {
-    id: string;
-    locationId: string;
-    start: string;
-    status: string;
-    serviceName: string;
-    staffName: string;
-  }[];
-}
+export type { CustomerDetailResponse, CustomerResponse } from './booking.responses';
 
 const clientExists = (code: string, message: string, existingId: string): AppException =>
   new AppException(HttpStatus.CONFLICT, code, message, [

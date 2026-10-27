@@ -1,8 +1,8 @@
 /**
- * Shapes of the API responses the web app uses (see /v1/docs). Appointments, calendar, clients and
- * permissions are still written by hand; everything else comes from @beauty/api-client.
+ * Shapes of the API responses the web app uses (see /v1/docs). Permissions are still written by
+ * hand; everything else comes from @beauty/api-client.
  */
-import type { Role } from '@beauty/api-client';
+import type { AppointmentStatus, Role } from '@beauty/api-client';
 
 /** Languages spoken with clients (be = Belarusian). Not the interface languages. */
 export const SPOKEN = ['pl', 'uk', 'ru', 'be', 'en'] as const;
@@ -14,65 +14,7 @@ export const APPOINTMENT_STATUSES = [
   'expired',
   'completed',
   'no_show',
-] as const;
-export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
-
-export interface Appointment {
-  id: string;
-  status: AppointmentStatus;
-  source: 'online' | 'manual';
-  start: string;
-  end: string;
-  blockedUntil: string;
-  date: string;
-  time: string;
-  staff: { id: string; displayName: string };
-  service: { id: string; name: string };
-  customer: { id: string; name: string; phone: string | null; email: string | null } | null;
-  priceGrosze: number | null;
-  staffChosenByClient: boolean;
-  firstVisit: boolean;
-  durationMinutes: number;
-  note: string | null;
-  holdExpiresAt: string | null;
-  cancelReason: string | null;
-  version: number;
-}
-
-export interface AppointmentDetail extends Appointment {
-  history: { type: string; actor: string; at: string; data: unknown }[];
-}
-
-export interface TimeBlock {
-  id: string;
-  staffId: string | null;
-  start: string;
-  end: string;
-  reason: string | null;
-  version: number;
-  deleted: boolean;
-}
-
-export interface Calendar {
-  location: { id: string; name: string; timezone: string; slotStepMinutes: number };
-  from: string;
-  to: string;
-  staff: {
-    id: string;
-    displayName: string;
-    days: { date: string; intervals: { start: string; end: string }[] }[];
-  }[];
-  timeOff: { id: string; staffId: string; start: string; end: string; note: string | null }[];
-  appointments: Appointment[];
-  blocks: TimeBlock[];
-}
-
-export interface Customer {
-  id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-}
+] as const satisfies readonly AppointmentStatus[];
 
 export interface MyPermissions {
   me: { role: Role; permissions: Record<string, boolean> };
@@ -80,9 +22,16 @@ export interface MyPermissions {
 
 /**
  * Generated from the API's OpenAPI document, so these can never drift from the server:
- * what clients see (booking page, manage link, "My visits") and the salon account and catalogue.
+ * what clients see (booking page, manage link, "My visits"), the salon account and catalogue,
+ * appointments, client cards, time blocks and the calendar.
  */
 export type {
+  Appointment,
+  AppointmentDetail,
+  AppointmentStatus,
+  Calendar,
+  Customer,
+  CustomerDetail,
   ClientAppointment,
   ClientPerson,
   Hold,
@@ -94,4 +43,5 @@ export type {
   Service,
   Slot,
   Staff,
+  TimeBlock,
 } from '@beauty/api-client';

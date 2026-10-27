@@ -20,46 +20,13 @@ import type {
   RescheduleInput,
   SetStatusInput,
 } from './booking.schemas';
+import type { AppointmentDetailResponse, AppointmentResponse } from './booking.responses';
 import { OutboxService } from './outbox.service';
 
 const MINUTE_MS = 60_000;
 const REMINDER_BEFORE_MS = 24 * 60 * MINUTE_MS;
 
-export interface AppointmentResponse {
-  id: string;
-  locationId: string;
-  status: Appointment['status'];
-  source: Appointment['source'];
-  start: string;
-  end: string;
-  blockedUntil: string;
-  /** Location-local date and time. */
-  date: string;
-  time: string;
-  staff: { id: string; displayName: string };
-  service: { id: string; name: string };
-  /** phone and email are null when the caller may not see client contacts. */
-  customer: { id: string; name: string; phone: string | null; email: string | null } | null;
-  /** null when a staff member may not see prices. */
-  priceGrosze: number | null;
-  /** The client chose this staff member themselves (not "any staff member"). */
-  staffChosenByClient: boolean;
-  /** No completed visit of this client before this appointment. */
-  firstVisit: boolean;
-  durationMinutes: number;
-  bufferMinutes: number;
-  note: string | null;
-  holdExpiresAt: string | null;
-  cancelledAt: string | null;
-  cancelledBy: Appointment['cancelledBy'];
-  cancelReason: string | null;
-  version: number;
-  createdAt: string;
-}
-
-export interface AppointmentDetailResponse extends AppointmentResponse {
-  history: { type: string; actor: string; at: string; data: unknown }[];
-}
+export type { AppointmentDetailResponse, AppointmentResponse } from './booking.responses';
 
 type Loaded = Appointment & {
   location: Location;
@@ -531,11 +498,6 @@ export class AppointmentsService {
   }
 }
 
-function toHistory(e: AppointmentEvent): {
-  type: string;
-  actor: string;
-  at: string;
-  data: unknown;
-} {
+function toHistory(e: AppointmentEvent): AppointmentDetailResponse['history'][number] {
   return { type: e.type, actor: e.actor, at: e.createdAt.toISOString(), data: e.data };
 }

@@ -7,6 +7,7 @@ import { LocationAccessService } from '../organizations/location-access.service'
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, instantToLocal, zonedToInstant } from '../scheduling/time';
 import { lockLocation, lockStaff, versionConflict } from './appointment-writer';
+import type { TimeBlockResponse } from './booking.responses';
 import { listAppointmentsSchema } from './booking.schemas';
 
 const MINUTE_MS = 60_000;
@@ -48,21 +49,7 @@ export const updateBlockSchema = z
   .refine(blockRange, 'end must be after start, at most 31 days later');
 export type UpdateBlockInput = z.infer<typeof updateBlockSchema>;
 
-export interface TimeBlockResponse {
-  id: string;
-  locationId: string;
-  /** null = the whole location. */
-  staffId: string | null;
-  start: string;
-  end: string;
-  /** Location-local start. */
-  date: string;
-  time: string;
-  reason: string | null;
-  version: number;
-  deleted: boolean;
-  updatedAt: string;
-}
+export type { TimeBlockResponse } from './booking.responses';
 
 const appointmentsInTheWay = (ids: string[]): AppException =>
   new AppException(

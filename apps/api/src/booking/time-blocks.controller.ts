@@ -16,10 +16,11 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { Idempotent } from '../common/idempotency.interceptor';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CurrentMembership, MembershipGuard } from '../organizations/membership.guard';
+import { timeBlockListSchema, timeBlockSchema } from './booking.responses';
 import {
   createBlockSchema,
   listBlocksSchema,
@@ -45,6 +46,7 @@ export class TimeBlocksController {
   @ApiQuery({ name: 'from', example: '2026-11-02' })
   @ApiQuery({ name: 'to', example: '2026-11-08' })
   @ApiQuery({ name: 'staffId', required: false })
+  @ApiZodResponse(timeBlockListSchema)
   list(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -62,6 +64,7 @@ export class TimeBlocksController {
       'Refused with 409 APPOINTMENTS_IN_THE_WAY when live appointments overlap (their ids are in details). Staff members need the blockOwnTime permission and may block only their own time.',
   })
   @ApiZodBody(createBlockSchema)
+  @ApiZodResponse(timeBlockSchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -74,6 +77,7 @@ export class TimeBlocksController {
   @Patch(':blockId')
   @ApiOperation({ summary: 'Move, resize or re-assign a block. Send the version you read' })
   @ApiZodBody(updateBlockSchema)
+  @ApiZodResponse(timeBlockSchema)
   update(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,

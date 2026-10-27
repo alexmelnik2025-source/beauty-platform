@@ -44,6 +44,14 @@ export type Service = Schemas['Service'];
 export type Staff = Schemas['Staff'];
 export type WorkingHours = Schemas['WorkingHours'];
 export type TimeOff = Schemas['TimeOff'];
+/** Salon cabinet: appointments, client cards, time blocks and the calendar. */
+export type Appointment = Schemas['Appointment'];
+export type AppointmentStatus = Appointment['status'];
+export type AppointmentDetail = Schemas['AppointmentDetail'];
+export type Customer = Schemas['Customer'];
+export type CustomerDetail = Schemas['CustomerDetail'];
+export type TimeBlock = Schemas['TimeBlock'];
+export type Calendar = Schemas['Calendar'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

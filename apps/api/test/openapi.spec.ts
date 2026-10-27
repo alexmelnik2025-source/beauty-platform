@@ -388,3 +388,169 @@ describe('salon account and catalogue responses match the documented shapes exac
     expectShape('Availability', free.body);
   });
 });
+
+describe('appointments, clients, time blocks and calendar match the documented shapes exactly', () => {
+  beforeEach(async () => {
+    await resetState(ctx);
+  });
+
+  it('book for a client, move, mark, cancel; client cards; blocks; calendar', async () => {
+    const owner = await signUp(ctx, 'owner@example.com');
+    const org = await createOrgWithLocation(ctx, owner, 'Barber One');
+    const base = `/v1/organizations/${org.orgId}/locations/${org.locationId}`;
+    const service = await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(owner.auth)
+      .send({ name: 'Strzyżenie', durationMinutes: 45, bufferMinutes: 15, priceGrosze: 8000 })
+      .expect(201);
+    const staff = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Kasia', serviceIds: [service.body.id] })
+      .expect(201);
+    await ctx
+      .http()
+      .put(`${base}/staff/${staff.body.id}/working-hours`)
+      .set(owner.auth)
+      .send({
+        days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+          weekday,
+          intervals: [{ start: '09:00', end: '18:00' }],
+        })),
+      })
+      .expect(200);
+    const day = addDays(localToday(Date.now(), TZ), 3);
+    const at = (minutes: number) => new Date(zonedToInstant(day, minutes, TZ)).toISOString();
+
+    const customers = `/v1/organizations/${org.orgId}/customers`;
+    const customer = await ctx
+      .http()
+      .post(customers)
+      .set(owner.auth)
+      .send({ name: 'Anna Kowalska', phone: '+48600100200', email: ANNA, tags: ['VIP'] })
+      .expect(201);
+    expectShape('CustomerDetail', customer.body);
+    expectShape('CustomerList', (await ctx.http().get(customers).set(owner.auth).expect(200)).body);
+    const edited = await ctx
+      .http()
+      .patch(`${customers}/${customer.body.id}`)
+      .set(owner.auth)
+      .send({ version: customer.body.version, note: 'Krótko po bokach' })
+      .expect(200);
+    expectShape('CustomerDetail', edited.body);
+
+    const booked = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId: service.body.id,
+        staffId: staff.body.id,
+        start: at(10 * 60),
+        customerId: customer.body.id,
+        note: 'Telefon',
+      })
+      .expect(201);
+    expectShape('AppointmentDetail', booked.body);
+    expect(booked.body.history.length).toBeGreaterThan(0);
+    const walkIn = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId: service.body.id,
+        staffId: staff.body.id,
+        start: at(14 * 60),
+        customer: { name: 'Jan Nowak', phone: '+48600100300' },
+      })
+      .expect(201);
+    expectShape('AppointmentDetail', walkIn.body);
+
+    const moved = await ctx
+      .http()
+      .post(`${base}/appointments/${booked.body.id}/reschedule`)
+      .set(owner.auth)
+      .send({ version: booked.body.version, start: at(11 * 60) })
+      .expect(200);
+    expectShape('AppointmentDetail', moved.body);
+    const cancelled = await ctx
+      .http()
+      .post(`${base}/appointments/${walkIn.body.id}/cancel`)
+      .set(owner.auth)
+      .send({ version: walkIn.body.version, reason: 'Klient zadzwonił' })
+      .expect(200);
+    expectShape('AppointmentDetail', cancelled.body);
+    expect(cancelled.body.cancelledBy).toBe('salon');
+
+    // "Came" can only be marked once the visit has started: move it into the past directly.
+    const hourAgo = new Date(Date.now() - 60 * 60_000);
+    await ctx.prisma.appointment.update({
+      where: { id: booked.body.id },
+      data: {
+        startAt: hourAgo,
+        endAt: new Date(hourAgo.getTime() + 45 * 60_000),
+        blockedUntil: new Date(hourAgo.getTime() + 60 * 60_000),
+      },
+    });
+    const came = await ctx
+      .http()
+      .post(`${base}/appointments/${booked.body.id}/status`)
+      .set(owner.auth)
+      .send({ version: moved.body.version, status: 'completed' })
+      .expect(200);
+    expectShape('AppointmentDetail', came.body);
+    expectShape(
+      'AppointmentDetail',
+      (await ctx.http().get(`${base}/appointments/${booked.body.id}`).set(owner.auth).expect(200))
+        .body,
+    );
+    expectShape(
+      'CustomerDetail',
+      (await ctx.http().get(`${customers}/${customer.body.id}`).set(owner.auth).expect(200)).body,
+    );
+
+    const block = await ctx
+      .http()
+      .post(`${base}/time-blocks`)
+      .set(owner.auth)
+      .send({ staffId: null, start: at(16 * 60), end: at(17 * 60), reason: 'Szkolenie' })
+      .expect(201);
+    expectShape('TimeBlock', block.body);
+    const blockMoved = await ctx
+      .http()
+      .patch(`${base}/time-blocks/${block.body.id}`)
+      .set(owner.auth)
+      .send({ version: block.body.version, staffId: staff.body.id })
+      .expect(200);
+    expectShape('TimeBlock', blockMoved.body);
+
+    const range = { from: day, to: day };
+    const list = await ctx
+      .http()
+      .get(`${base}/appointments`)
+      .set(owner.auth)
+      .query(range)
+      .expect(200);
+    expectShape('AppointmentList', list.body);
+    expect(list.body.length).toBeGreaterThan(0);
+    const blocks = await ctx
+      .http()
+      .get(`${base}/time-blocks`)
+      .set(owner.auth)
+      .query(range)
+      .expect(200);
+    expectShape('TimeBlockList', blocks.body);
+    expect(blocks.body).toHaveLength(1);
+    const calendar = await ctx
+      .http()
+      .get(`${base}/calendar`)
+      .set(owner.auth)
+      .query(range)
+      .expect(200);
+    expectShape('Calendar', calendar.body);
+    expect(calendar.body.appointments.length).toBeGreaterThan(0);
+    expect(calendar.body.blocks).toHaveLength(1);
+  });
+});

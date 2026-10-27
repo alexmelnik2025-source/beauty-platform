@@ -4,26 +4,12 @@ import type { MembershipContext } from '../common/request-context';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, datesBetween, formatClock, isoWeekday, zonedToInstant } from '../scheduling/time';
-import { AppointmentsService, type AppointmentResponse } from './appointments.service';
+import { AppointmentsService } from './appointments.service';
+import type { CalendarResponse } from './booking.responses';
 import type { ListAppointmentsQuery } from './booking.schemas';
-import { TimeBlocksService, type TimeBlockResponse } from './time-blocks.service';
+import { TimeBlocksService } from './time-blocks.service';
 
-export interface CalendarStaff {
-  id: string;
-  displayName: string;
-  /** Working hours per local date (special days already applied). Empty = day off. */
-  days: { date: string; intervals: { start: string; end: string }[] }[];
-}
-
-export interface CalendarResponse {
-  location: { id: string; name: string; timezone: string; slotStepMinutes: number };
-  from: string;
-  to: string;
-  staff: CalendarStaff[];
-  timeOff: { id: string; staffId: string; start: string; end: string; note: string | null }[];
-  appointments: AppointmentResponse[];
-  blocks: TimeBlockResponse[];
-}
+export type { CalendarResponse, CalendarStaff } from './booking.responses';
 
 /**
  * Everything a calendar screen needs in one request. The response carries an
