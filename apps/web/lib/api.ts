@@ -58,6 +58,8 @@ export function refreshSession(): Promise<boolean> {
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
+  /** A file sent as is (photos): its own type, not JSON. */
+  file?: Blob;
   query?: Record<string, string | number | boolean | undefined>;
   /** Send the access token (default true). */
   auth?: boolean;
@@ -82,14 +84,15 @@ function url(path: string, query?: RequestOptions['query']): string {
 
 async function send(path: string, options: RequestOptions): Promise<Response> {
   const headers: Record<string, string> = { ...options.headers };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.file) headers['Content-Type'] = options.file.type;
+  else if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.auth !== false && accessToken) headers.Authorization = `Bearer ${accessToken}`;
   if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
   try {
     return await fetch(url(path, options.query), {
       method: options.method ?? 'GET',
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.file ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
       credentials: 'same-origin',
     });
   } catch {

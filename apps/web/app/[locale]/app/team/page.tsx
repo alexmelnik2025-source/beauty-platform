@@ -128,7 +128,7 @@ export default function TeamPage() {
                 <li key={s.id}>
                   <button type="button" className="list-row" onClick={() => setOpenStaff(s)}>
                     <span className="avatar" aria-hidden="true">
-                      {initials(s.displayName)}
+                      {s.photoUrl ? <img src={s.photoUrl} alt="" /> : initials(s.displayName)}
                     </span>
                     <span className="grow">
                       <strong>{s.displayName}</strong>
@@ -244,6 +244,7 @@ export default function TeamPage() {
           }}
           onClose={() => setOpenStaff(null)}
           onSaved={done}
+          onPhotoChange={() => void load()}
         />
       ) : null}
       {openMember ? (

@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { PHOTO_ACCEPT, shrinkPhoto, STAFF_PHOTO_SIDE } from '@/lib/photos';
 import { LanguagePicker, type Spoken } from '../Languages';
-import { ErrorBox, Sheet, Spinner } from '../ui';
+import { ErrorBox, initials, Sheet, Spinner } from '../ui';
 
 export interface StaffRow {
   id: string;
@@ -14,6 +15,8 @@ export interface StaffRow {
   active: boolean;
   serviceIds: string[];
   userId: string | null;
+  /** /v1/public/photos/<id>; null when there is no photo. */
+  photoUrl: string | null;
   version: number;
 }
 
@@ -41,6 +44,7 @@ export function StaffSheet({
   onInvite,
   onClose,
   onSaved,
+  onPhotoChange,
 }: {
   base: string;
   staff: StaffRow | null;
@@ -49,6 +53,8 @@ export function StaffSheet({
   onInvite: (staff: StaffRow) => void;
   onClose: () => void;
   onSaved: () => void;
+  /** The photo is saved at once (not with the form); the list behind refreshes. */
+  onPhotoChange: () => void;
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
@@ -65,6 +71,9 @@ export function StaffSheet({
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(staff?.photoUrl ?? null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
 
   const loadSchedule = useCallback(async () => {
     if (!staff) return;
@@ -166,6 +175,38 @@ export function StaffSheet({
     }
   }
 
+  async function setPhoto(file: File | undefined) {
+    if (!staff || !file) return;
+    setPhotoBusy(true);
+    setError('');
+    try {
+      const blob = await shrinkPhoto(file, STAFF_PHOTO_SIDE);
+      const saved = await api<{ url: string }>(`${base}/staff/${staff.id}/photo`, {
+        method: 'PUT',
+        file: blob,
+      });
+      setPhotoUrl(saved.url);
+      onPhotoChange();
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setPhotoBusy(false);
+      if (photoInput.current) photoInput.current.value = '';
+    }
+  }
+
+  async function removePhoto() {
+    if (!staff) return;
+    setError('');
+    try {
+      await api(`${base}/staff/${staff.id}/photo`, { method: 'DELETE' });
+      setPhotoUrl(null);
+      onPhotoChange();
+    } catch (err) {
+      setError(errorText(t, err));
+    }
+  }
+
   const setDay = (day: number, intervals: Interval[]) =>
     setWeek((w) => w && w.map((d, i) => (i === day ? intervals : d)));
 
@@ -183,6 +224,34 @@ export function StaffSheet({
       <form className="form" onSubmit={save}>
         <ErrorBox>{error}</ErrorBox>
         {message ? <p className="note">{message}</p> : null}
+        {staff ? (
+          <div className="staff-photo">
+            <span className="avatar avatar--large">
+              {photoUrl ? (
+                <img src={photoUrl} alt={t.photos.staffAlt.replace('{name}', staff.displayName)} />
+              ) : (
+                <span aria-hidden="true">{initials(staff.displayName)}</span>
+              )}
+            </span>
+            <label className={`btn btn--quiet btn--small${photoBusy ? ' is-disabled' : ''}`}>
+              {photoBusy ? t.photos.uploading : photoUrl ? t.photos.change : t.photos.staffAdd}
+              <input
+                ref={photoInput}
+                type="file"
+                accept={PHOTO_ACCEPT}
+                className="visually-hidden"
+                disabled={photoBusy}
+                aria-label={t.photos.staffAdd}
+                onChange={(e) => void setPhoto(e.target.files?.[0])}
+              />
+            </label>
+            {photoUrl ? (
+              <button type="button" className="link-btn small" onClick={() => void removePhoto()}>
+                {t.photos.staffRemove}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <label className="field">
           <span>{t.team.displayName}</span>
           <input

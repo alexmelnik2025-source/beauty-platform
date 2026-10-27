@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
 import { LanguagePicker, type Spoken } from '@/components/Languages';
+import { SalonPhotos } from '@/components/SalonPhotos';
 import { ShareBooking } from '@/components/ShareBooking';
 import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Spinner } from '@/components/ui';
@@ -216,6 +217,7 @@ export default function SettingsPage() {
             onChange={(languages) => setForm({ ...form, languages })}
           />
         </section>
+        <SalonPhotos base={url} />
         <button className="btn" disabled={busy}>
           {t.common.save}
         </button>

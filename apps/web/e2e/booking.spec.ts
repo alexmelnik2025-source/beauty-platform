@@ -3,6 +3,7 @@ import {
   test,
   type APIRequestContext,
   type APIResponse,
+  type Locator,
   type Page,
 } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -57,6 +58,41 @@ async function signIn(page: Page, email: string) {
   await page.getByRole('button', { name: 'Zaloguj się' }).click();
   await page.waitForURL(/\/pl\/app\/calendar/);
 }
+
+/**
+ * A picture like one from a phone camera, drawn in the browser: `width`×`height`
+ * pixels, as PNG or JPEG, for the file pickers of the cabinet.
+ */
+async function testPhoto(page: Page, name: string, width: number, height: number) {
+  const type = name.endsWith('.png') ? 'image/png' : 'image/jpeg';
+  const base64 = await page.evaluate(
+    ({ width, height, type }) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#1d1d1b');
+      gradient.addColorStop(1, '#c8a46a');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${Math.round(height / 6)}px sans-serif`;
+      ctx.fillText('GESTALT', width / 10, height / 2);
+      return canvas.toDataURL(type, 0.95).split(',')[1]!;
+    },
+    { width, height, type },
+  );
+  return { name, mimeType: type, buffer: Buffer.from(base64, 'base64') };
+}
+
+/** Pixel size of a shown picture once it has loaded. */
+const naturalSize = (img: Locator) =>
+  img.evaluate(async (el) => {
+    const image = el as HTMLImageElement;
+    await image.decode();
+    return [image.naturalWidth, image.naturalHeight];
+  });
 
 const day = (offset: number) =>
   new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
@@ -323,7 +359,26 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     ownerPage.getByRole('dialog').getByRole('button', { name: 'EN angielski' }),
   ).toHaveAttribute('aria-pressed', 'false');
   await shot(ownerPage, '17-owner-staff-hours');
+  // Ola's photo: a tall phone picture is made smaller in the browser, saved at once.
+  const staffDialog = ownerPage.getByRole('dialog');
+  await staffDialog
+    .getByLabel('Dodaj zdjęcie')
+    .setInputFiles(await testPhoto(ownerPage, 'ola.png', 1200, 1600));
+  const olaPhoto = staffDialog.getByRole('img', { name: 'Zdjęcie: Ola' });
+  await expect(olaPhoto).toBeVisible();
+  expect(await naturalSize(olaPhoto)).toEqual([600, 800]);
+  await expect(staffDialog.getByRole('button', { name: 'Usuń zdjęcie' })).toBeVisible();
+  await shot(ownerPage, '33-owner-staff-photo');
   await ownerPage.keyboard.press('Escape');
+  await expect(ownerPage.getByRole('button', { name: /Ola/ }).locator('img')).toBeVisible();
+  const olaRow = (
+    await json<{ id: string; photoUrl: string | null }[]>(
+      await request.get(`${base}/staff`, { headers: owner }),
+    )
+  ).find((s) => s.id === staffIds[1]);
+  expect(olaRow?.photoUrl).toMatch(/^\/v1\/public\/photos\/[0-9a-f-]{36}$/);
+  const olaFile = await request.get(olaRow!.photoUrl!);
+  expect(olaFile.headers()['content-type']).toBe('image/jpeg');
   await ownerPage.getByRole('button', { name: 'Dostęp i uprawnienia' }).click();
   await expect(ownerPage.getByText('Kasia Nowak')).toBeVisible();
   await ownerPage.getByRole('button', { name: /Kasia Nowak/ }).click();
@@ -419,6 +474,36 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   expect(savedLocation.languages).toEqual(['pl', 'uk', 'ru', 'be']);
   expect(savedLocation.description).toBe('Barbershop na Woli. Zapraszamy!');
+  // Salon photos: two big pictures, shrunk before upload and saved at once; one removed.
+  await expect(ownerPage.getByText('0 z 10', { exact: true })).toBeVisible();
+  await ownerPage
+    .getByLabel('Dodaj zdjęcia')
+    .setInputFiles([
+      await testPhoto(ownerPage, 'wnetrze.png', 4000, 3000),
+      await testPhoto(ownerPage, 'fotel.jpg', 3000, 4000),
+    ]);
+  await expect(ownerPage.getByText('2 z 10', { exact: true })).toBeVisible();
+  expect(await naturalSize(ownerPage.getByRole('img', { name: 'Zdjęcie salonu 1' }))).toEqual([
+    1600, 1200,
+  ]);
+  expect(await naturalSize(ownerPage.getByRole('img', { name: 'Zdjęcie salonu 2' }))).toEqual([
+    1200, 1600,
+  ]);
+  await ownerPage.getByRole('img', { name: 'Zdjęcie salonu 1' }).scrollIntoViewIfNeeded();
+  await shot(ownerPage, '34-owner-salon-photos');
+  await ownerPage.getByRole('button', { name: 'Usuń zdjęcie 1' }).click();
+  await expect(ownerPage.getByText('1 z 10', { exact: true })).toBeVisible();
+  const salonPhotos = await json<{ url: string; contentType: string; sizeBytes: number }[]>(
+    await request.get(`${base}/photos`, { headers: owner }),
+  );
+  expect(salonPhotos).toHaveLength(1);
+  expect(salonPhotos[0]!.contentType).toBe('image/jpeg');
+  expect(salonPhotos[0]!.sizeBytes).toBeLessThan(3 * 1024 * 1024);
+  // The photos stay after reloading the page.
+  await ownerPage.reload();
+  expect(await naturalSize(ownerPage.getByRole('img', { name: 'Zdjęcie salonu 1' }))).toEqual([
+    1200, 1600,
+  ]);
 
   // The owner's calendar on a phone.
   const ownerPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
