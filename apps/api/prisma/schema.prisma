@@ -329,6 +329,8 @@ model Location {
   onlineBookingEnabled        Boolean  @default(false) @map("online_booking_enabled")
   /// Languages the salon speaks with clients, in the order chosen by the salon.
   languages                   Language[] @default([])
+  /// Shown on the booking page under the salon name: what the salon is about.
+  description                 String?
   /// Optimistic locking: every update must send the version it read.
   version                     Int      @default(1)
   createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)

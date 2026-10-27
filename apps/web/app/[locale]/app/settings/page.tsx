@@ -23,6 +23,7 @@ interface LocationSettings {
   clientCancelDeadlineMinutes: number;
   slotStepMinutes: number;
   languages: Spoken[];
+  description: string | null;
   version: number;
 }
 
@@ -75,6 +76,7 @@ export default function SettingsPage() {
           clientCancelDeadlineMinutes: form.clientCancelDeadlineMinutes,
           slotStepMinutes: form.slotStepMinutes,
           languages: form.languages,
+          description: form.description ?? '',
         },
       });
       setLoc(saved);
@@ -196,6 +198,17 @@ export default function SettingsPage() {
             <span>{t.settings.phone}</span>
             <input type="tel" value={form.phone ?? ''} onChange={text('phone')} />
           </label>
+          <label className="field">
+            <span>{t.profile.description}</span>
+            <textarea
+              rows={4}
+              maxLength={1000}
+              value={form.description ?? ''}
+              onChange={text('description')}
+            />
+            <span className="small muted">{t.profile.descriptionHint}</span>
+          </label>
+          <p className="small muted">{t.profile.hoursHint}</p>
           <LanguagePicker
             title={t.languages.salonTitle}
             hint={t.languages.salonHint}

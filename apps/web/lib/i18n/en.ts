@@ -244,6 +244,17 @@ export const en: Dict = {
     admin: 'Email queue',
     language: 'Language',
   },
+  profile: {
+    map: 'Show on map',
+    hours: 'Opening hours',
+    today: 'today',
+    closed: 'closed',
+    description: 'About the salon',
+    descriptionHint:
+      'A few sentences for clients: what makes you different, how to find you. Shown on the booking page.',
+    hoursHint:
+      'Opening hours on the booking page come from the specialists’ schedules (the “Team” tab).',
+  },
   languages: {
     salonTitle: 'Languages at the salon',
     salonHint: 'Which languages you speak with clients. We show them on the booking page.',

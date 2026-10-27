@@ -92,6 +92,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
         onlineBookingEnabled: true,
         minLeadMinutes: 30,
         languages: ['pl', 'uk', 'ru'],
+        description: 'Barbershop na Woli.\nKawa i parking dla klientów.',
       },
     }),
   );
@@ -167,6 +168,22 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(
     client.getByRole('note', { name: 'Mówimy po: polski, ukraiński, rosyjski' }),
   ).toBeVisible();
+  // Salon profile: description, map link, opening hours from the team's schedules.
+  await expect(client.getByText('Kawa i parking dla klientów.')).toBeVisible();
+  await expect(client.getByRole('link', { name: 'Pokaż na mapie' })).toHaveAttribute(
+    'href',
+    'https://www.google.com/maps/search/?api=1&query=' +
+      encodeURIComponent('ul. Józefa Bema 91, 01-233 Warszawa'),
+  );
+  await expect(client.locator('.opening-hours summary')).toContainText(
+    'Godziny otwarcia · dziś 08:00–21:00',
+  );
+  await client.locator('.opening-hours summary').click();
+  await expect(client.locator('.opening-hours tr')).toHaveCount(7);
+  await expect(client.getByRole('rowheader', { name: 'poniedziałek' })).toBeVisible();
+  await expect(client.locator('.opening-hours tr[data-today] td')).toHaveText('08:00–21:00');
+  await shot(client, '00-client-salon-profile');
+  await client.locator('.opening-hours summary').click();
   await shot(client, '01-client-services');
 
   await client.getByRole('button', { name: /Strzyżenie męskie/ }).click();
@@ -335,6 +352,11 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'aria-pressed',
     'true',
   );
+  // About the salon: shown on the booking page.
+  await expect(ownerPage.getByLabel('O salonie')).toHaveValue(
+    'Barbershop na Woli.\nKawa i parking dla klientów.',
+  );
+  await ownerPage.getByLabel('O salonie').fill('Barbershop na Woli. Zapraszamy!');
   await shot(ownerPage, '21-owner-settings');
   // Short link for Instagram and the booking button for the salon's own site.
   await expect(ownerPage.getByLabel('Krótki link')).toHaveValue(new RegExp(`/s/${location.slug}$`));
@@ -392,10 +414,11 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByLabel('Krótki link')).toBeVisible();
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
-  const savedLocation = await json<{ languages: string[] }>(
+  const savedLocation = await json<{ languages: string[]; description: string | null }>(
     await request.get(base, { headers: owner }),
   );
   expect(savedLocation.languages).toEqual(['pl', 'uk', 'ru', 'be']);
+  expect(savedLocation.description).toBe('Barbershop na Woli. Zapraszamy!');
 
   // The owner's calendar on a phone.
   const ownerPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });

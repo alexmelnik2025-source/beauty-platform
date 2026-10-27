@@ -908,6 +908,53 @@ h3 {
   padding-right: 44px;
 }
 
+/* Booking page: map link, description and opening hours under the salon name (task 6). */
+.salon-profile {
+  display: grid;
+  gap: 6px;
+}
+
+.map-link {
+  justify-self: start;
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.salon-about {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.opening-hours summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.opening-hours table {
+  margin-top: 6px;
+  border-collapse: collapse;
+}
+
+.opening-hours th,
+.opening-hours td {
+  padding: 2px 16px 2px 0;
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+}
+
+.opening-hours th::first-letter {
+  text-transform: uppercase;
+}
+
+.opening-hours tr[data-today] {
+  font-weight: 600;
+}
+
+.opening-hours tr[data-today] th {
+  font-weight: 600;
+}
+
 .salon-name {
   font-family: var(--font-display), var(--font-body);
   font-size: clamp(1.4rem, 6vw, 2rem);

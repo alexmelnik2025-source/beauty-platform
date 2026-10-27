@@ -440,6 +440,132 @@ describe('spoken languages', () => {
   });
 });
 
+describe('salon profile on the booking page', () => {
+  const patch = async (extra: Record<string, unknown>, auth = owner.auth) => {
+    const current = await ctx.http().get(base).set(auth).expect(200);
+    return ctx
+      .http()
+      .patch(base)
+      .set(auth)
+      .send({ version: current.body.version, ...extra });
+  };
+
+  it('keeps the description; an empty text removes it', async () => {
+    const res = await patch({
+      onlineBookingEnabled: true,
+      description: '  Barbershop na Mokotowie. Kawa gratis.  ',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.description).toBe('Barbershop na Mokotowie. Kawa gratis.');
+    const page = await ctx.http().get(`/v1/public/locations/${res.body.slug}`).expect(200);
+    expect(page.body.description).toBe('Barbershop na Mokotowie. Kawa gratis.');
+
+    const cleared = await patch({ description: '   ' });
+    expect(cleared.body.description).toBeNull();
+    const again = await ctx.http().get(`/v1/public/locations/${res.body.slug}`).expect(200);
+    expect(again.body.description).toBeNull();
+  });
+
+  it('rejects a description longer than 1000 characters', async () => {
+    const res = await patch({ description: 'x'.repeat(1001) });
+    expect(res.status).toBe(400);
+    expectError(res.body, 'VALIDATION_ERROR');
+  });
+
+  it('staff cannot change the description', async () => {
+    const member = await signUp(ctx, 'staff@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: member.userId,
+        organizationId: orgId,
+        role: 'staff',
+        locations: { create: [{ locationId }] },
+      },
+    });
+    const res = await patch({ description: 'Hacked' }, member.auth);
+    expect(res.status).toBe(403);
+    const loc = await ctx.http().get(base).set(owner.auth).expect(200);
+    expect(loc.body.description).toBeNull();
+  });
+
+  it('opening hours merge the weekly hours of everyone who takes bookings', async () => {
+    const { serviceId } = await setupStaff([
+      {
+        weekday: 1,
+        intervals: [
+          { start: '09:00', end: '13:00' },
+          { start: '14:00', end: '17:00' },
+        ],
+      },
+      { weekday: 6, intervals: [{ start: '10:00', end: '14:00' }] },
+    ]);
+    const second = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Ola', serviceIds: [serviceId] })
+      .expect(201);
+    await ctx
+      .http()
+      .put(`${base}/staff/${second.body.id}/working-hours`)
+      .set(owner.auth)
+      .send({
+        days: [
+          {
+            weekday: 1,
+            intervals: [
+              { start: '12:00', end: '14:00' },
+              { start: '18:00', end: '20:00' },
+            ],
+          },
+          { weekday: 2, intervals: [{ start: '08:00', end: '16:00' }] },
+        ],
+      })
+      .expect(200);
+    // Not shown to clients (no services), so their hours do not count.
+    const hidden = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Admin' })
+      .expect(201);
+    await ctx
+      .http()
+      .put(`${base}/staff/${hidden.body.id}/working-hours`)
+      .set(owner.auth)
+      .send({ days: [{ weekday: 7, intervals: [{ start: '10:00', end: '12:00' }] }] })
+      .expect(200);
+
+    const { body: loc } = await patch({ onlineBookingEnabled: true });
+    const page = await ctx.http().get(`/v1/public/locations/${loc.slug}`).expect(200);
+    expect(page.body.openingHours).toEqual([
+      {
+        weekday: 1,
+        intervals: [
+          { start: '09:00', end: '17:00' },
+          { start: '18:00', end: '20:00' },
+        ],
+      },
+      { weekday: 2, intervals: [{ start: '08:00', end: '16:00' }] },
+      { weekday: 3, intervals: [] },
+      { weekday: 4, intervals: [] },
+      { weekday: 5, intervals: [] },
+      { weekday: 6, intervals: [{ start: '10:00', end: '14:00' }] },
+      { weekday: 7, intervals: [] },
+    ]);
+  });
+
+  it('a salon without a team shows every day closed', async () => {
+    const { body: loc } = await patch({ onlineBookingEnabled: true });
+    const page = await ctx.http().get(`/v1/public/locations/${loc.slug}`).expect(200);
+    expect(page.body.openingHours).toHaveLength(7);
+    expect(
+      page.body.openingHours.every((d: { intervals: unknown[] }) => d.intervals.length === 0),
+    ).toBe(true);
+    expect(page.body.description).toBeNull();
+  });
+});
+
 describe('permissions', () => {
   it('staff can read the schedule but not change it', async () => {
     const { serviceId, staffId } = await setupStaff([

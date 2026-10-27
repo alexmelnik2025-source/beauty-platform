@@ -125,6 +125,10 @@ export interface PublicLocation {
   timezone: string;
   defaultLocale: string;
   languages: Spoken[];
+  /** What the salon writes about itself. */
+  description: string | null;
+  /** Monday (1) to Sunday (7), from the team's regular weekly hours; empty intervals = closed. */
+  openingHours: { weekday: number; intervals: { start: string; end: string }[] }[];
   /** Where the booking code can go: always email; sms when an SMS gateway is connected. */
   codeChannels: ('email' | 'sms')[];
   categories: { id: string; name: string }[];

@@ -244,6 +244,17 @@ export const pl = {
     admin: 'Kolejka e-maili',
     language: 'Język',
   },
+  profile: {
+    map: 'Pokaż na mapie',
+    hours: 'Godziny otwarcia',
+    today: 'dziś',
+    closed: 'nieczynne',
+    description: 'O salonie',
+    descriptionHint:
+      'Kilka zdań dla klientów: czym się wyróżniacie, jak do Was trafić. Widać to na stronie rezerwacji.',
+    hoursHint:
+      'Godziny otwarcia na stronie rezerwacji liczymy z grafików specjalistów (zakładka „Zespół”).',
+  },
   languages: {
     salonTitle: 'Języki w salonie',
     salonHint: 'W jakich językach rozmawiacie z klientami. Pokażemy je na stronie rezerwacji.',

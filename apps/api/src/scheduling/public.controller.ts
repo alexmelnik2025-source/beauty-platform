@@ -10,6 +10,41 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
 import { AvailabilityService, type AvailabilityResponse } from './availability.service';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
+import { formatClock } from './time';
+
+export interface OpeningDay {
+  /** ISO weekday: 1 = Monday … 7 = Sunday. */
+  weekday: number;
+  /** Merged hours of everyone who takes online bookings; empty = closed. */
+  intervals: { start: string; end: string }[];
+}
+
+/**
+ * Opening hours as the client sees them: for each weekday, the union of the regular weekly
+ * hours of the listed staff (overlapping and touching intervals are merged).
+ */
+export function openingHours(
+  rows: { weekday: number; startMinute: number; endMinute: number }[],
+): OpeningDay[] {
+  return [1, 2, 3, 4, 5, 6, 7].map((weekday) => {
+    const day = rows
+      .filter((r) => r.weekday === weekday && r.endMinute > r.startMinute)
+      .sort((a, b) => a.startMinute - b.startMinute);
+    const merged: { start: number; end: number }[] = [];
+    for (const r of day) {
+      const last = merged.at(-1);
+      if (last && r.startMinute <= last.end) {
+        last.end = Math.max(last.end, r.endMinute);
+      } else {
+        merged.push({ start: r.startMinute, end: r.endMinute });
+      }
+    }
+    return {
+      weekday,
+      intervals: merged.map((i) => ({ start: formatClock(i.start), end: formatClock(i.end) })),
+    };
+  });
+}
 
 export interface PublicLocationResponse {
   slug: string;
@@ -22,6 +57,10 @@ export interface PublicLocationResponse {
   defaultLocale: string;
   /** Languages the salon speaks with clients (pl, uk, ru, be, en), in the salon's order. */
   languages: Language[];
+  /** What the salon writes about itself; null when empty. */
+  description: string | null;
+  /** Monday to Sunday, from the team's regular weekly hours. */
+  openingHours: OpeningDay[];
   /** Where the booking code can be sent: always email; sms when an SMS gateway is connected. */
   codeChannels: ('email' | 'sms')[];
   /** Price-list groups in display order; services without a category come last. */
@@ -61,15 +100,21 @@ export class PublicLocationsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Salon page: address, services with prices, staff' })
+  @ApiOperation({
+    summary: 'Salon page: address, description, opening hours, services with prices, staff',
+  })
   async get(@Req() req: AppRequest, @Param('slug') slug: string): Promise<PublicLocationResponse> {
     this.limiter.hit(`public:ip:${req.ip}`, 300, 60_000);
     const location = await this.findBookable(slug);
     const staff = await this.prisma.staffMember.findMany({
       where: { locationId: location.id, active: true },
-      include: { services: { where: { service: { active: true } }, select: { serviceId: true } } },
+      include: {
+        services: { where: { service: { active: true } }, select: { serviceId: true } },
+        workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
+    const listed = staff.filter((s) => s.services.length > 0);
     const offered = new Set(staff.flatMap((s) => s.services.map((x) => x.serviceId)));
     const services = await this.prisma.service.findMany({
       where: { locationId: location.id, active: true, id: { in: [...offered] } },
@@ -92,6 +137,8 @@ export class PublicLocationsController {
       timezone: location.timezone,
       defaultLocale: location.defaultLocale,
       languages: location.languages,
+      description: location.description,
+      openingHours: openingHours(listed.flatMap((s) => s.workingHours)),
       codeChannels: this.sms.available ? ['email', 'sms'] : ['email'],
       categories: categories.map((c) => ({ id: c.id, name: c.name })),
       services: services.map((s) => ({
@@ -102,15 +149,13 @@ export class PublicLocationsController {
         durationMinutes: s.durationMinutes,
         priceGrosze: s.priceGrosze,
       })),
-      staff: staff
-        .filter((s) => s.services.length > 0)
-        .map((s) => ({
-          id: s.id,
-          displayName: s.displayName,
-          bio: s.bio,
-          languages: s.languages,
-          serviceIds: s.services.map((x) => x.serviceId).sort(),
-        })),
+      staff: listed.map((s) => ({
+        id: s.id,
+        displayName: s.displayName,
+        bio: s.bio,
+        languages: s.languages,
+        serviceIds: s.services.map((x) => x.serviceId).sort(),
+      })),
     };
   }
 

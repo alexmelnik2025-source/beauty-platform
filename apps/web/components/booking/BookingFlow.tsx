@@ -18,6 +18,7 @@ import { normalizePhone } from '../calendar/NewItemSheet';
 import { LanguageBadges } from '../Languages';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
+import { SalonProfile } from './SalonProfile';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
 const DAYS_SHOWN = 21;
@@ -304,6 +305,7 @@ export function BookingFlow({ slug }: { slug: string }) {
             {salon.addressLine}, {salon.postalCode} {salon.city}
           </span>
           <LanguageBadges codes={salon.languages ?? []} label={t.languages.speaks} />
+          <SalonProfile salon={salon} />
         </div>
       </header>
 

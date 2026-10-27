@@ -58,6 +58,13 @@ const locationFields = {
     .max(7 * 24 * 60),
   onlineBookingEnabled: z.boolean(),
   languages: languagesSchema,
+  /** Shown on the booking page; an empty text removes it. */
+  description: z
+    .string()
+    .trim()
+    .max(1000)
+    .transform((value) => (value === '' ? null : value))
+    .nullable(),
 };
 
 export const createLocationSchema = z.object({
@@ -73,6 +80,7 @@ export const createLocationSchema = z.object({
   clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
   languages: locationFields.languages.default([]),
+  description: locationFields.description.optional(),
 });
 
 export const updateLocationSchema = z
