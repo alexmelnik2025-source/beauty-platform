@@ -52,6 +52,8 @@ export interface Staff {
   active: boolean;
   serviceIds: string[];
   userId: string | null;
+  /** /v1/public/photos/<id>; null when there is no photo. */
+  photoUrl: string | null;
 }
 
 export interface Appointment {
@@ -131,6 +133,8 @@ export interface PublicLocation {
   openingHours: { weekday: number; intervals: { start: string; end: string }[] }[];
   /** Where the booking code can go: always email; sms when an SMS gateway is connected. */
   codeChannels: ('email' | 'sms')[];
+  /** Salon photos, oldest first. */
+  photos: { id: string; url: string }[];
   categories: { id: string; name: string }[];
   services: {
     id: string;
@@ -146,6 +150,7 @@ export interface PublicLocation {
     bio: string | null;
     languages: Spoken[];
     serviceIds: string[];
+    photoUrl: string | null;
   }[];
 }
 

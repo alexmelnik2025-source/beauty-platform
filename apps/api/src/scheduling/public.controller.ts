@@ -9,6 +9,7 @@ import type { Language, Location } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
 import { AvailabilityService, type AvailabilityResponse } from './availability.service';
+import { photoUrl } from './photos.service';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
 import { formatClock } from './time';
 
@@ -61,6 +62,8 @@ export interface PublicLocationResponse {
   description: string | null;
   /** Monday to Sunday, from the team's regular weekly hours. */
   openingHours: OpeningDay[];
+  /** Salon photos, oldest first: links to /v1/public/photos/<id>. */
+  photos: { id: string; url: string }[];
   /** Where the booking code can be sent: always email; sms when an SMS gateway is connected. */
   codeChannels: ('email' | 'sms')[];
   /** Price-list groups in display order; services without a category come last. */
@@ -80,6 +83,8 @@ export interface PublicLocationResponse {
     /** Languages this staff member speaks with clients. */
     languages: Language[];
     serviceIds: string[];
+    /** Link to the staff member's photo; null when there is none. */
+    photoUrl: string | null;
   }[];
 }
 
@@ -111,6 +116,7 @@ export class PublicLocationsController {
       include: {
         services: { where: { service: { active: true } }, select: { serviceId: true } },
         workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
+        photo: { select: { id: true } },
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
@@ -127,6 +133,11 @@ export class PublicLocationsController {
       where: { locationId: location.id, id: { in: [...used] } },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
+    const photos = await this.prisma.photo.findMany({
+      where: { locationId: location.id, staffId: null },
+      select: { id: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
     return {
       slug: location.slug,
       name: location.name,
@@ -139,6 +150,7 @@ export class PublicLocationsController {
       languages: location.languages,
       description: location.description,
       openingHours: openingHours(listed.flatMap((s) => s.workingHours)),
+      photos: photos.map((p) => ({ id: p.id, url: photoUrl(p.id) })),
       codeChannels: this.sms.available ? ['email', 'sms'] : ['email'],
       categories: categories.map((c) => ({ id: c.id, name: c.name })),
       services: services.map((s) => ({
@@ -155,6 +167,7 @@ export class PublicLocationsController {
         bio: s.bio,
         languages: s.languages,
         serviceIds: s.services.map((x) => x.serviceId).sort(),
+        photoUrl: s.photo ? photoUrl(s.photo.id) : null,
       })),
     };
   }

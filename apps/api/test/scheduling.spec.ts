@@ -328,6 +328,7 @@ describe('public booking page', () => {
       bio: null,
       languages: [],
       serviceIds: [serviceId],
+      photoUrl: null,
     });
     expect(res.body).not.toHaveProperty('organizationId');
   });

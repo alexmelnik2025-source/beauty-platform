@@ -5,6 +5,7 @@ import type { MembershipContext } from '../common/request-context';
 import type { Prisma, Service, ServiceCategory, StaffMember } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { photoUrl } from './photos.service';
 import type {
   CreateServiceCategoryInput,
   CreateServiceInput,
@@ -44,6 +45,8 @@ export type ServiceResponse = Omit<Service, 'createdAt' | 'updatedAt'> & {
 
 export type StaffResponse = Omit<StaffMember, 'createdAt' | 'updatedAt'> & {
   serviceIds: string[];
+  /** The staff member's photo (/v1/public/photos/<id>); null when there is none. */
+  photoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -63,17 +66,26 @@ function toService(service: Service): ServiceResponse {
   };
 }
 
-function toStaff(staff: StaffMember & { services: { serviceId: string }[] }): StaffResponse {
-  const { services, ...rest } = staff;
+function toStaff(staff: StaffWithServices): StaffResponse {
+  const { services, photo, ...rest } = staff;
   return {
     ...rest,
     serviceIds: services.map((s) => s.serviceId).sort(),
+    photoUrl: photo ? photoUrl(photo.id) : null,
     createdAt: staff.createdAt.toISOString(),
     updatedAt: staff.updatedAt.toISOString(),
   };
 }
 
-const withServices = { services: { select: { serviceId: true } } } as const;
+const withServices = {
+  services: { select: { serviceId: true } },
+  photo: { select: { id: true } },
+} as const;
+
+type StaffWithServices = StaffMember & {
+  services: { serviceId: string }[];
+  photo: { id: string } | null;
+};
 
 /** Services and staff of a location. Reads: any member with access; writes: owner or manager. */
 @Injectable()
@@ -379,10 +391,7 @@ export class CatalogService {
     return service;
   }
 
-  async findStaff(
-    locationId: string,
-    staffId: string,
-  ): Promise<StaffMember & { services: { serviceId: string }[] }> {
+  async findStaff(locationId: string, staffId: string): Promise<StaffWithServices> {
     const staff = await this.prisma.staffMember.findFirst({
       where: { id: staffId, locationId },
       include: withServices,

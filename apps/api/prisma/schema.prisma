@@ -343,6 +343,7 @@ model Location {
   appointments      Appointment[]
   timeBlocks        TimeBlock[]
   serviceCategories ServiceCategory[]
+  photos            Photo[]
 
   @@index([organizationId])
   @@map("location")
@@ -419,10 +420,32 @@ model StaffMember {
   timeOff      TimeOff[]
   appointments Appointment[]
   timeBlocks   TimeBlock[]
+  photo        Photo?
 
   @@unique([locationId, userId])
   @@index([locationId])
   @@map("staff_member")
+}
+
+/// Photos for the booking page: the salon's gallery and one portrait per staff member.
+/// Kept in the database (no paid file storage). Ids are random (UUIDv4): a photo is public to
+/// anyone who has its link, like a picture on the salon's own website.
+model Photo {
+  id          String   @id @default(uuid()) @db.Uuid
+  locationId  String   @map("location_id") @db.Uuid
+  /// Set for a staff member's portrait (at most one each); null for the salon's photos.
+  staffId     String?  @unique @map("staff_id") @db.Uuid
+  /// image/jpeg, image/png or image/webp — taken from the file's first bytes, not from the upload.
+  contentType String   @map("content_type")
+  sizeBytes   Int      @map("size_bytes")
+  data        Bytes
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff    StaffMember? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@map("photo")
 }
 
 model StaffService {
