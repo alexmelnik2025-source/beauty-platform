@@ -270,6 +270,9 @@ export const pl = {
     change: 'Zmień zdjęcie',
     staffRemove: 'Usuń zdjęcie',
     staffAlt: 'Zdjęcie: {name}',
+    position: 'Zdjęcie {n} z {count}',
+    previous: 'Poprzednie zdjęcie',
+    next: 'Następne zdjęcie',
   },
   languages: {
     salonTitle: 'Języki w salonie',

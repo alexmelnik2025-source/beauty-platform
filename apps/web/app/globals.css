@@ -1644,3 +1644,143 @@ label.btn:focus-within {
   flex-wrap: wrap;
   gap: 12px;
 }
+
+/* ── Booking page: salon photos and specialists with photos (task 6, part 4) ── */
+
+.salon-photos {
+  display: flex;
+  gap: 8px;
+  margin: 6px -16px 0;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 16px;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.salon-photos li {
+  flex: none;
+  width: min(72%, 260px);
+  scroll-snap-align: start;
+}
+
+.salon-photos--single li {
+  width: 100%;
+}
+
+.salon-photos button {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--line);
+  cursor: zoom-in;
+}
+
+.salon-photos--single button {
+  aspect-ratio: 16 / 9;
+}
+
+.salon-photos img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Always dark, whatever the page: the photo is what matters. */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 56px 8px;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: calc(100dvh - 112px);
+  object-fit: contain;
+}
+
+.lightbox-btn {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox-btn:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.lightbox-close {
+  top: 8px;
+  right: 8px;
+  font-size: 1.1rem;
+}
+
+.lightbox-prev,
+.lightbox-next {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lightbox-prev {
+  left: 8px;
+}
+
+.lightbox-next {
+  right: 8px;
+}
+
+.lightbox-count {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  color: #ffffff;
+  text-align: center;
+}
+
+.choice-list button.with-avatar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.c-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.avatar--staff {
+  width: 48px;
+  height: 48px;
+  font-size: 0.9rem;
+}
+
+.avatar--any {
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1.3rem;
+}

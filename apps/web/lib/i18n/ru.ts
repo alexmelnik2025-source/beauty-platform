@@ -270,6 +270,9 @@ export const ru: Dict = {
     change: 'Сменить фото',
     staffRemove: 'Удалить фото',
     staffAlt: 'Фото: {name}',
+    position: 'Фото {n} из {count}',
+    previous: 'Предыдущее фото',
+    next: 'Следующее фото',
   },
   languages: {
     salonTitle: 'Языки в салоне',

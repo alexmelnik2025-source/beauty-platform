@@ -269,6 +269,9 @@ export const uk: Dict = {
     change: 'Змінити фото',
     staffRemove: 'Видалити фото',
     staffAlt: 'Фото: {name}',
+    position: 'Фото {n} з {count}',
+    previous: 'Попереднє фото',
+    next: 'Наступне фото',
   },
   languages: {
     salonTitle: 'Мови в салоні',

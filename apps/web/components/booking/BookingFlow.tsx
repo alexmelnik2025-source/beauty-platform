@@ -16,8 +16,9 @@ import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort 
 import type { Hold, PublicAppointment, PublicLocation, Slot } from '@/lib/types';
 import { normalizePhone } from '../calendar/NewItemSheet';
 import { LanguageBadges } from '../Languages';
-import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
+import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
+import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
@@ -306,6 +307,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           </span>
           <LanguageBadges codes={salon.languages ?? []} label={t.languages.speaks} />
           <SalonProfile salon={salon} />
+          <SalonGallery photos={salon.photos ?? []} />
         </div>
       </header>
 
@@ -345,27 +347,43 @@ export function BookingFlow({ slug }: { slug: string }) {
               <li>
                 <button
                   type="button"
+                  className="with-avatar"
                   onClick={() => {
                     setStaffId(undefined);
                     setStep('time');
                   }}
                 >
-                  <span className="c-name">{t.booking.anyStaff}</span>
-                  <span className="c-meta">{t.booking.anyStaffHint}</span>
+                  <span className="avatar avatar--staff avatar--any" aria-hidden="true">
+                    ∗
+                  </span>
+                  <span className="c-body">
+                    <span className="c-name">{t.booking.anyStaff}</span>
+                    <span className="c-meta">{t.booking.anyStaffHint}</span>
+                  </span>
                 </button>
               </li>
               {staffForService.map((s) => (
                 <li key={s.id}>
                   <button
                     type="button"
+                    className="with-avatar"
                     onClick={() => {
                       setStaffId(s.id);
                       setStep('time');
                     }}
                   >
-                    <span className="c-name">{s.displayName}</span>
-                    {s.bio ? <span className="c-meta">{s.bio}</span> : null}
-                    <LanguageBadges codes={s.languages ?? []} />
+                    <span className="avatar avatar--staff" aria-hidden="true">
+                      {s.photoUrl ? (
+                        <img src={s.photoUrl} alt="" decoding="async" />
+                      ) : (
+                        initials(s.displayName)
+                      )}
+                    </span>
+                    <span className="c-body">
+                      <span className="c-name">{s.displayName}</span>
+                      {s.bio ? <span className="c-meta">{s.bio}</span> : null}
+                      <LanguageBadges codes={s.languages ?? []} />
+                    </span>
                   </button>
                 </li>
               ))}

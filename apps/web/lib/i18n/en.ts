@@ -270,6 +270,9 @@ export const en: Dict = {
     change: 'Change photo',
     staffRemove: 'Remove photo',
     staffAlt: 'Photo: {name}',
+    position: 'Photo {n} of {count}',
+    previous: 'Previous photo',
+    next: 'Next photo',
   },
   languages: {
     salonTitle: 'Languages at the salon',

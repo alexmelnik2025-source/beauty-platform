@@ -557,7 +557,29 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const olaPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
   const ola = await olaPhone.newPage();
   await ola.goto(`/pl/b/${location.slug}`);
+  // The salon's photo under its name; a tap opens it full size, Escape closes it.
+  const salonThumb = ola.getByRole('button', { name: 'Zdjęcie salonu 1' });
+  await expect(salonThumb).toBeVisible();
+  await expect(ola.getByRole('button', { name: /^Zdjęcie salonu \d+$/ })).toHaveCount(1);
+  await shot(ola, '35-client-salon-photos');
+  await salonThumb.click();
+  const lightbox = ola.getByRole('dialog', { name: 'Zdjęcia salonu' });
+  const bigPhoto = lightbox.getByRole('img', { name: 'Zdjęcie 1 z 1' });
+  expect(await naturalSize(bigPhoto)).toEqual([1200, 1600]);
+  await expect(lightbox.getByRole('button', { name: 'Następne zdjęcie' })).toHaveCount(0);
+  await shot(ola, '36-client-salon-photo-open');
+  await ola.keyboard.press('Escape');
+  await expect(lightbox).toHaveCount(0);
+  await expect(salonThumb).toBeFocused();
   await ola.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+  // Specialists with their photos; without a photo — initials.
+  await expect(ola.getByRole('button', { name: /^Ola/ }).locator('img')).toBeVisible();
+  expect(await naturalSize(ola.getByRole('button', { name: /^Ola/ }).locator('img'))).toEqual([
+    600, 800,
+  ]);
+  await expect(ola.getByRole('button', { name: /^Kasia/ }).locator('img')).toHaveCount(0);
+  await expect(ola.getByRole('button', { name: /^Kasia/ }).locator('.avatar')).toHaveText('K');
+  await shot(ola, '37-client-staff-photos');
   await ola.getByRole('button', { name: /Kasia/ }).click();
   await ola.locator('.times button').last().click();
   await expect(ola.getByText(/Termin czeka na Ciebie/)).toBeVisible();
