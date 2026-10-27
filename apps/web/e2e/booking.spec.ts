@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { clearMailbox, listTo, waitForEmail } from './mailpit';
@@ -342,6 +343,53 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   await ownerPage.getByLabel('Krótki link').scrollIntoViewIfNeeded();
   await shot(ownerPage, '30-owner-share');
+  // QR code of the short link: PNG and SVG downloads, printing only the QR card.
+  const qrLink = new RegExp(`/s/${location.slug}\\?utm_source=qr$`);
+  const qrCode = ownerPage.getByRole('img', { name: 'Kod QR rezerwacji' });
+  await expect(qrCode).toBeVisible();
+  await expect(qrCode.locator('svg title')).toHaveText(qrLink);
+  const qrSide = await qrCode.evaluate((el) => {
+    const box = el.querySelector('svg')?.getAttribute('viewBox')?.split(' ');
+    return Number(box?.[2]);
+  });
+  // Version 1–40 is 21–177 modules plus the 4-module quiet zone on each side.
+  expect((qrSide - 8 - 17) % 4).toBe(0);
+  const [png] = await Promise.all([
+    ownerPage.waitForEvent('download'),
+    ownerPage.getByRole('button', { name: 'Pobierz PNG' }).click(),
+  ]);
+  expect(png.suggestedFilename()).toBe(`qr-${location.slug}.png`);
+  const pngBytes = await readFile(await png.path());
+  expect(pngBytes.subarray(1, 4).toString('latin1')).toBe('PNG');
+  expect(pngBytes.readUInt32BE(16)).toBe(qrSide * 32); // width from the PNG header
+  const [svgFile] = await Promise.all([
+    ownerPage.waitForEvent('download'),
+    ownerPage.getByRole('button', { name: 'Pobierz SVG' }).click(),
+  ]);
+  expect(svgFile.suggestedFilename()).toBe(`qr-${location.slug}.svg`);
+  const svgText = await readFile(await svgFile.path(), 'utf8');
+  expect(svgText).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
+  expect(svgText).toContain(`/s/${location.slug}?utm_source=qr</title>`);
+  await ownerPage.evaluate(() => {
+    const w = window as unknown as { printed: number };
+    w.printed = 0;
+    window.print = () => {
+      w.printed++;
+    };
+  });
+  await ownerPage.getByRole('button', { name: 'Drukuj' }).click();
+  expect(await ownerPage.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(
+    1,
+  );
+  await ownerPage.emulateMedia({ media: 'print' });
+  await expect(qrCode).toBeVisible();
+  await expect(ownerPage.locator('.qr-print').getByText('Zeskanuj i umów wizytę')).toBeVisible();
+  await expect(ownerPage.getByLabel('Krótki link')).toBeHidden();
+  await shot(ownerPage, '32-owner-qr-print');
+  await ownerPage.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  await ownerPage.emulateMedia({ media: 'screen' });
+  await expect(ownerPage.locator('html')).not.toHaveClass(/print-qr/);
+  await expect(ownerPage.getByLabel('Krótki link')).toBeVisible();
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
   const savedLocation = await json<{ languages: string[] }>(

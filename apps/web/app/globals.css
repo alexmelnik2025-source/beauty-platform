@@ -1381,6 +1381,76 @@ h3 {
   resize: vertical;
 }
 
+/* Salon QR code (Settings → Instagram and your website) */
+.salon-qr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.qr-print {
+  margin: 0;
+  width: 200px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: #fff;
+  color: #000;
+  text-align: center;
+}
+
+.qr-print__code svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.qr-print figcaption {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.qr-print figcaption small {
+  color: var(--graphite);
+  word-break: break-all;
+}
+
+.salon-qr__actions {
+  display: grid;
+  gap: 8px;
+}
+
+/* "Print" prints only the QR card, large, in the middle of the page. */
+@media print {
+  html.print-qr body * {
+    visibility: hidden;
+  }
+
+  html.print-qr .qr-print,
+  html.print-qr .qr-print * {
+    visibility: visible;
+  }
+
+  html.print-qr .qr-print {
+    position: fixed;
+    top: 15mm;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120mm;
+    border: none;
+    font-size: 16pt;
+  }
+
+  html.print-qr .qr-print figcaption {
+    font-size: 16pt;
+    gap: 4mm;
+    margin-top: 6mm;
+  }
+}
+
 /* Install the cabinet as an app (PWA) */
 .install-app {
   display: grid;

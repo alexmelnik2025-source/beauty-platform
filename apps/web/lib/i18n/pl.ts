@@ -423,6 +423,14 @@ export const pl = {
       'Wklej ten kod na swojej stronie przed </body>. W rogu pojawi się przycisk „Umów wizytę”, a rezerwacja otworzy się w okienku — klient nie opuszcza strony.',
     ownButton:
       'Masz własny przycisk? Dodaj mu atrybut data-bp-book, a do kodu — data-button="none".',
+    qrTitle: 'Kod QR do druku',
+    qrAlt: 'Kod QR rezerwacji',
+    qrScan: 'Zeskanuj i umów wizytę',
+    qrPng: 'Pobierz PNG',
+    qrSvg: 'Pobierz SVG',
+    qrPrint: 'Drukuj',
+    qrHint:
+      'Na lustro, ladę, drzwi lub wizytówkę. Klient skanuje telefonem i od razu widzi wolne terminy. PNG — do Canvy i drukarni, SVG — ostry w każdym rozmiarze.',
   },
   settings: {
     title: 'Ustawienia',

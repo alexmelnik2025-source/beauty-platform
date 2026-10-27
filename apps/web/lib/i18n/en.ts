@@ -423,6 +423,14 @@ export const en: Dict = {
       'Paste this code into your website before </body>. A "Book a visit" button appears in the corner and booking opens in a window — the client stays on your site.',
     ownButton:
       'Have your own button? Give it the data-bp-book attribute and add data-button="none" to the code.',
+    qrTitle: 'QR code for print',
+    qrAlt: 'Booking QR code',
+    qrScan: 'Scan to book a visit',
+    qrPng: 'Download PNG',
+    qrSvg: 'Download SVG',
+    qrPrint: 'Print',
+    qrHint:
+      'For a mirror, the counter, the door or a business card. Clients scan it with their phone and see free times right away. PNG for Canva and print shops, SVG stays sharp at any size.',
   },
   settings: {
     title: 'Settings',
