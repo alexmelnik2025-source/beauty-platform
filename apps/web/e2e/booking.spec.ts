@@ -360,14 +360,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   ).toHaveAttribute('aria-pressed', 'false');
   await shot(ownerPage, '17-owner-staff-hours');
   // Ola's photo: a tall phone picture is made smaller in the browser, saved at once.
-  const staffDialog = ownerPage.getByRole('dialog');
-  await staffDialog
+  const olaDialog = ownerPage.getByRole('dialog');
+  await olaDialog
     .getByLabel('Dodaj zdjęcie')
     .setInputFiles(await testPhoto(ownerPage, 'ola.png', 1200, 1600));
-  const olaPhoto = staffDialog.getByRole('img', { name: 'Zdjęcie: Ola' });
+  const olaPhoto = olaDialog.getByRole('img', { name: 'Zdjęcie: Ola' });
   await expect(olaPhoto).toBeVisible();
   expect(await naturalSize(olaPhoto)).toEqual([600, 800]);
-  await expect(staffDialog.getByRole('button', { name: 'Usuń zdjęcie' })).toBeVisible();
+  await expect(olaDialog.getByRole('button', { name: 'Usuń zdjęcie' })).toBeVisible();
   await shot(ownerPage, '33-owner-staff-photo');
   await ownerPage.keyboard.press('Escape');
   await expect(ownerPage.getByRole('button', { name: /Ola/ }).locator('img')).toBeVisible();
