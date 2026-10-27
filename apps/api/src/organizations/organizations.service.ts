@@ -12,20 +12,9 @@ import type {
 } from './organizations.schemas';
 import { LocationAccessService } from './location-access.service';
 import { slugify } from './slug';
+import type { LocationResponse, OrganizationResponse } from './organizations.responses';
 
-export interface OrganizationResponse {
-  id: string;
-  name: string;
-  nip: string | null;
-  country: string;
-  role: MembershipRole;
-  createdAt: string;
-}
-
-export type LocationResponse = Omit<Location, 'createdAt' | 'updatedAt'> & {
-  createdAt: string;
-  updatedAt: string;
-};
+export type { LocationResponse, OrganizationResponse } from './organizations.responses';
 
 const slugTaken = (): AppException =>
   new AppException(HttpStatus.CONFLICT, 'SLUG_TAKEN', 'This booking link is already taken');

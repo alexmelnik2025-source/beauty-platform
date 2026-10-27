@@ -3,25 +3,20 @@ import { AppException } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import { generateToken, hashToken } from '../common/crypto';
 import { APP_CONFIG, type AppConfig } from '../config/config';
-import type { EmailTokenType, Locale, User } from '../generated/prisma/client';
+import type { EmailTokenType, User } from '../generated/prisma/client';
 import { MailService } from '../mail/mail.service';
 import { templates } from '../mail/templates';
 import { PrismaService } from '../prisma/prisma.service';
 import { ACCESS_TOKEN_TTL_SECONDS, AccessTokenService } from './access-token.service';
 import type { LoginInput, RegisterInput, ResetPasswordInput } from './auth.schemas';
 import { PasswordService } from './password.service';
+import type { PublicUser } from './auth.responses';
 
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const VERIFY_EMAIL_TTL_MS = 24 * 60 * 60 * 1000;
 const RESET_PASSWORD_TTL_MS = 60 * 60 * 1000;
 
-export interface PublicUser {
-  id: string;
-  email: string;
-  name: string;
-  locale: Locale;
-  emailVerified: boolean;
-}
+export type { PublicUser } from './auth.responses';
 
 export interface IssuedTokens {
   accessToken: string;

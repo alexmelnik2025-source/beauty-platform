@@ -14,13 +14,17 @@ import type {
   UpdateServiceInput,
   UpdateStaffInput,
 } from './scheduling.schemas';
+import type {
+  ServiceCategoryResponse,
+  ServiceResponse,
+  StaffResponse,
+} from './scheduling.responses';
 
-export interface ServiceCategoryResponse {
-  id: string;
-  name: string;
-  sortOrder: number;
-  version: number;
-}
+export type {
+  ServiceCategoryResponse,
+  ServiceResponse,
+  StaffResponse,
+} from './scheduling.responses';
 
 const toCategory = (c: ServiceCategory): ServiceCategoryResponse => ({
   id: c.id,
@@ -37,19 +41,6 @@ function isUniqueViolation(error: unknown): boolean {
     typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002'
   );
 }
-
-export type ServiceResponse = Omit<Service, 'createdAt' | 'updatedAt'> & {
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type StaffResponse = Omit<StaffMember, 'createdAt' | 'updatedAt'> & {
-  serviceIds: string[];
-  /** The staff member's photo (/v1/public/photos/<id>); null when there is none. */
-  photoUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
 
 const versionConflict = (what: string): AppException =>
   new AppException(

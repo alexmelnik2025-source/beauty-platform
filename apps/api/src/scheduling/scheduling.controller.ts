@@ -16,7 +16,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
@@ -31,6 +31,7 @@ import {
   type ServiceResponse,
   type StaffResponse,
 } from './catalog.service';
+import { availabilitySchema } from './public.responses';
 import {
   ScheduleService,
   type TimeOffResponse,
@@ -60,6 +61,17 @@ import {
   type UpdateStaffInput,
   type WeeklyHoursInput,
 } from './scheduling.schemas';
+import {
+  serviceCategoryListSchema,
+  serviceCategorySchema,
+  serviceListSchema,
+  serviceSchema,
+  staffListSchema,
+  staffSchema,
+  timeOffListSchema,
+  timeOffSchema,
+  workingHoursSchema,
+} from './scheduling.responses';
 
 const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
 const datePipe = new ZodValidationPipe(localDateSchema);
@@ -73,6 +85,7 @@ export class ServiceCategoriesController {
 
   @Get()
   @ApiOperation({ summary: 'Service categories of the price list, in display order' })
+  @ApiZodResponse(serviceCategoryListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -84,6 +97,7 @@ export class ServiceCategoriesController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Create a category' })
   @ApiZodBody(createServiceCategorySchema)
+  @ApiZodResponse(serviceCategorySchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -97,6 +111,7 @@ export class ServiceCategoriesController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Rename or reorder a category. Send the version you read' })
   @ApiZodBody(updateServiceCategorySchema)
+  @ApiZodResponse(serviceCategorySchema)
   update(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -130,6 +145,7 @@ export class ServicesController {
 
   @Get()
   @ApiOperation({ summary: 'Services of the location (incl. inactive)' })
+  @ApiZodResponse(serviceListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -141,6 +157,7 @@ export class ServicesController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Add a service. Price in grosze (50 PLN = 5000)' })
   @ApiZodBody(createServiceSchema)
+  @ApiZodResponse(serviceSchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -152,6 +169,7 @@ export class ServicesController {
 
   @Get(':serviceId')
   @ApiOperation({ summary: 'One service' })
+  @ApiZodResponse(serviceSchema)
   get(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -166,6 +184,7 @@ export class ServicesController {
     summary: 'Update a service; set active=false to hide it. Send the version you read',
   })
   @ApiZodBody(updateServiceSchema)
+  @ApiZodResponse(serviceSchema)
   update(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -189,6 +208,7 @@ export class StaffController {
 
   @Get()
   @ApiOperation({ summary: 'Staff of the location' })
+  @ApiZodResponse(staffListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -200,6 +220,7 @@ export class StaffController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Add a staff member (no user account needed)' })
   @ApiZodBody(createStaffSchema)
+  @ApiZodResponse(staffSchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -211,6 +232,7 @@ export class StaffController {
 
   @Get(':staffId')
   @ApiOperation({ summary: 'One staff member' })
+  @ApiZodResponse(staffSchema)
   get(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -223,6 +245,7 @@ export class StaffController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Update a staff member. Send the version you read' })
   @ApiZodBody(updateStaffSchema)
+  @ApiZodResponse(staffSchema)
   update(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -237,6 +260,7 @@ export class StaffController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Set which services this staff member performs (replaces the list)' })
   @ApiZodBody(staffServicesSchema)
+  @ApiZodResponse(staffSchema)
   setServices(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -249,6 +273,7 @@ export class StaffController {
 
   @Get(':staffId/working-hours')
   @ApiOperation({ summary: 'Weekly hours and upcoming special days (location-local time)' })
+  @ApiZodResponse(workingHoursSchema)
   workingHours(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -265,6 +290,7 @@ export class StaffController {
       'Example: {"days":[{"weekday":1,"intervals":[{"start":"09:00","end":"13:00"},{"start":"14:00","end":"18:00"}]}]}. Weekday 1 = Monday. Days not listed are days off; gaps are breaks.',
   })
   @ApiZodBody(weeklyHoursSchema)
+  @ApiZodResponse(workingHoursSchema)
   setWorkingHours(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -281,6 +307,7 @@ export class StaffController {
     summary: 'Special hours for one date (YYYY-MM-DD); replace the weekly hours that day',
   })
   @ApiZodBody(overrideSchema)
+  @ApiZodResponse(workingHoursSchema)
   setOverride(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -308,6 +335,7 @@ export class StaffController {
 
   @Get(':staffId/time-off')
   @ApiOperation({ summary: 'Current and future time off' })
+  @ApiZodResponse(timeOffListSchema)
   listTimeOff(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -324,6 +352,7 @@ export class StaffController {
       'Location-local times, e.g. {"start":"2026-12-24T00:00","end":"2026-12-27T00:00"}.',
   })
   @ApiZodBody(createTimeOffSchema)
+  @ApiZodResponse(timeOffSchema, HttpStatus.CREATED)
   addTimeOff(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -366,6 +395,7 @@ export class AvailabilityController {
   @ApiQuery({ name: 'staffId', required: false, description: 'Omit for "any staff member"' })
   @ApiQuery({ name: 'from', required: true, example: '2026-11-02' })
   @ApiQuery({ name: 'to', required: true, example: '2026-11-08' })
+  @ApiZodResponse(availabilitySchema)
   get(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,

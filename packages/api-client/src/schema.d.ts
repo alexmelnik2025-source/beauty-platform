@@ -1607,6 +1607,108 @@ export interface components {
             serviceName: string;
             priceGrosze: number;
         };
+        Location: {
+            id: string;
+            organizationId: string;
+            name: string;
+            /** @description Public booking link: /b/<slug> */
+            slug: string;
+            timezone: string;
+            addressLine: string;
+            city: string;
+            postalCode: string;
+            phone: string | null;
+            email: string | null;
+            /** @enum {string} */
+            defaultLocale: "pl" | "uk" | "ru" | "en";
+            slotStepMinutes: number;
+            minLeadMinutes: number;
+            bookingHorizonDays: number;
+            clientCancelDeadlineMinutes: number;
+            onlineBookingEnabled: boolean;
+            /** @description Languages the salon speaks with clients, in the salon’s order */
+            languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+            description: string | null;
+            /** @description Send it back when updating (optimistic locking) */
+            version: number;
+            createdAt: string;
+            updatedAt: string;
+        };
+        LocationList: {
+            id: string;
+            organizationId: string;
+            name: string;
+            /** @description Public booking link: /b/<slug> */
+            slug: string;
+            timezone: string;
+            addressLine: string;
+            city: string;
+            postalCode: string;
+            phone: string | null;
+            email: string | null;
+            /** @enum {string} */
+            defaultLocale: "pl" | "uk" | "ru" | "en";
+            slotStepMinutes: number;
+            minLeadMinutes: number;
+            bookingHorizonDays: number;
+            clientCancelDeadlineMinutes: number;
+            onlineBookingEnabled: boolean;
+            /** @description Languages the salon speaks with clients, in the salon’s order */
+            languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+            description: string | null;
+            /** @description Send it back when updating (optimistic locking) */
+            version: number;
+            createdAt: string;
+            updatedAt: string;
+        }[];
+        Me: {
+            user: {
+                id: string;
+                email: string;
+                name: string;
+                /** @enum {string} */
+                locale: "pl" | "uk" | "ru" | "en";
+                emailVerified: boolean;
+            };
+            organizations: {
+                id: string;
+                name: string;
+                /** @enum {string} */
+                role: "owner" | "manager" | "staff";
+            }[];
+            /** @description Platform administrator (email queue page) */
+            isPlatformAdmin: boolean;
+        };
+        Message: {
+            /** @description For people; do not parse it */
+            message: string;
+        };
+        Organization: {
+            id: string;
+            name: string;
+            /** @description Polish tax number */
+            nip: string | null;
+            country: string;
+            /**
+             * @description Your role in this organization
+             * @enum {string}
+             */
+            role: "owner" | "manager" | "staff";
+            createdAt: string;
+        };
+        OrganizationList: {
+            id: string;
+            name: string;
+            /** @description Polish tax number */
+            nip: string | null;
+            country: string;
+            /**
+             * @description Your role in this organization
+             * @enum {string}
+             */
+            role: "owner" | "manager" | "staff";
+            createdAt: string;
+        }[];
         /** @description An appointment as the client sees it */
         PublicAppointment: {
             id: string;
@@ -1695,6 +1797,68 @@ export interface components {
                 photoUrl: string | null;
             }[];
         };
+        Service: {
+            id: string;
+            locationId: string;
+            name: string;
+            description: string | null;
+            durationMinutes: number;
+            /** @description Cleanup after the service: blocks the staff member, not shown to clients */
+            bufferMinutes: number;
+            /** @description 1 PLN = 100 */
+            priceGrosze: number;
+            active: boolean;
+            sortOrder: number;
+            categoryId: string | null;
+            /** @description Calendar colour, #RRGGBB */
+            color: string | null;
+            version: number;
+            createdAt: string;
+            updatedAt: string;
+        };
+        ServiceCategory: {
+            id: string;
+            name: string;
+            sortOrder: number;
+            version: number;
+        };
+        ServiceCategoryList: {
+            id: string;
+            name: string;
+            sortOrder: number;
+            version: number;
+        }[];
+        ServiceList: {
+            id: string;
+            locationId: string;
+            name: string;
+            description: string | null;
+            durationMinutes: number;
+            /** @description Cleanup after the service: blocks the staff member, not shown to clients */
+            bufferMinutes: number;
+            /** @description 1 PLN = 100 */
+            priceGrosze: number;
+            active: boolean;
+            sortOrder: number;
+            categoryId: string | null;
+            /** @description Calendar colour, #RRGGBB */
+            color: string | null;
+            version: number;
+            createdAt: string;
+            updatedAt: string;
+        }[];
+        /** @description Devices where the user is signed in, last used first */
+        SessionList: {
+            id: string;
+            /** @enum {string} */
+            clientType: "web" | "mobile";
+            deviceName: string | null;
+            userAgent: string | null;
+            createdAt: string;
+            lastUsedAt: string;
+            /** @description The session making this request */
+            current: boolean;
+        }[];
         Slot: {
             /** @description Instant, ISO 8601 UTC */
             start: string;
@@ -1704,6 +1868,111 @@ export interface components {
             time: string;
             /** @description Staff members free at this time */
             staffIds: string[];
+        };
+        Staff: {
+            id: string;
+            locationId: string;
+            /** @description The team member’s account, when they have one */
+            userId: string | null;
+            /** @description Shown to clients */
+            displayName: string;
+            bio: string | null;
+            languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+            active: boolean;
+            sortOrder: number;
+            version: number;
+            serviceIds: string[];
+            /** @description /v1/public/photos/<id>; null when there is none */
+            photoUrl: string | null;
+            createdAt: string;
+            updatedAt: string;
+        };
+        StaffList: {
+            id: string;
+            locationId: string;
+            /** @description The team member’s account, when they have one */
+            userId: string | null;
+            /** @description Shown to clients */
+            displayName: string;
+            bio: string | null;
+            languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+            active: boolean;
+            sortOrder: number;
+            version: number;
+            serviceIds: string[];
+            /** @description /v1/public/photos/<id>; null when there is none */
+            photoUrl: string | null;
+            createdAt: string;
+            updatedAt: string;
+        }[];
+        TimeOff: {
+            id: string;
+            /** @description Location-local, 'YYYY-MM-DDTHH:mm' */
+            start: string;
+            end: string;
+            /** @description Instant, ISO 8601 UTC */
+            startsAt: string;
+            endsAt: string;
+            note: string | null;
+        };
+        TimeOffList: {
+            id: string;
+            /** @description Location-local, 'YYYY-MM-DDTHH:mm' */
+            start: string;
+            end: string;
+            /** @description Instant, ISO 8601 UTC */
+            startsAt: string;
+            endsAt: string;
+            note: string | null;
+        }[];
+        Tokens: {
+            /** @description Send as `Authorization: Bearer` */
+            accessToken: string;
+            /** @description Seconds the access token is valid */
+            expiresIn: number;
+            user: {
+                id: string;
+                email: string;
+                name: string;
+                /** @enum {string} */
+                locale: "pl" | "uk" | "ru" | "en";
+                emailVerified: boolean;
+            };
+            /** @description Mobile only: keep it in the Keychain/Keystore. Web: an httpOnly cookie instead */
+            refreshToken?: string;
+            /** @description Mobile only */
+            refreshExpiresAt?: string;
+        };
+        User: {
+            id: string;
+            email: string;
+            name: string;
+            /** @enum {string} */
+            locale: "pl" | "uk" | "ru" | "en";
+            emailVerified: boolean;
+        };
+        WorkingHours: {
+            timezone: string;
+            weekly: {
+                /** @description ISO weekday: 1 = Monday … 7 = Sunday */
+                weekday: number;
+                intervals: {
+                    /** @description Location-local HH:MM */
+                    start: string;
+                    /** @description HH:MM; 24:00 = end of day */
+                    end: string;
+                }[];
+            }[];
+            /** @description Special days from today on; no intervals = day off */
+            overrides: {
+                date: string;
+                intervals: {
+                    /** @description Location-local HH:MM */
+                    start: string;
+                    /** @description HH:MM; 24:00 = end of day */
+                    end: string;
+                }[];
+            }[];
         };
     };
     responses: never;
@@ -1740,7 +2009,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
             };
         };
     };
@@ -1763,7 +2034,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
             };
         };
     };
@@ -1786,7 +2059,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
             };
         };
     };
@@ -1816,7 +2091,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Tokens"];
+                };
             };
         };
     };
@@ -1839,7 +2116,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Tokens"];
+                };
             };
         };
     };
@@ -1879,7 +2158,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
             };
         };
     };
@@ -1903,7 +2184,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
             };
         };
     };
@@ -1920,7 +2203,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
             };
         };
     };
@@ -1937,7 +2222,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SessionList"];
+                };
             };
         };
     };
@@ -1973,7 +2260,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrganizationList"];
+                };
             };
         };
     };
@@ -1997,7 +2286,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
             };
         };
     };
@@ -2014,7 +2305,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
             };
         };
     };
@@ -2038,7 +2331,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
             };
         };
     };
@@ -2055,7 +2350,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LocationList"];
+                };
             };
         };
     };
@@ -2103,7 +2400,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Location"];
+                };
             };
         };
     };
@@ -2122,7 +2421,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Location"];
+                };
             };
         };
     };
@@ -2164,7 +2465,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Location"];
+                };
             };
         };
     };
@@ -2497,7 +2800,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ServiceCategoryList"];
+                };
             };
         };
     };
@@ -2524,7 +2829,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ServiceCategory"];
+                };
             };
         };
     };
@@ -2573,7 +2880,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ServiceCategory"];
+                };
             };
         };
     };
@@ -2592,7 +2901,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ServiceList"];
+                };
             };
         };
     };
@@ -2628,7 +2939,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
             };
         };
     };
@@ -2648,7 +2961,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
             };
         };
     };
@@ -2683,7 +2998,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
             };
         };
     };
@@ -2702,7 +3019,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StaffList"];
+                };
             };
         };
     };
@@ -2735,7 +3054,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Staff"];
+                };
             };
         };
     };
@@ -2755,7 +3076,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Staff"];
+                };
             };
         };
     };
@@ -2786,7 +3109,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Staff"];
+                };
             };
         };
     };
@@ -2812,7 +3137,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Staff"];
+                };
             };
         };
     };
@@ -2832,7 +3159,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WorkingHours"];
+                };
             };
         };
     };
@@ -2864,7 +3193,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WorkingHours"];
+                };
             };
         };
     };
@@ -2894,7 +3225,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WorkingHours"];
+                };
             };
         };
     };
@@ -2935,7 +3268,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TimeOffList"];
+                };
             };
         };
     };
@@ -2963,7 +3298,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TimeOff"];
+                };
             };
         };
     };
@@ -3009,7 +3346,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Availability"];
+                };
             };
         };
     };

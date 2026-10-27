@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -11,7 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CurrentMembership, MembershipGuard, RequireRoles } from './membership.guard';
@@ -25,6 +26,12 @@ import {
   type UpdateLocationInput,
   type UpdateOrganizationInput,
 } from './organizations.schemas';
+import {
+  locationListSchema,
+  locationSchema,
+  organizationListSchema,
+  organizationSchema,
+} from './organizations.responses';
 import {
   OrganizationsService,
   type LocationResponse,
@@ -42,6 +49,7 @@ export class OrganizationsController {
   @Post()
   @ApiOperation({ summary: 'Create an organization; you become its owner' })
   @ApiZodBody(createOrganizationSchema)
+  @ApiZodResponse(organizationSchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @Body(new ZodValidationPipe(createOrganizationSchema)) body: CreateOrganizationInput,
@@ -51,6 +59,7 @@ export class OrganizationsController {
 
   @Get()
   @ApiOperation({ summary: 'Organizations you belong to' })
+  @ApiZodResponse(organizationListSchema)
   list(@CurrentAuth() auth: AuthContext): Promise<OrganizationResponse[]> {
     return this.organizations.listOrganizations(auth.userId);
   }
@@ -58,6 +67,7 @@ export class OrganizationsController {
   @Get(':orgId')
   @UseGuards(MembershipGuard)
   @ApiOperation({ summary: 'One organization (members only)' })
+  @ApiZodResponse(organizationSchema)
   get(@CurrentMembership() membership: MembershipContext): Promise<OrganizationResponse> {
     return this.organizations.getOrganization(membership);
   }
@@ -67,6 +77,7 @@ export class OrganizationsController {
   @RequireRoles('owner')
   @ApiOperation({ summary: 'Update organization details (owner)' })
   @ApiZodBody(updateOrganizationSchema)
+  @ApiZodResponse(organizationSchema)
   update(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() membership: MembershipContext,
@@ -87,6 +98,7 @@ export class LocationsController {
   @RequireRoles('owner')
   @ApiOperation({ summary: 'Add a location (owner). Slug is generated from the name if omitted' })
   @ApiZodBody(createLocationSchema)
+  @ApiZodResponse(locationSchema, HttpStatus.CREATED)
   create(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() membership: MembershipContext,
@@ -97,12 +109,14 @@ export class LocationsController {
 
   @Get()
   @ApiOperation({ summary: 'Locations you can access' })
+  @ApiZodResponse(locationListSchema)
   list(@CurrentMembership() membership: MembershipContext): Promise<LocationResponse[]> {
     return this.organizations.listLocations(membership);
   }
 
   @Get(':locationId')
   @ApiOperation({ summary: 'One location' })
+  @ApiZodResponse(locationSchema)
   get(
     @CurrentMembership() membership: MembershipContext,
     @Param('locationId', locationIdPipe) locationId: string,
@@ -114,6 +128,7 @@ export class LocationsController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Update a location (owner, or its manager). Send the version you read' })
   @ApiZodBody(updateLocationSchema)
+  @ApiZodResponse(locationSchema)
   update(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() membership: MembershipContext,

@@ -29,6 +29,22 @@ export type ClientCodeSent = Schemas['ClientCodeSent'];
 export type ClientAppointment = Schemas['ClientAppointment'];
 export type ClientAppointmentList = Schemas['ClientAppointmentList'];
 
+/** Salon account: sign-in, the signed-in user, devices. */
+export type User = Schemas['User'];
+export type Tokens = Schemas['Tokens'];
+export type Message = Schemas['Message'];
+export type Me = Schemas['Me'];
+export type Role = Me['organizations'][number]['role'];
+export type Session = Schemas['SessionList'][number];
+/** Salon cabinet: organizations, locations and the catalogue. */
+export type Organization = Schemas['Organization'];
+export type Location = Schemas['Location'];
+export type ServiceCategory = Schemas['ServiceCategory'];
+export type Service = Schemas['Service'];
+export type Staff = Schemas['Staff'];
+export type WorkingHours = Schemas['WorkingHours'];
+export type TimeOff = Schemas['TimeOff'];
+
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<
   Path extends keyof paths,

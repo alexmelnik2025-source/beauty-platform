@@ -4,8 +4,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildOpenApiDocument, registeredResponseSchema } from '../src/common/openapi';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
+  codeFromEmail,
   createOrgWithLocation,
   createTestApp,
+  PASSWORD,
   resetState,
   signUp,
   type TestContext,
@@ -212,5 +214,177 @@ describe('client-facing responses match the documented shapes exactly', () => {
         phone: '+48600100200',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('salon account and catalogue responses match the documented shapes exactly', () => {
+  beforeEach(async () => {
+    await resetState(ctx);
+  });
+
+  it('sign-in, me, organizations, locations, services, staff, hours, time off', async () => {
+    const email = 'owner@example.com';
+    const registered = await ctx
+      .http()
+      .post('/v1/auth/register')
+      .send({ email, password: PASSWORD, name: 'Owner' })
+      .expect(202);
+    expectShape('Message', registered.body);
+    const verified = await ctx
+      .http()
+      .post('/v1/auth/verify-email')
+      .send({ token: codeFromEmail(ctx, email) })
+      .expect(200);
+    expectShape('Message', verified.body);
+
+    const web = await ctx.http().post('/v1/auth/login').send({ email, password: PASSWORD });
+    expect(web.status).toBe(200);
+    expectShape('Tokens', web.body);
+    expect(web.body.refreshToken).toBeUndefined();
+    const mobile = await ctx
+      .http()
+      .post('/v1/auth/login')
+      .send({ email, password: PASSWORD, clientType: 'mobile' })
+      .expect(200);
+    expectShape('Tokens', mobile.body);
+    const refreshed = await ctx
+      .http()
+      .post('/v1/auth/refresh')
+      .send({ refreshToken: mobile.body.refreshToken })
+      .expect(200);
+    expectShape('Tokens', refreshed.body);
+    expect(refreshed.body.refreshToken).toEqual(expect.any(String));
+    const auth = { Authorization: `Bearer ${web.body.accessToken}` };
+
+    const org = await ctx
+      .http()
+      .post('/v1/organizations')
+      .set(auth)
+      .send({ name: 'Barber One' })
+      .expect(201);
+    expectShape('Organization', org.body);
+    const orgs = await ctx.http().get('/v1/organizations').set(auth).expect(200);
+    expectShape('OrganizationList', orgs.body);
+    expectShape(
+      'Organization',
+      (await ctx.http().get(`/v1/organizations/${org.body.id}`).set(auth).expect(200)).body,
+    );
+
+    const me = await ctx.http().get('/v1/me').set(auth).expect(200);
+    expectShape('Me', me.body);
+    expect(me.body.organizations).toHaveLength(1);
+    const sessions = await ctx.http().get('/v1/me/sessions').set(auth).expect(200);
+    expectShape('SessionList', sessions.body);
+    expect(sessions.body.length).toBeGreaterThan(0);
+
+    const location = await ctx
+      .http()
+      .post(`/v1/organizations/${org.body.id}/locations`)
+      .set(auth)
+      .send({
+        name: 'Barber One Centrum',
+        addressLine: 'ul. Puławska 1',
+        city: 'Warszawa',
+        postalCode: '02-515',
+      })
+      .expect(201);
+    expectShape('Location', location.body);
+    const base = `/v1/organizations/${org.body.id}/locations/${location.body.id}`;
+    expectShape(
+      'LocationList',
+      (await ctx.http().get(`/v1/organizations/${org.body.id}/locations`).set(auth).expect(200))
+        .body,
+    );
+    const updated = await ctx
+      .http()
+      .patch(base)
+      .set(auth)
+      .send({ version: location.body.version, languages: ['pl', 'uk'], description: 'Barber' })
+      .expect(200);
+    expectShape('Location', updated.body);
+
+    const category = await ctx
+      .http()
+      .post(`${base}/service-categories`)
+      .set(auth)
+      .send({ name: 'Włosy', sortOrder: 1 })
+      .expect(201);
+    expectShape('ServiceCategory', category.body);
+    expectShape(
+      'ServiceCategoryList',
+      (await ctx.http().get(`${base}/service-categories`).set(auth).expect(200)).body,
+    );
+
+    const service = await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(auth)
+      .send({
+        name: 'Strzyżenie',
+        durationMinutes: 45,
+        priceGrosze: 8000,
+        categoryId: category.body.id,
+        color: '#AA3300',
+      })
+      .expect(201);
+    expectShape('Service', service.body);
+    expectShape('ServiceList', (await ctx.http().get(`${base}/services`).set(auth)).body);
+    expectShape(
+      'Service',
+      (await ctx.http().get(`${base}/services/${service.body.id}`).set(auth).expect(200)).body,
+    );
+
+    const staff = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(auth)
+      .send({ displayName: 'Kasia', serviceIds: [service.body.id] })
+      .expect(201);
+    expectShape('Staff', staff.body);
+    const staffBase = `${base}/staff/${staff.body.id}`;
+    expectShape('StaffList', (await ctx.http().get(`${base}/staff`).set(auth).expect(200)).body);
+    expectShape('Staff', (await ctx.http().get(staffBase).set(auth).expect(200)).body);
+
+    const hours = await ctx
+      .http()
+      .put(`${staffBase}/working-hours`)
+      .set(auth)
+      .send({
+        days: [1, 2, 3, 4, 5].map((weekday) => ({
+          weekday,
+          intervals: [{ start: '09:00', end: '18:00' }],
+        })),
+      })
+      .expect(200);
+    expectShape('WorkingHours', hours.body);
+    const day = addDays(localToday(Date.now(), TZ), 10);
+    const special = await ctx
+      .http()
+      .put(`${staffBase}/working-hours/overrides/${day}`)
+      .set(auth)
+      .send({ intervals: [{ start: '10:00', end: '14:00' }] })
+      .expect(200);
+    expectShape('WorkingHours', special.body);
+    expect(special.body.overrides).toHaveLength(1);
+
+    const timeOff = await ctx
+      .http()
+      .post(`${staffBase}/time-off`)
+      .set(auth)
+      .send({ start: `${day}T10:00`, end: `${day}T11:00`, note: 'Lekarz' })
+      .expect(201);
+    expectShape('TimeOff', timeOff.body);
+    expectShape(
+      'TimeOffList',
+      (await ctx.http().get(`${staffBase}/time-off`).set(auth).expect(200)).body,
+    );
+
+    const free = await ctx
+      .http()
+      .get(`${base}/availability`)
+      .set(auth)
+      .query({ serviceId: service.body.id, from: day, to: day })
+      .expect(200);
+    expectShape('Availability', free.body);
   });
 });

@@ -7,29 +7,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CatalogService } from './catalog.service';
 import type { CreateTimeOffInput, OverrideInput, WeeklyHoursInput } from './scheduling.schemas';
 import { formatClock, instantToLocal, localToday, parseLocalDateTime } from './time';
+import type { TimeOffResponse, WorkingHoursResponse } from './scheduling.responses';
 
-interface IntervalResponse {
-  start: string;
-  end: string;
-}
+export type { TimeOffResponse, WorkingHoursResponse } from './scheduling.responses';
 
-export interface WorkingHoursResponse {
-  timezone: string;
-  weekly: { weekday: number; intervals: IntervalResponse[] }[];
-  /** Special days from today on. */
-  overrides: { date: string; intervals: IntervalResponse[] }[];
-}
-
-export interface TimeOffResponse {
-  id: string;
-  /** Location-local, 'YYYY-MM-DDTHH:mm'. */
-  start: string;
-  end: string;
-  /** Instants, ISO 8601 UTC. */
-  startsAt: string;
-  endsAt: string;
-  note: string | null;
-}
+type IntervalResponse = WorkingHoursResponse['weekly'][number]['intervals'][number];
 
 const MAX_TIME_OFF_DAYS = 366;
 

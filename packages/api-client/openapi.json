@@ -48,7 +48,14 @@
         },
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
           }
         },
         "summary": "Register an owner account and send a verification email",
@@ -83,7 +90,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
           }
         },
         "summary": "Confirm the email address with the code from the email",
@@ -117,7 +131,14 @@
         },
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
           }
         },
         "summary": "Send the verification email again",
@@ -170,7 +191,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tokens"
+                }
+              }
+            }
           }
         },
         "summary": "Sign in",
@@ -203,7 +231,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tokens"
+                }
+              }
+            }
           }
         },
         "summary": "Get a new access token",
@@ -257,7 +292,14 @@
         },
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
           }
         },
         "summary": "Send a password reset email",
@@ -298,7 +340,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
           }
         },
         "summary": "Set a new password with the code from the email; signs out all devices",
@@ -313,7 +362,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -333,7 +389,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -405,7 +468,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -423,7 +493,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -443,7 +520,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -481,7 +565,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -642,7 +733,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -660,7 +758,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -689,7 +794,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -852,7 +964,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1451,7 +1570,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceCategoryList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1504,7 +1630,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceCategory"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1572,7 +1705,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceCategory"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1636,7 +1776,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1745,7 +1892,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1782,7 +1936,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1899,7 +2060,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1928,7 +2096,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2020,7 +2195,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Staff"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2057,7 +2239,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Staff"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2150,7 +2339,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Staff"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2211,7 +2407,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Staff"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2248,7 +2451,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkingHours"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2336,7 +2546,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkingHours"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2416,7 +2633,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkingHours"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2496,7 +2720,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeOffList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2560,7 +2791,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeOff"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2664,7 +2902,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Availability"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5817,6 +6062,430 @@
         "additionalProperties": false,
         "description": "A slot kept for the client for 10 minutes"
       },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Public booking link: /b/<slug>"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "addressLine": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "defaultLocale": {
+            "type": "string",
+            "enum": [
+              "pl",
+              "uk",
+              "ru",
+              "en"
+            ]
+          },
+          "slotStepMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "minLeadMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "bookingHorizonDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "clientCancelDeadlineMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "onlineBookingEnabled": {
+            "type": "boolean"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "be",
+                "en"
+              ]
+            },
+            "description": "Languages the salon speaks with clients, in the salon’s order"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Send it back when updating (optimistic locking)"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "name",
+          "slug",
+          "timezone",
+          "addressLine",
+          "city",
+          "postalCode",
+          "phone",
+          "email",
+          "defaultLocale",
+          "slotStepMinutes",
+          "minLeadMinutes",
+          "bookingHorizonDays",
+          "clientCancelDeadlineMinutes",
+          "onlineBookingEnabled",
+          "languages",
+          "description",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "LocationList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "organizationId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string",
+              "description": "Public booking link: /b/<slug>"
+            },
+            "timezone": {
+              "type": "string"
+            },
+            "addressLine": {
+              "type": "string"
+            },
+            "city": {
+              "type": "string"
+            },
+            "postalCode": {
+              "type": "string"
+            },
+            "phone": {
+              "nullable": true,
+              "type": "string"
+            },
+            "email": {
+              "nullable": true,
+              "type": "string"
+            },
+            "defaultLocale": {
+              "type": "string",
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ]
+            },
+            "slotStepMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "minLeadMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "bookingHorizonDays": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "clientCancelDeadlineMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "onlineBookingEnabled": {
+              "type": "boolean"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "pl",
+                  "uk",
+                  "ru",
+                  "be",
+                  "en"
+                ]
+              },
+              "description": "Languages the salon speaks with clients, in the salon’s order"
+            },
+            "description": {
+              "nullable": true,
+              "type": "string"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Send it back when updating (optimistic locking)"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "organizationId",
+            "name",
+            "slug",
+            "timezone",
+            "addressLine",
+            "city",
+            "postalCode",
+            "phone",
+            "email",
+            "defaultLocale",
+            "slotStepMinutes",
+            "minLeadMinutes",
+            "bookingHorizonDays",
+            "clientCancelDeadlineMinutes",
+            "onlineBookingEnabled",
+            "languages",
+            "description",
+            "version",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "Me": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string",
+                "enum": [
+                  "pl",
+                  "uk",
+                  "ru",
+                  "en"
+                ]
+              },
+              "emailVerified": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "name",
+              "locale",
+              "emailVerified"
+            ],
+            "additionalProperties": false
+          },
+          "organizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "manager",
+                    "staff"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "role"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "isPlatformAdmin": {
+            "type": "boolean",
+            "description": "Platform administrator (email queue page)"
+          }
+        },
+        "required": [
+          "user",
+          "organizations",
+          "isPlatformAdmin"
+        ],
+        "additionalProperties": false
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "For people; do not parse it"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Organization": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nip": {
+            "nullable": true,
+            "description": "Polish tax number",
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "manager",
+              "staff"
+            ],
+            "description": "Your role in this organization"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "nip",
+          "country",
+          "role",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "OrganizationList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "nip": {
+              "nullable": true,
+              "description": "Polish tax number",
+              "type": "string"
+            },
+            "country": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "owner",
+                "manager",
+                "staff"
+              ],
+              "description": "Your role in this organization"
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "nip",
+            "country",
+            "role",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      },
       "PublicAppointment": {
         "type": "object",
         "properties": {
@@ -6205,6 +6874,275 @@
         "additionalProperties": false,
         "description": "The public salon page: no buffers, staff accounts or organization details"
       },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "bufferMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cleanup after the service: blocks the staff member, not shown to clients"
+          },
+          "priceGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "1 PLN = 100"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "categoryId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "color": {
+            "nullable": true,
+            "description": "Calendar colour, #RRGGBB",
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "name",
+          "description",
+          "durationMinutes",
+          "bufferMinutes",
+          "priceGrosze",
+          "active",
+          "sortOrder",
+          "categoryId",
+          "color",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ServiceCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sortOrder",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "ServiceCategoryList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "sortOrder": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "sortOrder",
+            "version"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "ServiceList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "locationId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "nullable": true,
+              "type": "string"
+            },
+            "durationMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "bufferMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Cleanup after the service: blocks the staff member, not shown to clients"
+            },
+            "priceGrosze": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "1 PLN = 100"
+            },
+            "active": {
+              "type": "boolean"
+            },
+            "sortOrder": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "categoryId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "color": {
+              "nullable": true,
+              "description": "Calendar colour, #RRGGBB",
+              "type": "string"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "locationId",
+            "name",
+            "description",
+            "durationMinutes",
+            "bufferMinutes",
+            "priceGrosze",
+            "active",
+            "sortOrder",
+            "categoryId",
+            "color",
+            "version",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "SessionList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "clientType": {
+              "type": "string",
+              "enum": [
+                "web",
+                "mobile"
+              ]
+            },
+            "deviceName": {
+              "nullable": true,
+              "type": "string"
+            },
+            "userAgent": {
+              "nullable": true,
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "string"
+            },
+            "current": {
+              "type": "boolean",
+              "description": "The session making this request"
+            }
+          },
+          "required": [
+            "id",
+            "clientType",
+            "deviceName",
+            "userAgent",
+            "createdAt",
+            "lastUsedAt",
+            "current"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Devices where the user is signed in, last used first"
+      },
       "Slot": {
         "type": "object",
         "properties": {
@@ -6233,6 +7171,437 @@
           "date",
           "time",
           "staffIds"
+        ],
+        "additionalProperties": false
+      },
+      "Staff": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "userId": {
+            "nullable": true,
+            "description": "The team member’s account, when they have one",
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Shown to clients"
+          },
+          "bio": {
+            "nullable": true,
+            "type": "string"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "be",
+                "en"
+              ]
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "serviceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "photoUrl": {
+            "nullable": true,
+            "description": "/v1/public/photos/<id>; null when there is none",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "userId",
+          "displayName",
+          "bio",
+          "languages",
+          "active",
+          "sortOrder",
+          "version",
+          "serviceIds",
+          "photoUrl",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "StaffList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "locationId": {
+              "type": "string"
+            },
+            "userId": {
+              "nullable": true,
+              "description": "The team member’s account, when they have one",
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string",
+              "description": "Shown to clients"
+            },
+            "bio": {
+              "nullable": true,
+              "type": "string"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "pl",
+                  "uk",
+                  "ru",
+                  "be",
+                  "en"
+                ]
+              }
+            },
+            "active": {
+              "type": "boolean"
+            },
+            "sortOrder": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "serviceIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "photoUrl": {
+              "nullable": true,
+              "description": "/v1/public/photos/<id>; null when there is none",
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "locationId",
+            "userId",
+            "displayName",
+            "bio",
+            "languages",
+            "active",
+            "sortOrder",
+            "version",
+            "serviceIds",
+            "photoUrl",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "TimeOff": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "description": "Location-local, 'YYYY-MM-DDTHH:mm'"
+          },
+          "end": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "description": "Instant, ISO 8601 UTC"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "start",
+          "end",
+          "startsAt",
+          "endsAt",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "TimeOffList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "start": {
+              "type": "string",
+              "description": "Location-local, 'YYYY-MM-DDTHH:mm'"
+            },
+            "end": {
+              "type": "string"
+            },
+            "startsAt": {
+              "type": "string",
+              "description": "Instant, ISO 8601 UTC"
+            },
+            "endsAt": {
+              "type": "string"
+            },
+            "note": {
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "start",
+            "end",
+            "startsAt",
+            "endsAt",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "Tokens": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Send as `Authorization: Bearer`"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Seconds the access token is valid"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string",
+                "enum": [
+                  "pl",
+                  "uk",
+                  "ru",
+                  "en"
+                ]
+              },
+              "emailVerified": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "name",
+              "locale",
+              "emailVerified"
+            ],
+            "additionalProperties": false
+          },
+          "refreshToken": {
+            "description": "Mobile only: keep it in the Keychain/Keystore. Web: an httpOnly cookie instead",
+            "type": "string"
+          },
+          "refreshExpiresAt": {
+            "description": "Mobile only",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "pl",
+              "uk",
+              "ru",
+              "en"
+            ]
+          },
+          "emailVerified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "locale",
+          "emailVerified"
+        ],
+        "additionalProperties": false
+      },
+      "WorkingHours": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string"
+          },
+          "weekly": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weekday": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "ISO weekday: 1 = Monday … 7 = Sunday"
+                },
+                "intervals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "start": {
+                        "type": "string",
+                        "description": "Location-local HH:MM"
+                      },
+                      "end": {
+                        "type": "string",
+                        "description": "HH:MM; 24:00 = end of day"
+                      }
+                    },
+                    "required": [
+                      "start",
+                      "end"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "weekday",
+                "intervals"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "intervals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "start": {
+                        "type": "string",
+                        "description": "Location-local HH:MM"
+                      },
+                      "end": {
+                        "type": "string",
+                        "description": "HH:MM; 24:00 = end of day"
+                      }
+                    },
+                    "required": [
+                      "start",
+                      "end"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "date",
+                "intervals"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Special days from today on; no intervals = day off"
+          }
+        },
+        "required": [
+          "timezone",
+          "weekly",
+          "overrides"
         ],
         "additionalProperties": false
       }

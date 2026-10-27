@@ -11,29 +11,18 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { isPlatformAdmin } from '../admin/platform-admin.guard';
 import { notFound } from '../common/app-exception';
+import { ApiZodResponse } from '../common/openapi';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { AuthContext } from '../common/request-context';
-import type { ClientType, MembershipRole } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { toPublicUser, type PublicUser } from './auth.service';
+import {
+  meSchema,
+  sessionListSchema,
+  type MeResponse,
+  type SessionResponse,
+} from './auth.responses';
+import { toPublicUser } from './auth.service';
 import { CurrentAuth } from './decorators';
-
-interface MeResponse {
-  user: PublicUser;
-  organizations: { id: string; name: string; role: MembershipRole }[];
-  /** Platform administrator (email queue page). */
-  isPlatformAdmin: boolean;
-}
-
-interface SessionResponse {
-  id: string;
-  clientType: ClientType;
-  deviceName: string | null;
-  userAgent: string | null;
-  createdAt: string;
-  lastUsedAt: string;
-  current: boolean;
-}
 
 @ApiTags('me')
 @ApiBearerAuth()
@@ -46,6 +35,7 @@ export class MeController {
 
   @Get()
   @ApiOperation({ summary: 'The signed-in user and their organizations' })
+  @ApiZodResponse(meSchema)
   async me(@CurrentAuth() auth: AuthContext): Promise<MeResponse> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: auth.userId },
@@ -70,6 +60,7 @@ export class MeController {
 
   @Get('sessions')
   @ApiOperation({ summary: 'Devices where the user is signed in' })
+  @ApiZodResponse(sessionListSchema)
   async sessions(@CurrentAuth() auth: AuthContext): Promise<SessionResponse[]> {
     const sessions = await this.prisma.session.findMany({
       where: { userId: auth.userId, revokedAt: null, expiresAt: { gt: new Date() } },

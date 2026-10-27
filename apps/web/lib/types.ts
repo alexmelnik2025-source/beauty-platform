@@ -1,6 +1,9 @@
-/** Shapes of the API responses the web app uses (see /v1/docs). Salon-side shapes are still written by hand. */
+/**
+ * Shapes of the API responses the web app uses (see /v1/docs). Appointments, calendar, clients and
+ * permissions are still written by hand; everything else comes from @beauty/api-client.
+ */
+import type { Role } from '@beauty/api-client';
 
-export type Role = 'owner' | 'manager' | 'staff';
 /** Languages spoken with clients (be = Belarusian). Not the interface languages. */
 export const SPOKEN = ['pl', 'uk', 'ru', 'be', 'en'] as const;
 export type Spoken = (typeof SPOKEN)[number];
@@ -13,48 +16,6 @@ export const APPOINTMENT_STATUSES = [
   'no_show',
 ] as const;
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
-
-export interface Me {
-  user: { id: string; email: string; name: string; locale: string; emailVerified: boolean };
-  organizations: { id: string; name: string; role: Role }[];
-  isPlatformAdmin: boolean;
-}
-
-export interface Location {
-  id: string;
-  organizationId: string;
-  name: string;
-  slug: string;
-  timezone: string;
-  addressLine: string;
-  city: string;
-  postalCode: string;
-  phone: string | null;
-  onlineBookingEnabled: boolean;
-  slotStepMinutes: number;
-  version: number;
-}
-
-export interface Service {
-  id: string;
-  name: string;
-  durationMinutes: number;
-  bufferMinutes: number;
-  priceGrosze: number;
-  active: boolean;
-  categoryId: string | null;
-  color: string | null;
-}
-
-export interface Staff {
-  id: string;
-  displayName: string;
-  active: boolean;
-  serviceIds: string[];
-  userId: string | null;
-  /** /v1/public/photos/<id>; null when there is no photo. */
-  photoUrl: string | null;
-}
 
 export interface Appointment {
   id: string;
@@ -118,14 +79,19 @@ export interface MyPermissions {
 }
 
 /**
- * What clients see (booking page, manage link, "My visits"): generated from the API's
- * OpenAPI document, so these can never drift from the server.
+ * Generated from the API's OpenAPI document, so these can never drift from the server:
+ * what clients see (booking page, manage link, "My visits") and the salon account and catalogue.
  */
 export type {
   ClientAppointment,
   ClientPerson,
   Hold,
+  Location,
+  Me,
   PublicAppointment,
   PublicLocation,
+  Role,
+  Service,
   Slot,
+  Staff,
 } from '@beauty/api-client';

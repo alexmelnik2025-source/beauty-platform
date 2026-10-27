@@ -2,7 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Inject, Post, Req, Res } from '
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AppException } from '../common/app-exception';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
@@ -18,21 +18,13 @@ import {
   type RegisterInput,
   type ResetPasswordInput,
 } from './auth.schemas';
+import { messageSchema, tokensSchema, type TokenResponse } from './auth.responses';
 import { AuthService, type IssuedTokens } from './auth.service';
 import { CurrentAuth, Public } from './decorators';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './refresh-cookie';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
-interface TokenResponse {
-  accessToken: string;
-  expiresIn: number;
-  user: IssuedTokens['user'];
-  /** Mobile only. */
-  refreshToken?: string;
-  refreshExpiresAt?: string;
-}
-
 const ACCEPTED = { message: 'If the address can receive email, a message has been sent' };
 
 @ApiTags('auth')
@@ -53,6 +45,7 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Register an owner account and send a verification email' })
   @ApiZodBody(registerSchema)
+  @ApiZodResponse(messageSchema, HttpStatus.ACCEPTED)
   async register(
     @Req() req: AppRequest,
     @Body(new ZodValidationPipe(registerSchema)) body: RegisterInput,
@@ -68,6 +61,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirm the email address with the code from the email' })
   @ApiZodBody(tokenSchema)
+  @ApiZodResponse(messageSchema)
   async verifyEmail(
     @Body(new ZodValidationPipe(tokenSchema)) body: { token: string },
   ): Promise<{ message: string }> {
@@ -80,6 +74,7 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send the verification email again' })
   @ApiZodBody(emailOnlySchema)
+  @ApiZodResponse(messageSchema, HttpStatus.ACCEPTED)
   async resendVerification(
     @Req() req: AppRequest,
     @Body(new ZodValidationPipe(emailOnlySchema)) body: { email: string },
@@ -99,6 +94,7 @@ export class AuthController {
       'clientType=web: refresh token is set as an httpOnly cookie. clientType=mobile: refresh token is returned in the body; store it in the Keychain/Keystore.',
   })
   @ApiZodBody(loginSchema)
+  @ApiZodResponse(tokensSchema)
   async login(
     @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
@@ -119,6 +115,7 @@ export class AuthController {
       'Web: uses the cookie. Mobile: send refreshToken in the body. The refresh token rotates every time.',
   })
   @ApiZodBody(refreshSchema)
+  @ApiZodResponse(tokensSchema)
   async refresh(
     @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
@@ -160,6 +157,7 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send a password reset email' })
   @ApiZodBody(emailOnlySchema)
+  @ApiZodResponse(messageSchema, HttpStatus.ACCEPTED)
   async forgotPassword(
     @Req() req: AppRequest,
     @Body(new ZodValidationPipe(emailOnlySchema)) body: { email: string },
@@ -177,6 +175,7 @@ export class AuthController {
     summary: 'Set a new password with the code from the email; signs out all devices',
   })
   @ApiZodBody(resetPasswordSchema)
+  @ApiZodResponse(messageSchema)
   async resetPassword(
     @Req() req: AppRequest,
     @Body(new ZodValidationPipe(resetPasswordSchema)) body: ResetPasswordInput,
