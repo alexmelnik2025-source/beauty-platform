@@ -37,9 +37,16 @@ type Ids = Record<
   | 'membershipId'
   | 'blockId'
   | 'serviceCategoryId'
-  | 'invitationId',
+  | 'invitationId'
+  | 'photoId',
   string
 >;
+
+/** A tiny file with PNG's first bytes: enough to pass the photo type check. */
+const PNG = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  Buffer.from('png'),
+]);
 
 /** Monday 11.01.2027 09:00 in Warsaw. */
 const APPOINTMENT_START = '2027-01-11T08:00:00.000Z';
@@ -78,6 +85,7 @@ function discoverRoutes(ctx: TestContext): Route[] {
  */
 function validBody(route: Route): object {
   const p = route.path;
+  if (p.endsWith('/photos') || p.endsWith('/staff/:staffId/photo')) return PNG;
   if (p.endsWith('/invitations')) {
     return { email: 'hacker@example.com', role: 'staff', locationIds: [currentIds?.locationId] };
   }
@@ -143,6 +151,11 @@ function appointmentBody(): object {
   };
 }
 
+/** Pictures are sent as they are (image/png), everything else as JSON. */
+function withType(req: ReturnType<ReturnType<TestContext['http']>['post']>, body: object) {
+  return Buffer.isBuffer(body) ? req.set('Content-Type', 'image/png').send(body) : req.send(body);
+}
+
 function send(route: Route, url: string, user: SignedInUser) {
   const agent = ctx.http();
   switch (route.method) {
@@ -151,11 +164,11 @@ function send(route: Route, url: string, user: SignedInUser) {
     case 'delete':
       return agent.delete(url).set(user.auth);
     case 'post':
-      return agent.post(url).set(user.auth).send(validBody(route));
+      return withType(agent.post(url).set(user.auth), validBody(route));
     case 'patch':
       return agent.patch(url).set(user.auth).send(validBody(route));
     case 'put':
-      return agent.put(url).set(user.auth).send(validBody(route));
+      return withType(agent.put(url).set(user.auth), validBody(route));
     default:
       throw new Error(`isolation.spec.ts: unsupported method ${route.method}`);
   }
@@ -260,6 +273,20 @@ async function seedLocation(
       locationIds: [org.locationId],
     })
     .expect(201);
+  const photo = await ctx
+    .http()
+    .post(`${base}/photos`)
+    .set(user.auth)
+    .set('Content-Type', 'image/png')
+    .send(PNG)
+    .expect(201);
+  await ctx
+    .http()
+    .put(`${staffUrl}/photo`)
+    .set(user.auth)
+    .set('Content-Type', 'image/png')
+    .send(PNG)
+    .expect(200);
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -274,6 +301,7 @@ async function seedLocation(
     blockId: block.body.id,
     serviceCategoryId: serviceCategory.body.id,
     invitationId: invitation.body.id,
+    photoId: photo.body.id,
   };
 }
 
@@ -301,6 +329,11 @@ async function snapshotOf(ids: Ids) {
       where: { locationId: ids.locationId },
     }),
     invitations: await ctx.prisma.invitation.findMany({ where: { organizationId: ids.orgId } }),
+    photos: await ctx.prisma.photo.findMany({
+      where: { locationId: ids.locationId },
+      select: { id: true, staffId: true, sizeBytes: true },
+      orderBy: { id: 'asc' },
+    }),
   };
 }
 
@@ -344,7 +377,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId|invitationId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId|invitationId|photoId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },
