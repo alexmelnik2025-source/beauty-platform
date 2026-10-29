@@ -5,11 +5,7 @@ import { api } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import { MAX_SALON_PHOTOS, PHOTO_ACCEPT, SALON_PHOTO_SIDE, shrinkPhoto } from '@/lib/photos';
 import { ErrorBox } from './ui';
-
-interface Photo {
-  id: string;
-  url: string;
-}
+import type { Photo } from '@/lib/types';
 
 /** Salon photos for the booking page: add (shrunk in the browser first) and remove. */
 export function SalonPhotos({ base }: { base: string }) {

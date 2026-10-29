@@ -991,7 +991,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionCatalog"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1011,7 +1018,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCategoryList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1089,7 +1103,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCategory"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1182,7 +1203,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCategory"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1229,7 +1257,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMemberList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1332,7 +1367,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMember"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1411,7 +1453,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invitation"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1429,7 +1478,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1517,7 +1573,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPreview"
+                }
+              }
+            }
           }
         },
         "summary": "What an invitation link is for (before signing in)",
@@ -1541,7 +1604,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationAccepted"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3030,7 +3100,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3081,7 +3158,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Photo"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3179,7 +3263,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Photo"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3244,7 +3335,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Image bytes; Content-Type is image/jpeg, image/png, or image/webp.",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         },
         "summary": "A salon or staff photo",
@@ -4714,7 +4825,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4734,7 +4852,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCount"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4795,7 +4920,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkedRead"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5205,7 +5337,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushPublicKey"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5350,7 +5489,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboxStats"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5370,7 +5516,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedEmailList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5432,7 +5585,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailsRequeued"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7348,6 +7508,103 @@
           "additionalProperties": false
         }
       },
+      "EmailsRequeued": {
+        "type": "object",
+        "properties": {
+          "requeued": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "requeued"
+        ],
+        "additionalProperties": false
+      },
+      "FailedEmail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "appointmentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "lastAttemptAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "appointmentId",
+          "attempts",
+          "lastError",
+          "createdAt",
+          "lastAttemptAt"
+        ],
+        "additionalProperties": false
+      },
+      "FailedEmailList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "appointmentId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "lastError": {
+              "nullable": true,
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "lastAttemptAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "appointmentId",
+            "attempts",
+            "lastError",
+            "createdAt",
+            "lastAttemptAt"
+          ],
+          "additionalProperties": false
+        }
+      },
       "Hold": {
         "type": "object",
         "properties": {
@@ -7403,6 +7660,185 @@
         ],
         "additionalProperties": false,
         "description": "A slot kept for the client for 10 minutes"
+      },
+      "Invitation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "manager",
+              "staff"
+            ]
+          },
+          "locationIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "staffMemberId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "staffCategoryId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "revoked",
+              "expired"
+            ]
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "locationIds",
+          "staffMemberId",
+          "staffCategoryId",
+          "status",
+          "expiresAt",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "InvitationAccepted": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "manager",
+              "staff"
+            ]
+          }
+        },
+        "required": [
+          "organizationId",
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "InvitationList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "manager",
+                "staff"
+              ]
+            },
+            "locationIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "staffMemberId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "staffCategoryId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "accepted",
+                "revoked",
+                "expired"
+              ]
+            },
+            "expiresAt": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "email",
+            "role",
+            "locationIds",
+            "staffMemberId",
+            "staffCategoryId",
+            "status",
+            "expiresAt",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "InvitationPreview": {
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "manager",
+              "staff"
+            ]
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "revoked",
+              "expired"
+            ]
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organizationName",
+          "role",
+          "email",
+          "status",
+          "expiresAt"
+        ],
+        "additionalProperties": false
       },
       "Location": {
         "type": "object",
@@ -7655,6 +8091,20 @@
           "additionalProperties": false
         }
       },
+      "MarkedRead": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "additionalProperties": false
+      },
       "Me": {
         "type": "object",
         "properties": {
@@ -7745,6 +8195,179 @@
         ],
         "additionalProperties": false
       },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "appointment.booked",
+              "appointment.created",
+              "appointment.rescheduled",
+              "appointment.cancelled"
+            ]
+          },
+          "appointmentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "locationId": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              },
+              "time": {
+                "type": "string"
+              },
+              "serviceName": {
+                "type": "string"
+              },
+              "staffName": {
+                "type": "string"
+              },
+              "customerName": {
+                "nullable": true,
+                "type": "string"
+              },
+              "by": {
+                "type": "string",
+                "enum": [
+                  "client",
+                  "salon"
+                ]
+              }
+            },
+            "required": [
+              "locationId",
+              "start",
+              "date",
+              "time",
+              "serviceName",
+              "staffName",
+              "customerName",
+              "by"
+            ],
+            "additionalProperties": false
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "type",
+          "appointmentId",
+          "data",
+          "read",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "NotificationList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "organizationId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "appointment.booked",
+                "appointment.created",
+                "appointment.rescheduled",
+                "appointment.cancelled"
+              ]
+            },
+            "appointmentId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "locationId": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "time": {
+                  "type": "string"
+                },
+                "serviceName": {
+                  "type": "string"
+                },
+                "staffName": {
+                  "type": "string"
+                },
+                "customerName": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "by": {
+                  "type": "string",
+                  "enum": [
+                    "client",
+                    "salon"
+                  ]
+                }
+              },
+              "required": [
+                "locationId",
+                "start",
+                "date",
+                "time",
+                "serviceName",
+                "staffName",
+                "customerName",
+                "by"
+              ],
+              "additionalProperties": false
+            },
+            "read": {
+              "type": "boolean"
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "organizationId",
+            "type",
+            "appointmentId",
+            "data",
+            "read",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      },
       "Organization": {
         "type": "object",
         "properties": {
@@ -7823,6 +8446,244 @@
             "nip",
             "country",
             "role",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "OutboxStats": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "warning"
+            ]
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pending": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "due": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "oldestDueSeconds": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sentLast24h": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "status",
+          "problems",
+          "pending",
+          "due",
+          "oldestDueSeconds",
+          "failed",
+          "sentLast24h"
+        ],
+        "additionalProperties": false
+      },
+      "PermissionCatalog": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "enum": [
+                    "createOwnAppointments",
+                    "changeOwnAppointments",
+                    "bookOutsideHours",
+                    "blockOwnTime",
+                    "viewClientContacts",
+                    "viewClientHistory",
+                    "viewClientNotes",
+                    "editClientNotes",
+                    "viewAllAppointments",
+                    "manageAllAppointments",
+                    "viewOwnEarnings"
+                  ]
+                },
+                "default": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "key",
+                "default"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "me": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "manager",
+                  "staff"
+                ]
+              },
+              "permissions": {
+                "type": "object",
+                "properties": {
+                  "createOwnAppointments": {
+                    "type": "boolean"
+                  },
+                  "changeOwnAppointments": {
+                    "type": "boolean"
+                  },
+                  "bookOutsideHours": {
+                    "type": "boolean"
+                  },
+                  "blockOwnTime": {
+                    "type": "boolean"
+                  },
+                  "viewClientContacts": {
+                    "type": "boolean"
+                  },
+                  "viewClientHistory": {
+                    "type": "boolean"
+                  },
+                  "viewClientNotes": {
+                    "type": "boolean"
+                  },
+                  "editClientNotes": {
+                    "type": "boolean"
+                  },
+                  "viewAllAppointments": {
+                    "type": "boolean"
+                  },
+                  "manageAllAppointments": {
+                    "type": "boolean"
+                  },
+                  "viewOwnEarnings": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "createOwnAppointments",
+                  "changeOwnAppointments",
+                  "bookOutsideHours",
+                  "blockOwnTime",
+                  "viewClientContacts",
+                  "viewClientHistory",
+                  "viewClientNotes",
+                  "editClientNotes",
+                  "viewAllAppointments",
+                  "manageAllAppointments",
+                  "viewOwnEarnings"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "role",
+              "permissions"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "permissions",
+          "me"
+        ],
+        "additionalProperties": false
+      },
+      "Photo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "contentType",
+          "sizeBytes",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "PhotoList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "contentType": {
+              "type": "string",
+              "enum": [
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+              ]
+            },
+            "sizeBytes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "url",
+            "contentType",
+            "sizeBytes",
             "createdAt"
           ],
           "additionalProperties": false
@@ -8216,6 +9077,19 @@
         "additionalProperties": false,
         "description": "The public salon page: no buffers, staff accounts or organization details"
       },
+      "PushPublicKey": {
+        "type": "object",
+        "properties": {
+          "publicKey": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "publicKey"
+        ],
+        "additionalProperties": false
+      },
       "Service": {
         "type": "object",
         "properties": {
@@ -8599,6 +9473,145 @@
         ],
         "additionalProperties": false
       },
+      "StaffCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "object",
+            "properties": {
+              "createOwnAppointments": {
+                "type": "boolean"
+              },
+              "changeOwnAppointments": {
+                "type": "boolean"
+              },
+              "bookOutsideHours": {
+                "type": "boolean"
+              },
+              "blockOwnTime": {
+                "type": "boolean"
+              },
+              "viewClientContacts": {
+                "type": "boolean"
+              },
+              "viewClientHistory": {
+                "type": "boolean"
+              },
+              "viewClientNotes": {
+                "type": "boolean"
+              },
+              "editClientNotes": {
+                "type": "boolean"
+              },
+              "viewAllAppointments": {
+                "type": "boolean"
+              },
+              "manageAllAppointments": {
+                "type": "boolean"
+              },
+              "viewOwnEarnings": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "memberCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "permissions",
+          "memberCount",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "StaffCategoryList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "permissions": {
+              "type": "object",
+              "properties": {
+                "createOwnAppointments": {
+                  "type": "boolean"
+                },
+                "changeOwnAppointments": {
+                  "type": "boolean"
+                },
+                "bookOutsideHours": {
+                  "type": "boolean"
+                },
+                "blockOwnTime": {
+                  "type": "boolean"
+                },
+                "viewClientContacts": {
+                  "type": "boolean"
+                },
+                "viewClientHistory": {
+                  "type": "boolean"
+                },
+                "viewClientNotes": {
+                  "type": "boolean"
+                },
+                "editClientNotes": {
+                  "type": "boolean"
+                },
+                "viewAllAppointments": {
+                  "type": "boolean"
+                },
+                "manageAllAppointments": {
+                  "type": "boolean"
+                },
+                "viewOwnEarnings": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "memberCount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "permissions",
+            "memberCount",
+            "version"
+          ],
+          "additionalProperties": false
+        }
+      },
       "StaffList": {
         "type": "array",
         "items": {
@@ -8681,6 +9694,331 @@
             "photoUrl",
             "createdAt",
             "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "TeamMember": {
+        "type": "object",
+        "properties": {
+          "membershipId": {
+            "type": "string"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "email"
+            ],
+            "additionalProperties": false
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "manager",
+              "staff"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "invited",
+              "active"
+            ]
+          },
+          "locationIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "staffCategoryId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "overrides": {
+            "type": "object",
+            "properties": {
+              "createOwnAppointments": {
+                "type": "boolean"
+              },
+              "changeOwnAppointments": {
+                "type": "boolean"
+              },
+              "bookOutsideHours": {
+                "type": "boolean"
+              },
+              "blockOwnTime": {
+                "type": "boolean"
+              },
+              "viewClientContacts": {
+                "type": "boolean"
+              },
+              "viewClientHistory": {
+                "type": "boolean"
+              },
+              "viewClientNotes": {
+                "type": "boolean"
+              },
+              "editClientNotes": {
+                "type": "boolean"
+              },
+              "viewAllAppointments": {
+                "type": "boolean"
+              },
+              "manageAllAppointments": {
+                "type": "boolean"
+              },
+              "viewOwnEarnings": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "permissions": {
+            "type": "object",
+            "properties": {
+              "createOwnAppointments": {
+                "type": "boolean"
+              },
+              "changeOwnAppointments": {
+                "type": "boolean"
+              },
+              "bookOutsideHours": {
+                "type": "boolean"
+              },
+              "blockOwnTime": {
+                "type": "boolean"
+              },
+              "viewClientContacts": {
+                "type": "boolean"
+              },
+              "viewClientHistory": {
+                "type": "boolean"
+              },
+              "viewClientNotes": {
+                "type": "boolean"
+              },
+              "editClientNotes": {
+                "type": "boolean"
+              },
+              "viewAllAppointments": {
+                "type": "boolean"
+              },
+              "manageAllAppointments": {
+                "type": "boolean"
+              },
+              "viewOwnEarnings": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "createOwnAppointments",
+              "changeOwnAppointments",
+              "bookOutsideHours",
+              "blockOwnTime",
+              "viewClientContacts",
+              "viewClientHistory",
+              "viewClientNotes",
+              "editClientNotes",
+              "viewAllAppointments",
+              "manageAllAppointments",
+              "viewOwnEarnings"
+            ],
+            "additionalProperties": false
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "membershipId",
+          "user",
+          "role",
+          "status",
+          "locationIds",
+          "staffCategoryId",
+          "overrides",
+          "permissions",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "TeamMemberList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "membershipId": {
+              "type": "string"
+            },
+            "user": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "email"
+              ],
+              "additionalProperties": false
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "owner",
+                "manager",
+                "staff"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "invited",
+                "active"
+              ]
+            },
+            "locationIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "staffCategoryId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "overrides": {
+              "type": "object",
+              "properties": {
+                "createOwnAppointments": {
+                  "type": "boolean"
+                },
+                "changeOwnAppointments": {
+                  "type": "boolean"
+                },
+                "bookOutsideHours": {
+                  "type": "boolean"
+                },
+                "blockOwnTime": {
+                  "type": "boolean"
+                },
+                "viewClientContacts": {
+                  "type": "boolean"
+                },
+                "viewClientHistory": {
+                  "type": "boolean"
+                },
+                "viewClientNotes": {
+                  "type": "boolean"
+                },
+                "editClientNotes": {
+                  "type": "boolean"
+                },
+                "viewAllAppointments": {
+                  "type": "boolean"
+                },
+                "manageAllAppointments": {
+                  "type": "boolean"
+                },
+                "viewOwnEarnings": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "permissions": {
+              "type": "object",
+              "properties": {
+                "createOwnAppointments": {
+                  "type": "boolean"
+                },
+                "changeOwnAppointments": {
+                  "type": "boolean"
+                },
+                "bookOutsideHours": {
+                  "type": "boolean"
+                },
+                "blockOwnTime": {
+                  "type": "boolean"
+                },
+                "viewClientContacts": {
+                  "type": "boolean"
+                },
+                "viewClientHistory": {
+                  "type": "boolean"
+                },
+                "viewClientNotes": {
+                  "type": "boolean"
+                },
+                "editClientNotes": {
+                  "type": "boolean"
+                },
+                "viewAllAppointments": {
+                  "type": "boolean"
+                },
+                "manageAllAppointments": {
+                  "type": "boolean"
+                },
+                "viewOwnEarnings": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "createOwnAppointments",
+                "changeOwnAppointments",
+                "bookOutsideHours",
+                "blockOwnTime",
+                "viewClientContacts",
+                "viewClientHistory",
+                "viewClientNotes",
+                "editClientNotes",
+                "viewAllAppointments",
+                "manageAllAppointments",
+                "viewOwnEarnings"
+              ],
+              "additionalProperties": false
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "membershipId",
+            "user",
+            "role",
+            "status",
+            "locationIds",
+            "staffCategoryId",
+            "overrides",
+            "permissions",
+            "version"
           ],
           "additionalProperties": false
         }
@@ -8939,6 +10277,20 @@
           "accessToken",
           "expiresIn",
           "user"
+        ],
+        "additionalProperties": false
+      },
+      "UnreadCount": {
+        "type": "object",
+        "properties": {
+          "unread": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "unread"
         ],
         "additionalProperties": false
       },

@@ -1904,6 +1904,27 @@ export interface components {
             version: number;
             createdAt: string;
         }[];
+        EmailsRequeued: {
+            requeued: number;
+        };
+        FailedEmail: {
+            id: string;
+            type: string;
+            appointmentId: string | null;
+            attempts: number;
+            lastError: string | null;
+            createdAt: string;
+            lastAttemptAt: string;
+        };
+        FailedEmailList: {
+            id: string;
+            type: string;
+            appointmentId: string | null;
+            attempts: number;
+            lastError: string | null;
+            createdAt: string;
+            lastAttemptAt: string;
+        }[];
         /** @description A slot kept for the client for 10 minutes */
         Hold: {
             holdId: string;
@@ -1918,6 +1939,46 @@ export interface components {
             staffName: string;
             serviceName: string;
             priceGrosze: number;
+        };
+        Invitation: {
+            id: string;
+            email: string;
+            /** @enum {string} */
+            role: "manager" | "staff";
+            locationIds: string[];
+            staffMemberId: string | null;
+            staffCategoryId: string | null;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+            expiresAt: string;
+            createdAt: string;
+        };
+        InvitationAccepted: {
+            organizationId: string;
+            /** @enum {string} */
+            role: "manager" | "staff";
+        };
+        InvitationList: {
+            id: string;
+            email: string;
+            /** @enum {string} */
+            role: "manager" | "staff";
+            locationIds: string[];
+            staffMemberId: string | null;
+            staffCategoryId: string | null;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+            expiresAt: string;
+            createdAt: string;
+        }[];
+        InvitationPreview: {
+            organizationName: string;
+            /** @enum {string} */
+            role: "manager" | "staff";
+            email: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+            expiresAt: string;
         };
         Location: {
             id: string;
@@ -1973,6 +2034,9 @@ export interface components {
             createdAt: string;
             updatedAt: string;
         }[];
+        MarkedRead: {
+            updated: number;
+        };
         Me: {
             user: {
                 id: string;
@@ -1995,6 +2059,46 @@ export interface components {
             /** @description For people; do not parse it */
             message: string;
         };
+        Notification: {
+            id: string;
+            organizationId: string;
+            /** @enum {string} */
+            type: "appointment.booked" | "appointment.created" | "appointment.rescheduled" | "appointment.cancelled";
+            appointmentId: string | null;
+            data: {
+                locationId: string;
+                start: string;
+                date: string;
+                time: string;
+                serviceName: string;
+                staffName: string;
+                customerName: string | null;
+                /** @enum {string} */
+                by: "client" | "salon";
+            };
+            read: boolean;
+            createdAt: string;
+        };
+        NotificationList: {
+            id: string;
+            organizationId: string;
+            /** @enum {string} */
+            type: "appointment.booked" | "appointment.created" | "appointment.rescheduled" | "appointment.cancelled";
+            appointmentId: string | null;
+            data: {
+                locationId: string;
+                start: string;
+                date: string;
+                time: string;
+                serviceName: string;
+                staffName: string;
+                customerName: string | null;
+                /** @enum {string} */
+                by: "client" | "salon";
+            };
+            read: boolean;
+            createdAt: string;
+        }[];
         Organization: {
             id: string;
             name: string;
@@ -2019,6 +2123,56 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "manager" | "staff";
+            createdAt: string;
+        }[];
+        OutboxStats: {
+            /** @enum {string} */
+            status: "ok" | "warning";
+            problems: string[];
+            pending: number;
+            due: number;
+            oldestDueSeconds: number;
+            failed: number;
+            sentLast24h: number;
+        };
+        PermissionCatalog: {
+            permissions: {
+                /** @enum {string} */
+                key: "createOwnAppointments" | "changeOwnAppointments" | "bookOutsideHours" | "blockOwnTime" | "viewClientContacts" | "viewClientHistory" | "viewClientNotes" | "editClientNotes" | "viewAllAppointments" | "manageAllAppointments" | "viewOwnEarnings";
+                default: boolean;
+            }[];
+            me: {
+                /** @enum {string} */
+                role: "owner" | "manager" | "staff";
+                permissions: {
+                    createOwnAppointments: boolean;
+                    changeOwnAppointments: boolean;
+                    bookOutsideHours: boolean;
+                    blockOwnTime: boolean;
+                    viewClientContacts: boolean;
+                    viewClientHistory: boolean;
+                    viewClientNotes: boolean;
+                    editClientNotes: boolean;
+                    viewAllAppointments: boolean;
+                    manageAllAppointments: boolean;
+                    viewOwnEarnings: boolean;
+                };
+            };
+        };
+        Photo: {
+            id: string;
+            url: string;
+            /** @enum {string} */
+            contentType: "image/jpeg" | "image/png" | "image/webp";
+            sizeBytes: number;
+            createdAt: string;
+        };
+        PhotoList: {
+            id: string;
+            url: string;
+            /** @enum {string} */
+            contentType: "image/jpeg" | "image/png" | "image/webp";
+            sizeBytes: number;
             createdAt: string;
         }[];
         /** @description An appointment as the client sees it */
@@ -2108,6 +2262,9 @@ export interface components {
                 /** @description Link to the photo; null when there is none */
                 photoUrl: string | null;
             }[];
+        };
+        PushPublicKey: {
+            publicKey: string | null;
         };
         Service: {
             id: string;
@@ -2199,6 +2356,44 @@ export interface components {
             createdAt: string;
             updatedAt: string;
         };
+        StaffCategory: {
+            id: string;
+            name: string;
+            permissions: {
+                createOwnAppointments?: boolean;
+                changeOwnAppointments?: boolean;
+                bookOutsideHours?: boolean;
+                blockOwnTime?: boolean;
+                viewClientContacts?: boolean;
+                viewClientHistory?: boolean;
+                viewClientNotes?: boolean;
+                editClientNotes?: boolean;
+                viewAllAppointments?: boolean;
+                manageAllAppointments?: boolean;
+                viewOwnEarnings?: boolean;
+            };
+            memberCount: number;
+            version: number;
+        };
+        StaffCategoryList: {
+            id: string;
+            name: string;
+            permissions: {
+                createOwnAppointments?: boolean;
+                changeOwnAppointments?: boolean;
+                bookOutsideHours?: boolean;
+                blockOwnTime?: boolean;
+                viewClientContacts?: boolean;
+                viewClientHistory?: boolean;
+                viewClientNotes?: boolean;
+                editClientNotes?: boolean;
+                viewAllAppointments?: boolean;
+                manageAllAppointments?: boolean;
+                viewOwnEarnings?: boolean;
+            };
+            memberCount: number;
+            version: number;
+        }[];
         StaffList: {
             id: string;
             locationId: string;
@@ -2216,6 +2411,88 @@ export interface components {
             photoUrl: string | null;
             createdAt: string;
             updatedAt: string;
+        }[];
+        TeamMember: {
+            membershipId: string;
+            user: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            /** @enum {string} */
+            role: "owner" | "manager" | "staff";
+            /** @enum {string} */
+            status: "invited" | "active";
+            locationIds: string[];
+            staffCategoryId: string | null;
+            overrides: {
+                createOwnAppointments?: boolean;
+                changeOwnAppointments?: boolean;
+                bookOutsideHours?: boolean;
+                blockOwnTime?: boolean;
+                viewClientContacts?: boolean;
+                viewClientHistory?: boolean;
+                viewClientNotes?: boolean;
+                editClientNotes?: boolean;
+                viewAllAppointments?: boolean;
+                manageAllAppointments?: boolean;
+                viewOwnEarnings?: boolean;
+            };
+            permissions: {
+                createOwnAppointments: boolean;
+                changeOwnAppointments: boolean;
+                bookOutsideHours: boolean;
+                blockOwnTime: boolean;
+                viewClientContacts: boolean;
+                viewClientHistory: boolean;
+                viewClientNotes: boolean;
+                editClientNotes: boolean;
+                viewAllAppointments: boolean;
+                manageAllAppointments: boolean;
+                viewOwnEarnings: boolean;
+            };
+            version: number;
+        };
+        TeamMemberList: {
+            membershipId: string;
+            user: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            /** @enum {string} */
+            role: "owner" | "manager" | "staff";
+            /** @enum {string} */
+            status: "invited" | "active";
+            locationIds: string[];
+            staffCategoryId: string | null;
+            overrides: {
+                createOwnAppointments?: boolean;
+                changeOwnAppointments?: boolean;
+                bookOutsideHours?: boolean;
+                blockOwnTime?: boolean;
+                viewClientContacts?: boolean;
+                viewClientHistory?: boolean;
+                viewClientNotes?: boolean;
+                editClientNotes?: boolean;
+                viewAllAppointments?: boolean;
+                manageAllAppointments?: boolean;
+                viewOwnEarnings?: boolean;
+            };
+            permissions: {
+                createOwnAppointments: boolean;
+                changeOwnAppointments: boolean;
+                bookOutsideHours: boolean;
+                blockOwnTime: boolean;
+                viewClientContacts: boolean;
+                viewClientHistory: boolean;
+                viewClientNotes: boolean;
+                editClientNotes: boolean;
+                viewAllAppointments: boolean;
+                manageAllAppointments: boolean;
+                viewOwnEarnings: boolean;
+            };
+            version: number;
         }[];
         TimeBlock: {
             id: string;
@@ -2286,6 +2563,9 @@ export interface components {
             refreshToken?: string;
             /** @description Mobile only */
             refreshExpiresAt?: string;
+        };
+        UnreadCount: {
+            unread: number;
         };
         User: {
             id: string;
@@ -2828,7 +3108,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PermissionCatalog"];
+                };
             };
         };
     };
@@ -2845,7 +3127,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StaffCategoryList"];
+                };
             };
         };
     };
@@ -2882,7 +3166,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StaffCategory"];
+                };
             };
         };
     };
@@ -2940,7 +3226,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StaffCategory"];
+                };
             };
         };
     };
@@ -2957,7 +3245,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TeamMemberList"];
+                };
             };
         };
     };
@@ -2997,7 +3287,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TeamMember"];
+                };
             };
         };
     };
@@ -3014,7 +3306,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InvitationList"];
+                };
             };
         };
     };
@@ -3049,7 +3343,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Invitation"];
+                };
             };
         };
     };
@@ -3106,7 +3402,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InvitationPreview"];
+                };
             };
         };
     };
@@ -3125,7 +3423,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InvitationAccepted"];
+                };
             };
         };
     };
@@ -3759,7 +4059,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PhotoList"];
+                };
             };
         };
     };
@@ -3785,7 +4087,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
             };
         };
     };
@@ -3832,7 +4136,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
             };
         };
     };
@@ -3867,11 +4173,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Image bytes; Content-Type is image/jpeg, image/png, or image/webp. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
             };
         };
     };
@@ -4548,7 +4859,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
             };
         };
     };
@@ -4565,7 +4878,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
+                };
             };
         };
     };
@@ -4591,7 +4906,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MarkedRead"];
+                };
             };
         };
     };
@@ -4830,7 +5147,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PushPublicKey"];
+                };
             };
         };
     };
@@ -4917,7 +5236,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OutboxStats"];
+                };
             };
         };
     };
@@ -4934,7 +5255,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FailedEmailList"];
+                };
             };
         };
     };
@@ -4960,7 +5283,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EmailsRequeued"];
+                };
             };
         };
     };

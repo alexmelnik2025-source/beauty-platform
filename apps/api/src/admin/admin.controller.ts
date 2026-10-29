@@ -12,10 +12,11 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { CurrentAuth } from '../auth/decorators';
 import { OutboxService, type FailedEmail, type OutboxStats } from '../booking/outbox.service';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PlatformAdminGuard } from './platform-admin.guard';
+import { emailsRequeuedSchema, failedEmailListSchema, outboxStatsSchema } from './admin.responses';
 
 export const retryEmailsSchema = z.union([
   z.object({ ids: z.array(z.uuid()).min(1).max(500) }),
@@ -34,12 +35,14 @@ export class AdminOutboxController {
 
   @Get()
   @ApiOperation({ summary: 'Email queue health: waiting, failed, sent in the last 24 h' })
+  @ApiZodResponse(outboxStatsSchema)
   stats(): Promise<OutboxStats> {
     return this.outbox.stats();
   }
 
   @Get('failed')
   @ApiOperation({ summary: 'Emails that were given up on (newest first)' })
+  @ApiZodResponse(failedEmailListSchema)
   failed(): Promise<FailedEmail[]> {
     return this.outbox.listFailed();
   }
@@ -52,6 +55,7 @@ export class AdminOutboxController {
       'The same idempotency keys are used, so an email the provider already sent is not sent twice.',
   })
   @ApiZodBody(retryEmailsSchema)
+  @ApiZodResponse(emailsRequeuedSchema)
   async retry(
     @CurrentAuth() auth: AuthContext,
     @Body(new ZodValidationPipe(retryEmailsSchema)) body: RetryEmailsInput,

@@ -6,33 +6,18 @@ import { PushToggle } from '@/components/PushToggle';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import type { Notification } from '@/lib/types';
 import { formatDay } from '@/lib/time';
-
-interface Notice {
-  id: string;
-  type: string;
-  appointmentId: string | null;
-  read: boolean;
-  createdAt: string;
-  data: {
-    date: string;
-    time: string;
-    serviceName: string;
-    staffName: string;
-    customerName: string | null;
-    by: 'client' | 'salon';
-  };
-}
 
 export default function NotificationsPage() {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
-  const [items, setItems] = useState<Notice[] | null>(null);
+  const [items, setItems] = useState<Notification[] | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     try {
-      setItems(await api<Notice[]>('/v1/me/notifications', { query: { limit: 100 } }));
+      setItems(await api<Notification[]>('/v1/me/notifications', { query: { limit: 100 } }));
     } catch (err) {
       setError(errorText(t, err));
     }

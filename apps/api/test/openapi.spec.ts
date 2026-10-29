@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildOpenApiDocument, registeredResponseSchema } from '../src/common/openapi';
+import { APP_CONFIG } from '../src/config/config';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   codeFromEmail,
@@ -552,5 +553,206 @@ describe('appointments, clients, time blocks and calendar match the documented s
     expectShape('Calendar', calendar.body);
     expect(calendar.body.appointments.length).toBeGreaterThan(0);
     expect(calendar.body.blocks).toHaveLength(1);
+  });
+});
+
+describe('team, notification, photo, push and admin responses match the documented shapes', () => {
+  beforeEach(async () => {
+    await resetState(ctx);
+  });
+
+  it('validates real responses for all remaining cabinet API areas', async () => {
+    const owner = await signUp(ctx, 'owner@example.com');
+    const org = await createOrgWithLocation(ctx, owner, 'Barber One');
+    const orgPath = `/v1/organizations/${org.orgId}`;
+    const base = `${orgPath}/locations/${org.locationId}`;
+
+    const permissions = await ctx.http().get(`${orgPath}/permissions`).set(owner.auth).expect(200);
+    expectShape('PermissionCatalog', permissions.body);
+    const category = await ctx
+      .http()
+      .post(`${orgPath}/staff-categories`)
+      .set(owner.auth)
+      .send({ name: 'Senior', permissions: { viewClientContacts: true } })
+      .expect(201);
+    expectShape('StaffCategory', category.body);
+    expectShape(
+      'StaffCategoryList',
+      (await ctx.http().get(`${orgPath}/staff-categories`).set(owner.auth).expect(200)).body,
+    );
+    expectShape(
+      'TeamMemberList',
+      (await ctx.http().get(`${orgPath}/members`).set(owner.auth).expect(200)).body,
+    );
+
+    const inviteEmail = 'invited@example.com';
+    const invitation = await ctx
+      .http()
+      .post(`${orgPath}/invitations`)
+      .set(owner.auth)
+      .send({ email: inviteEmail, role: 'staff', locationIds: [org.locationId] })
+      .expect(201);
+    expectShape('Invitation', invitation.body);
+    expectShape(
+      'InvitationList',
+      (await ctx.http().get(`${orgPath}/invitations`).set(owner.auth).expect(200)).body,
+    );
+    const token = ctx.mail.lastTo(inviteEmail)?.text.match(/\/invite\/(\S+)/)?.[1];
+    expect(token).toBeTruthy();
+    expectShape(
+      'InvitationPreview',
+      (await ctx.http().get(`/v1/invitations/${token}`).expect(200)).body,
+    );
+    const invited = await signUp(ctx, inviteEmail);
+    const accepted = await ctx
+      .http()
+      .post(`/v1/invitations/${token}/accept`)
+      .set(invited.auth)
+      .expect(200);
+    expectShape('InvitationAccepted', accepted.body);
+    expectShape(
+      'TeamMemberList',
+      (await ctx.http().get(`${orgPath}/members`).set(owner.auth).expect(200)).body,
+    );
+
+    const photoBytes = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from('png-body'),
+    ]);
+    const photo = await ctx
+      .http()
+      .post(`${base}/photos`)
+      .set(owner.auth)
+      .set('Content-Type', 'image/png')
+      .send(photoBytes)
+      .expect(201);
+    expectShape('Photo', photo.body);
+    const service = await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(owner.auth)
+      .send({ name: 'Strzyżenie', durationMinutes: 45, bufferMinutes: 0, priceGrosze: 8000 })
+      .expect(201);
+    const staff = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Kasia', serviceIds: [service.body.id] })
+      .expect(201);
+    const staffPhoto = await ctx
+      .http()
+      .put(`${base}/staff/${staff.body.id}/photo`)
+      .set(owner.auth)
+      .set('Content-Type', 'image/png')
+      .send(photoBytes)
+      .expect(200);
+    expectShape('Photo', staffPhoto.body);
+    expectShape(
+      'PhotoList',
+      (await ctx.http().get(`${base}/photos`).set(owner.auth).expect(200)).body,
+    );
+
+    await ctx
+      .http()
+      .put(`${base}/staff/${staff.body.id}/working-hours`)
+      .set(owner.auth)
+      .send({
+        days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+          weekday,
+          intervals: [{ start: '09:00', end: '18:00' }],
+        })),
+      })
+      .expect(200);
+    const location = await ctx.http().get(base).set(owner.auth).expect(200);
+    await ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({ version: location.body.version, onlineBookingEnabled: true })
+      .expect(200);
+    const day = addDays(localToday(Date.now(), TZ), 3);
+    const start = new Date(zonedToInstant(day, 10 * 60, TZ)).toISOString();
+    const hold = await ctx
+      .http()
+      .post(`/v1/public/locations/${org.slug}/holds`)
+      .send({ serviceId: service.body.id, staffId: staff.body.id, start })
+      .expect(201);
+    await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.body.holdId}/code`)
+      .send({
+        holdToken: hold.body.holdToken,
+        name: 'Test Customer',
+        phone: '+48600100200',
+        email: 'customer@example.com',
+        locale: 'pl',
+        acceptTerms: true,
+      })
+      .expect(202);
+    const confirmed = await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
+      .send({ holdToken: hold.body.holdToken, code: codeFromEmail(ctx, 'customer@example.com') })
+      .expect(200);
+
+    const notifications = await ctx.http().get('/v1/me/notifications').set(owner.auth).expect(200);
+    expect(notifications.body).toHaveLength(1);
+    expect(notifications.body[0].appointmentId).toBe(confirmed.body.appointment.id);
+    expectShape('Notification', notifications.body[0]);
+    expectShape(
+      'UnreadCount',
+      (await ctx.http().get('/v1/me/notifications/unread-count').set(owner.auth).expect(200)).body,
+    );
+    expectShape(
+      'MarkedRead',
+      (
+        await ctx
+          .http()
+          .post('/v1/me/notifications/read')
+          .set(owner.auth)
+          .send({ all: true })
+          .expect(200)
+      ).body,
+    );
+    expectShape(
+      'PushPublicKey',
+      (await ctx.http().get('/v1/me/push-subscriptions/public-key').set(owner.auth).expect(200))
+        .body,
+    );
+
+    ctx.app.get(APP_CONFIG).PLATFORM_ADMIN_EMAILS.push(owner.email);
+    await ctx.prisma.notificationOutbox.create({
+      data: {
+        type: 'client_confirmation',
+        payload: { appointmentId: confirmed.body.appointment.id, version: 1 },
+        status: 'failed',
+        attempts: 2,
+        lastError: 'test delivery failure',
+        dedupeKey: 'openapi-contract-failed-email',
+      },
+    });
+    expectShape(
+      'OutboxStats',
+      (await ctx.http().get('/v1/admin/outbox').set(owner.auth).expect(200)).body,
+    );
+    const failedEmails = await ctx
+      .http()
+      .get('/v1/admin/outbox/failed')
+      .set(owner.auth)
+      .expect(200);
+    expect(failedEmails.body).toHaveLength(1);
+    expectShape('FailedEmailList', failedEmails.body);
+    expectShape('FailedEmail', failedEmails.body[0]);
+    expectShape(
+      'EmailsRequeued',
+      (
+        await ctx
+          .http()
+          .post('/v1/admin/outbox/retry')
+          .set(owner.auth)
+          .send({ all: true })
+          .expect(200)
+      ).body,
+    );
   });
 });

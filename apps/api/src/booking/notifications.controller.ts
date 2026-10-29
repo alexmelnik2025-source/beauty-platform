@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth } from '../auth/decorators';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
@@ -12,6 +12,11 @@ import {
   type MarkReadInput,
   type NotificationResponse,
 } from './notifications.service';
+import {
+  markedReadSchema,
+  notificationListSchema,
+  unreadCountSchema,
+} from './notifications.responses';
 
 @ApiTags('me')
 @ApiBearerAuth()
@@ -30,6 +35,7 @@ export class NotificationsController {
     required: false,
     description: 'Id of the last item of the previous page',
   })
+  @ApiZodResponse(notificationListSchema)
   list(
     @CurrentAuth() auth: AuthContext,
     @Query(new ZodValidationPipe(listNotificationsSchema)) query: ListNotificationsQuery,
@@ -39,6 +45,7 @@ export class NotificationsController {
 
   @Get('unread-count')
   @ApiOperation({ summary: 'Number for the bell badge' })
+  @ApiZodResponse(unreadCountSchema)
   unread(@CurrentAuth() auth: AuthContext): Promise<{ unread: number }> {
     return this.notifications.unreadCount(auth.userId);
   }
@@ -47,6 +54,7 @@ export class NotificationsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark as read: {"ids": [...]} or {"all": true}' })
   @ApiZodBody(markReadSchema)
+  @ApiZodResponse(markedReadSchema)
   markRead(
     @CurrentAuth() auth: AuthContext,
     @Body(new ZodValidationPipe(markReadSchema)) body: MarkReadInput,

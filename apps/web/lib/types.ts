@@ -2,7 +2,7 @@
  * Shapes of the API responses the web app uses (see /v1/docs). Permissions are still written by
  * hand; everything else comes from @beauty/api-client.
  */
-import type { AppointmentStatus, Role } from '@beauty/api-client';
+import type { AppointmentStatus } from '@beauty/api-client';
 
 /** Languages spoken with clients (be = Belarusian). Not the interface languages. */
 export const SPOKEN = ['pl', 'uk', 'ru', 'be', 'en'] as const;
@@ -15,10 +15,6 @@ export const APPOINTMENT_STATUSES = [
   'completed',
   'no_show',
 ] as const satisfies readonly AppointmentStatus[];
-
-export interface MyPermissions {
-  me: { role: Role; permissions: Record<string, boolean> };
-}
 
 /**
  * Generated from the API's OpenAPI document, so these can never drift from the server:
@@ -37,6 +33,19 @@ export type {
   Hold,
   Location,
   Me,
+  PermissionCatalog,
+  PermissionDefault,
+  StaffCategory,
+  TeamMember,
+  Invitation,
+  InvitationPreview,
+  InvitationAccepted,
+  Notification,
+  PushPublicKey,
+  Photo,
+  OutboxStats,
+  FailedEmail,
+  EmailsRequeued,
   PublicAppointment,
   PublicLocation,
   Role,

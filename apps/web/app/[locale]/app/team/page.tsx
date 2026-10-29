@@ -14,14 +14,7 @@ import { StaffSheet, type StaffRow } from '@/components/team/StaffSheet';
 import { ErrorBox, initials, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
-
-interface Invitation {
-  id: string;
-  email: string;
-  role: 'manager' | 'staff';
-  status: 'pending' | 'accepted' | 'revoked' | 'expired';
-  expiresAt: string;
-}
+import type { Invitation, PermissionCatalog } from '@/lib/types';
 
 export default function TeamPage() {
   const { t } = useI18n();
@@ -51,7 +44,7 @@ export default function TeamPage() {
         api<{ id: string; name: string; active: boolean }[]>(`${base}/services`),
         api<Member[]>(`${org}/members`),
         api<Category[]>(`${org}/staff-categories`),
-        api<{ permissions: PermissionDefault[] }>(`${org}/permissions`),
+        api<PermissionCatalog>(`${org}/permissions`),
         api<Invitation[]>(`${org}/invitations`),
       ]);
       setStaff(s);

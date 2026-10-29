@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth } from '../auth/decorators';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
@@ -11,6 +11,7 @@ import {
   type SubscribeInput,
   type UnsubscribeInput,
 } from './push.service';
+import { pushPublicKeySchema } from './push.responses';
 
 @ApiTags('me')
 @ApiBearerAuth()
@@ -22,6 +23,7 @@ export class PushController {
   @ApiOperation({
     summary: 'Key the browser subscribes with (Web Push). publicKey = null: push is off',
   })
+  @ApiZodResponse(pushPublicKeySchema)
   publicKey(): { publicKey: string | null } {
     return this.push.publicKey();
   }

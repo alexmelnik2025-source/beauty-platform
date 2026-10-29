@@ -52,6 +52,20 @@ export type Customer = Schemas['Customer'];
 export type CustomerDetail = Schemas['CustomerDetail'];
 export type TimeBlock = Schemas['TimeBlock'];
 export type Calendar = Schemas['Calendar'];
+/** Team administration, notification delivery, photos and platform email queue. */
+export type PermissionCatalog = Schemas['PermissionCatalog'];
+export type PermissionDefault = PermissionCatalog['permissions'][number];
+export type StaffCategory = Schemas['StaffCategory'];
+export type TeamMember = Schemas['TeamMember'];
+export type Invitation = Schemas['Invitation'];
+export type InvitationPreview = Schemas['InvitationPreview'];
+export type InvitationAccepted = Schemas['InvitationAccepted'];
+export type Notification = Schemas['Notification'];
+export type PushPublicKey = Schemas['PushPublicKey'];
+export type Photo = Schemas['Photo'];
+export type OutboxStats = Schemas['OutboxStats'];
+export type FailedEmail = Schemas['FailedEmail'];
+export type EmailsRequeued = Schemas['EmailsRequeued'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

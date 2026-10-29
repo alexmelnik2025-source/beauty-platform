@@ -4,37 +4,21 @@ import { useCallback, useEffect, useState } from 'react';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
-
-interface Stats {
-  status: 'ok' | 'warning';
-  pending: number;
-  due: number;
-  oldestDueSeconds: number;
-  failed: number;
-  sentLast24h: number;
-}
-
-interface Failed {
-  id: string;
-  type: string;
-  attempts: number;
-  lastError: string | null;
-  lastAttemptAt: string;
-}
+import type { EmailsRequeued, FailedEmail, OutboxStats } from '@/lib/types';
 
 /** Platform administrators only: health of the email queue and resending failed emails. */
 export default function OutboxPage() {
   const { t, locale } = useI18n();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [failed, setFailed] = useState<Failed[]>([]);
+  const [stats, setStats] = useState<OutboxStats | null>(null);
+  const [failed, setFailed] = useState<FailedEmail[]>([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     try {
       const [s, f] = await Promise.all([
-        api<Stats>('/v1/admin/outbox'),
-        api<Failed[]>('/v1/admin/outbox/failed'),
+        api<OutboxStats>('/v1/admin/outbox'),
+        api<FailedEmail[]>('/v1/admin/outbox/failed'),
       ]);
       setStats(s);
       setFailed(f);
@@ -49,7 +33,7 @@ export default function OutboxPage() {
 
   async function retry(body: object) {
     try {
-      const res = await api<{ requeued: number }>('/v1/admin/outbox/retry', {
+      const res = await api<EmailsRequeued>('/v1/admin/outbox/retry', {
         method: 'POST',
         body,
       });

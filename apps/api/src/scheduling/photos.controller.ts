@@ -13,10 +13,18 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentAuth, Public } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
+import { ApiZodResponse } from '../common/openapi';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest, AuthContext, MembershipContext } from '../common/request-context';
 import {
@@ -25,6 +33,7 @@ import {
   RequireRoles,
 } from '../organizations/membership.guard';
 import { MAX_SALON_PHOTOS, PhotosService, type PhotoResponse } from './photos.service';
+import { photoListSchema, photoSchema } from './photos.responses';
 
 const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
 
@@ -47,6 +56,7 @@ export class LocationPhotosController {
 
   @Get()
   @ApiOperation({ summary: 'Salon photos for the booking page, oldest first' })
+  @ApiZodResponse(photoListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -57,6 +67,7 @@ export class LocationPhotosController {
   @Post()
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: `Add a salon photo (JPEG, PNG or WebP; at most ${MAX_SALON_PHOTOS})` })
+  @ApiZodResponse(photoSchema, HttpStatus.CREATED)
   @ImageBody()
   add(
     @CurrentAuth() auth: AuthContext,
@@ -91,6 +102,7 @@ export class StaffPhotoController {
   @Put()
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: "Set the staff member's photo (replaces the old one)" })
+  @ApiZodResponse(photoSchema)
   @ImageBody()
   set(
     @CurrentAuth() auth: AuthContext,
@@ -130,6 +142,15 @@ export class PublicPhotosController {
   @ApiOperation({
     summary: 'A salon or staff photo',
     description: 'A new photo always gets a new link, so browsers may keep it for a year.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Image bytes; Content-Type is image/jpeg, image/png, or image/webp.',
+    content: {
+      'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+      'image/png': { schema: { type: 'string', format: 'binary' } },
+      'image/webp': { schema: { type: 'string', format: 'binary' } },
+    },
   })
   async get(
     @Req() req: AppRequest,

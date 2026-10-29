@@ -3,35 +3,13 @@
 import { useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
 import { errorText, LOCALES, useI18n } from '@/lib/i18n';
-import type { Role } from '@/lib/types';
+import type { PermissionDefault, StaffCategory, TeamMember } from '@/lib/types';
 import { ErrorBox, Sheet } from '../ui';
 
-export type PermissionMap = Partial<Record<string, boolean>>;
-
-export interface Member {
-  membershipId: string;
-  user: { id: string; name: string; email: string };
-  role: Role;
-  status: string;
-  locationIds: string[];
-  staffCategoryId: string | null;
-  overrides: PermissionMap;
-  permissions: Record<string, boolean>;
-  version: number;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  permissions: PermissionMap;
-  memberCount: number;
-  version: number;
-}
-
-export interface PermissionDefault {
-  key: string;
-  default: boolean;
-}
+export type PermissionMap = StaffCategory['permissions'];
+export type Member = TeamMember;
+export type Category = StaffCategory;
+export type { PermissionDefault };
 
 /** "As in the category / yes / no" for one permission. */
 function Tri({
