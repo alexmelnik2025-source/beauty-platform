@@ -14,6 +14,7 @@ export const ru: Dict = {
     signOut: 'Выйти',
     optional: 'необязательно',
     or: 'или',
+    language: 'Язык',
   },
   errors: {
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',

@@ -14,6 +14,7 @@ export const en: Dict = {
     signOut: 'Sign out',
     optional: 'optional',
     or: 'or',
+    language: 'Language',
   },
   errors: {
     generic: 'Something went wrong. Try again.',
