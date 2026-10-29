@@ -319,6 +319,8 @@ model Location {
   addressLine                 String   @map("address_line")
   city                        String
   postalCode                  String   @map("postal_code")
+  latitude                    Float?
+  longitude                   Float?
   phone                       String?
   email                       String?
   defaultLocale               Locale   @default(pl) @map("default_locale")

@@ -710,6 +710,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public paginated salon directory; returns no organization or staff data */
+        get: operations["PublicDirectoryController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/photos": {
         parameters: {
             query?: never;
@@ -1929,6 +1946,8 @@ export interface components {
             addressLine: string;
             city: string;
             postalCode: string;
+            latitude: number | null;
+            longitude: number | null;
             phone: string | null;
             email: string | null;
             /** @enum {string} */
@@ -1956,6 +1975,8 @@ export interface components {
             addressLine: string;
             city: string;
             postalCode: string;
+            latitude: number | null;
+            longitude: number | null;
             phone: string | null;
             email: string | null;
             /** @enum {string} */
@@ -2108,6 +2129,22 @@ export interface components {
                 /** @description Link to the photo; null when there is none */
                 photoUrl: string | null;
             }[];
+        };
+        PublicSalonDirectory: {
+            items: {
+                slug: string;
+                name: string;
+                addressLine: string;
+                city: string;
+                postalCode: string;
+                languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+                latitude: number | null;
+                longitude: number | null;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+            pageCount: number;
         };
         Service: {
             id: string;
@@ -2717,6 +2754,8 @@ export interface operations {
                     addressLine: string;
                     city: string;
                     postalCode: string;
+                    latitude?: number | null;
+                    longitude?: number | null;
                     phone?: string | null;
                     email?: string | null;
                     /**
@@ -2789,6 +2828,8 @@ export interface operations {
                     addressLine?: string;
                     city?: string;
                     postalCode?: string;
+                    latitude?: number | null;
+                    longitude?: number | null;
                     phone?: string | null;
                     email?: string | null;
                     /** @enum {string} */
@@ -3740,6 +3781,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Availability"];
+                };
+            };
+        };
+    };
+    PublicDirectoryController_list: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                page?: number;
+                language?: "pl" | "uk" | "ru" | "be" | "en";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSalonDirectory"];
                 };
             };
         };

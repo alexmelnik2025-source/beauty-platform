@@ -37,6 +37,8 @@ const locationFields = {
   addressLine: z.string().trim().min(1).max(200),
   city: z.string().trim().min(1).max(100),
   postalCode: z.string().trim().min(3).max(12),
+  latitude: z.number().min(-90).max(90).nullable(),
+  longitude: z.number().min(-180).max(180).nullable(),
   phone: z
     .string()
     .trim()
@@ -70,6 +72,8 @@ const locationFields = {
 export const createLocationSchema = z.object({
   ...locationFields,
   slug: locationFields.slug.optional(),
+  latitude: locationFields.latitude.optional(),
+  longitude: locationFields.longitude.optional(),
   timezone: locationFields.timezone.default('Europe/Warsaw'),
   phone: locationFields.phone.optional(),
   email: locationFields.email.optional(),

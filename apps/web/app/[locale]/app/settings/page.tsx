@@ -17,6 +17,8 @@ interface LocationSettings {
   addressLine: string;
   city: string;
   postalCode: string;
+  latitude: number | null;
+  longitude: number | null;
   phone: string | null;
   onlineBookingEnabled: boolean;
   minLeadMinutes: number;
@@ -70,6 +72,8 @@ export default function SettingsPage() {
           addressLine: form.addressLine,
           city: form.city,
           postalCode: form.postalCode,
+          latitude: form.latitude,
+          longitude: form.longitude,
           phone: form.phone ? normalizePhone(form.phone) : null,
           onlineBookingEnabled: form.onlineBookingEnabled,
           minLeadMinutes: form.minLeadMinutes,
@@ -151,6 +155,41 @@ export default function SettingsPage() {
               />
             </label>
           </div>
+          <div className="row">
+            <label className="field">
+              <span>{t.directory.latitude}</span>
+              <input
+                type="number"
+                min={-90}
+                max={90}
+                step="any"
+                value={form.latitude ?? ''}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    latitude: e.target.value === '' ? null : Number(e.target.value),
+                  })
+                }
+              />
+            </label>
+            <label className="field">
+              <span>{t.directory.longitude}</span>
+              <input
+                type="number"
+                min={-180}
+                max={180}
+                step="any"
+                value={form.longitude ?? ''}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    longitude: e.target.value === '' ? null : Number(e.target.value),
+                  })
+                }
+              />
+            </label>
+          </div>
+          <p className="small muted">{t.directory.coordinatesHint}</p>
           <div className="row">
             <label className="field">
               <span>{t.settings.deadline}</span>
