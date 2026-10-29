@@ -14,7 +14,8 @@
 
 - [ ] **F — готово, ждёт проверки владельца** (`fix/localization-completeness`, от `origin/main`): найденный
       английский `aria-label` у переключателя языка заменён переводами; добавлен тест равенства рекурсивных
-      ключей PL/UA/RU/EN. Форматирование, lint, typecheck и API build прошли локально; PostgreSQL-набор ожидает CI.
+      ключей PL/UA/RU/EN. Форматирование, lint, typecheck и API build прошли локально; CI check с PostgreSQL-набором
+      прошёл на PR #6.
       Черновой PR не сливать.
 
 - [ ] **7. Типизированный клиент API.** `packages/api-client` из OpenAPI вместо ручных типов `apps/web/lib/types.ts`.
