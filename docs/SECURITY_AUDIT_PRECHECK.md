@@ -21,17 +21,17 @@ Before horizontal scaling, implement shared atomic limits (PostgreSQL transactio
 
 ## Required PostgreSQL regression matrix
 
-| Area | Test with two different organizations/users | Expected result |
-| --- | --- | --- |
-| Organization cabinet | User from org A requests org B's IDs | 404 for organization access; no data leak |
-| Location-scoped manager | Manager assigned to location A addresses location B in the same org | denied; no cross-location read or write |
-| Staff permissions | Non-owner changes a category/member permission map | 403 |
-| Invitations | Manager invites to an unassigned location or references another org's staff/category | rejected; no invitation created |
-| Invitation acceptance | Wrong verified email, revoked token, expired token, token reused | rejected; no membership change |
-| Photos | User guesses another tenant's photo/object identifier | denied; no metadata or bytes leaked |
-| Notifications/push | User requests another user's notification or unsubscribes their endpoint | denied/no-op; no other user's data changes |
-| Admin outbox | Non-admin or unverified configured admin email accesses/retries queue | 404; no email retried |
-| Rate limits | High-cardinality IP keys and repeated attempts; replica behavior | bounded memory and documented effective limit |
+| Area                    | Test with two different organizations/users                                          | Expected result                               |
+| ----------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Organization cabinet    | User from org A requests org B's IDs                                                 | 404 for organization access; no data leak     |
+| Location-scoped manager | Manager assigned to location A addresses location B in the same org                  | denied; no cross-location read or write       |
+| Staff permissions       | Non-owner changes a category/member permission map                                   | 403                                           |
+| Invitations             | Manager invites to an unassigned location or references another org's staff/category | rejected; no invitation created               |
+| Invitation acceptance   | Wrong verified email, revoked token, expired token, token reused                     | rejected; no membership change                |
+| Photos                  | User guesses another tenant's photo/object identifier                                | denied; no metadata or bytes leaked           |
+| Notifications/push      | User requests another user's notification or unsubscribes their endpoint             | denied/no-op; no other user's data changes    |
+| Admin outbox            | Non-admin or unverified configured admin email accesses/retries queue                | 404; no email retried                         |
+| Rate limits             | High-cardinality IP keys and repeated attempts; replica behavior                     | bounded memory and documented effective limit |
 
 Run these tests against the project's real PostgreSQL test setup. Do not replace transactional/concurrency checks with mocks.
 
