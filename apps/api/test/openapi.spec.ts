@@ -689,10 +689,12 @@ describe('team, notification, photo, push and admin responses match the document
         acceptTerms: true,
       })
       .expect(202);
+    const bookingCode = ctx.mail.lastTo('customer@example.com')?.text.match(/\b(\d{6})\b/)?.[1];
+    expect(bookingCode).toBeTruthy();
     const confirmed = await ctx
       .http()
       .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
-      .send({ holdToken: hold.body.holdToken, code: codeFromEmail(ctx, 'customer@example.com') })
+      .send({ holdToken: hold.body.holdToken, code: bookingCode })
       .expect(200);
 
     const notifications = await ctx.http().get('/v1/me/notifications').set(owner.auth).expect(200);
