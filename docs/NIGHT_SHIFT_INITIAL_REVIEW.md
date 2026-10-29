@@ -1,4 +1,6 @@
-# Night shift report — 2026-10-29
+# Initial night shift review — 2026-10-29
+
+Historical snapshot from before the local checkout became available. Its task statuses and validation limits are superseded by the final report in [NIGHT_SHIFT_REPORT.md](NIGHT_SHIFT_REPORT.md); retained here so the earlier branch work and findings are not discarded.
 
 ## Scope and execution constraints
 
