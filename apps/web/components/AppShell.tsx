@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { useI18n, type Locale } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
+import type { UnreadCount } from '@/lib/types';
 import { InstallApp } from './InstallApp';
 import { useSession } from './Session';
 import { LanguageSwitch, Wordmark } from './ui';
@@ -44,7 +45,7 @@ function useUnread(): number {
   const [unread, setUnread] = useState(0);
   useEffect(() => {
     const check = () =>
-      void api<{ unread: number }>('/v1/me/notifications/unread-count')
+      void api<UnreadCount>('/v1/me/notifications/unread-count')
         .then((r) => setUnread(r.unread))
         .catch(() => undefined);
     check();

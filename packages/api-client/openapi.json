@@ -3100,7 +3100,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3151,7 +3158,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Photo"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3249,7 +3263,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Photo"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4784,7 +4805,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4804,7 +4832,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCount"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4865,7 +4900,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsMarked"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5275,7 +5317,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushPublicKey"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5406,7 +5455,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5420,7 +5476,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboxStats"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5440,7 +5503,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedEmailList"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5502,7 +5572,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailsRequeued"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7418,6 +7495,140 @@
           "additionalProperties": false
         }
       },
+      "EmailsRequeued": {
+        "type": "object",
+        "properties": {
+          "requeued": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "requeued"
+        ],
+        "additionalProperties": false
+      },
+      "FailedEmail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "appointmentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "lastAttemptAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "appointmentId",
+          "attempts",
+          "lastError",
+          "createdAt",
+          "lastAttemptAt"
+        ],
+        "additionalProperties": false
+      },
+      "FailedEmailList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "appointmentId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "lastError": {
+              "nullable": true,
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "lastAttemptAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "appointmentId",
+            "attempts",
+            "lastError",
+            "createdAt",
+            "lastAttemptAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "type": "string",
+                "enum": [
+                  "up",
+                  "down"
+                ]
+              }
+            },
+            "required": [
+              "database"
+            ],
+            "additionalProperties": false
+          },
+          "time": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks",
+          "time"
+        ],
+        "additionalProperties": false
+      },
       "Hold": {
         "type": "object",
         "properties": {
@@ -8327,6 +8538,204 @@
         ],
         "additionalProperties": false
       },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "appointment.booked",
+              "appointment.created",
+              "appointment.rescheduled",
+              "appointment.cancelled"
+            ],
+            "description": "booked = online by a client, created = by the salon, rescheduled, cancelled"
+          },
+          "appointmentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "locationId": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "description": "Location-local date, YYYY-MM-DD"
+              },
+              "time": {
+                "type": "string",
+                "description": "Location-local start time, HH:MM"
+              },
+              "serviceName": {
+                "type": "string"
+              },
+              "staffName": {
+                "type": "string"
+              },
+              "customerName": {
+                "nullable": true,
+                "type": "string"
+              },
+              "by": {
+                "type": "string",
+                "enum": [
+                  "client",
+                  "salon"
+                ],
+                "description": "Who made the change"
+              }
+            },
+            "required": [
+              "locationId",
+              "start",
+              "date",
+              "time",
+              "serviceName",
+              "staffName",
+              "customerName",
+              "by"
+            ],
+            "additionalProperties": false,
+            "description": "What to show without another request. Never client contacts"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "type",
+          "appointmentId",
+          "data",
+          "read",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "NotificationList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "organizationId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "appointment.booked",
+                "appointment.created",
+                "appointment.rescheduled",
+                "appointment.cancelled"
+              ],
+              "description": "booked = online by a client, created = by the salon, rescheduled, cancelled"
+            },
+            "appointmentId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "locationId": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Location-local date, YYYY-MM-DD"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "Location-local start time, HH:MM"
+                },
+                "serviceName": {
+                  "type": "string"
+                },
+                "staffName": {
+                  "type": "string"
+                },
+                "customerName": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "by": {
+                  "type": "string",
+                  "enum": [
+                    "client",
+                    "salon"
+                  ],
+                  "description": "Who made the change"
+                }
+              },
+              "required": [
+                "locationId",
+                "start",
+                "date",
+                "time",
+                "serviceName",
+                "staffName",
+                "customerName",
+                "by"
+              ],
+              "additionalProperties": false,
+              "description": "What to show without another request. Never client contacts"
+            },
+            "read": {
+              "type": "boolean"
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "organizationId",
+            "type",
+            "appointmentId",
+            "data",
+            "read",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "NotificationsMarked": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many became read"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "additionalProperties": false
+      },
       "Organization": {
         "type": "object",
         "properties": {
@@ -8409,6 +8818,60 @@
           ],
           "additionalProperties": false
         }
+      },
+      "OutboxStats": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "warning"
+            ]
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "failed = some emails were given up on; stuck = a due email waits too long"
+          },
+          "pending": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "due": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "oldestDueSeconds": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sentLast24h": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "status",
+          "problems",
+          "pending",
+          "due",
+          "oldestDueSeconds",
+          "failed",
+          "sentLast24h"
+        ],
+        "additionalProperties": false
       },
       "PermissionCatalog": {
         "type": "object",
@@ -8522,6 +8985,71 @@
           "me"
         ],
         "additionalProperties": false
+      },
+      "Photo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Path on this API, the same for every client: /v1/public/photos/<id>"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "contentType",
+          "sizeBytes",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "PhotoList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "description": "Path on this API, the same for every client: /v1/public/photos/<id>"
+            },
+            "contentType": {
+              "type": "string"
+            },
+            "sizeBytes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "url",
+            "contentType",
+            "sizeBytes",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
       },
       "PublicAppointment": {
         "type": "object",
@@ -8910,6 +9438,20 @@
         ],
         "additionalProperties": false,
         "description": "The public salon page: no buffers, staff accounts or organization details"
+      },
+      "PushPublicKey": {
+        "type": "object",
+        "properties": {
+          "publicKey": {
+            "nullable": true,
+            "description": "null: push messages are off on this server",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publicKey"
+        ],
+        "additionalProperties": false
       },
       "Service": {
         "type": "object",
@@ -9773,6 +10315,20 @@
           "accessToken",
           "expiresIn",
           "user"
+        ],
+        "additionalProperties": false
+      },
+      "UnreadCount": {
+        "type": "object",
+        "properties": {
+          "unread": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "unread"
         ],
         "additionalProperties": false
       },

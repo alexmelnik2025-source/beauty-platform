@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import type { Prisma } from '../generated/prisma/client';
+import type {
+  NotificationData,
+  NotificationResponse,
+  NOTIFICATION_TYPES,
+} from '../common/system.responses';
 import { PrismaService } from '../prisma/prisma.service';
 import { instantToLocal } from '../scheduling/time';
 
@@ -10,7 +15,7 @@ const KINDS = {
   created: 'appointment.created',
   rescheduled: 'appointment.rescheduled',
   cancelled: 'appointment.cancelled',
-} as const;
+} as const satisfies Record<string, (typeof NOTIFICATION_TYPES)[number]>;
 
 export const listNotificationsSchema = z.object({
   unreadOnly: z
@@ -29,15 +34,7 @@ export const markReadSchema = z.union([
 ]);
 export type MarkReadInput = z.infer<typeof markReadSchema>;
 
-export interface NotificationResponse {
-  id: string;
-  organizationId: string;
-  type: string;
-  appointmentId: string | null;
-  data: unknown;
-  read: boolean;
-  createdAt: string;
-}
+export type { NotificationResponse } from '../common/system.responses';
 
 /**
  * The in-app notification feed. Rows are written inside the transaction of the
@@ -104,7 +101,7 @@ export class NotificationsService {
     if (recipients.length === 0) return;
 
     const local = instantToLocal(appointment.startAt.getTime(), appointment.location.timezone);
-    const data: Prisma.InputJsonValue = {
+    const data: NotificationData = {
       locationId: appointment.locationId,
       start: appointment.startAt.toISOString(),
       date: local.date,
@@ -140,9 +137,10 @@ export class NotificationsService {
     return rows.map((n) => ({
       id: n.id,
       organizationId: n.organizationId,
-      type: n.type,
+      // Written only by onAppointmentEvent above, always in this shape.
+      type: n.type as NotificationResponse['type'],
       appointmentId: n.appointmentId,
-      data: n.data,
+      data: n.data as NotificationData,
       read: n.readAt !== null,
       createdAt: n.createdAt.toISOString(),
     }));

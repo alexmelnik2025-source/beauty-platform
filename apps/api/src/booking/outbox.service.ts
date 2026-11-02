@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { generateToken, hashToken } from '../common/crypto';
+import type { FailedEmail, OutboxStats } from '../common/system.responses';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Locale, Prisma } from '../generated/prisma/client';
 import { MailService, maskEmails, type MailMessage } from '../mail/mail.service';
@@ -34,26 +35,7 @@ const ALERT_REPEAT_MS = 60 * 60_000;
 const MANAGE_LINK_DAYS_AFTER_VISIT = 7;
 const DAY_MS = 86_400_000;
 
-export interface OutboxStats {
-  status: 'ok' | 'warning';
-  /** failed = some emails were given up on; stuck = a due email waits too long. */
-  problems: string[];
-  pending: number;
-  due: number;
-  oldestDueSeconds: number;
-  failed: number;
-  sentLast24h: number;
-}
-
-export interface FailedEmail {
-  id: string;
-  type: string;
-  appointmentId: string | null;
-  attempts: number;
-  lastError: string | null;
-  createdAt: string;
-  lastAttemptAt: string;
-}
+export type { FailedEmail, OutboxStats } from '../common/system.responses';
 
 interface ClaimedRow {
   id: string;

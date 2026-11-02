@@ -1904,6 +1904,36 @@ export interface components {
             version: number;
             createdAt: string;
         }[];
+        EmailsRequeued: {
+            requeued: number;
+        };
+        FailedEmail: {
+            id: string;
+            type: string;
+            appointmentId: string | null;
+            attempts: number;
+            lastError: string | null;
+            createdAt: string;
+            lastAttemptAt: string;
+        };
+        FailedEmailList: {
+            id: string;
+            type: string;
+            appointmentId: string | null;
+            attempts: number;
+            lastError: string | null;
+            createdAt: string;
+            lastAttemptAt: string;
+        }[];
+        Health: {
+            /** @enum {string} */
+            status: "ok" | "error";
+            checks: {
+                /** @enum {string} */
+                database: "up" | "down";
+            };
+            time: string;
+        };
         /** @description A slot kept for the client for 10 minutes */
         Hold: {
             holdId: string;
@@ -2121,6 +2151,68 @@ export interface components {
             /** @description For people; do not parse it */
             message: string;
         };
+        Notification: {
+            id: string;
+            organizationId: string;
+            /**
+             * @description booked = online by a client, created = by the salon, rescheduled, cancelled
+             * @enum {string}
+             */
+            type: "appointment.booked" | "appointment.created" | "appointment.rescheduled" | "appointment.cancelled";
+            appointmentId: string | null;
+            /** @description What to show without another request. Never client contacts */
+            data: {
+                locationId: string;
+                start: string;
+                /** @description Location-local date, YYYY-MM-DD */
+                date: string;
+                /** @description Location-local start time, HH:MM */
+                time: string;
+                serviceName: string;
+                staffName: string;
+                customerName: string | null;
+                /**
+                 * @description Who made the change
+                 * @enum {string}
+                 */
+                by: "client" | "salon";
+            };
+            read: boolean;
+            createdAt: string;
+        };
+        NotificationList: {
+            id: string;
+            organizationId: string;
+            /**
+             * @description booked = online by a client, created = by the salon, rescheduled, cancelled
+             * @enum {string}
+             */
+            type: "appointment.booked" | "appointment.created" | "appointment.rescheduled" | "appointment.cancelled";
+            appointmentId: string | null;
+            /** @description What to show without another request. Never client contacts */
+            data: {
+                locationId: string;
+                start: string;
+                /** @description Location-local date, YYYY-MM-DD */
+                date: string;
+                /** @description Location-local start time, HH:MM */
+                time: string;
+                serviceName: string;
+                staffName: string;
+                customerName: string | null;
+                /**
+                 * @description Who made the change
+                 * @enum {string}
+                 */
+                by: "client" | "salon";
+            };
+            read: boolean;
+            createdAt: string;
+        }[];
+        NotificationsMarked: {
+            /** @description How many became read */
+            updated: number;
+        };
         Organization: {
             id: string;
             name: string;
@@ -2147,6 +2239,17 @@ export interface components {
             role: "owner" | "manager" | "staff";
             createdAt: string;
         }[];
+        OutboxStats: {
+            /** @enum {string} */
+            status: "ok" | "warning";
+            /** @description failed = some emails were given up on; stuck = a due email waits too long */
+            problems: string[];
+            pending: number;
+            due: number;
+            oldestDueSeconds: number;
+            failed: number;
+            sentLast24h: number;
+        };
         PermissionCatalog: {
             permissions: {
                 /** @enum {string} */
@@ -2172,6 +2275,22 @@ export interface components {
                 };
             };
         };
+        Photo: {
+            id: string;
+            /** @description Path on this API, the same for every client: /v1/public/photos/<id> */
+            url: string;
+            contentType: string;
+            sizeBytes: number;
+            createdAt: string;
+        };
+        PhotoList: {
+            id: string;
+            /** @description Path on this API, the same for every client: /v1/public/photos/<id> */
+            url: string;
+            contentType: string;
+            sizeBytes: number;
+            createdAt: string;
+        }[];
         /** @description An appointment as the client sees it */
         PublicAppointment: {
             id: string;
@@ -2259,6 +2378,10 @@ export interface components {
                 /** @description Link to the photo; null when there is none */
                 photoUrl: string | null;
             }[];
+        };
+        PushPublicKey: {
+            /** @description null: push messages are off on this server */
+            publicKey: string | null;
         };
         Service: {
             id: string;
@@ -2475,6 +2598,9 @@ export interface components {
             refreshToken?: string;
             /** @description Mobile only */
             refreshExpiresAt?: string;
+        };
+        UnreadCount: {
+            unread: number;
         };
         User: {
             id: string;
@@ -3968,7 +4094,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PhotoList"];
+                };
             };
         };
     };
@@ -3994,7 +4122,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
             };
         };
     };
@@ -4041,7 +4171,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
             };
         };
     };
@@ -4757,7 +4889,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
             };
         };
     };
@@ -4774,7 +4908,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
+                };
             };
         };
     };
@@ -4800,7 +4936,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotificationsMarked"];
+                };
             };
         };
     };
@@ -5039,7 +5177,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PushPublicKey"];
+                };
             };
         };
     };
@@ -5109,7 +5249,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
             };
         };
     };
@@ -5126,7 +5268,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OutboxStats"];
+                };
             };
         };
     };
@@ -5143,7 +5287,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FailedEmailList"];
+                };
             };
         };
     };
@@ -5169,7 +5315,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EmailsRequeued"];
+                };
             };
         };
     };

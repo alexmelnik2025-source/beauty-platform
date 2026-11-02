@@ -4,23 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
-
-interface Stats {
-  status: 'ok' | 'warning';
-  pending: number;
-  due: number;
-  oldestDueSeconds: number;
-  failed: number;
-  sentLast24h: number;
-}
-
-interface Failed {
-  id: string;
-  type: string;
-  attempts: number;
-  lastError: string | null;
-  lastAttemptAt: string;
-}
+import type { FailedEmail as Failed, OutboxStats as Stats } from '@/lib/types';
 
 /** Platform administrators only: health of the email queue and resending failed emails. */
 export default function OutboxPage() {

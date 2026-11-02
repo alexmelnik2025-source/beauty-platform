@@ -19,7 +19,8 @@ export const APPOINTMENT_STATUSES = [
 /**
  * Generated from the API's OpenAPI document, so these can never drift from the server:
  * what clients see (booking page, manage link, "My visits"), the salon account and catalogue,
- * appointments, client cards, time blocks, the calendar, the team, permissions and invitations.
+ * appointments, client cards, time blocks, the calendar, the team, permissions, invitations,
+ * notifications, push, photos and the email queue.
  */
 export type {
   Appointment,
@@ -30,6 +31,7 @@ export type {
   CustomerDetail,
   ClientAppointment,
   ClientPerson,
+  FailedEmail,
   Hold,
   Invitation,
   InvitationAccepted,
@@ -37,16 +39,21 @@ export type {
   Location,
   Me,
   Member,
+  Notification,
+  OutboxStats,
   PermissionCatalog,
   PermissionKey,
   PermissionMap,
   Permissions,
+  Photo,
   PublicAppointment,
   PublicLocation,
+  PushPublicKey,
   Role,
   Service,
   Slot,
   Staff,
   StaffCategory,
   TimeBlock,
+  UnreadCount,
 } from '@beauty/api-client';

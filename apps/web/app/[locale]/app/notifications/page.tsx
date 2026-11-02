@@ -7,22 +7,7 @@ import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay } from '@/lib/time';
-
-interface Notice {
-  id: string;
-  type: string;
-  appointmentId: string | null;
-  read: boolean;
-  createdAt: string;
-  data: {
-    date: string;
-    time: string;
-    serviceName: string;
-    staffName: string;
-    customerName: string | null;
-    by: 'client' | 'salon';
-  };
-}
+import type { Notification as Notice } from '@/lib/types';
 
 export default function NotificationsPage() {
   const { t, locale } = useI18n();

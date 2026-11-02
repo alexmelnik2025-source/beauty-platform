@@ -7,6 +7,7 @@
  * "Install" button. iPhone and iPad have no such event: the person adds the app from Safari's
  * Share menu, so we show the steps instead.
  */
+import type { PushPublicKey } from './types';
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -82,10 +83,6 @@ export type PushState =
   | 'on'
   | 'off';
 
-interface PublicKey {
-  publicKey: string | null;
-}
-
 /** The VAPID key from base64url to the bytes the browser wants. */
 function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
   const base64 = (base64url + '='.repeat((4 - (base64url.length % 4)) % 4))
@@ -116,7 +113,7 @@ export async function pushState(
   api: <T>(path: string, options?: { method?: 'POST'; body?: unknown }) => Promise<T>,
 ): Promise<PushState> {
   if (!pushSupported()) return installMode() === 'ios' ? 'needs-install' : 'unsupported';
-  const { publicKey } = await api<PublicKey>('/v1/me/push-subscriptions/public-key');
+  const { publicKey } = await api<PushPublicKey>('/v1/me/push-subscriptions/public-key');
   if (!publicKey) return 'server-off';
   if (Notification.permission === 'denied') return 'denied';
   const subscription = await currentSubscription();
@@ -131,7 +128,7 @@ export async function enablePush(
   api: <T>(path: string, options?: { method?: 'POST'; body?: unknown }) => Promise<T>,
 ): Promise<PushState> {
   if (!pushSupported()) return installMode() === 'ios' ? 'needs-install' : 'unsupported';
-  const { publicKey } = await api<PublicKey>('/v1/me/push-subscriptions/public-key');
+  const { publicKey } = await api<PushPublicKey>('/v1/me/push-subscriptions/public-key');
   if (!publicKey) return 'server-off';
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return permission === 'denied' ? 'denied' : 'off';

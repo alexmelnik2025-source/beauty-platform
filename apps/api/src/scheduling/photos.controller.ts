@@ -17,8 +17,10 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nes
 import type { Response } from 'express';
 import { CurrentAuth, Public } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
+import { ApiZodResponse } from '../common/openapi';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest, AuthContext, MembershipContext } from '../common/request-context';
+import { photoListSchema, photoSchema } from '../common/system.responses';
 import {
   CurrentMembership,
   MembershipGuard,
@@ -47,6 +49,7 @@ export class LocationPhotosController {
 
   @Get()
   @ApiOperation({ summary: 'Salon photos for the booking page, oldest first' })
+  @ApiZodResponse(photoListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
@@ -58,6 +61,7 @@ export class LocationPhotosController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: `Add a salon photo (JPEG, PNG or WebP; at most ${MAX_SALON_PHOTOS})` })
   @ImageBody()
+  @ApiZodResponse(photoSchema, HttpStatus.CREATED)
   add(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -92,6 +96,7 @@ export class StaffPhotoController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: "Set the staff member's photo (replaces the old one)" })
   @ImageBody()
+  @ApiZodResponse(photoSchema)
   set(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,

@@ -62,6 +62,14 @@ export type Member = Schemas['Member'];
 export type Invitation = Schemas['Invitation'];
 export type InvitationPreview = Schemas['InvitationPreview'];
 export type InvitationAccepted = Schemas['InvitationAccepted'];
+/** The bell, Web Push and photos. */
+export type Notification = Schemas['Notification'];
+export type UnreadCount = Schemas['UnreadCount'];
+export type PushPublicKey = Schemas['PushPublicKey'];
+export type Photo = Schemas['Photo'];
+/** Platform administrators: the email queue. */
+export type OutboxStats = Schemas['OutboxStats'];
+export type FailedEmail = Schemas['FailedEmail'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

@@ -4,12 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import { MAX_SALON_PHOTOS, PHOTO_ACCEPT, SALON_PHOTO_SIDE, shrinkPhoto } from '@/lib/photos';
+import type { Photo } from '@/lib/types';
 import { ErrorBox } from './ui';
-
-interface Photo {
-  id: string;
-  url: string;
-}
 
 /** Salon photos for the booking page: add (shrunk in the browser first) and remove. */
 export function SalonPhotos({ base }: { base: string }) {

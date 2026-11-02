@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { AppException, notFound } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
+import type { PhotoResponse } from '../common/system.responses';
 import type { Prisma } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,14 +13,7 @@ export const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 /** Photos in a salon's gallery (staff portraits are counted separately, one each). */
 export const MAX_SALON_PHOTOS = 10;
 
-export interface PhotoResponse {
-  id: string;
-  /** Path on this API, the same for every client: /v1/public/photos/<id>. */
-  url: string;
-  contentType: string;
-  sizeBytes: number;
-  createdAt: string;
-}
+export type { PhotoResponse } from '../common/system.responses';
 
 export const photoUrl = (id: string): string => `/v1/public/photos/${id}`;
 
