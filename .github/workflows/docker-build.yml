@@ -1,0 +1,48 @@
+name: Production Docker build
+
+on:
+  pull_request:
+    paths:
+      - '.dockerignore'
+      - 'apps/api/Dockerfile'
+      - 'apps/web/Dockerfile'
+      - 'compose.production.yml'
+      - '.github/workflows/docker-build.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.dockerignore'
+      - 'apps/api/Dockerfile'
+      - 'apps/web/Dockerfile'
+      - 'compose.production.yml'
+      - '.github/workflows/docker-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate production Compose configuration
+        env:
+          POSTGRES_DB: beauty_ci
+          POSTGRES_USER: beauty_ci
+          POSTGRES_PASSWORD: ci-only-placeholder
+          JWT_ACCESS_SECRET: ci-only-secret-not-used-anywhere-0123456789
+          APP_WEB_URL: https://beauty.example.invalid
+          SMTP_URL: smtp://mail.example.invalid:1025
+        run: docker compose --file compose.production.yml config --quiet
+
+      - name: Build API runtime image
+        run: docker build --file apps/api/Dockerfile --target runtime --tag beauty-api:ci .
+
+      - name: Build API migration image
+        run: docker build --file apps/api/Dockerfile --target migrate --tag beauty-api-migrate:ci .
+
+      - name: Build web runtime image
+        run: docker build --file apps/web/Dockerfile --target runtime --tag beauty-web:ci .
