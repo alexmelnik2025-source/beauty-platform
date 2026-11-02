@@ -25,12 +25,13 @@
   - Дальше (часть 2б-2): права, приглашения, уведомления, push, фото, очередь писем, админка; затем удалить
     последний ручной тип `MyPermissions` из `apps/web/lib/types.ts` — и задача 7 закрыта.
 
-- [ ] **8 — ожидает результата Docker CI** (`feat/production-docker-prep`, от `origin/main`):
+- [ ] **8 — готово, ждёт проверки владельца** (`feat/production-docker-prep`, от `origin/main`):
       добавлены многоэтапные Dockerfile API и веба, production Compose, фиктивный `.env.example`, healthchecks,
       отдельная ручная команда миграций и инструкция ЕС с резервными копиями/откатом. Compose config прошёл
       локальную проверку с временными фиктивными значениями; CI check и E2E прошли в PR #2. Локальный Docker
-      daemon отсутствует, поэтому локальная сборка невозможна. Добавлена GitHub Actions проверка compose config
-      и сборки API runtime/migrate и web runtime образов без публикации; дождаться её результата. Не выкладывать.
+      daemon отсутствует, поэтому локальная сборка невозможна. GitHub Actions проверила compose config и собрала
+      API runtime/migrate и web runtime образы без публикации; все CI и E2E проверки PR #2 прошли на `2e4293e`.
+      Не выкладывать.
 
 ## Очередь
 
