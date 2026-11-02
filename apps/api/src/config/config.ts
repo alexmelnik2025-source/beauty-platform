@@ -32,7 +32,7 @@ const configSchema = z
     MAIL_TRANSPORT: z.enum(['smtp', 'resend', 'memory']).default('smtp'),
     RESEND_API_KEY: z.string().optional(),
     RESEND_API_URL: z.url().default('https://api.resend.com'),
-    SMTP_URL: z.string().default('smtp://localhost:1025'),
+    SMTP_URL: z.string().default('smtp://127.0.0.1:1025'),
     MAIL_FROM: z.string().default('Beauty Platform <no-reply@localhost>'),
     /** How often the email queue is checked, ms. 0 = background worker off (tests drain it by hand). */
     OUTBOX_POLL_MS: z.coerce.number().int().min(0).max(600_000).default(2000),
