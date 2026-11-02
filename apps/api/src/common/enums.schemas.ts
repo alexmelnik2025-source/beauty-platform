@@ -7,6 +7,7 @@ import type {
   Language,
   Locale,
   MembershipRole,
+  MembershipStatus,
 } from '../generated/prisma/client';
 
 /** Languages a salon or staff member speaks with clients (be = Belarusian). */
@@ -37,6 +38,9 @@ export const membershipRoleSchema = z.enum([
   'staff',
 ] satisfies MembershipRole[]);
 
+/** invited = has not signed in to the team yet, active = works in it. */
+export const membershipStatusSchema = z.enum(['invited', 'active'] satisfies MembershipStatus[]);
+
 /** Where a salon session was opened. */
 export const clientTypeSchema = z.enum(['web', 'mobile'] satisfies ClientType[]);
 
@@ -48,8 +52,9 @@ const _everyValueListed: [
   Missing<Locale, z.infer<typeof localeSchema>>,
   Missing<AppointmentStatus, z.infer<typeof appointmentStatusSchema>>,
   Missing<MembershipRole, z.infer<typeof membershipRoleSchema>>,
+  Missing<MembershipStatus, z.infer<typeof membershipStatusSchema>>,
   Missing<ClientType, z.infer<typeof clientTypeSchema>>,
   Missing<AppointmentSource, z.infer<typeof appointmentSourceSchema>>,
   Missing<CancelledBy, z.infer<typeof cancelledBySchema>>,
-] = [true, true, true, true, true, true, true];
+] = [true, true, true, true, true, true, true, true];
 void _everyValueListed;

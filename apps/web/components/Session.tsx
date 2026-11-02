@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { api, refreshSession, setAccessToken } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
-import type { Location, Me, MyPermissions, Role } from '@/lib/types';
+import type { Location, Me, PermissionCatalog, Role } from '@/lib/types';
 import { Spinner } from './ui';
 
 interface SessionValue {
@@ -71,7 +71,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     remember('bp.org', org.id);
     const [locations, perms] = await Promise.all([
       api<Location[]>(`/v1/organizations/${org.id}/locations`),
-      api<MyPermissions>(`/v1/organizations/${org.id}/permissions`),
+      api<PermissionCatalog>(`/v1/organizations/${org.id}/permissions`),
     ]);
     const location = locations.find((l) => l.id === remember('bp.loc')) ?? locations[0];
     if (!location) {

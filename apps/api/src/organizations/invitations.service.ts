@@ -10,6 +10,11 @@ import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Invitation, Locale, Prisma } from '../generated/prisma/client';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type {
+  InvitationAcceptedResponse,
+  InvitationPreviewResponse,
+  InvitationResponse,
+} from './team.responses';
 
 const DAY_MS = 86_400_000;
 const INVITATION_DAYS = 7;
@@ -32,25 +37,11 @@ export const createInvitationSchema = z
   });
 export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
 
-export interface InvitationResponse {
-  id: string;
-  email: string;
-  role: Invitation['role'];
-  locationIds: string[];
-  staffMemberId: string | null;
-  staffCategoryId: string | null;
-  status: 'pending' | 'accepted' | 'revoked' | 'expired';
-  expiresAt: string;
-  createdAt: string;
-}
-
-export interface InvitationPreviewResponse {
-  organizationName: string;
-  role: Invitation['role'];
-  email: string;
-  status: InvitationResponse['status'];
-  expiresAt: string;
-}
+export type {
+  InvitationAcceptedResponse,
+  InvitationPreviewResponse,
+  InvitationResponse,
+} from './team.responses';
 
 const TEXTS: Record<Locale, { subject: string; text: (org: string, link: string) => string }> = {
   pl: {
@@ -265,7 +256,7 @@ export class InvitationsService {
   }
 
   /** The signed-in user joins; their verified email must be the invited one. */
-  async accept(userId: string, token: string): Promise<{ organizationId: string; role: string }> {
+  async accept(userId: string, token: string): Promise<InvitationAcceptedResponse> {
     const invitation = await this.prisma.invitation.findUnique({
       where: { tokenHash: hashToken(token) },
     });

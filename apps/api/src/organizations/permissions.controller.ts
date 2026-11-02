@@ -15,7 +15,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
-import { ApiZodBody } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CurrentMembership, MembershipGuard, RequireRoles } from './membership.guard';
@@ -31,6 +31,13 @@ import {
   type SetMemberPermissionsInput,
   type UpdateCategoryInput,
 } from './permissions.service';
+import {
+  memberListSchema,
+  memberSchema,
+  permissionCatalogSchema,
+  staffCategoryListSchema,
+  staffCategorySchema,
+} from './team.responses';
 
 const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
 
@@ -45,6 +52,7 @@ export class PermissionsController {
   @ApiOperation({
     summary: 'The list of staff permissions with defaults, and what you may do yourself',
   })
+  @ApiZodResponse(permissionCatalogSchema)
   catalog(@CurrentMembership() m: MembershipContext): PermissionCatalogResponse {
     return this.permissions.catalog(m);
   }
@@ -52,6 +60,7 @@ export class PermissionsController {
   @Get('staff-categories')
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Staff categories ("Senior barber", "Trainee") with their permissions' })
+  @ApiZodResponse(staffCategoryListSchema)
   listCategories(@CurrentMembership() m: MembershipContext): Promise<CategoryResponse[]> {
     return this.permissions.listCategories(m);
   }
@@ -60,6 +69,7 @@ export class PermissionsController {
   @RequireRoles('owner')
   @ApiOperation({ summary: 'Create a staff category (owner)' })
   @ApiZodBody(createCategorySchema)
+  @ApiZodResponse(staffCategorySchema, HttpStatus.CREATED)
   createCategory(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -72,6 +82,7 @@ export class PermissionsController {
   @RequireRoles('owner')
   @ApiOperation({ summary: 'Rename a category or change its permissions (owner)' })
   @ApiZodBody(updateCategorySchema)
+  @ApiZodResponse(staffCategorySchema)
   updateCategory(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
@@ -98,6 +109,7 @@ export class PermissionsController {
   @ApiOperation({
     summary: 'People with access to the organization and their effective permissions',
   })
+  @ApiZodResponse(memberListSchema)
   listMembers(@CurrentMembership() m: MembershipContext): Promise<MemberResponse[]> {
     return this.permissions.listMembers(m);
   }
@@ -109,6 +121,7 @@ export class PermissionsController {
     description: 'Takes effect on the staff member’s next request, without signing in again.',
   })
   @ApiZodBody(setMemberPermissionsSchema)
+  @ApiZodResponse(memberSchema)
   setMemberPermissions(
     @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,

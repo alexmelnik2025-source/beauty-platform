@@ -554,3 +554,93 @@ describe('appointments, clients, time blocks and calendar match the documented s
     expect(calendar.body.blocks).toHaveLength(1);
   });
 });
+
+describe('team, permissions and invitations match the documented shapes exactly', () => {
+  beforeEach(async () => {
+    await resetState(ctx);
+  });
+
+  it('permissions, staff categories, invitations, joining, members', async () => {
+    const owner = await signUp(ctx, 'owner@example.com');
+    const org = await createOrgWithLocation(ctx, owner, 'Barber One');
+    const orgBase = `/v1/organizations/${org.orgId}`;
+
+    expectShape(
+      'PermissionCatalog',
+      (await ctx.http().get(`${orgBase}/permissions`).set(owner.auth).expect(200)).body,
+    );
+
+    const category = await ctx
+      .http()
+      .post(`${orgBase}/staff-categories`)
+      .set(owner.auth)
+      .send({ name: 'Senior barber', permissions: { viewClientContacts: true } })
+      .expect(201);
+    expectShape('StaffCategory', category.body);
+    expectShape(
+      'StaffCategory',
+      (
+        await ctx
+          .http()
+          .patch(`${orgBase}/staff-categories/${category.body.id}`)
+          .set(owner.auth)
+          .send({ version: category.body.version, name: 'Senior' })
+          .expect(200)
+      ).body,
+    );
+
+    const invitation = await ctx
+      .http()
+      .post(`${orgBase}/invitations`)
+      .set(owner.auth)
+      .send({
+        email: 'kasia@example.com',
+        role: 'staff',
+        locationIds: [org.locationId],
+        staffCategoryId: category.body.id,
+      })
+      .expect(201);
+    expectShape('Invitation', invitation.body);
+    expectShape(
+      'InvitationList',
+      (await ctx.http().get(`${orgBase}/invitations`).set(owner.auth).expect(200)).body,
+    );
+
+    const token = ctx.mail.lastTo('kasia@example.com')?.text.match(/\/invite\/(\S+)/)?.[1];
+    expect(token).toBeTruthy();
+    expectShape(
+      'InvitationPreview',
+      (await ctx.http().get(`/v1/invitations/${token}`).expect(200)).body,
+    );
+    const kasia = await signUp(ctx, 'kasia@example.com', 'Kasia');
+    const joined = await ctx
+      .http()
+      .post(`/v1/invitations/${token}/accept`)
+      .set(kasia.auth)
+      .expect(200);
+    expectShape('InvitationAccepted', joined.body);
+
+    // A staff member sees their own effective permissions (the web app hides what they may not do).
+    const mine = await ctx.http().get(`${orgBase}/permissions`).set(kasia.auth).expect(200);
+    expectShape('PermissionCatalog', mine.body);
+    expect(mine.body.me.permissions.viewClientContacts).toBe(true);
+
+    expectShape(
+      'StaffCategoryList',
+      (await ctx.http().get(`${orgBase}/staff-categories`).set(owner.auth).expect(200)).body,
+    );
+    const members = await ctx.http().get(`${orgBase}/members`).set(owner.auth).expect(200);
+    expectShape('MemberList', members.body);
+    const member = members.body.find(
+      (row: { user: { email: string } }) => row.user.email === 'kasia@example.com',
+    );
+    const updated = await ctx
+      .http()
+      .put(`${orgBase}/members/${member.membershipId}/permissions`)
+      .set(owner.auth)
+      .send({ version: member.version, staffCategoryId: null, overrides: { blockOwnTime: true } })
+      .expect(200);
+    expectShape('Member', updated.body);
+    expect(updated.body.overrides).toEqual({ blockOwnTime: true });
+  });
+});

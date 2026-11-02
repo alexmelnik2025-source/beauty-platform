@@ -7,14 +7,7 @@ import { AuthPage } from '@/components/AuthPage';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api, refreshSession } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
-import type { Me } from '@/lib/types';
-
-interface Preview {
-  organizationName: string;
-  role: 'manager' | 'staff';
-  email: string;
-  status: 'pending' | 'accepted' | 'revoked' | 'expired';
-}
+import type { InvitationPreview as Preview, Me } from '@/lib/types';
 
 export default function InvitePage() {
   const { t, locale } = useI18n();

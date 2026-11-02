@@ -11,10 +11,8 @@ import {
   PERMISSIONS,
   permissionMapSchema,
   readPermissionMap,
-  type Permission,
-  type PermissionMap,
-  type Permissions,
 } from './permissions';
+import type { CategoryResponse, MemberResponse, PermissionCatalogResponse } from './team.responses';
 
 export const createCategorySchema = z.object({
   name: z.string().trim().min(1).max(60),
@@ -38,31 +36,7 @@ export const setMemberPermissionsSchema = z.object({
 });
 export type SetMemberPermissionsInput = z.infer<typeof setMemberPermissionsSchema>;
 
-export interface PermissionCatalogResponse {
-  permissions: { key: Permission; default: boolean }[];
-  /** What the caller may do in this organization (for showing or hiding parts of the interface). */
-  me: { role: Membership['role']; permissions: Permissions };
-}
-
-export interface CategoryResponse {
-  id: string;
-  name: string;
-  permissions: PermissionMap;
-  memberCount: number;
-  version: number;
-}
-
-export interface MemberResponse {
-  membershipId: string;
-  user: { id: string; name: string; email: string };
-  role: Membership['role'];
-  status: Membership['status'];
-  locationIds: string[];
-  staffCategoryId: string | null;
-  overrides: PermissionMap;
-  permissions: Permissions;
-  version: number;
-}
+export type { CategoryResponse, MemberResponse, PermissionCatalogResponse } from './team.responses';
 
 const versionConflict = (what: string): AppException =>
   new AppException(

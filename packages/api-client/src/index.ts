@@ -52,6 +52,16 @@ export type Customer = Schemas['Customer'];
 export type CustomerDetail = Schemas['CustomerDetail'];
 export type TimeBlock = Schemas['TimeBlock'];
 export type Calendar = Schemas['Calendar'];
+/** Salon cabinet: team, staff permissions and invitations. */
+export type PermissionCatalog = Schemas['PermissionCatalog'];
+export type PermissionKey = PermissionCatalog['permissions'][number]['key'];
+export type Permissions = PermissionCatalog['me']['permissions'];
+export type StaffCategory = Schemas['StaffCategory'];
+export type PermissionMap = StaffCategory['permissions'];
+export type Member = Schemas['Member'];
+export type Invitation = Schemas['Invitation'];
+export type InvitationPreview = Schemas['InvitationPreview'];
+export type InvitationAccepted = Schemas['InvitationAccepted'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<
