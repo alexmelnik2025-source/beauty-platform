@@ -13,6 +13,7 @@ export const pl = {
     signOut: 'Wyloguj',
     optional: 'opcjonalnie',
     or: 'lub',
+    language: 'Język',
   },
   errors: {
     generic: 'Coś poszło nie tak. Spróbuj ponownie.',
