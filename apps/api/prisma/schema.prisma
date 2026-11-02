@@ -3,9 +3,11 @@
 // Spec: docs/README.md → MVP v3, section "Структура данных".
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  // Explicit, so the client is the same everywhere: in Docker, install runs before tsconfig is copied.
+  importFileExtension = "js"
 }
 
 datasource db {
