@@ -506,7 +506,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // The place on the catalogue map, pasted as Google Maps copies it.
   const place = ownerPage.getByLabel('Miejsce na mapie katalogu');
   await expect(place).toHaveValue('52.2325, 20.9563');
-  await place.fill('52,23');
+  await place.fill('ul. Bema 91');
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Wpisz dwie liczby oddzielone przecinkiem')).toBeVisible();
   await place.fill(' 52.23251, 20.95634 ');
