@@ -1,0 +1,81 @@
+name: Production Docker build
+
+on:
+  pull_request:
+    paths:
+      - '.dockerignore'
+      - 'apps/api/Dockerfile'
+      - 'apps/web/Dockerfile'
+      - 'compose.production.yml'
+      - '.github/workflows/docker-build.yml'
+  push:
+    branches: ['**', '!e2e-screenshots']
+    paths:
+      - '.dockerignore'
+      - 'apps/api/Dockerfile'
+      - 'apps/web/Dockerfile'
+      - 'compose.production.yml'
+      - '.github/workflows/docker-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Placeholders for CI only: the stack runs on the runner and is thrown away.
+    env:
+      POSTGRES_DB: beauty_ci
+      POSTGRES_USER: beauty_ci
+      POSTGRES_PASSWORD: ci-only-placeholder
+      JWT_ACCESS_SECRET: ci-only-secret-not-used-anywhere-0123456789
+      APP_WEB_URL: https://beauty.example.invalid
+      SMTP_URL: smtp://mail.example.invalid:1025
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate production Compose configuration
+        run: docker compose --file compose.production.yml config --quiet
+
+      - name: Build API runtime image
+        run: docker build --file apps/api/Dockerfile --target runtime --tag beauty-api:ci .
+
+      - name: Build API migration image
+        run: docker build --file apps/api/Dockerfile --target migrate --tag beauty-api-migrate:ci .
+
+      - name: Build web runtime image
+        run: docker build --file apps/web/Dockerfile --target runtime --tag beauty-web:ci .
+
+      # The same steps as docs/DEPLOY.md: database, migrations, then API and web. Everything is
+      # reached through the web port only, as behind the reverse proxy on a real server.
+      - name: Start the production stack as on a server
+        run: |
+          compose="docker compose --file compose.production.yml"
+          $compose up --detach --wait postgres
+          $compose --profile maintenance run --rm migrate
+          $compose up --detach --wait --wait-timeout 180 api web
+
+      - name: The stack answers through the web port
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:3000/v1/health | tee health.json
+          grep -q '"database":"up"' health.json
+          for page in /pl /uk /ru /en /pl/login; do
+            code=$(curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:3000$page")
+            echo "$page $code"
+            [ "$code" -lt 400 ]
+          done
+          # Unknown salons are a clean 404 from the API, not a crash.
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/v1/public/locations/no-such-salon)
+          echo "unknown salon $code"
+          [ "$code" = 404 ]
+
+      - name: Logs of the stack
+        if: failure()
+        run: docker compose --file compose.production.yml logs --no-color --tail 200
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose --file compose.production.yml down --volumes

@@ -376,3 +376,20 @@ QR-код строит собственный модуль `apps/web/lib/qr.ts` 
 OPENAPI_WRITE=1 pnpm --filter @beauty/api exec vitest run test/openapi.spec.ts
 pnpm --filter @beauty/api-client generate
 ```
+
+## Запуск на сервере в ЕС (задача 8, без выкладки)
+
+Всё для запуска на своём сервере готово, но ничего не куплено и никуда не выложено. Пошагово — `docs/DEPLOY.md`.
+
+| Что             | Как сделано                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| Образы          | `apps/api/Dockerfile` (runtime и отдельный `migrate`), `apps/web/Dockerfile` (Next.js standalone)      |
+| Состав          | `compose.production.yml`: PostgreSQL, API, веб; наружу только порт веба на 127.0.0.1 (за HTTPS)        |
+| Переменные      | `.env.example` в корне; Compose не стартует без обязательных, API проверяет их при старте              |
+| Миграции        | Только вручную: `--profile maintenance run --rm migrate`, перед этим — резервная копия                 |
+| Без платного    | SMS выключены (`SMS_TRANSPORT=none`), push выключен без своей пары VAPID, почта — свой SMTP            |
+| Проверка в CI   | `docker-build.yml`: собирает образы, поднимает весь стек как на сервере, проверяет здоровье и страницы |
+| Резервные копии | `pg_dump` в DEPLOY.md, откат без обратных миграций и без удаления базы                                 |
+
+Ключи VAPID для разработки убраны из `apps/api/.env.example`: для push на своём компьютере создайте пару
+`node apps/api/scripts/vapid-keys.mjs`.

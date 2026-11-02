@@ -1,9 +1,13 @@
 import type { NextConfig } from 'next';
+import { join } from 'node:path';
 
 /** Where the API runs. The browser only talks to this web server; /v1/* is passed on. */
 const apiUrl = process.env.API_URL ?? 'http://localhost:4000';
 
 const config: NextConfig = {
+  output: 'standalone',
+  // Include the workspace packages used by @beauty/api-client in the runtime trace.
+  outputFileTracingRoot: join(process.cwd(), '../..'),
   reactStrictMode: true,
   poweredByHeader: false,
   async rewrites() {
