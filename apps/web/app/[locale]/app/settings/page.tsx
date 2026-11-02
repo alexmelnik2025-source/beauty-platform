@@ -2,31 +2,17 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
-import { LanguagePicker, type Spoken } from '@/components/Languages';
+import { LanguagePicker } from '@/components/Languages';
 import { SalonPhotos } from '@/components/SalonPhotos';
 import { ShareBooking } from '@/components/ShareBooking';
 import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
+import { formatCoordinates, parseCoordinates } from '@/lib/coordinates';
 import { errorText, useI18n } from '@/lib/i18n';
+import type { Location } from '@/lib/types';
 
-interface LocationSettings {
-  id: string;
-  name: string;
-  slug: string;
-  addressLine: string;
-  city: string;
-  postalCode: string;
-  phone: string | null;
-  onlineBookingEnabled: boolean;
-  minLeadMinutes: number;
-  bookingHorizonDays: number;
-  clientCancelDeadlineMinutes: number;
-  slotStepMinutes: number;
-  languages: Spoken[];
-  description: string | null;
-  version: number;
-}
+type LocationSettings = Location;
 
 export default function SettingsPage() {
   const { t, locale } = useI18n();
@@ -38,12 +24,14 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [coordinates, setCoordinates] = useState('');
 
   useEffect(() => {
     api<LocationSettings>(url)
       .then((l) => {
         setLoc(l);
         setForm(l);
+        setCoordinates(formatCoordinates(l.latitude, l.longitude));
       })
       .catch((err) => setError(errorText(t, err)));
   }, [url, t]);
@@ -58,6 +46,11 @@ export default function SettingsPage() {
   async function save(e: FormEvent) {
     e.preventDefault();
     if (!form || !loc) return;
+    const point = parseCoordinates(coordinates);
+    if (point === 'invalid') {
+      setError(t.directory.coordinatesInvalid);
+      return;
+    }
     setBusy(true);
     setError('');
     setMessage('');
@@ -70,6 +63,8 @@ export default function SettingsPage() {
           addressLine: form.addressLine,
           city: form.city,
           postalCode: form.postalCode,
+          latitude: point?.latitude ?? null,
+          longitude: point?.longitude ?? null,
           phone: form.phone ? normalizePhone(form.phone) : null,
           onlineBookingEnabled: form.onlineBookingEnabled,
           minLeadMinutes: form.minLeadMinutes,
@@ -82,6 +77,7 @@ export default function SettingsPage() {
       });
       setLoc(saved);
       setForm(saved);
+      setCoordinates(formatCoordinates(saved.latitude, saved.longitude));
       setMessage(t.actions.saved);
       void session.reload();
     } catch (err) {
@@ -151,6 +147,16 @@ export default function SettingsPage() {
               />
             </label>
           </div>
+          <label className="field">
+            <span>{t.directory.coordinates}</span>
+            <input
+              value={coordinates}
+              inputMode="decimal"
+              placeholder="52.23251, 20.95634"
+              onChange={(e) => setCoordinates(e.target.value)}
+            />
+            <span className="small muted">{t.directory.coordinatesHint}</span>
+          </label>
           <div className="row">
             <label className="field">
               <span>{t.settings.deadline}</span>

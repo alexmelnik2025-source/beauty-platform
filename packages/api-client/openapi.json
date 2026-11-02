@@ -625,6 +625,30 @@
                     "minLength": 3,
                     "maxLength": 12
                   },
+                  "latitude": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "longitude": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "phone": {
                     "anyOf": [
                       {
@@ -859,6 +883,30 @@
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 12
+                  },
+                  "latitude": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "longitude": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "phone": {
                     "anyOf": [
@@ -3080,6 +3128,67 @@
           }
         },
         "summary": "Free start times for clients",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/locations": {
+      "get": {
+        "description": "Only public salon data: no organization, staff or contact details.",
+        "operationId": "PublicDirectoryController_list",
+        "parameters": [
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "example": 12,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "language",
+            "required": false,
+            "in": "query",
+            "description": "Spoken by the salon or by one of its staff members",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "be",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSalonDirectory"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Salons open for online booking, by city: for the catalogue and its map",
         "tags": [
           "public"
         ]
@@ -7896,6 +8005,14 @@
           "postalCode": {
             "type": "string"
           },
+          "latitude": {
+            "nullable": true,
+            "type": "number"
+          },
+          "longitude": {
+            "nullable": true,
+            "type": "number"
+          },
           "phone": {
             "nullable": true,
             "type": "string"
@@ -7976,6 +8093,8 @@
           "addressLine",
           "city",
           "postalCode",
+          "latitude",
+          "longitude",
           "phone",
           "email",
           "defaultLocale",
@@ -8021,6 +8140,14 @@
             },
             "postalCode": {
               "type": "string"
+            },
+            "latitude": {
+              "nullable": true,
+              "type": "number"
+            },
+            "longitude": {
+              "nullable": true,
+              "type": "number"
             },
             "phone": {
               "nullable": true,
@@ -8102,6 +8229,8 @@
             "addressLine",
             "city",
             "postalCode",
+            "latitude",
+            "longitude",
             "phone",
             "email",
             "defaultLocale",
@@ -9438,6 +9567,94 @@
         ],
         "additionalProperties": false,
         "description": "The public salon page: no buffers, staff accounts or organization details"
+      },
+      "PublicSalonDirectory": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "addressLine": {
+                  "type": "string"
+                },
+                "city": {
+                  "type": "string"
+                },
+                "postalCode": {
+                  "type": "string"
+                },
+                "languages": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "be",
+                      "en"
+                    ]
+                  }
+                },
+                "latitude": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "longitude": {
+                  "nullable": true,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "slug",
+                "name",
+                "addressLine",
+                "city",
+                "postalCode",
+                "languages",
+                "latitude",
+                "longitude"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pageCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total",
+          "pageCount"
+        ],
+        "additionalProperties": false
       },
       "PushPublicKey": {
         "type": "object",

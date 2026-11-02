@@ -18,6 +18,9 @@ export default function Home() {
           {t.auth.createAccount}
         </Link>
       </div>
+      <p className="small" style={{ marginTop: 24 }}>
+        <Link href={`/${locale}/salons`}>{t.directory.title}</Link>
+      </p>
     </AuthPage>
   );
 }

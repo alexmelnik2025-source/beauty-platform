@@ -131,6 +131,9 @@ test('a client books online; the visit is in the salon and staff calendars; emai
         minLeadMinutes: 180,
         languages: ['pl', 'uk', 'ru'],
         description: 'Barbershop na Woli.\nKawa i parking dla klientów.',
+        // Where the salon is on the catalogue map.
+        latitude: 52.2325,
+        longitude: 20.9563,
       },
     }),
   );
@@ -196,6 +199,37 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const inviteToken = /\/invite\/(\S+)/.exec(invitation.text)![1]!;
   const kasia = await verifiedUser(request, KASIA, 'Kasia Nowak');
   await json(await request.post(`/v1/invitations/${inviteToken}/accept`, { headers: kasia }));
+
+  // ── The catalogue: found by spoken language, opened from the list ──────
+  const finder = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  const visitor = await finder.newPage();
+  await visitor.goto('/pl');
+  await visitor.getByRole('link', { name: 'Znajdź salon' }).click();
+  await expect(visitor.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
+  const card = visitor.getByRole('article', { name: 'Gestalt Barbershop' });
+  await expect(card).toBeVisible();
+  await expect(visitor.getByText('Znalezione salony: 1')).toBeVisible();
+  await expect(visitor.getByRole('img', { name: 'Mapa salonów' })).toBeVisible();
+  // Only Alex speaks English, and that is enough to find the salon.
+  await visitor.getByRole('button', { name: 'angielski' }).click();
+  await expect(visitor.getByRole('button', { name: 'angielski' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(card.getByRole('note')).toHaveAttribute(
+    'aria-label',
+    'Mówimy po: polski, ukraiński, rosyjski, angielski',
+  );
+  await card.getByRole('button', { name: 'Pokaż na mapie' }).click();
+  await shot(visitor, '00a-catalogue');
+  // Nobody speaks Belarusian there (yet).
+  await visitor.getByRole('button', { name: 'białoruski' }).click();
+  await expect(visitor.getByText('Nie ma jeszcze salonów z tym językiem.')).toBeVisible();
+  await visitor.getByRole('button', { name: 'Wszystkie języki' }).click();
+  await card.getByRole('link', { name: 'Umów wizytę' }).click();
+  await expect(visitor).toHaveURL(new RegExp(`/pl/b/${location.slug}$`));
+  await expect(visitor.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+  await finder.close();
 
   // ── The client books on a phone ────────────────────────────────────────
   const phone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
@@ -469,11 +503,22 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.emulateMedia({ media: 'screen' });
   await expect(ownerPage.locator('html')).not.toHaveClass(/print-qr/);
   await expect(ownerPage.getByLabel('Krótki link')).toBeVisible();
+  // The place on the catalogue map, pasted as Google Maps copies it.
+  const place = ownerPage.getByLabel('Miejsce na mapie katalogu');
+  await expect(place).toHaveValue('52.2325, 20.9563');
+  await place.fill('52,23');
+  await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ownerPage.getByText('Wpisz dwie liczby oddzielone przecinkiem')).toBeVisible();
+  await place.fill(' 52.23251, 20.95634 ');
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
-  const savedLocation = await json<{ languages: string[]; description: string | null }>(
-    await request.get(base, { headers: owner }),
-  );
+  const savedLocation = await json<{
+    languages: string[];
+    description: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  }>(await request.get(base, { headers: owner }));
+  expect([savedLocation.latitude, savedLocation.longitude]).toEqual([52.23251, 20.95634]);
   expect(savedLocation.languages).toEqual(['pl', 'uk', 'ru', 'be']);
   expect(savedLocation.description).toBe('Barbershop na Woli. Zapraszamy!');
   // Salon photos: two big pictures, shrunk before upload and saved at once; one removed.

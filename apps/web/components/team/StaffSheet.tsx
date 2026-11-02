@@ -4,33 +4,18 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { PHOTO_ACCEPT, shrinkPhoto, STAFF_PHOTO_SIDE } from '@/lib/photos';
+import type { Staff, TimeOff as TimeOffEntry } from '@/lib/types';
 import { LanguagePicker, type Spoken } from '../Languages';
 import { ErrorBox, initials, Sheet, Spinner } from '../ui';
 
-export interface StaffRow {
-  id: string;
-  displayName: string;
-  bio: string | null;
-  languages: Spoken[];
-  active: boolean;
-  serviceIds: string[];
-  userId: string | null;
-  /** /v1/public/photos/<id>; null when there is no photo. */
-  photoUrl: string | null;
-  version: number;
-}
+export type StaffRow = Staff;
 
 interface Interval {
   start: string;
   end: string;
 }
 
-interface TimeOff {
-  id: string;
-  start: string;
-  end: string;
-  note: string | null;
-}
+type TimeOff = TimeOffEntry;
 
 /**
  * One specialist: profile, services, weekly hours and time off.

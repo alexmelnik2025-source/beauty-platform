@@ -9,6 +9,7 @@ import {
 } from './photos.controller';
 import { PhotosService } from './photos.service';
 import { PublicLocationsController } from './public.controller';
+import { PublicDirectoryController } from './public-directory.controller';
 import { ScheduleService } from './schedule.service';
 import {
   AvailabilityController,
@@ -25,6 +26,7 @@ import {
     StaffController,
     AvailabilityController,
     PublicLocationsController,
+    PublicDirectoryController,
     LocationPhotosController,
     StaffPhotoController,
     PublicPhotosController,

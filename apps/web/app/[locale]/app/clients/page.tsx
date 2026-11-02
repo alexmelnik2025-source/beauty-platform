@@ -6,29 +6,11 @@ import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
 import { errorText, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
-import type { AppointmentStatus } from '@/lib/types';
+import type { Customer, CustomerDetail } from '@/lib/types';
 
-interface ClientRow {
-  id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-  locale: string;
-  note: string | null;
-  tags: string[] | null;
-  version: number;
-}
+type ClientRow = Customer;
 
-interface ClientDetail extends ClientRow {
-  marketingConsent: boolean | null;
-  visits: {
-    id: string;
-    start: string;
-    status: AppointmentStatus;
-    serviceName: string;
-    staffName: string;
-  }[];
-}
+type ClientDetail = CustomerDetail;
 
 export default function ClientsPage() {
   const { t } = useI18n();

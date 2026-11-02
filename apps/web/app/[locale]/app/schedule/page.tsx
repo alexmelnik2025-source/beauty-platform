@@ -5,12 +5,9 @@ import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
-import type { Staff } from '@/lib/types';
+import type { Staff, WorkingHours } from '@/lib/types';
 
-interface Hours {
-  weekly: { weekday: number; intervals: { start: string; end: string }[] }[];
-  overrides: { date: string; intervals: { start: string; end: string }[] }[];
-}
+type Hours = WorkingHours;
 
 /** A staff member's own hours and time off (read only: the owner or a manager changes them). */
 export default function MySchedulePage() {

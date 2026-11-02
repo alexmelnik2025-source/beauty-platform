@@ -31,6 +31,8 @@ export const locationSchema = responseSchema(
     addressLine: z.string(),
     city: z.string(),
     postalCode: z.string(),
+    latitude: z.number().nullable(),
+    longitude: z.number().nullable(),
     phone: z.string().nullable(),
     email: z.string().nullable(),
     defaultLocale: localeSchema,

@@ -1784,3 +1784,79 @@ label.btn:focus-within {
   color: var(--ink);
   font-size: 1.3rem;
 }
+
+/* ── Public catalogue of salons ───────────────────────── */
+
+.directory-inner {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.directory main {
+  padding: 20px 16px 48px;
+}
+
+.directory .chips button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.directory .chips button[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.directory-grid {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (min-width: 860px) {
+  .directory-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+
+  .directory-map {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+.directory-salon {
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.directory-salon h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.directory-list > li[data-selected] {
+  box-shadow: inset 3px 0 0 var(--ink);
+  padding-left: 12px;
+}
+
+.directory-map {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.directory-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+}
+
+.directory-pages {
+  align-items: center;
+}

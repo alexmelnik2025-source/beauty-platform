@@ -70,6 +70,9 @@ export type Photo = Schemas['Photo'];
 /** Platform administrators: the email queue. */
 export type OutboxStats = Schemas['OutboxStats'];
 export type FailedEmail = Schemas['FailedEmail'];
+/** Public catalogue of salons with its map. */
+export type PublicSalonDirectory = Schemas['PublicSalonDirectory'];
+export type PublicSalon = PublicSalonDirectory['items'][number];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

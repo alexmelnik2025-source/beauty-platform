@@ -6,26 +6,11 @@ import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
+import type { Service, ServiceCategory } from '@/lib/types';
 
-interface Category {
-  id: string;
-  name: string;
-  sortOrder: number;
-  version: number;
-}
+type Category = ServiceCategory;
 
-interface ServiceRow {
-  id: string;
-  name: string;
-  description: string | null;
-  durationMinutes: number;
-  bufferMinutes: number;
-  priceGrosze: number;
-  active: boolean;
-  categoryId: string | null;
-  color: string | null;
-  version: number;
-}
+type ServiceRow = Service;
 
 /** Calm, distinguishable calendar colours (dark enough for a white page). */
 const PALETTE = [

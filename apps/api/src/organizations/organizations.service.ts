@@ -25,6 +25,19 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+function assertCoordinatePair(fields: {
+  latitude?: number | null;
+  longitude?: number | null;
+}): void {
+  if ((fields.latitude === undefined) !== (fields.longitude === undefined)) {
+    throw new AppException(
+      HttpStatus.BAD_REQUEST,
+      'VALIDATION_ERROR',
+      'Latitude and longitude must be provided together',
+    );
+  }
+}
+
 function toOrganization(org: Organization, role: MembershipRole): OrganizationResponse {
   return {
     id: org.id,
@@ -124,6 +137,7 @@ export class OrganizationsService {
     actorUserId: string,
     input: CreateLocationInput,
   ): Promise<LocationResponse> {
+    assertCoordinatePair(input);
     const { slug: requestedSlug, ...fields } = input;
     const candidates = requestedSlug
       ? [requestedSlug]
@@ -183,6 +197,7 @@ export class OrganizationsService {
     await this.access.writable(membership, locationId);
 
     const { version, ...fields } = input;
+    assertCoordinatePair(fields);
     try {
       const location = await this.prisma.$transaction(async (tx) => {
         const result = await tx.location.updateMany({
