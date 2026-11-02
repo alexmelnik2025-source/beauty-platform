@@ -4289,6 +4289,75 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/payment": {
+      "post": {
+        "description": "409 NOT_COMPLETED: only completed visits can be paid. Repeating the same mark changes nothing.",
+        "operationId": "AppointmentsController_setPaid",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "paid": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "version",
+                  "paid"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a \"came\" visit as paid (earns loyalty) or not paid (refund: takes it back)",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/customers": {
       "get": {
         "operationId": "CustomersController_list",
@@ -5027,6 +5096,292 @@
         "summary": "Mark as read: {\"ids\": [...]} or {\"all\": true}",
         "tags": [
           "me"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/loyalty/program": {
+      "get": {
+        "operationId": "LoyaltyController_getProgram",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyProgram"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Loyalty program settings (defaults with version 0 if never saved)",
+        "tags": [
+          "loyalty"
+        ]
+      },
+      "put": {
+        "description": "409 LOYALTY_MODE_LOCKED: the type (stamps/points) cannot change while clients have a balance.",
+        "operationId": "LoyaltyController_updateProgram",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "stamps",
+                      "points"
+                    ]
+                  },
+                  "stampsPerVisit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "pointsPerUnit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "spendUnitGrosze": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000000
+                  },
+                  "minSpendGrosze": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  },
+                  "pointsValidityDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3650
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "maxDiscountPercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "allowStacking": {
+                    "type": "boolean"
+                  },
+                  "marketplaceEnabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "version",
+                  "enabled",
+                  "mode",
+                  "stampsPerVisit",
+                  "pointsPerUnit",
+                  "spendUnitGrosze",
+                  "minSpendGrosze",
+                  "pointsValidityDays",
+                  "maxDiscountPercent",
+                  "allowStacking",
+                  "marketplaceEnabled"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyProgram"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the loyalty program settings. Send the version you read",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/loyalty/earn-rules": {
+      "put": {
+        "operationId": "LoyaltyController_replaceEarnRules",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "serviceId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "points": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        }
+                      },
+                      "required": [
+                        "serviceId",
+                        "points"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "rules"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyProgram"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stamps or points per service of one location (replaces that location’s list)",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/loyalty/accounts/{customerId}": {
+      "get": {
+        "operationId": "LoyaltyController_getAccount",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyAccount"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A client’s balance and history in the program",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/loyalty/transactions": {
+      "get": {
+        "operationId": "LoyaltyController_listTransactions",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "customerId",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyTransactionList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every loyalty operation of the salon, newest first",
+        "tags": [
+          "loyalty"
         ]
       }
     },
@@ -5876,6 +6231,11 @@
             "nullable": true,
             "type": "string"
           },
+          "paidAt": {
+            "nullable": true,
+            "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
+            "type": "string"
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -5908,6 +6268,7 @@
           "cancelledAt",
           "cancelledBy",
           "cancelReason",
+          "paidAt",
           "version",
           "createdAt"
         ],
@@ -6069,6 +6430,11 @@
             "nullable": true,
             "type": "string"
           },
+          "paidAt": {
+            "nullable": true,
+            "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
+            "type": "string"
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -6126,6 +6492,7 @@
           "cancelledAt",
           "cancelledBy",
           "cancelReason",
+          "paidAt",
           "version",
           "createdAt",
           "history"
@@ -6290,6 +6657,11 @@
               "nullable": true,
               "type": "string"
             },
+            "paidAt": {
+              "nullable": true,
+              "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
+              "type": "string"
+            },
             "version": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -6322,6 +6694,7 @@
             "cancelledAt",
             "cancelledBy",
             "cancelReason",
+            "paidAt",
             "version",
             "createdAt"
           ],
@@ -6821,6 +7194,11 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "paidAt": {
+                  "nullable": true,
+                  "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
+                  "type": "string"
+                },
                 "version": {
                   "type": "integer",
                   "minimum": -9007199254740991,
@@ -6853,6 +7231,7 @@
                 "cancelledAt",
                 "cancelledBy",
                 "cancelReason",
+                "paidAt",
                 "version",
                 "createdAt"
               ],
@@ -8244,6 +8623,421 @@
             "version",
             "createdAt",
             "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "LoyaltyAccount": {
+        "type": "object",
+        "properties": {
+          "customer": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "stamps",
+              "points"
+            ]
+          },
+          "balance": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Stamps of the current cycle or points"
+          },
+          "lifetimeEarned": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "customer": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "earn",
+                    "reverse",
+                    "redeem",
+                    "adjust",
+                    "expire"
+                  ]
+                },
+                "points": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Signed: + earned, − taken back or spent"
+                },
+                "balanceAfter": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "appointmentId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "reversesId": {
+                  "nullable": true,
+                  "description": "reverse: the entry it takes back",
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "actorUserId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "note": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "customer",
+                "type",
+                "points",
+                "balanceAfter",
+                "appointmentId",
+                "reversesId",
+                "expiresAt",
+                "actorUserId",
+                "note",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Newest first, at most 100"
+          }
+        },
+        "required": [
+          "customer",
+          "mode",
+          "balance",
+          "lifetimeEarned",
+          "transactions"
+        ],
+        "additionalProperties": false
+      },
+      "LoyaltyProgram": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "stamps",
+              "points"
+            ],
+            "description": "stamps = cyclic stamp card, points = points balance exchanged for rewards"
+          },
+          "stampsPerVisit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "stamps mode: stamps for one paid visit"
+          },
+          "pointsPerUnit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "points mode: points for every full spendUnitGrosze of the visit price"
+          },
+          "spendUnitGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "1 PLN = 100"
+          },
+          "minSpendGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cheaper visits earn nothing"
+          },
+          "pointsValidityDays": {
+            "nullable": true,
+            "description": "null = points never expire",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "maxDiscountPercent": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "allowStacking": {
+            "type": "boolean",
+            "description": "Several discounts on one visit"
+          },
+          "marketplaceEnabled": {
+            "type": "boolean",
+            "description": "Only a flag until the marketplace exists"
+          },
+          "earnRules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "serviceId": {
+                  "type": "string"
+                },
+                "serviceName": {
+                  "type": "string"
+                },
+                "locationId": {
+                  "type": "string"
+                },
+                "points": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Instead of the general rule; 0 = earns nothing"
+                }
+              },
+              "required": [
+                "serviceId",
+                "serviceName",
+                "locationId",
+                "points"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Only services of the locations the caller can see"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "0 = never saved, these are the defaults"
+          }
+        },
+        "required": [
+          "enabled",
+          "mode",
+          "stampsPerVisit",
+          "pointsPerUnit",
+          "spendUnitGrosze",
+          "minSpendGrosze",
+          "pointsValidityDays",
+          "maxDiscountPercent",
+          "allowStacking",
+          "marketplaceEnabled",
+          "earnRules",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "LoyaltyTransaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "customer": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "earn",
+              "reverse",
+              "redeem",
+              "adjust",
+              "expire"
+            ]
+          },
+          "points": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Signed: + earned, − taken back or spent"
+          },
+          "balanceAfter": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "appointmentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "reversesId": {
+            "nullable": true,
+            "description": "reverse: the entry it takes back",
+            "type": "string"
+          },
+          "expiresAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "actorUserId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customer",
+          "type",
+          "points",
+          "balanceAfter",
+          "appointmentId",
+          "reversesId",
+          "expiresAt",
+          "actorUserId",
+          "note",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "LoyaltyTransactionList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "customer": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "earn",
+                "reverse",
+                "redeem",
+                "adjust",
+                "expire"
+              ]
+            },
+            "points": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Signed: + earned, − taken back or spent"
+            },
+            "balanceAfter": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "appointmentId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "reversesId": {
+              "nullable": true,
+              "description": "reverse: the entry it takes back",
+              "type": "string"
+            },
+            "expiresAt": {
+              "nullable": true,
+              "type": "string"
+            },
+            "actorUserId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "note": {
+              "nullable": true,
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "customer",
+            "type",
+            "points",
+            "balanceAfter",
+            "appointmentId",
+            "reversesId",
+            "expiresAt",
+            "actorUserId",
+            "note",
+            "createdAt"
           ],
           "additionalProperties": false
         }

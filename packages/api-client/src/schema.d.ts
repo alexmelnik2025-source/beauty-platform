@@ -1023,6 +1023,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a "came" visit as paid (earns loyalty) or not paid (refund: takes it back)
+         * @description 409 NOT_COMPLETED: only completed visits can be paid. Repeating the same mark changes nothing.
+         */
+        post: operations["AppointmentsController_setPaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/customers": {
         parameters: {
             query?: never;
@@ -1172,6 +1192,78 @@ export interface paths {
         put?: never;
         /** Mark as read: {"ids": [...]} or {"all": true} */
         post: operations["NotificationsController_markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/loyalty/program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Loyalty program settings (defaults with version 0 if never saved) */
+        get: operations["LoyaltyController_getProgram"];
+        /**
+         * Save the loyalty program settings. Send the version you read
+         * @description 409 LOYALTY_MODE_LOCKED: the type (stamps/points) cannot change while clients have a balance.
+         */
+        put: operations["LoyaltyController_updateProgram"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/loyalty/earn-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Stamps or points per service of one location (replaces that location’s list) */
+        put: operations["LoyaltyController_replaceEarnRules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/loyalty/accounts/{customerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A client’s balance and history in the program */
+        get: operations["LoyaltyController_getAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/loyalty/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every loyalty operation of the salon, newest first */
+        get: operations["LoyaltyController_listTransactions"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1500,6 +1592,8 @@ export interface components {
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
             cancelReason: string | null;
+            /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
+            paidAt: string | null;
             version: number;
             createdAt: string;
         };
@@ -1551,6 +1645,8 @@ export interface components {
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
             cancelReason: string | null;
+            /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
+            paidAt: string | null;
             version: number;
             createdAt: string;
             history: {
@@ -1608,6 +1704,8 @@ export interface components {
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
             cancelReason: string | null;
+            /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
+            paidAt: string | null;
             version: number;
             createdAt: string;
         }[];
@@ -1742,6 +1840,8 @@ export interface components {
                 /** @enum {string|null} */
                 cancelledBy: "customer" | "salon" | null;
                 cancelReason: string | null;
+                /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
+                paidAt: string | null;
                 version: number;
                 createdAt: string;
             }[];
@@ -2066,6 +2166,108 @@ export interface components {
             version: number;
             createdAt: string;
             updatedAt: string;
+        }[];
+        LoyaltyAccount: {
+            customer: {
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            mode: "stamps" | "points";
+            /** @description Stamps of the current cycle or points */
+            balance: number;
+            lifetimeEarned: number;
+            /** @description Newest first, at most 100 */
+            transactions: {
+                id: string;
+                customer: {
+                    id: string;
+                    name: string;
+                };
+                /** @enum {string} */
+                type: "earn" | "reverse" | "redeem" | "adjust" | "expire";
+                /** @description Signed: + earned, − taken back or spent */
+                points: number;
+                balanceAfter: number;
+                appointmentId: string | null;
+                /** @description reverse: the entry it takes back */
+                reversesId: string | null;
+                expiresAt: string | null;
+                actorUserId: string | null;
+                note: string | null;
+                createdAt: string;
+            }[];
+        };
+        LoyaltyProgram: {
+            enabled: boolean;
+            /**
+             * @description stamps = cyclic stamp card, points = points balance exchanged for rewards
+             * @enum {string}
+             */
+            mode: "stamps" | "points";
+            /** @description stamps mode: stamps for one paid visit */
+            stampsPerVisit: number;
+            /** @description points mode: points for every full spendUnitGrosze of the visit price */
+            pointsPerUnit: number;
+            /** @description 1 PLN = 100 */
+            spendUnitGrosze: number;
+            /** @description Cheaper visits earn nothing */
+            minSpendGrosze: number;
+            /** @description null = points never expire */
+            pointsValidityDays: number | null;
+            maxDiscountPercent: number;
+            /** @description Several discounts on one visit */
+            allowStacking: boolean;
+            /** @description Only a flag until the marketplace exists */
+            marketplaceEnabled: boolean;
+            /** @description Only services of the locations the caller can see */
+            earnRules: {
+                serviceId: string;
+                serviceName: string;
+                locationId: string;
+                /** @description Instead of the general rule; 0 = earns nothing */
+                points: number;
+            }[];
+            /** @description 0 = never saved, these are the defaults */
+            version: number;
+        };
+        LoyaltyTransaction: {
+            id: string;
+            customer: {
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            type: "earn" | "reverse" | "redeem" | "adjust" | "expire";
+            /** @description Signed: + earned, − taken back or spent */
+            points: number;
+            balanceAfter: number;
+            appointmentId: string | null;
+            /** @description reverse: the entry it takes back */
+            reversesId: string | null;
+            expiresAt: string | null;
+            actorUserId: string | null;
+            note: string | null;
+            createdAt: string;
+        };
+        LoyaltyTransactionList: {
+            id: string;
+            customer: {
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            type: "earn" | "reverse" | "redeem" | "adjust" | "expire";
+            /** @description Signed: + earned, − taken back or spent */
+            points: number;
+            balanceAfter: number;
+            appointmentId: string | null;
+            /** @description reverse: the entry it takes back */
+            reversesId: string | null;
+            expiresAt: string | null;
+            actorUserId: string | null;
+            note: string | null;
+            createdAt: string;
         }[];
         Me: {
             user: {
@@ -4681,6 +4883,35 @@ export interface operations {
             };
         };
     };
+    AppointmentsController_setPaid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                    paid: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
+            };
+        };
+    };
     CustomersController_list: {
         parameters: {
             query?: {
@@ -5006,6 +5237,135 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationsMarked"];
+                };
+            };
+        };
+    };
+    LoyaltyController_getProgram: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyProgram"];
+                };
+            };
+        };
+    };
+    LoyaltyController_updateProgram: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                    enabled: boolean;
+                    /** @enum {string} */
+                    mode: "stamps" | "points";
+                    stampsPerVisit: number;
+                    pointsPerUnit: number;
+                    spendUnitGrosze: number;
+                    minSpendGrosze: number;
+                    pointsValidityDays: number | null;
+                    maxDiscountPercent: number;
+                    allowStacking: boolean;
+                    marketplaceEnabled: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyProgram"];
+                };
+            };
+        };
+    };
+    LoyaltyController_replaceEarnRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rules: {
+                        /** Format: uuid */
+                        serviceId: string;
+                        points: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyProgram"];
+                };
+            };
+        };
+    };
+    LoyaltyController_getAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyAccount"];
+                };
+            };
+        };
+    };
+    LoyaltyController_listTransactions: {
+        parameters: {
+            query?: {
+                limit?: unknown;
+                customerId?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyTransactionList"];
                 };
             };
         };

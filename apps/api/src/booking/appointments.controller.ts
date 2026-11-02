@@ -18,6 +18,7 @@ import { Idempotent } from '../common/idempotency.interceptor';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { setPaidSchema, type SetPaidInput } from '../loyalty/loyalty.schemas';
 import {
   CurrentMembership,
   MembershipGuard,
@@ -159,6 +160,25 @@ export class AppointmentsController {
     @Body(new ZodValidationPipe(setStatusSchema)) body: SetStatusInput,
   ): Promise<AppointmentDetailResponse> {
     return this.appointments.setStatus(m, auth.userId, locationId, appointmentId, body);
+  }
+
+  @Post(':appointmentId/payment')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mark a "came" visit as paid (earns loyalty) or not paid (refund: takes it back)',
+    description:
+      '409 NOT_COMPLETED: only completed visits can be paid. Repeating the same mark changes nothing.',
+  })
+  @ApiZodBody(setPaidSchema)
+  @ApiZodResponse(appointmentDetailSchema)
+  setPaid(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Body(new ZodValidationPipe(setPaidSchema)) body: SetPaidInput,
+  ): Promise<AppointmentDetailResponse> {
+    return this.appointments.setPaid(m, auth.userId, locationId, appointmentId, body);
   }
 }
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { IdempotencyInterceptor } from '../common/idempotency.interceptor';
+import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { AppointmentWriter } from './appointment-writer';
@@ -18,7 +19,7 @@ import { TimeBlocksController } from './time-blocks.controller';
 import { TimeBlocksService } from './time-blocks.service';
 
 @Module({
-  imports: [OrganizationsModule, SchedulingModule],
+  imports: [OrganizationsModule, SchedulingModule, LoyaltyModule],
   controllers: [
     PublicBookingController,
     AppointmentsController,

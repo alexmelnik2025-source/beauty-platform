@@ -49,6 +49,10 @@ export const appointmentSchema = responseSchema(
     cancelledAt: z.string().nullable(),
     cancelledBy: cancelledBySchema.nullable(),
     cancelReason: z.string().nullable(),
+    paidAt: z
+      .string()
+      .nullable()
+      .describe('When the staff marked the visit as paid (this earns loyalty stamps or points)'),
     version: z.number().int(),
     createdAt: z.string(),
   }),

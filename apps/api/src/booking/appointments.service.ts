@@ -8,6 +8,8 @@ import type {
   Location,
   Prisma,
 } from '../generated/prisma/client';
+import { LoyaltyLedger } from '../loyalty/loyalty-ledger';
+import type { SetPaidInput } from '../loyalty/loyalty.schemas';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from '../scheduling/availability.service';
@@ -62,6 +64,7 @@ export class AppointmentsService {
     private readonly availability: AvailabilityService,
     private readonly writer: AppointmentWriter,
     private readonly outbox: OutboxService,
+    private readonly ledger: LoyaltyLedger,
   ) {}
 
   async list(
@@ -277,16 +280,95 @@ export class AppointmentsService {
       );
     }
     await this.prisma.$transaction(async (tx) => {
+      // A visit that is no longer "came" is no longer paid either: what it earned is taken back.
+      const unpay = input.status !== 'completed' && appointment.paidAt !== null;
       const result = await tx.appointment.updateMany({
         where: {
           id: appointment.id,
           version: input.version,
           status: { in: ['confirmed', 'completed', 'no_show'] },
         },
-        data: { status: input.status, version: { increment: 1 } },
+        data: {
+          status: input.status,
+          version: { increment: 1 },
+          ...(unpay ? { paidAt: null, paidByUserId: null } : {}),
+        },
       });
       if (result.count !== 1) throw versionConflict();
-      await this.writer.event(tx, appointment.id, input.status, 'staff', userId);
+      const taken = unpay ? await this.ledger.reverseForVisit(tx, appointment.id, userId) : 0;
+      await this.writer.event(
+        tx,
+        appointment.id,
+        input.status,
+        'staff',
+        userId,
+        taken > 0 ? { loyaltyTakenBack: taken } : undefined,
+      );
+    });
+    return this.get(m, userId, locationId, appointmentId);
+  }
+
+  /**
+   * "Paid" / "not paid (refund)" on a visit marked as "came". Until payments exist, this
+   * mark is the payment confirmation that loyalty needs: paid → stamps or points by the
+   * salon's rules, not paid → taken back. The visit's version makes double clicks harmless.
+   */
+  async setPaid(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    input: SetPaidInput,
+  ): Promise<AppointmentDetailResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    if (input.paid && appointment.status !== 'completed') {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        'NOT_COMPLETED',
+        'Only a visit marked as "came" can be paid',
+      );
+    }
+    if (input.paid === (appointment.paidAt !== null)) {
+      if (appointment.version !== input.version) throw versionConflict();
+      return this.get(m, userId, locationId, appointmentId);
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.appointment.updateMany({
+        where: {
+          id: appointment.id,
+          version: input.version,
+          paidAt: input.paid ? null : { not: null },
+          ...(input.paid ? { status: 'completed' as const } : {}),
+        },
+        data: {
+          paidAt: input.paid ? new Date() : null,
+          paidByUserId: input.paid ? userId : null,
+          version: { increment: 1 },
+        },
+      });
+      if (result.count !== 1) throw versionConflict();
+      if (input.paid) {
+        const earned = await this.ledger.earnForVisit(
+          tx,
+          {
+            id: appointment.id,
+            organizationId: appointment.location.organizationId,
+            serviceId: appointment.serviceId,
+            customerId: appointment.customerId,
+            priceGrosze: appointment.priceGrosze,
+          },
+          userId,
+        );
+        await this.writer.event(tx, appointment.id, 'paid', 'staff', userId, {
+          loyaltyEarned: earned,
+        });
+      } else {
+        const taken = await this.ledger.reverseForVisit(tx, appointment.id, userId);
+        await this.writer.event(tx, appointment.id, 'unpaid', 'staff', userId, {
+          loyaltyTakenBack: taken,
+        });
+      }
     });
     return this.get(m, userId, locationId, appointmentId);
   }
@@ -492,6 +574,7 @@ export class AppointmentsService {
       cancelledAt: a.cancelledAt?.toISOString() ?? null,
       cancelledBy: a.cancelledBy,
       cancelReason: a.cancelReason,
+      paidAt: a.paidAt?.toISOString() ?? null,
       version: a.version,
       createdAt: a.createdAt.toISOString(),
     };

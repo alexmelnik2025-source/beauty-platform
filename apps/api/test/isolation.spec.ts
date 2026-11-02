@@ -107,6 +107,25 @@ function validBody(route: Route): object {
   }
   if (p.endsWith('/appointments/:appointmentId/cancel')) return { version: 1, reason: 'Hacked' };
   if (p.endsWith('/appointments/:appointmentId/status')) return { version: 1, status: 'no_show' };
+  if (p.endsWith('/appointments/:appointmentId/payment')) return { version: 1, paid: true };
+  if (p.endsWith('/loyalty/program')) {
+    return {
+      version: 0,
+      enabled: true,
+      mode: 'points',
+      stampsPerVisit: 1,
+      pointsPerUnit: 1000,
+      spendUnitGrosze: 1,
+      minSpendGrosze: 0,
+      pointsValidityDays: null,
+      maxDiscountPercent: 100,
+      allowStacking: true,
+      marketplaceEnabled: true,
+    };
+  }
+  if (p.endsWith('/loyalty/earn-rules')) {
+    return { rules: [{ serviceId: currentIds?.serviceId, points: 1000 }] };
+  }
   if (p.endsWith('/appointments')) {
     return { ...appointmentBody(), allowOutsideHours: true };
   }
@@ -287,6 +306,30 @@ async function seedLocation(
     .set('Content-Type', 'image/png')
     .send(PNG)
     .expect(200);
+  await ctx
+    .http()
+    .put(`/v1/organizations/${org.orgId}/loyalty/program`)
+    .set(user.auth)
+    .send({
+      version: 0,
+      enabled: true,
+      mode: 'stamps',
+      stampsPerVisit: 1,
+      pointsPerUnit: 0,
+      spendUnitGrosze: 10000,
+      minSpendGrosze: 0,
+      pointsValidityDays: null,
+      maxDiscountPercent: 50,
+      allowStacking: false,
+      marketplaceEnabled: false,
+    })
+    .expect(200);
+  await ctx
+    .http()
+    .put(`${base}/loyalty/earn-rules`)
+    .set(user.auth)
+    .send({ rules: [{ serviceId: service.body.id, points: 2 }] })
+    .expect(200);
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -329,6 +372,10 @@ async function snapshotOf(ids: Ids) {
       where: { locationId: ids.locationId },
     }),
     invitations: await ctx.prisma.invitation.findMany({ where: { organizationId: ids.orgId } }),
+    loyalty: await ctx.prisma.loyaltyProgram.findMany({
+      where: { organizationId: ids.orgId },
+      include: { earnRules: true, accounts: { include: { transactions: true } } },
+    }),
     photos: await ctx.prisma.photo.findMany({
       where: { locationId: ids.locationId },
       select: { id: true, staffId: true, sizeBytes: true },

@@ -73,6 +73,10 @@ export type FailedEmail = Schemas['FailedEmail'];
 /** Public catalogue of salons with its map. */
 export type PublicSalonDirectory = Schemas['PublicSalonDirectory'];
 export type PublicSalon = PublicSalonDirectory['items'][number];
+/** The salon's loyalty program (owners and managers). */
+export type LoyaltyProgram = Schemas['LoyaltyProgram'];
+export type LoyaltyAccount = Schemas['LoyaltyAccount'];
+export type LoyaltyTransaction = Schemas['LoyaltyTransaction'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

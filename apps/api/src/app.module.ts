@@ -6,6 +6,7 @@ import { ClientModule } from './client/client.module';
 import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
 import { MailModule } from './mail/mail.module';
 import { SmsModule } from './sms/sms.module';
 import { OrganizationsModule } from './organizations/organizations.module';
@@ -24,6 +25,7 @@ import { SchedulingModule } from './scheduling/scheduling.module';
     OrganizationsModule,
     SchedulingModule,
     BookingModule,
+    LoyaltyModule,
     ClientModule,
     PushModule,
     HealthModule,

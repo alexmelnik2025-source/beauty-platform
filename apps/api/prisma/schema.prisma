@@ -111,6 +111,31 @@ enum EmailTokenType {
 }
 
 /// A person who can sign in (owner, manager, staff). Salon customers are separate (task 4).
+/// Loyalty program mechanics chosen by the salon (docs/LOYALTY.md).
+/// stamps = cyclic stamp card, points = points balance exchanged for rewards.
+enum LoyaltyMode {
+  stamps
+  points
+
+  @@map("loyalty_mode")
+}
+
+/// Kinds of loyalty ledger entries. Entries are only ever added, never changed.
+enum LoyaltyTransactionType {
+  /// Stamps or points for a paid, completed visit.
+  earn
+  /// Takes back an earn (refund, visit marked "did not come").
+  reverse
+  /// Spent on a reward (task 10a, part 2).
+  redeem
+  /// Manual correction by the owner or manager (task 10a, part 2).
+  adjust
+  /// Points past their validity date (task 10f).
+  expire
+
+  @@map("loyalty_transaction_type")
+}
+
 model User {
   id              String    @id @default(uuid(7)) @db.Uuid
   /// Stored lower-cased and trimmed.
@@ -122,9 +147,9 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions      Session[]
-  emailTokens   EmailToken[]
-  memberships   Membership[]
+  sessions          Session[]
+  emailTokens       EmailToken[]
+  memberships       Membership[]
   staffMembers      StaffMember[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
@@ -183,24 +208,25 @@ model Organization {
   staffCategories StaffCategory[]
   invitations     Invitation[]
   notifications   Notification[]
+  loyaltyProgram  LoyaltyProgram?
 
   @@map("organization")
 }
 
 /// A user's role in an organization. Managers and staff are limited to their locations.
 model Membership {
-  id             String           @id @default(uuid(7)) @db.Uuid
-  userId         String           @map("user_id") @db.Uuid
-  organizationId String           @map("organization_id") @db.Uuid
-  role           MembershipRole
-  status         MembershipStatus @default(active)
+  id                  String           @id @default(uuid(7)) @db.Uuid
+  userId              String           @map("user_id") @db.Uuid
+  organizationId      String           @map("organization_id") @db.Uuid
+  role                MembershipRole
+  status              MembershipStatus @default(active)
   /// Staff role only: the category whose permissions apply.
-  staffCategoryId String?          @map("staff_category_id") @db.Uuid
+  staffCategoryId     String?          @map("staff_category_id") @db.Uuid
   /// Staff role only: personal exceptions, { "<permission>": true | false }.
-  permissionOverrides Json         @default("{}") @map("permission_overrides")
-  version        Int              @default(1)
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  permissionOverrides Json             @default("{}") @map("permission_overrides")
+  version             Int              @default(1)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization  Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -312,33 +338,33 @@ model MembershipLocation {
 
 /// A salon / branch. Booking settings live here.
 model Location {
-  id                          String   @id @default(uuid(7)) @db.Uuid
-  organizationId              String   @map("organization_id") @db.Uuid
+  id                          String     @id @default(uuid(7)) @db.Uuid
+  organizationId              String     @map("organization_id") @db.Uuid
   name                        String
   /// Public booking link: /b/<slug>
-  slug                        String   @unique
-  timezone                    String   @default("Europe/Warsaw")
-  addressLine                 String   @map("address_line")
+  slug                        String     @unique
+  timezone                    String     @default("Europe/Warsaw")
+  addressLine                 String     @map("address_line")
   city                        String
-  postalCode                  String   @map("postal_code")
+  postalCode                  String     @map("postal_code")
   latitude                    Float?
   longitude                   Float?
   phone                       String?
   email                       String?
-  defaultLocale               Locale   @default(pl) @map("default_locale")
-  slotStepMinutes             Int      @default(15) @map("slot_step_minutes")
-  minLeadMinutes              Int      @default(60) @map("min_lead_minutes")
-  bookingHorizonDays          Int      @default(30) @map("booking_horizon_days")
-  clientCancelDeadlineMinutes Int      @default(120) @map("client_cancel_deadline_minutes")
-  onlineBookingEnabled        Boolean  @default(false) @map("online_booking_enabled")
+  defaultLocale               Locale     @default(pl) @map("default_locale")
+  slotStepMinutes             Int        @default(15) @map("slot_step_minutes")
+  minLeadMinutes              Int        @default(60) @map("min_lead_minutes")
+  bookingHorizonDays          Int        @default(30) @map("booking_horizon_days")
+  clientCancelDeadlineMinutes Int        @default(120) @map("client_cancel_deadline_minutes")
+  onlineBookingEnabled        Boolean    @default(false) @map("online_booking_enabled")
   /// Languages the salon speaks with clients, in the order chosen by the salon.
   languages                   Language[] @default([])
   /// Shown on the booking page under the salon name: what the salon is about.
   description                 String?
   /// Optimistic locking: every update must send the version it read.
-  version                     Int      @default(1)
-  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version                     Int        @default(1)
+  createdAt                   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships       MembershipLocation[]
@@ -373,10 +399,11 @@ model Service {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location     Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  category     ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  location     Location          @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  category     ServiceCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   staff        StaffService[]
   appointments Appointment[]
+  loyaltyRules LoyaltyEarnRule[]
 
   @@index([locationId])
   @@index([categoryId])
@@ -402,22 +429,22 @@ model ServiceCategory {
 
 /// A person who performs services at a location. May or may not have a user account.
 model StaffMember {
-  id         String   @id @default(uuid(7)) @db.Uuid
-  locationId String   @map("location_id") @db.Uuid
-  userId      String?  @map("user_id") @db.Uuid
+  id          String     @id @default(uuid(7)) @db.Uuid
+  locationId  String     @map("location_id") @db.Uuid
+  userId      String?    @map("user_id") @db.Uuid
   /// Shown to clients, e.g. "Kasia".
-  displayName String   @map("display_name")
+  displayName String     @map("display_name")
   bio         String?
   /// Languages this staff member speaks with clients.
   languages   Language[] @default([])
-  active     Boolean  @default(true)
-  sortOrder  Int      @default(0) @map("sort_order")
-  version    Int      @default(1)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  active      Boolean    @default(true)
+  sortOrder   Int        @default(0) @map("sort_order")
+  version     Int        @default(1)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location     Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  user         User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  location     Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user         User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   services     StaffService[]
   workingHours WorkingHours[]
   overrides    WorkingHoursOverride[]
@@ -554,9 +581,10 @@ model Customer {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  consents     ConsentRecord[]
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  consents        ConsentRecord[]
+  loyaltyAccounts LoyaltyAccount[]
 
   @@unique([organizationId, email])
   @@index([organizationId, name])
@@ -584,39 +612,43 @@ model ConsentRecord {
 /// No two held/confirmed rows of one staff member may overlap: enforced by the
 /// exclusion constraint "appointment_no_overlap" (see the migration).
 model Appointment {
-  id              String            @id @default(uuid(7)) @db.Uuid
-  locationId      String            @map("location_id") @db.Uuid
-  staffId         String            @map("staff_id") @db.Uuid
-  serviceId       String            @map("service_id") @db.Uuid
+  id                  String            @id @default(uuid(7)) @db.Uuid
+  locationId          String            @map("location_id") @db.Uuid
+  staffId             String            @map("staff_id") @db.Uuid
+  serviceId           String            @map("service_id") @db.Uuid
   /// Empty while the slot is only held.
-  customerId      String?           @map("customer_id") @db.Uuid
-  status          AppointmentStatus
-  source          AppointmentSource
-  startAt         DateTime          @map("start_at") @db.Timestamptz(3)
+  customerId          String?           @map("customer_id") @db.Uuid
+  status              AppointmentStatus
+  source              AppointmentSource
+  startAt             DateTime          @map("start_at") @db.Timestamptz(3)
   /// Start + service duration (what the client sees).
-  endAt           DateTime          @map("end_at") @db.Timestamptz(3)
+  endAt               DateTime          @map("end_at") @db.Timestamptz(3)
   /// End + buffer: until when the staff member is busy.
-  blockedUntil    DateTime          @map("blocked_until") @db.Timestamptz(3)
-  holdExpiresAt   DateTime?         @map("hold_expires_at") @db.Timestamptz(3)
-  holdTokenHash   String?           @unique @map("hold_token_hash")
+  blockedUntil        DateTime          @map("blocked_until") @db.Timestamptz(3)
+  holdExpiresAt       DateTime?         @map("hold_expires_at") @db.Timestamptz(3)
+  holdTokenHash       String?           @unique @map("hold_token_hash")
   /// Contact details entered during a hold, before the email is confirmed.
-  holdContact     Json?             @map("hold_contact")
+  holdContact         Json?             @map("hold_contact")
   /// Language of the client's emails.
-  locale          Locale            @default(pl)
+  locale              Locale            @default(pl)
   /// The client picked this staff member (not "any staff member").
-  staffChosenByClient Boolean       @default(false) @map("staff_chosen_by_client")
+  staffChosenByClient Boolean           @default(false) @map("staff_chosen_by_client")
   /// Snapshot at booking time; later price changes do not affect it.
-  priceGrosze     Int               @map("price_grosze")
-  durationMinutes Int               @map("duration_minutes")
-  bufferMinutes   Int               @map("buffer_minutes")
-  note            String?
-  cancelledAt     DateTime?         @map("cancelled_at") @db.Timestamptz(3)
-  cancelledBy     CancelledBy?      @map("cancelled_by")
-  cancelReason    String?           @map("cancel_reason")
-  createdByUserId String?           @map("created_by_user_id") @db.Uuid
-  version         Int               @default(1)
-  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  priceGrosze         Int               @map("price_grosze")
+  durationMinutes     Int               @map("duration_minutes")
+  bufferMinutes       Int               @map("buffer_minutes")
+  note                String?
+  cancelledAt         DateTime?         @map("cancelled_at") @db.Timestamptz(3)
+  cancelledBy         CancelledBy?      @map("cancelled_by")
+  cancelReason        String?           @map("cancel_reason")
+  /// The staff confirmed the client paid (until payments exist, this mark is the
+  /// "payment confirmed" that loyalty earning needs). Only on completed visits.
+  paidAt              DateTime?         @map("paid_at") @db.Timestamptz(3)
+  paidByUserId        String?           @map("paid_by_user_id") @db.Uuid
+  createdByUserId     String?           @map("created_by_user_id") @db.Uuid
+  version             Int               @default(1)
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   location         Location                 @relation(fields: [locationId], references: [id], onDelete: Cascade)
   staff            StaffMember              @relation(fields: [staffId], references: [id], onDelete: Restrict)
@@ -625,6 +657,7 @@ model Appointment {
   events           AppointmentEvent[]
   verificationCode VerificationCode?
   accessTokens     AppointmentAccessToken[]
+  loyaltyEntries   LoyaltyTransaction[]
 
   @@index([locationId, startAt])
   @@index([staffId, startAt])
@@ -778,4 +811,103 @@ model ClientSession {
 
   @@index([personId])
   @@map("client_session")
+}
+
+/// One loyalty program per salon (organization), set up by the owner or a manager.
+/// The platform sets no rules: every number here is the salon's choice. See docs/LOYALTY.md.
+model LoyaltyProgram {
+  id                 String      @id @default(uuid(7)) @db.Uuid
+  organizationId     String      @unique @map("organization_id") @db.Uuid
+  enabled            Boolean     @default(false)
+  mode               LoyaltyMode @default(stamps)
+  /// stamps mode: stamps for one paid visit (a service rule overrides it).
+  stampsPerVisit     Int         @default(1) @map("stamps_per_visit")
+  /// points mode: pointsPerUnit points for every full spendUnitGrosze spent
+  /// (e.g. 10 points per 100 zł = 10 / 10000). A service rule overrides it.
+  pointsPerUnit      Int         @default(0) @map("points_per_unit")
+  spendUnitGrosze    Int         @default(10000) @map("spend_unit_grosze")
+  /// Visits cheaper than this earn nothing.
+  minSpendGrosze     Int         @default(0) @map("min_spend_grosze")
+  /// points mode: points expire this many days after they were earned; null = never.
+  pointsValidityDays Int?        @map("points_validity_days")
+  /// Rewards may never take more than this share of a visit's price (task 10d).
+  maxDiscountPercent Int         @default(100) @map("max_discount_percent")
+  /// Several discounts on one visit (task 10d).
+  allowStacking      Boolean     @default(false) @map("allow_stacking")
+  /// The salon agrees to take part in the marketplace (only a flag until it exists, task 10g).
+  marketplaceEnabled Boolean     @default(false) @map("marketplace_enabled")
+  version            Int         @default(1)
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  earnRules    LoyaltyEarnRule[]
+  accounts     LoyaltyAccount[]
+
+  @@map("loyalty_program")
+}
+
+/// A fixed number of stamps or points for one service, instead of the program's general rule.
+/// 0 = the service earns nothing.
+model LoyaltyEarnRule {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  programId String   @map("program_id") @db.Uuid
+  serviceId String   @map("service_id") @db.Uuid
+  points    Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  service Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, serviceId])
+  @@index([serviceId])
+  @@map("loyalty_earn_rule")
+}
+
+/// A client's balance in one salon's program: stamps of the current cycle or points.
+/// Never below zero (CHECK constraint "loyalty_account_balance_not_negative").
+model LoyaltyAccount {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  programId      String   @map("program_id") @db.Uuid
+  customerId     String   @map("customer_id") @db.Uuid
+  balance        Int      @default(0)
+  lifetimeEarned Int      @default(0) @map("lifetime_earned")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  program      LoyaltyProgram       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions LoyaltyTransaction[]
+
+  @@unique([programId, customerId])
+  @@index([customerId])
+  @@map("loyalty_account")
+}
+
+/// The ledger: every change of a balance, added and never edited.
+model LoyaltyTransaction {
+  id            String                 @id @default(uuid(7)) @db.Uuid
+  accountId     String                 @map("account_id") @db.Uuid
+  type          LoyaltyTransactionType
+  /// Signed: + earned, − taken back or spent.
+  points        Int
+  balanceAfter  Int                    @map("balance_after")
+  appointmentId String?                @map("appointment_id") @db.Uuid
+  /// reverse: the entry it takes back (each entry can be taken back once).
+  reversesId    String?                @unique @map("reverses_id") @db.Uuid
+  /// Guards against doing the same thing twice, e.g. "earn:<appointment>:<n>".
+  dedupeKey     String                 @unique @map("dedupe_key")
+  expiresAt     DateTime?              @map("expires_at") @db.Timestamptz(3)
+  actorUserId   String?                @map("actor_user_id") @db.Uuid
+  note          String?
+  createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  account     LoyaltyAccount      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  appointment Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  reverses    LoyaltyTransaction? @relation("LoyaltyReversal", fields: [reversesId], references: [id], onDelete: NoAction)
+  reversedBy  LoyaltyTransaction? @relation("LoyaltyReversal")
+
+  @@index([accountId, createdAt])
+  @@index([appointmentId])
+  @@map("loyalty_transaction")
 }
