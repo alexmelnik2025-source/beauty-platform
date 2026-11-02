@@ -3,17 +3,25 @@ name: Production Docker build
 on:
   pull_request:
     paths:
+      # Any change to the code can break the images, not only the Docker files.
       - '.dockerignore'
-      - 'apps/api/Dockerfile'
-      - 'apps/web/Dockerfile'
+      - 'apps/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'compose.production.yml'
       - '.github/workflows/docker-build.yml'
   push:
     branches: ['**', '!e2e-screenshots']
     paths:
+      # Any change to the code can break the images, not only the Docker files.
       - '.dockerignore'
-      - 'apps/api/Dockerfile'
-      - 'apps/web/Dockerfile'
+      - 'apps/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'compose.production.yml'
       - '.github/workflows/docker-build.yml'
 
