@@ -1,4 +1,4 @@
-import type { Calendar } from './api';
+import type { AppointmentDetail, Calendar, StaffList } from './api';
 
 /** Dates of the day calendar: always the salon's local date, YYYY-MM-DD. */
 
@@ -50,6 +50,7 @@ export type DayVisit = {
   status: Calendar['appointments'][number]['status'];
   service: string;
   staff: string;
+  staffId: string;
   customer: string | null;
   phone: string | null;
 };
@@ -70,6 +71,7 @@ export function visitsOfDay(calendar: Calendar, date: string): DayVisit[] {
       status: a.status,
       service: a.service.name,
       staff: a.staff.displayName,
+      staffId: a.staff.id,
       customer: a.customer?.name ?? null,
       phone: a.customer?.phone ?? null,
     }));
@@ -82,4 +84,39 @@ export function staffOfDay(calendar: Calendar, date: string): { name: string; ho
     if (intervals.length === 0) return [];
     return [{ name: s.displayName, hours: intervals.map((i) => `${i.start}–${i.end}`).join(', ') }];
   });
+}
+
+/**
+ * The salon's specialist who is the signed-in person (an owner or manager who also
+ * cuts hair), or null. Used for the "only mine" switch.
+ */
+export function myStaffId(staff: StaffList, userId: string): string | null {
+  return staff.find((s) => s.userId === userId)?.id ?? null;
+}
+
+export function onlyMine(visits: DayVisit[], staffId: string | null): DayVisit[] {
+  return staffId ? visits.filter((v) => v.staffId === staffId) : visits;
+}
+
+/**
+ * Which buttons the visit card shows — the same rules as the web calendar:
+ * "came / did not come" once a confirmed visit has started, "paid" after it took place.
+ * The server checks everything again.
+ */
+export function visitActions(
+  visit: Pick<AppointmentDetail, 'status' | 'start' | 'paidAt'>,
+  canChange: boolean,
+  now = Date.now(),
+): { came: boolean; noShow: boolean; pay: boolean; unpay: boolean } {
+  const started = Date.parse(visit.start) <= now;
+  const live = canChange && visit.status === 'confirmed' && started;
+  const done = canChange && visit.status === 'completed';
+  return { came: live, noShow: live, pay: done && !visit.paidAt, unpay: done && !!visit.paidAt };
+}
+
+/** "45,00 zł" — prices come in grosze (1 PLN = 100). */
+export function formatPrice(grosze: number, locale: DayLocale): string {
+  return new Intl.NumberFormat(INTL_LOCALE[locale], { style: 'currency', currency: 'PLN' }).format(
+    grosze / 100,
+  );
 }

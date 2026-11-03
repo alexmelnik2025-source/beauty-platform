@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { Calendar } from '../src/api';
-import { addDays, dayTitle, staffOfDay, timeIn, todayIn, visitsOfDay } from '../src/day';
+import {
+  addDays,
+  dayTitle,
+  formatPrice,
+  myStaffId,
+  onlyMine,
+  staffOfDay,
+  timeIn,
+  todayIn,
+  visitActions,
+  visitsOfDay,
+  type DayVisit,
+} from '../src/day';
 
 const appointment = (
   id: string,
@@ -95,6 +107,7 @@ describe('day calendar', () => {
         status: 'completed',
         service: 'Strzyżenie męskie',
         staff: 'Kasia',
+        staffId: 's1',
         customer: 'Piotr',
         phone: '+48600500600',
       },
@@ -107,5 +120,60 @@ describe('day calendar', () => {
     expect(staffOfDay(calendar, '2026-11-03')).toEqual([
       { name: 'Kasia', hours: '08:00–14:00, 15:00–21:00' },
     ]);
+  });
+});
+
+describe('visit card', () => {
+  const visit = (staffId: string, id: string) =>
+    ({ id, staffId, start: '10:00' }) as unknown as DayVisit;
+
+  it('"only mine" keeps the visits of the signed-in specialist', () => {
+    const staff = [
+      { id: 's1', userId: 'u-kasia' },
+      { id: 's2', userId: null },
+    ] as unknown as Parameters<typeof myStaffId>[0];
+    expect(myStaffId(staff, 'u-kasia')).toBe('s1');
+    expect(myStaffId(staff, 'u-owner')).toBeNull();
+    const list = [visit('s1', 'a'), visit('s2', 'b')];
+    expect(onlyMine(list, 's1').map((v) => v.id)).toEqual(['a']);
+    expect(onlyMine(list, null)).toHaveLength(2);
+  });
+
+  it('shows the same buttons as the web calendar', () => {
+    const now = Date.parse('2026-11-03T12:00:00Z');
+    const started = '2026-11-03T11:00:00Z';
+    const later = '2026-11-03T15:00:00Z';
+    const none = { came: false, noShow: false, pay: false, unpay: false };
+    expect(visitActions({ status: 'confirmed', start: started, paidAt: null }, true, now)).toEqual({
+      came: true,
+      noShow: true,
+      pay: false,
+      unpay: false,
+    });
+    // Not started yet: nothing to mark.
+    expect(visitActions({ status: 'confirmed', start: later, paidAt: null }, true, now)).toEqual(
+      none,
+    );
+    expect(visitActions({ status: 'completed', start: started, paidAt: null }, true, now)).toEqual({
+      came: false,
+      noShow: false,
+      pay: true,
+      unpay: false,
+    });
+    expect(
+      visitActions({ status: 'completed', start: started, paidAt: started }, true, now),
+    ).toEqual({ came: false, noShow: false, pay: false, unpay: true });
+    expect(visitActions({ status: 'no_show', start: started, paidAt: null }, true, now)).toEqual(
+      none,
+    );
+    // Without the permission to change visits: only reading.
+    expect(visitActions({ status: 'confirmed', start: started, paidAt: null }, false, now)).toEqual(
+      none,
+    );
+  });
+
+  it('prices in złoty', () => {
+    expect(formatPrice(4500, 'pl').replace(/\s/g, ' ')).toBe('45,00 zł');
+    expect(formatPrice(4500, 'en')).toContain('45.00');
   });
 });

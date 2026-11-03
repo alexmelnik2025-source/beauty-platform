@@ -156,4 +156,34 @@ describe('BusinessApi', () => {
     expect(store.value).toBeNull();
     expect(api.signedIn).toBe(false);
   });
+
+  it('reads a visit and marks it "came" and "paid" with the version it read', async () => {
+    const base = '/v1/organizations/o1/locations/l1/appointments/a1';
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a3', 'refresh-token-0123456789xyz')],
+      [`GET ${base}`]: () => [200, { id: 'a1', version: 4, status: 'confirmed' }],
+      [`POST ${base}/status`]: () => [200, { id: 'a1', version: 5, status: 'completed' }],
+      [`POST ${base}/payment`]: () => [200, { id: 'a1', version: 6, paidAt: 'now' }],
+      'GET /v1/organizations/o1/permissions': () => [200, { me: { role: 'staff' } }],
+      'GET /v1/organizations/o1/locations/l1/staff': () => [200, []],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('refresh-token-0123456789abc'),
+      fetchFn,
+    );
+    await api.restore();
+    expect(await api.appointment('o1', 'l1', 'a1')).toMatchObject({ version: 4 });
+    await api.setStatus('o1', 'l1', 'a1', 4, 'completed');
+    await api.setPaid('o1', 'l1', 'a1', 5, true);
+    await api.permissions('o1');
+    await api.staff('o1', 'l1');
+    expect(calls.slice(1).map((c) => [c.key, c.body, c.auth])).toEqual([
+      [`GET ${base}`, undefined, 'Bearer a3'],
+      [`POST ${base}/status`, { version: 4, status: 'completed' }, 'Bearer a3'],
+      [`POST ${base}/payment`, { version: 5, paid: true }, 'Bearer a3'],
+      ['GET /v1/organizations/o1/permissions', undefined, 'Bearer a3'],
+      ['GET /v1/organizations/o1/locations/l1/staff', undefined, 'Bearer a3'],
+    ]);
+  });
 });

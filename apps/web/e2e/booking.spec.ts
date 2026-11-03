@@ -895,6 +895,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     const kasiaApp = await signInBusinessApp(KASIA, '32-business-app-staff');
     await expect(kasiaApp.getByText(annaVisit.customer!.phone!)).toHaveCount(0);
     await shot(kasiaApp, '32-business-app-staff-day');
+    // The visit card: service and specialist, but no contacts without the permission.
+    await kasiaApp.getByText('Anna Kowalska').first().click();
+    await expect(kasiaApp.getByText('Kontakt widoczny tylko z uprawnieniem')).toBeVisible();
+    await expect(kasiaApp.getByText(annaVisit.customer!.phone!)).toHaveCount(0);
+    await shot(kasiaApp, '32a-business-app-staff-visit');
+    await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
     // The refresh token is kept: opening the app again needs no new code.
     await kasiaApp.reload();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
@@ -905,6 +912,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     const ownerApp = await signInBusinessApp(OWNER, '33-business-app-owner');
     await expect(ownerApp.getByText(annaVisit.customer!.phone!).first()).toBeVisible();
     await shot(ownerApp, '33-business-app-owner-day');
+    // The owner's visit card: call / SMS the client; "came" waits until the visit starts.
+    await ownerApp.getByText('Anna Kowalska').first().click();
+    await expect(
+      ownerApp.getByRole('button', { name: `Zadzwoń ${annaVisit.customer!.phone!}` }),
+    ).toBeVisible();
+    await expect(ownerApp.getByText('Usługa', { exact: true })).toBeVisible();
+    await expect(ownerApp.getByText(/można zaznaczyć, gdy wizyta się zacznie/)).toBeVisible();
+    await shot(ownerApp, '33a-business-app-owner-visit');
+    await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
   } finally {
     businessApp.server.close();
   }

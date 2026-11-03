@@ -1,4 +1,13 @@
-import type { Calendar, Location, LoginCodeSent, Me, Tokens, components } from '@beauty/api-client';
+import type {
+  AppointmentDetail,
+  Calendar,
+  Location,
+  LoginCodeSent,
+  Me,
+  PermissionCatalog,
+  Tokens,
+  components,
+} from '@beauty/api-client';
 
 /**
  * The business app's connection to the API: sign-in with a code (no password),
@@ -8,7 +17,8 @@ import type { Calendar, Location, LoginCodeSent, Me, Tokens, components } from '
 
 export type Locale = 'pl' | 'uk' | 'ru' | 'en';
 export type LocationList = components['schemas']['LocationList'];
-export type { Calendar, Location, LoginCodeSent, Me, Tokens };
+export type StaffList = components['schemas']['StaffList'];
+export type { AppointmentDetail, Calendar, Location, LoginCodeSent, Me, PermissionCatalog, Tokens };
 
 /** Where the refresh token lives: Keychain/Keystore on phones, browser storage in the web preview. */
 export interface TokenStore {
@@ -111,6 +121,60 @@ export class BusinessApi {
     );
   }
 
+  /** What the signed-in person may do in this organization (role and permissions). */
+  permissions(orgId: string): Promise<PermissionCatalog> {
+    return this.authed<PermissionCatalog>('GET', `/v1/organizations/${enc(orgId)}/permissions`);
+  }
+
+  /** Specialists of the salon; `userId` links one of them to the signed-in person. */
+  staff(orgId: string, locationId: string): Promise<StaffList> {
+    return this.authed<StaffList>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff`,
+    );
+  }
+
+  /** One visit with its history; client contacts only when the person may see them. */
+  appointment(orgId: string, locationId: string, id: string): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>('GET', appointmentPath(orgId, locationId, id));
+  }
+
+  /** "Came" (completed) or "did not come" (no_show). Send the version that was read. */
+  setStatus(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    status: 'completed' | 'no_show',
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/status`,
+      {
+        version,
+        status,
+      },
+    );
+  }
+
+  /** Paid (earns loyalty stamps or points) or not paid (a refund takes them back). */
+  setPaid(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    paid: boolean,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/payment`,
+      {
+        version,
+        paid,
+      },
+    );
+  }
+
   private async keep(tokens: Tokens): Promise<void> {
     this.accessToken = tokens.accessToken;
     if (tokens.refreshToken) await this.store.set(tokens.refreshToken);
@@ -169,3 +233,5 @@ export class BusinessApi {
 }
 
 const enc = encodeURIComponent;
+const appointmentPath = (orgId: string, locationId: string, id: string) =>
+  `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments/${enc(id)}`;
