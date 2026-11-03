@@ -34,3 +34,11 @@ describe('visit history in the salon app', () => {
     }
   });
 });
+
+describe('calendar errors in the salon app', () => {
+  it('a taken time says the specialist already has a visit then (owner test T10)', () => {
+    expect(pl.errors.STAFF_BUSY).toBe('U tego specjalisty jest już wizyta w tym czasie.');
+    for (const dict of [uk, ru, en])
+      expect(dict.errors.STAFF_BUSY).not.toBe(dict.errors.SLOT_TAKEN);
+  });
+});
