@@ -2414,6 +2414,33 @@
                       ]
                     }
                   },
+                  "specialties": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "hairdresser",
+                        "barber",
+                        "nails",
+                        "cosmetologist",
+                        "brows_lashes",
+                        "makeup",
+                        "massage"
+                      ]
+                    }
+                  },
+                  "customSpecialty": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "active": {
                     "default": true,
                     "type": "boolean"
@@ -2564,6 +2591,33 @@
                         "en"
                       ]
                     }
+                  },
+                  "specialties": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "hairdresser",
+                        "barber",
+                        "nails",
+                        "cosmetologist",
+                        "brows_lashes",
+                        "makeup",
+                        "massage"
+                      ]
+                    }
+                  },
+                  "customSpecialty": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "active": {
                     "type": "boolean"
@@ -11337,6 +11391,26 @@
                     ]
                   }
                 },
+                "specialties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "hairdresser",
+                      "barber",
+                      "nails",
+                      "cosmetologist",
+                      "brows_lashes",
+                      "makeup",
+                      "massage"
+                    ]
+                  },
+                  "description": "Main one first"
+                },
+                "customSpecialty": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "serviceIds": {
                   "type": "array",
                   "items": {
@@ -11354,6 +11428,8 @@
                 "displayName",
                 "bio",
                 "languages",
+                "specialties",
+                "customSpecialty",
                 "serviceIds",
                 "photoUrl"
               ],
@@ -11819,6 +11895,27 @@
               ]
             }
           },
+          "specialties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "hairdresser",
+                "barber",
+                "nails",
+                "cosmetologist",
+                "brows_lashes",
+                "makeup",
+                "massage"
+              ]
+            },
+            "description": "What the specialist does, main one first; shown to clients"
+          },
+          "customSpecialty": {
+            "nullable": true,
+            "description": "The salon’s own words, shown after the list",
+            "type": "string"
+          },
           "active": {
             "type": "boolean"
           },
@@ -11857,6 +11954,8 @@
           "displayName",
           "bio",
           "languages",
+          "specialties",
+          "customSpecialty",
           "active",
           "sortOrder",
           "version",
@@ -12043,6 +12142,27 @@
                 ]
               }
             },
+            "specialties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "hairdresser",
+                  "barber",
+                  "nails",
+                  "cosmetologist",
+                  "brows_lashes",
+                  "makeup",
+                  "massage"
+                ]
+              },
+              "description": "What the specialist does, main one first; shown to clients"
+            },
+            "customSpecialty": {
+              "nullable": true,
+              "description": "The salon’s own words, shown after the list",
+              "type": "string"
+            },
             "active": {
               "type": "boolean"
             },
@@ -12081,6 +12201,8 @@
             "displayName",
             "bio",
             "languages",
+            "specialties",
+            "customSpecialty",
             "active",
             "sortOrder",
             "version",

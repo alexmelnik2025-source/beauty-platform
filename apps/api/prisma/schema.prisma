@@ -35,6 +35,20 @@ enum Language {
   @@map("language")
 }
 
+/// What a specialist does: the whole beauty trade, not only barbers. Shown to clients
+/// next to the name; anything not on the list goes to StaffMember.customSpecialty.
+enum Specialty {
+  hairdresser
+  barber
+  nails
+  cosmetologist
+  brows_lashes
+  makeup
+  massage
+
+  @@map("specialty")
+}
+
 enum MembershipRole {
   owner
   manager
@@ -463,6 +477,10 @@ model StaffMember {
   bio         String?
   /// Languages this staff member speaks with clients.
   languages   Language[] @default([])
+  /// What this specialist does, in the order the salon chose (task 11a, part 3).
+  specialties     Specialty[] @default([])
+  /// The salon's own words when the list has nothing that fits, e.g. "Trycholog".
+  customSpecialty String?     @map("custom_specialty")
   active      Boolean    @default(true)
   sortOrder   Int        @default(0) @map("sort_order")
   version     Int        @default(1)

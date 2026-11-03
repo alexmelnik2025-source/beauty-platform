@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { isValidLocalDate, parseClock } from './time';
 import { languagesSchema } from '../organizations/organizations.schemas';
+import { specialtySchema } from '../common/enums.schemas';
 
 const fiveMinuteSteps = (min: number, max: number) =>
   z
@@ -59,6 +60,18 @@ const staffFields = {
   displayName: z.string().trim().min(1).max(80),
   bio: z.string().trim().max(500).nullable(),
   languages: languagesSchema,
+  /** Repeats are dropped, the order is kept (the first one is the main specialty). */
+  specialties: z
+    .array(specialtySchema)
+    .max(10)
+    .transform((list) => [...new Set(list)]),
+  /** The salon's own words when nothing on the list fits; an empty text clears it. */
+  customSpecialty: z
+    .string()
+    .trim()
+    .max(40)
+    .nullable()
+    .transform((v) => (v ? v : null)),
   active: z.boolean(),
   sortOrder: z.number().int().min(0).max(10_000),
 };
@@ -69,6 +82,8 @@ export const createStaffSchema = z.object({
   ...staffFields,
   bio: staffFields.bio.optional(),
   languages: staffFields.languages.default([]),
+  specialties: staffFields.specialties.default([]),
+  customSpecialty: staffFields.customSpecialty.optional(),
   active: staffFields.active.default(true),
   sortOrder: staffFields.sortOrder.default(0),
   serviceIds: serviceIds.default([]),

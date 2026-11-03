@@ -327,6 +327,8 @@ describe('public booking page', () => {
       displayName: 'Kasia',
       bio: null,
       languages: [],
+      specialties: [],
+      customSpecialty: null,
       serviceIds: [serviceId],
       photoUrl: null,
     });
@@ -437,6 +439,107 @@ describe('spoken languages', () => {
       .patch(base)
       .set(member.auth)
       .send({ version: current.body.version, languages: ['en'] })
+      .expect(403);
+  });
+});
+
+describe('staff specialties (task 11a, part 3)', () => {
+  it('keeps the specialties and the salon’s own words; the booking page shows them', async () => {
+    const { staffId } = await setupStaff([
+      { weekday: 1, intervals: [{ start: '09:00', end: '17:00' }] },
+    ]);
+    const staff = await ctx.http().get(`${base}/staff/${staffId}`).set(owner.auth).expect(200);
+    expect(staff.body.specialties).toEqual([]);
+    expect(staff.body.customSpecialty).toBeNull();
+
+    // Repeats are dropped, the order is kept; the text is trimmed.
+    const updated = await ctx
+      .http()
+      .patch(`${base}/staff/${staffId}`)
+      .set(owner.auth)
+      .send({
+        version: staff.body.version,
+        specialties: ['barber', 'hairdresser', 'barber'],
+        customSpecialty: '  Trycholog  ',
+      })
+      .expect(200);
+    expect(updated.body.specialties).toEqual(['barber', 'hairdresser']);
+    expect(updated.body.customSpecialty).toBe('Trycholog');
+
+    const created = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Ola', specialties: ['nails', 'brows_lashes'] })
+      .expect(201);
+    expect(created.body.specialties).toEqual(['nails', 'brows_lashes']);
+    expect(created.body.customSpecialty).toBeNull();
+
+    const current = await ctx.http().get(base).set(owner.auth).expect(200);
+    const loc = await ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({ version: current.body.version, onlineBookingEnabled: true })
+      .expect(200);
+    const page = await ctx.http().get(`/v1/public/locations/${loc.body.slug}`).expect(200);
+    expect(page.body.staff).toEqual([
+      expect.objectContaining({
+        id: staffId,
+        specialties: ['barber', 'hairdresser'],
+        customSpecialty: 'Trycholog',
+      }),
+    ]);
+
+    // An empty text and an empty list clear them.
+    const cleared = await ctx
+      .http()
+      .patch(`${base}/staff/${staffId}`)
+      .set(owner.auth)
+      .send({ version: updated.body.version, specialties: [], customSpecialty: '   ' })
+      .expect(200);
+    expect(cleared.body.specialties).toEqual([]);
+    expect(cleared.body.customSpecialty).toBeNull();
+  });
+
+  it('rejects unknown specialties and too long own words', async () => {
+    const unknown = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'X', specialties: ['plumber'] })
+      .expect(400);
+    expectError(unknown.body, 'VALIDATION_ERROR');
+    const long = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'X', customSpecialty: 'x'.repeat(41) })
+      .expect(400);
+    expectError(long.body, 'VALIDATION_ERROR');
+  });
+
+  it('a specialist cannot change specialties, not even their own', async () => {
+    const { staffId } = await setupStaff([]);
+    const member = await signUp(ctx, 'specialist@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: member.userId,
+        organizationId: orgId,
+        role: 'staff',
+        locations: { create: [{ locationId }] },
+      },
+    });
+    await ctx.prisma.staffMember.update({
+      where: { id: staffId },
+      data: { userId: member.userId },
+    });
+    const staff = await ctx.http().get(`${base}/staff/${staffId}`).set(member.auth).expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/staff/${staffId}`)
+      .set(member.auth)
+      .send({ version: staff.body.version, specialties: ['massage'] })
       .expect(403);
   });
 });

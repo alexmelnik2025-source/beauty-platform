@@ -308,6 +308,21 @@ export const en: Dict = {
       en: 'English',
     },
   },
+  specialties: {
+    title: 'Specialty',
+    hint: 'What this specialist does. The first one chosen is the main one — clients see it next to the name.',
+    custom: 'Other specialty',
+    customHint: 'If it is not on the list, e.g. trichologist.',
+    names: {
+      hairdresser: 'Hairdresser',
+      barber: 'Barber',
+      nails: 'Nails',
+      cosmetologist: 'Cosmetologist',
+      brows_lashes: 'Brows & lashes',
+      makeup: 'Make-up',
+      massage: 'Massage',
+    },
+  },
   install: {
     title: 'App for your phone and computer',
     lead: 'The calendar opens like a regular app — with an icon on your screen and no browser bar.',

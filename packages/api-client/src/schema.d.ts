@@ -2840,6 +2840,9 @@ export interface components {
                 displayName: string;
                 bio: string | null;
                 languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+                /** @description Main one first */
+                specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
+                customSpecialty: string | null;
                 serviceIds: string[];
                 /** @description Link to the photo; null when there is none */
                 photoUrl: string | null;
@@ -2946,6 +2949,10 @@ export interface components {
             displayName: string;
             bio: string | null;
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+            /** @description What the specialist does, main one first; shown to clients */
+            specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
+            /** @description The salon’s own words, shown after the list */
+            customSpecialty: string | null;
             active: boolean;
             sortOrder: number;
             version: number;
@@ -3002,6 +3009,10 @@ export interface components {
             displayName: string;
             bio: string | null;
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
+            /** @description What the specialist does, main one first; shown to clients */
+            specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
+            /** @description The salon’s own words, shown after the list */
+            customSpecialty: string | null;
             active: boolean;
             sortOrder: number;
             version: number;
@@ -4276,6 +4287,8 @@ export interface operations {
                     displayName: string;
                     bio?: string | null;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
+                    specialties?: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
+                    customSpecialty?: string | null;
                     /** @default true */
                     active?: boolean;
                     /** @default 0 */
@@ -4334,6 +4347,8 @@ export interface operations {
                     displayName?: string;
                     bio?: string | null;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
+                    specialties?: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
+                    customSpecialty?: string | null;
                     active?: boolean;
                     sortOrder?: number;
                     version: number;

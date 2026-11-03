@@ -16,6 +16,7 @@ import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort 
 import type { Hold, PublicAppointment, PublicLocation, Slot } from '@/lib/types';
 import { normalizePhone } from '../calendar/NewItemSheet';
 import { LanguageBadges } from '../Languages';
+import { useSpecialtyText } from '../Specialties';
 import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
@@ -59,6 +60,7 @@ function saveRemembered(value: RememberedContact | null): void {
 
 export function BookingFlow({ slug }: { slug: string }) {
   const { t, locale } = useI18n();
+  const specialtyText = useSpecialtyText();
   const tag = LOCALE_TAGS[locale];
 
   const [salon, setSalon] = useState<PublicLocation | null>(null);
@@ -381,6 +383,11 @@ export function BookingFlow({ slug }: { slug: string }) {
                     </span>
                     <span className="c-body">
                       <span className="c-name">{s.displayName}</span>
+                      {specialtyText(s.specialties, s.customSpecialty) ? (
+                        <span className="c-specialty">
+                          {specialtyText(s.specialties, s.customSpecialty)}
+                        </span>
+                      ) : null}
                       {s.bio ? <span className="c-meta">{s.bio}</span> : null}
                       <LanguageBadges codes={s.languages ?? []} />
                     </span>

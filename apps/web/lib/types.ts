@@ -2,11 +2,27 @@
  * Shapes of the API responses the web app uses (see /v1/docs). They all come from
  * @beauty/api-client; only lists of values the interface needs at run time live here.
  */
-import type { AppointmentStatus } from '@beauty/api-client';
+import type { AppointmentStatus, Specialty } from '@beauty/api-client';
 
 /** Languages spoken with clients (be = Belarusian). Not the interface languages. */
 export const SPOKEN = ['pl', 'uk', 'ru', 'be', 'en'] as const;
 export type Spoken = (typeof SPOKEN)[number];
+/** What a specialist does, in the order the picker shows them. */
+export const SPECIALTIES = [
+  'hairdresser',
+  'barber',
+  'nails',
+  'cosmetologist',
+  'brows_lashes',
+  'makeup',
+  'massage',
+] as const satisfies readonly Specialty[];
+// A new value on the server must be added above, or this line fails to compile.
+const _everySpecialty: Exclude<Specialty, (typeof SPECIALTIES)[number]> extends never
+  ? true
+  : never = true;
+void _everySpecialty;
+export type { Specialty };
 export const APPOINTMENT_STATUSES = [
   'held',
   'confirmed',

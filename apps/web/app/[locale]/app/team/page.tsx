@@ -11,6 +11,7 @@ import {
   type PermissionDefault,
 } from '@/components/team/AccessSheets';
 import { StaffSheet, type StaffRow } from '@/components/team/StaffSheet';
+import { useSpecialtyText } from '@/components/Specialties';
 import { ErrorBox, initials, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
@@ -18,6 +19,7 @@ import type { Invitation } from '@/lib/types';
 
 export default function TeamPage() {
   const { t } = useI18n();
+  const specialtyText = useSpecialtyText();
   const session = useSession();
   const { orgId, location, role } = session;
   const isOwner = role === 'owner';
@@ -125,6 +127,11 @@ export default function TeamPage() {
                     </span>
                     <span className="grow">
                       <strong>{s.displayName}</strong>
+                      {specialtyText(s.specialties, s.customSpecialty) ? (
+                        <span className="small">
+                          {specialtyText(s.specialties, s.customSpecialty)}
+                        </span>
+                      ) : null}
                       <span className="small muted">
                         {s.serviceIds.length} ·{' '}
                         {s.userId ? (emailOf(s.userId) ?? '✓') : t.team.notLinked.split('.')[0]}

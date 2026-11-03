@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { languageSchema } from '../common/enums.schemas';
+import { languageSchema, specialtySchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
 
 export const serviceCategorySchema = responseSchema(
@@ -53,6 +53,10 @@ export const staffSchema = responseSchema(
     displayName: z.string().describe('Shown to clients'),
     bio: z.string().nullable(),
     languages: z.array(languageSchema),
+    specialties: z
+      .array(specialtySchema)
+      .describe('What the specialist does, main one first; shown to clients'),
+    customSpecialty: z.string().nullable().describe('The salon’s own words, shown after the list'),
     active: z.boolean(),
     sortOrder: z.number().int(),
     version: z.number().int(),

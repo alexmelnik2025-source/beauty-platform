@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { languageSchema } from '../common/enums.schemas';
+import { languageSchema, specialtySchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
 
 const interval = z.strictObject({
@@ -63,6 +63,8 @@ export const publicLocationSchema = responseSchema(
           displayName: z.string(),
           bio: z.string().nullable(),
           languages: z.array(languageSchema),
+          specialties: z.array(specialtySchema).describe('Main one first'),
+          customSpecialty: z.string().nullable(),
           serviceIds: z.array(z.string()),
           photoUrl: z.string().nullable().describe('Link to the photo; null when there is none'),
         }),

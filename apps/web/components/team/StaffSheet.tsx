@@ -6,6 +6,7 @@ import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { PHOTO_ACCEPT, shrinkPhoto, STAFF_PHOTO_SIDE } from '@/lib/photos';
 import type { Staff, TimeOff as TimeOffEntry } from '@/lib/types';
 import { LanguagePicker, type Spoken } from '../Languages';
+import { SpecialtyPicker, type Specialty } from '../Specialties';
 import { ErrorBox, initials, Sheet, Spinner } from '../ui';
 
 export type StaffRow = Staff;
@@ -47,6 +48,8 @@ export function StaffSheet({
     displayName: staff?.displayName ?? '',
     bio: staff?.bio ?? '',
     languages: staff?.languages ?? ([] as Spoken[]),
+    specialties: staff?.specialties ?? ([] as Specialty[]),
+    customSpecialty: staff?.customSpecialty ?? '',
     active: staff?.active ?? true,
     serviceIds: staff?.serviceIds ?? services.filter((s) => s.active).map((s) => s.id),
   });
@@ -97,6 +100,8 @@ export function StaffSheet({
             displayName: profile.displayName,
             bio: profile.bio || null,
             languages: profile.languages,
+            specialties: profile.specialties,
+            customSpecialty: profile.customSpecialty.trim() || null,
             active: profile.active,
           },
         });
@@ -111,6 +116,10 @@ export function StaffSheet({
             displayName: profile.displayName,
             ...(profile.bio ? { bio: profile.bio } : {}),
             languages: profile.languages,
+            specialties: profile.specialties,
+            ...(profile.customSpecialty.trim()
+              ? { customSpecialty: profile.customSpecialty.trim() }
+              : {}),
             serviceIds: profile.serviceIds,
           },
         });
@@ -246,6 +255,12 @@ export function StaffSheet({
             onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
           />
         </label>
+        <SpecialtyPicker
+          value={profile.specialties}
+          custom={profile.customSpecialty}
+          onChange={(specialties) => setProfile({ ...profile, specialties })}
+          onCustomChange={(customSpecialty) => setProfile({ ...profile, customSpecialty })}
+        />
         <label className="field">
           <span>
             {t.team.bio} ({t.common.optional})

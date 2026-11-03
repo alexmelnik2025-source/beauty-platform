@@ -308,6 +308,21 @@ export const pl = {
       en: 'angielski',
     },
   },
+  specialties: {
+    title: 'Specjalizacja',
+    hint: 'Czym zajmuje się ten specjalista. Pierwsza wybrana jest główna — klienci widzą ją przy imieniu.',
+    custom: 'Inna specjalizacja',
+    customHint: 'Jeśli nie ma jej na liście, np. trycholog.',
+    names: {
+      hairdresser: 'Fryzjer',
+      barber: 'Barber',
+      nails: 'Manicure i pedicure',
+      cosmetologist: 'Kosmetolog',
+      brows_lashes: 'Brwi i rzęsy',
+      makeup: 'Makijaż',
+      massage: 'Masaż',
+    },
+  },
   install: {
     title: 'Aplikacja na telefon i komputer',
     lead: 'Kalendarz otwiera się jak zwykła aplikacja — z ikoną na ekranie, bez paska przeglądarki.',

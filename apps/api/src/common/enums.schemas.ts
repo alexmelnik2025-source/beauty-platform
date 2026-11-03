@@ -8,10 +8,22 @@ import type {
   Locale,
   MembershipRole,
   MembershipStatus,
+  Specialty,
 } from '../generated/prisma/client';
 
 /** Languages a salon or staff member speaks with clients (be = Belarusian). */
 export const languageSchema = z.enum(['pl', 'uk', 'ru', 'be', 'en'] satisfies Language[]);
+
+/** What a specialist does (the whole beauty trade); the salon's own words go to customSpecialty. */
+export const specialtySchema = z.enum([
+  'hairdresser',
+  'barber',
+  'nails',
+  'cosmetologist',
+  'brows_lashes',
+  'makeup',
+  'massage',
+] satisfies Specialty[]);
 
 /** Interface and email languages. */
 export const localeSchema = z.enum(['pl', 'uk', 'ru', 'en'] satisfies Locale[]);
@@ -56,5 +68,6 @@ const _everyValueListed: [
   Missing<ClientType, z.infer<typeof clientTypeSchema>>,
   Missing<AppointmentSource, z.infer<typeof appointmentSourceSchema>>,
   Missing<CancelledBy, z.infer<typeof cancelledBySchema>>,
-] = [true, true, true, true, true, true, true, true];
+  Missing<Specialty, z.infer<typeof specialtySchema>>,
+] = [true, true, true, true, true, true, true, true, true];
 void _everyValueListed;

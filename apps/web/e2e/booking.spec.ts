@@ -163,15 +163,15 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     );
   }
   const staffIds: string[] = [];
-  for (const [displayName, languages] of [
-    ['Kasia', ['pl', 'uk']],
-    ['Ola', ['pl']],
-    ['Alex', ['pl', 'en']],
+  for (const [displayName, languages, specialties] of [
+    ['Kasia', ['pl', 'uk'], ['barber', 'hairdresser']],
+    ['Ola', ['pl'], ['barber']],
+    ['Alex', ['pl', 'en'], []],
   ] as const) {
     const staff = await json<{ id: string }>(
       await request.post(`${base}/staff`, {
         headers: owner,
-        data: { displayName, languages, serviceIds: services.map((s) => s.id) },
+        data: { displayName, languages, specialties, serviceIds: services.map((s) => s.id) },
       }),
     );
     await json(
@@ -262,6 +262,11 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // Each specialist with their own languages.
   await expect(client.getByRole('button', { name: /Kasia/ })).toContainText('UA');
   await expect(client.getByRole('button', { name: /Alex/ })).toContainText('EN');
+  // And what they do: the main specialty first.
+  await expect(client.getByRole('button', { name: /Kasia/ }).locator('.c-specialty')).toHaveText(
+    'Barber, Fryzjer',
+  );
+  await expect(client.getByRole('button', { name: /Alex/ }).locator('.c-specialty')).toHaveCount(0);
   await shot(client, '02-client-staff');
   await client.getByRole('button', { name: /Kasia/ }).click();
   await expect(client.locator('.times button').first()).toBeVisible();
@@ -415,6 +420,27 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   expect(olaRow?.photoUrl).toMatch(/^\/v1\/public\/photos\/[0-9a-f-]{36}$/);
   const olaFile = await request.get(olaRow!.photoUrl!);
   expect(olaFile.headers()['content-type']).toBe('image/jpeg');
+  // Alex's specialty: one from the list and the salon's own words.
+  await ownerPage.getByRole('button', { name: /Alex/ }).click();
+  const alexDialog = ownerPage.getByRole('dialog');
+  await alexDialog.getByRole('button', { name: 'Masaż' }).click();
+  await expect(alexDialog.getByRole('button', { name: 'Masaż' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await alexDialog.getByLabel(/Inna specjalizacja/).fill('Trycholog');
+  await alexDialog.getByRole('group', { name: 'Specjalizacja' }).scrollIntoViewIfNeeded();
+  await shot(ownerPage, '38-owner-staff-specialty');
+  await alexDialog.getByRole('button', { name: 'Zapisz', exact: true }).click();
+  await expect(ownerPage.getByRole('dialog')).toBeHidden();
+  await expect(ownerPage.getByRole('button', { name: /Alex/ })).toContainText('Masaż, Trycholog');
+  const alexRow = (
+    await json<{ id: string; specialties: string[]; customSpecialty: string | null }[]>(
+      await request.get(`${base}/staff`, { headers: owner }),
+    )
+  ).find((s) => s.id === staffIds[2]);
+  expect(alexRow?.specialties).toEqual(['massage']);
+  expect(alexRow?.customSpecialty).toBe('Trycholog');
   await ownerPage.getByRole('button', { name: 'Dostęp i uprawnienia' }).click();
   await expect(ownerPage.getByText('Kasia Nowak')).toBeVisible();
   await ownerPage.getByRole('button', { name: /Kasia Nowak/ }).click();

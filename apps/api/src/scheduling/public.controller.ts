@@ -127,6 +127,8 @@ export class PublicLocationsController {
         displayName: s.displayName,
         bio: s.bio,
         languages: s.languages,
+        specialties: s.specialties,
+        customSpecialty: s.customSpecialty,
         serviceIds: s.services.map((x) => x.serviceId).sort(),
         photoUrl: s.photo ? photoUrl(s.photo.id) : null,
       })),
