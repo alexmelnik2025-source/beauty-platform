@@ -6271,6 +6271,34 @@
         ]
       }
     },
+    "/v1/client/loyalty": {
+      "get": {
+        "description": "Stamps or points, rewards and how much is missing, coupons and history in every salon where the client has a card with the confirmed email and the program is on (or a coupon is still usable).",
+        "operationId": "ClientController_loyaltyCards",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientLoyalty"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My bonuses in all salons",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/appointments": {
       "get": {
         "description": "Found by the confirmed email of the client. scope=upcoming (soonest first) or past (latest 50).",
@@ -8325,6 +8353,349 @@
         },
         "required": [
           "codeExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "ClientLoyalty": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "organization": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "bookingSlug": {
+                  "nullable": true,
+                  "description": "A location of the salon that takes online booking",
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false: the salon switched the program off; coupons already taken are shown"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "stamps",
+                    "points"
+                  ]
+                },
+                "balance": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Stamps of the current cycle or points"
+                },
+                "lifetimeEarned": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "earning": {
+                  "type": "object",
+                  "properties": {
+                    "stampsPerVisit": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "pointsPerUnit": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "spendUnitGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "minSpendGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "pointsValidityDays": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "stampsPerVisit",
+                    "pointsPerUnit",
+                    "spendUnitGrosze",
+                    "minSpendGrosze",
+                    "pointsValidityDays"
+                  ],
+                  "additionalProperties": false
+                },
+                "next": {
+                  "nullable": true,
+                  "description": "The cheapest reward that cannot be taken yet; null when all can",
+                  "type": "object",
+                  "properties": {
+                    "rewardId": {
+                      "type": "string"
+                    },
+                    "missing": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Stamps or points still to collect"
+                    },
+                    "visits": {
+                      "nullable": true,
+                      "description": "stamps mode: paid visits still needed; null in points mode",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "rewardId",
+                    "missing",
+                    "visits"
+                  ],
+                  "additionalProperties": false
+                },
+                "rewards": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "discount_percent",
+                          "free_service"
+                        ]
+                      },
+                      "discountPercent": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "freeServiceName": {
+                        "nullable": true,
+                        "description": "free_service only",
+                        "type": "string"
+                      },
+                      "serviceNames": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "Only for these services; empty = any"
+                      },
+                      "cost": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Stamps or points"
+                      },
+                      "missing": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Still to collect; 0 = can be taken now"
+                      },
+                      "couponValidityDays": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "kind",
+                      "discountPercent",
+                      "freeServiceName",
+                      "serviceNames",
+                      "cost",
+                      "missing",
+                      "couponValidityDays"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Cheapest first"
+                },
+                "coupons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string",
+                        "description": "Shown at the salon"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "discount_percent",
+                          "free_service"
+                        ]
+                      },
+                      "discountPercent": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "freeServiceName": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "serviceNames": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "active",
+                          "used",
+                          "expired"
+                        ],
+                        "description": "Cancelled coupons are not shown"
+                      },
+                      "expiresAt": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "usedAt": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "code",
+                      "name",
+                      "kind",
+                      "discountPercent",
+                      "freeServiceName",
+                      "serviceNames",
+                      "status",
+                      "expiresAt",
+                      "usedAt",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Active first, then newest; at most 20"
+                },
+                "history": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "earn",
+                          "reverse",
+                          "redeem",
+                          "adjust",
+                          "expire"
+                        ]
+                      },
+                      "points": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Signed: + earned, − taken back or spent"
+                      },
+                      "balanceAfter": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "serviceName": {
+                        "nullable": true,
+                        "description": "The visit it was for, if any",
+                        "type": "string"
+                      },
+                      "expiresAt": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "type",
+                      "points",
+                      "balanceAfter",
+                      "serviceName",
+                      "expiresAt",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Newest first, at most 30"
+                }
+              },
+              "required": [
+                "organization",
+                "bookingSlug",
+                "enabled",
+                "mode",
+                "balance",
+                "lifetimeEarned",
+                "earning",
+                "next",
+                "rewards",
+                "coupons",
+                "history"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
         ],
         "additionalProperties": false
       },

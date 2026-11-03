@@ -28,6 +28,8 @@ export type ClientSignIn = Schemas['ClientSignIn'];
 export type ClientCodeSent = Schemas['ClientCodeSent'];
 export type ClientAppointment = Schemas['ClientAppointment'];
 export type ClientAppointmentList = Schemas['ClientAppointmentList'];
+export type ClientLoyalty = Schemas['ClientLoyalty'];
+export type ClientLoyaltyCard = ClientLoyalty['items'][number];
 
 /** Salon account: sign-in, the signed-in user, devices. */
 export type User = Schemas['User'];

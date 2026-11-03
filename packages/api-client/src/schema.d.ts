@@ -1481,6 +1481,26 @@ export interface paths {
         patch: operations["ClientController_updateMe"];
         trace?: never;
     };
+    "/v1/client/loyalty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My bonuses in all salons
+         * @description Stamps or points, rewards and how much is missing, coupons and history in every salon where the client has a card with the confirmed email and the program is on (or a coupon is still usable).
+         */
+        get: operations["ClientController_loyaltyCards"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/appointments": {
         parameters: {
             query?: never;
@@ -2080,6 +2100,88 @@ export interface components {
         };
         ClientCodeSent: {
             codeExpiresAt: string;
+        };
+        ClientLoyalty: {
+            items: {
+                organization: {
+                    id: string;
+                    name: string;
+                };
+                /** @description A location of the salon that takes online booking */
+                bookingSlug: string | null;
+                /** @description false: the salon switched the program off; coupons already taken are shown */
+                enabled: boolean;
+                /** @enum {string} */
+                mode: "stamps" | "points";
+                /** @description Stamps of the current cycle or points */
+                balance: number;
+                lifetimeEarned: number;
+                earning: {
+                    stampsPerVisit: number;
+                    pointsPerUnit: number;
+                    spendUnitGrosze: number;
+                    minSpendGrosze: number;
+                    pointsValidityDays: number | null;
+                };
+                /** @description The cheapest reward that cannot be taken yet; null when all can */
+                next: {
+                    rewardId: string;
+                    /** @description Stamps or points still to collect */
+                    missing: number;
+                    /** @description stamps mode: paid visits still needed; null in points mode */
+                    visits: number | null;
+                } | null;
+                /** @description Cheapest first */
+                rewards: {
+                    id: string;
+                    name: string;
+                    /** @enum {string} */
+                    kind: "discount_percent" | "free_service";
+                    discountPercent: number | null;
+                    /** @description free_service only */
+                    freeServiceName: string | null;
+                    /** @description Only for these services; empty = any */
+                    serviceNames: string[];
+                    /** @description Stamps or points */
+                    cost: number;
+                    /** @description Still to collect; 0 = can be taken now */
+                    missing: number;
+                    couponValidityDays: number | null;
+                }[];
+                /** @description Active first, then newest; at most 20 */
+                coupons: {
+                    id: string;
+                    /** @description Shown at the salon */
+                    code: string;
+                    name: string;
+                    /** @enum {string} */
+                    kind: "discount_percent" | "free_service";
+                    discountPercent: number | null;
+                    freeServiceName: string | null;
+                    serviceNames: string[];
+                    /**
+                     * @description Cancelled coupons are not shown
+                     * @enum {string}
+                     */
+                    status: "active" | "used" | "expired";
+                    expiresAt: string | null;
+                    usedAt: string | null;
+                    createdAt: string;
+                }[];
+                /** @description Newest first, at most 30 */
+                history: {
+                    id: string;
+                    /** @enum {string} */
+                    type: "earn" | "reverse" | "redeem" | "adjust" | "expire";
+                    /** @description Signed: + earned, − taken back or spent */
+                    points: number;
+                    balanceAfter: number;
+                    /** @description The visit it was for, if any */
+                    serviceName: string | null;
+                    expiresAt: string | null;
+                    createdAt: string;
+                }[];
+            }[];
         };
         ClientPerson: {
             id: string;
@@ -6019,6 +6121,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientPerson"];
+                };
+            };
+        };
+    };
+    ClientController_loyaltyCards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientLoyalty"];
                 };
             };
         };

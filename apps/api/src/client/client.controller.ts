@@ -51,6 +51,8 @@ import {
   type PersonResponse,
 } from './client.responses';
 import { ClientService, type ClientAuth } from './client.service';
+import { clientLoyaltySchema, type ClientLoyaltyResponse } from './client-loyalty.responses';
+import { ClientLoyaltyService } from './client-loyalty.service';
 
 const MINUTE = 60_000;
 const idPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Appointment') });
@@ -64,6 +66,7 @@ export class ClientController {
 
   constructor(
     private readonly clients: ClientService,
+    private readonly loyalty: ClientLoyaltyService,
     private readonly limiter: RateLimiterService,
     @Inject(APP_CONFIG) config: AppConfig,
   ) {
@@ -145,6 +148,19 @@ export class ClientController {
     @Body(new ZodValidationPipe(updatePersonSchema)) body: UpdatePersonInput,
   ): Promise<PersonResponse> {
     return this.clients.updateMe(client, body.locale);
+  }
+
+  @Get('loyalty')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'My bonuses in all salons',
+    description:
+      'Stamps or points, rewards and how much is missing, coupons and history in every salon where the client has a card with the confirmed email and the program is on (or a coupon is still usable).',
+  })
+  @ApiZodResponse(clientLoyaltySchema)
+  loyaltyCards(@CurrentClient() client: ClientAuth): Promise<ClientLoyaltyResponse> {
+    return this.loyalty.list(client);
   }
 
   @Get('appointments')
