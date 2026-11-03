@@ -82,7 +82,7 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await page.getByRole('dialog').getByRole('button', { name: 'Zaproś', exact: true }).click();
   const form = page.getByRole('dialog');
   await expect(form.getByRole('heading', { name: 'Zaproś do zespołu' })).toBeVisible();
-  await form.getByLabel('E-mail').fill(KASIA);
+  await form.getByLabel('E-mail', { exact: true }).fill(KASIA);
   await form.getByLabel('Telefon').fill('+48 600 100 200');
   await shot(page, '54-owner-invite-email-phone');
   await form.getByRole('button', { name: 'Zaproś', exact: true }).click();
