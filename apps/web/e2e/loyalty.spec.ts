@@ -290,7 +290,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Anna Kowalska/ }).click();
   const card = page.getByRole('dialog');
-  await card.getByRole('button', { name: 'Przyszedł' }).click();
+  await card.getByRole('button', { name: 'Przyszedł', exact: true }).click();
   await expect(card.getByText('Za opłaconą wizytę klient dostaje pieczątki')).toBeVisible();
   await card.getByRole('button', { name: 'Opłacono', exact: true }).click();
   await expect(card.getByRole('button', { name: 'Cofnij opłatę (zwrot)' })).toBeVisible();
