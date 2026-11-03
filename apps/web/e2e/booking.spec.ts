@@ -429,7 +429,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'true',
   );
   await alexDialog.getByLabel(/Inna specjalizacja/).fill('Trycholog');
-  await alexDialog.getByRole('group', { name: 'Specjalizacja' }).scrollIntoViewIfNeeded();
+  await alexDialog.locator('.specialty-picker').scrollIntoViewIfNeeded();
   await shot(ownerPage, '38-owner-staff-specialty');
   await alexDialog.getByRole('button', { name: 'Zapisz', exact: true }).click();
   await expect(ownerPage.getByRole('dialog')).toBeHidden();
