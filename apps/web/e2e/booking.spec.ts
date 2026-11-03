@@ -405,8 +405,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByRole('dialog')).toBeHidden();
   await expect(brodaRow).toContainText('Ukryta');
   await shot(ownerPage, '48-owner-service-updated');
+  // From now on the list passes straight through (the route stays: removing it would cut the held request).
   releaseList();
-  await ownerPage.unroute(servicesList);
   // Back on: the second change uses the service as just saved (no "changed by someone else").
   await brodaRow.click();
   await ownerPage.getByRole('dialog').getByLabel('Dostępna do rezerwacji').check();
