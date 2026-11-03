@@ -13,8 +13,8 @@ import type { SetPaidInput } from '../loyalty/loyalty.schemas';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from '../scheduling/availability.service';
-import { addDays, instantToLocal, zonedToInstant } from '../scheduling/time';
-import { AppointmentWriter, timesFor, versionConflict } from './appointment-writer';
+import { addDays, instantToLocal, localToday, zonedToInstant } from '../scheduling/time';
+import { AppointmentWriter, slotTaken, timesFor, versionConflict } from './appointment-writer';
 import type {
   CancelInput,
   CreateAppointmentInput,
@@ -137,15 +137,90 @@ export class AppointmentsService {
         'This staff member does not offer this service',
       );
     }
-    if (input.start < Date.now()) {
-      throw new AppException(HttpStatus.BAD_REQUEST, 'IN_THE_PAST', 'This time has already passed');
-    }
-    if (!input.allowOutsideHours) {
-      await this.assertWithinHours(location, service.id, staff.id, input.start);
+    if (input.alreadyHappened) {
+      // Marking "came" (and "paid") is a change to the visit, so it needs that right too.
+      await this.assertMayActFor(m, userId, locationId, staff.id, 'changeOwnAppointments');
+      this.assertRecentPast(location, input.start);
+    } else {
+      if (input.start < Date.now()) {
+        throw new AppException(
+          HttpStatus.BAD_REQUEST,
+          'IN_THE_PAST',
+          'This time has already passed',
+        );
+      }
+      if (!input.allowOutsideHours) {
+        await this.assertWithinHours(location, service.id, staff.id, input.start);
+      }
     }
 
     const customer = await this.resolveCustomer(location, input);
     const times = timesFor(input.start, service);
+    if (input.alreadyHappened) {
+      const walkIn = await this.writer.write(staff.id, times, async (tx) => {
+        // "Came" visits are outside the no-overlap constraint, so check them here (the staff
+        // member's lock is held).
+        const overlapping = await tx.appointment.count({
+          where: {
+            staffId: staff.id,
+            status: 'completed',
+            startAt: { lt: times.blockedUntil },
+            blockedUntil: { gt: times.startAt },
+          },
+        });
+        if (overlapping > 0) throw slotTaken();
+        // Inserted as "confirmed" so the constraint also checks unmarked bookings, then "came".
+        const appointment = await tx.appointment.create({
+          data: {
+            locationId,
+            staffId: staff.id,
+            serviceId: service.id,
+            customerId: customer.id,
+            status: 'confirmed',
+            source: 'manual',
+            ...times,
+            priceGrosze: service.priceGrosze,
+            durationMinutes: service.durationMinutes,
+            bufferMinutes: service.bufferMinutes,
+            note: input.note ?? null,
+            locale: customer.locale,
+            createdByUserId: userId,
+          },
+        });
+        const now = new Date();
+        const done = await tx.appointment.update({
+          where: { id: appointment.id },
+          data: {
+            status: 'completed',
+            version: { increment: 1 },
+            ...(input.paid ? { paidAt: now, paidByUserId: userId } : {}),
+          },
+        });
+        await this.writer.event(tx, appointment.id, 'created', 'staff', userId, {
+          alreadyHappened: true,
+        });
+        await this.writer.event(tx, appointment.id, 'completed', 'staff', userId);
+        if (input.paid) {
+          const earned = await this.ledger.earnForVisit(
+            tx,
+            {
+              id: done.id,
+              organizationId: location.organizationId,
+              serviceId: service.id,
+              customerId: customer.id,
+              priceGrosze: done.priceGrosze,
+            },
+            userId,
+          );
+          await this.writer.event(tx, appointment.id, 'paid', 'staff', userId, {
+            loyaltyEarned: earned,
+          });
+        }
+        // No emails: the client was there and the visit is over.
+        return done;
+      });
+      return this.get(m, userId, locationId, walkIn.id);
+    }
     const created = await this.writer.write(staff.id, times, async (tx) => {
       const appointment = await tx.appointment.create({
         data: {
@@ -414,6 +489,26 @@ export class AppointmentsService {
     const isOwn = own === null || own.includes(staffId);
     const allowed = isOwn ? m.permissions[ownPermission] : m.permissions.manageAllAppointments;
     if (!allowed) throw forbidden();
+  }
+
+  /** A visit entered afterwards: started today or yesterday (salon time), not in the future. */
+  private assertRecentPast(location: Location, start: number): void {
+    const now = Date.now();
+    if (start > now) {
+      throw new AppException(
+        HttpStatus.BAD_REQUEST,
+        'NOT_STARTED',
+        'The appointment has not started yet',
+      );
+    }
+    const yesterday = addDays(localToday(now, location.timezone), -1);
+    if (start < zonedToInstant(yesterday, 0, location.timezone)) {
+      throw new AppException(
+        HttpStatus.BAD_REQUEST,
+        'TOO_LONG_AGO',
+        'A past visit can be entered for today or yesterday only',
+      );
+    }
   }
 
   private assertMayBookOutsideHours(m: MembershipContext, requested: boolean): void {

@@ -91,7 +91,7 @@ export class AppointmentsController {
   @ApiOperation({
     summary: 'Book on behalf of a client (phone, walk-in)',
     description:
-      'start: ISO instant on a 5-minute mark. Outside working hours → 409 OUTSIDE_WORKING_HOURS unless allowOutsideHours=true. Never over another booking.',
+      'start: ISO instant on a 5-minute mark. Outside working hours → 409 OUTSIDE_WORKING_HOURS unless allowOutsideHours=true. Never over another booking. A walk-in entered afterwards: alreadyHappened=true (start today or yesterday in salon time, not in the future; saved as "came", no emails to the client; working hours are not checked) and optionally paid=true (loyalty earned). Older → 400 TOO_LONG_AGO, future → 400 NOT_STARTED.',
   })
   @ApiZodBody(createAppointmentSchema)
   @ApiZodResponse(appointmentDetailSchema, HttpStatus.CREATED)

@@ -63,6 +63,7 @@ export function NewItemSheet({
   const [fresh, setFresh] = useState({ name: '', phone: '+48 ', email: '' });
   const [outside, setOutside] = useState(false);
   const [askOutside, setAskOutside] = useState(false);
+  const [paidNow, setPaidNow] = useState(false);
   const [error, setError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a retry after a dropped connection does not book twice.
@@ -87,6 +88,10 @@ export function NewItemSheet({
     }, 250);
     return () => window.clearTimeout(timer);
   }, [search, canSearchClients, session.orgId]);
+
+  // A time that has passed: a walk-in entered afterwards, saved straight away as "came".
+  const startMs = date && time ? zonedToInstant(date, clockToMinutes(time), tz) : NaN;
+  const inPast = kind === 'appointment' && startMs < Date.now();
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -120,7 +125,7 @@ export function NewItemSheet({
                   },
                 }),
             note: note || undefined,
-            allowOutsideHours: outside,
+            ...(inPast ? { alreadyHappened: true, paid: paidNow } : { allowOutsideHours: outside }),
           },
         });
       }
@@ -307,7 +312,23 @@ export function NewItemSheet({
               <textarea value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
             </label>
 
-            {askOutside ? (
+            {inPast ? (
+              <>
+                <p className="note small" data-testid="walk-in-note">
+                  {t.appointment.walkInNote}
+                </p>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={paidNow}
+                    onChange={(e) => setPaidNow(e.target.checked)}
+                  />
+                  <span>{t.appointment.walkInPaid}</span>
+                </label>
+              </>
+            ) : null}
+
+            {askOutside && !inPast ? (
               <label className="check">
                 <input
                   type="checkbox"

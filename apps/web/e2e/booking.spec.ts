@@ -385,6 +385,34 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByRole('button', { name: /Jan Kowalski/ })).toBeVisible();
   await shot(ownerPage, '11-owner-calendar-after');
 
+  // Owner's test 03.11 (T6): a client came without a booking yesterday — the visit is entered
+  // afterwards, straight away as "came" and "paid".
+  const yesterday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+    Date.now() - 24 * 60 * 60_000,
+  );
+  await ownerPage
+    .getByRole('button', { name: /Nowa wizyta/ })
+    .first()
+    .click();
+  const walkIn = ownerPage.getByRole('dialog');
+  await walkIn.getByLabel('Usługa').selectOption(services[2]!.id);
+  await walkIn.getByLabel('Specjalista').selectOption(staffIds[1]!);
+  await walkIn.getByLabel('Data').fill(yesterday);
+  await walkIn.getByLabel('Godzina').fill('10:00');
+  await walkIn.getByLabel('Imię i nazwisko').fill('Piotr Wiśniewski');
+  await walkIn.getByLabel('Telefon').fill('+48 600 200 301');
+  await expect(walkIn.getByTestId('walk-in-note')).toContainText('zapisana jako odbyta');
+  await walkIn.getByLabel(/Klient już zapłacił/).check();
+  await shot(ownerPage, '52-owner-walk-in-past');
+  await walkIn.getByRole('button', { name: 'Zapisz wizytę' }).click();
+  await expect(walkIn).toBeHidden();
+  await ownerPage.goto(`/pl/app/calendar?date=${yesterday}`);
+  await ownerPage.getByRole('button', { name: /Piotr Wiśniewski/ }).click();
+  await expect(ownerPage.getByRole('dialog')).toContainText('Odbyła się');
+  await expect(ownerPage.getByRole('dialog')).toContainText('Opłacon');
+  await shot(ownerPage, '53-owner-walk-in-card');
+  await ownerPage.keyboard.press('Escape');
+
   // The other sections of the cabinet.
   await ownerPage.goto('/pl/app/services');
   await expect(ownerPage.getByText('Strzyżenie + broda').first()).toBeVisible();

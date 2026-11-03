@@ -43,6 +43,7 @@ export const pl = {
     TOO_LATE_TO_CHANGE: 'Na zmiany online jest już za późno. Zadzwoń do salonu.',
     IN_THE_PAST: 'Ten czas już minął.',
     NOT_STARTED: 'Wizyta jeszcze się nie zaczęła.',
+    TOO_LONG_AGO: 'Wizytę z przeszłości można dodać tylko z dziś lub wczoraj.',
     FORBIDDEN: 'Nie masz do tego uprawnień.',
     NOT_FOUND: 'Nie znaleziono.',
     STAFF_SERVICE_MISMATCH: 'Ten specjalista nie wykonuje tej usługi.',
@@ -177,6 +178,9 @@ export const pl = {
     email: 'E-mail',
     name: 'Imię i nazwisko',
     outsideHours: 'Zapisz także poza godzinami pracy',
+    walkInNote:
+      'Ten czas już minął — wizyta zostanie zapisana jako odbyta (klient przyszedł bez rezerwacji). Klient nie dostanie e-maila.',
+    walkInPaid: 'Klient już zapłacił (nalicz pieczątki lub punkty)',
     create: 'Zapisz wizytę',
     created: 'Wizyta zapisana',
     blockReason: 'Powód (np. szkolenie)',

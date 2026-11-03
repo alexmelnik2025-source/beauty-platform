@@ -43,6 +43,7 @@ export const en: Dict = {
     TOO_LATE_TO_CHANGE: 'It is too late to change this online. Call the salon.',
     IN_THE_PAST: 'This time has already passed.',
     NOT_STARTED: 'The appointment has not started yet.',
+    TOO_LONG_AGO: 'A past visit can be added for today or yesterday only.',
     FORBIDDEN: 'You are not allowed to do this.',
     NOT_FOUND: 'Not found.',
     STAFF_SERVICE_MISMATCH: 'This specialist does not offer this service.',
@@ -177,6 +178,9 @@ export const en: Dict = {
     email: 'Email',
     name: 'Full name',
     outsideHours: 'Book even outside working hours',
+    walkInNote:
+      'This time has already passed — the visit will be saved as completed (a walk-in client). The client gets no email.',
+    walkInPaid: 'The client has already paid (award stamps or points)',
     create: 'Save appointment',
     created: 'Appointment saved',
     blockReason: 'Reason (e.g. training)',

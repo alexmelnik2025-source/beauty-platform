@@ -105,10 +105,21 @@ export const createAppointmentSchema = z
     note: z.string().trim().max(500).optional(),
     /** Book outside working hours or during time off (never over another booking). */
     allowOutsideHours: z.boolean().default(false),
+    /**
+     * A visit that already took place (a walk-in entered afterwards): start today or
+     * yesterday (salon time) and not in the future; saved straight away as "came".
+     */
+    alreadyHappened: z.boolean().default(false),
+    /** With alreadyHappened: also mark it paid, so loyalty stamps or points are earned. */
+    paid: z.boolean().default(false),
   })
   .refine((v) => Boolean(v.customerId) !== Boolean(v.customer), {
     message: 'give either customerId or customer',
     path: ['customer'],
+  })
+  .refine((v) => !v.paid || v.alreadyHappened, {
+    message: 'paid is only for a visit that already happened',
+    path: ['paid'],
   });
 
 export const rescheduleSchema = z.object({
