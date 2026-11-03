@@ -188,6 +188,8 @@ export const en: Dict = {
       cancelled: 'Cancelled',
       completed: 'Marked as completed',
       no_show: 'Marked as no-show',
+      paid: 'Marked as paid',
+      unpaid: 'Payment cancelled',
     },
   },
   booking: {

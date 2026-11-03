@@ -20,6 +20,22 @@ export const versionConflict = (): AppException =>
     'The appointment was changed by someone else. Reload and try again',
   );
 
+/**
+ * Every kind of entry in a visit's history. The salon app translates each one
+ * (test/locales.spec.ts checks all four languages).
+ */
+export const APPOINTMENT_EVENT_TYPES = [
+  'created',
+  'confirmed',
+  'rescheduled',
+  'cancelled',
+  'completed',
+  'no_show',
+  'paid',
+  'unpaid',
+] as const;
+export type AppointmentEventType = (typeof APPOINTMENT_EVENT_TYPES)[number];
+
 /** True when PostgreSQL rejected a write because of the no-overlap exclusion constraint. */
 export function isOverlapViolation(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
@@ -188,7 +204,7 @@ export class AppointmentWriter {
   async event(
     tx: Prisma.TransactionClient,
     appointmentId: string,
-    type: string,
+    type: AppointmentEventType,
     actor: 'customer' | 'staff' | 'system',
     actorUserId: string | null,
     data?: Prisma.InputJsonValue,

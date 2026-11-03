@@ -188,6 +188,8 @@ export const ru: Dict = {
       cancelled: 'Отменена',
       completed: 'Отмечена как состоявшаяся',
       no_show: 'Отмечена как неявка',
+      paid: 'Оплачено',
+      unpaid: 'Оплата отменена',
     },
   },
   booking: {

@@ -188,6 +188,8 @@ export const uk: Dict = {
       cancelled: 'Скасовано',
       completed: 'Позначено як відбувся',
       no_show: 'Позначено як неявку',
+      paid: 'Оплачено',
+      unpaid: 'Оплату скасовано',
     },
   },
   booking: {

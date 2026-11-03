@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { APPOINTMENT_EVENT_TYPES } from '../src/booking/appointment-writer';
 import { en } from '../../web/lib/i18n/en';
 import { pl } from '../../web/lib/i18n/pl';
 import { ru } from '../../web/lib/i18n/ru';
@@ -19,5 +20,17 @@ describe('web translations', () => {
     expect(leafPaths(uk)).toEqual(reference);
     expect(leafPaths(ru)).toEqual(reference);
     expect(leafPaths(en)).toEqual(reference);
+  });
+});
+
+describe('visit history in the salon app', () => {
+  it('has a translated label for every kind of history entry (no raw "paid")', () => {
+    for (const dict of [pl, uk, ru, en]) {
+      const labels = dict.appointment.events as Record<string, string>;
+      for (const type of APPOINTMENT_EVENT_TYPES) {
+        expect(labels[type], `${type}`).toBeTruthy();
+        expect(labels[type]).not.toBe(type);
+      }
+    }
   });
 });

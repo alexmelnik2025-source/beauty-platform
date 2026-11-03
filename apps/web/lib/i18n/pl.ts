@@ -188,6 +188,8 @@ export const pl = {
       cancelled: 'Odwołana',
       completed: 'Oznaczona jako odbyta',
       no_show: 'Oznaczona jako nieobecność',
+      paid: 'Opłacona',
+      unpaid: 'Anulowano opłatę',
     },
   },
   booking: {
