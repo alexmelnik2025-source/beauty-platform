@@ -1,6 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
-import type { LoyaltyProgram, Prisma } from '../generated/prisma/client';
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { AppException } from '../common/app-exception';
+import type {
+  LoyaltyCoupon,
+  LoyaltyProgram,
+  LoyaltyReward,
+  Prisma,
+} from '../generated/prisma/client';
 
 type ProgramRules = Pick<
   LoyaltyProgram,
@@ -26,7 +32,7 @@ export function earnAmount(
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** UUIDv7 (time-ordered), like the ids Prisma creates, for the one row inserted with raw SQL. */
-function uuidV7(): string {
+export function uuidV7(): string {
   const bytes = randomBytes(16);
   bytes.writeUIntBE(Date.now(), 0, 6);
   bytes[6] = 0x70 | (bytes[6]! & 0x0f);
@@ -34,6 +40,25 @@ function uuidV7(): string {
   const hex = bytes.toString('hex');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
+
+/** Letters and digits that cannot be mixed up when read aloud or typed (no 0/O, 1/I/L). */
+const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+/** A coupon code the client shows at the salon, e.g. "K7QM-4XTB" (31^8 ≈ 850 billion codes). */
+export function couponCode(): string {
+  const bytes = randomBytes(8);
+  const chars = [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]!);
+  return `${chars.slice(0, 4).join('')}-${chars.slice(4).join('')}`;
+}
+
+export const notEnough = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'LOYALTY_NOT_ENOUGH',
+    'The client does not have enough stamps or points',
+  );
+
+type RedeemProgram = Pick<LoyaltyProgram, 'id' | 'mode'>;
 
 export interface PaidVisit {
   id: string;
@@ -136,20 +161,156 @@ export class LoyaltyLedger {
     return taken;
   }
 
+  /**
+   * Exchanges stamps or points for a reward: the client gets a coupon with a copy of the
+   * reward's terms. Points: the reward's cost is taken. Stamps: the whole current cycle
+   * is taken (the card starts again from zero), the client needs at least the cost.
+   * 409 LOYALTY_NOT_ENOUGH when the balance is too small — checked with the row locked,
+   * so two exchanges at the same moment can never spend the same points twice.
+   */
+  async redeem(
+    tx: Prisma.TransactionClient,
+    program: RedeemProgram,
+    customerId: string,
+    reward: LoyaltyReward,
+    actorUserId: string | null,
+  ): Promise<LoyaltyCoupon> {
+    const account = await this.lockedAccount(tx, program.id, customerId);
+    if (account.balance < reward.cost) throw notEnough();
+    const taken = program.mode === 'stamps' ? account.balance : reward.cost;
+    const updated = await tx.loyaltyAccount.update({
+      where: { id: account.id },
+      data: { balance: { decrement: taken } },
+    });
+    const couponId = uuidV7();
+    const redeem = await tx.loyaltyTransaction.create({
+      data: {
+        accountId: account.id,
+        type: 'redeem',
+        points: -taken,
+        balanceAfter: updated.balance,
+        dedupeKey: `redeem:${couponId}`,
+        actorUserId,
+        note:
+          taken > reward.cost
+            ? `${reward.name}: the card starts again (${taken} stamps, the reward needs ${reward.cost})`
+            : reward.name,
+      },
+    });
+    return tx.loyaltyCoupon.create({
+      data: {
+        id: couponId,
+        accountId: account.id,
+        rewardId: reward.id,
+        code: couponCode(),
+        name: reward.name,
+        kind: reward.kind,
+        discountPercent: reward.discountPercent,
+        freeServiceId: reward.freeServiceId,
+        serviceIds: reward.serviceIds,
+        cost: taken,
+        redeemTransactionId: redeem.id,
+        expiresAt:
+          reward.couponValidityDays === null
+            ? null
+            : new Date(Date.now() + reward.couponValidityDays * DAY_MS),
+      },
+    });
+  }
+
+  /**
+   * Withdraws an unused coupon: what it cost goes back to the client (a "reverse" of
+   * the exchange). Returns null when the coupon is no longer active or the version is old.
+   */
+  async cancelCoupon(
+    tx: Prisma.TransactionClient,
+    coupon: Pick<LoyaltyCoupon, 'id' | 'accountId' | 'redeemTransactionId' | 'name'>,
+    version: number,
+    actorUserId: string,
+  ): Promise<LoyaltyCoupon | null> {
+    await tx.$queryRaw`SELECT id FROM loyalty_account WHERE id = ${coupon.accountId}::uuid FOR UPDATE`;
+    const changed = await tx.loyaltyCoupon.updateMany({
+      where: { id: coupon.id, status: 'active', version },
+      data: {
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancelledByUserId: actorUserId,
+        version: { increment: 1 },
+      },
+    });
+    if (changed.count !== 1) return null;
+    const redeem = await tx.loyaltyTransaction.findUniqueOrThrow({
+      where: { id: coupon.redeemTransactionId },
+    });
+    const updated = await tx.loyaltyAccount.update({
+      where: { id: coupon.accountId },
+      data: { balance: { increment: -redeem.points } },
+    });
+    await tx.loyaltyTransaction.create({
+      data: {
+        accountId: coupon.accountId,
+        type: 'reverse',
+        points: -redeem.points,
+        balanceAfter: updated.balance,
+        reversesId: redeem.id,
+        dedupeKey: `reverse:${redeem.id}`,
+        actorUserId,
+        note: `${coupon.name}: coupon cancelled`,
+      },
+    });
+    return tx.loyaltyCoupon.findUniqueOrThrow({ where: { id: coupon.id } });
+  }
+
+  /**
+   * A manual correction by the owner or manager, always with a reason. Added points
+   * get the program's validity like earned ones; the balance may not go below zero.
+   * "Earned in total" does not change: it counts only what visits brought.
+   */
+  async adjust(
+    tx: Prisma.TransactionClient,
+    program: Pick<LoyaltyProgram, 'id' | 'mode' | 'pointsValidityDays'>,
+    customerId: string,
+    points: number,
+    reason: string,
+    actorUserId: string,
+  ): Promise<void> {
+    const account = await this.lockedAccount(tx, program.id, customerId);
+    if (account.balance + points < 0) throw notEnough();
+    const updated = await tx.loyaltyAccount.update({
+      where: { id: account.id },
+      data: { balance: { increment: points } },
+    });
+    await tx.loyaltyTransaction.create({
+      data: {
+        accountId: account.id,
+        type: 'adjust',
+        points,
+        balanceAfter: updated.balance,
+        dedupeKey: `adjust:${uuidV7()}`,
+        expiresAt:
+          points > 0 && program.mode === 'points' && program.pointsValidityDays !== null
+            ? new Date(Date.now() + program.pointsValidityDays * DAY_MS)
+            : null,
+        actorUserId,
+        note: reason,
+      },
+    });
+  }
+
   /** The client's account in the program, created on first use, with its row locked. */
   private async lockedAccount(
     tx: Prisma.TransactionClient,
     programId: string,
     customerId: string,
-  ): Promise<{ id: string }> {
+  ): Promise<{ id: string; balance: number }> {
     // ON CONFLICT: two first visits of a client at the same moment create one account
     // (an error would abort the whole transaction, so it cannot be caught and retried).
     await tx.$executeRaw`
       INSERT INTO loyalty_account (id, program_id, customer_id, updated_at)
       VALUES (${uuidV7()}::uuid, ${programId}::uuid, ${customerId}::uuid, now())
       ON CONFLICT (program_id, customer_id) DO NOTHING`;
-    const [row] = await tx.$queryRaw<{ id: string }[]>`
-      SELECT id::text AS id FROM loyalty_account
+    const [row] = await tx.$queryRaw<{ id: string; balance: number }[]>`
+      SELECT id::text AS id, balance FROM loyalty_account
       WHERE program_id = ${programId}::uuid AND customer_id = ${customerId}::uuid
       FOR UPDATE`;
     if (!row) throw new Error('Loyalty account was not created');

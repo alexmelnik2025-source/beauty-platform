@@ -5385,6 +5385,495 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/loyalty/rewards": {
+      "get": {
+        "operationId": "LoyaltyController_listRewards",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyRewardList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The salon’s reward catalogue, cheapest first within sortOrder",
+        "tags": [
+          "loyalty"
+        ]
+      },
+      "post": {
+        "operationId": "LoyaltyController_createReward",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "discount_percent",
+                      "free_service"
+                    ]
+                  },
+                  "discountPercent": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "freeServiceId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cost": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "serviceIds": {
+                    "default": [],
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "couponValidityDays": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3650
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sortOrder": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  }
+                },
+                "required": [
+                  "name",
+                  "kind",
+                  "cost"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyReward"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a reward: a discount in % or a free service, for stamps or points",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/loyalty/rewards/{rewardId}": {
+      "put": {
+        "operationId": "LoyaltyController_updateReward",
+        "parameters": [
+          {
+            "name": "rewardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "discount_percent",
+                      "free_service"
+                    ]
+                  },
+                  "discountPercent": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "freeServiceId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cost": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "serviceIds": {
+                    "default": [],
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "couponValidityDays": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3650
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sortOrder": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "kind",
+                  "cost",
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyReward"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a reward. Coupons already taken keep their terms. Send the version you read",
+        "tags": [
+          "loyalty"
+        ]
+      },
+      "delete": {
+        "operationId": "LoyaltyController_archiveReward",
+        "parameters": [
+          {
+            "name": "rewardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a reward from the catalogue; coupons already taken stay valid",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/loyalty/accounts/{customerId}/redemptions": {
+      "post": {
+        "description": "Points: the reward’s cost is taken. Stamps: the whole current cycle is taken and the card starts again. 409 LOYALTY_NOT_ENOUGH, 409 LOYALTY_DISABLED.",
+        "operationId": "LoyaltyController_redeem",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rewardId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "rewardId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyCoupon"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Exchange the client’s stamps or points for a reward; returns the coupon",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/loyalty/accounts/{customerId}/adjustments": {
+      "post": {
+        "description": "409 LOYALTY_NOT_ENOUGH when it would take the balance below zero.",
+        "operationId": "LoyaltyController_adjust",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "points": {
+                    "type": "integer",
+                    "minimum": -100000,
+                    "maximum": 100000
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "points",
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyAccount"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct a client’s balance by hand, with a reason (shown in the history)",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/loyalty/coupons/{couponId}/cancel": {
+      "post": {
+        "description": "409 COUPON_NOT_ACTIVE when it was already used or cancelled.",
+        "operationId": "LoyaltyController_cancelCoupon",
+        "parameters": [
+          {
+            "name": "couponId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyCoupon"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel an unused coupon; its stamps or points go back to the client",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
     "/v1/client/auth/code": {
       "post": {
         "description": "Always 202, whether or not the address has visits. A new code replaces the previous one.",
@@ -8750,6 +9239,110 @@
               "additionalProperties": false
             },
             "description": "Newest first, at most 100"
+          },
+          "coupons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "description": "Shown by the client at the salon, e.g. \"K7QM-4XTB\""
+                },
+                "rewardId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "discount_percent",
+                    "free_service"
+                  ]
+                },
+                "discountPercent": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "freeServiceId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "serviceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "cost": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Stamps or points it took"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "used",
+                    "cancelled",
+                    "expired"
+                  ],
+                  "description": "expired = active but past expiresAt"
+                },
+                "expiresAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "usedAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "usedAppointmentId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "cancelledAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "rewardId",
+                "name",
+                "kind",
+                "discountPercent",
+                "freeServiceId",
+                "serviceIds",
+                "cost",
+                "status",
+                "expiresAt",
+                "usedAt",
+                "usedAppointmentId",
+                "cancelledAt",
+                "createdAt",
+                "version"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Newest first, at most 100"
           }
         },
         "required": [
@@ -8757,7 +9350,108 @@
           "mode",
           "balance",
           "lifetimeEarned",
-          "transactions"
+          "transactions",
+          "coupons"
+        ],
+        "additionalProperties": false
+      },
+      "LoyaltyCoupon": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Shown by the client at the salon, e.g. \"K7QM-4XTB\""
+          },
+          "rewardId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "discount_percent",
+              "free_service"
+            ]
+          },
+          "discountPercent": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "freeServiceId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "serviceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Stamps or points it took"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "used",
+              "cancelled",
+              "expired"
+            ],
+            "description": "expired = active but past expiresAt"
+          },
+          "expiresAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "usedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "usedAppointmentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelledAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "rewardId",
+          "name",
+          "kind",
+          "discountPercent",
+          "freeServiceId",
+          "serviceIds",
+          "cost",
+          "status",
+          "expiresAt",
+          "usedAt",
+          "usedAppointmentId",
+          "cancelledAt",
+          "createdAt",
+          "version"
         ],
         "additionalProperties": false
       },
@@ -8872,6 +9566,167 @@
           "version"
         ],
         "additionalProperties": false
+      },
+      "LoyaltyReward": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "discount_percent",
+              "free_service"
+            ]
+          },
+          "discountPercent": {
+            "nullable": true,
+            "description": "discount_percent only",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "freeServiceId": {
+            "nullable": true,
+            "description": "free_service only",
+            "type": "string"
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Stamps or points"
+          },
+          "serviceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The coupon works only for these; empty = any"
+          },
+          "couponValidityDays": {
+            "nullable": true,
+            "description": "null = no limit",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "archivedAt": {
+            "nullable": true,
+            "description": "Removed from the catalogue; coupons stay valid",
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "discountPercent",
+          "freeServiceId",
+          "cost",
+          "serviceIds",
+          "couponValidityDays",
+          "sortOrder",
+          "archivedAt",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "LoyaltyRewardList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "discount_percent",
+                "free_service"
+              ]
+            },
+            "discountPercent": {
+              "nullable": true,
+              "description": "discount_percent only",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "freeServiceId": {
+              "nullable": true,
+              "description": "free_service only",
+              "type": "string"
+            },
+            "cost": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Stamps or points"
+            },
+            "serviceIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The coupon works only for these; empty = any"
+            },
+            "couponValidityDays": {
+              "nullable": true,
+              "description": "null = no limit",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "sortOrder": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "archivedAt": {
+              "nullable": true,
+              "description": "Removed from the catalogue; coupons stay valid",
+              "type": "string"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "kind",
+            "discountPercent",
+            "freeServiceId",
+            "cost",
+            "serviceIds",
+            "couponValidityDays",
+            "sortOrder",
+            "archivedAt",
+            "version"
+          ],
+          "additionalProperties": false
+        }
       },
       "LoyaltyTransaction": {
         "type": "object",

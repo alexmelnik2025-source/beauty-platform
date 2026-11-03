@@ -77,6 +77,8 @@ export type PublicSalon = PublicSalonDirectory['items'][number];
 export type LoyaltyProgram = Schemas['LoyaltyProgram'];
 export type LoyaltyAccount = Schemas['LoyaltyAccount'];
 export type LoyaltyTransaction = Schemas['LoyaltyTransaction'];
+export type LoyaltyReward = Schemas['LoyaltyReward'];
+export type LoyaltyCoupon = Schemas['LoyaltyCoupon'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

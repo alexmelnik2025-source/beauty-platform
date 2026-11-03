@@ -38,7 +38,9 @@ type Ids = Record<
   | 'blockId'
   | 'serviceCategoryId'
   | 'invitationId'
-  | 'photoId',
+  | 'photoId'
+  | 'rewardId'
+  | 'couponId',
   string
 >;
 
@@ -47,6 +49,8 @@ const PNG = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   Buffer.from('png'),
 ]);
+
+const REWARD = { name: 'Hacked', kind: 'discount_percent', discountPercent: 100, cost: 1 };
 
 /** Monday 11.01.2027 09:00 in Warsaw. */
 const APPOINTMENT_START = '2027-01-11T08:00:00.000Z';
@@ -123,6 +127,11 @@ function validBody(route: Route): object {
       marketplaceEnabled: true,
     };
   }
+  if (p.endsWith('/loyalty/rewards/:rewardId')) return { version: 1, ...REWARD };
+  if (p.endsWith('/loyalty/rewards')) return REWARD;
+  if (p.endsWith('/adjustments')) return { points: 1000, reason: 'Hacked' };
+  if (p.endsWith('/redemptions')) return { rewardId: currentIds?.rewardId };
+  if (p.endsWith('/coupons/:couponId/cancel')) return { version: 1 };
   if (p.endsWith('/loyalty/earn-rules')) {
     return { rules: [{ serviceId: currentIds?.serviceId, points: 1000 }] };
   }
@@ -330,6 +339,26 @@ async function seedLocation(
     .set(user.auth)
     .send({ rules: [{ serviceId: service.body.id, points: 2 }] })
     .expect(200);
+  const loyalty = `/v1/organizations/${org.orgId}/loyalty`;
+  const customerId = appointment.body.customer.id;
+  const reward = await ctx
+    .http()
+    .post(`${loyalty}/rewards`)
+    .set(user.auth)
+    .send({ name: '−10%', kind: 'discount_percent', discountPercent: 10, cost: 2 })
+    .expect(201);
+  await ctx
+    .http()
+    .post(`${loyalty}/accounts/${customerId}/adjustments`)
+    .set(user.auth)
+    .send({ points: 5, reason: 'Start' })
+    .expect(201);
+  const coupon = await ctx
+    .http()
+    .post(`${loyalty}/accounts/${customerId}/redemptions`)
+    .set(user.auth)
+    .send({ rewardId: reward.body.id })
+    .expect(201);
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -345,6 +374,8 @@ async function seedLocation(
     serviceCategoryId: serviceCategory.body.id,
     invitationId: invitation.body.id,
     photoId: photo.body.id,
+    rewardId: reward.body.id,
+    couponId: coupon.body.id,
   };
 }
 
@@ -374,7 +405,11 @@ async function snapshotOf(ids: Ids) {
     invitations: await ctx.prisma.invitation.findMany({ where: { organizationId: ids.orgId } }),
     loyalty: await ctx.prisma.loyaltyProgram.findMany({
       where: { organizationId: ids.orgId },
-      include: { earnRules: true, accounts: { include: { transactions: true } } },
+      include: {
+        earnRules: true,
+        rewards: true,
+        accounts: { include: { transactions: true, coupons: true } },
+      },
     }),
     photos: await ctx.prisma.photo.findMany({
       where: { locationId: ids.locationId },
@@ -424,7 +459,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId|invitationId|photoId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId|invitationId|photoId|rewardId|couponId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },

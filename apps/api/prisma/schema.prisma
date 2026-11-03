@@ -136,6 +136,27 @@ enum LoyaltyTransactionType {
   @@map("loyalty_transaction_type")
 }
 
+/// What a reward from the salon's catalogue gives (task 10a, part 2).
+enum LoyaltyRewardKind {
+  /// A discount of discountPercent on a visit.
+  discount_percent
+  /// One service (freeServiceId) for free.
+  free_service
+
+  @@map("loyalty_reward_kind")
+}
+
+/// A coupon's state. "Expired" is not stored: an active coupon past expiresAt.
+enum LoyaltyCouponStatus {
+  active
+  /// Applied to a visit (task 10d).
+  used
+  /// Withdrawn by the owner or manager; the stamps or points went back to the client.
+  cancelled
+
+  @@map("loyalty_coupon_status")
+}
+
 model User {
   id              String    @id @default(uuid(7)) @db.Uuid
   /// Stored lower-cased and trimmed.
@@ -843,6 +864,7 @@ model LoyaltyProgram {
   organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   earnRules    LoyaltyEarnRule[]
   accounts     LoyaltyAccount[]
+  rewards      LoyaltyReward[]
 
   @@map("loyalty_program")
 }
@@ -878,6 +900,7 @@ model LoyaltyAccount {
   program      LoyaltyProgram       @relation(fields: [programId], references: [id], onDelete: Cascade)
   customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
   transactions LoyaltyTransaction[]
+  coupons      LoyaltyCoupon[]
 
   @@unique([programId, customerId])
   @@index([customerId])
@@ -906,8 +929,77 @@ model LoyaltyTransaction {
   appointment Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   reverses    LoyaltyTransaction? @relation("LoyaltyReversal", fields: [reversesId], references: [id], onDelete: NoAction)
   reversedBy  LoyaltyTransaction? @relation("LoyaltyReversal")
+  coupon      LoyaltyCoupon?
 
   @@index([accountId, createdAt])
   @@index([appointmentId])
   @@map("loyalty_transaction")
+}
+
+/// The salon's catalogue of rewards: what a client can take for stamps or points.
+/// Removing a reward only archives it: coupons already taken stay valid.
+/// The kind and its fields must agree (CHECK constraint "loyalty_reward_kind_fields").
+model LoyaltyReward {
+  id                 String            @id @default(uuid(7)) @db.Uuid
+  programId          String            @map("program_id") @db.Uuid
+  name               String
+  kind               LoyaltyRewardKind
+  /// discount_percent: 1–100.
+  discountPercent    Int?              @map("discount_percent")
+  /// free_service: the service given for free (a service of the salon).
+  freeServiceId      String?           @map("free_service_id") @db.Uuid
+  /// Stamps or points the reward costs. Stamps: the stamps needed in the current cycle.
+  cost               Int
+  /// The coupon is valid only for these services; empty = any service.
+  serviceIds         String[]          @default([]) @map("service_ids") @db.Uuid
+  /// The coupon is valid this many days after it was taken; null = no limit.
+  couponValidityDays Int?              @map("coupon_validity_days")
+  sortOrder          Int               @default(0) @map("sort_order")
+  archivedAt         DateTime?         @map("archived_at") @db.Timestamptz(3)
+  version            Int               @default(1)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  program LoyaltyProgram  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  coupons LoyaltyCoupon[]
+
+  @@index([programId])
+  @@map("loyalty_reward")
+}
+
+/// A reward a client has taken: stamps or points were spent (the "redeem" ledger entry).
+/// Keeps a copy of the reward's terms, so later changes of the catalogue do not change it.
+model LoyaltyCoupon {
+  id                  String              @id @default(uuid(7)) @db.Uuid
+  accountId           String              @map("account_id") @db.Uuid
+  rewardId            String              @map("reward_id") @db.Uuid
+  /// Short code the client shows at the salon.
+  code                String              @unique
+  status              LoyaltyCouponStatus @default(active)
+  name                String
+  kind                LoyaltyRewardKind
+  discountPercent     Int?                @map("discount_percent")
+  freeServiceId       String?             @map("free_service_id") @db.Uuid
+  serviceIds          String[]            @default([]) @map("service_ids") @db.Uuid
+  /// What the client paid for it (stamps or points).
+  cost                Int
+  /// The "redeem" ledger entry; cancelling adds a "reverse" of it.
+  redeemTransactionId String              @unique @map("redeem_transaction_id") @db.Uuid
+  expiresAt           DateTime?           @map("expires_at") @db.Timestamptz(3)
+  /// Task 10d: the visit it was used on.
+  usedAppointmentId   String?             @map("used_appointment_id") @db.Uuid
+  usedAt              DateTime?           @map("used_at") @db.Timestamptz(3)
+  cancelledAt         DateTime?           @map("cancelled_at") @db.Timestamptz(3)
+  cancelledByUserId   String?             @map("cancelled_by_user_id") @db.Uuid
+  version             Int                 @default(1)
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  account           LoyaltyAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  reward            LoyaltyReward      @relation(fields: [rewardId], references: [id], onDelete: NoAction)
+  redeemTransaction LoyaltyTransaction @relation(fields: [redeemTransactionId], references: [id], onDelete: NoAction)
+
+  @@index([accountId, status])
+  @@index([rewardId])
+  @@map("loyalty_coupon")
 }

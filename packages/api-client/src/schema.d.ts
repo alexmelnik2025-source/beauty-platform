@@ -1270,6 +1270,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/loyalty/rewards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The salon’s reward catalogue, cheapest first within sortOrder */
+        get: operations["LoyaltyController_listRewards"];
+        put?: never;
+        /** Add a reward: a discount in % or a free service, for stamps or points */
+        post: operations["LoyaltyController_createReward"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/loyalty/rewards/{rewardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a reward. Coupons already taken keep their terms. Send the version you read */
+        put: operations["LoyaltyController_updateReward"];
+        post?: never;
+        /** Remove a reward from the catalogue; coupons already taken stay valid */
+        delete: operations["LoyaltyController_archiveReward"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/loyalty/accounts/{customerId}/redemptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange the client’s stamps or points for a reward; returns the coupon
+         * @description Points: the reward’s cost is taken. Stamps: the whole current cycle is taken and the card starts again. 409 LOYALTY_NOT_ENOUGH, 409 LOYALTY_DISABLED.
+         */
+        post: operations["LoyaltyController_redeem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/loyalty/accounts/{customerId}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Correct a client’s balance by hand, with a reason (shown in the history)
+         * @description 409 LOYALTY_NOT_ENOUGH when it would take the balance below zero.
+         */
+        post: operations["LoyaltyController_adjust"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/loyalty/coupons/{couponId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an unused coupon; its stamps or points go back to the client
+         * @description 409 COUPON_NOT_ACTIVE when it was already used or cancelled.
+         */
+        post: operations["LoyaltyController_cancelCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/auth/code": {
         parameters: {
             query?: never;
@@ -2197,6 +2293,57 @@ export interface components {
                 note: string | null;
                 createdAt: string;
             }[];
+            /** @description Newest first, at most 100 */
+            coupons: {
+                id: string;
+                /** @description Shown by the client at the salon, e.g. "K7QM-4XTB" */
+                code: string;
+                rewardId: string;
+                name: string;
+                /** @enum {string} */
+                kind: "discount_percent" | "free_service";
+                discountPercent: number | null;
+                freeServiceId: string | null;
+                serviceIds: string[];
+                /** @description Stamps or points it took */
+                cost: number;
+                /**
+                 * @description expired = active but past expiresAt
+                 * @enum {string}
+                 */
+                status: "active" | "used" | "cancelled" | "expired";
+                expiresAt: string | null;
+                usedAt: string | null;
+                usedAppointmentId: string | null;
+                cancelledAt: string | null;
+                createdAt: string;
+                version: number;
+            }[];
+        };
+        LoyaltyCoupon: {
+            id: string;
+            /** @description Shown by the client at the salon, e.g. "K7QM-4XTB" */
+            code: string;
+            rewardId: string;
+            name: string;
+            /** @enum {string} */
+            kind: "discount_percent" | "free_service";
+            discountPercent: number | null;
+            freeServiceId: string | null;
+            serviceIds: string[];
+            /** @description Stamps or points it took */
+            cost: number;
+            /**
+             * @description expired = active but past expiresAt
+             * @enum {string}
+             */
+            status: "active" | "used" | "cancelled" | "expired";
+            expiresAt: string | null;
+            usedAt: string | null;
+            usedAppointmentId: string | null;
+            cancelledAt: string | null;
+            createdAt: string;
+            version: number;
         };
         LoyaltyProgram: {
             enabled: boolean;
@@ -2231,6 +2378,46 @@ export interface components {
             /** @description 0 = never saved, these are the defaults */
             version: number;
         };
+        LoyaltyReward: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "discount_percent" | "free_service";
+            /** @description discount_percent only */
+            discountPercent: number | null;
+            /** @description free_service only */
+            freeServiceId: string | null;
+            /** @description Stamps or points */
+            cost: number;
+            /** @description The coupon works only for these; empty = any */
+            serviceIds: string[];
+            /** @description null = no limit */
+            couponValidityDays: number | null;
+            sortOrder: number;
+            /** @description Removed from the catalogue; coupons stay valid */
+            archivedAt: string | null;
+            version: number;
+        };
+        LoyaltyRewardList: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "discount_percent" | "free_service";
+            /** @description discount_percent only */
+            discountPercent: number | null;
+            /** @description free_service only */
+            freeServiceId: string | null;
+            /** @description Stamps or points */
+            cost: number;
+            /** @description The coupon works only for these; empty = any */
+            serviceIds: string[];
+            /** @description null = no limit */
+            couponValidityDays: number | null;
+            sortOrder: number;
+            /** @description Removed from the catalogue; coupons stay valid */
+            archivedAt: string | null;
+            version: number;
+        }[];
         LoyaltyTransaction: {
             id: string;
             customer: {
@@ -5366,6 +5553,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoyaltyTransactionList"];
+                };
+            };
+        };
+    };
+    LoyaltyController_listRewards: {
+        parameters: {
+            query?: {
+                includeArchived?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyRewardList"];
+                };
+            };
+        };
+    };
+    LoyaltyController_createReward: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @enum {string} */
+                    kind: "discount_percent" | "free_service";
+                    /** @default null */
+                    discountPercent?: number | null;
+                    /** @default null */
+                    freeServiceId?: string | null;
+                    cost: number;
+                    /** @default [] */
+                    serviceIds?: string[];
+                    /** @default null */
+                    couponValidityDays?: number | null;
+                    /** @default 0 */
+                    sortOrder?: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyReward"];
+                };
+            };
+        };
+    };
+    LoyaltyController_updateReward: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rewardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @enum {string} */
+                    kind: "discount_percent" | "free_service";
+                    /** @default null */
+                    discountPercent?: number | null;
+                    /** @default null */
+                    freeServiceId?: string | null;
+                    cost: number;
+                    /** @default [] */
+                    serviceIds?: string[];
+                    /** @default null */
+                    couponValidityDays?: number | null;
+                    /** @default 0 */
+                    sortOrder?: number;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyReward"];
+                };
+            };
+        };
+    };
+    LoyaltyController_archiveReward: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rewardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    LoyaltyController_redeem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    rewardId: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyCoupon"];
+                };
+            };
+        };
+    };
+    LoyaltyController_adjust: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    points: number;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyAccount"];
+                };
+            };
+        };
+    };
+    LoyaltyController_cancelCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                couponId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyCoupon"];
                 };
             };
         };

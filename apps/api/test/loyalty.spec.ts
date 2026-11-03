@@ -493,3 +493,405 @@ describe('history and protection in the database', () => {
     expect(list.body).toEqual([]);
   });
 });
+
+// ── Rewards, coupons, manual corrections (task 10a, part 2) ─────────────
+
+const orgUrl = () => `/v1/organizations/${orgId}/loyalty`;
+
+const reward = (body: object, auth = owner.auth) =>
+  ctx.http().post(`${orgUrl()}/rewards`).set(auth).send(body);
+
+const redeem = (customerId: string, rewardId: string, auth = owner.auth) =>
+  ctx.http().post(`${orgUrl()}/accounts/${customerId}/redemptions`).set(auth).send({ rewardId });
+
+const adjust = (customerId: string, points: number, reason = 'Visit before the program') =>
+  ctx
+    .http()
+    .post(`${orgUrl()}/accounts/${customerId}/adjustments`)
+    .set(owner.auth)
+    .send({ points, reason });
+
+/** A client with a card in the salon (from one visit, not paid: no balance yet). */
+async function client(email = 'jan@example.com'): Promise<string> {
+  return (await completedVisit({ email })).customerId;
+}
+
+describe('reward catalogue', () => {
+  it('the owner adds, changes and removes rewards; kinds are checked', async () => {
+    const ten = await reward({
+      name: 'Rabat 10%',
+      kind: 'discount_percent',
+      discountPercent: 10,
+      cost: 20,
+    }).expect(201);
+    expectShape('LoyaltyReward', ten.body);
+    expect(ten.body).toMatchObject({
+      kind: 'discount_percent',
+      discountPercent: 10,
+      freeServiceId: null,
+      cost: 20,
+      serviceIds: [],
+      couponValidityDays: null,
+      archivedAt: null,
+      version: 1,
+    });
+    const free = await reward({
+      name: 'Darmowe strzyżenie',
+      kind: 'free_service',
+      freeServiceId: haircutId,
+      cost: 100,
+      couponValidityDays: 30,
+    }).expect(201);
+
+    // A discount without a percent, a free service without a service, both at once → 400.
+    await reward({ name: 'X', kind: 'discount_percent', cost: 5 }).expect(400);
+    await reward({ name: 'X', kind: 'free_service', cost: 5 }).expect(400);
+    await reward({
+      name: 'X',
+      kind: 'discount_percent',
+      discountPercent: 5,
+      freeServiceId: haircutId,
+      cost: 5,
+    }).expect(400);
+    await reward({ name: 'X', kind: 'discount_percent', discountPercent: 101, cost: 5 }).expect(
+      400,
+    );
+    await reward({ name: 'X', kind: 'discount_percent', discountPercent: 5, cost: 0 }).expect(400);
+
+    const changed = await ctx
+      .http()
+      .put(`${orgUrl()}/rewards/${ten.body.id}`)
+      .set(owner.auth)
+      .send({
+        version: 1,
+        name: 'Rabat 15% na brodę',
+        kind: 'discount_percent',
+        discountPercent: 15,
+        cost: 25,
+        serviceIds: [beardId],
+      })
+      .expect(200);
+    expect(changed.body).toMatchObject({ discountPercent: 15, serviceIds: [beardId], version: 2 });
+    const stale = await ctx
+      .http()
+      .put(`${orgUrl()}/rewards/${ten.body.id}`)
+      .set(owner.auth)
+      .send({ version: 1, name: 'Old', kind: 'discount_percent', discountPercent: 5, cost: 5 })
+      .expect(409);
+    expectError(stale.body, 'VERSION_CONFLICT');
+
+    const list = await ctx.http().get(`${orgUrl()}/rewards`).set(owner.auth).expect(200);
+    expectShape('LoyaltyRewardList', list.body);
+    expect(list.body.map((r: { id: string }) => r.id)).toEqual([ten.body.id, free.body.id]);
+
+    await ctx.http().delete(`${orgUrl()}/rewards/${free.body.id}`).set(owner.auth).expect(204);
+    await ctx.http().delete(`${orgUrl()}/rewards/${free.body.id}`).set(owner.auth).expect(204);
+    const active = await ctx.http().get(`${orgUrl()}/rewards`).set(owner.auth).expect(200);
+    expect(active.body).toHaveLength(1);
+    const all = await ctx
+      .http()
+      .get(`${orgUrl()}/rewards`)
+      .query({ includeArchived: 'true' })
+      .set(owner.auth)
+      .expect(200);
+    expect(all.body).toHaveLength(2);
+
+    const actions = await ctx.prisma.auditLog.findMany({
+      where: { organizationId: orgId, action: { startsWith: 'loyalty.reward.' } },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(actions.map((a) => a.action)).toEqual([
+      'loyalty.reward.created',
+      'loyalty.reward.created',
+      'loyalty.reward.updated',
+      'loyalty.reward.archived',
+    ]);
+  });
+
+  it('only the salon’s own services; the database refuses a broken reward', async () => {
+    const other = await createOrgWithLocation(ctx, owner, 'Second');
+    const foreign = await ctx
+      .http()
+      .post(`/v1/organizations/${other.orgId}/locations/${other.locationId}/services`)
+      .set(owner.auth)
+      .send({ name: 'Obcy', durationMinutes: 30, priceGrosze: 1000 })
+      .expect(201);
+    await reward({
+      name: 'X',
+      kind: 'free_service',
+      freeServiceId: foreign.body.id,
+      cost: 5,
+    }).expect(404);
+    await reward({
+      name: 'X',
+      kind: 'discount_percent',
+      discountPercent: 10,
+      serviceIds: [haircutId, foreign.body.id],
+      cost: 5,
+    }).expect(404);
+
+    const program = await ctx.prisma.loyaltyProgram.upsert({
+      where: { organizationId: orgId },
+      create: { organizationId: orgId },
+      update: {},
+    });
+    await expect(
+      ctx.prisma.loyaltyReward.create({
+        data: { programId: program.id, name: 'Broken', kind: 'free_service', cost: 5 },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('staff members cannot see or change rewards, nor give them', async () => {
+    const r = await reward({
+      name: 'R',
+      kind: 'discount_percent',
+      discountPercent: 10,
+      cost: 1,
+    }).expect(201);
+    const customerId = await client();
+    await ctx.http().get(`${orgUrl()}/rewards`).set(kasia.auth).expect(403);
+    await reward(
+      { name: 'R', kind: 'discount_percent', discountPercent: 10, cost: 1 },
+      kasia.auth,
+    ).expect(403);
+    await ctx.http().delete(`${orgUrl()}/rewards/${r.body.id}`).set(kasia.auth).expect(403);
+    await redeem(customerId, r.body.id, kasia.auth).expect(403);
+    await ctx
+      .http()
+      .post(`${orgUrl()}/accounts/${customerId}/adjustments`)
+      .set(kasia.auth)
+      .send({ points: 100, reason: 'Gift' })
+      .expect(403);
+    expect(await ctx.prisma.loyaltyTransaction.count()).toBe(0);
+  });
+});
+
+describe('exchanging for rewards', () => {
+  it('points: the cost is taken, the client gets a coupon with a code and a copy of the terms', async () => {
+    await saveProgram(POINTS);
+    const customerId = await client();
+    await adjust(customerId, 50).expect(201);
+    const r = await reward({
+      name: 'Rabat 25%',
+      kind: 'discount_percent',
+      discountPercent: 25,
+      cost: 40,
+      serviceIds: [haircutId],
+      couponValidityDays: 30,
+    }).expect(201);
+
+    const coupon = await redeem(customerId, r.body.id).expect(201);
+    expectShape('LoyaltyCoupon', coupon.body);
+    expect(coupon.body).toMatchObject({
+      rewardId: r.body.id,
+      name: 'Rabat 25%',
+      kind: 'discount_percent',
+      discountPercent: 25,
+      serviceIds: [haircutId],
+      cost: 40,
+      status: 'active',
+      usedAt: null,
+      cancelledAt: null,
+    });
+    expect(coupon.body.code).toMatch(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/);
+    const days = (Date.parse(coupon.body.expiresAt) - Date.now()) / 86_400_000;
+    expect(days).toBeGreaterThan(29);
+    expect(days).toBeLessThan(31);
+
+    // 10 points left: not enough for a second one.
+    expectError((await redeem(customerId, r.body.id).expect(409)).body, 'LOYALTY_NOT_ENOUGH');
+
+    // Changing the reward later does not change the coupon.
+    await ctx
+      .http()
+      .put(`${orgUrl()}/rewards/${r.body.id}`)
+      .set(owner.auth)
+      .send({ version: 1, name: 'Rabat 5%', kind: 'discount_percent', discountPercent: 5, cost: 1 })
+      .expect(200);
+
+    const acc = await account(customerId);
+    expectShape('LoyaltyAccount', acc.body);
+    expect(acc.body).toMatchObject({ balance: 10, lifetimeEarned: 0 });
+    expect(acc.body.coupons).toHaveLength(1);
+    expect(acc.body.coupons[0]).toMatchObject({ name: 'Rabat 25%', discountPercent: 25 });
+    expect(acc.body.transactions[0]).toMatchObject({
+      type: 'redeem',
+      points: -40,
+      balanceAfter: 10,
+      note: 'Rabat 25%',
+    });
+  });
+
+  it('stamps: taking a reward starts the card again', async () => {
+    await saveProgram(STAMPS);
+    const customerId = await client();
+    for (let i = 0; i < 5; i++) {
+      const visit = await completedVisit();
+      await pay(visit, visit.version).expect(200);
+    }
+    const r25 = await reward({
+      name: '−25%',
+      kind: 'discount_percent',
+      discountPercent: 25,
+      cost: 3,
+    }).expect(201);
+    const free = await reward({
+      name: 'Gratis',
+      kind: 'free_service',
+      freeServiceId: haircutId,
+      cost: 6,
+    }).expect(201);
+    expectError((await redeem(customerId, free.body.id).expect(409)).body, 'LOYALTY_NOT_ENOUGH');
+
+    const coupon = await redeem(customerId, r25.body.id).expect(201);
+    expect(coupon.body).toMatchObject({ cost: 5, status: 'active', expiresAt: null });
+    const acc = await account(customerId);
+    expect(acc.body.balance).toBe(0);
+    expect(acc.body.lifetimeEarned).toBe(5);
+    expect(acc.body.transactions[0]).toMatchObject({ type: 'redeem', points: -5 });
+    expect(acc.body.transactions[0].note).toContain('starts again');
+  });
+
+  it('a removed reward, a switched-off program or another salon’s reward cannot be taken', async () => {
+    await saveProgram(POINTS);
+    const customerId = await client();
+    await adjust(customerId, 100).expect(201);
+    const r = await reward({
+      name: 'R',
+      kind: 'discount_percent',
+      discountPercent: 10,
+      cost: 10,
+    }).expect(201);
+
+    await saveProgram({ ...POINTS, enabled: false });
+    expectError((await redeem(customerId, r.body.id).expect(409)).body, 'LOYALTY_DISABLED');
+    await saveProgram(POINTS);
+
+    await ctx.http().delete(`${orgUrl()}/rewards/${r.body.id}`).set(owner.auth).expect(204);
+    await redeem(customerId, r.body.id).expect(404);
+
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const theirs = await createOrgWithLocation(ctx, stranger, 'Other');
+    const foreign = await ctx
+      .http()
+      .post(`/v1/organizations/${theirs.orgId}/loyalty/rewards`)
+      .set(stranger.auth)
+      .send({ name: 'Theirs', kind: 'discount_percent', discountPercent: 50, cost: 1 })
+      .expect(201);
+    await redeem(customerId, foreign.body.id).expect(404);
+    expect((await account(customerId)).body.balance).toBe(100);
+  });
+
+  it('two exchanges at the same moment never spend the same points twice', async () => {
+    await saveProgram(POINTS);
+    const customerId = await client();
+    await adjust(customerId, 50).expect(201);
+    const r = await reward({
+      name: 'R',
+      kind: 'discount_percent',
+      discountPercent: 10,
+      cost: 30,
+    }).expect(201);
+    const results = await Promise.all([1, 2, 3, 4].map(() => redeem(customerId, r.body.id)));
+    expect(results.map((res) => res.status).sort()).toEqual([201, 409, 409, 409]);
+    const acc = await account(customerId);
+    expect(acc.body.balance).toBe(20);
+    expect(acc.body.coupons).toHaveLength(1);
+  });
+
+  it('cancelling an unused coupon gives the points back, once', async () => {
+    await saveProgram(POINTS);
+    const customerId = await client();
+    await adjust(customerId, 40).expect(201);
+    const r = await reward({
+      name: 'R',
+      kind: 'discount_percent',
+      discountPercent: 10,
+      cost: 40,
+    }).expect(201);
+    const coupon = await redeem(customerId, r.body.id).expect(201);
+    const cancelUrl = `${orgUrl()}/coupons/${coupon.body.id}/cancel`;
+
+    const both = await Promise.all([
+      ctx.http().post(cancelUrl).set(owner.auth).send({ version: 1 }),
+      ctx.http().post(cancelUrl).set(owner.auth).send({ version: 1 }),
+    ]);
+    expect(both.map((res) => res.status).sort()).toEqual([200, 409]);
+    const cancelled = both.find((res) => res.status === 200)!;
+    expectShape('LoyaltyCoupon', cancelled.body);
+    expect(cancelled.body).toMatchObject({ status: 'cancelled', version: 2 });
+    expect(cancelled.body.cancelledAt).not.toBeNull();
+    expectError(
+      (await ctx.http().post(cancelUrl).set(owner.auth).send({ version: 2 }).expect(409)).body,
+      'COUPON_NOT_ACTIVE',
+    );
+    await ctx.http().post(cancelUrl).set(kasia.auth).send({ version: 2 }).expect(403);
+
+    const acc = await account(customerId);
+    expect(acc.body.balance).toBe(40);
+    const redeemEntry = acc.body.transactions.find((t: { type: string }) => t.type === 'redeem');
+    expect(acc.body.transactions[0]).toMatchObject({
+      type: 'reverse',
+      points: 40,
+      balanceAfter: 40,
+      reversesId: redeemEntry.id,
+    });
+  });
+
+  it('a coupon past its date shows as expired', async () => {
+    await saveProgram(POINTS);
+    const customerId = await client();
+    await adjust(customerId, 10).expect(201);
+    const r = await reward({
+      name: 'R',
+      kind: 'discount_percent',
+      discountPercent: 10,
+      cost: 10,
+      couponValidityDays: 1,
+    }).expect(201);
+    const coupon = await redeem(customerId, r.body.id).expect(201);
+    await ctx.prisma.loyaltyCoupon.update({
+      where: { id: coupon.body.id },
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
+    expect((await account(customerId)).body.coupons[0].status).toBe('expired');
+  });
+});
+
+describe('manual corrections', () => {
+  it('with a reason, never below zero, visible in the history', async () => {
+    await saveProgram(POINTS);
+    const customerId = await client();
+    const added = await adjust(customerId, 30, 'Wizyty sprzed programu').expect(201);
+    expectShape('LoyaltyAccount', added.body);
+    expect(added.body).toMatchObject({ balance: 30, lifetimeEarned: 0 });
+    expect(added.body.transactions[0]).toMatchObject({
+      type: 'adjust',
+      points: 30,
+      balanceAfter: 30,
+      note: 'Wizyty sprzed programu',
+      actorUserId: owner.userId,
+    });
+    // Added points get the program's validity, like earned ones.
+    expect(added.body.transactions[0].expiresAt).not.toBeNull();
+
+    expectError((await adjust(customerId, -31).expect(409)).body, 'LOYALTY_NOT_ENOUGH');
+    const taken = await adjust(customerId, -30, 'Pomyłka').expect(201);
+    expect(taken.body.balance).toBe(0);
+    expect(taken.body.transactions[0].expiresAt).toBeNull();
+
+    await adjust(customerId, 0).expect(400);
+    await ctx
+      .http()
+      .post(`${orgUrl()}/accounts/${customerId}/adjustments`)
+      .set(owner.auth)
+      .send({ points: 5, reason: '' })
+      .expect(400);
+
+    const audit = await ctx.prisma.auditLog.findMany({
+      where: { organizationId: orgId, action: 'loyalty.balance.adjusted' },
+    });
+    expect(audit).toHaveLength(2);
+  });
+});

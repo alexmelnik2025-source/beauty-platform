@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { LoyaltyTransactionType } from '../generated/prisma/client';
 import { responseSchema } from '../common/openapi';
-import { loyaltyModeSchema } from './loyalty.schemas';
+import { loyaltyModeSchema, loyaltyRewardKindSchema } from './loyalty.schemas';
 
 export const loyaltyTransactionTypeSchema = z.enum([
   'earn',
@@ -67,6 +67,54 @@ export const loyaltyTransactionListSchema = responseSchema(
   z.array(loyaltyTransactionSchema),
 );
 
+export const loyaltyRewardSchema = responseSchema(
+  'LoyaltyReward',
+  z.strictObject({
+    id: z.string(),
+    name: z.string(),
+    kind: loyaltyRewardKindSchema,
+    discountPercent: z.number().int().nullable().describe('discount_percent only'),
+    freeServiceId: z.string().nullable().describe('free_service only'),
+    cost: z.number().int().describe('Stamps or points'),
+    serviceIds: z.array(z.string()).describe('The coupon works only for these; empty = any'),
+    couponValidityDays: z.number().int().nullable().describe('null = no limit'),
+    sortOrder: z.number().int(),
+    archivedAt: z.string().nullable().describe('Removed from the catalogue; coupons stay valid'),
+    version: z.number().int(),
+  }),
+);
+export type LoyaltyRewardResponse = z.infer<typeof loyaltyRewardSchema>;
+
+export const loyaltyRewardListSchema = responseSchema(
+  'LoyaltyRewardList',
+  z.array(loyaltyRewardSchema),
+);
+
+export const loyaltyCouponSchema = responseSchema(
+  'LoyaltyCoupon',
+  z.strictObject({
+    id: z.string(),
+    code: z.string().describe('Shown by the client at the salon, e.g. "K7QM-4XTB"'),
+    rewardId: z.string(),
+    name: z.string(),
+    kind: loyaltyRewardKindSchema,
+    discountPercent: z.number().int().nullable(),
+    freeServiceId: z.string().nullable(),
+    serviceIds: z.array(z.string()),
+    cost: z.number().int().describe('Stamps or points it took'),
+    status: z
+      .enum(['active', 'used', 'cancelled', 'expired'])
+      .describe('expired = active but past expiresAt'),
+    expiresAt: z.string().nullable(),
+    usedAt: z.string().nullable(),
+    usedAppointmentId: z.string().nullable(),
+    cancelledAt: z.string().nullable(),
+    createdAt: z.string(),
+    version: z.number().int(),
+  }),
+);
+export type LoyaltyCouponResponse = z.infer<typeof loyaltyCouponSchema>;
+
 export const loyaltyAccountSchema = responseSchema(
   'LoyaltyAccount',
   z.strictObject({
@@ -75,6 +123,7 @@ export const loyaltyAccountSchema = responseSchema(
     balance: z.number().int().describe('Stamps of the current cycle or points'),
     lifetimeEarned: z.number().int(),
     transactions: z.array(loyaltyTransactionSchema).describe('Newest first, at most 100'),
+    coupons: z.array(loyaltyCouponSchema).describe('Newest first, at most 100'),
   }),
 );
 export type LoyaltyAccountResponse = z.infer<typeof loyaltyAccountSchema>;
