@@ -44,6 +44,8 @@ export function AppointmentManager<T extends PublicAppointment>({
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [day, setDay] = useState('');
+  /** The time the client tapped; moving waits for "Yes" (owner test T11). */
+  const [pending, setPending] = useState<Slot | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +63,7 @@ export function AppointmentManager<T extends PublicAppointment>({
     if (mode !== 'move' || !a) return;
     const from = todayIn(a.timezone);
     setSlots(null);
+    setPending(null);
     api<{ slots: Slot[] }>(`/v1/public/locations/${a.salon.slug}/availability`, {
       auth: false,
       query: { serviceId: a.service.id, staffId: a.staff.id, from, to: addDays(from, 20) },
@@ -224,7 +227,10 @@ export function AppointmentManager<T extends PublicAppointment>({
                       type="button"
                       aria-pressed={d === day}
                       aria-label={formatDay(d, tag)}
-                      onClick={() => setDay(d)}
+                      onClick={() => {
+                        setDay(d);
+                        setPending(null);
+                      }}
                     >
                       <span>{weekdayShort(d, tag)}</span>
                       <b>{Number(d.slice(8))}</b>
@@ -239,6 +245,34 @@ export function AppointmentManager<T extends PublicAppointment>({
                         key={s.start}
                         type="button"
                         disabled={busy}
+                        aria-pressed={pending?.start === s.start}
+                        onClick={() => setPending(s)}
+                      >
+                        {s.time}
+                      </button>
+                    ))}
+                </div>
+                {pending ? (
+                  <div className="summary" role="alertdialog" aria-label={t.manage.move}>
+                    <span>
+                      {fill(t.manage.moveConfirm, {
+                        time: pending.time,
+                        day: formatDay(pending.date, tag, { short: true }),
+                      })}
+                    </span>
+                    <div className="row">
+                      <button
+                        type="button"
+                        className="btn btn--quiet"
+                        disabled={busy}
+                        onClick={() => setPending(null)}
+                      >
+                        {t.manage.moveNo}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={busy}
                         onClick={() =>
                           void run(
                             () =>
@@ -246,16 +280,17 @@ export function AppointmentManager<T extends PublicAppointment>({
                                 method: 'POST',
                                 auth: false,
                                 idempotencyKey: newIdempotencyKey(),
-                                body: { start: s.start },
+                                body: { start: pending.start },
                               }),
                             t.manage.moved,
                           )
                         }
                       >
-                        {s.time}
+                        {t.manage.moveYes}
                       </button>
-                    ))}
-                </div>
+                    </div>
+                  </div>
+                ) : null}
               </>
             )}
             <button type="button" className="link-btn small" onClick={() => setMode('view')}>

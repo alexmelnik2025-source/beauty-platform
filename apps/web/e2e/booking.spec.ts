@@ -302,6 +302,17 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();
   await shot(client, '07-client-manage');
+  // Moving asks first: a tap on a time only proposes it, "Nie" keeps the old time (owner test T11).
+  await client.getByRole('button', { name: 'Zmień termin' }).click();
+  await client.locator('.times button').first().click();
+  const moveConfirm = client.getByRole('alertdialog');
+  await expect(moveConfirm).toContainText('Przenieść wizytę na');
+  await shot(client, '07a-client-move-confirm');
+  await moveConfirm.getByRole('button', { name: 'Nie' }).click();
+  await expect(moveConfirm).toBeHidden();
+  await expect(client.getByText('Termin zmieniony.')).toBeHidden();
+  await client.goto(manageLink);
+  await expect(client.getByText('Potwierdzona')).toBeVisible();
 
   // ── "My visits": the client signs in with an emailed code, no password ──
   await client.goto('/pl/c');

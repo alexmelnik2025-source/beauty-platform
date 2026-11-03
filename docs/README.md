@@ -619,3 +619,11 @@ pnpm --filter @beauty/api-client generate
 - В списке специалистов и в карточке вместо «Bez konta» — «Zaproszenie wysłane, czeka» (e-mail и номер) и кнопка
   «Wyślij zaproszenie ponownie» (старая ссылка перестаёт работать). Тесты — `apps/api/test/phone-login.spec.ts`,
   e2e `apps/web/e2e/team-invite.spec.ts`, скриншоты 54–57.
+
+## Тест-фикс 03.11.2026: перенос клиентом с подтверждением (T11)
+
+- На странице «Twoja wizyta» (ссылка из письма и «Moje wizyty») тап по времени больше не переносит визит сразу:
+  выбранное время подсвечивается и появляется «Przenieść wizytę na 17:30, śr 5 lis? — Nie / Tak, przenieś».
+  Перенос уходит на сервер только после «Tak»; смена дня или «Nie» снимает выбор. 4 языка
+  (`manage.moveConfirm`, `moveYes`, `moveNo`).
+- e2e: `booking.spec.ts` — шаг с подтверждением и отказом, скриншот `07a-client-move-confirm`.
