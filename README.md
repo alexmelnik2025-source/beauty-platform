@@ -138,13 +138,20 @@ pnpm format      # автоформатирование
 ```
 apps/
   api/              REST API (NestJS 12, Prisma 7, PostgreSQL 17)
+  web/              веб-кабинет салона и онлайн-запись (Next.js)
+  mobile-business/  бизнес-приложение для iPhone и Android (Expo / React Native)
 packages/
+  api-client/       типы API из OpenAPI для веба и приложений
   config/           общие настройки TypeScript и ESLint
 docker/             скрипты инициализации базы
 docs/               спецификация и решения
 ```
 
-Следующие приложения (`owner-web`, `owner-mobile`, `client-mobile`) появятся в своих задачах.
+Клиентское приложение (`apps/mobile-client`) появится в задаче 11b.
+
+Бизнес-приложение на своём компьютере: `pnpm --filter @beauty/mobile-business dev` (Expo; открыть в
+Expo Go на телефоне или в браузере клавишей `w`). Адрес API для телефона — `EXPO_PUBLIC_API_URL`
+(по умолчанию `http://localhost:4000`).
 
 ## Частые проблемы
 

@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Salon",
+    "slug": "beauty-business",
+    "scheme": "beauty-business",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": { "bundleIdentifier": "dev.beautyplatform.business", "supportsTablet": true },
+    "android": { "package": "dev.beautyplatform.business" },
+    "web": { "output": "single", "bundler": "metro" },
+    "plugins": ["expo-secure-store"]
+  }
+}

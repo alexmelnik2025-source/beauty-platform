@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { clearMailbox, listTo, waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 import { waitForSmsCode } from './sms-log';
 
 /**
@@ -765,5 +766,72 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(visitor.getByRole('dialog')).toBeHidden();
   } finally {
     salonSite.close();
+  }
+
+  // ── Business app for iPhone and Android (web preview of apps/mobile-business) ──
+  // Sign-in with a code, no password; one salon → straight to the day calendar.
+  const now = await json<{
+    appointments: {
+      date: string;
+      status: string;
+      customer: { name: string; phone: string | null } | null;
+    }[];
+  }>(
+    await request.get(`${base}/calendar`, {
+      headers: owner,
+      params: { from: day(-1), to: day(21) },
+    }),
+  );
+  const annaVisit = now.appointments.find(
+    (a) => a.customer?.name === 'Anna Kowalska' && a.status === 'confirmed',
+  )!;
+  expect(annaVisit.customer?.phone, 'the owner sees the client phone').toBeTruthy();
+  const salonToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+    new Date(),
+  );
+  const daysAhead = Math.round((Date.parse(annaVisit.date) - Date.parse(salonToday)) / 86_400_000);
+
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const signInBusinessApp = async (email: string, name: string) => {
+      const phone = await (
+        await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true })
+      ).newPage();
+      await phone.goto(businessApp.url);
+      await expect(phone.getByRole('heading', { name: 'Zaloguj się' })).toBeVisible();
+      await phone.getByLabel('E-mail lub telefon').fill(email);
+      await shot(phone, `${name}-sign-in`);
+      await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+      await expect(phone.getByText(`Wysłaliśmy 6-cyfrowy kod na ${email}.`)).toBeVisible();
+      const mail = await waitForEmail(email, /Kod logowania do aplikacji salonu/);
+      await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+      await shot(phone, `${name}-code`);
+      await phone.getByRole('button', { name: 'Zaloguj się' }).click();
+      // Today first, then forward to the day of Anna's visit.
+      await expect(phone.getByText('Gestalt Barbershop')).toBeVisible();
+      await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
+      for (let i = 0; i < daysAhead; i++) {
+        await phone.getByRole('button', { name: 'Następny dzień' }).click();
+      }
+      await expect(phone.getByText('Anna Kowalska').first()).toBeVisible();
+      return phone;
+    };
+
+    // Kasia (specialist): her visit, but not the client's phone number.
+    const kasiaApp = await signInBusinessApp(KASIA, '32-business-app-staff');
+    await expect(kasiaApp.getByText(annaVisit.customer!.phone!)).toHaveCount(0);
+    await shot(kasiaApp, '32-business-app-staff-day');
+    // The refresh token is kept: opening the app again needs no new code.
+    await kasiaApp.reload();
+    await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await kasiaApp.getByRole('button', { name: 'Wyloguj się' }).click();
+    await expect(kasiaApp.getByRole('heading', { name: 'Zaloguj się' })).toBeVisible();
+
+    // The owner sees the whole salon, with the client's phone.
+    const ownerApp = await signInBusinessApp(OWNER, '33-business-app-owner');
+    await expect(ownerApp.getByText(annaVisit.customer!.phone!).first()).toBeVisible();
+    await shot(ownerApp, '33-business-app-owner-day');
+  } finally {
+    businessApp.server.close();
   }
 });

@@ -1,0 +1,47 @@
+import type { Dictionary } from './pl';
+
+export const en: Dictionary = {
+  appTitle: 'Salon',
+  loading: 'Loading…',
+  signIn: {
+    title: 'Sign in',
+    subtitle:
+      "Enter the email or phone number from your invitation. We'll send a code — no password.",
+    contact: 'Email or phone',
+    badContact: 'Enter an email or a phone number, e.g. +48 600 100 200.',
+    sendCode: 'Send code',
+    sentEmail: 'We sent a 6-digit code to {to}.',
+    sentSms: 'We sent a text with a 6-digit code to {to}.',
+    sentToInviteEmail:
+      'Text messages are not switched on yet — the code went to the email in your invitation.',
+    code: 'Code',
+    confirm: 'Sign in',
+    badCode: 'The code is wrong or has expired. Please try again.',
+    otherContact: 'Another email or phone',
+  },
+  salons: {
+    title: 'Choose a salon',
+    none: "You don't have access to any salon yet. Ask the owner to invite you.",
+    role: { owner: 'Owner', manager: 'Manager', staff: 'Specialist' },
+  },
+  day: {
+    today: 'Today',
+    previous: 'Previous day',
+    next: 'Next day',
+    empty: 'No visits on this day.',
+    visits: 'Visits',
+    working: 'Working',
+    nobodyWorks: 'Nobody works on this day.',
+    walkIn: 'Client without a card',
+    refresh: 'Refresh',
+    status: { confirmed: 'Confirmed', completed: 'Completed', no_show: 'No-show' },
+  },
+  changeSalon: 'Change salon',
+  signOut: 'Sign out',
+  language: 'Language',
+  error: {
+    network: 'No connection to the server. Check the internet and try again.',
+    generic: 'Something went wrong. Please try again.',
+    tooMany: 'Too many attempts. Please wait a moment.',
+  },
+};
