@@ -32,6 +32,7 @@ export type ClientAppointmentList = Schemas['ClientAppointmentList'];
 /** Salon account: sign-in, the signed-in user, devices. */
 export type User = Schemas['User'];
 export type Tokens = Schemas['Tokens'];
+export type LoginCodeSent = Schemas['LoginCodeSent'];
 export type Message = Schemas['Message'];
 export type Me = Schemas['Me'];
 export type Role = Me['organizations'][number]['role'];

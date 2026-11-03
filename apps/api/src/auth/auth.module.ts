@@ -6,11 +6,15 @@ import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { MeController } from './me.controller';
 import { PasswordService } from './password.service';
+import { CodeLoginService } from './code-login.service';
+import { OrganizationsModule } from '../organizations/organizations.module';
 
 @Module({
+  imports: [OrganizationsModule],
   controllers: [AuthController, MeController],
   providers: [
     AuthService,
+    CodeLoginService,
     PasswordService,
     AccessTokenService,
     // Every route requires sign-in unless marked @Public().

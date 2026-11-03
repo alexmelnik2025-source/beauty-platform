@@ -35,6 +35,16 @@ export const tokensSchema = responseSchema(
 );
 export type TokenResponse = z.infer<typeof tokensSchema>;
 
+export const loginCodeSentSchema = responseSchema(
+  'LoginCodeSent',
+  z.strictObject({
+    codeExpiresAt: z
+      .string()
+      .describe('The same answer for every address, with or without an account'),
+  }),
+);
+export type LoginCodeSentResponse = z.infer<typeof loginCodeSentSchema>;
+
 export const meSchema = responseSchema(
   'Me',
   z.strictObject({

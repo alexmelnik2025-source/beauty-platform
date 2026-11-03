@@ -75,6 +75,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a sign-in code by email (business app, no password)
+         * @description For existing accounts and for people with a pending invitation. The answer is the same for every address.
+         */
+        post: operations["AuthController_requestCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/code/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in with the emailed code
+         * @description Creates the account on first sign-in of an invited person and accepts all their pending invitations. clientType=mobile: refresh token in the body.
+         */
+        post: operations["AuthController_verifyCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/refresh": {
         parameters: {
             query?: never;
@@ -2263,6 +2303,10 @@ export interface components {
             createdAt: string;
             updatedAt: string;
         }[];
+        LoginCodeSent: {
+            /** @description The same answer for every address, with or without an account */
+            codeExpiresAt: string;
+        };
         LoyaltyAccount: {
             customer: {
                 id: string;
@@ -3171,6 +3215,74 @@ export interface operations {
                      */
                     clientType?: "web" | "mobile";
                     deviceName?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tokens"];
+                };
+            };
+        };
+    };
+    AuthController_requestCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    /**
+                     * @default pl
+                     * @enum {string}
+                     */
+                    locale?: "pl" | "uk" | "ru" | "en";
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginCodeSent"];
+                };
+            };
+        };
+    };
+    AuthController_verifyCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    code: string;
+                    /**
+                     * @default web
+                     * @enum {string}
+                     */
+                    clientType?: "web" | "mobile";
+                    deviceName?: string;
+                    name?: string;
+                    /**
+                     * @default pl
+                     * @enum {string}
+                     */
+                    locale?: "pl" | "uk" | "ru" | "en";
                 };
             };
         };

@@ -11,15 +11,26 @@ import {
   emailOnlySchema,
   loginSchema,
   refreshSchema,
+  requestLoginCodeSchema,
+  verifyLoginCodeSchema,
   registerSchema,
   resetPasswordSchema,
   tokenSchema,
   type LoginInput,
   type RegisterInput,
+  type RequestLoginCodeInput,
   type ResetPasswordInput,
+  type VerifyLoginCodeInput,
 } from './auth.schemas';
-import { messageSchema, tokensSchema, type TokenResponse } from './auth.responses';
+import {
+  loginCodeSentSchema,
+  messageSchema,
+  tokensSchema,
+  type LoginCodeSentResponse,
+  type TokenResponse,
+} from './auth.responses';
 import { AuthService, type IssuedTokens } from './auth.service';
+import { CodeLoginService } from './code-login.service';
 import { CurrentAuth, Public } from './decorators';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './refresh-cookie';
 
@@ -34,6 +45,7 @@ export class AuthController {
 
   constructor(
     private readonly auth: AuthService,
+    private readonly codeLogin: CodeLoginService,
     private readonly limiter: RateLimiterService,
     @Inject(APP_CONFIG) config: AppConfig,
   ) {
@@ -103,6 +115,45 @@ export class AuthController {
     this.limiter.hit(`login:ip:${req.ip}`, 30, 15 * MINUTE);
     this.limiter.hit(`login:email:${body.email}`, 10, 15 * MINUTE);
     const tokens = await this.auth.login(body, { userAgent: req.header('user-agent') });
+    return this.tokenResponse(res, tokens, body.clientType);
+  }
+
+  @Public()
+  @Post('code')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary: 'Send a sign-in code by email (business app, no password)',
+    description:
+      'For existing accounts and for people with a pending invitation. The answer is the same for every address.',
+  })
+  @ApiZodBody(requestLoginCodeSchema)
+  @ApiZodResponse(loginCodeSentSchema, HttpStatus.ACCEPTED)
+  requestCode(
+    @Req() req: AppRequest,
+    @Body(new ZodValidationPipe(requestLoginCodeSchema)) body: RequestLoginCodeInput,
+  ): Promise<LoginCodeSentResponse> {
+    this.limiter.hit(`login-code:ip:${req.ip}`, 20, HOUR);
+    this.limiter.hit(`email:${body.email}`, 5, HOUR);
+    return this.codeLogin.requestCode(body);
+  }
+
+  @Public()
+  @Post('code/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sign in with the emailed code',
+    description:
+      'Creates the account on first sign-in of an invited person and accepts all their pending invitations. clientType=mobile: refresh token in the body.',
+  })
+  @ApiZodBody(verifyLoginCodeSchema)
+  @ApiZodResponse(tokensSchema)
+  async verifyCode(
+    @Req() req: AppRequest,
+    @Res({ passthrough: true }) res: Response,
+    @Body(new ZodValidationPipe(verifyLoginCodeSchema)) body: VerifyLoginCodeInput,
+  ): Promise<TokenResponse> {
+    this.limiter.hit(`login:ip:${req.ip}`, 30, 15 * MINUTE);
+    const tokens = await this.codeLogin.verifyCode(body, req.header('user-agent'));
     return this.tokenResponse(res, tokens, body.clientType);
   }
 

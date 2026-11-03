@@ -141,6 +141,9 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     await this.prisma
       .$executeRaw`DELETE FROM client_login_code WHERE expires_at < now() - interval '1 day'`;
     await this.prisma.$executeRaw`DELETE FROM client_session WHERE expires_at < now()`;
+    // Business app: unused sign-in codes of salon accounts.
+    await this.prisma
+      .$executeRaw`DELETE FROM staff_login_code WHERE expires_at < now() - interval '1 day'`;
     return expired;
   }
 

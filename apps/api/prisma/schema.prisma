@@ -817,6 +817,19 @@ model ClientLoginCode {
   @@map("client_login_code")
 }
 
+/// Passwordless sign-in for salon accounts (business app, owner-invited managers and staff).
+/// One active code per address: a new request replaces the previous code. Only the hash is stored.
+model StaffLoginCode {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  email     String   @unique
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("staff_login_code")
+}
+
 /// A signed-in device of a client (web cookie or mobile token). Only the hash is stored.
 model ClientSession {
   id         String     @id @default(uuid(7)) @db.Uuid

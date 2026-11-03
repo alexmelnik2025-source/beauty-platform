@@ -128,14 +128,26 @@ export class AuthService {
       );
     }
 
+    return this.issueSession(user, {
+      clientType: input.clientType,
+      deviceName: input.deviceName,
+      userAgent: client.userAgent,
+    });
+  }
+
+  /** Opens a session on one device (password sign-in and the email-code sign-in). */
+  async issueSession(
+    user: User,
+    device: { clientType: 'web' | 'mobile'; deviceName?: string; userAgent?: string },
+  ): Promise<IssuedTokens> {
     const refreshToken = generateToken();
     const refreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
     const session = await this.prisma.session.create({
       data: {
         userId: user.id,
-        clientType: input.clientType,
-        deviceName: input.deviceName,
-        userAgent: client.userAgent?.slice(0, 300),
+        clientType: device.clientType,
+        deviceName: device.deviceName,
+        userAgent: device.userAgent?.slice(0, 300),
         refreshTokenHash: hashToken(refreshToken),
         expiresAt: refreshExpiresAt,
       },

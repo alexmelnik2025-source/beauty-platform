@@ -23,6 +23,6 @@ import { PermissionsService } from './permissions.service';
     MembershipGuard,
     LocationAccessService,
   ],
-  exports: [MembershipGuard, LocationAccessService],
+  exports: [MembershipGuard, LocationAccessService, InvitationsService],
 })
 export class OrganizationsModule {}

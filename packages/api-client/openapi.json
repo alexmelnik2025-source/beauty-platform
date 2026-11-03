@@ -207,6 +207,132 @@
         ]
       }
     },
+    "/v1/auth/code": {
+      "post": {
+        "description": "For existing accounts and for people with a pending invitation. The answer is the same for every address.",
+        "operationId": "AuthController_requestCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginCodeSent"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send a sign-in code by email (business app, no password)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/code/verify": {
+      "post": {
+        "description": "Creates the account on first sign-in of an invited person and accepts all their pending invitations. clientType=mobile: refresh token in the body.",
+        "operationId": "AuthController_verifyCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$"
+                  },
+                  "clientType": {
+                    "default": "web",
+                    "type": "string",
+                    "enum": [
+                      "web",
+                      "mobile"
+                    ]
+                  },
+                  "deviceName": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tokens"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sign in with the emailed code",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/v1/auth/refresh": {
       "post": {
         "description": "Web: uses the cookie. Mobile: send refreshToken in the body. The refresh token rotates every time.",
@@ -9115,6 +9241,19 @@
           ],
           "additionalProperties": false
         }
+      },
+      "LoginCodeSent": {
+        "type": "object",
+        "properties": {
+          "codeExpiresAt": {
+            "type": "string",
+            "description": "The same answer for every address, with or without an account"
+          }
+        },
+        "required": [
+          "codeExpiresAt"
+        ],
+        "additionalProperties": false
       },
       "LoyaltyAccount": {
         "type": "object",

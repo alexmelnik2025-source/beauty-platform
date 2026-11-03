@@ -286,42 +286,110 @@ export class InvitationsService {
           'You are already in this team',
         );
       }
-      // Locations may have been deleted since the invitation was sent.
-      const locations = await tx.location.findMany({
-        where: { id: { in: invitation.locationIds }, organizationId: invitation.organizationId },
-        select: { id: true },
-      });
-      const category = invitation.staffCategoryId
-        ? await tx.staffCategory.findUnique({ where: { id: invitation.staffCategoryId } })
-        : null;
-      const membership = await tx.membership.create({
-        data: {
-          userId,
-          organizationId: invitation.organizationId,
-          role: invitation.role,
-          staffCategoryId: category?.id ?? null,
-          locations: { create: locations.map((l) => ({ locationId: l.id })) },
-        },
-      });
-      if (invitation.staffMemberId) {
-        await tx.staffMember.updateMany({
-          where: { id: invitation.staffMemberId, userId: null },
-          data: { userId },
-        });
-      }
-      await this.audit.record(
-        {
-          organizationId: invitation.organizationId,
-          actorUserId: userId,
-          action: 'invitation.accepted',
-          entityType: 'membership',
-          entityId: membership.id,
-          metadata: { invitationId: invitation.id, role: invitation.role },
-        },
-        tx,
-      );
+      await this.join(tx, invitation, userId);
     });
     return { organizationId: invitation.organizationId, role: invitation.role };
+  }
+
+  /**
+   * Sign-in with an email code: every pending invitation for this (just proven) address is
+   * accepted at once, so an invited manager or staff member lands straight in their salon.
+   * Teams the user already belongs to are skipped. Returns the teams joined.
+   */
+  async acceptPendingForEmail(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    email: string,
+  ): Promise<InvitationAcceptedResponse[]> {
+    const pending = await tx.invitation.findMany({
+      where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    const joined: InvitationAcceptedResponse[] = [];
+    for (const invitation of pending) {
+      if (joined.some((j) => j.organizationId === invitation.organizationId)) continue;
+      const member = await tx.membership.count({
+        where: { userId, organizationId: invitation.organizationId },
+      });
+      if (member > 0) continue;
+      const taken = await tx.invitation.updateMany({
+        where: { id: invitation.id, acceptedAt: null, revokedAt: null },
+        data: { acceptedAt: new Date() },
+      });
+      if (taken.count !== 1) continue;
+      await this.join(tx, invitation, userId);
+      joined.push({ organizationId: invitation.organizationId, role: invitation.role });
+    }
+    return joined;
+  }
+
+  /** Whether `email` has an invitation that can still be accepted. */
+  async hasPending(email: string): Promise<boolean> {
+    const count = await this.prisma.invitation.count({
+      where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+    });
+    return count > 0;
+  }
+
+  /** The calendar name of the staff profile an invitation links, for a new account's name. */
+  async invitedStaffName(email: string): Promise<string | null> {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: {
+        email,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+        staffMemberId: { not: null },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!invitation?.staffMemberId) return null;
+    const staff = await this.prisma.staffMember.findUnique({
+      where: { id: invitation.staffMemberId },
+    });
+    return staff?.displayName ?? null;
+  }
+
+  /** Creates the membership for an invitation already marked accepted (inside `tx`). */
+  private async join(
+    tx: Prisma.TransactionClient,
+    invitation: Invitation,
+    userId: string,
+  ): Promise<void> {
+    // Locations may have been deleted since the invitation was sent.
+    const locations = await tx.location.findMany({
+      where: { id: { in: invitation.locationIds }, organizationId: invitation.organizationId },
+      select: { id: true },
+    });
+    const category = invitation.staffCategoryId
+      ? await tx.staffCategory.findUnique({ where: { id: invitation.staffCategoryId } })
+      : null;
+    const membership = await tx.membership.create({
+      data: {
+        userId,
+        organizationId: invitation.organizationId,
+        role: invitation.role,
+        staffCategoryId: category?.id ?? null,
+        locations: { create: locations.map((l) => ({ locationId: l.id })) },
+      },
+    });
+    if (invitation.staffMemberId) {
+      await tx.staffMember.updateMany({
+        where: { id: invitation.staffMemberId, userId: null },
+        data: { userId },
+      });
+    }
+    await this.audit.record(
+      {
+        organizationId: invitation.organizationId,
+        actorUserId: userId,
+        action: 'invitation.accepted',
+        entityType: 'membership',
+        entityId: membership.id,
+        metadata: { invitationId: invitation.id, role: invitation.role },
+      },
+      tx,
+    );
   }
 
   /** Owner removes a manager or staff member; their staff profile stays in the calendar, unlinked. */
