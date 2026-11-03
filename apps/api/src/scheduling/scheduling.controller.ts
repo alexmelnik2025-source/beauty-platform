@@ -16,6 +16,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
+import { Idempotent } from '../common/idempotency.interceptor';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
@@ -94,6 +95,7 @@ export class ServiceCategoriesController {
   }
 
   @Post()
+  @Idempotent()
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Create a category' })
   @ApiZodBody(createServiceCategorySchema)
@@ -154,6 +156,7 @@ export class ServicesController {
   }
 
   @Post()
+  @Idempotent()
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Add a service. Price in grosze (50 PLN = 5000)' })
   @ApiZodBody(createServiceSchema)
@@ -217,6 +220,7 @@ export class StaffController {
   }
 
   @Post()
+  @Idempotent()
   @RequireRoles('owner', 'manager')
   @ApiOperation({ summary: 'Add a staff member (no user account needed)' })
   @ApiZodBody(createStaffSchema)

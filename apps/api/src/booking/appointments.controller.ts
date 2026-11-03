@@ -203,6 +203,7 @@ export class CustomersController {
   }
 
   @Post()
+  @Idempotent()
   @RequireRoles('owner', 'manager')
   @ApiOperation({
     summary: 'Add a client',

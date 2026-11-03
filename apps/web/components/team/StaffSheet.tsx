@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { api } from '@/lib/api';
+import { api, newIdempotencyKey } from '@/lib/api';
+import { useSubmitLock } from '@/lib/submit-lock';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { PHOTO_ACCEPT, shrinkPhoto, STAFF_PHOTO_SIDE } from '@/lib/photos';
 import type { Staff, TimeOff as TimeOffEntry } from '@/lib/types';
@@ -58,7 +59,9 @@ export function StaffSheet({
   const [absence, setAbsence] = useState({ start: '', end: '', note: '' });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [busy, setBusy] = useState(false);
+  const { busy, lock, unlock } = useSubmitLock();
+  // One key per form: a repeated or retried "add" never creates a second specialist (T4).
+  const [key] = useState(newIdempotencyKey);
   const [photoUrl, setPhotoUrl] = useState(staff?.photoUrl ?? null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -86,8 +89,7 @@ export function StaffSheet({
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!week) return;
-    setBusy(true);
+    if (!week || !lock()) return;
     setError('');
     setMessage('');
     try {
@@ -112,6 +114,7 @@ export function StaffSheet({
       } else {
         const created = await api<{ id: string }>(`${base}/staff`, {
           method: 'POST',
+          idempotencyKey: key,
           body: {
             displayName: profile.displayName,
             ...(profile.bio ? { bio: profile.bio } : {}),
@@ -136,7 +139,7 @@ export function StaffSheet({
       onSaved();
     } catch (err) {
       setError(errorText(t, err));
-      setBusy(false);
+      unlock();
     }
   }
 

@@ -389,6 +389,21 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.goto('/pl/app/services');
   await expect(ownerPage.getByText('Strzyżenie + broda').first()).toBeVisible();
   await shot(ownerPage, '15-owner-services');
+  // Owner's test 03.11 (T4): a double tap on «Zapisz» adds one service, not two;
+  // (T2): an edit shows in the list at once, without reloading the page.
+  await ownerPage.getByRole('button', { name: '+ Dodaj usługę' }).click();
+  const serviceDialog = ownerPage.getByRole('dialog');
+  await serviceDialog.getByLabel('Nazwa').fill('Golenie brzytwą');
+  await serviceDialog.getByLabel('Cena (zł)').fill('60');
+  await serviceDialog.getByRole('button', { name: 'Zapisz' }).dblclick();
+  await expect(serviceDialog).toBeHidden();
+  const shaveRow = ownerPage.getByRole('button', { name: /Golenie brzytwą/ });
+  await expect(shaveRow).toHaveCount(1);
+  await shaveRow.click();
+  await ownerPage.getByRole('dialog').getByLabel('Dostępna do rezerwacji').uncheck();
+  await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(shaveRow).toContainText('Ukryta');
+  await shot(ownerPage, '48-owner-service-saved-once');
   await ownerPage.goto('/pl/app/team');
   await expect(ownerPage.getByRole('button', { name: /Kasia/ })).toBeVisible();
   await shot(ownerPage, '16-owner-team');

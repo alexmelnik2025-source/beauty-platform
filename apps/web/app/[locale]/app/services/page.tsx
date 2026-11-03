@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { api, newIdempotencyKey } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { useSubmitLock } from '@/lib/submit-lock';
 import { formatPrice } from '@/lib/time';
 import type { Service, ServiceCategory } from '@/lib/types';
 
@@ -34,6 +35,7 @@ export default function ServicesPage() {
   const [editing, setEditing] = useState<ServiceRow | 'new' | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [error, setError] = useState('');
+  const categoryLock = useSubmitLock();
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +56,7 @@ export default function ServicesPage() {
 
   async function addCategory(e: FormEvent) {
     e.preventDefault();
+    if (!categoryLock.lock()) return;
     try {
       await api(`${base}/service-categories`, {
         method: 'POST',
@@ -63,6 +66,8 @@ export default function ServicesPage() {
       await load();
     } catch (err) {
       setError(errorText(t, err));
+    } finally {
+      categoryLock.unlock();
     }
   }
 
@@ -147,7 +152,9 @@ export default function ServicesPage() {
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
           />
-          <button className="btn btn--quiet">{t.services.addCategory}</button>
+          <button className="btn btn--quiet" disabled={categoryLock.busy}>
+            {t.services.addCategory}
+          </button>
         </form>
       </div>
       {editing ? (
@@ -156,7 +163,13 @@ export default function ServicesPage() {
           service={editing === 'new' ? null : editing}
           categories={categories}
           onClose={() => setEditing(null)}
-          onSaved={() => {
+          onSaved={(saved) => {
+            // Show the change at once (T2), then reload for anything else that changed.
+            setServices((list) =>
+              list?.some((s) => s.id === saved.id)
+                ? list.map((s) => (s.id === saved.id ? saved : s))
+                : [...(list ?? []), saved],
+            );
             setEditing(null);
             void load();
           }}
@@ -177,7 +190,7 @@ function ServiceSheet({
   service: ServiceRow | null;
   categories: Category[];
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: ServiceRow) => void;
 }) {
   const { t } = useI18n();
   const [form, setForm] = useState({
@@ -191,11 +204,13 @@ function ServiceSheet({
     active: service?.active ?? true,
   });
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const { busy, lock, unlock } = useSubmitLock();
+  // One key per form: a repeated or retried "add" never creates a second service (T4).
+  const [key] = useState(newIdempotencyKey);
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    setBusy(true);
+    if (!lock()) return;
     setError('');
     const body = {
       name: form.name,
@@ -208,18 +223,20 @@ function ServiceSheet({
       active: form.active,
     };
     try {
-      if (service) {
-        await api(`${base}/services/${service.id}`, {
-          method: 'PATCH',
-          body: { ...body, version: service.version },
-        });
-      } else {
-        await api(`${base}/services`, { method: 'POST', body });
-      }
-      onSaved();
+      const saved = service
+        ? await api<ServiceRow>(`${base}/services/${service.id}`, {
+            method: 'PATCH',
+            body: { ...body, version: service.version },
+          })
+        : await api<ServiceRow>(`${base}/services`, {
+            method: 'POST',
+            body,
+            idempotencyKey: key,
+          });
+      onSaved(saved);
     } catch (err) {
       setError(errorText(t, err));
-      setBusy(false);
+      unlock();
     }
   }
 

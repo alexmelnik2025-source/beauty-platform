@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { useSubmitLock } from '@/lib/submit-lock';
 import { clockToMinutes, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
 import type { Customer, Service, Staff } from '@/lib/types';
 import { useSession } from '../Session';
@@ -63,7 +64,7 @@ export function NewItemSheet({
   const [outside, setOutside] = useState(false);
   const [askOutside, setAskOutside] = useState(false);
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a retry after a dropped connection does not book twice.
   const [key] = useState(newIdempotencyKey);
 
@@ -89,7 +90,7 @@ export function NewItemSheet({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    setBusy(true);
+    if (!lock()) return;
     setError('');
     const start = new Date(zonedToInstant(date, clockToMinutes(time), tz)).toISOString();
     try {
@@ -129,7 +130,7 @@ export function NewItemSheet({
         setAskOutside(true);
       }
       setError(calendarErrorText(t, err));
-      setBusy(false);
+      unlock();
     }
   }
 
