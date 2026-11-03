@@ -101,7 +101,24 @@ const configSchema = z
         message: 'required when MAIL_TRANSPORT=resend',
       });
     }
-  });
+  })
+  .transform((config) =>
+    config.NODE_ENV === 'development'
+      ? { ...config, DATABASE_URL: preferIpv4Loopback(config.DATABASE_URL) }
+      : config,
+  );
+
+/**
+ * Local development: "localhost" may resolve to IPv6 (::1) first — on a Mac every new
+ * database connection then waits before falling back to 127.0.0.1, where Docker publishes
+ * PostgreSQL (docker-compose.yml). Owner's test 03.11.2026: signed-in requests took 2–10 s.
+ */
+export function preferIpv4Loopback(url: string): string {
+  return url.replace(
+    /^(postgres(?:ql)?:\/\/(?:[^@/]*@)?)localhost(?=[:/?]|$)/,
+    (_, prefix: string) => `${prefix}127.0.0.1`,
+  );
+}
 
 export type AppConfig = z.infer<typeof configSchema>;
 

@@ -5,6 +5,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
 import { loadConfig } from './config/config';
+import { formatTiming, SLOW_REQUEST_MS } from './common/request-timing';
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
@@ -12,7 +13,18 @@ async function bootstrap(): Promise<void> {
     // JSON logs in production for log collectors; readable logs locally.
     logger: new ConsoleLogger({ json: config.NODE_ENV === 'production' }),
   });
-  configureApp(app, { docs: config.NODE_ENV !== 'production' });
+  const http = new Logger('HTTP');
+  configureApp(app, {
+    docs: config.NODE_ENV !== 'production',
+    // Local development: one line per request with its time and database share.
+    timing:
+      config.NODE_ENV === 'development'
+        ? (timing) => {
+            if (timing.totalMs >= SLOW_REQUEST_MS) http.warn(`slow: ${formatTiming(timing)}`);
+            else http.log(formatTiming(timing));
+          }
+        : undefined,
+  });
   if (config.TRUST_PROXY > 0) app.set('trust proxy', config.TRUST_PROXY);
   app.enableShutdownHooks();
   await app.listen(config.PORT);

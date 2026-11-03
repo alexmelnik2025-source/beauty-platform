@@ -7,6 +7,7 @@ import { expect } from 'vitest';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { RateLimiterService } from '../src/common/rate-limiter.service';
+import type { RequestTiming } from '../src/common/request-timing';
 import { MailService, MemoryMailService } from '../src/mail/mail.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { MemorySmsService, SmsService } from '../src/sms/sms.service';
@@ -23,12 +24,14 @@ export interface TestContext {
   http: () => ReturnType<typeof request>;
 }
 
-export async function createTestApp(): Promise<TestContext> {
+export async function createTestApp(
+  options: { timing?: (timing: RequestTiming) => void } = {},
+): Promise<TestContext> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule, DiscoveryModule],
   }).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
-  configureApp(app, { docs: true });
+  configureApp(app, { docs: true, timing: options.timing });
   await app.init();
   const mail = app.get(MailService);
   if (!(mail instanceof MemoryMailService)) {

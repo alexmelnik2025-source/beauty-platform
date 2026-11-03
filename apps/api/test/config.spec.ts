@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ConfigError, parseConfig } from '../src/config/config';
+import { ConfigError, parseConfig, preferIpv4Loopback } from '../src/config/config';
 
 const valid = {
   DATABASE_URL: 'postgresql://user:secret-password@localhost:5432/db',
@@ -62,5 +62,24 @@ describe('parseConfig', () => {
     } catch (error) {
       expect(String(error)).not.toContain('secret-password');
     }
+  });
+});
+
+describe('database address in local development', () => {
+  it('uses 127.0.0.1 instead of localhost (no slow IPv6 attempt per connection)', () => {
+    expect(parseConfig(valid).DATABASE_URL).toBe(
+      'postgresql://user:secret-password@127.0.0.1:5432/db',
+    );
+  });
+
+  it('leaves the address alone outside development and for other hosts', () => {
+    expect(parseConfig({ ...valid, NODE_ENV: 'test' }).DATABASE_URL).toBe(valid.DATABASE_URL);
+    expect(preferIpv4Loopback('postgresql://u:p@db.localhost.example:5432/db')).toBe(
+      'postgresql://u:p@db.localhost.example:5432/db',
+    );
+    expect(preferIpv4Loopback('postgres://localhost/db')).toBe('postgres://127.0.0.1/db');
+    expect(preferIpv4Loopback('postgresql://localhost-db:5432/db')).toBe(
+      'postgresql://localhost-db:5432/db',
+    );
   });
 });

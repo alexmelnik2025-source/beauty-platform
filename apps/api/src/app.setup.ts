@@ -3,10 +3,19 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { buildOpenApiDocument } from './common/openapi';
 import { requestIdMiddleware } from './common/request-id.middleware';
+import { requestTimingMiddleware, type RequestTiming } from './common/request-timing';
 
 /** HTTP settings shared by the real server and the tests. */
-export function configureApp(app: NestExpressApplication, options: { docs: boolean }): void {
+export function configureApp(
+  app: NestExpressApplication,
+  options: {
+    docs: boolean;
+    /** Local development: time every request (log line + Server-Timing header). */
+    timing?: (timing: RequestTiming) => void;
+  },
+): void {
   app.disable('x-powered-by');
+  if (options.timing) app.use(requestTimingMiddleware(options.timing));
   app.use(requestIdMiddleware);
   app.setGlobalPrefix('v1');
   app.useGlobalFilters(new HttpExceptionFilter());
