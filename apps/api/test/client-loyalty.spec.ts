@@ -237,7 +237,7 @@ describe('my bonuses', () => {
     const customerId = await paidVisit(salon);
     let [card] = await myBonuses();
     expect(card).toMatchObject({
-      organization: { id: salon.orgId, name: 'Gestalt Barber' },
+      organization: { id: salon.orgId, name: 'Gestalt Barber Centrum' },
       bookingSlug: salon.slug,
       enabled: true,
       mode: 'stamps',

@@ -45,9 +45,8 @@ const clientLoyaltyHistorySchema = z.strictObject({
 });
 
 export const clientLoyaltyCardSchema = z.strictObject({
-  organization: z
-    .strictObject({ id: z.string(), name: z.string() })
-    .describe('name: the salon as clients know it (its online-booking place), not the legal name'),
+  // name: the salon as clients know it (its online-booking place), not the legal name.
+  organization: z.strictObject({ id: z.string(), name: z.string() }),
   bookingSlug: z.string().nullable().describe('A location of the salon that takes online booking'),
   enabled: z
     .boolean()
