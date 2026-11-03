@@ -5,12 +5,15 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { waitForEmail } from './mailpit';
 
 /**
  * "Program lojalnościowy" in the cabinet (task 10b): the owner sets up a stamp card, adds
  * rewards, points per service, sees the history and cannot switch the type while clients
- * have stamps. Screenshots go to e2e/screenshots (40–43).
+ * have stamps; then a visit is marked "came" and "paid" (a stamp), and in the client card the
+ * owner exchanges stamps for a coupon, cancels it and corrects the balance by hand (10b, part 2).
+ * Screenshots go to e2e/screenshots (40–45).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -18,6 +21,21 @@ const run = Date.now().toString(36);
 const OWNER = `loyalty-owner-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
+
+/**
+ * Visits can't be booked in the past, and "came" needs a started visit: the test books one for
+ * tomorrow and moves it two days back straight in the e2e database.
+ */
+function moveToThePast(appointmentId: string) {
+  const url = (process.env.DATABASE_URL ?? '').replace(/\?.*$/, '');
+  execFileSync('psql', [
+    url,
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days' WHERE id = '${appointmentId}'`,
+  ]);
+}
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -244,6 +262,76 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(
     page.getByRole('list', { name: 'Nagrody' }).getByRole('button', { name: /Broda gratis/ }),
   ).toContainText('usunięta');
+
+  // ── A visit: "came" → "paid" earns a stamp (10b, part 2) ──────────────
+  const staff = await json<{ id: string }>(
+    await request.post(`${base}/staff`, {
+      headers: owner,
+      data: { displayName: 'Kasia', serviceIds: Object.values(services) },
+    }),
+  );
+  const tomorrow = Math.ceil((Date.now() + 86_400_000) / 300_000) * 300_000;
+  const booked = await json<{ id: string }>(
+    await request.post(`${base}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: services['Strzyżenie męskie'],
+        staffId: staff.id,
+        start: new Date(tomorrow).toISOString(),
+        customerId: customer.id,
+        allowOutsideHours: true,
+      },
+    }),
+  );
+  moveToThePast(booked.id);
+  const visit = await json<{ date: string }>(
+    await request.get(`${base}/appointments/${booked.id}`, { headers: owner }),
+  );
+  await page.goto(`/pl/app/calendar?date=${visit.date}`);
+  await page.getByRole('button', { name: /Anna Kowalska/ }).click();
+  const card = page.getByRole('dialog');
+  await card.getByRole('button', { name: 'Przyszedł' }).click();
+  await expect(card.getByText('Za opłaconą wizytę klient dostaje pieczątki')).toBeVisible();
+  await card.getByRole('button', { name: 'Opłacono', exact: true }).click();
+  await expect(card.getByRole('button', { name: 'Cofnij opłatę (zwrot)' })).toBeVisible();
+  await expect(card.getByText('✓ Opłacono')).toBeVisible();
+  await shot(page, '44-owner-visit-paid');
+  const afterVisit = await json<{ balance: number; lifetimeEarned: number }>(
+    await request.get(`${orgBase}/loyalty/accounts/${customer.id}`, { headers: owner }),
+  );
+  expect([afterVisit.balance, afterVisit.lifetimeEarned]).toEqual([3, 1]);
+  await page.keyboard.press('Escape');
+
+  // ── Client card: exchange for a coupon, cancel it, correct by hand ────
+  await page.goto('/pl/app/clients');
+  await page.getByRole('button', { name: /Anna Kowalska/ }).click();
+  const client = page.getByRole('dialog');
+  await expect(client.getByText('Pieczątki na karcie: 3')).toBeVisible();
+  await expect(client.getByText('Łącznie zebrane: 1')).toBeVisible();
+  await client.getByRole('button', { name: 'Wymień: −25% na strzyżenie' }).click();
+  await expect(client.getByText(/Kupon [A-Z0-9]{4}-[A-Z0-9]{4} jest gotowy\./)).toBeVisible();
+  await expect(client.getByText('Pieczątki na karcie: 0')).toBeVisible();
+  const coupons = client.getByRole('list', { name: 'Kupony' });
+  await expect(coupons).toContainText('−25% na strzyżenie');
+  await expect(coupons).toContainText('aktywny');
+  await expect(coupons).toContainText('ważny do');
+  await expect(client.getByRole('button', { name: 'Wymień: −25% na strzyżenie' })).toBeDisabled();
+  await client.getByRole('heading', { name: 'Bonusy' }).scrollIntoViewIfNeeded();
+  await shot(page, '45-owner-client-bonus');
+  await coupons.getByRole('button', { name: /Anuluj kupon/ }).click();
+  await expect(coupons).toContainText('anulowany');
+  await expect(client.getByText('Pieczątki na karcie: 3')).toBeVisible();
+  await client.getByLabel('Ile (+ dodaj, − odejmij)').fill('-1');
+  await client.getByLabel('Powód (widoczny w historii)').fill('Pomyłka przy karcie');
+  await client.getByRole('button', { name: 'Zapisz zmianę' }).click();
+  await expect(client.getByText('Pieczątki na karcie: 2')).toBeVisible();
+  await expect(client).toContainText('Pomyłka przy karcie');
+  const finalAccount = await json<{ balance: number; coupons: { status: string }[] }>(
+    await request.get(`${orgBase}/loyalty/accounts/${customer.id}`, { headers: owner }),
+  );
+  expect(finalAccount.balance).toBe(2);
+  expect(finalAccount.coupons.map((c) => c.status)).toEqual(['cancelled']);
+  await page.keyboard.press('Escape');
 
   // ── The same page on a phone, reached from "More" ─────────────────────
   const phone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });

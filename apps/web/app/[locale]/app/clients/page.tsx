@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { ClientLoyalty } from '@/components/loyalty/ClientLoyalty';
 import { useSession } from '@/components/Session';
 import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
@@ -299,6 +300,7 @@ function ClientSheet({
           )}
         </section>
       ) : null}
+      {client ? <ClientLoyalty orgId={orgId} customerId={client.id} /> : null}
     </Sheet>
   );
 }

@@ -129,12 +129,30 @@ export function AppointmentSheet({
           {t.appointment.cancelVisit}
         </button>
       </>
+    ) : mode === 'view' && canChange && a.status === 'completed' ? (
+      // "Paid" earns loyalty stamps or points; undoing it (a refund) takes them back.
+      <button
+        type="button"
+        className={a.paidAt ? 'btn btn--quiet' : 'btn'}
+        disabled={busy}
+        onClick={() =>
+          void run(() =>
+            api(`${base}/appointments/${a.id}/payment`, {
+              method: 'POST',
+              body: { version: a.version, paid: !a.paidAt },
+            }),
+          )
+        }
+      >
+        {a.paidAt ? t.appointment.unmarkPaid : t.appointment.markPaid}
+      </button>
     ) : undefined;
 
   return (
     <Sheet title={t.appointment.title} onClose={onClose} footer={footer}>
       <div className="chips">
         <span className="chip">{t.appointment.status[a.status]}</span>
+        {a.paidAt ? <span className="chip">✓ {t.appointment.paid}</span> : null}
         <span className="chip">
           {a.source === 'online' ? t.appointment.online : t.appointment.manual}
         </span>
@@ -152,6 +170,9 @@ export function AppointmentSheet({
       </div>
 
       <ErrorBox>{error}</ErrorBox>
+      {mode === 'view' && canChange && a.status === 'completed' && !a.paidAt ? (
+        <p className="small muted">{t.appointment.paidHint}</p>
+      ) : null}
 
       {mode === 'view' ? (
         <>
