@@ -308,7 +308,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const moveConfirm = client.getByRole('alertdialog');
   await expect(moveConfirm).toContainText('Przenieść wizytę na');
   await shot(client, '07a-client-move-confirm');
-  await moveConfirm.getByRole('button', { name: 'Nie' }).click();
+  await moveConfirm.getByRole('button', { name: 'Nie', exact: true }).click();
   await expect(moveConfirm).toBeHidden();
   await expect(client.getByText('Termin zmieniony.')).toBeHidden();
   await client.goto(manageLink);
