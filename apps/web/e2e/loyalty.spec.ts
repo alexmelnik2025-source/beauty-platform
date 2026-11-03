@@ -155,7 +155,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   sheet = page.getByRole('dialog');
   await sheet.getByLabel('Nazwa nagrody').fill('Broda gratis');
   await sheet.getByLabel('Rodzaj nagrody').selectOption('free_service');
-  await sheet.getByLabel('Usługa', { exact: true }).selectOption({ label: 'Broda' });
+  await sheet.getByRole('combobox', { name: /^Usługa/ }).selectOption({ label: 'Broda' });
   await sheet.getByLabel('Cena w pieczątkach').fill('6');
   await sheet.getByRole('button', { name: 'Zapisz' }).click();
   await expect(sheet).toBeHidden();
