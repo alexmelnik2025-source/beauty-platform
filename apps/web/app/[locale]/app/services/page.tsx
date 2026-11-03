@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from 'react';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -34,19 +41,36 @@ export default function ServicesPage() {
   const [editing, setEditing] = useState<ServiceRow | 'new' | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [error, setError] = useState('');
+  // Each change bumps this; a list that was asked for before the change is out of date and dropped,
+  // so a slow refresh never puts back what the owner has just changed.
+  const generation = useRef(0);
 
   const load = useCallback(async () => {
+    const asked = generation.current;
     try {
       const [s, c] = await Promise.all([
         api<ServiceRow[]>(`${base}/services`),
         api<Category[]>(`${base}/service-categories`),
       ]);
+      if (asked !== generation.current) return;
       setServices(s);
       setCategories(c);
     } catch (err) {
-      setError(errorText(t, err));
+      if (asked === generation.current) setError(errorText(t, err));
     }
   }, [base, t]);
+
+  /** Shows a saved service at once (from the save answer), then checks the list in the background. */
+  function showSaved(saved: ServiceRow) {
+    generation.current += 1;
+    setServices((list) => {
+      if (!list) return [saved];
+      return list.some((s) => s.id === saved.id)
+        ? list.map((s) => (s.id === saved.id ? saved : s))
+        : [...list, saved];
+    });
+    void load();
+  }
 
   useEffect(() => {
     void load();
@@ -55,12 +79,14 @@ export default function ServicesPage() {
   async function addCategory(e: FormEvent) {
     e.preventDefault();
     try {
-      await api(`${base}/service-categories`, {
+      const created = await api<Category>(`${base}/service-categories`, {
         method: 'POST',
         body: { name: newCategory, sortOrder: categories.length },
       });
+      generation.current += 1;
+      setCategories((list) => (list.some((c) => c.id === created.id) ? list : [...list, created]));
       setNewCategory('');
-      await load();
+      void load();
     } catch (err) {
       setError(errorText(t, err));
     }
@@ -69,7 +95,13 @@ export default function ServicesPage() {
   async function removeCategory(id: string) {
     try {
       await api(`${base}/service-categories/${id}`, { method: 'DELETE' });
-      await load();
+      generation.current += 1;
+      setCategories((list) => list.filter((c) => c.id !== id));
+      // Its services stay, without a category.
+      setServices((list) =>
+        list ? list.map((s) => (s.categoryId === id ? { ...s, categoryId: null } : s)) : list,
+      );
+      void load();
     } catch (err) {
       setError(errorText(t, err));
     }
@@ -156,9 +188,9 @@ export default function ServicesPage() {
           service={editing === 'new' ? null : editing}
           categories={categories}
           onClose={() => setEditing(null)}
-          onSaved={() => {
+          onSaved={(saved) => {
             setEditing(null);
-            void load();
+            showSaved(saved);
           }}
         />
       ) : null}
@@ -177,7 +209,7 @@ function ServiceSheet({
   service: ServiceRow | null;
   categories: Category[];
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: ServiceRow) => void;
 }) {
   const { t } = useI18n();
   const [form, setForm] = useState({
@@ -208,15 +240,13 @@ function ServiceSheet({
       active: form.active,
     };
     try {
-      if (service) {
-        await api(`${base}/services/${service.id}`, {
-          method: 'PATCH',
-          body: { ...body, version: service.version },
-        });
-      } else {
-        await api(`${base}/services`, { method: 'POST', body });
-      }
-      onSaved();
+      const saved = service
+        ? await api<ServiceRow>(`${base}/services/${service.id}`, {
+            method: 'PATCH',
+            body: { ...body, version: service.version },
+          })
+        : await api<ServiceRow>(`${base}/services`, { method: 'POST', body });
+      onSaved(saved);
     } catch (err) {
       setError(errorText(t, err));
       setBusy(false);

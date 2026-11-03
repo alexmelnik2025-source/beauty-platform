@@ -389,6 +389,30 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.goto('/pl/app/services');
   await expect(ownerPage.getByText('Strzyżenie + broda').first()).toBeVisible();
   await shot(ownerPage, '15-owner-services');
+  // A change shows in the list at once, even while the list itself is slow to come back
+  // (test T2: before, it showed only after reloading the page).
+  let releaseList = () => {};
+  const listHeld = new Promise<void>((resolve) => (releaseList = resolve));
+  const servicesList = /\/locations\/[^/]+\/services$/;
+  await ownerPage.route(servicesList, async (route) => {
+    if (route.request().method() === 'GET') await listHeld;
+    await route.continue();
+  });
+  const brodaRow = ownerPage.getByRole('button', { name: /^Broda/ });
+  await brodaRow.click();
+  await ownerPage.getByRole('dialog').getByLabel('Dostępna do rezerwacji').uncheck();
+  await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ownerPage.getByRole('dialog')).toBeHidden();
+  await expect(brodaRow).toContainText('Ukryta');
+  await shot(ownerPage, '48-owner-service-updated');
+  releaseList();
+  await ownerPage.unroute(servicesList);
+  // Back on: the second change uses the service as just saved (no "changed by someone else").
+  await brodaRow.click();
+  await ownerPage.getByRole('dialog').getByLabel('Dostępna do rezerwacji').check();
+  await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ownerPage.getByRole('dialog')).toBeHidden();
+  await expect(brodaRow).not.toContainText('Ukryta');
   await ownerPage.goto('/pl/app/team');
   await expect(ownerPage.getByRole('button', { name: /Kasia/ })).toBeVisible();
   await shot(ownerPage, '16-owner-team');
