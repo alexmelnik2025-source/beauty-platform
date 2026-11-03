@@ -41,6 +41,11 @@ export const loginCodeSentSchema = responseSchema(
     codeExpiresAt: z
       .string()
       .describe('The same answer for every address, with or without an account'),
+    channel: z
+      .enum(['email', 'sms'])
+      .describe(
+        'Where the code went. By email: always email. By phone: sms when an SMS gateway is connected, otherwise the email of the account or invitation with that number',
+      ),
   }),
 );
 export type LoginCodeSentResponse = z.infer<typeof loginCodeSentSchema>;

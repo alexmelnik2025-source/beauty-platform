@@ -85,8 +85,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Send a sign-in code by email (business app, no password)
-         * @description For existing accounts and for people with a pending invitation. The answer is the same for every address.
+         * Send a sign-in code by email or phone (business app, no password)
+         * @description Send email or phone. For existing accounts and for people with a pending invitation. By phone: SMS when a gateway is connected, otherwise the code goes to the email of the account or invitation with that number. The answer is the same for every address and number.
          */
         post: operations["AuthController_requestCode"];
         delete?: never;
@@ -105,7 +105,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Sign in with the emailed code
+         * Sign in with the code (send the same email or phone)
          * @description Creates the account on first sign-in of an invited person and accepts all their pending invitations. clientType=mobile: refresh token in the body.
          */
         post: operations["AuthController_verifyCode"];
@@ -2208,6 +2208,8 @@ export interface components {
         Invitation: {
             id: string;
             email: string;
+            /** @description E.164; the person can also sign in by this number */
+            phone: string | null;
             /** @enum {string} */
             role: "owner" | "manager" | "staff";
             locationIds: string[];
@@ -2226,6 +2228,8 @@ export interface components {
         InvitationList: {
             id: string;
             email: string;
+            /** @description E.164; the person can also sign in by this number */
+            phone: string | null;
             /** @enum {string} */
             role: "owner" | "manager" | "staff";
             locationIds: string[];
@@ -2306,6 +2310,11 @@ export interface components {
         LoginCodeSent: {
             /** @description The same answer for every address, with or without an account */
             codeExpiresAt: string;
+            /**
+             * @description Where the code went. By email: always email. By phone: sms when an SMS gateway is connected, otherwise the email of the account or invitation with that number
+             * @enum {string}
+             */
+            channel: "email" | "sms";
         };
         LoyaltyAccount: {
             customer: {
@@ -3239,7 +3248,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    email: string;
+                    email?: string;
+                    phone?: string;
                     /**
                      * @default pl
                      * @enum {string}
@@ -3269,7 +3279,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    email: string;
+                    email?: string;
+                    phone?: string;
                     code: string;
                     /**
                      * @default web
@@ -3903,6 +3914,7 @@ export interface operations {
             content: {
                 "application/json": {
                     email: string;
+                    phone?: string;
                     /** @enum {string} */
                     role: "manager" | "staff";
                     locationIds: string[];

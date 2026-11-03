@@ -7,6 +7,8 @@ import type { Locale, User } from '../generated/prisma/client';
 import { MailService } from '../mail/mail.service';
 import { InvitationsService } from '../organizations/invitations.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SmsService } from '../sms/sms.service';
+import type { LoginCodeSentResponse } from './auth.responses';
 import type { RequestLoginCodeInput, VerifyLoginCodeInput } from './auth.schemas';
 import { AuthService, type IssuedTokens } from './auth.service';
 import { PasswordService } from './password.service';
@@ -14,6 +16,13 @@ import { PasswordService } from './password.service';
 const MINUTE_MS = 60_000;
 export const LOGIN_CODE_MINUTES = 10;
 export const MAX_LOGIN_CODE_ATTEMPTS = 5;
+
+const SMS_TEXT: Record<Locale, (code: string) => string> = {
+  pl: (code) => `Kod logowania do aplikacji salonu: ${code}. Ważny ${LOGIN_CODE_MINUTES} min.`,
+  uk: (code) => `Код входу до застосунку салону: ${code}. Дійсний ${LOGIN_CODE_MINUTES} хв.`,
+  ru: (code) => `Код входа в приложение салона: ${code}. Действует ${LOGIN_CODE_MINUTES} мин.`,
+  en: (code) => `Salon app sign-in code: ${code}. Valid for ${LOGIN_CODE_MINUTES} min.`,
+};
 
 const WORDS: Record<Locale, { subject: string; text: (code: string) => string }> = {
   pl: {
@@ -43,7 +52,8 @@ const notSent = (): AppException =>
 
 /**
  * Passwordless sign-in for salon accounts (business app and web cabinet): a 6-digit code by
- * email. Works for existing accounts and for people the owner (or a manager) invited: the
+ * email, or by phone number (SMS when a gateway is connected; until then the code goes to the
+ * email of the account or invitation that has this number). Works for existing accounts and for people the owner (or a manager) invited: the
  * account is created on first sign-in and every pending invitation is accepted, so the person
  * lands straight in their salon with the invited role. Nobody can create a team role this way
  * on their own: without an account or an invitation no code is sent.
@@ -56,32 +66,77 @@ export class CodeLoginService {
     private readonly invitations: InvitationsService,
     private readonly passwords: PasswordService,
     private readonly mail: MailService,
+    private readonly sms: SmsService,
     private readonly audit: AuditService,
   ) {}
 
-  /** Same outcome for every address, so it cannot be used to find out who has an account. */
-  async requestCode(input: RequestLoginCodeInput): Promise<{ codeExpiresAt: string }> {
+  /**
+   * Same outcome for every address or number, so it cannot be used to find out who has an
+   * account: the channel depends only on whether an SMS gateway is connected.
+   */
+  async requestCode(input: RequestLoginCodeInput): Promise<LoginCodeSentResponse> {
     const expiresAt = new Date(Date.now() + LOGIN_CODE_MINUTES * MINUTE_MS);
-    const user = await this.prisma.user.findUnique({ where: { email: input.email } });
-    if (!user && !(await this.invitations.hasPending(input.email))) {
-      return { codeExpiresAt: expiresAt.toISOString() };
-    }
+    const bySms = input.phone !== undefined && this.sms.available;
+    const answer: LoginCodeSentResponse = {
+      codeExpiresAt: expiresAt.toISOString(),
+      channel: bySms ? 'sms' : 'email',
+    };
+    const target = await this.resolve(input);
+    if (!target) return answer;
+    const { email, user } = target;
+    const phone = input.phone ?? null;
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-    const codeHash = this.codeHash(input.email, code);
-    // A new code replaces the previous one.
-    await this.prisma.staffLoginCode.upsert({
-      where: { email: input.email },
-      create: { email: input.email, codeHash, expiresAt },
-      update: { codeHash, expiresAt, attempts: 0, createdAt: new Date() },
+    const codeHash = this.codeHash(email, code);
+    await this.prisma.$transaction(async (tx) => {
+      // A number points at one pending code; a new code replaces the previous one.
+      if (phone) await tx.staffLoginCode.deleteMany({ where: { phone, email: { not: email } } });
+      await tx.staffLoginCode.upsert({
+        where: { email },
+        create: { email, phone, bySms, codeHash, expiresAt },
+        update: { phone, bySms, codeHash, expiresAt, attempts: 0, createdAt: new Date() },
+      });
     });
-    const words = WORDS[user?.locale ?? input.locale];
-    await this.mail.send({ to: input.email, subject: words.subject, text: words.text(code) });
-    return { codeExpiresAt: expiresAt.toISOString() };
+    const locale = user?.locale ?? input.locale;
+    if (bySms && phone) {
+      await this.sms.send({ to: phone, text: SMS_TEXT[locale](code) });
+    } else {
+      const words = WORDS[locale];
+      await this.mail.send({ to: email, subject: words.subject, text: words.text(code) });
+    }
+    return answer;
+  }
+
+  /**
+   * Who the code is for: the account with this email or phone, or the invited address.
+   * By phone: an account with that number first, then the newest pending invitation with it.
+   */
+  private async resolve(
+    input: RequestLoginCodeInput,
+  ): Promise<{ email: string; user: User | null } | null> {
+    if (input.email) {
+      const user = await this.prisma.user.findUnique({ where: { email: input.email } });
+      if (user || (await this.invitations.hasPending(input.email))) {
+        return { email: input.email, user };
+      }
+      return null;
+    }
+    if (!input.phone) return null;
+    const user = await this.prisma.user.findUnique({ where: { phone: input.phone } });
+    if (user) return { email: user.email, user };
+    const invited = await this.invitations.pendingEmailForPhone(input.phone);
+    if (!invited) return null;
+    // The invited address may already have an account (invited to a second salon).
+    const existing = await this.prisma.user.findUnique({ where: { email: invited } });
+    return { email: invited, user: existing };
   }
 
   async verifyCode(input: VerifyLoginCodeInput, userAgent?: string): Promise<IssuedTokens> {
-    const stored = await this.prisma.staffLoginCode.findUnique({ where: { email: input.email } });
-    if (!stored) throw notSent();
+    const stored = input.phone
+      ? await this.prisma.staffLoginCode.findUnique({ where: { phone: input.phone } })
+      : await this.prisma.staffLoginCode.findUnique({ where: { email: input.email! } });
+    // A code requested by phone is entered with the phone (and the other way round).
+    if (!stored || (input.email && stored.phone)) throw notSent();
+    const email = stored.email;
     if (stored.expiresAt.getTime() <= Date.now()) {
       throw new AppException(HttpStatus.GONE, 'CODE_EXPIRED', 'The code has expired');
     }
@@ -92,7 +147,7 @@ export class CodeLoginService {
         'Too many wrong codes. Request a new one',
       );
     }
-    if (stored.codeHash !== this.codeHash(input.email, input.code)) {
+    if (stored.codeHash !== this.codeHash(email, input.code)) {
       await this.prisma.staffLoginCode.update({
         where: { id: stored.id },
         data: { attempts: { increment: 1 } },
@@ -107,7 +162,9 @@ export class CodeLoginService {
 
     // Accounts created by a code get a random password nobody knows; "forgot password" sets one.
     const unusablePassword = await this.passwords.hash(generateToken());
-    const staffName = await this.invitations.invitedStaffName(input.email);
+    const staffName = await this.invitations.invitedStaffName(email);
+    // An SMS code proves the phone; an emailed code proves the address.
+    const provenPhone = stored.bySms ? (stored.phone ?? undefined) : undefined;
     const { user, created, joined } = await this.prisma.$transaction(async (tx) => {
       // The code is single use, even when two requests race with it.
       const used = await tx.staffLoginCode.deleteMany({
@@ -115,33 +172,38 @@ export class CodeLoginService {
       });
       if (used.count !== 1) throw notSent();
       const now = new Date();
-      let account: User | null = await tx.user.findUnique({ where: { email: input.email } });
+      let account: User | null = await tx.user.findUnique({ where: { email } });
       let isNew = false;
       if (!account) {
         account = await tx.user.create({
           data: {
-            email: input.email,
+            email,
             passwordHash: unusablePassword,
-            name: input.name ?? staffName ?? input.email.split('@')[0]!,
+            name: input.name ?? staffName ?? email.split('@')[0]!,
             locale: input.locale,
-            emailVerifiedAt: now,
+            emailVerifiedAt: stored.bySms ? null : now,
           },
         });
         isNew = true;
-      } else if (!account.emailVerifiedAt) {
+      } else if (!account.emailVerifiedAt && !stored.bySms) {
         // The code proves the address, like the verification link.
         account = await tx.user.update({
           where: { id: account.id },
           data: { emailVerifiedAt: now },
         });
       }
-      const teams = await this.invitations.acceptPendingForEmail(tx, account.id, input.email);
+      const teams = await this.invitations.acceptPendingForEmail(
+        tx,
+        account.id,
+        email,
+        provenPhone,
+      );
       if (isNew && teams.length === 0) {
         // The invitation was cancelled after the code was sent: no account without one.
         throw new AppException(
           HttpStatus.FORBIDDEN,
           'NO_INVITATION',
-          'There is no account or valid invitation for this email',
+          'There is no account or valid invitation for this email or phone',
         );
       }
       return { user: account, created: isNew, joined: teams };

@@ -68,6 +68,7 @@ export const invitationSchema = responseSchema(
   z.strictObject({
     id: z.string(),
     email: z.string(),
+    phone: z.string().nullable().describe('E.164; the person can also sign in by this number'),
     role: membershipRoleSchema,
     locationIds: z.array(z.string()),
     staffMemberId: z.string().nullable(),

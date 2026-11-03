@@ -186,7 +186,7 @@ describe('sign-in with an email code (business app)', () => {
   it('nobody can sign themselves up: no account and no invitation means no code', async () => {
     const res = await requestCode('stranger@example.com').expect(202);
     // Same answer as for a real account.
-    expect(Object.keys(res.body)).toEqual(['codeExpiresAt']);
+    expect(res.body).toEqual({ codeExpiresAt: expect.any(String), channel: 'email' });
     expect(ctx.mail.lastTo('stranger@example.com')).toBeUndefined();
     expectError(
       (await verify({ email: 'stranger@example.com', code: '123456' }).expect(400)).body,

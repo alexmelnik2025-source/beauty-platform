@@ -1,6 +1,6 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import { LOCALES } from '../auth/auth.schemas';
+import { LOCALES, phoneSchema } from '../auth/auth.schemas';
 import { AppException, forbidden, notFound } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import { generateToken, hashToken } from '../common/crypto';
@@ -22,6 +22,8 @@ const INVITATION_DAYS = 7;
 export const createInvitationSchema = z
   .object({
     email: z.string().trim().toLowerCase().max(254).pipe(z.email()),
+    /** Optional: the person can then also sign in to the business app by this number. */
+    phone: phoneSchema.optional(),
     role: z.enum(['manager', 'staff']),
     locationIds: z.array(z.uuid()).min(1).max(50),
     /** Staff only: the calendar profile the new account takes over. */
@@ -80,6 +82,7 @@ function toResponse(i: Invitation): InvitationResponse {
   return {
     id: i.id,
     email: i.email,
+    phone: i.phone,
     role: i.role,
     locationIds: i.locationIds,
     staffMemberId: i.staffMemberId,
@@ -179,6 +182,7 @@ export class InvitationsService {
         data: {
           organizationId: m.organizationId,
           email: input.email,
+          phone: input.phone ?? null,
           role: input.role,
           locationIds: input.locationIds,
           staffMemberId: input.staffMemberId ?? null,
@@ -190,6 +194,7 @@ export class InvitationsService {
       });
       await this.record(tx, m, actorUserId, 'invitation.created', created.id, {
         role: input.role,
+        withPhone: input.phone !== undefined,
         locationIds: input.locationIds,
       });
       return created;
@@ -300,9 +305,16 @@ export class InvitationsService {
     tx: Prisma.TransactionClient,
     userId: string,
     email: string,
+    /** A phone number proven by an SMS code: invitations sent to it are accepted too. */
+    provenPhone?: string,
   ): Promise<InvitationAcceptedResponse[]> {
     const pending = await tx.invitation.findMany({
-      where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+      where: {
+        OR: provenPhone ? [{ email }, { phone: provenPhone }] : [{ email }],
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
       orderBy: { createdAt: 'desc' },
     });
     const joined: InvitationAcceptedResponse[] = [];
@@ -329,6 +341,18 @@ export class InvitationsService {
       where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
     });
     return count > 0;
+  }
+
+  /**
+   * Sign-in by phone: the email of the newest invitation that can still be accepted and has
+   * this number, or null.
+   */
+  async pendingEmailForPhone(phone: string): Promise<string | null> {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: { phone, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return invitation?.email ?? null;
   }
 
   /** The calendar name of the staff profile an invitation links, for a new account's name. */
@@ -378,6 +402,17 @@ export class InvitationsService {
         where: { id: invitation.staffMemberId, userId: null },
         data: { userId },
       });
+    }
+    if (invitation.phone) {
+      // The owner vouches for the number: the person can sign in by it from now on, unless the
+      // account already has a number or another account uses this one.
+      const taken = await tx.user.count({ where: { phone: invitation.phone } });
+      if (taken === 0) {
+        await tx.user.updateMany({
+          where: { id: userId, phone: null },
+          data: { phone: invitation.phone },
+        });
+      }
     }
     await this.audit.record(
       {

@@ -209,7 +209,7 @@
     },
     "/v1/auth/code": {
       "post": {
-        "description": "For existing accounts and for people with a pending invitation. The answer is the same for every address.",
+        "description": "Send email or phone. For existing accounts and for people with a pending invitation. By phone: SMS when a gateway is connected, otherwise the code goes to the email of the account or invitation with that number. The answer is the same for every address and number.",
         "operationId": "AuthController_requestCode",
         "parameters": [],
         "requestBody": {
@@ -223,6 +223,9 @@
                     "type": "string",
                     "maxLength": 254
                   },
+                  "phone": {
+                    "type": "string"
+                  },
                   "locale": {
                     "default": "pl",
                     "type": "string",
@@ -233,10 +236,7 @@
                       "en"
                     ]
                   }
-                },
-                "required": [
-                  "email"
-                ]
+                }
               }
             }
           }
@@ -253,7 +253,7 @@
             }
           }
         },
-        "summary": "Send a sign-in code by email (business app, no password)",
+        "summary": "Send a sign-in code by email or phone (business app, no password)",
         "tags": [
           "auth"
         ]
@@ -274,6 +274,9 @@
                   "email": {
                     "type": "string",
                     "maxLength": 254
+                  },
+                  "phone": {
+                    "type": "string"
                   },
                   "code": {
                     "type": "string",
@@ -308,7 +311,6 @@
                   }
                 },
                 "required": [
-                  "email",
                   "code"
                 ]
               }
@@ -327,7 +329,7 @@
             }
           }
         },
-        "summary": "Sign in with the emailed code",
+        "summary": "Sign in with the code (send the same email or phone)",
         "tags": [
           "auth"
         ]
@@ -1577,6 +1579,9 @@
                   "email": {
                     "type": "string",
                     "maxLength": 254
+                  },
+                  "phone": {
+                    "type": "string"
                   },
                   "role": {
                     "type": "string",
@@ -8797,6 +8802,11 @@
           "email": {
             "type": "string"
           },
+          "phone": {
+            "nullable": true,
+            "description": "E.164; the person can also sign in by this number",
+            "type": "string"
+          },
           "role": {
             "type": "string",
             "enum": [
@@ -8838,6 +8848,7 @@
         "required": [
           "id",
           "email",
+          "phone",
           "role",
           "locationIds",
           "staffMemberId",
@@ -8878,6 +8889,11 @@
               "type": "string"
             },
             "email": {
+              "type": "string"
+            },
+            "phone": {
+              "nullable": true,
+              "description": "E.164; the person can also sign in by this number",
               "type": "string"
             },
             "role": {
@@ -8921,6 +8937,7 @@
           "required": [
             "id",
             "email",
+            "phone",
             "role",
             "locationIds",
             "staffMemberId",
@@ -9248,10 +9265,19 @@
           "codeExpiresAt": {
             "type": "string",
             "description": "The same answer for every address, with or without an account"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "sms"
+            ],
+            "description": "Where the code went. By email: always email. By phone: sms when an SMS gateway is connected, otherwise the email of the account or invitation with that number"
           }
         },
         "required": [
-          "codeExpiresAt"
+          "codeExpiresAt",
+          "channel"
         ],
         "additionalProperties": false
       },

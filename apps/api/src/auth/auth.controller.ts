@@ -122,9 +122,9 @@ export class AuthController {
   @Post('code')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
-    summary: 'Send a sign-in code by email (business app, no password)',
+    summary: 'Send a sign-in code by email or phone (business app, no password)',
     description:
-      'For existing accounts and for people with a pending invitation. The answer is the same for every address.',
+      'Send email or phone. For existing accounts and for people with a pending invitation. By phone: SMS when a gateway is connected, otherwise the code goes to the email of the account or invitation with that number. The answer is the same for every address and number.',
   })
   @ApiZodBody(requestLoginCodeSchema)
   @ApiZodResponse(loginCodeSentSchema, HttpStatus.ACCEPTED)
@@ -133,7 +133,7 @@ export class AuthController {
     @Body(new ZodValidationPipe(requestLoginCodeSchema)) body: RequestLoginCodeInput,
   ): Promise<LoginCodeSentResponse> {
     this.limiter.hit(`login-code:ip:${req.ip}`, 20, HOUR);
-    this.limiter.hit(`email:${body.email}`, 5, HOUR);
+    this.limiter.hit(body.phone ? `phone:${body.phone}` : `email:${body.email}`, 5, HOUR);
     return this.codeLogin.requestCode(body);
   }
 
@@ -141,7 +141,7 @@ export class AuthController {
   @Post('code/verify')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Sign in with the emailed code',
+    summary: 'Sign in with the code (send the same email or phone)',
     description:
       'Creates the account on first sign-in of an invited person and accepts all their pending invitations. clientType=mobile: refresh token in the body.',
   })

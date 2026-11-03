@@ -161,6 +161,8 @@ model User {
   id              String    @id @default(uuid(7)) @db.Uuid
   /// Stored lower-cased and trimmed.
   email           String    @unique
+  /// E.164, for sign-in by phone. Taken from an accepted invitation or proven by an SMS code.
+  phone           String?   @unique
   passwordHash    String    @map("password_hash")
   name            String
   locale          Locale    @default(pl)
@@ -267,6 +269,8 @@ model Invitation {
   organizationId  String         @map("organization_id") @db.Uuid
   /// Lower-cased.
   email           String
+  /// E.164, optional: the invited person can also sign in by this number.
+  phone           String?
   role            MembershipRole
   locationIds     String[]       @map("location_ids") @db.Uuid
   /// Staff profile in the calendar that the new account takes over.
@@ -282,6 +286,7 @@ model Invitation {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, email])
+  @@index([phone])
   @@map("invitation")
 }
 
@@ -821,7 +826,12 @@ model ClientLoginCode {
 /// One active code per address: a new request replaces the previous code. Only the hash is stored.
 model StaffLoginCode {
   id        String   @id @default(uuid(7)) @db.Uuid
+  /// The account (or invitation) address; codes requested by phone are kept under it too.
   email     String   @unique
+  /// Set when the code was requested by phone: sign-in then sends the phone, not the email.
+  phone     String?  @unique
+  /// True when the code went by SMS (proves the phone); false: by email (proves the address).
+  bySms     Boolean  @default(false) @map("by_sms")
   codeHash  String   @map("code_hash")
   expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
   attempts  Int      @default(0)
