@@ -36,7 +36,7 @@ export const APPOINTMENT_STATUSES = [
  * Generated from the API's OpenAPI document, so these can never drift from the server:
  * what clients see (booking page, manage link, "My visits"), the salon account and catalogue,
  * appointments, client cards, time blocks, the calendar, the team, permissions, invitations,
- * notifications, push, photos and the email queue.
+ * notifications, push, photos, the email queue and the loyalty program.
  */
 export type {
   Appointment,
@@ -53,6 +53,11 @@ export type {
   InvitationAccepted,
   InvitationPreview,
   Location,
+  LoyaltyAccount,
+  LoyaltyCoupon,
+  LoyaltyProgram,
+  LoyaltyReward,
+  LoyaltyTransaction,
   Me,
   Member,
   Notification,

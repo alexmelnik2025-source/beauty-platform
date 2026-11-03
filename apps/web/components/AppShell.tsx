@@ -33,6 +33,7 @@ export function menuItems(
     { href: at('notifications'), label: t.nav.notifications, bottom: true, badge: true },
     manager && { href: at('services'), label: t.nav.services },
     manager && { href: at('team'), label: t.nav.team },
+    manager && { href: at('loyalty'), label: t.nav.loyalty },
     !manager && { href: at('schedule'), label: t.more.schedule },
     manager && { href: at('settings'), label: t.nav.settings },
     session.me.isPlatformAdmin && { href: at('admin/outbox'), label: t.more.admin },
