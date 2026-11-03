@@ -3045,6 +3045,8 @@ export interface components {
             version: number;
             createdAt: string;
             updatedAt: string;
+            /** @description Specialists who perform it; empty = clients cannot book it online */
+            staffIds: string[];
         }[];
         /** @description Devices where the user is signed in, last used first */
         SessionList: {

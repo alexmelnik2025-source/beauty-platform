@@ -12254,6 +12254,13 @@
             },
             "updatedAt": {
               "type": "string"
+            },
+            "staffIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Specialists who perform it; empty = clients cannot book it online"
             }
           },
           "required": [
@@ -12270,7 +12277,8 @@
             "color",
             "version",
             "createdAt",
-            "updatedAt"
+            "updatedAt",
+            "staffIds"
           ],
           "additionalProperties": false
         }
