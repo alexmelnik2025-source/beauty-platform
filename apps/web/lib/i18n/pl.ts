@@ -30,6 +30,8 @@ export const pl = {
     EMAIL_TAKEN: 'To konto już istnieje. Zaloguj się.',
     RATE_LIMITED: 'Zbyt wiele prób. Odczekaj chwilę.',
     SLOT_TAKEN: 'Ten termin właśnie się zajął. Wybierz inny.',
+    SERVICE_IN_USE:
+      'Ta usługa ma już wizyty lub jest w nagrodach programu lojalnościowego — można ją tylko ukryć (odznacz „Dostępna do rezerwacji”).',
     STAFF_BUSY: 'U tego specjalisty jest już wizyta w tym czasie.',
     OUTSIDE_WORKING_HOURS: 'Ten czas jest poza godzinami pracy.',
     VERSION_CONFLICT: 'Ktoś właśnie zmienił tę wizytę. Odśwież i spróbuj ponownie.',
@@ -416,6 +418,10 @@ export const pl = {
     deleteCategory: 'Usuń kategorię',
     deleteCategoryHint: 'Usługi z tej kategorii zostaną, bez kategorii.',
     empty: 'Dodaj pierwszą usługę — klienci zobaczą ją na stronie rezerwacji.',
+    delete: 'Usuń usługę',
+    deleteConfirm: 'Usunąć tę usługę? Tego nie da się cofnąć.',
+    deleteYes: 'Tak, usuń',
+    deleteNo: 'Nie',
   },
   team: {
     title: 'Zespół',

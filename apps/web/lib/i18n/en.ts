@@ -30,6 +30,8 @@ export const en: Dict = {
     EMAIL_TAKEN: 'This account already exists. Sign in.',
     RATE_LIMITED: 'Too many attempts. Wait a moment.',
     SLOT_TAKEN: 'This time has just been taken. Choose another one.',
+    SERVICE_IN_USE:
+      'This service already has visits or is part of a loyalty reward — you can only hide it (untick “Can be booked”).',
     STAFF_BUSY: 'This specialist already has an appointment at this time.',
     OUTSIDE_WORKING_HOURS: 'This time is outside working hours.',
     VERSION_CONFLICT: 'Someone has just changed this appointment. Reload and try again.',
@@ -415,6 +417,10 @@ export const en: Dict = {
     deleteCategory: 'Delete category',
     deleteCategoryHint: 'Its services stay, without a category.',
     empty: 'Add your first service — clients will see it on the booking page.',
+    delete: 'Delete service',
+    deleteConfirm: 'Delete this service? This cannot be undone.',
+    deleteYes: 'Yes, delete',
+    deleteNo: 'No',
   },
   team: {
     title: 'Team',

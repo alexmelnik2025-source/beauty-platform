@@ -197,6 +197,23 @@ export class ServicesController {
   ): Promise<ServiceResponse> {
     return this.catalog.updateService(m, auth.userId, locationId, serviceId, body);
   }
+
+  @Delete(':serviceId')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete a service that was never used',
+    description:
+      '409 SERVICE_IN_USE when it has visits (any status) or is in a loyalty reward or coupon — hide it instead (PATCH active=false).',
+  })
+  remove(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceId', uuid('Service')) serviceId: string,
+  ): Promise<void> {
+    return this.catalog.deleteService(m, auth.userId, locationId, serviceId);
+  }
 }
 
 @ApiTags('staff')

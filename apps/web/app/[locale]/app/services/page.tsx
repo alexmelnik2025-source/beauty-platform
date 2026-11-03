@@ -163,6 +163,11 @@ export default function ServicesPage() {
           service={editing === 'new' ? null : editing}
           categories={categories}
           onClose={() => setEditing(null)}
+          onDeleted={(id) => {
+            setServices((list) => list?.filter((s) => s.id !== id) ?? null);
+            setEditing(null);
+            void load();
+          }}
           onSaved={(saved) => {
             // Show the change at once (T2), then reload for anything else that changed.
             setServices((list) =>
@@ -185,12 +190,14 @@ function ServiceSheet({
   categories,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   base: string;
   service: ServiceRow | null;
   categories: Category[];
   onClose: () => void;
   onSaved: (saved: ServiceRow) => void;
+  onDeleted: (id: string) => void;
 }) {
   const { t } = useI18n();
   const [form, setForm] = useState({
@@ -207,6 +214,21 @@ function ServiceSheet({
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a repeated or retried "add" never creates a second service (T4).
   const [key] = useState(newIdempotencyKey);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Owner test T3: a service that was never used can be deleted; one with visits only hidden.
+  async function remove() {
+    if (!service || !lock()) return;
+    setError('');
+    try {
+      await api(`${base}/services/${service.id}`, { method: 'DELETE' });
+      onDeleted(service.id);
+    } catch (err) {
+      setError(errorText(t, err));
+      setConfirmDelete(false);
+      unlock();
+    }
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -339,6 +361,39 @@ function ServiceSheet({
         <button className="btn btn--block" disabled={busy}>
           {t.common.save}
         </button>
+        {service ? (
+          confirmDelete ? (
+            <div className="stack" style={{ gap: 8 }} role="group" aria-label={t.services.delete}>
+              <p className="small">{t.services.deleteConfirm}</p>
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn btn--danger"
+                  disabled={busy}
+                  onClick={() => void remove()}
+                >
+                  {t.services.deleteYes}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  {t.services.deleteNo}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="link-btn small"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              {t.services.delete}
+            </button>
+          )
+        ) : null}
       </form>
     </Sheet>
   );

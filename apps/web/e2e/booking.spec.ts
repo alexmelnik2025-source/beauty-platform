@@ -404,6 +404,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();
   await expect(shaveRow).toContainText('Ukryta');
   await shot(ownerPage, '48-owner-service-saved-once');
+  // (T3): a service that was never booked can be deleted, after a confirmation.
+  await shaveRow.click();
+  await ownerPage.getByRole('dialog').getByRole('button', { name: 'Usuń usługę' }).click();
+  await shot(ownerPage, '49-owner-service-delete');
+  await ownerPage.getByRole('dialog').getByRole('button', { name: 'Tak, usuń' }).click();
+  await expect(shaveRow).toHaveCount(0);
   await ownerPage.goto('/pl/app/team');
   await expect(ownerPage.getByRole('button', { name: /Kasia/ })).toBeVisible();
   await shot(ownerPage, '16-owner-team');

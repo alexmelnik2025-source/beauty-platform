@@ -556,7 +556,11 @@ export interface paths {
         get: operations["ServicesController_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a service that was never used
+         * @description 409 SERVICE_IN_USE when it has visits (any status) or is in a loyalty reward or coupon — hide it instead (PATCH active=false).
+         */
+        delete: operations["ServicesController_remove"];
         options?: never;
         head?: never;
         /** Update a service; set active=false to hide it. Send the version you read */
@@ -4313,6 +4317,26 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Service"];
                 };
+            };
+        };
+    };
+    ServicesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

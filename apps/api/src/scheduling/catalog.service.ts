@@ -123,6 +123,46 @@ export class CatalogService {
     return toService(service);
   }
 
+  /**
+   * Deletes a service that was never used (owner test T3). A service with visits (any status,
+   * also cancelled — they keep the history) or named in a loyalty reward or coupon can only
+   * be hidden: 409 SERVICE_IN_USE.
+   */
+  async deleteService(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    serviceId: string,
+  ): Promise<void> {
+    await this.access.writable(m, locationId);
+    await this.findService(locationId, serviceId);
+    const inUse = (details: { appointments: number; loyalty: number }) =>
+      new AppException(
+        HttpStatus.CONFLICT,
+        'SERVICE_IN_USE',
+        'The service has visits or is part of a loyalty reward; hide it instead',
+        details,
+      );
+    await this.prisma.$transaction(async (tx) => {
+      // Lock the row: a booking for it cannot slip in between the check and the delete.
+      await tx.$queryRaw`SELECT id FROM service WHERE id = ${serviceId}::uuid FOR UPDATE`;
+      const [appointments, rewards, coupons] = await Promise.all([
+        tx.appointment.count({ where: { serviceId } }),
+        tx.loyaltyReward.count({
+          where: { OR: [{ freeServiceId: serviceId }, { serviceIds: { has: serviceId } }] },
+        }),
+        tx.loyaltyCoupon.count({
+          where: { OR: [{ freeServiceId: serviceId }, { serviceIds: { has: serviceId } }] },
+        }),
+      ]);
+      if (appointments + rewards + coupons > 0) {
+        throw inUse({ appointments, loyalty: rewards + coupons });
+      }
+      await tx.service.delete({ where: { id: serviceId } });
+      await this.record(tx, m, actorUserId, 'service.deleted', 'service', serviceId);
+    });
+  }
+
   /** Changing price or duration never affects existing appointments (they keep a snapshot). */
   async updateService(
     m: MembershipContext,
