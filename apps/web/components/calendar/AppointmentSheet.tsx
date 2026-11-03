@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
-import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
 import type { AppointmentDetail, Staff } from '@/lib/types';
 import { useSession } from '../Session';
@@ -45,7 +45,7 @@ export function AppointmentSheet({
       setA(detail);
       setMove({ date: detail.date, time: detail.time, staffId: detail.staff.id, outside: false });
     } catch (err) {
-      setError(errorText(t, err));
+      setError(calendarErrorText(t, err));
     }
   }, [base, id, t]);
 
@@ -67,7 +67,7 @@ export function AppointmentSheet({
         setAskOutside(true);
       }
       if (err instanceof ApiError && err.code === 'VERSION_CONFLICT') await load();
-      setError(errorText(t, err));
+      setError(calendarErrorText(t, err));
     } finally {
       setBusy(false);
     }

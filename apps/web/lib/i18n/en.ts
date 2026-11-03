@@ -30,6 +30,7 @@ export const en: Dict = {
     EMAIL_TAKEN: 'This account already exists. Sign in.',
     RATE_LIMITED: 'Too many attempts. Wait a moment.',
     SLOT_TAKEN: 'This time has just been taken. Choose another one.',
+    STAFF_BUSY: 'This specialist already has an appointment at this time.',
     OUTSIDE_WORKING_HOURS: 'This time is outside working hours.',
     VERSION_CONFLICT: 'Someone has just changed this appointment. Reload and try again.',
     HOLD_EXPIRED: 'Ten minutes have passed and the time was released. Choose a time again.',

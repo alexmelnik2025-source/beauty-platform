@@ -32,3 +32,14 @@ export function errorText(t: Dict, error: unknown): string {
   }
   return t.errors.generic;
 }
+
+/**
+ * Salon side (calendar): a taken time is not "just taken" — the specialist already has a
+ * visit then (owner's test 03.11.2026, T10).
+ */
+export function calendarErrorText(t: Dict, error: unknown): string {
+  if (error instanceof Error && 'code' in error && error.code === 'SLOT_TAKEN') {
+    return t.errors.STAFF_BUSY;
+  }
+  return errorText(t, error);
+}

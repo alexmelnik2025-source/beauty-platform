@@ -30,6 +30,7 @@ export const pl = {
     EMAIL_TAKEN: 'To konto już istnieje. Zaloguj się.',
     RATE_LIMITED: 'Zbyt wiele prób. Odczekaj chwilę.',
     SLOT_TAKEN: 'Ten termin właśnie się zajął. Wybierz inny.',
+    STAFF_BUSY: 'U tego specjalisty jest już wizyta w tym czasie.',
     OUTSIDE_WORKING_HOURS: 'Ten czas jest poza godzinami pracy.',
     VERSION_CONFLICT: 'Ktoś właśnie zmienił tę wizytę. Odśwież i spróbuj ponownie.',
     HOLD_EXPIRED: 'Minęło 10 minut i termin został zwolniony. Wybierz godzinę jeszcze raz.',

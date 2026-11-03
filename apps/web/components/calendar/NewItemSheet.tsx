@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
-import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
 import type { Customer, Service, Staff } from '@/lib/types';
 import { useSession } from '../Session';
@@ -128,7 +128,7 @@ export function NewItemSheet({
       if (err instanceof ApiError && err.code === 'OUTSIDE_WORKING_HOURS' && canOutside) {
         setAskOutside(true);
       }
-      setError(errorText(t, err));
+      setError(calendarErrorText(t, err));
       setBusy(false);
     }
   }
