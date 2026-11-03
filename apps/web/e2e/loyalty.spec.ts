@@ -13,12 +13,15 @@ import { waitForEmail } from './mailpit';
  * rewards, points per service, sees the history and cannot switch the type while clients
  * have stamps; then a visit is marked "came" and "paid" (a stamp), and in the client card the
  * owner exchanges stamps for a coupon, cancels it and corrects the balance by hand (10b, part 2).
- * Screenshots go to e2e/screenshots (40–45).
+ * Finally the client opens "Moje bonusy" in "Moje wizyty" (10c): stamps on the card, how many
+ * visits are left, the coupon code — and never the salon's notes.
+ * Screenshots go to e2e/screenshots (40–47).
  */
 
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `loyalty-owner-${run}@example.com`;
+const ANNA = `loyalty-anna-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 
@@ -217,7 +220,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   const customer = await json<{ id: string }>(
     await request.post(`${orgBase}/customers`, {
       headers: owner,
-      data: { name: 'Anna Kowalska', phone: '+48600100200' },
+      data: { name: 'Anna Kowalska', phone: '+48600100200', email: ANNA },
     }),
   );
   await json(
@@ -345,5 +348,52 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   );
   await shot(mobile, '43-owner-loyalty-phone');
   await phone.close();
+
+  // ── The client: "Moje bonusy" in "Moje wizyty" (10c) ──────────────────
+  const annaPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  const anna = await annaPhone.newPage();
+  await anna.goto('/pl/c');
+  await anna.getByLabel('E-mail').fill(ANNA);
+  await anna.getByRole('button', { name: 'Wyślij kod' }).click();
+  const loginMail = await waitForEmail(ANNA, /Kod logowania/);
+  await anna.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(loginMail.text)![1]!);
+  await anna.getByRole('button', { name: 'Zaloguj się' }).click();
+  await anna.getByRole('button', { name: 'Moje bonusy' }).click();
+  const bonus = anna.locator('section.bonus-card');
+  await expect(bonus.getByRole('heading', { level: 2 })).toBeVisible();
+  await expect(bonus.getByText('Pieczątki na karcie: 2')).toBeVisible();
+  await expect(bonus.getByText('Do „−25% na strzyżenie” zostało wizyt: 1')).toBeVisible();
+  await expect(bonus.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
+  // The removed reward is not offered; the salon's reasons are never shown to the client.
+  await expect(bonus).not.toContainText('Broda gratis');
+  await bonus.getByText('Historia').click();
+  await expect(bonus).toContainText('Ręczna zmiana');
+  await expect(bonus).not.toContainText('Pomyłka przy karcie');
+  await expect(bonus).not.toContainText('Papierowa karta');
+  await shot(anna, '46-client-bonuses');
+
+  // A stamp more by the salon and an exchange: the client sees the coupon code to show.
+  await json(
+    await request.post(`${orgBase}/loyalty/accounts/${customer.id}/adjustments`, {
+      headers: owner,
+      data: { points: 1, reason: 'Wizyta przed programem' },
+    }),
+  );
+  const coupon = await json<{ code: string }>(
+    await request.post(`${orgBase}/loyalty/accounts/${customer.id}/redemptions`, {
+      headers: owner,
+      data: { rewardId: rewards[0]!.id },
+    }),
+  );
+  await anna.reload();
+  await anna.getByRole('button', { name: 'Moje bonusy' }).click();
+  const myCoupons = anna.getByRole('list', { name: 'Moje kupony' });
+  await expect(myCoupons).toContainText(coupon.code);
+  await expect(myCoupons).toContainText('aktywny');
+  await expect(myCoupons).toContainText('tylko: Strzyżenie męskie');
+  await expect(anna.getByText('Pieczątki na karcie: 0')).toBeVisible();
+  await myCoupons.scrollIntoViewIfNeeded();
+  await shot(anna, '47-client-bonus-coupon');
+  await annaPhone.close();
   await context.close();
 });

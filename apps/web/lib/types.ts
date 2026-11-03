@@ -46,6 +46,8 @@ export type {
   Customer,
   CustomerDetail,
   ClientAppointment,
+  ClientLoyalty,
+  ClientLoyaltyCard,
   ClientPerson,
   FailedEmail,
   Hold,

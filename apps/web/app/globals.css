@@ -1872,3 +1872,100 @@ label.btn:focus-within {
 .directory-pages {
   align-items: center;
 }
+
+/* ── "My bonuses" in the client app ───────────────────── */
+
+.bonus-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.bonus-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bonus-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.bonus-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.bonus-card p {
+  margin: 0;
+}
+
+.stamps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 40px));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stamp {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1.5px dashed var(--steel);
+  border-radius: 999px;
+  color: var(--graphite);
+  font-size: 0.8rem;
+}
+
+.stamp--reward {
+  border-style: solid;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.stamp--on {
+  border-style: solid;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.bonus-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--fog);
+}
+
+.bonus-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.chip--ready {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.coupon-code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.06em;
+}
+
+.bonus-history summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.bonus-history[open] summary {
+  margin-bottom: 8px;
+}

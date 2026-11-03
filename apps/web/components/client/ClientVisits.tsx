@@ -7,9 +7,10 @@ import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
 import type { ClientAppointment, ClientPerson } from '@/lib/types';
 import { InstallApp } from '../InstallApp';
+import { ClientBonuses } from './ClientBonuses';
 import { ErrorBox, LanguageSwitch, Spinner, Wordmark } from '../ui';
 
-type Scope = 'upcoming' | 'past';
+type Scope = 'upcoming' | 'past' | 'bonuses';
 
 /** Code errors after which the client simply needs a fresh code. */
 const NEW_CODE_NEEDED = ['CODE_EXPIRED', 'CODE_NOT_SENT', 'TOO_MANY_ATTEMPTS'];
@@ -189,6 +190,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   const load = useCallback(async () => {
     setItems(null);
     setError('');
+    if (scope === 'bonuses') return;
     try {
       const res = await api<{ items: ClientAppointment[] }>('/v1/client/appointments', {
         auth: false,
@@ -216,14 +218,16 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   return (
     <>
       <div className="tabs" role="group">
-        {(['upcoming', 'past'] as const).map((s) => (
+        {(['upcoming', 'past', 'bonuses'] as const).map((s) => (
           <button key={s} type="button" aria-pressed={scope === s} onClick={() => setScope(s)}>
-            {s === 'upcoming' ? t.visits.upcoming : t.visits.past}
+            {s === 'upcoming' ? t.visits.upcoming : s === 'past' ? t.visits.past : t.bonuses.tab}
           </button>
         ))}
       </div>
       <ErrorBox>{error}</ErrorBox>
-      {items === null ? (
+      {scope === 'bonuses' ? (
+        <ClientBonuses onSignedOut={onSignedOut} />
+      ) : items === null ? (
         <Spinner />
       ) : items.length === 0 ? (
         <p className="note">{scope === 'upcoming' ? t.visits.emptyUpcoming : t.visits.emptyPast}</p>
