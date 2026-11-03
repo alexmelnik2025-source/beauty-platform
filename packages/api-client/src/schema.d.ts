@@ -567,6 +567,26 @@ export interface paths {
         patch: operations["ServicesController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set which specialists perform this service (replaces the list)
+         * @description Clients can book a service online only when at least one specialist performs it.
+         */
+        put: operations["ServicesController_setStaff"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/staff": {
         parameters: {
             query?: never;
@@ -2992,6 +3012,8 @@ export interface components {
             version: number;
             createdAt: string;
             updatedAt: string;
+            /** @description Specialists who perform it; empty = clients cannot book it online */
+            staffIds: string[];
         };
         ServiceCategory: {
             id: string;
@@ -4284,6 +4306,7 @@ export interface operations {
                     sortOrder?: number;
                     categoryId?: string | null;
                     color?: string | null;
+                    staffIds?: string[];
                 };
             };
         };
@@ -4363,6 +4386,34 @@ export interface operations {
                     categoryId?: string | null;
                     color?: string | null;
                     version: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+        };
+    };
+    ServicesController_setStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    staffIds: string[];
                 };
             };
         };

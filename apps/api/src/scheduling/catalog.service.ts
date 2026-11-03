@@ -49,9 +49,11 @@ const versionConflict = (what: string): AppException =>
     `The ${what} was changed by someone else. Reload and try again`,
   );
 
-function toService(service: Service): ServiceResponse {
+function toService(service: ServiceWithStaff): ServiceResponse {
+  const { staff, ...rest } = service;
   return {
-    ...service,
+    ...rest,
+    staffIds: staff.map((s) => s.staffId).sort(),
     createdAt: service.createdAt.toISOString(),
     updatedAt: service.updatedAt.toISOString(),
   };
@@ -67,6 +69,10 @@ function toStaff(staff: StaffWithServices): StaffResponse {
     updatedAt: staff.updatedAt.toISOString(),
   };
 }
+
+const withStaff = { staff: { select: { staffId: true } } } as const;
+
+type ServiceWithStaff = Service & { staff: { staffId: string }[] };
 
 const withServices = {
   services: { select: { serviceId: true } },
@@ -93,6 +99,7 @@ export class CatalogService {
     await this.access.readable(m, locationId);
     const services = await this.prisma.service.findMany({
       where: { locationId },
+      include: withStaff,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
     return services.map(toService);
@@ -104,7 +111,13 @@ export class CatalogService {
     serviceId: string,
   ): Promise<ServiceResponse> {
     await this.access.readable(m, locationId);
-    return toService(await this.findService(locationId, serviceId));
+    await this.findService(locationId, serviceId);
+    return toService(
+      await this.prisma.service.findUniqueOrThrow({
+        where: { id: serviceId },
+        include: withStaff,
+      }),
+    );
   }
 
   async createService(
@@ -115,10 +128,16 @@ export class CatalogService {
   ): Promise<ServiceResponse> {
     await this.access.writable(m, locationId);
     await this.assertCategory(locationId, input.categoryId);
+    const { staffIds, ...fields } = input;
+    const staff = [...new Set(staffIds ?? [])];
+    await this.assertStaffInLocation(locationId, staff);
     const service = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.service.create({ data: { ...input, locationId } });
+      const created = await tx.service.create({ data: { ...fields, locationId } });
+      await tx.staffService.createMany({
+        data: staff.map((staffId) => ({ staffId, serviceId: created.id })),
+      });
       await this.record(tx, m, actorUserId, 'service.created', 'service', created.id);
-      return created;
+      return tx.service.findUniqueOrThrow({ where: { id: created.id }, include: withStaff });
     });
     return toService(service);
   }
@@ -189,7 +208,33 @@ export class CatalogService {
         serviceId,
         Object.keys(fields),
       );
-      return tx.service.findUniqueOrThrow({ where: { id: serviceId } });
+      return tx.service.findUniqueOrThrow({ where: { id: serviceId }, include: withStaff });
+    });
+    return toService(service);
+  }
+
+  /**
+   * Replaces the set of specialists who perform this service (owner test T5): a new service
+   * is bookable online only once someone performs it, so the service window asks "who?".
+   */
+  async setServiceStaff(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    serviceId: string,
+    staffIds: string[],
+  ): Promise<ServiceResponse> {
+    await this.access.writable(m, locationId);
+    await this.findService(locationId, serviceId);
+    const unique = [...new Set(staffIds)];
+    await this.assertStaffInLocation(locationId, unique);
+    const service = await this.prisma.$transaction(async (tx) => {
+      await tx.staffService.deleteMany({ where: { serviceId } });
+      await tx.staffService.createMany({
+        data: unique.map((staffId) => ({ staffId, serviceId })),
+      });
+      await this.record(tx, m, actorUserId, 'service.staff_set', 'service', serviceId);
+      return tx.service.findUniqueOrThrow({ where: { id: serviceId }, include: withStaff });
     });
     return toService(service);
   }
@@ -439,6 +484,19 @@ export class CatalogService {
     if (count !== new Set(serviceIds).size) {
       throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Unknown service', [
         { path: 'serviceIds', message: 'every service must belong to this location' },
+      ]);
+    }
+  }
+
+  /** Staff of another location (or organization) are rejected, never linked. */
+  private async assertStaffInLocation(locationId: string, staffIds: string[]): Promise<void> {
+    if (staffIds.length === 0) return;
+    const count = await this.prisma.staffMember.count({
+      where: { id: { in: staffIds }, locationId },
+    });
+    if (count !== new Set(staffIds).size) {
+      throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Unknown staff member', [
+        { path: 'staffIds', message: 'every staff member must belong to this location' },
       ]);
     }
   }

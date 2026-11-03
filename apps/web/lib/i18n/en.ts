@@ -421,6 +421,10 @@ export const en: Dict = {
     deleteConfirm: 'Delete this service? This cannot be undone.',
     deleteYes: 'Yes, delete',
     deleteNo: 'No',
+    whoPerforms: 'Who performs this service?',
+    whoPerformsHint: 'Clients can book the service only with the specialists ticked here.',
+    noStaffYet: 'Add a specialist in “Team” first — without one clients will not see the service.',
+    noOnePerforms: 'No one performs it — clients cannot see it',
   },
   team: {
     title: 'Team',

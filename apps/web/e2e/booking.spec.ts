@@ -399,6 +399,20 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(serviceDialog).toBeHidden();
   const shaveRow = ownerPage.getByRole('button', { name: /Golenie brzytwą/ });
   await expect(shaveRow).toHaveCount(1);
+  // (T5): a new service is performed by everyone at once (clients can book it); when nobody
+  // performs it, the list says clients cannot see it.
+  await shaveRow.click();
+  const who = ownerPage.getByRole('dialog').getByRole('group', { name: 'Kto wykonuje tę usługę?' });
+  await expect(who.getByRole('checkbox')).toHaveCount(staffIds.length);
+  for (const box of await who.getByRole('checkbox').all()) await expect(box).toBeChecked();
+  await who.scrollIntoViewIfNeeded();
+  await shot(ownerPage, '50-owner-service-who');
+  for (const box of await who.getByRole('checkbox').all()) await box.uncheck();
+  await expect(who).toContainText('Nikt jej nie wykonuje');
+  await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ownerPage.getByRole('dialog')).toBeHidden();
+  await expect(shaveRow).toContainText('Nikt jej nie wykonuje — klienci jej nie widzą');
+  await shot(ownerPage, '51-owner-service-no-staff');
   await shaveRow.click();
   await ownerPage.getByRole('dialog').getByLabel('Dostępna do rezerwacji').uncheck();
   await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();

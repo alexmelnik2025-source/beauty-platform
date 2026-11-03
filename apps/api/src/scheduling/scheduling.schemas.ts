@@ -30,6 +30,8 @@ const serviceFields = {
     .nullable(),
 };
 
+const staffIds = z.array(z.uuid()).max(200);
+
 export const createServiceSchema = z.object({
   ...serviceFields,
   description: serviceFields.description.optional(),
@@ -38,7 +40,11 @@ export const createServiceSchema = z.object({
   bufferMinutes: serviceFields.bufferMinutes.default(0),
   active: serviceFields.active.default(true),
   sortOrder: serviceFields.sortOrder.default(0),
+  /** Specialists who perform it; without them clients cannot book the service online. */
+  staffIds: staffIds.optional(),
 });
+
+export const serviceStaffSchema = z.object({ staffIds });
 
 export const updateServiceSchema = z
   .object(serviceFields)

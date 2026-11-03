@@ -7,7 +7,7 @@ import { api, newIdempotencyKey } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { formatPrice } from '@/lib/time';
-import type { Service, ServiceCategory } from '@/lib/types';
+import type { Service, ServiceCategory, Staff } from '@/lib/types';
 
 type Category = ServiceCategory;
 
@@ -32,6 +32,7 @@ export default function ServicesPage() {
   const base = `/v1/organizations/${orgId}/locations/${location.id}`;
   const [services, setServices] = useState<ServiceRow[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [editing, setEditing] = useState<ServiceRow | 'new' | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [error, setError] = useState('');
@@ -39,12 +40,14 @@ export default function ServicesPage() {
 
   const load = useCallback(async () => {
     try {
-      const [s, c] = await Promise.all([
+      const [s, c, st] = await Promise.all([
         api<ServiceRow[]>(`${base}/services`),
         api<Category[]>(`${base}/service-categories`),
+        api<Staff[]>(`${base}/staff`),
       ]);
       setServices(s);
       setCategories(c);
+      setStaff(st);
     } catch (err) {
       setError(errorText(t, err));
     }
@@ -81,6 +84,10 @@ export default function ServicesPage() {
   }
 
   if (!services) return error ? <ErrorBox>{error}</ErrorBox> : <Spinner />;
+
+  // Owner test T5: a bookable service nobody (active) performs is invisible to clients.
+  const working = new Set(staff.filter((m) => m.active).map((m) => m.id));
+  const unstaffed = (s: ServiceRow) => s.active && !s.staffIds.some((id) => working.has(id));
 
   const groups = [
     ...categories.map((c) => ({
@@ -133,6 +140,9 @@ export default function ServicesPage() {
                           {s.durationMinutes} {t.common.minutes}
                           {s.active ? '' : ` · ${t.services.hidden}`}
                         </span>
+                        {unstaffed(s) ? (
+                          <span className="small warn-text">{t.services.noOnePerforms}</span>
+                        ) : null}
                       </span>
                       <span>{formatPrice(s.priceGrosze, tag)}</span>
                     </button>
@@ -162,6 +172,7 @@ export default function ServicesPage() {
           base={base}
           service={editing === 'new' ? null : editing}
           categories={categories}
+          staff={staff}
           onClose={() => setEditing(null)}
           onDeleted={(id) => {
             setServices((list) => list?.filter((s) => s.id !== id) ?? null);
@@ -188,6 +199,7 @@ function ServiceSheet({
   base,
   service,
   categories,
+  staff,
   onClose,
   onSaved,
   onDeleted,
@@ -195,6 +207,7 @@ function ServiceSheet({
   base: string;
   service: ServiceRow | null;
   categories: Category[];
+  staff: Staff[];
   onClose: () => void;
   onSaved: (saved: ServiceRow) => void;
   onDeleted: (id: string) => void;
@@ -209,7 +222,11 @@ function ServiceSheet({
     categoryId: service?.categoryId ?? '',
     color: service?.color ?? PALETTE[0]!,
     active: service?.active ?? true,
+    // A new service: everyone who takes visits performs it, until unticked (T5).
+    staffIds: service?.staffIds ?? staff.filter((m) => m.active).map((m) => m.id),
   });
+  // Specialists who take visits, and anyone inactive still linked (so they can be unticked).
+  const choices = staff.filter((m) => m.active || form.staffIds.includes(m.id));
   const [error, setError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a repeated or retried "add" never creates a second service (T4).
@@ -245,16 +262,25 @@ function ServiceSheet({
       active: form.active,
     };
     try {
-      const saved = service
+      let saved = service
         ? await api<ServiceRow>(`${base}/services/${service.id}`, {
             method: 'PATCH',
             body: { ...body, version: service.version },
           })
         : await api<ServiceRow>(`${base}/services`, {
             method: 'POST',
-            body,
+            body: { ...body, staffIds: form.staffIds },
             idempotencyKey: key,
           });
+      const same =
+        saved.staffIds.length === form.staffIds.length &&
+        form.staffIds.every((id) => saved.staffIds.includes(id));
+      if (!same) {
+        saved = await api<ServiceRow>(`${base}/services/${saved.id}/staff`, {
+          method: 'PUT',
+          body: { staffIds: form.staffIds },
+        });
+      }
       onSaved(saved);
     } catch (err) {
       setError(errorText(t, err));
@@ -358,6 +384,37 @@ function ServiceSheet({
           />
           <span>{t.services.active}</span>
         </label>
+        <fieldset className="section" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend>
+            <h3>{t.services.whoPerforms}</h3>
+          </legend>
+          {choices.length === 0 ? (
+            <p className="small warn-text">{t.services.noStaffYet}</p>
+          ) : (
+            <>
+              {choices.map((m) => (
+                <label key={m.id} className="check">
+                  <input
+                    type="checkbox"
+                    checked={form.staffIds.includes(m.id)}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        staffIds: e.target.checked
+                          ? [...form.staffIds, m.id]
+                          : form.staffIds.filter((id) => id !== m.id),
+                      })
+                    }
+                  />
+                  <span>{m.displayName}</span>
+                </label>
+              ))}
+              <small className={form.staffIds.length === 0 ? 'warn-text' : 'muted'}>
+                {form.staffIds.length === 0 ? t.services.noOnePerforms : t.services.whoPerformsHint}
+              </small>
+            </>
+          )}
+        </fieldset>
         <button className="btn btn--block" disabled={busy}>
           {t.common.save}
         </button>

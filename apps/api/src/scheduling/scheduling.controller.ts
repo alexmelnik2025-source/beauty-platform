@@ -46,6 +46,7 @@ import {
   createTimeOffSchema,
   localDateSchema,
   overrideSchema,
+  serviceStaffSchema,
   staffServicesSchema,
   updateServiceCategorySchema,
   updateServiceSchema,
@@ -213,6 +214,24 @@ export class ServicesController {
     @Param('serviceId', uuid('Service')) serviceId: string,
   ): Promise<void> {
     return this.catalog.deleteService(m, auth.userId, locationId, serviceId);
+  }
+
+  @Put(':serviceId/staff')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Set which specialists perform this service (replaces the list)',
+    description: 'Clients can book a service online only when at least one specialist performs it.',
+  })
+  @ApiZodBody(serviceStaffSchema)
+  @ApiZodResponse(serviceSchema)
+  setStaff(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceId', uuid('Service')) serviceId: string,
+    @Body(new ZodValidationPipe(serviceStaffSchema)) body: { staffIds: string[] },
+  ): Promise<ServiceResponse> {
+    return this.catalog.setServiceStaff(m, auth.userId, locationId, serviceId, body.staffIds);
   }
 }
 

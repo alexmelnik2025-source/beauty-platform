@@ -219,6 +219,10 @@ h3 {
   font-size: 0.9rem;
 }
 
+.warn-text {
+  color: var(--signal);
+}
+
 .note {
   padding: 12px 14px;
   border-radius: var(--radius-s);

@@ -422,6 +422,10 @@ export const pl = {
     deleteConfirm: 'Usunąć tę usługę? Tego nie da się cofnąć.',
     deleteYes: 'Tak, usuń',
     deleteNo: 'Nie',
+    whoPerforms: 'Kto wykonuje tę usługę?',
+    whoPerformsHint: 'Klienci mogą zarezerwować usługę tylko u zaznaczonych specjalistów.',
+    noStaffYet: 'Najpierw dodaj specjalistę w „Zespół” — bez niego klienci nie zobaczą usługi.',
+    noOnePerforms: 'Nikt jej nie wykonuje — klienci jej nie widzą',
   },
   team: {
     title: 'Zespół',

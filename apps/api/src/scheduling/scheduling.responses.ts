@@ -38,6 +38,9 @@ export const serviceSchema = responseSchema(
     version: z.number().int(),
     createdAt: z.string(),
     updatedAt: z.string(),
+    staffIds: z
+      .array(z.string())
+      .describe('Specialists who perform it; empty = clients cannot book it online'),
   }),
 );
 export type ServiceResponse = z.infer<typeof serviceSchema>;

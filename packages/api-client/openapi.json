@@ -2128,6 +2128,15 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "staffIds": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
                   }
                 },
                 "required": [
@@ -2361,6 +2370,75 @@
           }
         ],
         "summary": "Delete a service that was never used",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff": {
+      "put": {
+        "description": "Clients can book a service online only when at least one specialist performs it.",
+        "operationId": "ServicesController_setStaff",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "staffIds": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "staffIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set which specialists perform this service (replaces the list)",
         "tags": [
           "services"
         ]
@@ -12027,6 +12105,13 @@
           },
           "updatedAt": {
             "type": "string"
+          },
+          "staffIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Specialists who perform it; empty = clients cannot book it online"
           }
         },
         "required": [
@@ -12043,7 +12128,8 @@
           "color",
           "version",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "staffIds"
         ],
         "additionalProperties": false
       },
