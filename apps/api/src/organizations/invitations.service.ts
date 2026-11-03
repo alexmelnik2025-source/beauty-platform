@@ -45,26 +45,34 @@ export type {
   InvitationResponse,
 } from './team.responses';
 
-const TEXTS: Record<Locale, { subject: string; text: (org: string, link: string) => string }> = {
+/**
+ * The invitation email. Nobody creates an account or a password: the person opens the link (or
+ * the salon app) and signs in with a one-time code sent to this address — or to the phone number
+ * the owner entered.
+ */
+const TEXTS: Record<
+  Locale,
+  { subject: string; text: (org: string, link: string, phone: string | null) => string }
+> = {
   pl: {
     subject: 'Zaproszenie do zespołu',
-    text: (org, link) =>
-      `${org} zaprasza Cię do swojego zespołu.\n\nAby przyjąć zaproszenie, otwórz link (ważny 7 dni) i zaloguj się lub załóż konto na ten adres e-mail:\n${link}\n\nJeśli nie spodziewasz się zaproszenia, zignoruj tę wiadomość.`,
+    text: (org, link, phone) =>
+      `${org} zaprasza Cię do swojego zespołu.\n\nAby dołączyć, otwórz link (ważny 7 dni) i zaloguj się kodem, który wyślemy na ten adres e-mail. Nie potrzebujesz hasła ani zakładania konta:\n${link}\n\nMożesz też zalogować się w aplikacji salonu tym adresem e-mail${phone ? ` lub numerem ${phone}` : ''}.\n\nJeśli nie spodziewasz się zaproszenia, zignoruj tę wiadomość.`,
   },
   uk: {
     subject: 'Запрошення до команди',
-    text: (org, link) =>
-      `${org} запрошує вас до своєї команди.\n\nЩоб прийняти запрошення, відкрийте посилання (дійсне 7 днів) і увійдіть або створіть акаунт на цю адресу:\n${link}\n\nЯкщо ви не очікували запрошення, проігноруйте цей лист.`,
+    text: (org, link, phone) =>
+      `${org} запрошує вас до своєї команди.\n\nЩоб приєднатися, відкрийте посилання (дійсне 7 днів) і увійдіть за кодом, який ми надішлемо на цю адресу. Пароль і реєстрація не потрібні:\n${link}\n\nТакож можна увійти в застосунок салону з цією адресою${phone ? ` або номером ${phone}` : ''}.\n\nЯкщо ви не очікували запрошення, проігноруйте цей лист.`,
   },
   ru: {
     subject: 'Приглашение в команду',
-    text: (org, link) =>
-      `${org} приглашает вас в свою команду.\n\nЧтобы принять приглашение, откройте ссылку (действует 7 дней) и войдите или создайте аккаунт на этот адрес:\n${link}\n\nЕсли вы не ждали приглашения, проигнорируйте это письмо.`,
+    text: (org, link, phone) =>
+      `${org} приглашает вас в свою команду.\n\nЧтобы присоединиться, откройте ссылку (действует 7 дней) и войдите по коду, который мы пришлём на этот адрес. Пароль и регистрация не нужны:\n${link}\n\nТакже можно войти в приложение салона с этим адресом${phone ? ` или номером ${phone}` : ''}.\n\nЕсли вы не ждали приглашения, проигнорируйте это письмо.`,
   },
   en: {
     subject: 'Invitation to the team',
-    text: (org, link) =>
-      `${org} invites you to join their team.\n\nTo accept, open the link (valid for 7 days) and sign in or create an account with this email address:\n${link}\n\nIf you were not expecting this, ignore this email.`,
+    text: (org, link, phone) =>
+      `${org} invites you to join their team.\n\nTo join, open the link (valid for 7 days) and sign in with a code we send to this email address. No password or sign-up needed:\n${link}\n\nYou can also sign in to the salon app with this email address${phone ? ` or the number ${phone}` : ''}.\n\nIf you were not expecting this, ignore this email.`,
   },
 };
 
@@ -207,6 +215,7 @@ export class InvitationsService {
         text: text.text(
           organization.name,
           `${this.config.APP_WEB_URL}/${input.locale}/invite/${token}`,
+          input.phone ?? null,
         ),
       },
       { idempotencyKey: `invitation-${invitation.id}` },

@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { AuthPage } from '@/components/AuthPage';
 import { ErrorBox, Spinner } from '@/components/ui';
-import { api, refreshSession } from '@/lib/api';
+import { api, refreshSession, setAccessToken } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { InvitationPreview as Preview, Me } from '@/lib/types';
 
@@ -17,6 +17,9 @@ export default function InvitePage() {
   const [state, setState] = useState<'loading' | 'ready' | 'invalid' | 'joined'>('loading');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Not signed in: a one-time code to the invited address (no password, no sign-up). */
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -39,6 +42,45 @@ export default function InvitePage() {
       setState('joined');
     } catch (err) {
       setError(errorText(t, err));
+      setBusy(false);
+    }
+  }
+
+  async function sendCode() {
+    if (!preview) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api('/v1/auth/code', {
+        method: 'POST',
+        auth: false,
+        body: { email: preview.email, locale },
+      });
+      setCodeSent(true);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Signing in with the code accepts every invitation for this address at once. */
+  async function signInWithCode(e: FormEvent) {
+    e.preventDefault();
+    if (!preview) return;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api<{ accessToken: string }>('/v1/auth/code/verify', {
+        method: 'POST',
+        auth: false,
+        body: { email: preview.email, code: code.trim(), clientType: 'web', locale },
+      });
+      setAccessToken(res.accessToken);
+      setState('joined');
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
       setBusy(false);
     }
   }
@@ -76,17 +118,51 @@ export default function InvitePage() {
             </button>
           ) : me ? (
             <p className="note">{fill(t.invite.wrongEmail, { email: preview.email })}</p>
+          ) : codeSent ? (
+            <form className="form" onSubmit={signInWithCode}>
+              <p className="small" role="status">
+                {fill(t.invite.codeSent, { email: preview.email })}
+              </p>
+              <label className="field">
+                <span>{t.invite.code}</span>
+                <input
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                />
+              </label>
+              <button className="btn btn--block" disabled={busy}>
+                {t.invite.accept}
+              </button>
+              <button
+                type="button"
+                className="btn btn--quiet btn--block"
+                disabled={busy}
+                onClick={() => void sendCode()}
+              >
+                {t.invite.resend}
+              </button>
+            </form>
           ) : (
             <>
               <p className="small">{t.invite.signInFirst}</p>
-              <Link
+              <button
+                type="button"
                 className="btn btn--block"
+                disabled={busy}
+                onClick={() => void sendCode()}
+              >
+                {t.invite.sendCode}
+              </button>
+              <Link
+                className="btn btn--quiet btn--block"
                 href={`/${locale}/login?next=${encodeURIComponent(here)}`}
               >
-                {t.auth.signIn}
-              </Link>
-              <Link className="btn btn--quiet btn--block" href={`/${locale}/register`}>
-                {t.auth.createAccount}
+                {t.invite.havePassword}
               </Link>
             </>
           )}

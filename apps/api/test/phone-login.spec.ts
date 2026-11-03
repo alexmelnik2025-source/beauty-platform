@@ -91,6 +91,43 @@ describe('invitation with a phone number', () => {
     expect(withoutPhone.body.phone).toBeNull();
   });
 
+  it('the email says how to join: a code, no password or sign-up, and the phone (owner test T8)', async () => {
+    await inviteKasia();
+    const mail = ctx.mail.lastTo('kasia@example.com');
+    expect(mail?.text).toContain('zaloguj się kodem');
+    expect(mail?.text).toContain('Nie potrzebujesz hasła ani zakładania konta');
+    expect(mail?.text).toContain(`lub numerem ${PHONE}`);
+    expect(mail?.text).not.toContain('załóż konto');
+
+    await invite({ email: 'ola@example.com', role: 'staff', locationIds: [locationId] }).expect(
+      201,
+    );
+    expect(ctx.mail.lastTo('ola@example.com')?.text).not.toContain('lub numerem');
+  });
+
+  it('joining from the invitation page: a web code sign-in joins the team at once (T8)', async () => {
+    await inviteKasia();
+    await requestCode({ email: 'kasia@example.com' }).expect(202);
+    const res = await verify({
+      email: 'kasia@example.com',
+      code: codeFromEmail(ctx, 'kasia@example.com'),
+      clientType: 'web',
+    }).expect(200);
+    // Web: the refresh token is a cookie, not in the body.
+    expect(res.body.refreshToken).toBeUndefined();
+    expect(String(res.headers['set-cookie'])).toContain('bp_refresh=');
+    const profile = await me(res.body.accessToken);
+    expect(profile.body.organizations).toEqual([{ id: orgId, name: 'Barber', role: 'staff' }]);
+    const staff = await ctx.prisma.staffMember.findUniqueOrThrow({ where: { id: kasiaId } });
+    expect(staff.userId).not.toBeNull();
+    const list = await ctx
+      .http()
+      .get(`/v1/organizations/${orgId}/invitations`)
+      .set(owner.auth)
+      .expect(200);
+    expect(list.body[0]).toMatchObject({ staffMemberId: kasiaId, status: 'accepted' });
+  });
+
   it('rejects a number that is not in international format', async () => {
     const res = await invite({
       email: 'kasia@example.com',

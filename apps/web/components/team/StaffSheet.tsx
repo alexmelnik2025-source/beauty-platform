@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api, newIdempotencyKey } from '@/lib/api';
 import { useSubmitLock } from '@/lib/submit-lock';
-import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { PHOTO_ACCEPT, shrinkPhoto, STAFF_PHOTO_SIDE } from '@/lib/photos';
-import type { Staff, TimeOff as TimeOffEntry } from '@/lib/types';
+import type { Invitation, Staff, TimeOff as TimeOffEntry } from '@/lib/types';
 import { LanguagePicker, type Spoken } from '../Languages';
 import { SpecialtyPicker, type Specialty } from '../Specialties';
 import { ErrorBox, initials, Sheet, Spinner } from '../ui';
@@ -28,6 +28,7 @@ export function StaffSheet({
   staff,
   services,
   memberEmail,
+  pendingInvitation,
   onInvite,
   onClose,
   onSaved,
@@ -37,6 +38,8 @@ export function StaffSheet({
   staff: StaffRow | null;
   services: { id: string; name: string; active: boolean }[];
   memberEmail: string | null;
+  /** An invitation for this profile that has not been accepted yet. */
+  pendingInvitation: Invitation | null;
   onInvite: (staff: StaffRow) => void;
   onClose: () => void;
   onSaved: () => void;
@@ -468,6 +471,16 @@ export function StaffSheet({
             <p className="small">
               {memberEmail ? t.team.linked.replace('{email}', memberEmail) : '✓'}
             </p>
+          ) : pendingInvitation ? (
+            <>
+              <p className="small" role="status">
+                {fill(t.team.invitePending, { email: pendingInvitation.email })}
+                {pendingInvitation.phone ? ` · ${pendingInvitation.phone}` : ''}
+              </p>
+              <button type="button" className="btn btn--quiet" onClick={() => onInvite(staff)}>
+                {t.team.inviteAgain}
+              </button>
+            </>
           ) : (
             <>
               <p className="small muted">{t.team.notLinked}</p>

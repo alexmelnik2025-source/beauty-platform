@@ -273,6 +273,8 @@ export function InviteSheet({
   staffProfiles,
   categories,
   presetStaffId,
+  presetEmail,
+  presetPhone,
   onClose,
   onSent,
 }: {
@@ -282,12 +284,16 @@ export function InviteSheet({
   staffProfiles: { id: string; displayName: string; userId: string | null }[];
   categories: Category[];
   presetStaffId?: string;
+  /** "Send again": the address and number of the previous invitation. */
+  presetEmail?: string;
+  presetPhone?: string;
   onClose: () => void;
   onSent: (email: string) => void;
 }) {
   const { t, locale } = useI18n();
   const [form, setForm] = useState({
-    email: '',
+    email: presetEmail ?? '',
+    phone: presetPhone ?? '',
     role: 'staff' as 'staff' | 'manager',
     staffMemberId: presetStaffId ?? '',
     staffCategoryId: '',
@@ -304,6 +310,7 @@ export function InviteSheet({
         method: 'POST',
         body: {
           email: form.email,
+          phone: form.phone,
           role: form.role,
           locationIds: [locationId],
           locale: form.locale,
@@ -334,6 +341,18 @@ export function InviteSheet({
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
+        </label>
+        <label className="field">
+          <span>{t.team.invitePhone}</span>
+          <input
+            type="tel"
+            required
+            autoComplete="off"
+            placeholder="+48 600 100 200"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
+          <span className="small muted">{t.team.invitePhoneHint}</span>
         </label>
         {isOwner ? (
           <label className="field">

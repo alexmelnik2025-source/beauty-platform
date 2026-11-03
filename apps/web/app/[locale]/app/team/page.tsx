@@ -83,6 +83,10 @@ export default function TeamPage() {
   if (!staff) return error ? <ErrorBox>{error}</ErrorBox> : <Spinner />;
   const emailOf = (userId: string | null) =>
     members.find((m) => m.user.id === userId)?.user.email ?? null;
+  /** The newest invitation for a calendar profile that still waits to be accepted. */
+  const pendingFor = (staffId: string) =>
+    invitations.find((i) => i.staffMemberId === staffId && i.status === 'pending') ?? null;
+  const presetInvite = invite?.staffId ? pendingFor(invite.staffId) : null;
 
   return (
     <>
@@ -134,7 +138,11 @@ export default function TeamPage() {
                       ) : null}
                       <span className="small muted">
                         {s.serviceIds.length} ·{' '}
-                        {s.userId ? (emailOf(s.userId) ?? '✓') : t.team.notLinked.split('.')[0]}
+                        {s.userId
+                          ? (emailOf(s.userId) ?? '✓')
+                          : pendingFor(s.id)
+                            ? t.team.invitedShort
+                            : t.team.notLinked.split('.')[0]}
                       </span>
                     </span>
                     {s.active ? null : <span className="chip">{t.services.hidden}</span>}
@@ -176,7 +184,8 @@ export default function TeamPage() {
                   {invitations.map((i) => (
                     <li key={i.id}>
                       <span>
-                        {i.email} · {t.team.roles[i.role]}{' '}
+                        {i.email}
+                        {i.phone ? ` · ${i.phone}` : ''} · {t.team.roles[i.role]}{' '}
                         <span className="chip">{t.team.invitationStatus[i.status]}</span>
                       </span>
                       {i.status === 'pending' ? (
@@ -238,6 +247,7 @@ export default function TeamPage() {
           staff={openStaff === 'new' ? null : openStaff}
           services={services}
           memberEmail={openStaff === 'new' ? null : emailOf(openStaff.userId)}
+          pendingInvitation={openStaff === 'new' ? null : pendingFor(openStaff.id)}
           onInvite={(s) => {
             setOpenStaff(null);
             setInvite({ staffId: s.id });
@@ -275,6 +285,8 @@ export default function TeamPage() {
           staffProfiles={staff}
           categories={categories}
           presetStaffId={invite.staffId}
+          presetEmail={presetInvite?.email}
+          presetPhone={presetInvite?.phone ?? undefined}
           onClose={() => setInvite(null)}
           onSent={(email) => {
             setInvite(null);
