@@ -1969,3 +1969,11 @@ label.btn:focus-within {
 .bonus-history[open] summary {
   margin-bottom: 8px;
 }
+
+.bonus-card .history li {
+  align-items: flex-start;
+}
+
+.bonus-card .chip {
+  flex: none;
+}
