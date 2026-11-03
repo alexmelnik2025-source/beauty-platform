@@ -90,7 +90,10 @@ describe('deleting a service', () => {
       .set(owner.auth)
       .expect(409);
     expectError(res.body, 'SERVICE_IN_USE');
-    expect(res.body.error.details).toMatchObject({ appointments: 1, loyalty: 0 });
+    expect(res.body.error.details).toEqual([
+      { path: 'appointments', message: '1' },
+      { path: 'loyalty', message: '0' },
+    ]);
     await ctx.http().get(`${base}/services/${serviceId}`).set(owner.auth).expect(200);
   });
 
@@ -115,7 +118,10 @@ describe('deleting a service', () => {
       .set(owner.auth)
       .expect(409);
     expectError(res.body, 'SERVICE_IN_USE');
-    expect(res.body.error.details).toMatchObject({ appointments: 0, loyalty: 1 });
+    expect(res.body.error.details).toEqual([
+      { path: 'appointments', message: '0' },
+      { path: 'loyalty', message: '1' },
+    ]);
   });
 
   it('only the owner or a manager; another salon gets 404', async () => {

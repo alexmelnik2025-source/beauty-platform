@@ -141,20 +141,19 @@ export class CatalogService {
         HttpStatus.CONFLICT,
         'SERVICE_IN_USE',
         'The service has visits or is part of a loyalty reward; hide it instead',
-        details,
+        [
+          { path: 'appointments', message: String(details.appointments) },
+          { path: 'loyalty', message: String(details.loyalty) },
+        ],
       );
     await this.prisma.$transaction(async (tx) => {
       // Lock the row: a booking for it cannot slip in between the check and the delete.
       await tx.$queryRaw`SELECT id FROM service WHERE id = ${serviceId}::uuid FOR UPDATE`;
-      const [appointments, rewards, coupons] = await Promise.all([
-        tx.appointment.count({ where: { serviceId } }),
-        tx.loyaltyReward.count({
-          where: { OR: [{ freeServiceId: serviceId }, { serviceIds: { has: serviceId } }] },
-        }),
-        tx.loyaltyCoupon.count({
-          where: { OR: [{ freeServiceId: serviceId }, { serviceIds: { has: serviceId } }] },
-        }),
-      ]);
+      // One after another: a transaction runs on one connection.
+      const appointments = await tx.appointment.count({ where: { serviceId } });
+      const usedIn = { OR: [{ freeServiceId: serviceId }, { serviceIds: { has: serviceId } }] };
+      const rewards = await tx.loyaltyReward.count({ where: usedIn });
+      const coupons = await tx.loyaltyCoupon.count({ where: usedIn });
       if (appointments + rewards + coupons > 0) {
         throw inUse({ appointments, loyalty: rewards + coupons });
       }
