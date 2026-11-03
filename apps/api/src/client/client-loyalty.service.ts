@@ -32,11 +32,11 @@ export class ClientLoyaltyService {
           select: {
             id: true,
             name: true,
+            // The client knows the salon by its place, not the company's legal name (T9).
             locations: {
-              where: { onlineBookingEnabled: true },
-              select: { slug: true },
+              select: { name: true, slug: true, onlineBookingEnabled: true },
               orderBy: { createdAt: 'asc' },
-              take: 1,
+              take: 20,
             },
           },
         },
@@ -102,9 +102,11 @@ export class ClientLoyaltyService {
         couponValidityDays: r.couponValidityDays,
       }));
       const upcoming = rewards.find((r) => r.missing > 0);
+      const online = p.organization.locations.find((l) => l.onlineBookingEnabled);
+      const shownAs = online ?? p.organization.locations[0];
       items.push({
-        organization: { id: p.organization.id, name: p.organization.name },
-        bookingSlug: p.organization.locations[0]?.slug ?? null,
+        organization: { id: p.organization.id, name: shownAs?.name ?? p.organization.name },
+        bookingSlug: online?.slug ?? null,
         enabled: p.enabled,
         mode: p.mode,
         balance,

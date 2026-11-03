@@ -339,16 +339,36 @@ describe('my bonuses', () => {
     });
 
     let items = await myBonuses();
-    expect(items.map((i) => i.organization.name)).toEqual(['Alfa Barber', 'Beta Studio']);
+    expect(items.map((i) => i.organization.name)).toEqual([
+      'Alfa Barber Centrum',
+      'Beta Studio Centrum',
+    ]);
     expect(items[1]).toMatchObject({ bookingSlug: null, next: null });
-    expect((await myBonuses(BOB)).map((i) => i.organization.name)).toEqual(['Cena Salon']);
+    expect((await myBonuses(BOB)).map((i) => i.organization.name)).toEqual(['Cena Salon Centrum']);
 
     // B switches the program off: Anna's coupon there is still shown, A without anything is not.
     await redeem(b, annaInB, rewardB);
     await saveProgram(b, { enabled: false });
     await saveProgram(a, { enabled: false });
     items = await myBonuses();
-    expect(items.map((i) => [i.organization.name, i.enabled])).toEqual([['Beta Studio', false]]);
+    expect(items.map((i) => [i.organization.name, i.enabled])).toEqual([
+      ['Beta Studio Centrum', false],
+    ]);
     expect(items[0]!.coupons).toHaveLength(1);
+  });
+
+  it('shows the salon by its place name, never the company’s legal name (owner test T9)', async () => {
+    const salon = await setupSalon('legal@example.com', 'GESTALDT Test Sp. z o.o.');
+    await saveProgram(salon, {});
+    await paidVisit(salon);
+    const [card] = await myBonuses();
+    expect(card!.organization.name).toBe('GESTALDT Test Sp. z o.o. Centrum');
+    await ctx.prisma.location.updateMany({
+      where: { organizationId: salon.orgId },
+      data: { name: 'GESTALT Barbershop' },
+    });
+    const [renamed] = await myBonuses();
+    expect(renamed!.organization.name).toBe('GESTALT Barbershop');
+    expect(JSON.stringify(renamed)).not.toContain('Sp. z o.o.');
   });
 });
