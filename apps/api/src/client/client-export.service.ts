@@ -11,7 +11,7 @@ const VISIT_LIMIT = 2000;
 const LEDGER_LIMIT = 2000;
 
 /**
- * "Download my data" (task 22): GDPR right of access and portability (art. 15 and 20).
+ * "Download my data" (task 40): GDPR right of access and portability (art. 15 and 20).
  * Everything kept about the client in every salon where they have a card with their confirmed
  * email — the card, consents, visits, loyalty. The salon's internal notes and tags and
  * who on the team did what are left out, as everywhere in the client app.

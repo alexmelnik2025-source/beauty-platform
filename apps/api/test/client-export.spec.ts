@@ -11,7 +11,7 @@ import {
   type TestContext,
 } from './helpers';
 
-/** "Download my data" in the client app (task 22): GDPR access and portability. */
+/** "Download my data" in the client app (task 40): GDPR access and portability. */
 
 const TZ = 'Europe/Warsaw';
 const ANNA = 'anna.export@example.com';

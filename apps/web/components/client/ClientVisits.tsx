@@ -209,7 +209,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
 
   const [downloading, setDownloading] = useState(false);
 
-  /** GDPR access and portability (task 22): everything the salons keep, as a JSON file. */
+  /** GDPR access and portability (task 40): everything the salons keep, as a JSON file. */
   async function downloadData() {
     setDownloading(true);
     setError('');

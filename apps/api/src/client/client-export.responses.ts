@@ -9,7 +9,7 @@ import {
 import { loyaltyTransactionTypeSchema } from '../loyalty/loyalty.responses';
 
 /**
- * "Download my data" (task 22, GDPR right of access and portability): everything the salons on
+ * "Download my data" (task 40, GDPR right of access and portability): everything the salons on
  * the platform keep about the signed-in client, found by the confirmed email. Not included:
  * the salon's internal notes and tags, who on the team did what, other clients.
  */
