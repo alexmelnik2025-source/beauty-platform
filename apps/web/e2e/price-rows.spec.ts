@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 70b: the price list as the client sees it (as on Booksy). Under "Strzyżenie męskie" one
@@ -14,13 +15,14 @@ import { waitForEmail } from './mailpit';
  * "Wszyscy specjaliści". "Umów" on the two-specialist line opens the times of both
  * ("Dowolny" in the circles over the calendar), and the visit goes to one of them, never to
  * Kasia; a circle there or under the service gives one specialist's times. "Mówi po" keeps the
- * lines of the specialists who speak the language. Screenshots 83–83c.
+ * lines of the specialists who speak the language. Screenshots 83–83c; the same in the client
+ * app (task 70c), screenshots 83d–83e.
  */
 
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
-const OWNER = `rows-owner-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
+const salonName = (who: string) => `Wiersz Barber ${who} ${run}`;
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -29,7 +31,9 @@ async function json<T>(res: APIResponse): Promise<T> {
   return (res.status() === 204 ? undefined : await res.json()) as T;
 }
 
-async function salonWithPriceRows(api: APIRequestContext): Promise<string> {
+async function salonWithPriceRows(api: APIRequestContext, who: string): Promise<string> {
+  const OWNER = `rows-${who}-${run}@example.com`;
+  const NAME = salonName(who);
   await json(
     await api.post('/v1/auth/register', {
       // An address of its own: sign-ups are limited to 10 an hour per address.
@@ -49,19 +53,20 @@ async function salonWithPriceRows(api: APIRequestContext): Promise<string> {
   );
   const owner = { Authorization: `Bearer ${login.accessToken}` };
   const org = await json<{ id: string }>(
-    await api.post('/v1/organizations', { headers: owner, data: { name: 'Wiersz Barber' } }),
+    await api.post('/v1/organizations', { headers: owner, data: { name: NAME } }),
   );
   const location = await json<{ id: string; slug: string }>(
     await api.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
-        name: 'Wiersz Barber',
+        name: NAME,
         addressLine: 'ul. Wolska 12',
-        city: 'Warszawa',
-        postalCode: '01-258',
+        // First in the app's catalogue, which lists salons by city.
+        city: 'Aleksandrów Łódzki',
+        postalCode: '95-070',
         onlineBookingEnabled: true,
         bookingTerms: '# Regulamin\n\nWizyta jest bezpłatna do odwołania.',
-        privacyPolicy: '# Prywatność\n\nAdministratorem danych jest Wiersz Barber.',
+        privacyPolicy: `# Prywatność\n\nAdministratorem danych jest ${NAME}.`,
       },
     }),
   );
@@ -123,7 +128,7 @@ test('the price list shows a line per price and books the specialists of that li
   browser,
   request,
 }) => {
-  const slug = await salonWithPriceRows(request);
+  const slug = await salonWithPriceRows(request, 'web');
   const phone = await browser.newContext({
     viewport: PHONE,
     isMobile: true,
@@ -198,4 +203,59 @@ test('the price list shows a line per price and books the specialists of that li
   await expect(client.locator('.summary')).toContainText('Kasia');
   await expect(client.locator('.summary')).toContainText('75,00');
   await phone.close();
+});
+
+test('the client app shows the price lines and books the specialists of a line', async ({
+  browser,
+  request,
+}) => {
+  await salonWithPriceRows(request, 'app');
+  const clientApp = await serveApp('mobile-client');
+  const phone = await browser.newContext({
+    viewport: PHONE,
+    isMobile: true,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: { 'x-forwarded-for': '203.0.113.84' },
+  });
+  try {
+    const app = await phone.newPage();
+    await app.goto(clientApp.url);
+    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(salonName('app'));
+    await app
+      .getByRole('article', { name: salonName('app') })
+      .getByRole('button', { name: 'Zobacz salon' })
+      .click();
+    // The salon page: who does it for how much.
+    await expect(app.getByText('Marek, Tomek', { exact: true })).toBeVisible();
+    await app.getByRole('button', { name: 'Umów wizytę' }).click();
+    await expect(app.getByRole('heading', { name: 'Wybierz usługę' })).toBeVisible();
+    await expect(app.getByRole('button', { name: /^Umów: Kasia, 75,00/ })).toBeVisible();
+    await expect(
+      app.getByRole('button', { name: /^Umów: Wszyscy specjaliści, 60,00/ }),
+    ).toBeVisible();
+    await shot(app, '83d-client-app-price-rows');
+    // "Marek, Tomek": both over the times, "Dowolny" first; the visit goes to one of them.
+    await app.getByRole('button', { name: /^Umów: Marek, Tomek,/ }).click();
+    await expect(app.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Dowolny', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await app.getByRole('button', { name: 'Tomek', exact: true }).click();
+    await expect(app.getByRole('button', { name: 'Tomek', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await app.getByRole('button', { name: 'Dowolny', exact: true }).click();
+    await shot(app, '83e-client-app-row-specialists');
+    const time = app.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first();
+    await expect(time).toBeVisible();
+    await time.click();
+    await expect(app.getByRole('heading', { name: 'Twoje dane' })).toBeVisible();
+    await expect(app.getByText(/Strzyżenie męskie · (Marek|Tomek) ·/)).toBeVisible();
+  } finally {
+    await phone.close();
+    clientApp.server.close();
+  }
 });
