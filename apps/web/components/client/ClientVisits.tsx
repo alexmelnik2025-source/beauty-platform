@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from
 import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
-import type { ClientAppointment, ClientPerson } from '@/lib/types';
+import type { ClientAppointment, ClientDataExport, ClientPerson } from '@/lib/types';
 import { InstallApp } from '../InstallApp';
 import { ClientBonuses } from './ClientBonuses';
 import { ErrorBox, LanguageSwitch, Spinner, Wordmark } from '../ui';
@@ -207,6 +207,32 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
     void load();
   }, [load]);
 
+  const [downloading, setDownloading] = useState(false);
+
+  /** GDPR access and portability (task 22): everything the salons keep, as a JSON file. */
+  async function downloadData() {
+    setDownloading(true);
+    setError('');
+    try {
+      const data = await api<ClientDataExport>('/v1/client/export', { auth: false });
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `my-data-${data.exportedAt.slice(0, 10)}.json`;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) onSignedOut();
+      else setError(errorText(t, err));
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   async function signOut() {
     try {
       await api('/v1/client/auth/logout', { method: 'POST', auth: false });
@@ -264,6 +290,15 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
       )}
       <InstallApp lead={t.visits.installLead} />
       <p className="small muted">{fill(t.visits.signedInAs, { email: person.email })}</p>
+      <p className="small muted">{t.visits.downloadDataHint}</p>
+      <button
+        type="button"
+        className="link-btn small"
+        disabled={downloading}
+        onClick={() => void downloadData()}
+      >
+        {t.visits.downloadData}
+      </button>
       <button type="button" className="link-btn small" onClick={() => void signOut()}>
         {t.common.signOut}
       </button>

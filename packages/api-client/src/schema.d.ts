@@ -1721,6 +1721,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download my data (GDPR access and portability)
+         * @description Everything the salons keep about the client, found by the confirmed email: the card in each salon, consents, visits and loyalty. Without the salon’s internal notes and tags or who on the team did what.
+         */
+        get: operations["ClientController_exportData"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/appointments": {
         parameters: {
             query?: never;
@@ -2470,6 +2490,90 @@ export interface components {
         };
         ClientCodeSent: {
             codeExpiresAt: string;
+        };
+        ClientDataExport: {
+            exportedAt: string;
+            person: {
+                email: string;
+                /** @enum {string} */
+                locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                createdAt: string;
+            };
+            salons: {
+                salon: string;
+                /** @description The data controller: the organization (company) name */
+                company: string;
+                client: {
+                    name: string;
+                    phone: string;
+                    email: string | null;
+                    /** @enum {string} */
+                    locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                    createdAt: string;
+                };
+                /** @description Oldest first */
+                consents: {
+                    /** @enum {string} */
+                    type: "booking_terms" | "marketing";
+                    /** @description Version of the text the client saw */
+                    version: string;
+                    granted: boolean;
+                    ip: string | null;
+                    at: string;
+                }[];
+                /** @description Newest first */
+                visits: {
+                    id: string;
+                    /** @description The salon place (location) name */
+                    salon: string;
+                    /** @description Local date at the salon, YYYY-MM-DD */
+                    date: string;
+                    /** @description Local wall-clock time at the salon, HH:MM */
+                    time: string;
+                    /** @description Instant, ISO 8601 UTC */
+                    start: string;
+                    durationMinutes: number;
+                    service: string;
+                    staff: string;
+                    /** @enum {string} */
+                    status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+                    /** @enum {string} */
+                    source: "online" | "manual";
+                    /** @description Hundredths of the currency */
+                    priceGrosze: number;
+                    discountGrosze: number;
+                    /** @description ISO 4217 */
+                    currency: string;
+                    paid: boolean;
+                    /** @enum {string|null} */
+                    cancelledBy: "customer" | "salon" | null;
+                    cancelReason: string | null;
+                    bookedAt: string;
+                }[];
+                /** @description Loyalty cards in this salon (one per program) */
+                loyalty: {
+                    /** @description Stamps of the current cycle or points */
+                    balance: number;
+                    lifetimeEarned: number;
+                    history: {
+                        /** @enum {string} */
+                        type: "earn" | "reverse" | "redeem" | "adjust" | "expire";
+                        points: number;
+                        balanceAfter: number;
+                        expiresAt: string | null;
+                        at: string;
+                    }[];
+                    coupons: {
+                        code: string;
+                        name: string;
+                        /** @enum {string} */
+                        status: "active" | "used" | "expired" | "cancelled";
+                        expiresAt: string | null;
+                        usedAt: string | null;
+                        createdAt: string;
+                    }[];
+                }[];
+            }[];
         };
         ClientLoyalty: {
             items: {
@@ -7078,6 +7182,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientLoyalty"];
+                };
+            };
+        };
+    };
+    ClientController_exportData: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientDataExport"];
                 };
             };
         };

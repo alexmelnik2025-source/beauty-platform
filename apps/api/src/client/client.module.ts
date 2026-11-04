@@ -3,6 +3,7 @@ import { BookingModule } from '../booking/booking.module';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { ClientGuard } from './client-auth';
 import { ClientController } from './client.controller';
+import { ClientExportService } from './client-export.service';
 import { ClientLoyaltyService } from './client-loyalty.service';
 import { ClientService } from './client.service';
 
@@ -10,6 +11,6 @@ import { ClientService } from './client.service';
 @Module({
   imports: [BookingModule, LoyaltyModule],
   controllers: [ClientController],
-  providers: [ClientService, ClientLoyaltyService, ClientGuard],
+  providers: [ClientService, ClientLoyaltyService, ClientExportService, ClientGuard],
 })
 export class ClientModule {}
