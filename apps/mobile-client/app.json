@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Wizyty",
+    "slug": "beauty-client",
+    "scheme": "beauty-client",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": { "bundleIdentifier": "dev.beautyplatform.client", "supportsTablet": true },
+    "android": { "package": "dev.beautyplatform.client" },
+    "web": { "output": "single", "bundler": "metro" },
+    "plugins": ["expo-secure-store"]
+  }
+}

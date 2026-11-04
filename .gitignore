@@ -21,5 +21,5 @@ test-results/
 *.tsbuildinfo
 e2e/screenshots/*.png
 
-# Expo (apps/mobile-business)
+# Expo (apps/mobile-business, apps/mobile-client)
 .expo/

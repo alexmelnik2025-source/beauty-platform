@@ -10,6 +10,7 @@ COPY apps/api/prisma.config.ts apps/api/prisma.config.ts
 COPY apps/api/prisma apps/api/prisma
 COPY apps/web/package.json apps/web/package.json
 COPY apps/mobile-business/package.json apps/mobile-business/package.json
+COPY apps/mobile-client/package.json apps/mobile-client/package.json
 COPY packages/api-client/package.json packages/api-client/package.json
 COPY packages/config/package.json packages/config/package.json
 RUN mkdir -p apps/api/src

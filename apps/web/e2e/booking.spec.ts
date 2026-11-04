@@ -936,4 +936,50 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   } finally {
     businessApp.server.close();
   }
+
+  // ── Client app for iPhone and Android (web preview of apps/mobile-client) ──
+  // The same "My visits" as on the web: the email the client books with → code, no password.
+  const clientApp = await serveApp('mobile-client');
+  try {
+    const phone = await (
+      await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true })
+    ).newPage();
+    await phone.goto(clientApp.url);
+    await expect(phone.getByRole('heading', { name: 'Moje wizyty' })).toBeVisible();
+    await phone.getByLabel('E-mail', { exact: true }).fill(CLIENT);
+    await shot(phone, '58-client-app-sign-in');
+    const visitCode = /Kod logowania do Twoich wizyt/;
+    const codesBefore = (await listTo(CLIENT)).filter((m) => visitCode.test(m.Subject)).length;
+    await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+    await expect(
+      phone.getByText(`Wysłaliśmy 6-cyfrowy kod na ${CLIENT}.`, { exact: false }),
+    ).toBeVisible();
+    // Wait for the new code, not the one the web sign-in above used.
+    await expect
+      .poll(async () => (await listTo(CLIENT)).filter((m) => visitCode.test(m.Subject)).length)
+      .toBeGreaterThan(codesBefore);
+    const appCodeMail = await waitForEmail(CLIENT, visitCode);
+    await phone.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(appCodeMail.text)![1]!);
+    await shot(phone, '58a-client-app-code');
+    await phone.getByRole('button', { name: 'Zaloguj się' }).click();
+    // Upcoming visits in every salon: the booked haircut at Gestalt with Kasia.
+    await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+    await expect(phone.getByText('Strzyżenie męskie').first()).toBeVisible();
+    await expect(phone.getByText('Gestalt Barbershop').first()).toBeVisible();
+    await expect(phone.getByText('u: Kasia').first()).toBeVisible();
+    await expect(phone.getByText('Potwierdzona').first()).toBeVisible();
+    await shot(phone, '58b-client-app-visits');
+    await phone.getByRole('tab', { name: 'Historia' }).click();
+    await expect(phone.getByRole('tab', { name: 'Historia', selected: true })).toBeVisible();
+    await phone.waitForLoadState('networkidle');
+    await shot(phone, '58c-client-app-history');
+    // The session is kept on the phone: opening the app again needs no new code.
+    await phone.reload();
+    await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+    await phone.getByRole('button', { name: 'Wyloguj się' }).click();
+    await expect(phone.getByRole('heading', { name: 'Moje wizyty' })).toBeVisible();
+    await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();
+  } finally {
+    clientApp.server.close();
+  }
 });

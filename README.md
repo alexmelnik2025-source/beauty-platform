@@ -146,6 +146,7 @@ apps/
   api/              REST API (NestJS 12, Prisma 7, PostgreSQL 17)
   web/              веб-кабинет салона и онлайн-запись (Next.js)
   mobile-business/  бизнес-приложение для iPhone и Android (Expo / React Native)
+  mobile-client/    клиентское приложение «Moje wizyty» для iPhone и Android (Expo / React Native)
 packages/
   api-client/       типы API из OpenAPI для веба и приложений
   config/           общие настройки TypeScript и ESLint
@@ -153,7 +154,7 @@ docker/             скрипты инициализации базы
 docs/               спецификация и решения
 ```
 
-Клиентское приложение (`apps/mobile-client`) появится в задаче 11b.
+Клиентское приложение: `pnpm --filter @beauty/mobile-client dev` — так же, как бизнес-приложение ниже.
 
 Бизнес-приложение на своём компьютере: `pnpm --filter @beauty/mobile-business dev` (Expo; открыть в
 Expo Go на телефоне или в браузере клавишей `w`). Адрес API для телефона — `EXPO_PUBLIC_API_URL`
