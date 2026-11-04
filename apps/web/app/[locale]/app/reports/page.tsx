@@ -56,7 +56,7 @@ export default function ReportsPage() {
     };
   }, [session.orgId, session.location.id, range.from, range.to, invalid, t]);
 
-  /** Task 21: every visit of the period as a CSV file the accountant opens in Excel. */
+  /** Task 22: every visit of the period as a CSV file the accountant opens in Excel. */
   async function downloadCsv() {
     setDownloading(true);
     setError('');

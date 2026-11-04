@@ -1,5 +1,5 @@
 /**
- * Task 21: the visits of a period as a CSV file for the salon's accountant. Excel opens it as
+ * Task 22: the visits of a period as a CSV file for the salon's accountant. Excel opens it as
  * it is: UTF-8 with a byte order mark, ";" between the columns and a decimal comma (the way
  * Polish, Ukrainian and Russian spreadsheets expect it; English gets a decimal point).
  * No client contacts — only the name the salon sees in its calendar.
@@ -196,5 +196,5 @@ export function visitsCsv(visits: CsvVisit[], locale: CsvLocale): string {
         .join(';'),
     );
   }
-  return `﻿${lines.join('\r\n')}\r\n`;
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
 }
