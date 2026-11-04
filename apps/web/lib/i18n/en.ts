@@ -667,6 +667,8 @@ export const en: Dict = {
     bonusDays: 'Days (none ticked = every day)',
     bonusMultiplier: 'Multiplier (×)',
     bonusExtra: 'Extra (+)',
+    bonusWithin: 'If back within (days)',
+    bonusWithinAny: 'any visit',
     bonusAdd: '+ Add a rule',
     bonusRemove: 'Remove rule',
     bonusSave: 'Save rules',

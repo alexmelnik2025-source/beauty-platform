@@ -667,6 +667,8 @@ export const pl = {
     bonusDays: 'Dni (nic nie zaznaczone = codziennie)',
     bonusMultiplier: 'Mnożnik (×)',
     bonusExtra: 'Dodatkowo (+)',
+    bonusWithin: 'Gdy wraca w ciągu (dni)',
+    bonusWithinAny: 'każda wizyta',
     bonusAdd: '+ Dodaj zasadę',
     bonusRemove: 'Usuń zasadę',
     bonusSave: 'Zapisz zasady',

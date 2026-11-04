@@ -666,6 +666,8 @@ export const ru: Dict = {
     bonusDays: 'Дни (ничего не выбрано = каждый день)',
     bonusMultiplier: 'Множитель (×)',
     bonusExtra: 'Дополнительно (+)',
+    bonusWithin: 'Если возвращается в течение (дней)',
+    bonusWithinAny: 'любой визит',
     bonusAdd: '+ Добавить правило',
     bonusRemove: 'Удалить правило',
     bonusSave: 'Сохранить правила',

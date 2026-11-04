@@ -304,6 +304,7 @@ export class LoyaltyService {
         weekdays: [...r.weekdays].sort((a, b) => a - b),
         multiplier: r.multiplier,
         extraPoints: r.extraPoints,
+        withinDays: r.withinDays,
       })),
     };
   }

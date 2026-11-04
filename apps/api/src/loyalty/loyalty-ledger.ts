@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException } from '../common/app-exception';
-import { instantToLocal, isoWeekday } from '../scheduling/time';
+import { daysBetween, instantToLocal, isoWeekday } from '../scheduling/time';
 import { withBonus } from './loyalty-bonus';
 import type {
   LoyaltyCoupon,
@@ -99,10 +99,34 @@ export class LoyaltyLedger {
         where: { id: visit.id },
         select: { staffId: true, startAt: true, location: { select: { timezone: true } } },
       });
-      const weekday = isoWeekday(
-        instantToLocal(appointment.startAt.getTime(), appointment.location.timezone).date,
-      );
-      const bonus = withBonus(base, program.bonusRules, appointment.staffId, weekday);
+      const zone = appointment.location.timezone;
+      const date = instantToLocal(appointment.startAt.getTime(), zone).date;
+      // Task 19c: rules for clients who come back within N days need the previous paid visit.
+      let daysSincePrevious: number | null = null;
+      if (program.bonusRules.some((r) => r.withinDays !== null)) {
+        const previous = await tx.appointment.findFirst({
+          where: {
+            id: { not: visit.id },
+            customerId: visit.customerId,
+            location: { organizationId: visit.organizationId },
+            paidAt: { not: null },
+            startAt: { lt: appointment.startAt },
+          },
+          orderBy: { startAt: 'desc' },
+          select: { startAt: true },
+        });
+        if (previous) {
+          daysSincePrevious = daysBetween(
+            instantToLocal(previous.startAt.getTime(), zone).date,
+            date,
+          );
+        }
+      }
+      const bonus = withBonus(base, program.bonusRules, {
+        staffId: appointment.staffId,
+        weekday: isoWeekday(date),
+        daysSincePrevious,
+      });
       points = bonus.points;
       if (bonus.rule) bonusNote = `${bonus.rule.name}: ${base} → ${points}`;
     }

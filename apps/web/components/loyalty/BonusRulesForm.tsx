@@ -12,6 +12,8 @@ interface Row {
   weekdays: number[];
   multiplier: string;
   extraPoints: string;
+  /** '' = any visit. */
+  withinDays: string;
 }
 
 const toRow = (r: LoyaltyBonusRules['rules'][number]): Row => ({
@@ -20,6 +22,7 @@ const toRow = (r: LoyaltyBonusRules['rules'][number]): Row => ({
   weekdays: r.weekdays,
   multiplier: String(r.multiplier),
   extraPoints: String(r.extraPoints),
+  withinDays: r.withinDays === null ? '' : String(r.withinDays),
 });
 
 const toggle = <T,>(list: T[], value: T, on: boolean): T[] =>
@@ -27,7 +30,8 @@ const toggle = <T,>(list: T[], value: T, on: boolean): T[] =>
 
 /**
  * "Dodatkowe pieczątki i punkty" (task 19): ×N or +N for a paid visit at chosen specialists
- * and/or on chosen weekdays — e.g. to fill quiet Monday–Wednesday at one barber.
+ * and/or on chosen weekdays — e.g. to fill quiet Monday–Wednesday at one barber — and,
+ * if the salon wants, only for clients back within N days of their previous paid visit.
  * The server picks the best matching rule for each visit; saved as a whole list.
  */
 export function BonusRulesForm({ org, base }: { org: string; base: string }) {
@@ -70,6 +74,7 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
             weekdays: r.weekdays,
             multiplier: Number(r.multiplier || 1),
             extraPoints: Number(r.extraPoints || 0),
+            withinDays: r.withinDays === '' ? null : Number(r.withinDays),
           })),
         },
       });
@@ -133,6 +138,17 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
                 onChange={(e) => set(i, { extraPoints: e.target.value })}
               />
             </label>
+            <label className="field" style={{ width: 150 }}>
+              <span>{t.loyalty.bonusWithin}</span>
+              <input
+                type="number"
+                min={1}
+                max={365}
+                placeholder={t.loyalty.bonusWithinAny}
+                value={r.withinDays}
+                onChange={(e) => set(i, { withinDays: e.target.value })}
+              />
+            </label>
             <button
               type="button"
               className="btn btn--quiet btn--small"
@@ -190,7 +206,14 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
             onClick={() =>
               setRows([
                 ...rows,
-                { name: '', staffIds: [], weekdays: [], multiplier: '2', extraPoints: '0' },
+                {
+                  name: '',
+                  staffIds: [],
+                  weekdays: [],
+                  multiplier: '2',
+                  extraPoints: '0',
+                  withinDays: '',
+                },
               ])
             }
           >

@@ -86,6 +86,13 @@ export function addDays(date: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
+/** Calendar days from one local date to another (negative when `to` is earlier). */
+export function daysBetween(from: string, to: string): number {
+  const [y1, m1, d1] = parseDate(from);
+  const [y2, m2, d2] = parseDate(to);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / DAY_MS);
+}
+
 /** Inclusive list of dates from `from` to `to`. */
 export function datesBetween(from: string, to: string): string[] {
   const result: string[] = [];
