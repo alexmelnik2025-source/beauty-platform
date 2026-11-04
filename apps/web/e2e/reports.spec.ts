@@ -230,6 +230,10 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByText('Ilian')).toBeVisible();
     await expect(app.getByText(/150,00\s*zł/)).toBeVisible();
     await shot(app, '75-business-app-reports');
+    // Monday to Sunday in the app too (task 32).
+    await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
+    await expect(app.getByText('poniedziałek')).toBeVisible();
+    await shot(app, '75b-business-app-reports-weekdays');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
   } finally {

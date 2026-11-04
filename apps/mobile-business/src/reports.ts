@@ -25,3 +25,20 @@ export function onlineShare(totals: {
   const kept = totals.visits - totals.cancelledByClient - totals.cancelledBySalon;
   return kept > 0 ? Math.round((totals.online / kept) * 100) : 0;
 }
+
+/** Task 32: "+12%" / "−5%" against the days before; null when there is nothing to compare. */
+export function change(now: number, before: number): string | null {
+  if (before <= 0) return null;
+  const percent = Math.round(((now - before) / before) * 100);
+  if (percent === 0) return null;
+  return `${percent > 0 ? '+' : '−'}${Math.abs(percent)}%`;
+}
+
+const INTL_LOCALE = { pl: 'pl-PL', uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' } as const;
+
+/** Monday … Sunday (ISO 1–7) in the app's language; 2026-11-02 was a Monday. */
+export function weekdayLong(weekday: number, locale: keyof typeof INTL_LOCALE): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: 'UTC', weekday: 'long' }).format(
+    new Date(Date.UTC(2026, 10, 1 + weekday)),
+  );
+}

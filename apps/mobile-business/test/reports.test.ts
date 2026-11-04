@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { onlineShare, reportRange } from '../src/reports';
+import { change, onlineShare, reportRange, weekdayLong } from '../src/reports';
 
 describe('report periods', () => {
   it('this month, last month (also across a year) and the last 30 days', () => {
@@ -29,5 +29,14 @@ describe('report periods', () => {
     expect(onlineShare({ visits: 1, online: 0, cancelledByClient: 1, cancelledBySalon: 0 })).toBe(
       0,
     );
+  });
+
+  it('change against the days before, and weekday names', () => {
+    expect(change(112, 100)).toBe('+12%');
+    expect(change(95, 100)).toBe('−5%');
+    expect(change(100, 100)).toBeNull();
+    expect(change(10, 0)).toBeNull();
+    expect(weekdayLong(1, 'pl')).toBe('poniedziałek');
+    expect(weekdayLong(7, 'en')).toBe('Sunday');
   });
 });

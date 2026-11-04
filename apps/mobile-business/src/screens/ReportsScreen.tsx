@@ -4,7 +4,14 @@ import type { BusinessApi, Locale, SalonReport } from '../api';
 import { dayTitle, formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { onlineShare, REPORT_PERIODS, reportRange, type ReportPeriod } from '../reports';
+import {
+  change,
+  onlineShare,
+  REPORT_PERIODS,
+  reportRange,
+  weekdayLong,
+  type ReportPeriod,
+} from '../reports';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -58,10 +65,17 @@ export function ReportsScreen(props: {
   const shown = report && report.from === range.from && report.to === range.to ? report : null;
   const totals = shown?.totals;
 
-  const stat = (label: string, value: string, sub?: string) => (
+  const previous = shown?.previous;
+  const maxWeekday = Math.max(1, ...(shown?.weekdays.map((d) => d.completed) ?? [1]));
+  const stat = (label: string, value: string, sub?: string, trend?: string | null) => (
     <View style={styles.stat} key={label}>
       <Text style={styles.muted}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
+      <Text style={styles.value}>
+        {value}
+        {trend ? (
+          <Text style={[styles.trend, trend.startsWith('+') && styles.trendUp]}> {trend}</Text>
+        ) : null}
+      </Text>
       {sub ? <Text style={styles.small}>{sub}</Text> : null}
     </View>
   );
@@ -99,12 +113,19 @@ export function ReportsScreen(props: {
               r.revenue,
               money(totals.revenueGrosze),
               fill(r.paidCount, { n: String(totals.paid) }),
+              previous && change(totals.revenueGrosze, previous.revenueGrosze),
             )}
-            {stat(r.average, money(totals.averageTicketGrosze))}
+            {stat(
+              r.average,
+              money(totals.averageTicketGrosze),
+              undefined,
+              previous && change(totals.averageTicketGrosze, previous.averageTicketGrosze),
+            )}
             {stat(
               r.completed,
               String(totals.completed),
               fill(r.upcoming, { n: String(totals.upcoming) }),
+              previous && change(totals.completed, previous.completed),
             )}
             {stat(r.noShow, String(totals.noShow))}
             {stat(
@@ -119,6 +140,7 @@ export function ReportsScreen(props: {
               r.clients,
               String(totals.clients),
               fill(r.newClients, { n: String(totals.newClients) }),
+              previous && change(totals.clients, previous.clients),
             )}
             {stat(
               r.online,
@@ -126,6 +148,14 @@ export function ReportsScreen(props: {
               fill(r.onlineShare, { n: String(onlineShare(totals)) }),
             )}
           </View>
+          {previous ? (
+            <Text style={styles.small}>
+              {fill(r.compared, {
+                from: dayTitle(previous.from, props.locale),
+                to: dayTitle(previous.to, props.locale),
+              })}
+            </Text>
+          ) : null}
           <Text style={styles.small}>{r.note}</Text>
 
           {totals.visits === 0 ? (
@@ -156,6 +186,24 @@ export function ReportsScreen(props: {
               </View>
             ))
           )}
+          {totals.visits > 0 ? (
+            <View style={{ gap: 6 }}>
+              <Text style={styles.section}>{r.byWeekday}</Text>
+              {shown.weekdays.map((d) => (
+                <View key={d.weekday} style={styles.weekday}>
+                  <Text style={styles.weekdayName}>{weekdayLong(d.weekday, props.locale)}</Text>
+                  <View style={styles.bar}>
+                    <View
+                      style={[styles.barFill, { width: `${(d.completed / maxWeekday) * 100}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.small}>
+                    {fill(r.weekdayVisits, { n: String(d.completed) })}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </>
       ) : !error ? (
         <Text style={styles.muted}>{t.loading}</Text>
@@ -186,4 +234,10 @@ const styles = StyleSheet.create({
   small: { color: colors.muted, fontSize: 13 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink, flexShrink: 1 },
+  trend: { fontSize: 13, fontWeight: '600', color: colors.danger },
+  trendUp: { color: colors.ink },
+  weekday: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  weekdayName: { width: 110, color: colors.ink, fontSize: 14 },
+  bar: { flex: 1, height: 8, backgroundColor: colors.line, borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: '100%', backgroundColor: colors.ink },
 });
