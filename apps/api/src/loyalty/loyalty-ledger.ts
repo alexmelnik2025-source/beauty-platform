@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException } from '../common/app-exception';
+import { instantToLocal, isoWeekday } from '../scheduling/time';
+import { withBonus } from './loyalty-bonus';
 import type {
   LoyaltyCoupon,
   LoyaltyProgram,
@@ -85,10 +87,25 @@ export class LoyaltyLedger {
     if (!visit.customerId) return 0;
     const program = await tx.loyaltyProgram.findUnique({
       where: { organizationId: visit.organizationId },
-      include: { earnRules: { where: { serviceId: visit.serviceId } } },
+      include: { earnRules: { where: { serviceId: visit.serviceId } }, bonusRules: true },
     });
     if (!program?.enabled) return 0;
-    const points = earnAmount(program, program.earnRules[0]?.points, visit.priceGrosze);
+    const base = earnAmount(program, program.earnRules[0]?.points, visit.priceGrosze);
+    let points = base;
+    let bonusNote: string | null = null;
+    if (base > 0 && program.bonusRules.length > 0) {
+      // Task 19: the specialist and the weekday of the visit in the salon's time zone.
+      const appointment = await tx.appointment.findUniqueOrThrow({
+        where: { id: visit.id },
+        select: { staffId: true, startAt: true, location: { select: { timezone: true } } },
+      });
+      const weekday = isoWeekday(
+        instantToLocal(appointment.startAt.getTime(), appointment.location.timezone).date,
+      );
+      const bonus = withBonus(base, program.bonusRules, appointment.staffId, weekday);
+      points = bonus.points;
+      if (bonus.rule) bonusNote = `${bonus.rule.name}: ${base} → ${points}`;
+    }
     if (points <= 0) return 0;
 
     const account = await this.lockedAccount(tx, program.id, visit.customerId);
@@ -114,6 +131,7 @@ export class LoyaltyLedger {
         dedupeKey: `earn:${visit.id}:${earlier}`,
         expiresAt,
         actorUserId,
+        note: bonusNote,
       },
     });
     return points;

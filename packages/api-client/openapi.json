@@ -6227,6 +6227,123 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/loyalty/bonus-rules": {
+      "get": {
+        "operationId": "LoyaltyController_getBonusRules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyBonusRules"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Extra stamps or points at chosen specialists and/or weekdays",
+        "tags": [
+          "loyalty"
+        ]
+      },
+      "put": {
+        "description": "An empty list switches them off. Rules never add up: a paid visit gets the best matching one. 404 when a specialist is not of this salon (or, for a manager, not of their locations).",
+        "operationId": "LoyaltyController_replaceBonusRules",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "staffIds": {
+                          "default": [],
+                          "maxItems": 100,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "weekdays": {
+                          "default": [],
+                          "maxItems": 7,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 7
+                          }
+                        },
+                        "multiplier": {
+                          "default": 1,
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 10
+                        },
+                        "extraPoints": {
+                          "default": 0,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "rules"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyBonusRules"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the bonus rules (e.g. ×2 on Monday–Wednesday at one specialist)",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/loyalty/earn-rules": {
       "put": {
         "operationId": "LoyaltyController_replaceEarnRules",
@@ -11487,6 +11604,78 @@
           "transactions",
           "coupons",
           "tier"
+        ],
+        "additionalProperties": false
+      },
+      "LoyaltyBonusRules": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "staff": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "displayName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "displayName"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Empty = every specialist"
+                },
+                "weekdays": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "description": "ISO weekdays in the salon time zone, 1 = Monday; empty = every day"
+                },
+                "multiplier": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "extraPoints": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "staff",
+                "weekdays",
+                "multiplier",
+                "extraPoints"
+              ],
+              "additionalProperties": false
+            },
+            "description": "A paid visit earns base × multiplier + extraPoints by the best matching rule (task 19)"
+          }
+        },
+        "required": [
+          "rules"
         ],
         "additionalProperties": false
       },
