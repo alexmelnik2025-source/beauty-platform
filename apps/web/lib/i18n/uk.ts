@@ -399,6 +399,9 @@ export const uk: Dict = {
     next: 'Наступне фото',
   },
   languages: {
+    filterLabel: 'Говорить',
+    filterAll: 'Усі',
+    myTitle: 'Мої мови',
     salonTitle: 'Мови в салоні',
     salonHint: 'Якими мовами ви говорите з клієнтами. Покажемо їх на сторінці запису.',
     staffTitle: 'Мови',

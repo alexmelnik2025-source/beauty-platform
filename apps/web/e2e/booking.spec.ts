@@ -283,6 +283,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     client.getByRole('button', { name: /Dowolny specjalista/ }).locator('.c-free'),
   ).toHaveText(nearestFree);
   await shot(client, '02-client-staff');
+  // Task 81: "Mówi po" — only the specialists who speak the language (PL is spoken by all: no chip).
+  const speaks = client.getByRole('group', { name: 'Mówi po' });
+  await expect(speaks.getByRole('button')).toHaveText(['Wszyscy', 'UA ukraiński', 'EN angielski']);
+  await speaks.getByRole('button', { name: 'Mówi po: angielski' }).click();
+  await expect(client.getByRole('button', { name: /Alex/ })).toBeVisible();
+  await expect(client.getByRole('button', { name: /Kasia/ })).toHaveCount(0);
+  await expect(client.getByRole('button', { name: /Dowolny specjalista/ })).toHaveCount(0);
+  await shot(client, '02l-client-staff-speaks-en');
+  await speaks.getByRole('button', { name: 'Wszyscy' }).click();
+  await expect(client.getByRole('button', { name: /Kasia/ })).toBeVisible();
   await client.getByRole('button', { name: /Kasia/ }).click();
   await expect(client.locator('.times button').first()).toBeVisible();
   await shot(client, '03-client-times');

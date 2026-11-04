@@ -1763,6 +1763,20 @@
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
+                  "languages": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pl",
+                        "uk",
+                        "ru",
+                        "be",
+                        "en"
+                      ]
+                    }
+                  },
                   "staffCategoryId": {
                     "type": "string",
                     "format": "uuid",
@@ -2932,6 +2946,80 @@
           }
         ],
         "summary": "Update a staff member. Send the version you read",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/languages": {
+      "put": {
+        "description": "Owners and managers of the location, or the staff member on their own profile (403 for anyone else).",
+        "operationId": "StaffController_setLanguages",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "languages": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pl",
+                        "uk",
+                        "ru",
+                        "be",
+                        "en"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "languages"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Staff"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the languages a staff member speaks with clients (task 81)",
         "tags": [
           "staff"
         ]

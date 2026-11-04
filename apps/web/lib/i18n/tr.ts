@@ -231,6 +231,8 @@ export const tr: Dict = {
   },
   languages: {
     ...en.languages,
+    filterLabel: 'Konuşuyor',
+    filterAll: 'Herkes',
     speaks: 'Konuştuğumuz diller',
     names: {
       pl: 'Lehçe',

@@ -84,6 +84,10 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await expect(form.getByRole('heading', { name: 'Zaproś do zespołu' })).toBeVisible();
   await form.getByLabel('E-mail', { exact: true }).fill(KASIA);
   await form.getByLabel('Telefon').fill('+48 600 100 200');
+  // Task 81: the profile's languages right in the invitation.
+  const english = form.getByRole('button', { name: 'EN angielski' });
+  if ((await english.getAttribute('aria-pressed')) !== 'true') await english.click();
+  await expect(english).toHaveAttribute('aria-pressed', 'true');
   await shot(page, '54-owner-invite-email-phone');
   await form.getByRole('button', { name: 'Zaproś', exact: true }).click();
   await expect(page.getByText(`Zaproszenie wysłane na ${KASIA}.`, { exact: true })).toBeVisible();
@@ -131,6 +135,19 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await kasia.getByRole('link', { name: 'Kalendarz' }).click();
   await kasia.waitForURL(/\/pl\/app\/calendar/);
   await shot(kasia, '57-staff-joined-calendar');
+
+  // Task 81: Kasia sets her own languages in "Mój grafik" (clients see them when booking).
+  await kasia.goto('/pl/app/schedule');
+  const myLanguages = kasia.getByRole('region', { name: 'Moje języki' });
+  await expect(myLanguages.getByRole('button', { name: 'EN angielski' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  const ukrainian = myLanguages.getByRole('button', { name: 'UA ukraiński' });
+  if ((await ukrainian.getAttribute('aria-pressed')) !== 'true') await ukrainian.click();
+  await myLanguages.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(myLanguages.getByRole('status')).toHaveText('Zapisano');
+  await shot(kasia, '57l-staff-my-languages');
 
   // The owner sees the account linked to the profile.
   await page.reload();

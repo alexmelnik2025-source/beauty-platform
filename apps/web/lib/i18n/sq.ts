@@ -231,6 +231,8 @@ export const sq: Dict = {
   },
   languages: {
     ...en.languages,
+    filterLabel: 'Flet',
+    filterAll: 'Të gjithë',
     speaks: 'Flasim',
     names: {
       pl: 'Polonisht',

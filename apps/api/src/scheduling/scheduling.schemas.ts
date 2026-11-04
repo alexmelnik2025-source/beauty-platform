@@ -180,3 +180,7 @@ export type WeeklyHoursInput = z.infer<typeof weeklyHoursSchema>;
 export type OverrideInput = z.infer<typeof overrideSchema>;
 export type CreateTimeOffInput = z.infer<typeof createTimeOffSchema>;
 export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;
+
+/** Task 81: the languages a staff member speaks with clients. */
+export const staffLanguagesSchema = z.object({ languages: languagesSchema });
+export type StaffLanguagesInput = z.infer<typeof staffLanguagesSchema>;

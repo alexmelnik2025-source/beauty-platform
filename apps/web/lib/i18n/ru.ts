@@ -401,6 +401,9 @@ export const ru: Dict = {
     next: 'Следующее фото',
   },
   languages: {
+    filterLabel: 'Говорит',
+    filterAll: 'Все',
+    myTitle: 'Мои языки',
     salonTitle: 'Языки в салоне',
     salonHint: 'На каких языках вы говорите с клиентами. Покажем их на странице записи.',
     staffTitle: 'Языки',

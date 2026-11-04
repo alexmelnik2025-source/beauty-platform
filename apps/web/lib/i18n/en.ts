@@ -400,6 +400,9 @@ export const en: Dict = {
     next: 'Next photo',
   },
   languages: {
+    filterLabel: 'Speaks',
+    filterAll: 'Everyone',
+    myTitle: 'My languages',
     salonTitle: 'Languages at the salon',
     salonHint: 'Which languages you speak with clients. We show them on the booking page.',
     staffTitle: 'Languages',

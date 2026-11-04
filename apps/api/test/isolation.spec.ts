@@ -136,6 +136,7 @@ function validBody(route: Route): object {
       marketplaceEnabled: true,
     };
   }
+  if (p.endsWith('/staff/:staffId/languages')) return { languages: ['pl'] };
   if (p.endsWith('/loyalty/tiers')) {
     return {
       basis: 'visits',

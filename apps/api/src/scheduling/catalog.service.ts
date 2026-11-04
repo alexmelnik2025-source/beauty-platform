@@ -1,8 +1,14 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { AppException, notFound } from '../common/app-exception';
+import { AppException, forbidden, notFound } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
-import type { Prisma, Service, ServiceCategory, StaffMember } from '../generated/prisma/client';
+import type {
+  Language,
+  Prisma,
+  Service,
+  ServiceCategory,
+  StaffMember,
+} from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { photoUrl } from './photos.service';
@@ -433,6 +439,33 @@ export class CatalogService {
       return tx.staffMember.findUniqueOrThrow({ where: { id: staffId }, include: withServices });
     });
     return toStaff(staff);
+  }
+
+  /**
+   * Task 81: the languages a staff member speaks with clients. Owners and managers of the
+   * location, or the staff member themselves (their own profile only).
+   */
+  async setStaffLanguages(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    staffId: string,
+    languages: Language[],
+  ): Promise<StaffResponse> {
+    await this.access.readable(m, locationId);
+    const staff = await this.findStaff(locationId, staffId);
+    if (m.role === 'staff' && staff.userId !== actorUserId) throw forbidden();
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.staffMember.update({
+        where: { id: staffId },
+        data: { languages, version: { increment: 1 } },
+      });
+      await this.record(tx, m, actorUserId, 'staff.languages_changed', 'staff_member', staffId, [
+        'languages',
+      ]);
+      return tx.staffMember.findUniqueOrThrow({ where: { id: staffId }, include: withServices });
+    });
+    return toStaff(updated);
   }
 
   /** Replaces the set of services this staff member performs. */
