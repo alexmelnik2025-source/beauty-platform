@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { OutboxService } from '../src/booking/outbox.service';
 import { LoyaltyExpiryService } from '../src/loyalty/loyalty-expiry.service';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
@@ -139,10 +140,10 @@ describe('points past their date', () => {
     await add(jan, 30);
     await spend(jan, 40);
 
-    expect(await expiry.run(inDays(29))).toEqual({ accounts: 0, points: 0 });
-    expect(await expiry.run(inDays(31))).toEqual({ accounts: 1, points: 40 });
+    expect(await expiry.run(inDays(29))).toMatchObject({ accounts: 0, points: 0 });
+    expect(await expiry.run(inDays(31))).toMatchObject({ accounts: 1, points: 40 });
     // Running again (or on another server) takes nothing more.
-    expect(await expiry.run(inDays(31))).toEqual({ accounts: 0, points: 0 });
+    expect(await expiry.run(inDays(31))).toMatchObject({ accounts: 0, points: 0 });
 
     const acc = await account(jan);
     expect(acc.balance).toBe(0);
@@ -156,9 +157,9 @@ describe('points past their date', () => {
     await add(jan, 30); // expires in 60 days
     await spend(jan, 20); // taken from the 50 that expire first
 
-    expect(await expiry.run(inDays(31))).toEqual({ accounts: 1, points: 30 });
+    expect(await expiry.run(inDays(31))).toMatchObject({ accounts: 1, points: 30 });
     expect((await account(jan)).balance).toBe(30);
-    expect(await expiry.run(inDays(61))).toEqual({ accounts: 1, points: 30 });
+    expect(await expiry.run(inDays(61))).toMatchObject({ accounts: 1, points: 30 });
     expect((await account(jan)).balance).toBe(0);
   });
 
@@ -172,7 +173,7 @@ describe('points past their date', () => {
       .set(owner.auth)
       .send({ version: 1 })
       .expect(200);
-    expect(await expiry.run(inDays(31))).toEqual({ accounts: 1, points: 50 });
+    expect(await expiry.run(inDays(31))).toMatchObject({ accounts: 1, points: 50 });
   });
 
   it('points without a date and other clients are left alone', async () => {
@@ -181,7 +182,7 @@ describe('points past their date', () => {
     await add(jan, 20);
     await saveProgram({ pointsValidityDays: null });
     await add(ewa, 20);
-    expect(await expiry.run(inDays(400))).toEqual({ accounts: 1, points: 20 });
+    expect(await expiry.run(inDays(400))).toMatchObject({ accounts: 1, points: 20 });
     expect((await account(jan)).balance).toBe(0);
     expect((await account(ewa)).balance).toBe(20);
   });
@@ -204,5 +205,31 @@ describe('points past their date', () => {
       .expect(200);
     expect(mine.body.items[0].balance).toBe(0);
     expect(mine.body.items[0].history[0]).toMatchObject({ type: 'expire', points: -20 });
+  });
+
+  it('a week before, the client gets one email from the salon', async () => {
+    const jan = await client();
+    await add(jan, 50);
+    await spend(jan, 20);
+    expect((await expiry.run(inDays(20))).warned).toBe(0);
+    expect((await expiry.run(inDays(24))).warned).toBe(1);
+    // Once for each date, however often the job runs.
+    expect((await expiry.run(inDays(25))).warned).toBe(0);
+    await ctx.app.get(OutboxService).drain();
+    const mail = ctx.mail.lastTo('jan@example.com');
+    expect(mail?.subject).toBe('Twoje punkty wkrótce wygasną');
+    expect(mail?.text).toContain('W Barber Centrum masz punkty, które wygasną');
+    expect(mail?.text).toContain(': 30 pkt.');
+  });
+
+  it('no email when the program is off or the points were spent', async () => {
+    const jan = await client();
+    await add(jan, 20);
+    await spend(jan, 20);
+    expect((await expiry.run(inDays(24))).warned).toBe(0);
+    const ewa = await client('ewa@example.com');
+    await add(ewa, 20);
+    await saveProgram({ enabled: false });
+    expect((await expiry.run(inDays(24))).warned).toBe(0);
   });
 });

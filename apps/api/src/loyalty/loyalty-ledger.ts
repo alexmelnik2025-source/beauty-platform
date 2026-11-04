@@ -310,29 +310,7 @@ export class LoyaltyLedger {
   ): Promise<number> {
     const [locked] = await tx.$queryRaw<{ balance: number }[]>`
       SELECT balance FROM loyalty_account WHERE id = ${accountId}::uuid FOR UPDATE`;
-    const balance = locked?.balance ?? 0;
-    if (balance <= 0) return 0;
-    const sum = async (where: Prisma.LoyaltyTransactionWhereInput): Promise<number> =>
-      (
-        await tx.loyaltyTransaction.aggregate({
-          where: { accountId, ...where },
-          _sum: { points: true },
-        })
-      )._sum.points ?? 0;
-    const granted = await sum({
-      type: { in: ['earn', 'adjust'] },
-      points: { gt: 0 },
-      expiresAt: { lte: now },
-      reversedBy: { is: null },
-    });
-    if (granted <= 0) return 0;
-    const spent =
-      -(await sum({ type: 'redeem' })) -
-      (await sum({ type: 'adjust', points: { lt: 0 } })) -
-      // A cancelled coupon gave its points back.
-      (await sum({ type: 'reverse', reverses: { is: { type: 'redeem' } } }));
-    const expiredBefore = -(await sum({ type: 'expire' }));
-    const due = Math.min(balance, granted - spent - expiredBefore);
+    const due = await this.dueBy(tx, accountId, locked?.balance ?? 0, now);
     if (due <= 0) return 0;
     const updated = await tx.loyaltyAccount.update({
       where: { id: accountId },
@@ -350,6 +328,40 @@ export class LoyaltyLedger {
       },
     });
     return due;
+  }
+
+  /**
+   * How many points will have expired by `at` that have not expired yet: granted with a date up
+   * to `at` − spent − already expired, within the balance. Reads only; `expireDue` writes.
+   */
+  async dueBy(
+    db: Prisma.TransactionClient,
+    accountId: string,
+    balance: number,
+    at: Date,
+  ): Promise<number> {
+    if (balance <= 0) return 0;
+    const sum = async (where: Prisma.LoyaltyTransactionWhereInput): Promise<number> =>
+      (
+        await db.loyaltyTransaction.aggregate({
+          where: { accountId, ...where },
+          _sum: { points: true },
+        })
+      )._sum.points ?? 0;
+    const granted = await sum({
+      type: { in: ['earn', 'adjust'] },
+      points: { gt: 0 },
+      expiresAt: { lte: at },
+      reversedBy: { is: null },
+    });
+    if (granted <= 0) return 0;
+    const spent =
+      -(await sum({ type: 'redeem' })) -
+      (await sum({ type: 'adjust', points: { lt: 0 } })) -
+      // A cancelled coupon gave its points back.
+      (await sum({ type: 'reverse', reverses: { is: { type: 'redeem' } } }));
+    const expiredBefore = -(await sum({ type: 'expire' }));
+    return Math.max(0, Math.min(balance, granted - spent - expiredBefore));
   }
 
   /** The client's account in the program, created on first use, with its row locked. */

@@ -9,6 +9,7 @@ import {
   formatPrice,
   formatWhen,
   renderAppointmentEmail,
+  renderPointsExpiringEmail,
   type NotificationKind,
 } from './booking-templates';
 
@@ -327,8 +328,49 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
+  /** "Your points expire soon" to the client, from the salon; skipped when nothing is left. */
+  private async renderPointsExpiring(row: ClaimedRow): Promise<MailMessage[] | null> {
+    const payload = row.payload as unknown as PointsExpiringNotification;
+    const account = await this.prisma.loyaltyAccount.findUnique({
+      where: { id: payload.accountId },
+      include: {
+        customer: true,
+        program: {
+          include: {
+            organization: {
+              include: { locations: { orderBy: { createdAt: 'asc' }, take: 1 } },
+            },
+          },
+        },
+      },
+    });
+    const email = account?.customer.email;
+    if (!account || !email || account.balance <= 0 || !account.program.enabled) return null;
+    const organization = account.program.organization;
+    const location = organization.locations[0];
+    const salonName = location?.name ?? organization.name;
+    const locale = account.customer.locale;
+    const { subject, text } = renderPointsExpiringEmail(locale, {
+      salonName,
+      points: Math.min(payload.points, account.balance),
+      expiresAt: new Date(payload.expiresAt),
+      timeZone: location?.timezone ?? 'Europe/Warsaw',
+    });
+    return [
+      {
+        to: email,
+        subject,
+        text,
+        lang: locale,
+        senderName: salonName,
+        ...(location?.email ? { replyTo: location.email } : {}),
+      },
+    ];
+  }
+
   /** Builds the emails from current data; null = nothing to send any more. */
   private async render(row: ClaimedRow): Promise<MailMessage[] | null> {
+    if (row.type === POINTS_EXPIRING) return this.renderPointsExpiring(row);
     const kind = row.type as NotificationKind;
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: row.payload.appointmentId },
@@ -417,6 +459,15 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       return { to: user.email, subject, text, lang: user.locale };
     });
   }
+}
+
+/** Task 10f: a client's points expire soon (payload: PointsExpiringNotification). */
+export const POINTS_EXPIRING = 'loyalty_points_expiring';
+
+export interface PointsExpiringNotification {
+  accountId: string;
+  points: number;
+  expiresAt: string;
 }
 
 /** Thrown by tests through `afterSend` to simulate the process dying mid-way. */

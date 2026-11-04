@@ -305,3 +305,54 @@ export function renderCodeSms(locale: Locale, code: string, salonName: string): 
 }
 
 export type NotificationKind = Kind;
+
+/** Task 10f: "your points expire soon" — sent once for each date, a week before. */
+const POINTS_EXPIRING: Record<
+  Locale,
+  { subject: string; text: (points: number, date: string, salon: string) => string }
+> = {
+  pl: {
+    subject: 'Twoje punkty wkrótce wygasną',
+    text: (points, date, salon) =>
+      `W ${salon} masz punkty, które wygasną ${date}: ${points} pkt.\n\nWymień je na nagrodę przy najbliższej wizycie — stan punktów zobaczysz w „Moje wizyty” → „Moje bonusy”.`,
+  },
+  uk: {
+    subject: 'Ваші бали скоро згорять',
+    text: (points, date, salon) =>
+      `У ${salon} у вас є бали, які згорять ${date}: ${points}.\n\nОбміняйте їх на нагороду під час найближчого візиту — баланс видно в «Мої візити» → «Мої бонуси».`,
+  },
+  ru: {
+    subject: 'Ваши баллы скоро сгорят',
+    text: (points, date, salon) =>
+      `В ${salon} у вас есть баллы, которые сгорят ${date}: ${points}.\n\nОбменяйте их на награду при ближайшем визите — баланс виден в «Мои визиты» → «Мои бонусы».`,
+  },
+  en: {
+    subject: 'Your points expire soon',
+    text: (points, date, salon) =>
+      `At ${salon} you have points that expire on ${date}: ${points}.\n\nExchange them for a reward on your next visit — see your balance in "My visits" → "My bonuses".`,
+  },
+  tr: {
+    subject: 'Puanlarınızın süresi yakında doluyor',
+    text: (points, date, salon) =>
+      `${salon} salonunda ${date} tarihinde süresi dolacak puanlarınız var: ${points}.\n\nBir sonraki ziyaretinizde bunları bir ödülle değiştirin — bakiyenizi "Randevularım" → "Bonuslarım" bölümünde görebilirsiniz.`,
+  },
+  sq: {
+    subject: 'Pikët tuaja skadojnë së shpejti',
+    text: (points, date, salon) =>
+      `Në ${salon} keni pikë që skadojnë më ${date}: ${points}.\n\nKëmbejini me një shpërblim në vizitën e ardhshme — gjendjen e shihni te "Takimet e mia" → "Bonuset e mia".`,
+  },
+};
+
+export function renderPointsExpiringEmail(
+  locale: Locale,
+  input: { salonName: string; points: number; expiresAt: Date; timeZone: string },
+): { subject: string; text: string } {
+  const words = POINTS_EXPIRING[locale];
+  const date = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+    timeZone: input.timeZone,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(input.expiresAt);
+  return { subject: words.subject, text: words.text(input.points, date, input.salonName) };
+}

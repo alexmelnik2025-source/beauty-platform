@@ -960,3 +960,7 @@ pnpm --filter @beauty/api-client generate
   больше баланса не списывается; повторный запуск ничего не добавляет. Карта отметок не сгорает.
 - Код: `LoyaltyLedger.expireDue`, `LoyaltyExpiryService` (раз в час, если включены фоновые задачи —
   `OUTBOX_POLL_MS > 0`). Тесты `test/loyalty-expiry.spec.ts`. Письмо клиенту заранее — часть 2.
+- Часть 2: за неделю до даты сгорания клиент с e-mail получает письмо от имени салона «Twoje punkty wkrótce
+  wygasną» — сколько баллов и когда (один раз на каждую дату; не шлём, если программа выключена или баллы уже
+  потрачены). 6 языков, через очередь писем (`loyalty_points_expiring`). Срок «за неделю» — `WARN_DAYS` в
+  `loyalty-expiry.service.ts`.
