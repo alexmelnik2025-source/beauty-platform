@@ -22,6 +22,7 @@ import type {
 } from './booking.schemas';
 import { OutboxService } from './outbox.service';
 import type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
+import { listPriceFor } from '../scheduling/staff-prices';
 
 export const HOLD_MINUTES = 10;
 const CODE_MINUTES = 10;
@@ -136,7 +137,8 @@ export class PublicBookingService {
           staffId,
           serviceId: service.id,
           start: input.start,
-          listPriceGrosze: service.priceGrosze,
+          // The specialist's own price of the service, if any (task 62).
+          listPriceGrosze: await listPriceFor(this.prisma, staffId, service),
         });
         const hold = await this.writer.write(staffId, times, (tx) =>
           tx.appointment.create({

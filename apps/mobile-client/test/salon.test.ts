@@ -50,6 +50,8 @@ const service = (id: string, categoryId: string | null) => ({
   description: null,
   durationMinutes: 45,
   priceGrosze: 9000,
+  priceFromGrosze: 9000,
+  priceToGrosze: 9000,
 });
 
 describe('catalogue search', () => {
@@ -131,6 +133,7 @@ describe('salon page', () => {
           specialties: ['barber', 'hairdresser'],
           customSpecialty: 'Trycholog',
           serviceIds: [],
+          prices: [],
           photoUrl: null,
         },
         pl.specialty,

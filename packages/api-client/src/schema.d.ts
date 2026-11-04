@@ -948,6 +948,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/staff-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Specialists' own prices of services at this location */
+        get: operations["StaffPricesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the specialists' own prices of a service (the others take its price)
+         * @description Only specialists who perform the service; priceGrosze null = the service price. Booked visits keep their price.
+         */
+        put: operations["StaffPricesController_replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations/{slug}/holds": {
         parameters: {
             query?: never;
@@ -3465,6 +3502,10 @@ export interface components {
                 description: string | null;
                 durationMinutes: number;
                 priceGrosze: number;
+                /** @description Lowest price among its specialists (task 62: each may have an own price) */
+                priceFromGrosze: number;
+                /** @description Highest price among its specialists */
+                priceToGrosze: number;
             }[];
             staff: {
                 id: string;
@@ -3475,6 +3516,11 @@ export interface components {
                 specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
                 customSpecialty: string | null;
                 serviceIds: string[];
+                /** @description This specialist's price of each service they perform (task 62) */
+                prices: {
+                    serviceId: string;
+                    priceGrosze: number;
+                }[];
                 /** @description Link to the photo; null when there is none */
                 photoUrl: string | null;
             }[];
@@ -3657,6 +3703,14 @@ export interface components {
             createdAt: string;
             updatedAt: string;
         }[];
+        StaffPrices: {
+            /** @description Only the specialists with an own price; everyone else takes the service price */
+            prices: {
+                serviceId: string;
+                staffId: string;
+                priceGrosze: number;
+            }[];
+        };
         TimeBlock: {
             id: string;
             locationId: string;
@@ -5710,6 +5764,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HappyHours"];
+                };
+            };
+        };
+    };
+    StaffPricesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffPrices"];
+                };
+            };
+        };
+    };
+    StaffPricesController_replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    prices: {
+                        /** Format: uuid */
+                        staffId: string;
+                        priceGrosze: number | null;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffPrices"];
                 };
             };
         };
