@@ -117,3 +117,6 @@ export type ResponseOf<
         : never;
     }[keyof R]
   : never;
+/** Task 50: the waiting list — joined, and the entry behind the link in the email. */
+export type WaitlistJoined = Schemas['WaitlistJoined'];
+export type PublicWaitlistEntry = Schemas['PublicWaitlistEntry'];

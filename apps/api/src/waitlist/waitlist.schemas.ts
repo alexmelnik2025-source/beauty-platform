@@ -1,0 +1,28 @@
+import { z } from 'zod';
+import { LOCALES } from '../auth/auth.schemas';
+import { localDateSchema } from '../scheduling/scheduling.schemas';
+
+/** Task 50: "tell me when a time becomes free" on the booking page. */
+export const joinWaitlistSchema = z.object({
+  serviceId: z.uuid(),
+  /** Omit for "any specialist". */
+  staffId: z.uuid().optional(),
+  /** The day in the salon's time zone. */
+  date: localDateSchema,
+  name: z.string().trim().min(1).max(100),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(254)
+    .pipe(z.email({ message: 'must be a valid email address' })),
+  phone: z
+    .string()
+    .transform((value) => value.replace(/[\s()-]/g, ''))
+    .pipe(z.string().regex(/^\+[1-9]\d{6,14}$/, 'use international format, e.g. +48123456789'))
+    .optional(),
+  locale: z.enum(LOCALES).default('pl'),
+  /** Like booking: the salon's terms must be accepted (they cover the waiting list too). */
+  acceptTerms: z.literal(true, { message: 'the booking terms must be accepted' }),
+});
+export type JoinWaitlistInput = z.infer<typeof joinWaitlistSchema>;
