@@ -18,7 +18,7 @@ const periodChecks = <T extends z.ZodType<{ from: string; to: string }>>(schema:
 
 export const reportQuerySchema = periodChecks(z.object(period));
 
-/** Task 21: the same period, and the language of the column names and statuses. */
+/** Task 22: the same period, and the language of the column names and statuses. */
 export const visitsCsvQuerySchema = periodChecks(
   z.object({ ...period, locale: z.enum(CSV_LOCALES).default('pl') }),
 );
