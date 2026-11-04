@@ -57,6 +57,8 @@ export const ru: Dictionary = {
     price: 'Цена',
     note: 'Заметка',
     wishes: 'Пожелания клиента',
+    photos: 'Фото от клиента',
+    photoAlt: 'Фото от клиента {n}',
     mood: { chat: 'Охотно поговорит', quiet: 'Хочет тишины', relax: 'Хочет отдохнуть' },
     drink: { coffee: 'Кофе', tea: 'Чай', water: 'Вода', none: 'Ничего не пить' },
     minutes: 'мин',

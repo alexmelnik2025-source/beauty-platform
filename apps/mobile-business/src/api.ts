@@ -28,6 +28,8 @@ export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type TimeBlock = components['schemas']['TimeBlock'];
 export type TimeBlockList = components['schemas']['TimeBlockList'];
 export type NotificationList = components['schemas']['NotificationList'];
+/** Task 80b: the client's example photos for a visit (signed links, valid for an hour). */
+export type VisitPhotoList = components['schemas']['VisitPhotoList'];
 export type ServiceList = components['schemas']['ServiceList'];
 export type Availability = components['schemas']['Availability'];
 /** What the salon sends to book a client (phone call, walk-in); see NewVisitScreen. */
@@ -203,6 +205,16 @@ export class BusinessApi {
   /** One visit with its history; client contacts only when the person may see them. */
   appointment(orgId: string, locationId: string, id: string): Promise<AppointmentDetail> {
     return this.authed<AppointmentDetail>('GET', appointmentPath(orgId, locationId, id));
+  }
+
+  /** Task 80b: the client's example photos for the visit (whoever may see the visit). */
+  visitPhotos(orgId: string, locationId: string, id: string): Promise<VisitPhotoList> {
+    return this.authed<VisitPhotoList>('GET', `${appointmentPath(orgId, locationId, id)}/photos`);
+  }
+
+  /** A picture link from the API ("/v1/…") as a full address for <Image>. */
+  absoluteUrl(path: string): string {
+    return /^https?:/.test(path) ? path : `${this.baseUrl.replace(/\/+$/, '')}${path}`;
   }
 
   /** "Came" (completed) or "did not come" (no_show). Send the version that was read. */

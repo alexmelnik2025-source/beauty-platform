@@ -57,6 +57,8 @@ export const pl = {
     price: 'Cena',
     note: 'Notatka',
     wishes: 'Życzenia klienta',
+    photos: 'Zdjęcia od klienta',
+    photoAlt: 'Zdjęcie od klienta {n}',
     mood: { chat: 'Chętnie pogada', quiet: 'Woli ciszę', relax: 'Chce odpocząć' },
     drink: { coffee: 'Kawa', tea: 'Herbata', water: 'Woda', none: 'Nic do picia' },
     minutes: 'min',

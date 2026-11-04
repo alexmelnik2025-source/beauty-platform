@@ -6,11 +6,12 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 80b/80f: "Pokaż, co chcesz". The owner lets clients add example photos for a service;
  * a client books with a photo (through the API, as the booking page and the app do); the
- * owner sees the photo in the visit card. Screenshots 21p–21q.
+ * owner sees the photo in the visit card and in the business app. Screenshots 21p–21r.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -18,6 +19,7 @@ const run = Date.now().toString(36);
 const OWNER = `photos-owner-${run}@example.com`;
 const CLIENT = `photos-client-${run}@example.com`;
 const DESKTOP = { width: 1280, height: 900 };
+const PHONE = { width: 390, height: 844 };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -204,4 +206,33 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   );
   expect(list.items).toHaveLength(1);
   await desk.close();
+
+  // ── The business app (web preview of apps/mobile-business): the same photo ──
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const phone = await (
+      await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true })
+    ).newPage();
+    await phone.goto(businessApp.url);
+    await phone.getByLabel('E-mail lub telefon').fill(OWNER);
+    await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+    const code = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
+    await phone.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+      new Date(),
+    );
+    const daysAhead = Math.round((Date.parse(slot.date) - Date.parse(today)) / 86_400_000);
+    for (let i = 0; i < daysAhead; i++) {
+      await phone.getByRole('button', { name: 'Następny dzień' }).click();
+    }
+    await phone.getByText('Piotr Zieliński').first().click();
+    await expect(phone.getByText('📷 Zdjęcia od klienta')).toBeVisible();
+    const appPhoto = phone.getByRole('link', { name: 'Zdjęcie od klienta 1' });
+    await expect(appPhoto).toBeVisible();
+    await shot(phone, '21r-business-app-visit-photos');
+  } finally {
+    businessApp.server.close();
+  }
 });

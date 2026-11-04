@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
+  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -9,7 +10,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ApiError, type AppointmentDetail, type BusinessApi, type Locale } from '../api';
+import {
+  ApiError,
+  type AppointmentDetail,
+  type BusinessApi,
+  type Locale,
+  type VisitPhotoList,
+} from '../api';
 import { addDays, dayTitle, formatPrice, timeIn, todayIn, visitActions } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -36,6 +43,8 @@ export function VisitScreen(props: {
 }) {
   const { api, t, salon, id, onBack } = props;
   const [visit, setVisit] = useState<AppointmentDetail | null>(null);
+  /** Task 80b: the client's example photos ("Pokaż, co chcesz"). */
+  const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
@@ -51,7 +60,12 @@ export function VisitScreen(props: {
 
   const load = useCallback(async () => {
     try {
-      setVisit(await api.appointment(salon.orgId, salon.locationId, id));
+      const [detail, pictures] = await Promise.all([
+        api.appointment(salon.orgId, salon.locationId, id),
+        api.visitPhotos(salon.orgId, salon.locationId, id).catch(() => null),
+      ]);
+      setVisit(detail);
+      setPhotos(pictures);
     } catch (e) {
       setError(errorText(e, t));
     }
@@ -226,6 +240,28 @@ export function VisitScreen(props: {
                 {line}
               </Text>
             ))}
+          </>
+        ) : null}
+
+        {photos && photos.items.length > 0 ? (
+          <>
+            <Text style={styles.label}>📷 {v.photos}</Text>
+            <View style={styles.photos}>
+              {photos.items.map((p, i) => (
+                <Pressable
+                  key={p.id}
+                  accessibilityRole="link"
+                  accessibilityLabel={fill(v.photoAlt, { n: String(i + 1) })}
+                  onPress={() => void Linking.openURL(api.absoluteUrl(p.url))}
+                >
+                  <Image
+                    source={{ uri: api.absoluteUrl(p.url) }}
+                    accessibilityIgnoresInvertColors
+                    style={styles.photo}
+                  />
+                </Pressable>
+              ))}
+            </View>
           </>
         ) : null}
       </Card>
@@ -415,6 +451,8 @@ export function VisitScreen(props: {
 }
 
 const styles = StyleSheet.create({
+  photos: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  photo: { width: 88, height: 88, borderRadius: 10, backgroundColor: colors.line },
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   chips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },

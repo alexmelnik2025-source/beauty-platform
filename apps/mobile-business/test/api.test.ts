@@ -295,3 +295,13 @@ describe('BusinessApi', () => {
     ]);
   });
 });
+
+describe('visit photos (task 80b)', () => {
+  it('turns the signed picture links into full addresses for the phone', () => {
+    const api = new BusinessApi('https://api.test/', memoryStore(), fakeServer({}).fetchFn);
+    expect(api.absoluteUrl('/v1/public/visit-photos/p1?exp=1&sig=ab')).toBe(
+      'https://api.test/v1/public/visit-photos/p1?exp=1&sig=ab',
+    );
+    expect(api.absoluteUrl('https://cdn.test/x.jpg')).toBe('https://cdn.test/x.jpg');
+  });
+});

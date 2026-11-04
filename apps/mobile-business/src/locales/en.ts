@@ -59,6 +59,8 @@ export const en: Dictionary = {
     price: 'Price',
     note: 'Note',
     wishes: "Client's wishes",
+    photos: 'Photos from the client',
+    photoAlt: 'Photo from the client {n}',
     mood: { chat: 'Happy to chat', quiet: 'Prefers quiet', relax: 'Wants to relax' },
     drink: { coffee: 'Coffee', tea: 'Tea', water: 'Water', none: 'Nothing to drink' },
     minutes: 'min',

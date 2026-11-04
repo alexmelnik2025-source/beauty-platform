@@ -57,6 +57,8 @@ export const uk: Dictionary = {
     price: 'Ціна',
     note: 'Нотатка',
     wishes: 'Побажання клієнта',
+    photos: 'Фото від клієнта',
+    photoAlt: 'Фото від клієнта {n}',
     mood: { chat: 'Охоче поговорить', quiet: 'Хоче тиші', relax: 'Хоче відпочити' },
     drink: { coffee: 'Кава', tea: 'Чай', water: 'Вода', none: 'Нічого не пити' },
     minutes: 'хв',
