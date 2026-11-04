@@ -27,6 +27,8 @@ export const createHoldSchema = z.object({
   serviceId: z.uuid(),
   /** Omit for "any staff member". */
   staffId: z.uuid().optional(),
+  /** Task 70: "any of these" (the specialists of one price row); ignored with staffId. */
+  staffIds: z.array(z.uuid()).min(1).max(50).optional(),
   start: instant,
   /** A previous hold from the same browser, released when a new slot is picked. */
   releaseHoldToken: token.optional(),

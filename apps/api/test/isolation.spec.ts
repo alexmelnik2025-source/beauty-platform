@@ -168,6 +168,9 @@ function validBody(route: Route): object {
   if (p.endsWith('/working-hours')) return { days: [] };
   if (p.endsWith('/time-off')) return { start: `${DATE}T09:00`, end: `${DATE}T10:00` };
   if (p.endsWith('/services/:serviceId/staff')) return { staffIds: [] };
+  if (p.endsWith('/services/:serviceId/staff-offers')) {
+    return { offers: [{ staffId: currentIds?.staffId, priceGrosze: 1, durationMinutes: null }] };
+  }
   if (p.endsWith('/staff/order')) return { staffIds: [currentIds?.staffId] };
   if (p.endsWith('/staff/:staffId/services')) return { serviceIds: [] };
   if (p.endsWith('/staff/:staffId')) return { version: 1, displayName: 'Hacked' };

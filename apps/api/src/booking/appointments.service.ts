@@ -24,6 +24,7 @@ import {
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from '../scheduling/availability.service';
+import { offerOf } from '../scheduling/staff-offers';
 import { addDays, instantToLocal, localToday, zonedToInstant } from '../scheduling/time';
 import { AppointmentWriter, slotTaken, timesFor, versionConflict } from './appointment-writer';
 import type {
@@ -182,13 +183,15 @@ export class AppointmentsService {
     }
 
     const customer = await this.resolveCustomer(location, input);
-    const times = timesFor(input.start, service);
+    // Task 70: this specialist's own price and duration of the service.
+    const offer = offerOf(service, staff.services[0]!);
+    const times = timesFor(input.start, { ...service, durationMinutes: offer.durationMinutes });
     // The salon's happy hours (task 16) set the price for this staff member and time.
     const price = await this.happyHours.priceFor(this.prisma, location, {
       staffId: staff.id,
       serviceId: service.id,
       start: input.start,
-      listPriceGrosze: service.priceGrosze,
+      listPriceGrosze: offer.priceGrosze,
     });
     if (input.alreadyHappened) {
       const walkIn = await this.writer.write(staff.id, times, async (tx) => {
@@ -214,7 +217,7 @@ export class AppointmentsService {
             source: 'manual',
             ...times,
             ...price,
-            durationMinutes: service.durationMinutes,
+            durationMinutes: offer.durationMinutes,
             bufferMinutes: service.bufferMinutes,
             note: input.note ?? null,
             locale: customer.locale,
@@ -266,7 +269,7 @@ export class AppointmentsService {
           source: 'manual',
           ...times,
           ...price,
-          durationMinutes: service.durationMinutes,
+          durationMinutes: offer.durationMinutes,
           bufferMinutes: service.bufferMinutes,
           note: input.note ?? null,
           locale: customer.locale,
@@ -708,7 +711,12 @@ export class AppointmentsService {
     excludeAppointmentId?: string,
   ): Promise<void> {
     const service = await this.prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
-    const times = timesFor(start, service);
+    const link = await this.prisma.staffService.findUnique({
+      where: { staffId_serviceId: { staffId, serviceId } },
+      select: { staffId: true, priceGrosze: true, durationMinutes: true },
+    });
+    const durationMinutes = link ? offerOf(service, link).durationMinutes : service.durationMinutes;
+    const times = timesFor(start, { ...service, durationMinutes });
     const overlapping = await this.prisma.appointment.count({
       where: {
         staffId,

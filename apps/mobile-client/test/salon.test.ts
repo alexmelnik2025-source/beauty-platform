@@ -50,6 +50,7 @@ const service = (id: string, categoryId: string | null) => ({
   description: null,
   durationMinutes: 45,
   priceGrosze: 9000,
+  staffOffers: [],
 });
 
 describe('catalogue search', () => {

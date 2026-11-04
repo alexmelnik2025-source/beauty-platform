@@ -10,6 +10,7 @@ import type {
   CreateServiceCategoryInput,
   CreateServiceInput,
   CreateStaffInput,
+  ServiceStaffOffersInput,
   UpdateServiceCategoryInput,
   UpdateServiceInput,
   UpdateStaffInput,
@@ -54,6 +55,14 @@ function toService(service: ServiceWithStaff): ServiceResponse {
   return {
     ...rest,
     staffIds: staff.map((s) => s.staffId).sort(),
+    staffOffers: staff
+      .filter((s) => s.priceGrosze !== null || s.durationMinutes !== null)
+      .map((s) => ({
+        staffId: s.staffId,
+        priceGrosze: s.priceGrosze,
+        durationMinutes: s.durationMinutes,
+      }))
+      .sort((a, b) => a.staffId.localeCompare(b.staffId)),
     createdAt: service.createdAt.toISOString(),
     updatedAt: service.updatedAt.toISOString(),
   };
@@ -70,9 +79,13 @@ function toStaff(staff: StaffWithServices): StaffResponse {
   };
 }
 
-const withStaff = { staff: { select: { staffId: true } } } as const;
+const withStaff = {
+  staff: { select: { staffId: true, priceGrosze: true, durationMinutes: true } },
+} as const;
 
-type ServiceWithStaff = Service & { staff: { staffId: string }[] };
+type ServiceWithStaff = Service & {
+  staff: { staffId: string; priceGrosze: number | null; durationMinutes: number | null }[];
+};
 
 const withServices = {
   services: { select: { serviceId: true } },
@@ -229,11 +242,46 @@ export class CatalogService {
     const unique = [...new Set(staffIds)];
     await this.assertStaffInLocation(locationId, unique);
     const service = await this.prisma.$transaction(async (tx) => {
-      await tx.staffService.deleteMany({ where: { serviceId } });
+      // Only the removed links go, so specialists who stay keep their own price (task 70).
+      await tx.staffService.deleteMany({ where: { serviceId, staffId: { notIn: unique } } });
       await tx.staffService.createMany({
         data: unique.map((staffId) => ({ staffId, serviceId })),
+        skipDuplicates: true,
       });
       await this.record(tx, m, actorUserId, 'service.staff_set', 'service', serviceId);
+      return tx.service.findUniqueOrThrow({ where: { id: serviceId }, include: withStaff });
+    });
+    return toService(service);
+  }
+
+  /**
+   * Task 70: specialists' own price and duration of this service (null = as the service says).
+   * Each listed specialist must already perform the service.
+   */
+  async setServiceStaffOffers(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    serviceId: string,
+    input: ServiceStaffOffersInput,
+  ): Promise<ServiceResponse> {
+    await this.access.writable(m, locationId);
+    await this.findService(locationId, serviceId);
+    const service = await this.prisma.$transaction(async (tx) => {
+      for (const offer of input.offers) {
+        const updated = await tx.staffService.updateMany({
+          where: { serviceId, staffId: offer.staffId, staff: { locationId } },
+          data: { priceGrosze: offer.priceGrosze, durationMinutes: offer.durationMinutes },
+        });
+        if (updated.count !== 1) {
+          throw new AppException(
+            HttpStatus.BAD_REQUEST,
+            'STAFF_SERVICE_MISMATCH',
+            'This staff member does not offer this service',
+          );
+        }
+      }
+      await this.record(tx, m, actorUserId, 'service.staff_offers_set', 'service', serviceId);
       return tx.service.findUniqueOrThrow({ where: { id: serviceId }, include: withStaff });
     });
     return toService(service);
@@ -448,9 +496,11 @@ export class CatalogService {
     const unique = [...new Set(serviceIds)];
     await this.assertServicesInLocation(locationId, unique);
     const staff = await this.prisma.$transaction(async (tx) => {
-      await tx.staffService.deleteMany({ where: { staffId } });
+      // Only the removed links go, so services that stay keep this specialist's price (task 70).
+      await tx.staffService.deleteMany({ where: { staffId, serviceId: { notIn: unique } } });
       await tx.staffService.createMany({
         data: unique.map((serviceId) => ({ staffId, serviceId })),
+        skipDuplicates: true,
       });
       await this.record(tx, m, actorUserId, 'staff.services_set', 'staff_member', staffId);
       return tx.staffMember.findUniqueOrThrow({ where: { id: staffId }, include: withServices });

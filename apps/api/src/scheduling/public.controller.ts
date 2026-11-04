@@ -21,6 +21,7 @@ import {
   type PublicLocationResponse,
 } from './public.responses';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
+import { offerOf } from './staff-offers';
 import { formatClock } from './time';
 
 /**
@@ -77,7 +78,10 @@ export class PublicLocationsController {
     const staff = await this.prisma.staffMember.findMany({
       where: { locationId: location.id, active: true },
       include: {
-        services: { where: { service: { active: true } }, select: { serviceId: true } },
+        services: {
+          where: { service: { active: true } },
+          select: { serviceId: true, staffId: true, priceGrosze: true, durationMinutes: true },
+        },
         workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
         photo: { select: { id: true } },
       },
@@ -124,6 +128,11 @@ export class PublicLocationsController {
         description: s.description,
         durationMinutes: s.durationMinutes,
         priceGrosze: s.priceGrosze,
+        // Task 70: every specialist of this service with their price and duration, in the
+        // salon's order of the team.
+        staffOffers: listed.flatMap((member) =>
+          member.services.filter((link) => link.serviceId === s.id).map((link) => offerOf(s, link)),
+        ),
       })),
       staff: listed.map((s) => ({
         id: s.id,
@@ -166,6 +175,11 @@ export class PublicLocationsController {
   })
   @ApiQuery({ name: 'serviceId', required: true })
   @ApiQuery({ name: 'staffId', required: false, description: 'Omit for "any staff member"' })
+  @ApiQuery({
+    name: 'staffIds',
+    required: false,
+    description: 'Comma-separated: "any of these" (one price row); ignored with staffId',
+  })
   @ApiQuery({ name: 'from', required: true, example: '2026-11-02' })
   @ApiQuery({ name: 'to', required: true, example: '2026-11-08' })
   @ApiZodResponse(availabilitySchema)

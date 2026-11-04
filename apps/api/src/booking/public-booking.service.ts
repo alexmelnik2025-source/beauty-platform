@@ -7,6 +7,7 @@ import { RateLimiterService } from '../common/rate-limiter.service';
 import type { Appointment, Locale, Location, Prisma } from '../generated/prisma/client';
 import { VisitCoupons } from '../loyalty/visit-coupons';
 import { HappyHoursService } from '../scheduling/happy-hours';
+import { offerOf } from '../scheduling/staff-offers';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
@@ -120,23 +121,33 @@ export class PublicBookingService {
       input.staffId,
       input.start,
       window,
+      { staffIds: input.staffIds },
     );
     if (free.length === 0) throw slotTaken();
 
-    const times = timesFor(input.start, service);
+    // Task 70: each specialist's own price and duration of this service.
+    const links = await this.prisma.staffService.findMany({
+      where: { serviceId: service.id, staffId: { in: free } },
+      select: { staffId: true, priceGrosze: true, durationMinutes: true },
+    });
+    const offers = new Map(links.map((link) => [link.staffId, offerOf(service, link)]));
     const candidates = await this.leastBusyFirst(free, location, input.start);
     const holdToken = generateToken();
     const expiresAt = new Date(Date.now() + HOLD_MINUTES * MINUTE_MS);
 
     // "Any staff member": try the least busy one, then the next if someone was faster.
     for (const staffId of candidates) {
+      const offer =
+        offers.get(staffId) ??
+        offerOf(service, { staffId, priceGrosze: null, durationMinutes: null });
+      const times = timesFor(input.start, { ...service, durationMinutes: offer.durationMinutes });
       try {
         // The salon's happy hours (task 16) set the price for this staff member and time.
         const price = await this.happyHours.priceFor(this.prisma, location, {
           staffId,
           serviceId: service.id,
           start: input.start,
-          listPriceGrosze: service.priceGrosze,
+          listPriceGrosze: offer.priceGrosze,
         });
         const hold = await this.writer.write(staffId, times, (tx) =>
           tx.appointment.create({
@@ -151,7 +162,7 @@ export class PublicBookingService {
               holdExpiresAt: expiresAt,
               holdTokenHash: hashToken(holdToken),
               ...price,
-              durationMinutes: service.durationMinutes,
+              durationMinutes: offer.durationMinutes,
               bufferMinutes: service.bufferMinutes,
             },
             include: { staff: true },

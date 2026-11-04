@@ -2604,6 +2604,110 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff-offers": {
+      "put": {
+        "description": "Lists only the specialists to change; null = as the service says. 400 STAFF_SERVICE_MISMATCH when a specialist does not perform the service.",
+        "operationId": "ServicesController_setStaffOffers",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "offers": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "priceGrosze": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000000
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "durationMinutes": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 5,
+                              "maximum": 480
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "staffId",
+                        "priceGrosze",
+                        "durationMinutes"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "offers"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A specialist’s own price and duration of this service (task 70)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/staff": {
       "get": {
         "operationId": "StaffController_list",
@@ -3654,6 +3758,13 @@
             }
           },
           {
+            "name": "staffIds",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated: \"any of these\" (one price row); ignored with staffId",
+            "schema": {}
+          },
+          {
             "name": "staffId",
             "required": false,
             "in": "query",
@@ -4182,6 +4293,16 @@
                     "type": "string",
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "staffIds": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
                   },
                   "start": {
                     "type": "string",
@@ -13920,6 +14041,34 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "staffOffers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "staffId": {
+                        "type": "string"
+                      },
+                      "priceGrosze": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "durationMinutes": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "staffId",
+                      "priceGrosze",
+                      "durationMinutes"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Who performs it, in the team order, with their own price and duration (task 70)"
                 }
               },
               "required": [
@@ -13928,7 +14077,8 @@
                 "name",
                 "description",
                 "durationMinutes",
-                "priceGrosze"
+                "priceGrosze",
+                "staffOffers"
               ],
               "additionalProperties": false
             }
@@ -14198,6 +14348,38 @@
               "type": "string"
             },
             "description": "Specialists who perform it; empty = clients cannot book it online"
+          },
+          "staffOffers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "staffId": {
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "nullable": true,
+                  "description": "null = the service price",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "durationMinutes": {
+                  "nullable": true,
+                  "description": "null = the service duration",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "staffId",
+                "priceGrosze",
+                "durationMinutes"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Specialists with their own price or duration of this service (task 70)"
           }
         },
         "required": [
@@ -14215,7 +14397,8 @@
           "version",
           "createdAt",
           "updatedAt",
-          "staffIds"
+          "staffIds",
+          "staffOffers"
         ],
         "additionalProperties": false
       },
@@ -14347,6 +14530,38 @@
                 "type": "string"
               },
               "description": "Specialists who perform it; empty = clients cannot book it online"
+            },
+            "staffOffers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "staffId": {
+                    "type": "string"
+                  },
+                  "priceGrosze": {
+                    "nullable": true,
+                    "description": "null = the service price",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "durationMinutes": {
+                    "nullable": true,
+                    "description": "null = the service duration",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "staffId",
+                  "priceGrosze",
+                  "durationMinutes"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Specialists with their own price or duration of this service (task 70)"
             }
           },
           "required": [
@@ -14364,7 +14579,8 @@
             "version",
             "createdAt",
             "updatedAt",
-            "staffIds"
+            "staffIds",
+            "staffOffers"
           ],
           "additionalProperties": false
         }

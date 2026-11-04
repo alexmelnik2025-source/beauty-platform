@@ -41,6 +41,15 @@ export const serviceSchema = responseSchema(
     staffIds: z
       .array(z.string())
       .describe('Specialists who perform it; empty = clients cannot book it online'),
+    staffOffers: z
+      .array(
+        z.strictObject({
+          staffId: z.string(),
+          priceGrosze: z.number().int().nullable().describe('null = the service price'),
+          durationMinutes: z.number().int().nullable().describe('null = the service duration'),
+        }),
+      )
+      .describe('Specialists with their own price or duration of this service (task 70)'),
   }),
 );
 export type ServiceResponse = z.infer<typeof serviceSchema>;

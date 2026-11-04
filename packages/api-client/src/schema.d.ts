@@ -607,6 +607,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * A specialist’s own price and duration of this service (task 70)
+         * @description Lists only the specialists to change; null = as the service says. 400 STAFF_SERVICE_MISMATCH when a specialist does not perform the service.
+         */
+        put: operations["ServicesController_setStaffOffers"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/staff": {
         parameters: {
             query?: never;
@@ -3465,6 +3485,12 @@ export interface components {
                 description: string | null;
                 durationMinutes: number;
                 priceGrosze: number;
+                /** @description Who performs it, in the team order, with their own price and duration (task 70) */
+                staffOffers: {
+                    staffId: string;
+                    priceGrosze: number;
+                    durationMinutes: number;
+                }[];
             }[];
             staff: {
                 id: string;
@@ -3519,6 +3545,14 @@ export interface components {
             updatedAt: string;
             /** @description Specialists who perform it; empty = clients cannot book it online */
             staffIds: string[];
+            /** @description Specialists with their own price or duration of this service (task 70) */
+            staffOffers: {
+                staffId: string;
+                /** @description null = the service price */
+                priceGrosze: number | null;
+                /** @description null = the service duration */
+                durationMinutes: number | null;
+            }[];
         };
         ServiceCategory: {
             id: string;
@@ -3552,6 +3586,14 @@ export interface components {
             updatedAt: string;
             /** @description Specialists who perform it; empty = clients cannot book it online */
             staffIds: string[];
+            /** @description Specialists with their own price or duration of this service (task 70) */
+            staffOffers: {
+                staffId: string;
+                /** @description null = the service price */
+                priceGrosze: number | null;
+                /** @description null = the service duration */
+                durationMinutes: number | null;
+            }[];
         }[];
         /** @description Devices where the user is signed in, last used first */
         SessionList: {
@@ -5039,6 +5081,39 @@ export interface operations {
             };
         };
     };
+    ServicesController_setStaffOffers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    offers: {
+                        /** Format: uuid */
+                        staffId: string;
+                        priceGrosze: number | null;
+                        durationMinutes: number | null;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+        };
+    };
     StaffController_list: {
         parameters: {
             query?: never;
@@ -5465,6 +5540,8 @@ export interface operations {
             query: {
                 to: unknown;
                 from: unknown;
+                /** @description Comma-separated: "any of these" (one price row); ignored with staffId */
+                staffIds?: unknown;
                 /** @description Omit for "any staff member" */
                 staffId?: unknown;
                 serviceId: unknown;
@@ -5730,6 +5807,7 @@ export interface operations {
                     serviceId: string;
                     /** Format: uuid */
                     staffId?: string;
+                    staffIds?: string[];
                     /** Format: date-time */
                     start: string;
                     releaseHoldToken?: string;

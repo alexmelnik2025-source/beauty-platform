@@ -6,7 +6,14 @@ import { LocationAccessService } from '../organizations/location-access.service'
 import { PrismaService } from '../prisma/prisma.service';
 import type { AvailabilityResponse } from './public.responses';
 import type { AvailabilityQuery } from './scheduling.schemas';
-import { mergeSlots, type InstantRange, type LocalInterval, type StaffSchedule } from './slots';
+import {
+  mergeSlots,
+  type InstantRange,
+  type LocalInterval,
+  type Slot,
+  type StaffSchedule,
+} from './slots';
+import { offerOf } from './staff-offers';
 import { addDays, instantToLocal, localToday, zonedToInstant } from './time';
 
 export type { AvailabilityResponse } from './public.responses';
@@ -82,12 +89,18 @@ export class AvailabilityService {
     staffId: string | undefined,
     start: number,
     window: BookingWindow,
-    options: ComputeOptions = {},
+    options: ComputeOptions & { staffIds?: string[] } = {},
   ): Promise<string[]> {
     const date = instantToLocal(start, location.timezone).date;
     const result = await this.compute(
       location,
-      { serviceId, staffId, from: date, to: date },
+      {
+        serviceId,
+        staffId,
+        staffIds: staffId ? undefined : options.staffIds,
+        from: date,
+        to: date,
+      },
       window,
       options,
     );
@@ -111,9 +124,19 @@ export class AvailabilityService {
         locationId: location.id,
         active: true,
         services: { some: { serviceId: service.id } },
-        ...(query.staffId ? { id: query.staffId } : {}),
+        ...(query.staffId
+          ? { id: query.staffId }
+          : query.staffIds
+            ? { id: { in: query.staffIds } }
+            : {}),
       },
-      select: { id: true },
+      select: {
+        id: true,
+        services: {
+          where: { serviceId: service.id },
+          select: { staffId: true, priceGrosze: true, durationMinutes: true },
+        },
+      },
     });
     if (query.staffId && staff.length === 0) {
       throw new AppException(
@@ -196,15 +219,30 @@ export class AvailabilityService {
       return { staffId, weekly: week, overrides: special, busy };
     });
 
-    const slots = mergeSlots(schedules, {
-      timeZone: location.timezone,
-      from: query.from,
-      to: query.to,
-      durationMinutes: service.durationMinutes,
-      bufferMinutes: service.bufferMinutes,
-      stepMinutes: options.stepMinutes ?? location.slotStepMinutes,
-      ...window,
-    });
+    // Task 70: a specialist may take longer or shorter than the service says —
+    // slots are counted per duration and merged by start time.
+    const durationOf = new Map(
+      staff.map((s) => [s.id, offerOf(service, s.services[0]!).durationMinutes]),
+    );
+    const byDuration = new Map<number, StaffSchedule[]>();
+    for (const schedule of schedules) {
+      const minutes = durationOf.get(schedule.staffId) ?? service.durationMinutes;
+      byDuration.set(minutes, [...(byDuration.get(minutes) ?? []), schedule]);
+    }
+    const slots = mergeByStart(
+      [...byDuration.entries()].map(([durationMinutes, group]) =>
+        mergeSlots(group, {
+          timeZone: location.timezone,
+          from: query.from,
+          to: query.to,
+          durationMinutes,
+          bufferMinutes: service.bufferMinutes,
+          stepMinutes: options.stepMinutes ?? location.slotStepMinutes,
+          ...window,
+        }),
+      ),
+      staffIds,
+    );
 
     return {
       timezone: location.timezone,
@@ -213,4 +251,24 @@ export class AvailabilityService {
       slots,
     };
   }
+}
+
+/** Slots of several duration groups as one list by start time; staff in the salon's order. */
+function mergeByStart(lists: Slot[][], order: string[]): Slot[] {
+  if (lists.length === 1) return lists[0]!;
+  const rank = new Map(order.map((id, i) => [id, i]));
+  const byStart = new Map<string, Slot>();
+  for (const slot of lists.flat()) {
+    const seen = byStart.get(slot.start);
+    byStart.set(
+      slot.start,
+      seen ? { ...seen, staffIds: [...seen.staffIds, ...slot.staffIds] } : { ...slot },
+    );
+  }
+  return [...byStart.values()]
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+    .map((slot) => ({
+      ...slot,
+      staffIds: slot.staffIds.sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0)),
+    }));
 }

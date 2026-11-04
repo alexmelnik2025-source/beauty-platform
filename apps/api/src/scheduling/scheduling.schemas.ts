@@ -46,6 +46,27 @@ export const createServiceSchema = z.object({
 
 export const serviceStaffSchema = z.object({ staffIds });
 
+/**
+ * Task 70: a specialist's own price and duration of the service; null = as the service says.
+ * Lists only the specialists to change; each must already perform the service.
+ */
+export const serviceStaffOffersSchema = z.object({
+  offers: z
+    .array(
+      z.object({
+        staffId: z.uuid(),
+        priceGrosze: z.number().int().min(0).max(10_000_000).nullable(),
+        durationMinutes: fiveMinuteSteps(5, 480).nullable(),
+      }),
+    )
+    .min(1)
+    .max(200)
+    .refine((list) => new Set(list.map((o) => o.staffId)).size === list.length, {
+      message: 'each specialist once',
+    }),
+});
+export type ServiceStaffOffersInput = z.infer<typeof serviceStaffOffersSchema>;
+
 export const updateServiceSchema = z
   .object(serviceFields)
   .partial()
@@ -161,6 +182,23 @@ export const availabilityQuerySchema = z
   .object({
     serviceId: z.uuid(),
     staffId: z.uuid().optional(),
+    /**
+     * Task 70: "any of these" — e.g. the specialists of one price row on the booking page.
+     * Comma-separated ids; ignored when staffId is given.
+     */
+    staffIds: z
+      .string()
+      .max(2000)
+      .transform((value) => [
+        ...new Set(
+          value
+            .split(',')
+            .map((id) => id.trim())
+            .filter(Boolean),
+        ),
+      ])
+      .pipe(z.array(z.uuid()).min(1).max(50))
+      .optional(),
     from: localDateSchema,
     to: localDateSchema,
   })

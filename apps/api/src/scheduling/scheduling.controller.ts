@@ -46,6 +46,7 @@ import {
   createTimeOffSchema,
   localDateSchema,
   overrideSchema,
+  serviceStaffOffersSchema,
   serviceStaffSchema,
   staffServicesSchema,
   updateServiceCategorySchema,
@@ -58,6 +59,7 @@ import {
   type CreateStaffInput,
   type CreateTimeOffInput,
   type OverrideInput,
+  type ServiceStaffOffersInput,
   type UpdateServiceCategoryInput,
   type UpdateServiceInput,
   type UpdateStaffInput,
@@ -234,6 +236,25 @@ export class ServicesController {
     @Body(new ZodValidationPipe(serviceStaffSchema)) body: { staffIds: string[] },
   ): Promise<ServiceResponse> {
     return this.catalog.setServiceStaff(m, auth.userId, locationId, serviceId, body.staffIds);
+  }
+
+  @Put(':serviceId/staff-offers')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'A specialist’s own price and duration of this service (task 70)',
+    description:
+      'Lists only the specialists to change; null = as the service says. 400 STAFF_SERVICE_MISMATCH when a specialist does not perform the service.',
+  })
+  @ApiZodBody(serviceStaffOffersSchema)
+  @ApiZodResponse(serviceSchema)
+  setStaffOffers(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceId', uuid('Service')) serviceId: string,
+    @Body(new ZodValidationPipe(serviceStaffOffersSchema)) body: ServiceStaffOffersInput,
+  ): Promise<ServiceResponse> {
+    return this.catalog.setServiceStaffOffers(m, auth.userId, locationId, serviceId, body);
   }
 }
 

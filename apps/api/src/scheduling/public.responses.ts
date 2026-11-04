@@ -56,6 +56,17 @@ export const publicLocationSchema = responseSchema(
           description: z.string().nullable(),
           durationMinutes: z.number().int(),
           priceGrosze: z.number().int(),
+          staffOffers: z
+            .array(
+              z.strictObject({
+                staffId: z.string(),
+                priceGrosze: z.number().int(),
+                durationMinutes: z.number().int(),
+              }),
+            )
+            .describe(
+              'Who performs it, in the team order, with their own price and duration (task 70)',
+            ),
         }),
       ),
       staff: z.array(
