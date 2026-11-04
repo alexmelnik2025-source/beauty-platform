@@ -1,3 +1,4 @@
+import { languagesSchema } from './organizations.schemas';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { LOCALES, phoneSchema } from '../auth/auth.schemas';
@@ -28,10 +29,16 @@ export const createInvitationSchema = z
     locationIds: z.array(z.uuid()).min(1).max(50),
     /** Staff only: the calendar profile the new account takes over. */
     staffMemberId: z.uuid().optional(),
+    /** Task 81: languages of the staff profile (with staffMemberId), set right away. */
+    languages: languagesSchema.optional(),
     /** Staff only: the permissions category. */
     staffCategoryId: z.uuid().optional(),
     /** Language of the invitation email. */
     locale: z.enum(LOCALES).default('pl'),
+  })
+  .refine((v) => v.languages === undefined || v.staffMemberId !== undefined, {
+    message: 'languages are set on the staff profile: send staffMemberId',
+    path: ['languages'],
   })
   .refine((v) => v.role === 'staff' || (!v.staffMemberId && !v.staffCategoryId), {
     message: 'staffMemberId and staffCategoryId are for staff invitations',
@@ -210,6 +217,12 @@ export class InvitationsService {
           invitedByUserId: actorUserId,
         },
       });
+      if (input.languages && input.staffMemberId) {
+        await tx.staffMember.update({
+          where: { id: input.staffMemberId },
+          data: { languages: input.languages, version: { increment: 1 } },
+        });
+      }
       await this.record(tx, m, actorUserId, 'invitation.created', created.id, {
         role: input.role,
         withPhone: input.phone !== undefined,

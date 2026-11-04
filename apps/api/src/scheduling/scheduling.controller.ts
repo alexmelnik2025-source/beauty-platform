@@ -1,3 +1,4 @@
+import { staffLanguagesSchema, type StaffLanguagesInput } from './scheduling.schemas';
 import {
   Body,
   Controller,
@@ -296,6 +297,24 @@ export class StaffController {
     @Body(new ZodValidationPipe(updateStaffSchema)) body: UpdateStaffInput,
   ): Promise<StaffResponse> {
     return this.catalog.updateStaff(m, auth.userId, locationId, staffId, body);
+  }
+
+  @Put(':staffId/languages')
+  @ApiOperation({
+    summary: 'Set the languages a staff member speaks with clients (task 81)',
+    description:
+      'Owners and managers of the location, or the staff member on their own profile (403 for anyone else).',
+  })
+  @ApiZodBody(staffLanguagesSchema)
+  @ApiZodResponse(staffSchema)
+  setLanguages(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('staffId', uuid('Staff member')) staffId: string,
+    @Body(new ZodValidationPipe(staffLanguagesSchema)) body: StaffLanguagesInput,
+  ): Promise<StaffResponse> {
+    return this.catalog.setStaffLanguages(m, auth.userId, locationId, staffId, body.languages);
   }
 
   @Put(':staffId/services')

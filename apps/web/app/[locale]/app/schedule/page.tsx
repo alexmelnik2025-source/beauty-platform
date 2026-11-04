@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LanguagePicker, type Spoken } from '@/components/Languages';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -20,6 +21,10 @@ export default function MySchedulePage() {
   >([]);
   const [error, setError] = useState('');
   const [none, setNone] = useState(false);
+  const [mine, setMine] = useState<Staff | null>(null);
+  const [languages, setLanguages] = useState<Spoken[]>([]);
+  const [savedNote, setSavedNote] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -29,6 +34,8 @@ export default function MySchedulePage() {
         setNone(true);
         return;
       }
+      setMine(mine);
+      setLanguages(mine.languages);
       const [h, o] = await Promise.all([
         api<Hours>(`${base}/staff/${mine.id}/working-hours`),
         api<{ id: string; start: string; end: string; note: string | null }[]>(
@@ -39,6 +46,26 @@ export default function MySchedulePage() {
       setTimeOff(o);
     })().catch((err) => setError(errorText(t, err)));
   }, [base, session.me.user.id, t]);
+
+  /** Task 81: a staff member sets their own languages (shown to clients when booking). */
+  async function saveLanguages() {
+    if (!mine) return;
+    setBusy(true);
+    setError('');
+    setSavedNote('');
+    try {
+      const saved = await api<Staff>(`${base}/staff/${mine.id}/languages`, {
+        method: 'PUT',
+        body: { languages },
+      });
+      setMine(saved);
+      setSavedNote(t.actions.saved);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const when = (local: string) =>
     new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
@@ -60,6 +87,28 @@ export default function MySchedulePage() {
         {!hours && !none && !error ? <Spinner /> : null}
         {hours ? (
           <>
+            <section className="section" aria-labelledby="my-languages">
+              <h2 id="my-languages">{t.languages.myTitle}</h2>
+              <LanguagePicker
+                title={t.languages.staffTitle}
+                hint={t.languages.staffHint}
+                value={languages}
+                onChange={setLanguages}
+              />
+              {savedNote ? (
+                <p className="note" role="status">
+                  {savedNote}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                className="btn btn--small"
+                disabled={busy}
+                onClick={() => void saveLanguages()}
+              >
+                {t.common.save}
+              </button>
+            </section>
             <section className="section">
               <h2>{t.team.hours}</h2>
               <div>

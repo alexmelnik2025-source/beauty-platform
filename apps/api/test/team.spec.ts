@@ -97,6 +97,72 @@ beforeEach(async () => {
 });
 
 describe('inviting staff and managers', () => {
+  it('languages in the invitation; the staff member edits only their own (task 81)', async () => {
+    await invite({
+      email: 'kasia@example.com',
+      role: 'staff',
+      locationIds: [locationId],
+      staffMemberId: kasiaId,
+      languages: ['pl', 'en'],
+    }).expect(201);
+    const kasiaProfile = await ctx
+      .http()
+      .get(`${base}/staff/${kasiaId}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(kasiaProfile.body.languages).toEqual(['pl', 'en']);
+    // Languages belong to a staff profile.
+    await invite({
+      email: 'x@example.com',
+      role: 'staff',
+      locationIds: [locationId],
+      languages: ['pl'],
+    }).expect(400);
+
+    const token = inviteToken('kasia@example.com');
+    const kasia = await signUp(ctx, 'kasia@example.com', 'kasia');
+    await ctx.http().post(`/v1/invitations/${token}/accept`).set(kasia.auth).expect(200);
+
+    const own = await ctx
+      .http()
+      .put(`${base}/staff/${kasiaId}/languages`)
+      .set(kasia.auth)
+      .send({ languages: ['pl', 'uk', 'en'] })
+      .expect(200);
+    expect(own.body.languages).toEqual(['pl', 'uk', 'en']);
+    // Not someone else's profile.
+    await ctx
+      .http()
+      .put(`${base}/staff/${olaId}/languages`)
+      .set(kasia.auth)
+      .send({ languages: ['ru'] })
+      .expect(403);
+    // The owner may change anyone's; unknown languages are refused.
+    await ctx
+      .http()
+      .put(`${base}/staff/${olaId}/languages`)
+      .set(owner.auth)
+      .send({ languages: ['ru'] })
+      .expect(200);
+    await ctx
+      .http()
+      .put(`${base}/staff/${olaId}/languages`)
+      .set(owner.auth)
+      .send({ languages: ['xx'] })
+      .expect(400);
+    // Shown on the booking page under the staff member.
+    const loc = await ctx.http().get(base).set(owner.auth).expect(200);
+    await ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
+      .expect(200);
+    const page = await ctx.http().get(`/v1/public/locations/${slug}`).expect(200);
+    const shown = page.body.staff.find((s: { id: string }) => s.id === kasiaId);
+    expect(shown.languages).toEqual(['pl', 'uk', 'en']);
+  });
+
   it('a staff member joins by link and gets the calendar profile and category', async () => {
     const category = await ctx
       .http()

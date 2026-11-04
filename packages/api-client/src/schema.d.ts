@@ -643,6 +643,26 @@ export interface paths {
         patch: operations["StaffController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the languages a staff member speaks with clients (task 81)
+         * @description Owners and managers of the location, or the staff member on their own profile (403 for anyone else).
+         */
+        put: operations["StaffController_setLanguages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/staff/{staffId}/services": {
         parameters: {
             query?: never;
@@ -5541,6 +5561,7 @@ export interface operations {
                     locationIds: string[];
                     /** Format: uuid */
                     staffMemberId?: string;
+                    languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
                     /** Format: uuid */
                     staffCategoryId?: string;
                     /**
@@ -6011,6 +6032,34 @@ export interface operations {
                     active?: boolean;
                     sortOrder?: number;
                     version: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Staff"];
+                };
+            };
+        };
+    };
+    StaffController_setLanguages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                staffId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    languages: ("pl" | "uk" | "ru" | "be" | "en")[];
                 };
             };
         };

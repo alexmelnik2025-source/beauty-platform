@@ -16,7 +16,7 @@ import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort 
 import type { Hold, PublicAppointment, PublicLocation, Slot } from '@/lib/types';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
-import { LanguageBadges } from '../Languages';
+import { LanguageBadges, SPOKEN, SPOKEN_SHORT, type Spoken } from '../Languages';
 import { useSpecialtyText } from '../Specialties';
 import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
@@ -118,6 +118,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   const [step, setStep] = useState<Step>('service');
   const [serviceId, setServiceId] = useState('');
   const [staffId, setStaffId] = useState<string | undefined>(undefined);
+  /** Task 81: "Speaks EN" — only specialists who speak the chosen language. */
+  const [speaks, setSpeaks] = useState<Spoken | ''>('');
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [day, setDay] = useState('');
   const [hold, setHold] = useState<Hold | null>(null);
@@ -401,7 +403,16 @@ export function BookingFlow({ slug }: { slug: string }) {
     t.booking.stepDetails,
   ];
   const newTab = embed ? { target: '_blank', rel: 'noopener' } : {};
-  const staffForService = salon.staff.filter((s) => s.serviceIds.includes(serviceId));
+  const staffOfService = salon.staff.filter((s) => s.serviceIds.includes(serviceId));
+  // Languages worth filtering by: spoken by some, not by all, specialists of this service.
+  const filterLanguages = SPOKEN.filter((code) => {
+    const n = staffOfService.filter((s) => (s.languages ?? []).includes(code)).length;
+    return n > 0 && n < staffOfService.length;
+  });
+  const activeSpeaks = speaks && filterLanguages.includes(speaks) ? speaks : '';
+  const staffForService = activeSpeaks
+    ? staffOfService.filter((s) => (s.languages ?? []).includes(activeSpeaks))
+    : staffOfService;
   const daySlots = (slots ?? []).filter((s) => s.date === day);
   const daysWithSlots = new Set((slots ?? []).map((s) => s.date));
   const groups = [
@@ -466,26 +477,54 @@ export function BookingFlow({ slug }: { slug: string }) {
         {step === 'staff' && service ? (
           <section className="stack">
             <h2>{service.name}</h2>
+            {filterLanguages.length > 0 ? (
+              <div className="field">
+                <span id="speaks-filter">{t.languages.filterLabel}</span>
+                <span className="chips" role="group" aria-labelledby="speaks-filter">
+                  <button
+                    type="button"
+                    aria-pressed={activeSpeaks === ''}
+                    onClick={() => setSpeaks('')}
+                  >
+                    {t.languages.filterAll}
+                  </button>
+                  {filterLanguages.map((code) => (
+                    <button
+                      key={code}
+                      type="button"
+                      aria-pressed={activeSpeaks === code}
+                      aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
+                      onClick={() => setSpeaks(code)}
+                    >
+                      <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
+                    </button>
+                  ))}
+                </span>
+              </div>
+            ) : null}
             <ul className="choice-list">
-              <li>
-                <button
-                  type="button"
-                  className="with-avatar"
-                  onClick={() => {
-                    setStaffId(undefined);
-                    setStep('time');
-                  }}
-                >
-                  <span className="avatar avatar--staff avatar--any" aria-hidden="true">
-                    ∗
-                  </span>
-                  <span className="c-body">
-                    <span className="c-name">{t.booking.anyStaff}</span>
-                    <span className="c-meta">{t.booking.anyStaffHint}</span>
-                    {nearestFree(ANY_STAFF)}
-                  </span>
-                </button>
-              </li>
+              {/* "Any specialist" could pick someone without the language: hidden while filtering. */}
+              {activeSpeaks ? null : (
+                <li>
+                  <button
+                    type="button"
+                    className="with-avatar"
+                    onClick={() => {
+                      setStaffId(undefined);
+                      setStep('time');
+                    }}
+                  >
+                    <span className="avatar avatar--staff avatar--any" aria-hidden="true">
+                      ∗
+                    </span>
+                    <span className="c-body">
+                      <span className="c-name">{t.booking.anyStaff}</span>
+                      <span className="c-meta">{t.booking.anyStaffHint}</span>
+                      {nearestFree(ANY_STAFF)}
+                    </span>
+                  </button>
+                </li>
+              )}
               {staffForService.map((s) => (
                 <li key={s.id}>
                   <button

@@ -4,9 +4,11 @@ import { useI18n } from '@/lib/i18n';
 import { SPOKEN, type Spoken } from '@/lib/types';
 
 export type { Spoken };
+export { SPOKEN };
 
 /** Short labels as clients know them: flags of the countries, not ISO language codes. */
 const SHORT: Record<Spoken, string> = { pl: 'PL', uk: 'UA', ru: 'RU', be: 'BY', en: 'EN' };
+export const SPOKEN_SHORT = SHORT;
 
 /** Toggle buttons for the spoken languages; keeps the order in which they were chosen. */
 export function LanguagePicker({

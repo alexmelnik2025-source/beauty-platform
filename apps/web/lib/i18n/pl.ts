@@ -494,6 +494,9 @@ export const pl = {
     next: 'Następne zdjęcie',
   },
   languages: {
+    filterLabel: 'Mówi po',
+    filterAll: 'Wszyscy',
+    myTitle: 'Moje języki',
     salonTitle: 'Języki w salonie',
     salonHint: 'W jakich językach rozmawiacie z klientami. Pokażemy je na stronie rezerwacji.',
     staffTitle: 'Języki',

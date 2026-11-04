@@ -1,5 +1,6 @@
 'use client';
 
+import { LanguagePicker, type Spoken } from '../Languages';
 import { useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
 import { DASHBOARD_LOCALES, errorText, useI18n } from '@/lib/i18n';
@@ -281,7 +282,7 @@ export function InviteSheet({
   orgId: string;
   locationId: string;
   isOwner: boolean;
-  staffProfiles: { id: string; displayName: string; userId: string | null }[];
+  staffProfiles: { id: string; displayName: string; userId: string | null; languages?: Spoken[] }[];
   categories: Category[];
   presetStaffId?: string;
   /** "Send again": the address and number of the previous invitation. */
@@ -298,6 +299,8 @@ export function InviteSheet({
     staffMemberId: presetStaffId ?? '',
     staffCategoryId: '',
     locale: locale as string,
+    // Task 81: the staff profile's languages, set right away with the invitation.
+    languages: staffProfiles.find((s) => s.id === presetStaffId)?.languages ?? ([] as Spoken[]),
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -315,7 +318,7 @@ export function InviteSheet({
           locationIds: [locationId],
           locale: form.locale,
           ...(form.role === 'staff' && form.staffMemberId
-            ? { staffMemberId: form.staffMemberId }
+            ? { staffMemberId: form.staffMemberId, languages: form.languages }
             : {}),
           ...(form.role === 'staff' && form.staffCategoryId
             ? { staffCategoryId: form.staffCategoryId }
@@ -372,7 +375,13 @@ export function InviteSheet({
               <span>{t.team.inviteProfile}</span>
               <select
                 value={form.staffMemberId}
-                onChange={(e) => setForm({ ...form, staffMemberId: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    staffMemberId: e.target.value,
+                    languages: staffProfiles.find((s) => s.id === e.target.value)?.languages ?? [],
+                  })
+                }
               >
                 <option value="">{t.team.inviteNoProfile}</option>
                 {staffProfiles
@@ -384,6 +393,14 @@ export function InviteSheet({
                   ))}
               </select>
             </label>
+            {form.staffMemberId ? (
+              <LanguagePicker
+                title={t.languages.staffTitle}
+                hint={t.languages.staffHint}
+                value={form.languages}
+                onChange={(languages) => setForm({ ...form, languages })}
+              />
+            ) : null}
             <label className="field">
               <span>{t.team.permCategory}</span>
               <select
