@@ -4,6 +4,8 @@ import type {
   ClientCodeSent,
   ClientPerson,
   ClientSignIn,
+  PublicLocation,
+  PublicSalonDirectory,
 } from '@beauty/api-client';
 
 /**
@@ -14,6 +16,18 @@ import type {
 
 export type Locale = 'pl' | 'uk' | 'ru' | 'en';
 export type Scope = 'upcoming' | 'past';
+/** Languages a salon or specialist can speak with clients (Belarusian too). */
+export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
+export type DirectorySalon = PublicSalonDirectory['items'][number];
+export type { PublicLocation, PublicSalonDirectory };
+
+/** The catalogue shows this many salons at a time (the API allows up to 50). */
+export const PAGE_SIZE = 20;
+
+/** The web booking page of a salon (booking inside the app comes in a later part). */
+export function bookingUrl(webUrl: string, locale: Locale, slug: string): string {
+  return `${webUrl.replace(/\/+$/, '')}/${locale}/b/${encodeURIComponent(slug)}`;
+}
 export type {
   ClientAppointment,
   ClientAppointmentList,
@@ -115,6 +129,23 @@ export class ClientApi {
   /** Visits in all salons: upcoming (soonest first) or past (latest 50). */
   appointments(scope: Scope): Promise<ClientAppointmentList> {
     return this.authed<ClientAppointmentList>('GET', `/v1/client/appointments?scope=${scope}`);
+  }
+
+  /** Salons open for online booking; `language` — spoken by the salon or one of its staff. No sign-in. */
+  directory(
+    query: { page?: number; language?: SpokenLanguage } = {},
+  ): Promise<PublicSalonDirectory> {
+    const params = new URLSearchParams({
+      page: String(query.page ?? 1),
+      pageSize: String(PAGE_SIZE),
+    });
+    if (query.language) params.set('language', query.language);
+    return this.call<PublicSalonDirectory>('GET', `/v1/public/locations?${params.toString()}`);
+  }
+
+  /** A salon's page: address, description, hours, price list, specialists. No sign-in. */
+  salon(slug: string): Promise<PublicLocation> {
+    return this.call<PublicLocation>('GET', `/v1/public/locations/${encodeURIComponent(slug)}`);
   }
 
   private async forget(): Promise<void> {

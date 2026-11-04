@@ -14,6 +14,8 @@ export function VisitsScreen(props: {
   locale: Locale;
   person: ClientPerson;
   onLocale: (locale: Locale) => void;
+  /** Opens the catalogue of salons (no sign-in needed). */
+  onFindSalon: () => void;
   onSignOut: () => void;
   /** The server no longer accepts the session (signed out elsewhere, or it ended). */
   onSessionEnded: () => void;
@@ -92,6 +94,7 @@ export function VisitsScreen(props: {
           ))
         : null}
 
+      <Button kind="secondary" label={t.catalog.title} onPress={props.onFindSalon} />
       <Button kind="link" label={t.visits.signOut} onPress={props.onSignOut} />
       <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
     </ScrollView>

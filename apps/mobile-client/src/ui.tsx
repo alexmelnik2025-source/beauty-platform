@@ -48,6 +48,21 @@ export function Button(props: {
   );
 }
 
+/** A filter button that stays pressed (language of the catalogue). */
+export function Chip(props: { label: string; pressed: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      aria-pressed={props.pressed}
+      onPress={props.onPress}
+      style={[styles.chip, props.pressed && styles.chipOn]}
+    >
+      <Text style={[styles.chipText, props.pressed && { color: '#fff' }]}>{props.label}</Text>
+    </Pressable>
+  );
+}
+
 export function Heading({ children }: { children: ReactNode }) {
   return (
     <Text role="heading" aria-level={1} style={styles.heading}>
@@ -81,6 +96,18 @@ const styles = StyleSheet.create({
   secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   link: { backgroundColor: 'transparent', paddingHorizontal: 8 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipText: { color: colors.ink, fontSize: 14, fontWeight: '600' },
   heading: { fontSize: 26, fontWeight: '700', color: colors.ink },
   error: { color: colors.danger, fontSize: 15 },
   card: {

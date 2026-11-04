@@ -673,3 +673,19 @@ pnpm --filter @beauty/api-client generate
 - Код: `src/screens/ScheduleScreen.tsx`, `weekRows` / `timeOffText` / `daysOff` в `src/day.ts`, вызовы
   `workingHours` / `timeOff` / `addTimeOff` / `removeTimeOff` в `src/api.ts`; тесты в `test/`; e2e — скриншот
   `32b-business-app-staff-schedule`.
+
+## Клиентское приложение: каталог салонов и страница салона (задача 11b, часть 4а)
+
+- Кнопка «Znajdź salon» на экране входа и в «Moje wizyty» — входить не нужно. Каталог — тот же
+  `GET /v1/public/locations`, что и на сайте, по 20 салонов, «Pokaż więcej» догружает следующие.
+- Фильтр по языку общения (салон или хотя бы один мастер говорит на нём) и поиск по названию, городу, улице и
+  индексу без учёта регистра и польских букв («lodz» находит «Łódź»). Поиск идёт по уже загруженным салонам —
+  серверный поиск понадобится, когда салонов станет больше сотни.
+- Страница салона: фото, адрес, языки, «O salonie», часы работы по дням, услуги с ценой и длительностью по
+  группам, специалисты со специальностью и языками, «Zadzwoń», если у салона есть телефон.
+- «Umów wizytę» пока открывает страницу записи салона на сайте (`/<язык>/b/<slug>`, без пароля и регистрации);
+  запись прямо в приложении — часть 4б. «‹ Wróć» возвращает в каталог с тем же фильтром, затем туда, откуда пришли.
+- 4 языка (`catalog.*`, `salon.*`, `spoken.*`, `specialty.*`); цены пока в злотых (валюта салона — задача L5).
+- Код: `directory` / `salon` / `bookingUrl` в `src/api.ts`, `src/salon.ts` (поиск, часы, группы услуг),
+  `src/screens/CatalogScreen.tsx`, `src/screens/SalonScreen.tsx`; тесты `test/salon.test.ts`, `test/api.test.ts`;
+  e2e — скриншоты `60-client-app-catalogue`, `61-client-app-salon`, `62-client-app-catalogue-uk`.

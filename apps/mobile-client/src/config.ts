@@ -7,3 +7,6 @@ import { Platform } from 'react-native';
  */
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? (Platform.OS === 'web' ? '' : 'http://localhost:4000');
+
+/** The web app with the booking pages (EXPO_PUBLIC_WEB_URL; locally the Next.js dev server). */
+export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'http://localhost:3000';

@@ -979,6 +979,56 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await phone.getByRole('button', { name: 'Wyloguj się' }).click();
     await expect(phone.getByRole('heading', { name: 'Moje wizyty' })).toBeVisible();
     await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();
+
+    // The catalogue needs no sign-in: by spoken language and search, then the salon's page.
+    await phone.getByRole('button', { name: 'Znajdź salon' }).click();
+    await expect(phone.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
+    const salonCard = phone.getByRole('article', { name: 'Gestalt Barbershop' });
+    await expect(salonCard).toBeVisible();
+    // Only Alex speaks English, and that is enough to find the salon.
+    await phone.getByRole('button', { name: 'angielski' }).click();
+    await expect(phone.getByRole('button', { name: 'angielski' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(salonCard).toBeVisible();
+    // The owner added Belarusian above; the catalogue lists the specialists' languages too.
+    await expect(salonCard.getByRole('note')).toHaveAttribute(
+      'aria-label',
+      'Mówimy po: polski, ukraiński, rosyjski, białoruski, angielski',
+    );
+    await shot(phone, '60-client-app-catalogue');
+    await phone.getByRole('button', { name: 'Wszystkie języki' }).click();
+    // Search by street, without Polish letters; a wrong city finds nothing.
+    const search = phone.getByLabel('Szukaj: nazwa, miasto, ulica');
+    await search.fill('jozefa bema');
+    await expect(salonCard).toBeVisible();
+    await search.fill('Gdańsk');
+    await expect(phone.getByText('Nic nie znaleziono. Zmień wyszukiwanie.')).toBeVisible();
+    await search.fill('');
+    // The salon's page: price list, opening hours, specialists with their trades.
+    await salonCard.getByRole('button', { name: 'Zobacz salon' }).click();
+    await expect(phone.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+    await expect(phone.getByText('Strzyżenie męskie', { exact: true })).toBeVisible();
+    await expect(phone.getByText('Godziny otwarcia')).toBeVisible();
+    await expect(phone.getByText('Barber · Fryzjer')).toBeVisible();
+    await shot(phone, '61-client-app-salon');
+    // "Book" opens the salon's booking page on the web for now.
+    const [bookingPage] = await Promise.all([
+      phone.context().waitForEvent('page'),
+      phone.getByRole('button', { name: 'Umów wizytę' }).click(),
+    ]);
+    await bookingPage.waitForURL(new RegExp(`/pl/b/${location.slug}$`));
+    await bookingPage.close();
+    // Back keeps the catalogue as it was; one more back is the sign-in screen.
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(phone.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
+    await expect(salonCard).toBeVisible();
+    await phone.getByRole('button', { name: 'Українська' }).click();
+    await expect(phone.getByRole('heading', { name: 'Знайти салон' })).toBeVisible();
+    await shot(phone, '62-client-app-catalogue-uk');
+    await phone.getByRole('button', { name: '‹ Назад' }).click();
+    await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();
   } finally {
     clientApp.server.close();
   }

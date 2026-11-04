@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ClientApi, parseEmail, type TokenStore } from '../src/api';
+import {
+  ApiError,
+  bookingUrl,
+  ClientApi,
+  PAGE_SIZE,
+  parseEmail,
+  type TokenStore,
+} from '../src/api';
 
 /** A fake API: answers by "METHOD path", remembers every request. */
 function fakeServer(routes: Record<string, (body: unknown, auth?: string) => [number, unknown?]>) {
@@ -137,5 +144,40 @@ describe('ClientApi', () => {
     expect(calls.at(-1)?.key).toBe('POST /v1/client/auth/logout');
     expect(store.value).toBeNull();
     expect(api.signedIn).toBe(false);
+  });
+});
+
+describe('catalogue (no sign-in)', () => {
+  const directory = { items: [], page: 1, pageSize: PAGE_SIZE, total: 0, pageCount: 0 };
+
+  it('asks for a page, with the language when one is chosen, without a token', async () => {
+    const { fetchFn, calls } = fakeServer({
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}`]: () => [200, directory],
+      [`GET /v1/public/locations?page=2&pageSize=${PAGE_SIZE}&language=uk`]: () => [
+        200,
+        { ...directory, page: 2 },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('session'), fetchFn);
+    expect(await api.directory()).toEqual(directory);
+    expect((await api.directory({ page: 2, language: 'uk' })).page).toBe(2);
+    expect(calls.map((c) => c.auth)).toEqual([undefined, undefined]);
+  });
+
+  it('opens a salon by its link name; a missing one is a 404', async () => {
+    const { fetchFn } = fakeServer({
+      'GET /v1/public/locations/gestalt%20bema': () => [200, { slug: 'gestalt bema' }],
+    });
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    expect((await api.salon('gestalt bema')).slug).toBe('gestalt bema');
+    const missing = await api.salon('nope').catch((e: unknown) => e);
+    expect(missing).toBeInstanceOf(ApiError);
+    expect((missing as ApiError).status).toBe(404);
+  });
+
+  it('links to the web booking page in the app language', () => {
+    expect(bookingUrl('http://localhost:3000/', 'uk', 'gestalt-bema')).toBe(
+      'http://localhost:3000/uk/b/gestalt-bema',
+    );
   });
 });

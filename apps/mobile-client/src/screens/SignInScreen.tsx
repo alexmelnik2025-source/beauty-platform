@@ -15,6 +15,8 @@ export function SignInScreen(props: {
   t: Dictionary;
   locale: Locale;
   onLocale: (locale: Locale) => void;
+  /** Opens the catalogue of salons (no sign-in needed). */
+  onFindSalon: () => void;
   onSignedIn: (person: ClientPerson) => void;
 }) {
   const { api, t, locale } = props;
@@ -121,6 +123,7 @@ export function SignInScreen(props: {
           </View>
         </>
       )}
+      <Button kind="secondary" label={t.catalog.title} onPress={props.onFindSalon} />
       <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
     </View>
   );
