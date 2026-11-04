@@ -239,6 +239,7 @@ export const en: Dict = {
       coupon_removed: 'Coupon removed',
       tier_discount_applied: 'Tier discount used',
       tier_discount_removed: 'Tier discount removed',
+      wishes_changed: 'Client changed the visit wishes',
     },
   },
   phone: {
@@ -251,6 +252,19 @@ export const en: Dict = {
     cancelled: 'You are no longer on the waiting list.',
     leave: 'Leave the list',
     book: 'See free times',
+  },
+  wishStep: {
+    title: 'Your wishes',
+    lead: 'Optional — one tap or “Skip”. The specialist will see them before the visit.',
+    moodQ: 'How would you like to spend the visit?',
+    mood: { chat: 'Happy to chat', quiet: 'I prefer quiet', relax: 'I want to relax, we will see' },
+    drinkQ: 'Something to drink?',
+    drink: { coffee: 'Coffee', tea: 'Tea', water: 'Water', none: 'Nothing' },
+    noteQ: 'Anything the specialist should know?',
+    notePlaceholder: 'E.g. sensitive scalp',
+    remembered: 'We picked your choices from your last visit — you can change them.',
+    save: 'Save wishes',
+    saved: 'Wishes saved.',
   },
   booking: {
     waitlistOpen: 'Tell me when a time becomes free',
@@ -710,6 +724,18 @@ export const en: Dict = {
     qrPrint: 'Print',
     qrHint:
       'For a mirror, the counter, the door or a business card. Clients scan it with their phone and see free times right away. PNG for Canva and print shops, SVG stays sharp at any size.',
+  },
+  wishes: {
+    title: "Client's wishes",
+    settingsTitle: 'Questions when booking',
+    settingsHint:
+      'The last, optional booking step — the client answers with one tap or skips it. The specialist sees the answers on the visit.',
+    askMood: 'How the client wants to spend the visit (chat, quiet, rest)',
+    askDrink: 'Something to drink',
+    drinksOffered: 'What do you have in the salon?',
+    askNote: 'A note for the specialist (up to 200 characters)',
+    mood: { chat: 'Happy to chat', quiet: 'Prefers quiet', relax: 'Wants to relax' },
+    drink: { coffee: 'Coffee', tea: 'Tea', water: 'Water', none: 'Nothing to drink' },
   },
   settings: {
     title: 'Settings',

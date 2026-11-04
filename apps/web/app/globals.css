@@ -2179,3 +2179,69 @@ label.btn:focus-within {
   grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
   gap: 8px;
 }
+
+/* ── Visit wishes (task 80) ───────────────────────────── */
+
+.wishes-card {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--fog);
+}
+
+.wishes-card__icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 15px;
+}
+
+.wishes-card__note {
+  margin: 6px 0 0;
+}
+
+.wish-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.wish-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 88px;
+  padding: 10px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.wish-option[aria-pressed='true'] {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--ink) inset;
+  background: var(--fog);
+}
+
+.wish-option__icon {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.wishes-step {
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.wishes-step h3 {
+  margin: 0 0 4px;
+}

@@ -91,6 +91,23 @@ export const sq: Dict = {
     leave: 'Dil nga lista',
     book: 'Shiko oraret e lira',
   },
+  wishStep: {
+    title: 'Dëshirat tuaja',
+    lead: 'Opsionale — një prekje ose “Kapërce”. Specialisti do t’i shohë para vizitës.',
+    moodQ: 'Si dëshironi ta kaloni vizitën?',
+    mood: {
+      chat: 'Me kënaqësi bisedoj',
+      quiet: 'Preferoj qetësinë',
+      relax: 'Dua të pushoj, do të shohim',
+    },
+    drinkQ: 'Diçka për të pirë?',
+    drink: { coffee: 'Kafe', tea: 'Çaj', water: 'Ujë', none: 'Asgjë' },
+    noteQ: 'Diçka që specialisti duhet ta dijë?',
+    notePlaceholder: 'P.sh. lëkurë e ndjeshme e kokës',
+    remembered: 'Shënuam zgjedhjet nga vizita juaj e kaluar — mund t’i ndryshoni.',
+    save: 'Ruaj dëshirat',
+    saved: 'Dëshirat u ruajtën.',
+  },
   booking: {
     waitlistOpen: 'Më njoftoni kur të lirohet një orar',
     waitlistHint: 'Nëse dikush anulon atë ditë, ju dërgojmë një email me oraret e lira.',

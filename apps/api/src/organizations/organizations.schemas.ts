@@ -1,3 +1,4 @@
+import { offeredDrinkSchema } from '../booking/visit-wishes';
 import { z } from 'zod';
 import { LOCALES } from '../auth/auth.schemas';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../common/currency';
@@ -75,6 +76,14 @@ const locationFields = {
   /** Hours before the visit the client gets a reminder email; 0 = none (task 22). */
   reminderHoursBefore: z.union(REMINDER_HOURS.map((h) => z.literal(h))),
   onlineBookingEnabled: z.boolean(),
+  /** Task 80: questions on the last booking step. */
+  askMood: z.boolean(),
+  askDrink: z.boolean(),
+  drinks: z
+    .array(offeredDrinkSchema)
+    .max(3)
+    .transform((list) => [...new Set(list)]),
+  askNote: z.boolean(),
   languages: languagesSchema,
   /** Shown on the booking page; an empty text removes it. */
   description: z
@@ -105,6 +114,10 @@ export const createLocationSchema = z.object({
   clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
   reminderHoursBefore: locationFields.reminderHoursBefore.default(24),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
+  askMood: locationFields.askMood.default(true),
+  askDrink: locationFields.askDrink.default(false),
+  drinks: locationFields.drinks.default([]),
+  askNote: locationFields.askNote.default(true),
   languages: locationFields.languages.default([]),
   description: locationFields.description.optional(),
   bookingTerms: locationFields.bookingTerms.optional(),

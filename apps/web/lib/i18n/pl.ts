@@ -239,6 +239,7 @@ export const pl = {
       coupon_removed: 'Zdjęto kupon',
       tier_discount_applied: 'Użyto rabatu poziomu',
       tier_discount_removed: 'Zdjęto rabat poziomu',
+      wishes_changed: 'Klient zmienił życzenia do wizyty',
     },
   },
   phone: {
@@ -251,6 +252,19 @@ export const pl = {
     cancelled: 'Nie ma Cię już na liście oczekujących.',
     leave: 'Wypisz mnie z listy',
     book: 'Zobacz wolne terminy',
+  },
+  wishStep: {
+    title: 'Twoje życzenia',
+    lead: 'Nieobowiązkowe — jedno dotknięcie albo „Pomiń”. Specjalista zobaczy je przed wizytą.',
+    moodQ: 'Jak chcesz spędzić wizytę?',
+    mood: { chat: 'Chętnie pogadam', quiet: 'Wolę ciszę', relax: 'Chcę odpocząć, zobaczymy' },
+    drinkQ: 'Coś do picia?',
+    drink: { coffee: 'Kawa', tea: 'Herbata', water: 'Woda', none: 'Nic' },
+    noteQ: 'Coś, o czym specjalista powinien wiedzieć?',
+    notePlaceholder: 'Np. wrażliwa skóra głowy',
+    remembered: 'Zaznaczyliśmy wybory z Twojej poprzedniej wizyty — możesz je zmienić.',
+    save: 'Zapisz życzenia',
+    saved: 'Zapisano życzenia.',
   },
   booking: {
     waitlistOpen: 'Powiadom mnie, gdy zwolni się termin',
@@ -710,6 +724,18 @@ export const pl = {
     qrPrint: 'Drukuj',
     qrHint:
       'Na lustro, ladę, drzwi lub wizytówkę. Klient skanuje telefonem i od razu widzi wolne terminy. PNG — do Canvy i drukarni, SVG — ostry w każdym rozmiarze.',
+  },
+  wishes: {
+    title: 'Życzenia klienta',
+    settingsTitle: 'Pytania przy rezerwacji',
+    settingsHint:
+      'Ostatni, nieobowiązkowy krok rezerwacji — klient odpowiada jednym dotknięciem albo pomija. Odpowiedzi widzi specjalista w wizycie.',
+    askMood: 'Jak klient chce spędzić wizytę (rozmowa, cisza, odpoczynek)',
+    askDrink: 'Coś do picia',
+    drinksOffered: 'Co macie w salonie?',
+    askNote: 'Informacja dla specjalisty (do 200 znaków)',
+    mood: { chat: 'Chętnie pogada', quiet: 'Woli ciszę', relax: 'Chce odpocząć' },
+    drink: { coffee: 'Kawa', tea: 'Herbata', water: 'Woda', none: 'Nic do picia' },
   },
   settings: {
     title: 'Ustawienia',

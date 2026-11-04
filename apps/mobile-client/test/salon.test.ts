@@ -36,6 +36,7 @@ const location = (patch: Partial<PublicLocation> = {}): PublicLocation => ({
   description: null,
   openingHours: [],
   photos: [],
+  wishQuestions: { mood: true, drinks: [], note: true },
   codeChannels: ['email'],
   categories: [],
   services: [],

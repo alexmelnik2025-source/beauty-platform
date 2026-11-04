@@ -1,3 +1,4 @@
+import type { VisitWishesInput } from '../booking/visit-wishes';
 import { randomInt } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
@@ -275,6 +276,16 @@ export class ClientService {
     input: ClientRescheduleInput,
   ): Promise<ClientAppointmentResponse> {
     await this.booking.rescheduleAsClient(await this.mine(auth, id), input);
+    return this.get(auth, id);
+  }
+
+  /** Task 80: the client changes the wishes for an upcoming visit. */
+  async updateWishes(
+    auth: ClientAuth,
+    id: string,
+    input: VisitWishesInput,
+  ): Promise<ClientAppointmentResponse> {
+    await this.booking.updateWishes(await this.mine(auth, id), input);
     return this.get(auth, id);
   }
 

@@ -922,6 +922,30 @@
                     "default": false,
                     "type": "boolean"
                   },
+                  "askMood": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "askDrink": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "drinks": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "coffee",
+                        "tea",
+                        "water"
+                      ]
+                    }
+                  },
+                  "askNote": {
+                    "default": true,
+                    "type": "boolean"
+                  },
                   "languages": {
                     "maxItems": 20,
                     "type": "array",
@@ -1262,6 +1286,27 @@
                     ]
                   },
                   "onlineBookingEnabled": {
+                    "type": "boolean"
+                  },
+                  "askMood": {
+                    "type": "boolean"
+                  },
+                  "askDrink": {
+                    "type": "boolean"
+                  },
+                  "drinks": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "coffee",
+                        "tea",
+                        "water"
+                      ]
+                    }
+                  },
+                  "askNote": {
                     "type": "boolean"
                   },
                   "languages": {
@@ -4414,6 +4459,53 @@
                   "signIn": {
                     "default": false,
                     "type": "boolean"
+                  },
+                  "wishes": {
+                    "type": "object",
+                    "properties": {
+                      "mood": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "chat",
+                              "quiet",
+                              "relax"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "drink": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "coffee",
+                              "tea",
+                              "water",
+                              "none"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "note": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
                   }
                 },
                 "required": [
@@ -4512,6 +4604,92 @@
           }
         },
         "summary": "The appointment behind a \"manage\" link",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/wishes": {
+      "put": {
+        "description": "Answers to questions the salon does not ask are ignored; they are also remembered for the next booking. 409 TOO_LATE_TO_CHANGE once the visit has started.",
+        "operationId": "PublicBookingController_updateWishes",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mood": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "chat",
+                          "quiet",
+                          "relax"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "drink": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "coffee",
+                          "tea",
+                          "water",
+                          "none"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointment"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Client changes the visit wishes (task 80), until the visit starts",
         "tags": [
           "public booking"
         ]
@@ -7958,6 +8136,97 @@
         ]
       }
     },
+    "/v1/client/appointments/{id}/wishes": {
+      "put": {
+        "description": "409 TOO_LATE_TO_CHANGE once the visit has started.",
+        "operationId": "ClientController_updateWishes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mood": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "chat",
+                          "quiet",
+                          "relax"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "drink": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "coffee",
+                          "tea",
+                          "water",
+                          "none"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAppointment"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the visit wishes (task 80), until the visit starts",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/appointments/{id}/coupons": {
       "get": {
         "operationId": "ClientController_coupons",
@@ -9076,6 +9345,41 @@
             "nullable": true,
             "type": "string"
           },
+          "wishes": {
+            "type": "object",
+            "properties": {
+              "mood": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "chat",
+                  "quiet",
+                  "relax"
+                ]
+              },
+              "drink": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "coffee",
+                  "tea",
+                  "water",
+                  "none"
+                ]
+              },
+              "note": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "mood",
+              "drink",
+              "note"
+            ],
+            "additionalProperties": false,
+            "description": "The client's wishes for the visit (task 80); null = not answered"
+          },
           "holdExpiresAt": {
             "nullable": true,
             "type": "string"
@@ -9132,6 +9436,7 @@
           "durationMinutes",
           "bufferMinutes",
           "note",
+          "wishes",
           "holdExpiresAt",
           "cancelledAt",
           "cancelledBy",
@@ -9366,6 +9671,41 @@
             "nullable": true,
             "type": "string"
           },
+          "wishes": {
+            "type": "object",
+            "properties": {
+              "mood": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "chat",
+                  "quiet",
+                  "relax"
+                ]
+              },
+              "drink": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "coffee",
+                  "tea",
+                  "water",
+                  "none"
+                ]
+              },
+              "note": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "mood",
+              "drink",
+              "note"
+            ],
+            "additionalProperties": false,
+            "description": "The client's wishes for the visit (task 80); null = not answered"
+          },
           "holdExpiresAt": {
             "nullable": true,
             "type": "string"
@@ -9447,6 +9787,7 @@
           "durationMinutes",
           "bufferMinutes",
           "note",
+          "wishes",
           "holdExpiresAt",
           "cancelledAt",
           "cancelledBy",
@@ -9684,6 +10025,41 @@
               "nullable": true,
               "type": "string"
             },
+            "wishes": {
+              "type": "object",
+              "properties": {
+                "mood": {
+                  "nullable": true,
+                  "type": "string",
+                  "enum": [
+                    "chat",
+                    "quiet",
+                    "relax"
+                  ]
+                },
+                "drink": {
+                  "nullable": true,
+                  "type": "string",
+                  "enum": [
+                    "coffee",
+                    "tea",
+                    "water",
+                    "none"
+                  ]
+                },
+                "note": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "mood",
+                "drink",
+                "note"
+              ],
+              "additionalProperties": false,
+              "description": "The client's wishes for the visit (task 80); null = not answered"
+            },
             "holdExpiresAt": {
               "nullable": true,
               "type": "string"
@@ -9740,6 +10116,7 @@
             "durationMinutes",
             "bufferMinutes",
             "note",
+            "wishes",
             "holdExpiresAt",
             "cancelledAt",
             "cancelledBy",
@@ -10027,6 +10404,77 @@
               },
               "canChange": {
                 "type": "boolean"
+              },
+              "wishes": {
+                "type": "object",
+                "properties": {
+                  "mood": {
+                    "nullable": true,
+                    "type": "string",
+                    "enum": [
+                      "chat",
+                      "quiet",
+                      "relax"
+                    ]
+                  },
+                  "drink": {
+                    "nullable": true,
+                    "type": "string",
+                    "enum": [
+                      "coffee",
+                      "tea",
+                      "water",
+                      "none"
+                    ]
+                  },
+                  "note": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mood",
+                  "drink",
+                  "note"
+                ],
+                "additionalProperties": false,
+                "description": "The client's wishes for the visit (task 80); null = not answered"
+              },
+              "wishQuestions": {
+                "type": "object",
+                "properties": {
+                  "mood": {
+                    "type": "boolean",
+                    "description": "Ask how the client wants to spend the visit"
+                  },
+                  "drinks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "coffee",
+                        "tea",
+                        "water"
+                      ]
+                    },
+                    "description": "Drinks to offer; empty = the drink question is not asked"
+                  },
+                  "note": {
+                    "type": "boolean",
+                    "description": "Ask for a short note for the specialist (up to 200 characters)"
+                  }
+                },
+                "required": [
+                  "mood",
+                  "drinks",
+                  "note"
+                ],
+                "additionalProperties": false,
+                "description": "Questions the salon asks on the last booking step (task 80)"
+              },
+              "canChangeWishes": {
+                "type": "boolean",
+                "description": "The wishes can still be changed (confirmed visit that has not started)"
               }
             },
             "required": [
@@ -10042,7 +10490,10 @@
               "staff",
               "salon",
               "changeableUntil",
-              "canChange"
+              "canChange",
+              "wishes",
+              "wishQuestions",
+              "canChangeWishes"
             ],
             "additionalProperties": false,
             "description": "An appointment as the client sees it"
@@ -10417,6 +10868,41 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "wishes": {
+                  "type": "object",
+                  "properties": {
+                    "mood": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "chat",
+                        "quiet",
+                        "relax"
+                      ]
+                    },
+                    "drink": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "coffee",
+                        "tea",
+                        "water",
+                        "none"
+                      ]
+                    },
+                    "note": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mood",
+                    "drink",
+                    "note"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The client's wishes for the visit (task 80); null = not answered"
+                },
                 "holdExpiresAt": {
                   "nullable": true,
                   "type": "string"
@@ -10473,6 +10959,7 @@
                 "durationMinutes",
                 "bufferMinutes",
                 "note",
+                "wishes",
                 "holdExpiresAt",
                 "cancelledAt",
                 "cancelledBy",
@@ -10699,6 +11186,77 @@
           "canChange": {
             "type": "boolean"
           },
+          "wishes": {
+            "type": "object",
+            "properties": {
+              "mood": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "chat",
+                  "quiet",
+                  "relax"
+                ]
+              },
+              "drink": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "coffee",
+                  "tea",
+                  "water",
+                  "none"
+                ]
+              },
+              "note": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "mood",
+              "drink",
+              "note"
+            ],
+            "additionalProperties": false,
+            "description": "The client's wishes for the visit (task 80); null = not answered"
+          },
+          "wishQuestions": {
+            "type": "object",
+            "properties": {
+              "mood": {
+                "type": "boolean",
+                "description": "Ask how the client wants to spend the visit"
+              },
+              "drinks": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "coffee",
+                    "tea",
+                    "water"
+                  ]
+                },
+                "description": "Drinks to offer; empty = the drink question is not asked"
+              },
+              "note": {
+                "type": "boolean",
+                "description": "Ask for a short note for the specialist (up to 200 characters)"
+              }
+            },
+            "required": [
+              "mood",
+              "drinks",
+              "note"
+            ],
+            "additionalProperties": false,
+            "description": "Questions the salon asks on the last booking step (task 80)"
+          },
+          "canChangeWishes": {
+            "type": "boolean",
+            "description": "The wishes can still be changed (confirmed visit that has not started)"
+          },
           "bookAgain": {
             "nullable": true,
             "description": "Same service and staff member again; null when the salon no longer takes it online",
@@ -10773,6 +11331,9 @@
           "salon",
           "changeableUntil",
           "canChange",
+          "wishes",
+          "wishQuestions",
+          "canChangeWishes",
           "bookAgain",
           "discountGrosze",
           "coupons"
@@ -10906,6 +11467,77 @@
                 "canChange": {
                   "type": "boolean"
                 },
+                "wishes": {
+                  "type": "object",
+                  "properties": {
+                    "mood": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "chat",
+                        "quiet",
+                        "relax"
+                      ]
+                    },
+                    "drink": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "coffee",
+                        "tea",
+                        "water",
+                        "none"
+                      ]
+                    },
+                    "note": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mood",
+                    "drink",
+                    "note"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The client's wishes for the visit (task 80); null = not answered"
+                },
+                "wishQuestions": {
+                  "type": "object",
+                  "properties": {
+                    "mood": {
+                      "type": "boolean",
+                      "description": "Ask how the client wants to spend the visit"
+                    },
+                    "drinks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "coffee",
+                          "tea",
+                          "water"
+                        ]
+                      },
+                      "description": "Drinks to offer; empty = the drink question is not asked"
+                    },
+                    "note": {
+                      "type": "boolean",
+                      "description": "Ask for a short note for the specialist (up to 200 characters)"
+                    }
+                  },
+                  "required": [
+                    "mood",
+                    "drinks",
+                    "note"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Questions the salon asks on the last booking step (task 80)"
+                },
+                "canChangeWishes": {
+                  "type": "boolean",
+                  "description": "The wishes can still be changed (confirmed visit that has not started)"
+                },
                 "bookAgain": {
                   "nullable": true,
                   "description": "Same service and staff member again; null when the salon no longer takes it online",
@@ -10980,6 +11612,9 @@
                 "salon",
                 "changeableUntil",
                 "canChange",
+                "wishes",
+                "wishQuestions",
+                "canChangeWishes",
                 "bookAgain",
                 "discountGrosze",
                 "coupons"
@@ -13103,6 +13738,29 @@
           "onlineBookingEnabled": {
             "type": "boolean"
           },
+          "askMood": {
+            "type": "boolean",
+            "description": "Task 80: ask how the client wants to spend the visit"
+          },
+          "askDrink": {
+            "type": "boolean",
+            "description": "Task 80: offer a drink (only the drinks listed)"
+          },
+          "drinks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "coffee",
+                "tea",
+                "water"
+              ]
+            }
+          },
+          "askNote": {
+            "type": "boolean",
+            "description": "Task 80: ask for a short note for the specialist"
+          },
           "languages": {
             "type": "array",
             "items": {
@@ -13165,6 +13823,10 @@
           "clientCancelDeadlineMinutes",
           "reminderHoursBefore",
           "onlineBookingEnabled",
+          "askMood",
+          "askDrink",
+          "drinks",
+          "askNote",
           "languages",
           "description",
           "bookingTerms",
@@ -13265,6 +13927,29 @@
             "onlineBookingEnabled": {
               "type": "boolean"
             },
+            "askMood": {
+              "type": "boolean",
+              "description": "Task 80: ask how the client wants to spend the visit"
+            },
+            "askDrink": {
+              "type": "boolean",
+              "description": "Task 80: offer a drink (only the drinks listed)"
+            },
+            "drinks": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "coffee",
+                  "tea",
+                  "water"
+                ]
+              }
+            },
+            "askNote": {
+              "type": "boolean",
+              "description": "Task 80: ask for a short note for the specialist"
+            },
             "languages": {
               "type": "array",
               "items": {
@@ -13327,6 +14012,10 @@
             "clientCancelDeadlineMinutes",
             "reminderHoursBefore",
             "onlineBookingEnabled",
+            "askMood",
+            "askDrink",
+            "drinks",
+            "askNote",
             "languages",
             "description",
             "bookingTerms",
@@ -15494,6 +16183,77 @@
           },
           "canChange": {
             "type": "boolean"
+          },
+          "wishes": {
+            "type": "object",
+            "properties": {
+              "mood": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "chat",
+                  "quiet",
+                  "relax"
+                ]
+              },
+              "drink": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "coffee",
+                  "tea",
+                  "water",
+                  "none"
+                ]
+              },
+              "note": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "mood",
+              "drink",
+              "note"
+            ],
+            "additionalProperties": false,
+            "description": "The client's wishes for the visit (task 80); null = not answered"
+          },
+          "wishQuestions": {
+            "type": "object",
+            "properties": {
+              "mood": {
+                "type": "boolean",
+                "description": "Ask how the client wants to spend the visit"
+              },
+              "drinks": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "coffee",
+                    "tea",
+                    "water"
+                  ]
+                },
+                "description": "Drinks to offer; empty = the drink question is not asked"
+              },
+              "note": {
+                "type": "boolean",
+                "description": "Ask for a short note for the specialist (up to 200 characters)"
+              }
+            },
+            "required": [
+              "mood",
+              "drinks",
+              "note"
+            ],
+            "additionalProperties": false,
+            "description": "Questions the salon asks on the last booking step (task 80)"
+          },
+          "canChangeWishes": {
+            "type": "boolean",
+            "description": "The wishes can still be changed (confirmed visit that has not started)"
           }
         },
         "required": [
@@ -15509,7 +16269,10 @@
           "staff",
           "salon",
           "changeableUntil",
-          "canChange"
+          "canChange",
+          "wishes",
+          "wishQuestions",
+          "canChangeWishes"
         ],
         "additionalProperties": false,
         "description": "An appointment as the client sees it"
@@ -15655,6 +16418,38 @@
               "additionalProperties": false
             },
             "description": "Salon photos, oldest first: links to /v1/public/photos/<id>"
+          },
+          "wishQuestions": {
+            "type": "object",
+            "properties": {
+              "mood": {
+                "type": "boolean",
+                "description": "Ask how the client wants to spend the visit"
+              },
+              "drinks": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "coffee",
+                    "tea",
+                    "water"
+                  ]
+                },
+                "description": "Drinks to offer; empty = the drink question is not asked"
+              },
+              "note": {
+                "type": "boolean",
+                "description": "Ask for a short note for the specialist (up to 200 characters)"
+              }
+            },
+            "required": [
+              "mood",
+              "drinks",
+              "note"
+            ],
+            "additionalProperties": false,
+            "description": "Questions the salon asks on the last booking step (task 80)"
           },
           "codeChannels": {
             "type": "array",
@@ -15816,6 +16611,7 @@
           "description",
           "openingHours",
           "photos",
+          "wishQuestions",
           "codeChannels",
           "categories",
           "services",

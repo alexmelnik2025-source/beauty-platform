@@ -283,8 +283,12 @@ describe('client app: my visits in all salons', () => {
       salon: { slug: first.slug, city: 'Warszawa' },
       bookAgain: { slug: first.slug, serviceId: first.serviceId, staffId: first.staffId },
     });
-    // Nothing the salon keeps for itself.
-    expect(JSON.stringify(res.body)).not.toMatch(/note|tags|phone":"\+48600/);
+    // Nothing the salon keeps for itself (the client's own wishes note is theirs to see).
+    for (const item of res.body.items) {
+      expect(Object.keys(item)).not.toContain('note');
+      expect(item.wishes).toEqual({ mood: null, drink: null, note: null });
+    }
+    expect(JSON.stringify(res.body)).not.toMatch(/tags|phone":"\+48600/);
 
     const bob = await signIn(BOB);
     const bobs = await ctx.http().get('/v1/client/appointments').set(bob).expect(200);
@@ -379,6 +383,27 @@ describe('client app: my visits in all salons', () => {
     expect(res.body).toMatchObject({ id, time: '14:00', status: 'confirmed' });
     const events = await ctx.prisma.appointmentEvent.findMany({ where: { appointmentId: id } });
     expect(events.map((e) => e.type)).toContain('rescheduled');
+  });
+
+  it('the client changes the visit wishes in the app; only on own visits (task 80)', async () => {
+    const id = await book(first, at(day, 10));
+    const bobsVisit = await book(first, at(day, 12), BOB);
+    const auth = await signIn(ANNA);
+    const res = await ctx
+      .http()
+      .put(`/v1/client/appointments/${id}/wishes`)
+      .set(auth)
+      .send({ mood: 'chat', note: 'Krótko po bokach' })
+      .expect(200);
+    expect(res.body.wishes).toEqual({ mood: 'chat', drink: null, note: 'Krótko po bokach' });
+    expect(res.body.canChangeWishes).toBe(true);
+    await ctx
+      .http()
+      .put(`/v1/client/appointments/${bobsVisit}/wishes`)
+      .set(auth)
+      .send({ mood: 'quiet' })
+      .expect(404);
+    await ctx.http().put(`/v1/client/appointments/${id}/wishes`).send({}).expect(401);
   });
 
   it('"book again" disappears when the salon stops taking the service online', async () => {

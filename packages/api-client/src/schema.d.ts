@@ -1042,6 +1042,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/appointments/{token}/wishes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Client changes the visit wishes (task 80), until the visit starts
+         * @description Answers to questions the salon does not ask are ignored; they are also remembered for the next booking. 409 TOO_LATE_TO_CHANGE once the visit has started.
+         */
+        put: operations["PublicBookingController_updateWishes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/appointments/{token}/cancel": {
         parameters: {
             query?: never;
@@ -1934,6 +1954,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/wishes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the visit wishes (task 80), until the visit starts
+         * @description 409 TOO_LATE_TO_CHANGE once the visit has started.
+         */
+        put: operations["ClientController_updateWishes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/appointments/{id}/coupons": {
         parameters: {
             query?: never;
@@ -2339,6 +2379,14 @@ export interface components {
             durationMinutes: number;
             bufferMinutes: number;
             note: string | null;
+            /** @description The client's wishes for the visit (task 80); null = not answered */
+            wishes: {
+                /** @enum {string|null} */
+                mood: "chat" | "quiet" | "relax" | null;
+                /** @enum {string|null} */
+                drink: "coffee" | "tea" | "water" | "none" | null;
+                note: string | null;
+            };
             holdExpiresAt: string | null;
             cancelledAt: string | null;
             /** @enum {string|null} */
@@ -2413,6 +2461,14 @@ export interface components {
             durationMinutes: number;
             bufferMinutes: number;
             note: string | null;
+            /** @description The client's wishes for the visit (task 80); null = not answered */
+            wishes: {
+                /** @enum {string|null} */
+                mood: "chat" | "quiet" | "relax" | null;
+                /** @enum {string|null} */
+                drink: "coffee" | "tea" | "water" | "none" | null;
+                note: string | null;
+            };
             holdExpiresAt: string | null;
             cancelledAt: string | null;
             /** @enum {string|null} */
@@ -2493,6 +2549,14 @@ export interface components {
             durationMinutes: number;
             bufferMinutes: number;
             note: string | null;
+            /** @description The client's wishes for the visit (task 80); null = not answered */
+            wishes: {
+                /** @enum {string|null} */
+                mood: "chat" | "quiet" | "relax" | null;
+                /** @enum {string|null} */
+                drink: "coffee" | "tea" | "water" | "none" | null;
+                note: string | null;
+            };
             holdExpiresAt: string | null;
             cancelledAt: string | null;
             /** @enum {string|null} */
@@ -2578,6 +2642,25 @@ export interface components {
                 /** @description Until when the client can still move or cancel online */
                 changeableUntil: string;
                 canChange: boolean;
+                /** @description The client's wishes for the visit (task 80); null = not answered */
+                wishes: {
+                    /** @enum {string|null} */
+                    mood: "chat" | "quiet" | "relax" | null;
+                    /** @enum {string|null} */
+                    drink: "coffee" | "tea" | "water" | "none" | null;
+                    note: string | null;
+                };
+                /** @description Questions the salon asks on the last booking step (task 80) */
+                wishQuestions: {
+                    /** @description Ask how the client wants to spend the visit */
+                    mood: boolean;
+                    /** @description Drinks to offer; empty = the drink question is not asked */
+                    drinks: ("coffee" | "tea" | "water")[];
+                    /** @description Ask for a short note for the specialist (up to 200 characters) */
+                    note: boolean;
+                };
+                /** @description The wishes can still be changed (confirmed visit that has not started) */
+                canChangeWishes: boolean;
             };
             /** @description For the "manage my appointment" link (also sent by email) */
             manageToken: string;
@@ -2678,6 +2761,14 @@ export interface components {
                 durationMinutes: number;
                 bufferMinutes: number;
                 note: string | null;
+                /** @description The client's wishes for the visit (task 80); null = not answered */
+                wishes: {
+                    /** @enum {string|null} */
+                    mood: "chat" | "quiet" | "relax" | null;
+                    /** @enum {string|null} */
+                    drink: "coffee" | "tea" | "water" | "none" | null;
+                    note: string | null;
+                };
                 holdExpiresAt: string | null;
                 cancelledAt: string | null;
                 /** @enum {string|null} */
@@ -2745,6 +2836,25 @@ export interface components {
             /** @description Until when the client can still move or cancel online */
             changeableUntil: string;
             canChange: boolean;
+            /** @description The client's wishes for the visit (task 80); null = not answered */
+            wishes: {
+                /** @enum {string|null} */
+                mood: "chat" | "quiet" | "relax" | null;
+                /** @enum {string|null} */
+                drink: "coffee" | "tea" | "water" | "none" | null;
+                note: string | null;
+            };
+            /** @description Questions the salon asks on the last booking step (task 80) */
+            wishQuestions: {
+                /** @description Ask how the client wants to spend the visit */
+                mood: boolean;
+                /** @description Drinks to offer; empty = the drink question is not asked */
+                drinks: ("coffee" | "tea" | "water")[];
+                /** @description Ask for a short note for the specialist (up to 200 characters) */
+                note: boolean;
+            };
+            /** @description The wishes can still be changed (confirmed visit that has not started) */
+            canChangeWishes: boolean;
             /** @description Same service and staff member again; null when the salon no longer takes it online */
             bookAgain: {
                 slug: string;
@@ -2796,6 +2906,25 @@ export interface components {
                 /** @description Until when the client can still move or cancel online */
                 changeableUntil: string;
                 canChange: boolean;
+                /** @description The client's wishes for the visit (task 80); null = not answered */
+                wishes: {
+                    /** @enum {string|null} */
+                    mood: "chat" | "quiet" | "relax" | null;
+                    /** @enum {string|null} */
+                    drink: "coffee" | "tea" | "water" | "none" | null;
+                    note: string | null;
+                };
+                /** @description Questions the salon asks on the last booking step (task 80) */
+                wishQuestions: {
+                    /** @description Ask how the client wants to spend the visit */
+                    mood: boolean;
+                    /** @description Drinks to offer; empty = the drink question is not asked */
+                    drinks: ("coffee" | "tea" | "water")[];
+                    /** @description Ask for a short note for the specialist (up to 200 characters) */
+                    note: boolean;
+                };
+                /** @description The wishes can still be changed (confirmed visit that has not started) */
+                canChangeWishes: boolean;
                 /** @description Same service and staff member again; null when the salon no longer takes it online */
                 bookAgain: {
                     slug: string;
@@ -3311,6 +3440,13 @@ export interface components {
             /** @description The reminder email goes this many hours before the visit; 0 = none */
             reminderHoursBefore: number;
             onlineBookingEnabled: boolean;
+            /** @description Task 80: ask how the client wants to spend the visit */
+            askMood: boolean;
+            /** @description Task 80: offer a drink (only the drinks listed) */
+            askDrink: boolean;
+            drinks: ("coffee" | "tea" | "water")[];
+            /** @description Task 80: ask for a short note for the specialist */
+            askNote: boolean;
             /** @description Languages the salon speaks with clients, in the salon’s order */
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
             description: string | null;
@@ -3348,6 +3484,13 @@ export interface components {
             /** @description The reminder email goes this many hours before the visit; 0 = none */
             reminderHoursBefore: number;
             onlineBookingEnabled: boolean;
+            /** @description Task 80: ask how the client wants to spend the visit */
+            askMood: boolean;
+            /** @description Task 80: offer a drink (only the drinks listed) */
+            askDrink: boolean;
+            drinks: ("coffee" | "tea" | "water")[];
+            /** @description Task 80: ask for a short note for the specialist */
+            askNote: boolean;
             /** @description Languages the salon speaks with clients, in the salon’s order */
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
             description: string | null;
@@ -3920,6 +4063,25 @@ export interface components {
             /** @description Until when the client can still move or cancel online */
             changeableUntil: string;
             canChange: boolean;
+            /** @description The client's wishes for the visit (task 80); null = not answered */
+            wishes: {
+                /** @enum {string|null} */
+                mood: "chat" | "quiet" | "relax" | null;
+                /** @enum {string|null} */
+                drink: "coffee" | "tea" | "water" | "none" | null;
+                note: string | null;
+            };
+            /** @description Questions the salon asks on the last booking step (task 80) */
+            wishQuestions: {
+                /** @description Ask how the client wants to spend the visit */
+                mood: boolean;
+                /** @description Drinks to offer; empty = the drink question is not asked */
+                drinks: ("coffee" | "tea" | "water")[];
+                /** @description Ask for a short note for the specialist (up to 200 characters) */
+                note: boolean;
+            };
+            /** @description The wishes can still be changed (confirmed visit that has not started) */
+            canChangeWishes: boolean;
         };
         /** @description The texts a client accepts when booking, as written by the salon */
         PublicLegalTexts: {
@@ -3963,6 +4125,15 @@ export interface components {
                 id: string;
                 url: string;
             }[];
+            /** @description Questions the salon asks on the last booking step (task 80) */
+            wishQuestions: {
+                /** @description Ask how the client wants to spend the visit */
+                mood: boolean;
+                /** @description Drinks to offer; empty = the drink question is not asked */
+                drinks: ("coffee" | "tea" | "water")[];
+                /** @description Ask for a short note for the specialist (up to 200 characters) */
+                note: boolean;
+            };
             /** @description Where the booking code can be sent: always email; sms when a gateway is connected */
             codeChannels: ("email" | "sms")[];
             /** @description Price-list groups in display order; services without a category come last */
@@ -4960,6 +5131,13 @@ export interface operations {
                     reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
                     /** @default false */
                     onlineBookingEnabled?: boolean;
+                    /** @default true */
+                    askMood?: boolean;
+                    /** @default false */
+                    askDrink?: boolean;
+                    drinks?: ("coffee" | "tea" | "water")[];
+                    /** @default true */
+                    askNote?: boolean;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
                     description?: string | null;
                     bookingTerms?: string | null;
@@ -5031,6 +5209,10 @@ export interface operations {
                     clientCancelDeadlineMinutes?: number;
                     reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
                     onlineBookingEnabled?: boolean;
+                    askMood?: boolean;
+                    askDrink?: boolean;
+                    drinks?: ("coffee" | "tea" | "water")[];
+                    askNote?: boolean;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
                     description?: string | null;
                     bookingTerms?: string | null;
@@ -6442,6 +6624,11 @@ export interface operations {
                     code: string;
                     /** @default false */
                     signIn?: boolean;
+                    wishes?: {
+                        mood?: ("chat" | "quiet" | "relax") | null;
+                        drink?: ("coffee" | "tea" | "water" | "none") | null;
+                        note?: string | null;
+                    };
                 };
             };
         };
@@ -6491,6 +6678,35 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicAppointment"];
+                };
+            };
+        };
+    };
+    PublicBookingController_updateWishes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    mood?: ("chat" | "quiet" | "relax") | null;
+                    drink?: ("coffee" | "tea" | "water" | "none") | null;
+                    note?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -8075,6 +8291,35 @@ export interface operations {
                     start: string;
                     /** Format: uuid */
                     staffId?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientAppointment"];
+                };
+            };
+        };
+    };
+    ClientController_updateWishes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    mood?: ("chat" | "quiet" | "relax") | null;
+                    drink?: ("coffee" | "tea" | "water" | "none") | null;
+                    note?: string | null;
                 };
             };
         };

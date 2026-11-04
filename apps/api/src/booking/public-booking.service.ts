@@ -22,6 +22,7 @@ import type {
 } from './booking.schemas';
 import { OutboxService } from './outbox.service';
 import type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
+import { acceptedWishes, toWishes, wishQuestions, type VisitWishesInput } from './visit-wishes';
 
 export const HOLD_MINUTES = 10;
 const CODE_MINUTES = 10;
@@ -320,6 +321,8 @@ export class PublicBookingService {
     // An SMS code confirms the phone, not the email address.
     const emailConfirmed = contact.codeChannel !== 'sms';
     const manageToken = generateToken();
+    // Task 80: only answers to questions this salon asks.
+    const wishes = acceptedWishes(hold.location, input.wishes);
 
     const confirmed = await this.prisma.$transaction(async (tx) => {
       // Compared with the database clock: a hold that expired a millisecond ago is gone.
@@ -342,10 +345,11 @@ export class PublicBookingService {
           phone: contact.phone,
           email: contact.email,
           locale: contact.locale,
+          ...wishes,
         },
         // An email that was not confirmed must not rewrite the salon's card of that address.
         update: emailConfirmed
-          ? { name: contact.name, phone: contact.phone, locale: contact.locale }
+          ? { name: contact.name, phone: contact.phone, locale: contact.locale, ...wishes }
           : {},
       });
       await tx.consentRecord.createMany({
@@ -372,7 +376,7 @@ export class PublicBookingService {
       });
       const appointment = await tx.appointment.update({
         where: { id: hold.id },
-        data: { customerId: customer.id },
+        data: { customerId: customer.id, ...wishes },
         include: { location: true, service: true, staff: true },
       });
       await tx.verificationCode.delete({ where: { id: code.id } });
@@ -413,6 +417,41 @@ export class PublicBookingService {
 
   async getByToken(token: string): Promise<PublicAppointmentResponse> {
     return this.toPublic(await this.byToken(token));
+  }
+
+  /**
+   * Task 80: the client changes the wishes by the link, until the visit starts (even after
+   * the deadline for moving it). The answers are also remembered for the next booking.
+   */
+  async updateWishesByToken(
+    token: string,
+    input: VisitWishesInput,
+  ): Promise<PublicAppointmentResponse> {
+    return this.updateWishes(await this.byToken(token), input);
+  }
+
+  /** The same for the client app ("My visits"); the caller checked the visit is theirs. */
+  async updateWishes(
+    appointment: Appointment & { location: Location },
+    input: VisitWishesInput,
+  ): Promise<PublicAppointmentResponse> {
+    if (appointment.status !== 'confirmed' || Date.now() >= appointment.startAt.getTime()) {
+      throw tooLate();
+    }
+    const wishes = acceptedWishes(appointment.location, input);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const saved = await tx.appointment.update({
+        where: { id: appointment.id },
+        data: wishes,
+        include: { location: true, service: true, staff: true },
+      });
+      if (saved.customerId) {
+        await tx.customer.update({ where: { id: saved.customerId }, data: wishes });
+      }
+      await this.writer.event(tx, saved.id, 'wishes_changed', 'customer', null, {});
+      return saved;
+    });
+    return this.toPublic(updated);
   }
 
   async cancelByToken(
@@ -642,6 +681,9 @@ export class PublicBookingService {
       },
       changeableUntil: new Date(until).toISOString(),
       canChange: a.status === 'confirmed' && Date.now() < until,
+      wishes: toWishes(a),
+      wishQuestions: wishQuestions(a.location),
+      canChangeWishes: a.status === 'confirmed' && Date.now() < a.startAt.getTime(),
     };
   }
 }
