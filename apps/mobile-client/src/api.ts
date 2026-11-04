@@ -237,6 +237,15 @@ export class ClientApi {
     );
   }
 
+  /** Task 80: the visit's wishes, until the visit starts (VISIT_NOT_CHANGEABLE after). */
+  updateWishes(id: string, wishes: ClientAppointment['wishes']): Promise<ClientAppointment> {
+    return this.authed<ClientAppointment>(
+      'PUT',
+      `/v1/client/appointments/${encodeURIComponent(id)}/wishes`,
+      wishes,
+    );
+  }
+
   cancel(id: string, key: string = newRequestKey()): Promise<ClientAppointment> {
     return this.authed<ClientAppointment>(
       'POST',
@@ -337,11 +346,16 @@ export class ClientApi {
    * Booking, step 3: the code from the email books the visit. The same code twice (a lost
    * answer, a second tap) books once: the key is the hold and the code, as on the web.
    */
-  confirmBooking(hold: Hold, code: string): Promise<BookingConfirmed> {
+  confirmBooking(
+    hold: Hold,
+    code: string,
+    /** Task 80: only when the salon asks (see wishesToSend). */
+    wishes?: ClientAppointment['wishes'],
+  ): Promise<BookingConfirmed> {
     return this.call<BookingConfirmed>(
       'POST',
       `/v1/public/holds/${encodeURIComponent(hold.holdId)}/confirm`,
-      { holdToken: hold.holdToken, code },
+      { holdToken: hold.holdToken, code, ...(wishes ? { wishes } : {}) },
       undefined,
       { 'idempotency-key': `confirm-${hold.holdId}-${code}` },
     );

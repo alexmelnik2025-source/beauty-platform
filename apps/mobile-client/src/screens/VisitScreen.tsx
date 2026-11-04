@@ -23,6 +23,8 @@ import {
 } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
+import { WishesPicker } from '../WishesPicker';
+import { asksWishes, wishesToSend, type VisitWishes } from '../wishes';
 
 /**
  * One visit: when, what, with whom, where and for how much; change the time or cancel (both
@@ -43,6 +45,7 @@ export function VisitScreen(props: {
 }) {
   const { api, t, locale, onBack, onSessionEnded } = props;
   const [visit, setVisit] = useState<ClientAppointment>(props.visit);
+  const [wishDraft, setWishDraft] = useState<VisitWishes>(props.visit.wishes);
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -202,6 +205,25 @@ export function VisitScreen(props: {
     }
   }
 
+  /** Task 80: change the wishes until the visit starts. */
+  async function saveWishes(wishes: VisitWishes) {
+    if (!asksWishes(visit.wishQuestions)) return;
+    setBusy(true);
+    setError('');
+    setDone('');
+    try {
+      const saved = await api.updateWishes(visit.id, wishesToSend(wishes, visit.wishQuestions));
+      setVisit(saved);
+      setWishDraft(saved.wishes);
+      setDone(t.wishStep.saved);
+    } catch (e) {
+      if (!api.signedIn) return onSessionEnded();
+      setError(errorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const v = t.visit;
   const day = formatDay(visit.date, locale);
   const actions = visitActions(visit);
@@ -263,6 +285,23 @@ export function VisitScreen(props: {
           />
         ) : null}
       </Card>
+
+      {visit.canChangeWishes && asksWishes(visit.wishQuestions) ? (
+        <View style={{ gap: 8 }}>
+          <WishesPicker
+            t={t}
+            questions={visit.wishQuestions}
+            value={wishDraft}
+            onChange={setWishDraft}
+          />
+          <Button
+            kind="secondary"
+            label={t.wishStep.save}
+            busy={busy}
+            onPress={() => void saveWishes(wishDraft)}
+          />
+        </View>
+      ) : null}
 
       {couponsOpen && coupons && (coupons.applied.length > 0 || coupons.available.length > 0) ? (
         <View role="region" aria-label={v.coupons} style={styles.move}>

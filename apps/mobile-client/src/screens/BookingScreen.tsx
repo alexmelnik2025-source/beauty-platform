@@ -39,6 +39,8 @@ import {
   type ContactProblem,
 } from '../booking';
 import { WEB_URL } from '../config';
+import { WishesPicker } from '../WishesPicker';
+import { asksWishes, NO_WISHES, wishesToSend, type VisitWishes } from '../wishes';
 import { errorText } from '../errors';
 import {
   ANY_STAFF,
@@ -100,6 +102,8 @@ export function BookingScreen(props: {
   const [step, setStep] = useState<BookingStep>(start.step);
   const [serviceId, setServiceId] = useState(start.serviceId);
   const [staffId, setStaffId] = useState<string | undefined>(start.staffId);
+  /** Task 80: the client's wishes, asked on the code step when the salon asks anything. */
+  const [wishes, setWishes] = useState<VisitWishes>(NO_WISHES);
   /** Task 81: "Speaks EN" — only the specialists who speak the chosen language. */
   const [speaks, setSpeaks] = useState<SpokenLanguage | null>(null);
   // Shown until the client picks something: the service or specialist is no longer online.
@@ -292,7 +296,14 @@ export function BookingScreen(props: {
     setBusy(true);
     setError('');
     try {
-      setDone(await api.confirmBooking(hold, code));
+      const questions = salon.wishQuestions;
+      setDone(
+        await api.confirmBooking(
+          hold,
+          code,
+          asksWishes(questions) ? wishesToSend(wishes, questions) : undefined,
+        ),
+      );
       setStep('done');
     } catch (e) {
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
@@ -624,6 +635,14 @@ export function BookingScreen(props: {
             maxLength={6}
             style={[styles.input, styles.code]}
           />
+          {asksWishes(salon.wishQuestions) ? (
+            <WishesPicker
+              t={t}
+              questions={salon.wishQuestions}
+              value={wishes}
+              onChange={setWishes}
+            />
+          ) : null}
           <Button
             label={b.confirm}
             onPress={() => void confirm()}

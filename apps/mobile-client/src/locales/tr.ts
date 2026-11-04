@@ -137,6 +137,23 @@ export const tr: Dictionary = {
     },
     coupon: { active: 'aktif', used: 'kullanıldı', expired: 'süresi doldu' },
   },
+  wishStep: {
+    title: 'İstekleriniz',
+    lead: 'İsteğe bağlı — tek dokunuş veya “Atla”. Uzman ziyaretten önce görür.',
+    moodQ: 'Ziyaretinizi nasıl geçirmek istersiniz?',
+    mood: {
+      chat: 'Sohbet etmeyi severim',
+      quiet: 'Sessizliği tercih ederim',
+      relax: 'Dinlenmek istiyorum, bakarız',
+    },
+    drinkQ: 'Bir şey içer misiniz?',
+    drink: { coffee: 'Kahve', tea: 'Çay', water: 'Su', none: 'Hiçbir şey' },
+    noteQ: 'Uzmanın bilmesi gereken bir şey var mı?',
+    notePlaceholder: 'Örn. hassas saç derisi',
+    remembered: 'Önceki ziyaretinizdeki seçimlerinizi işaretledik — değiştirebilirsiniz.',
+    save: 'İstekleri kaydet',
+    saved: 'İstekler kaydedildi.',
+  },
   book: {
     title: 'Randevu al',
     back: '‹ Geri',

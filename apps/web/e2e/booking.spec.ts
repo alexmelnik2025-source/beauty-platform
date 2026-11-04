@@ -1221,6 +1221,10 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     ).toBeVisible();
     await expect(ownerApp.getByText('Usługa', { exact: true })).toBeVisible();
     await expect(ownerApp.getByText(/można zaznaczyć, gdy wizyta się zacznie/)).toBeVisible();
+    // Task 80e: Anna's wishes from the booking, as in the cabinet.
+    await expect(ownerApp.getByText('Życzenia klienta')).toBeVisible();
+    await expect(ownerApp.getByText('🤫 Woli ciszę')).toBeVisible();
+    await expect(ownerApp.getByText('✍️ Wrażliwa skóra głowy')).toBeVisible();
     await shot(ownerApp, '33a-business-app-owner-visit');
     await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
@@ -1562,6 +1566,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await phone.getByRole('button', { name: 'Wyślij kod' }).click();
     await expect(phone.getByText(`Wysłaliśmy 6 cyfr na ${CLIENT4}.`)).toBeVisible();
     const bookCodeMail = await waitForEmail(CLIENT4, /Kod potwierdzenia/);
+    // Task 80e: the salon's questions on the code step, one tap each (coffee and tea offered).
+    await expect(phone.getByRole('heading', { name: 'Twoje życzenia' })).toBeVisible();
+    await phone.getByRole('button', { name: '😄 Chętnie pogadam' }).click();
+    await expect(phone.getByRole('button', { name: '😄 Chętnie pogadam' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await phone.getByRole('button', { name: '☕ Kawa' }).click();
+    await expect(phone.getByRole('button', { name: '💧 Woda' })).toHaveCount(0);
+    await shot(phone, '64w-client-app-book-wishes');
     await phone.getByRole('textbox', { name: 'Kod z e-maila' }).fill('000000');
     await phone.getByRole('button', { name: 'Potwierdź wizytę' }).click();
     await expect(phone.getByText('Kod jest nieprawidłowy', { exact: false })).toBeVisible();

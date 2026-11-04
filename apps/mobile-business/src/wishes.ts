@@ -1,0 +1,20 @@
+import type { AppointmentDetail } from './api';
+import type { Dictionary } from './i18n';
+
+type Wishes = AppointmentDetail['wishes'];
+
+const MOOD_ICON = { chat: '😄', quiet: '🤫', relax: '😌' } as const;
+const DRINK_ICON = { coffee: '☕', tea: '🍵', water: '💧', none: '🙅' } as const;
+
+/**
+ * Task 80: the client's wishes in the visit card, one line each — "🤫 Woli ciszę",
+ * "☕ Kawa", "✍️ <note>". Nothing answered → no lines. No React Native here (tested in Vitest).
+ */
+export function wishLines(wishes: Wishes | null | undefined, v: Dictionary['visit']): string[] {
+  if (!wishes) return [];
+  const lines: string[] = [];
+  if (wishes.mood) lines.push(`${MOOD_ICON[wishes.mood]} ${v.mood[wishes.mood]}`);
+  if (wishes.drink) lines.push(`${DRINK_ICON[wishes.drink]} ${v.drink[wishes.drink]}`);
+  if (wishes.note) lines.push(`✍️ ${wishes.note}`);
+  return lines;
+}

@@ -14,6 +14,7 @@ import { addDays, dayTitle, formatPrice, timeIn, todayIn, visitActions } from '.
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { cancelReason, createProblem, freeTimes, mayMoveOrCancel } from '../newVisit';
+import { wishLines } from '../wishes';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
 import type { SalonChoice } from './SalonsScreen';
@@ -213,6 +214,18 @@ export function VisitScreen(props: {
           <>
             <Text style={styles.label}>{v.note}</Text>
             <Text style={styles.value}>{visit.note}</Text>
+          </>
+        ) : null}
+
+        {/* Task 80: what the client asked for when booking (the server shows them by permission). */}
+        {wishLines(visit.wishes, v).length > 0 ? (
+          <>
+            <Text style={styles.label}>{v.wishes}</Text>
+            {wishLines(visit.wishes, v).map((line) => (
+              <Text key={line} style={styles.value}>
+                {line}
+              </Text>
+            ))}
           </>
         ) : null}
       </Card>

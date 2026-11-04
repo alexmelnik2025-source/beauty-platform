@@ -1325,6 +1325,12 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
   Изменить ответы до визита: страница визита по ссылке и «Moje wizyty» на сайте (`PUT …/wishes`, в приложении —
   `PUT /v1/client/appointments/:id/wishes`). Тексты клиента — 6 языков (`wishStep`), кабинета — 4 (`wishes`).
   e2e: скриншоты 05w (шаг), 07w (изменение по ссылке), 09w (карточка у владельца), 21w (настройки).
+- **80e — приложения.** Клиентское: на шаге кода блок «Twoje życzenia» (только вопросы салона, кнопки-смайлы, повторный
+  тап снимает выбор, заметка до 200 знаков) уходит вместе с кодом (`wishes` в `POST …/holds/:id/confirm`); в карточке
+  визита до его начала — тот же блок и «Zapisz życzenia» (`PUT /v1/client/appointments/:id/wishes`). Логика —
+  `apps/mobile-client/src/wishes.ts` (тест `wishes.test.ts`), 6 языков. Бизнес-приложение: в карточке визита строки
+  «🤫 Woli ciszę», «☕ Kawa», «✍️ …» (что сервер показывает по правам), `apps/mobile-business/src/wishes.ts`, 4 языка.
+  e2e: скриншоты `64w-client-app-book-wishes`, `33a-business-app-owner-visit`.
 
 ## Цена услуги у каждого мастера (задача 62, часть 1 — API)
 
