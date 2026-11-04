@@ -138,6 +138,31 @@ export const loyaltyTiersSchema = responseSchema(
 );
 export type LoyaltyTiersResponse = z.infer<typeof loyaltyTiersSchema>;
 
+export const loyaltyBonusRulesSchema = responseSchema(
+  'LoyaltyBonusRules',
+  z.strictObject({
+    rules: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          name: z.string(),
+          staff: z
+            .array(z.strictObject({ id: z.string(), displayName: z.string() }))
+            .describe('Empty = every specialist'),
+          weekdays: z
+            .array(z.number().int())
+            .describe('ISO weekdays in the salon time zone, 1 = Monday; empty = every day'),
+          multiplier: z.number().int(),
+          extraPoints: z.number().int(),
+        }),
+      )
+      .describe(
+        'A paid visit earns base × multiplier + extraPoints by the best matching rule (task 19)',
+      ),
+  }),
+);
+export type LoyaltyBonusRulesResponse = z.infer<typeof loyaltyBonusRulesSchema>;
+
 export const loyaltyTierStatusSchema = responseSchema(
   'LoyaltyTierStatus',
   z
