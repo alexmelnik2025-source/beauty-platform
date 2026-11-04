@@ -1,0 +1,287 @@
+import { useCallback, useEffect, useState } from 'react';
+import { BackHandler, Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ApiError, type BusinessApi, type CustomerDetail, type Locale } from '../api';
+import {
+  canEditNotes,
+  completedCount,
+  parseTags,
+  splitVisits,
+  visitWhen,
+  type ClientVisit,
+} from '../clients';
+import { errorText } from '../errors';
+import { fill, type Dictionary } from '../i18n';
+import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import type { SalonChoice } from './SalonsScreen';
+
+/**
+ * One client: contacts (call / SMS), tags, note, marketing consent and the visits in this salon.
+ * What is visible is decided by the server: a specialist gets only their own clients and visits,
+ * contacts and notes only with the permission (the fields come as null).
+ */
+export function ClientScreen(props: {
+  api: BusinessApi;
+  t: Dictionary;
+  locale: Locale;
+  salon: SalonChoice;
+  id: string;
+  timeZone: string;
+  onBack: () => void;
+}) {
+  const { api, t, salon, id, onBack } = props;
+  const c = t.clients;
+  const [client, setClient] = useState<CustomerDetail | null>(null);
+  const [mayEdit, setMayEdit] = useState(salon.role !== 'staff');
+  const [ownOnly, setOwnOnly] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [note, setNote] = useState('');
+  const [tags, setTags] = useState('');
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      setClient(await api.customer(salon.orgId, id));
+    } catch (e) {
+      setError(errorText(e, t));
+    }
+  }, [api, salon, id, t]);
+
+  useEffect(() => {
+    void load();
+    let alive = true;
+    void api.permissions(salon.orgId).then(
+      ({ me }) => {
+        if (!alive) return;
+        setMayEdit(canEditNotes(me));
+        setOwnOnly(me.role === 'staff' && !me.permissions.viewClientHistory);
+      },
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [api, salon, load]);
+
+  // Android "back" closes the card instead of the app.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [onBack]);
+
+  function startEditing(current: CustomerDetail) {
+    setNote(current.note ?? '');
+    setTags((current.tags ?? []).join(', '));
+    setInfo('');
+    setEditing(true);
+  }
+
+  async function save() {
+    if (!client) return;
+    setBusy(true);
+    setError('');
+    try {
+      const text = note.trim();
+      setClient(
+        await api.updateCustomerNotes(
+          salon.orgId,
+          client.id,
+          client.version,
+          text ? text : null,
+          parseTags(tags),
+        ),
+      );
+      setEditing(false);
+      setInfo(c.saved);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
+        setError(c.conflict);
+        setEditing(false);
+        await load();
+      } else {
+        setError(errorText(e, t));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const back = <Button kind="link" label={c.back} onPress={onBack} />;
+  if (!client) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.row}>{back}</View>
+        {error ? <ErrorText>{error}</ErrorText> : <Text style={styles.muted}>{t.loading}</Text>}
+      </View>
+    );
+  }
+
+  const { upcoming, past } = splitVisits(client.visits, salon.locationId);
+  const notesVisible = client.note !== null || client.tags !== null;
+  const visitRow = (v: ClientVisit) => (
+    <View key={v.id} style={styles.visit}>
+      <View style={styles.visitTop}>
+        <Text style={styles.value}>{visitWhen(v.start, props.timeZone, props.locale)}</Text>
+        <Text style={[styles.chip, v.status === 'no_show' && styles.chipBad]}>
+          {c.status[v.status]}
+        </Text>
+      </View>
+      <Text style={styles.muted}>
+        {v.serviceName} · {v.staffName}
+      </Text>
+    </View>
+  );
+
+  return (
+    <ScrollView contentContainerStyle={styles.screen}>
+      <View style={styles.row}>{back}</View>
+      <Heading>{client.name}</Heading>
+      <View style={styles.chips}>
+        <Text style={styles.chip}>
+          {fill(c.completed, {
+            count: String(completedCount(client.visits, salon.locationId)),
+          })}
+        </Text>
+        {(client.tags ?? []).map((tag) => (
+          <Text key={tag} style={[styles.chip, styles.tag]}>
+            {tag}
+          </Text>
+        ))}
+      </View>
+
+      {error ? <ErrorText>{error}</ErrorText> : null}
+      {info ? <Text style={styles.info}>{info}</Text> : null}
+
+      <Card>
+        <Text style={styles.label}>{c.contacts}</Text>
+        {client.phone ? (
+          <View style={styles.row}>
+            <Button
+              kind="secondary"
+              label={`${t.visit.call} ${client.phone}`}
+              onPress={() => void Linking.openURL(`tel:${client.phone}`)}
+            />
+            <Button
+              kind="secondary"
+              label={t.visit.sms}
+              onPress={() => void Linking.openURL(`sms:${client.phone}`)}
+            />
+          </View>
+        ) : null}
+        {client.email ? <Text style={styles.value}>{client.email}</Text> : null}
+        {!client.phone && !client.email ? (
+          <Text style={styles.muted}>{c.contactsHidden}</Text>
+        ) : null}
+        {client.marketingConsent !== null ? (
+          <Text style={styles.muted}>
+            {c.marketing}: {client.marketingConsent ? c.yes : c.no}
+          </Text>
+        ) : null}
+
+        <Text style={styles.label}>{c.note}</Text>
+        {!notesVisible ? (
+          <Text style={styles.muted}>{c.notesHidden}</Text>
+        ) : editing ? (
+          <View style={styles.form}>
+            <TextInput
+              accessibilityLabel={c.note}
+              value={note}
+              onChangeText={setNote}
+              multiline
+              maxLength={1000}
+              style={[styles.input, styles.noteInput]}
+            />
+            <Text style={styles.small}>{c.tags}</Text>
+            <TextInput
+              accessibilityLabel={c.tags}
+              placeholder={c.tagsHint}
+              placeholderTextColor="#a39e95"
+              value={tags}
+              onChangeText={setTags}
+              autoCapitalize="none"
+              style={styles.input}
+            />
+            <View style={styles.row}>
+              <Button label={c.save} busy={busy} onPress={() => void save()} />
+              <Button
+                kind="secondary"
+                label={c.cancel}
+                disabled={busy}
+                onPress={() => setEditing(false)}
+              />
+            </View>
+          </View>
+        ) : (
+          <>
+            <Text style={client.note ? styles.value : styles.muted}>{client.note ?? c.noNote}</Text>
+            {mayEdit ? (
+              <View style={styles.row}>
+                <Button kind="secondary" label={c.edit} onPress={() => startEditing(client)} />
+              </View>
+            ) : null}
+          </>
+        )}
+      </Card>
+
+      {ownOnly ? <Text style={styles.muted}>{c.ownOnly}</Text> : null}
+      {upcoming.length > 0 ? (
+        <>
+          <Text style={styles.section}>{c.upcoming}</Text>
+          <Card>{upcoming.map(visitRow)}</Card>
+        </>
+      ) : null}
+      <Text style={styles.section}>{c.history}</Text>
+      {past.length === 0 ? (
+        <Text style={styles.muted}>{c.noVisits}</Text>
+      ) : (
+        <Card>{past.map(visitRow)}</Card>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { padding: 20, gap: 12 },
+  row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+  chips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  chip: {
+    fontSize: 12,
+    color: colors.ink,
+    backgroundColor: '#efe7d8',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  tag: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.gold },
+  chipBad: { backgroundColor: '#f6dcd9', color: colors.danger },
+  label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
+  section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
+  value: { fontSize: 17, color: colors.ink },
+  muted: { color: colors.muted, fontSize: 15 },
+  small: { color: colors.muted, fontSize: 13 },
+  info: { color: '#2e7d32', fontSize: 15 },
+  form: { gap: 8 },
+  input: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  noteInput: { minHeight: 90, textAlignVertical: 'top' },
+  visit: {
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
+    gap: 2,
+  },
+  visitTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+});
