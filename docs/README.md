@@ -703,6 +703,19 @@ pnpm --filter @beauty/api-client generate
   `src/api.ts`; тесты `test/blocks.test.ts`; e2e — скриншоты `33d-business-app-block-time`,
   `33e-business-app-blocked-day`.
 
+## Бизнес-приложение: уведомления (задача 20)
+
+- На экране дня — «Powiadomienia (3)» с числом непрочитанных (тот же колокольчик, что в кабинете,
+  `GET /v1/me/notifications`): новая запись онлайн, визит добавлен салоном, перенесён, отменён — только этого
+  салона, новые сверху, «●» у непрочитанных, кто сделал («przez klienta» / «przez salon»).
+- Нажатие — уведомление прочитано и открывается карточка визита (кроме отменённых); «Oznacz wszystkie jako
+  przeczytane». Контактов клиента в уведомлениях нет (сервер их не отдаёт).
+- Push на телефон — после решения владельца (см. «Вопросы владельцу», 11a часть 7); пока число обновляется вместе с
+  днём (каждые 30 секунд и при «Odśwież»).
+- Код: `src/screens/NotificationsScreen.tsx`, `src/notifications.ts`, `notifications` / `unreadNotifications` /
+  `markNotificationsRead` в `src/api.ts`; тесты `test/notifications.test.ts`; e2e — скриншот
+  `33f-business-app-notifications`.
+
 ## Клиентское приложение: каталог салонов и страница салона (задача 11b, часть 4а)
 
 - Кнопка «Znajdź salon» на экране входа и в «Moje wizyty» — входить не нужно. Каталог — тот же

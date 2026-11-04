@@ -11,9 +11,11 @@ import type {
 import { blocksOfDay, blockTargets, canRemoveBlock } from '../blocks';
 import { addDays, dayTitle, myStaffId, onlyMine, staffOfDay, todayIn, visitsOfDay } from '../day';
 import { errorText } from '../errors';
+import { badge } from '../notifications';
 import type { Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { BlockScreen } from './BlockScreen';
+import { NotificationsScreen } from './NotificationsScreen';
 import { ClientsScreen } from './ClientsScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ScheduleScreen } from './ScheduleScreen';
@@ -42,6 +44,8 @@ export function DayScreen(props: {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
   const [blocks, setBlocks] = useState<{ date: string; list: TimeBlockList } | null>(null);
   const [staffList, setStaffList] = useState<StaffList>([]);
   const [myPerms, setMyPerms] = useState<PermissionCatalog['me'] | null>(null);
@@ -79,10 +83,12 @@ export function DayScreen(props: {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [day, dayBlocks] = await Promise.all([
+      const [day, dayBlocks, bell] = await Promise.all([
         api.calendar(salon.orgId, salon.locationId, date),
         api.timeBlocks(salon.orgId, salon.locationId, date).catch(() => null),
+        api.unreadNotifications().catch(() => null),
       ]);
+      if (bell) setUnread(bell.unread);
       setCalendar(day);
       setBlocks(dayBlocks ? { date, list: dayBlocks } : null);
       setError('');
@@ -121,6 +127,23 @@ export function DayScreen(props: {
   }
 
   const targets = myPerms ? blockTargets(myPerms, staffList, mineId) : [];
+
+  if (bellOpen) {
+    return (
+      <NotificationsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        canChange={canChange}
+        onBack={() => {
+          setBellOpen(false);
+          void load();
+        }}
+      />
+    );
+  }
 
   if (blockOpen) {
     return (
@@ -197,6 +220,11 @@ export function DayScreen(props: {
           {props.canChangeSalon ? (
             <Button kind="link" label={t.changeSalon} onPress={props.onChangeSalon} />
           ) : null}
+          <Button
+            kind="link"
+            label={unread > 0 ? `${t.notifications.open} (${badge(unread)})` : t.notifications.open}
+            onPress={() => setBellOpen(true)}
+          />
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.clients.open} onPress={() => setClientsOpen(true)} />
           ) : null}
