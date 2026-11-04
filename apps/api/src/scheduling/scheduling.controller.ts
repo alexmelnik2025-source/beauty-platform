@@ -159,7 +159,9 @@ export class ServicesController {
   @Post()
   @Idempotent()
   @RequireRoles('owner', 'manager')
-  @ApiOperation({ summary: 'Add a service. Price in grosze (50 PLN = 5000)' })
+  @ApiOperation({
+    summary: 'Add a service. Price in hundredths of the location currency (50.00 = 5000)',
+  })
   @ApiZodBody(createServiceSchema)
   @ApiZodResponse(serviceSchema, HttpStatus.CREATED)
   create(

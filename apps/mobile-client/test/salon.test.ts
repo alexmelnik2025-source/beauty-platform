@@ -30,6 +30,7 @@ const location = (patch: Partial<PublicLocation> = {}): PublicLocation => ({
   postalCode: '01-233',
   phone: null,
   timezone: 'Europe/Warsaw',
+  currency: 'PLN',
   defaultLocale: 'pl',
   languages: ['pl'],
   description: null,

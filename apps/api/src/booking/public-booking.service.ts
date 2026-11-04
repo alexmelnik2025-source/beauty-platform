@@ -159,6 +159,7 @@ export class PublicBookingService {
           staffName: hold.staff.displayName,
           serviceName: service.name,
           priceGrosze: service.priceGrosze,
+          currency: location.currency,
         };
       } catch (error) {
         if (error instanceof AppException && error.code === 'SLOT_TAKEN') continue;
@@ -606,6 +607,7 @@ export class PublicBookingService {
       date: local.date,
       time: local.time,
       timezone: a.location.timezone,
+      currency: a.location.currency,
       service: {
         id: a.service.id,
         name: a.service.name,

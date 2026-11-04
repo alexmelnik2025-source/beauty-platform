@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DEFAULT_CURRENCY } from '../common/currency';
 import type { LoyaltyCoupon, LoyaltyReward } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ClientLoyaltyCard, ClientLoyaltyResponse } from './client-loyalty.responses';
@@ -34,7 +35,7 @@ export class ClientLoyaltyService {
             name: true,
             // The client knows the salon by its place, not the company's legal name (T9).
             locations: {
-              select: { name: true, slug: true, onlineBookingEnabled: true },
+              select: { name: true, slug: true, onlineBookingEnabled: true, currency: true },
               orderBy: { createdAt: 'asc' },
               take: 20,
             },
@@ -107,6 +108,7 @@ export class ClientLoyaltyService {
       items.push({
         organization: { id: p.organization.id, name: shownAs?.name ?? p.organization.name },
         bookingSlug: online?.slug ?? null,
+        currency: shownAs?.currency ?? DEFAULT_CURRENCY,
         enabled: p.enabled,
         mode: p.mode,
         balance,

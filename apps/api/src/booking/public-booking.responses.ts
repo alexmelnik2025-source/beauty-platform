@@ -19,6 +19,7 @@ export const holdSchema = responseSchema(
       staffName: z.string(),
       serviceName: z.string(),
       priceGrosze: z.number().int(),
+      currency: z.string().describe('ISO 4217; prices are in hundredths of it'),
     })
     .describe('A slot kept for the client for 10 minutes'),
 );
@@ -44,6 +45,7 @@ export const publicAppointmentSchema = responseSchema(
       date: z.string().describe('Location-local date, YYYY-MM-DD'),
       time: z.string().describe('Location-local time, HH:MM'),
       timezone: z.string(),
+      currency: z.string().describe('ISO 4217; prices are in hundredths of it'),
       service: z.strictObject({
         id: z.string(),
         name: z.string(),

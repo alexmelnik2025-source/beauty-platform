@@ -23,7 +23,7 @@ export const loyaltyProgramSchema = responseSchema(
       .number()
       .int()
       .describe('points mode: points for every full spendUnitGrosze of the visit price'),
-    spendUnitGrosze: z.number().int().describe('1 PLN = 100'),
+    spendUnitGrosze: z.number().int().describe('Hundredths of the location currency: 50.00 = 5000'),
     minSpendGrosze: z.number().int().describe('Cheaper visits earn nothing'),
     pointsValidityDays: z.number().int().nullable().describe('null = points never expire'),
     maxDiscountPercent: z.number().int(),

@@ -557,7 +557,7 @@ export interface paths {
         /** Services of the location (incl. inactive) */
         get: operations["ServicesController_list"];
         put?: never;
-        /** Add a service. Price in grosze (50 PLN = 5000) */
+        /** Add a service. Price in hundredths of the location currency (50.00 = 5000) */
         post: operations["ServicesController_create"];
         delete?: never;
         options?: never;
@@ -1798,7 +1798,7 @@ export interface components {
                 /** @description null when the caller may not see client contacts */
                 email: string | null;
             } | null;
-            /** @description 1 PLN = 100; null when a staff member may not see prices */
+            /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
@@ -1851,7 +1851,7 @@ export interface components {
                 /** @description null when the caller may not see client contacts */
                 email: string | null;
             } | null;
-            /** @description 1 PLN = 100; null when a staff member may not see prices */
+            /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
@@ -1910,7 +1910,7 @@ export interface components {
                 /** @description null when the caller may not see client contacts */
                 email: string | null;
             } | null;
-            /** @description 1 PLN = 100; null when a staff member may not see prices */
+            /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
@@ -1957,6 +1957,8 @@ export interface components {
                 /** @description Location-local time, HH:MM */
                 time: string;
                 timezone: string;
+                /** @description ISO 4217; prices are in hundredths of it */
+                currency: string;
                 service: {
                     id: string;
                     name: string;
@@ -1989,6 +1991,8 @@ export interface components {
                 id: string;
                 name: string;
                 timezone: string;
+                /** @description ISO 4217; prices are in hundredths of it */
+                currency: string;
                 slotStepMinutes: number;
             };
             from: string;
@@ -2046,7 +2050,7 @@ export interface components {
                     /** @description null when the caller may not see client contacts */
                     email: string | null;
                 } | null;
-                /** @description 1 PLN = 100; null when a staff member may not see prices */
+                /** @description Hundredths of the location currency; null when a staff member may not see prices */
                 priceGrosze: number | null;
                 /** @description The client chose this staff member themselves (not "any staff member") */
                 staffChosenByClient: boolean;
@@ -2093,6 +2097,8 @@ export interface components {
             /** @description Location-local time, HH:MM */
             time: string;
             timezone: string;
+            /** @description ISO 4217; prices are in hundredths of it */
+            currency: string;
             service: {
                 id: string;
                 name: string;
@@ -2133,6 +2139,8 @@ export interface components {
                 /** @description Location-local time, HH:MM */
                 time: string;
                 timezone: string;
+                /** @description ISO 4217; prices are in hundredths of it */
+                currency: string;
                 service: {
                     id: string;
                     name: string;
@@ -2173,6 +2181,8 @@ export interface components {
                 };
                 /** @description A location of the salon that takes online booking */
                 bookingSlug: string | null;
+                /** @description ISO 4217; the amounts in earning are in hundredths of it */
+                currency: string;
                 /** @description false: the salon switched the program off; coupons already taken are shown */
                 enabled: boolean;
                 /** @enum {string} */
@@ -2370,6 +2380,8 @@ export interface components {
             staffName: string;
             serviceName: string;
             priceGrosze: number;
+            /** @description ISO 4217; prices are in hundredths of it */
+            currency: string;
         };
         Invitation: {
             id: string;
@@ -2431,6 +2443,8 @@ export interface components {
             /** @description Public booking link: /b/<slug> */
             slug: string;
             timezone: string;
+            /** @description ISO 4217; prices are in hundredths of it */
+            currency: string;
             addressLine: string;
             city: string;
             postalCode: string;
@@ -2464,6 +2478,8 @@ export interface components {
             /** @description Public booking link: /b/<slug> */
             slug: string;
             timezone: string;
+            /** @description ISO 4217; prices are in hundredths of it */
+            currency: string;
             addressLine: string;
             city: string;
             postalCode: string;
@@ -2592,7 +2608,7 @@ export interface components {
             stampsPerVisit: number;
             /** @description points mode: points for every full spendUnitGrosze of the visit price */
             pointsPerUnit: number;
-            /** @description 1 PLN = 100 */
+            /** @description Hundredths of the location currency: 50.00 = 5000 */
             spendUnitGrosze: number;
             /** @description Cheaper visits earn nothing */
             minSpendGrosze: number;
@@ -2952,6 +2968,8 @@ export interface components {
             /** @description Location-local time, HH:MM */
             time: string;
             timezone: string;
+            /** @description ISO 4217; prices are in hundredths of it */
+            currency: string;
             service: {
                 id: string;
                 name: string;
@@ -2994,6 +3012,8 @@ export interface components {
             postalCode: string;
             phone: string | null;
             timezone: string;
+            /** @description ISO 4217; prices are in hundredths of it */
+            currency: string;
             defaultLocale: string;
             /** @description Languages the salon speaks with clients, in the salon’s order */
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
@@ -3070,7 +3090,7 @@ export interface components {
             durationMinutes: number;
             /** @description Cleanup after the service: blocks the staff member, not shown to clients */
             bufferMinutes: number;
-            /** @description 1 PLN = 100 */
+            /** @description Hundredths of the location currency: 50.00 = 5000 */
             priceGrosze: number;
             active: boolean;
             sortOrder: number;
@@ -3103,7 +3123,7 @@ export interface components {
             durationMinutes: number;
             /** @description Cleanup after the service: blocks the staff member, not shown to clients */
             bufferMinutes: number;
-            /** @description 1 PLN = 100 */
+            /** @description Hundredths of the location currency: 50.00 = 5000 */
             priceGrosze: number;
             active: boolean;
             sortOrder: number;
@@ -3790,6 +3810,11 @@ export interface operations {
                     slug?: string;
                     /** @default Europe/Warsaw */
                     timezone?: string;
+                    /**
+                     * @default PLN
+                     * @enum {string}
+                     */
+                    currency?: "PLN" | "EUR" | "CZK" | "HUF" | "RON" | "SEK" | "DKK" | "NOK" | "CHF" | "GBP" | "ALL" | "TRY" | "MKD" | "RSD" | "BAM" | "MDL" | "UAH" | "GEL" | "AMD" | "AZN" | "KZT" | "KGS" | "UZS" | "TJS" | "TMT" | "BYN" | "RUB" | "USD";
                     addressLine: string;
                     city: string;
                     postalCode: string;
@@ -3866,6 +3891,8 @@ export interface operations {
                     name?: string;
                     slug?: string;
                     timezone?: string;
+                    /** @enum {string} */
+                    currency?: "PLN" | "EUR" | "CZK" | "HUF" | "RON" | "SEK" | "DKK" | "NOK" | "CHF" | "GBP" | "ALL" | "TRY" | "MKD" | "RSD" | "BAM" | "MDL" | "UAH" | "GEL" | "AMD" | "AZN" | "KZT" | "KGS" | "UZS" | "TJS" | "TMT" | "BYN" | "RUB" | "USD";
                     addressLine?: string;
                     city?: string;
                     postalCode?: string;

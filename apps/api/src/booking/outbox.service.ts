@@ -355,7 +355,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       serviceName: appointment.service.name,
       staffName: appointment.staff.displayName,
       when: formatWhen(appointment.startAt, appointment.location.timezone, locale),
-      price: formatPrice(appointment.priceGrosze, locale),
+      price: formatPrice(appointment.priceGrosze, appointment.location.currency, locale),
       customerName: appointment.customer?.name ?? '',
       customerPhone: appointment.customer?.phone ?? '',
       manageLink,

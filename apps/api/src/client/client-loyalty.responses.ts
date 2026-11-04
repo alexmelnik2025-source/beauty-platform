@@ -48,6 +48,7 @@ export const clientLoyaltyCardSchema = z.strictObject({
   // name: the salon as clients know it (its online-booking place), not the legal name.
   organization: z.strictObject({ id: z.string(), name: z.string() }),
   bookingSlug: z.string().nullable().describe('A location of the salon that takes online booking'),
+  currency: z.string().describe('ISO 4217; the amounts in earning are in hundredths of it'),
   enabled: z
     .boolean()
     .describe('false: the salon switched the program off; coupons already taken are shown'),

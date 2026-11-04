@@ -37,7 +37,7 @@ export const appointmentSchema = responseSchema(
       .number()
       .int()
       .nullable()
-      .describe('1 PLN = 100; null when a staff member may not see prices'),
+      .describe('Hundredths of the location currency; null when a staff member may not see prices'),
     staffChosenByClient: z
       .boolean()
       .describe('The client chose this staff member themselves (not "any staff member")'),
@@ -155,6 +155,7 @@ export const calendarSchema = responseSchema(
       id: z.string(),
       name: z.string(),
       timezone: z.string(),
+      currency: z.string().describe('ISO 4217; prices are in hundredths of it'),
       slotStepMinutes: z.number().int(),
     }),
     from: z.string(),

@@ -78,6 +78,7 @@ export class CalendarService {
         id: location.id,
         name: location.name,
         timezone: location.timezone,
+        currency: location.currency,
         slotStepMinutes: location.slotStepMinutes,
       },
       from: query.from,

@@ -28,6 +28,7 @@ export const publicLocationSchema = responseSchema(
       postalCode: z.string(),
       phone: z.string().nullable(),
       timezone: z.string(),
+      currency: z.string().describe('ISO 4217; prices are in hundredths of it'),
       defaultLocale: z.string(),
       languages: z
         .array(languageSchema)

@@ -28,6 +28,7 @@ export const locationSchema = responseSchema(
     name: z.string(),
     slug: z.string().describe('Public booking link: /b/<slug>'),
     timezone: z.string(),
+    currency: z.string().describe('ISO 4217; prices are in hundredths of it'),
     addressLine: z.string(),
     city: z.string(),
     postalCode: z.string(),

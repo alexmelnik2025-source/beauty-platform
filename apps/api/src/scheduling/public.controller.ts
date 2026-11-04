@@ -109,6 +109,7 @@ export class PublicLocationsController {
       postalCode: location.postalCode,
       phone: location.phone,
       timezone: location.timezone,
+      currency: location.currency,
       defaultLocale: location.defaultLocale,
       languages: location.languages,
       description: location.description,

@@ -384,6 +384,8 @@ model Location {
   /// Public booking link: /b/<slug>
   slug                        String     @unique
   timezone                    String     @default("Europe/Warsaw")
+  /// ISO 4217 code of the currency the salon prices its services in; amounts are in hundredths of it.
+  currency                    String     @default("PLN") @db.Char(3)
   addressLine                 String     @map("address_line")
   city                        String
   postalCode                  String     @map("postal_code")

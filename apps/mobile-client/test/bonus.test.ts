@@ -38,6 +38,7 @@ function card(extra: Partial<ClientLoyaltyCard> = {}): ClientLoyaltyCard {
   return {
     organization: { id: 'o1', name: 'Gestalt Barbershop' },
     bookingSlug: 'gestalt',
+    currency: 'PLN',
     enabled: true,
     mode: 'stamps',
     balance: 2,

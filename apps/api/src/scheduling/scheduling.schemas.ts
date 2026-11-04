@@ -18,7 +18,7 @@ const serviceFields = {
   description: z.string().trim().max(500).nullable(),
   durationMinutes: fiveMinuteSteps(5, 480),
   bufferMinutes: fiveMinuteSteps(0, 120),
-  /** Price in grosze: 50.00 PLN = 5000. */
+  /** Price in hundredths of the location currency: 50.00 = 5000. */
   priceGrosze: z.number().int().min(0).max(10_000_000),
   active: z.boolean(),
   sortOrder: z.number().int().min(0).max(10_000),

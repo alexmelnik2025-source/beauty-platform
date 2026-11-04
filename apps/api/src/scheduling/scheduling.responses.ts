@@ -30,7 +30,7 @@ export const serviceSchema = responseSchema(
       .number()
       .int()
       .describe('Cleanup after the service: blocks the staff member, not shown to clients'),
-    priceGrosze: z.number().int().describe('1 PLN = 100'),
+    priceGrosze: z.number().int().describe('Hundredths of the location currency: 50.00 = 5000'),
     active: z.boolean(),
     sortOrder: z.number().int(),
     categoryId: z.string().nullable(),

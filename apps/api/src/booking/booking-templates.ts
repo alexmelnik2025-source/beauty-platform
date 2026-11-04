@@ -1,4 +1,5 @@
 import type { Locale } from '../generated/prisma/client';
+import { formatMoney } from '../common/currency';
 
 /**
  * Booking emails in the four interface languages. Polish is the reference text;
@@ -195,10 +196,9 @@ export function formatWhen(date: Date, timeZone: string, locale: Locale): string
   }).format(date);
 }
 
-export function formatPrice(grosze: number, locale: Locale): string {
-  return new Intl.NumberFormat(LOCALE_TAGS[locale], { style: 'currency', currency: 'PLN' }).format(
-    grosze / 100,
-  );
+/** An amount in hundredths of the salon's currency, in the reader's language. */
+export function formatPrice(hundredths: number, currency: string, locale: Locale): string {
+  return formatMoney(hundredths, currency, LOCALE_TAGS[locale]);
 }
 
 export function renderAppointmentEmail(

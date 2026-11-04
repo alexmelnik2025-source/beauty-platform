@@ -738,6 +738,40 @@
                     "default": "Europe/Warsaw",
                     "type": "string"
                   },
+                  "currency": {
+                    "default": "PLN",
+                    "type": "string",
+                    "enum": [
+                      "PLN",
+                      "EUR",
+                      "CZK",
+                      "HUF",
+                      "RON",
+                      "SEK",
+                      "DKK",
+                      "NOK",
+                      "CHF",
+                      "GBP",
+                      "ALL",
+                      "TRY",
+                      "MKD",
+                      "RSD",
+                      "BAM",
+                      "MDL",
+                      "UAH",
+                      "GEL",
+                      "AMD",
+                      "AZN",
+                      "KZT",
+                      "KGS",
+                      "UZS",
+                      "TJS",
+                      "TMT",
+                      "BYN",
+                      "RUB",
+                      "USD"
+                    ]
+                  },
                   "addressLine": {
                     "type": "string",
                     "minLength": 1,
@@ -1018,6 +1052,39 @@
                   },
                   "timezone": {
                     "type": "string"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "PLN",
+                      "EUR",
+                      "CZK",
+                      "HUF",
+                      "RON",
+                      "SEK",
+                      "DKK",
+                      "NOK",
+                      "CHF",
+                      "GBP",
+                      "ALL",
+                      "TRY",
+                      "MKD",
+                      "RSD",
+                      "BAM",
+                      "MDL",
+                      "UAH",
+                      "GEL",
+                      "AMD",
+                      "AZN",
+                      "KZT",
+                      "KGS",
+                      "UZS",
+                      "TJS",
+                      "TMT",
+                      "BYN",
+                      "RUB",
+                      "USD"
+                    ]
                   },
                   "addressLine": {
                     "type": "string",
@@ -2246,7 +2313,7 @@
             "bearer": []
           }
         ],
-        "summary": "Add a service. Price in grosze (50 PLN = 5000)",
+        "summary": "Add a service. Price in hundredths of the location currency (50.00 = 5000)",
         "tags": [
           "services"
         ]
@@ -7121,7 +7188,7 @@
           },
           "priceGrosze": {
             "nullable": true,
-            "description": "1 PLN = 100; null when a staff member may not see prices",
+            "description": "Hundredths of the location currency; null when a staff member may not see prices",
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
@@ -7320,7 +7387,7 @@
           },
           "priceGrosze": {
             "nullable": true,
-            "description": "1 PLN = 100; null when a staff member may not see prices",
+            "description": "Hundredths of the location currency; null when a staff member may not see prices",
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
@@ -7547,7 +7614,7 @@
             },
             "priceGrosze": {
               "nullable": true,
-              "description": "1 PLN = 100; null when a staff member may not see prices",
+              "description": "Hundredths of the location currency; null when a staff member may not see prices",
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
@@ -7732,6 +7799,10 @@
               "timezone": {
                 "type": "string"
               },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217; prices are in hundredths of it"
+              },
               "service": {
                 "type": "object",
                 "properties": {
@@ -7825,6 +7896,7 @@
               "date",
               "time",
               "timezone",
+              "currency",
               "service",
               "staff",
               "salon",
@@ -7865,6 +7937,10 @@
               "timezone": {
                 "type": "string"
               },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217; prices are in hundredths of it"
+              },
               "slotStepMinutes": {
                 "type": "integer",
                 "minimum": -9007199254740991,
@@ -7875,6 +7951,7 @@
               "id",
               "name",
               "timezone",
+              "currency",
               "slotStepMinutes"
             ],
             "additionalProperties": false
@@ -8084,7 +8161,7 @@
                 },
                 "priceGrosze": {
                   "nullable": true,
-                  "description": "1 PLN = 100; null when a staff member may not see prices",
+                  "description": "Hundredths of the location currency; null when a staff member may not see prices",
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
@@ -8283,6 +8360,10 @@
           "timezone": {
             "type": "string"
           },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217; prices are in hundredths of it"
+          },
           "service": {
             "type": "object",
             "properties": {
@@ -8399,6 +8480,7 @@
           "date",
           "time",
           "timezone",
+          "currency",
           "service",
           "staff",
           "salon",
@@ -8446,6 +8528,10 @@
                 },
                 "timezone": {
                   "type": "string"
+                },
+                "currency": {
+                  "type": "string",
+                  "description": "ISO 4217; prices are in hundredths of it"
                 },
                 "service": {
                   "type": "object",
@@ -8563,6 +8649,7 @@
                 "date",
                 "time",
                 "timezone",
+                "currency",
                 "service",
                 "staff",
                 "salon",
@@ -8619,6 +8706,10 @@
                   "nullable": true,
                   "description": "A location of the salon that takes online booking",
                   "type": "string"
+                },
+                "currency": {
+                  "type": "string",
+                  "description": "ISO 4217; the amounts in earning are in hundredths of it"
                 },
                 "enabled": {
                   "type": "boolean",
@@ -8915,6 +9006,7 @@
               "required": [
                 "organization",
                 "bookingSlug",
+                "currency",
                 "enabled",
                 "mode",
                 "balance",
@@ -9435,6 +9527,10 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217; prices are in hundredths of it"
           }
         },
         "required": [
@@ -9448,7 +9544,8 @@
           "staffId",
           "staffName",
           "serviceName",
-          "priceGrosze"
+          "priceGrosze",
+          "currency"
         ],
         "additionalProperties": false,
         "description": "A slot kept for the client for 10 minutes"
@@ -9694,6 +9791,10 @@
           "timezone": {
             "type": "string"
           },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217; prices are in hundredths of it"
+          },
           "addressLine": {
             "type": "string"
           },
@@ -9798,6 +9899,7 @@
           "name",
           "slug",
           "timezone",
+          "currency",
           "addressLine",
           "city",
           "postalCode",
@@ -9841,6 +9943,10 @@
             },
             "timezone": {
               "type": "string"
+            },
+            "currency": {
+              "type": "string",
+              "description": "ISO 4217; prices are in hundredths of it"
             },
             "addressLine": {
               "type": "string"
@@ -9946,6 +10052,7 @@
             "name",
             "slug",
             "timezone",
+            "currency",
             "addressLine",
             "city",
             "postalCode",
@@ -10361,7 +10468,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "1 PLN = 100"
+            "description": "Hundredths of the location currency: 50.00 = 5000"
           },
           "minSpendGrosze": {
             "type": "integer",
@@ -11739,6 +11846,10 @@
           "timezone": {
             "type": "string"
           },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217; prices are in hundredths of it"
+          },
           "service": {
             "type": "object",
             "properties": {
@@ -11832,6 +11943,7 @@
           "date",
           "time",
           "timezone",
+          "currency",
           "service",
           "staff",
           "salon",
@@ -11896,6 +12008,10 @@
           },
           "timezone": {
             "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217; prices are in hundredths of it"
           },
           "defaultLocale": {
             "type": "string"
@@ -12133,6 +12249,7 @@
           "postalCode",
           "phone",
           "timezone",
+          "currency",
           "defaultLocale",
           "languages",
           "description",
@@ -12279,7 +12396,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "1 PLN = 100"
+            "description": "Hundredths of the location currency: 50.00 = 5000"
           },
           "active": {
             "type": "boolean"
@@ -12428,7 +12545,7 @@
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991,
-              "description": "1 PLN = 100"
+              "description": "Hundredths of the location currency: 50.00 = 5000"
             },
             "active": {
               "type": "boolean"

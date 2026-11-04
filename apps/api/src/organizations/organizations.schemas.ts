@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LOCALES } from '../auth/auth.schemas';
+import { CURRENCIES, DEFAULT_CURRENCY } from '../common/currency';
 
 const TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
 
@@ -42,6 +43,8 @@ const locationFields = {
   name: z.string().trim().min(1).max(100),
   slug,
   timezone: z.string().refine((value) => TIMEZONES.has(value), 'unknown time zone'),
+  /** Prices of the location's services are in hundredths of this currency. */
+  currency: z.enum(CURRENCIES),
   addressLine: z.string().trim().min(1).max(200),
   city: z.string().trim().min(1).max(100),
   postalCode: z.string().trim().min(3).max(12),
@@ -87,6 +90,7 @@ export const createLocationSchema = z.object({
   latitude: locationFields.latitude.optional(),
   longitude: locationFields.longitude.optional(),
   timezone: locationFields.timezone.default('Europe/Warsaw'),
+  currency: locationFields.currency.default(DEFAULT_CURRENCY),
   phone: locationFields.phone.optional(),
   email: locationFields.email.optional(),
   defaultLocale: locationFields.defaultLocale.default('pl'),
