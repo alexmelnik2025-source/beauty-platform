@@ -3,6 +3,7 @@
  * time zone, the client can pick another one, and a number typed without a code gets the chosen one.
  * The API stores E.164 (+48600100200). Same rules as apps/mobile-client/src/phone.ts.
  */
+import { regionForTimeZone } from './country';
 
 /** Country calling codes of the EU, the rest of Europe, the CIS, Albania and Turkey; Poland first. */
 export const DIAL_CODES: readonly { region: string; dial: string }[] = [
@@ -56,65 +57,9 @@ export const DIAL_CODES: readonly { region: string; dial: string }[] = [
   { region: 'RU', dial: '7' },
 ];
 
-/** The country of a salon's time zone, for the time zones of the countries above. */
-const REGION_BY_TIME_ZONE: Record<string, string> = {
-  'Europe/Warsaw': 'PL',
-  'Europe/Kyiv': 'UA',
-  'Europe/Kiev': 'UA',
-  'Europe/Minsk': 'BY',
-  'Europe/Vilnius': 'LT',
-  'Europe/Riga': 'LV',
-  'Europe/Tallinn': 'EE',
-  'Europe/Berlin': 'DE',
-  'Europe/Prague': 'CZ',
-  'Europe/Bratislava': 'SK',
-  'Europe/Vienna': 'AT',
-  'Europe/Budapest': 'HU',
-  'Europe/Bucharest': 'RO',
-  'Europe/Sofia': 'BG',
-  'Europe/Athens': 'GR',
-  'Asia/Nicosia': 'CY',
-  'Europe/Rome': 'IT',
-  'Europe/Malta': 'MT',
-  'Europe/Madrid': 'ES',
-  'Europe/Lisbon': 'PT',
-  'Europe/Paris': 'FR',
-  'Europe/Brussels': 'BE',
-  'Europe/Amsterdam': 'NL',
-  'Europe/Luxembourg': 'LU',
-  'Europe/Dublin': 'IE',
-  'Europe/Copenhagen': 'DK',
-  'Europe/Stockholm': 'SE',
-  'Europe/Helsinki': 'FI',
-  'Europe/Ljubljana': 'SI',
-  'Europe/Zagreb': 'HR',
-  'Europe/London': 'GB',
-  'Europe/Oslo': 'NO',
-  'Europe/Zurich': 'CH',
-  'Europe/Tirane': 'AL',
-  'Europe/Istanbul': 'TR',
-  'Europe/Skopje': 'MK',
-  'Europe/Belgrade': 'RS',
-  'Europe/Podgorica': 'ME',
-  'Europe/Sarajevo': 'BA',
-  'Europe/Chisinau': 'MD',
-  'Asia/Tbilisi': 'GE',
-  'Asia/Yerevan': 'AM',
-  'Asia/Baku': 'AZ',
-  'Asia/Almaty': 'KZ',
-  'Asia/Qostanay': 'KZ',
-  'Asia/Aqtobe': 'KZ',
-  'Asia/Bishkek': 'KG',
-  'Asia/Tashkent': 'UZ',
-  'Asia/Samarkand': 'UZ',
-  'Asia/Dushanbe': 'TJ',
-  'Asia/Ashgabat': 'TM',
-  'Europe/Moscow': 'RU',
-};
-
 /** "48" for a salon in Europe/Warsaw, "90" in Europe/Istanbul; Poland when the zone is not listed. */
 export function dialForTimeZone(timeZone: string): string {
-  const region = REGION_BY_TIME_ZONE[timeZone] ?? 'PL';
+  const region = regionForTimeZone(timeZone);
   return DIAL_CODES.find((c) => c.region === region)?.dial ?? '48';
 }
 

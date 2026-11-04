@@ -89,6 +89,7 @@ export const en: Dict = {
     city: 'City',
     postalCode: 'Postal code',
     create: 'Create salon',
+    timeZone: 'Country and time zone',
   },
   nav: {
     loyalty: 'Loyalty program',
@@ -577,6 +578,8 @@ export const en: Dict = {
     horizon: 'Latest: days ahead',
     deadline: 'Clients can change until: minutes before',
     step: 'Times every (min)',
+    timeZone: 'Country and time zone',
+    timeZoneHint: 'Working hours, visits and emails use the time of this zone.',
     currency: 'Price currency',
     currencyHint:
       'Service prices and loyalty program amounts are in this currency. Changing it does not convert prices — correct them in “Services”.',

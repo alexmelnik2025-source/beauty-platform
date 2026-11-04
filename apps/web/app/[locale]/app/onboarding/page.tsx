@@ -1,10 +1,17 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { AuthPage } from '@/components/AuthPage';
 import { ErrorBox } from '@/components/ui';
 import { api } from '@/lib/api';
-import { errorText, useI18n } from '@/lib/i18n';
+import {
+  browserSalonTimeZone,
+  currencyForTimeZone,
+  regionForTimeZone,
+  salonTimeZones,
+} from '@/lib/country';
+import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { CURRENCIES, currencyName } from '@/lib/time';
 
 export default function OnboardingPage() {
   const { t, locale } = useI18n();
@@ -15,6 +22,18 @@ export default function OnboardingPage() {
     city: '',
     postalCode: '',
   });
+  // Launch task L5: the country (time zone) suggests the currency until the owner picks one.
+  const [timeZone, setTimeZone] = useState('Europe/Warsaw');
+  const [currency, setCurrency] = useState<string>('PLN');
+  const [currencyChosen, setCurrencyChosen] = useState(false);
+  // The browser's own zone, once in the browser (the server renders the page in its own zone).
+  useEffect(() => {
+    const own = browserSalonTimeZone();
+    setTimeZone(own);
+    setCurrency(currencyForTimeZone(own));
+  }, []);
+  const tag = LOCALE_TAGS[locale];
+  const poland = regionForTimeZone(timeZone) === 'PL';
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) =>
@@ -36,6 +55,8 @@ export default function OnboardingPage() {
           addressLine: form.addressLine,
           city: form.city,
           postalCode: form.postalCode,
+          timezone: timeZone,
+          currency,
           defaultLocale: locale,
         },
       });
@@ -75,13 +96,45 @@ export default function OnboardingPage() {
             <span>{t.onboarding.postalCode}</span>
             <input
               required
-              pattern="\d{2}-\d{3}"
-              placeholder="00-000"
+              pattern={poland ? '\\d{2}-\\d{3}' : undefined}
+              placeholder={poland ? '00-000' : undefined}
               value={form.postalCode}
               onChange={set('postalCode')}
             />
           </label>
         </div>
+        <label className="field">
+          <span>{t.onboarding.timeZone}</span>
+          <select
+            value={timeZone}
+            onChange={(e) => {
+              setTimeZone(e.target.value);
+              if (!currencyChosen) setCurrency(currencyForTimeZone(e.target.value));
+            }}
+          >
+            {salonTimeZones(tag).map((z) => (
+              <option key={z.timeZone} value={z.timeZone}>
+                {z.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>{t.settings.currency}</span>
+          <select
+            value={currency}
+            onChange={(e) => {
+              setCurrency(e.target.value);
+              setCurrencyChosen(true);
+            }}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {currencyName(c, tag)}
+              </option>
+            ))}
+          </select>
+        </label>
         <button className="btn btn--block" disabled={busy}>
           {t.onboarding.create}
         </button>

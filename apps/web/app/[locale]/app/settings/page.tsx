@@ -11,6 +11,7 @@ import { formatCoordinates, parseCoordinates } from '@/lib/coordinates';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { CURRENCIES, currencyName } from '@/lib/time';
+import { salonTimeZones } from '@/lib/country';
 import type { LegalTemplates, Location } from '@/lib/types';
 
 type LocationSettings = Location;
@@ -76,6 +77,7 @@ export default function SettingsPage() {
           longitude: point?.longitude ?? null,
           phone: form.phone ? normalizePhone(form.phone, dialForTimeZone(form.timezone)) : null,
           currency: form.currency,
+          timezone: form.timezone,
           onlineBookingEnabled: form.onlineBookingEnabled,
           minLeadMinutes: form.minLeadMinutes,
           bookingHorizonDays: form.bookingHorizonDays,
@@ -282,6 +284,23 @@ export default function SettingsPage() {
           <label className="field">
             <span>{t.settings.phone}</span>
             <input type="tel" value={form.phone ?? ''} onChange={text('phone')} />
+          </label>
+          <label className="field">
+            <span>{t.settings.timeZone}</span>
+            <select value={form.timezone} onChange={text('timezone')}>
+              {salonTimeZones(LOCALE_TAGS[locale]).map((z) => (
+                <option key={z.timeZone} value={z.timeZone}>
+                  {z.label}
+                </option>
+              ))}
+              {/* A zone set before this list existed stays selectable. */}
+              {salonTimeZones(LOCALE_TAGS[locale]).some(
+                (z) => z.timeZone === form.timezone,
+              ) ? null : (
+                <option value={form.timezone}>{form.timezone}</option>
+              )}
+            </select>
+            <span className="small muted">{t.settings.timeZoneHint}</span>
           </label>
           <label className="field">
             <span>{t.settings.currency}</span>

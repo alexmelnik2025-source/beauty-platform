@@ -89,6 +89,7 @@ export const pl = {
     city: 'Miasto',
     postalCode: 'Kod pocztowy',
     create: 'Utwórz salon',
+    timeZone: 'Kraj i strefa czasowa',
   },
   nav: {
     loyalty: 'Program lojalnościowy',
@@ -577,6 +578,8 @@ export const pl = {
     horizon: 'Najdalej: dni naprzód',
     deadline: 'Klient może zmienić wizytę do: minut przed',
     step: 'Godziny co (min)',
+    timeZone: 'Kraj i strefa czasowa',
+    timeZoneHint: 'Godziny pracy, wizyty i e-maile są w czasie tej strefy.',
     currency: 'Waluta cen',
     currencyHint:
       'Ceny usług i kwoty w programie lojalnościowym są w tej walucie. Zmiana waluty nie przelicza cen — popraw je w „Usługi”.',
