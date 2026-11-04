@@ -12,6 +12,15 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **CI НЕ ЗАПУСКАЕТСЯ (04.11.2026, ~18:50):** GitHub Actions не стартует ни одну проверку — «recent account payments
+  have failed or your spending limit needs to be increased». Нужен владелец: GitHub → Settings → Billing & plans.
+  Пока CI не работает, ничего не вливается в main.
+- **17. Бизнес-приложение: новый визит, перенос и отмена** — готово на ветке `agent/17b-app-move-cancel` (включает 17a;
+  check и e2e были зелёными до остановки CI), ждёт CI и влития fast-forward. 17a: «+ Nowa wizyta» (услуга → мастер →
+  время → клиент, «Klient już był»); 17b: «Przenieś» / «Odwołaj wizytę» в карточке визита.
+- **40. «Pobierz moje dane» (RODO)** — ветка `agent/40-client-data-export`, ждёт CI (последний прогон: исправлен тест
+  названий мест). Вопрос по заметкам салона — в «Вопросы владельцу» на ветке и в Notion.
+
 - **19. Бонусы по мастеру и дням недели** — всё готово на ветке `agent/19d-bonus-for-clients` (включает 19a–19d:
   API, кабинет «Dodatkowe pieczątki i punkty», «если вернулся в течение N дней», показ клиенту в «Moje bonusy»);
   check-CI зелёный, e2e не запустился из-за оплаты GitHub Actions (см. «Вопросы владельцу»). Влить после зелёного CI.
