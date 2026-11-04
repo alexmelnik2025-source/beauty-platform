@@ -283,7 +283,14 @@ export class ClientApi {
   /** Free times of a salon for a service (`staffId` omitted = any specialist). Public. */
   availability(
     slug: string,
-    query: { serviceId: string; staffId?: string; from: string; to: string },
+    query: {
+      serviceId: string;
+      staffId?: string;
+      /** Task 70c: "any of these" — the specialists of one price line (ignored with staffId). */
+      staffIds?: string[];
+      from: string;
+      to: string;
+    },
   ): Promise<Availability> {
     const params = new URLSearchParams({
       serviceId: query.serviceId,
@@ -291,6 +298,7 @@ export class ClientApi {
       to: query.to,
     });
     if (query.staffId) params.set('staffId', query.staffId);
+    else if (query.staffIds?.length) params.set('staffIds', query.staffIds.join(','));
     return this.call<Availability>(
       'GET',
       `/v1/public/locations/${encodeURIComponent(slug)}/availability?${params.toString()}`,
@@ -324,7 +332,13 @@ export class ClientApi {
    */
   hold(
     slug: string,
-    input: { serviceId: string; staffId?: string; start: string; releaseHoldToken?: string },
+    input: {
+      serviceId: string;
+      staffId?: string;
+      staffIds?: string[];
+      start: string;
+      releaseHoldToken?: string;
+    },
     key: string = newRequestKey(),
   ): Promise<Hold> {
     return this.call<Hold>(

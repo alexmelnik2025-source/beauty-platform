@@ -31,6 +31,7 @@ import {
   legalUrl,
   manageUrl,
   filterLanguages,
+  priceRows,
   speakingStaff,
   staffFor,
   type BookingPreset,
@@ -104,6 +105,10 @@ export function BookingScreen(props: {
   const [step, setStep] = useState<BookingStep>(start.step);
   const [serviceId, setServiceId] = useState(start.serviceId);
   const [staffId, setStaffId] = useState<string | undefined>(start.staffId);
+  /** Task 70c: a price line of several specialists — "any of these", or one picked over the times. */
+  const [rowStaff, setRowStaff] = useState<string[]>([]);
+  /** Came from a price line straight to the times: "back" returns to the price list. */
+  const [fromList, setFromList] = useState(false);
   /** Task 80: the client's wishes, asked on the code step when the salon asks anything. */
   const [wishes, setWishes] = useState<VisitWishes>(NO_WISHES);
   /** Task 81: "Speaks EN" — only the specialists who speak the chosen language. */
@@ -151,6 +156,7 @@ export function BookingScreen(props: {
       const res = await api.availability(salon.slug, {
         serviceId,
         staffId,
+        ...(!staffId && rowStaff.length > 1 ? { staffIds: rowStaff } : {}),
         from,
         to: addDays(from, BOOKING_DAYS - 1),
       });
@@ -162,7 +168,7 @@ export function BookingScreen(props: {
       setSlots([]);
       setError(bookingErrorText(e, t));
     }
-  }, [api, salon.slug, salon.timezone, serviceId, staffId, t]);
+  }, [api, salon.slug, salon.timezone, serviceId, staffId, rowStaff, t]);
 
   useEffect(() => {
     if (step === 'time') void loadSlots();
@@ -223,11 +229,11 @@ export function BookingScreen(props: {
     setError('');
     if (step === presetStep) props.onBack();
     else if (step === 'staff') setStep('service');
-    else if (step === 'time') setStep(staffList.length > 1 ? 'staff' : 'service');
+    else if (step === 'time') setStep(staffList.length > 1 && !fromList ? 'staff' : 'service');
     else if (step === 'details') setStep('time');
     else if (step === 'code') setStep('details');
     else props.onBack();
-  }, [step, staffList.length, props, presetStep]);
+  }, [step, staffList.length, props, presetStep, fromList]);
 
   // Android "back" goes one step back.
   useEffect(() => {
@@ -239,10 +245,23 @@ export function BookingScreen(props: {
     return () => sub.remove();
   }, [goBack, step]);
 
+  /** Task 70c: "Book" on a price line — its one specialist, or "any of these" with circles. */
+  function pickRow(id: string, row: string[]) {
+    setServiceId(id);
+    setError('');
+    setGone(undefined);
+    setStaffId(row.length === 1 ? row[0] : undefined);
+    setRowStaff(row.length > 1 ? row : []);
+    setFromList(true);
+    setStep('time');
+  }
+
   function pickService(id: string) {
     setServiceId(id);
     setError('');
     setGone(undefined);
+    setRowStaff([]);
+    setFromList(false);
     const who = staffFor(salon, id);
     // With one specialist there is nothing to choose.
     if (who.length === 1) {
@@ -260,7 +279,7 @@ export function BookingScreen(props: {
     try {
       const created = await api.hold(salon.slug, {
         serviceId,
-        ...(staffId ? { staffId } : {}),
+        ...(staffId ? { staffId } : rowStaff.length > 1 ? { staffIds: rowStaff } : {}),
         start: slot.start,
         ...(hold ? { releaseHoldToken: hold.holdToken } : {}),
       });
@@ -403,15 +422,46 @@ export function BookingScreen(props: {
               {g.name || serviceGroups(salon).length > 1 ? (
                 <Text style={styles.group}>{g.name ?? b.otherServices}</Text>
               ) : null}
-              {g.services.map((s) => (
-                <Choice
-                  key={s.id}
-                  title={s.name}
-                  meta={durationText(s.durationMinutes, t.units)}
-                  right={servicePriceText(s, salon.currency, locale, b.priceFrom)}
-                  onPress={() => pickService(s.id)}
-                />
-              ))}
+              {g.services.map((s) => {
+                const rows = priceRows(salon, s.id);
+                const doing = staffFor(salon, s.id);
+                // Everyone at one price and length: one "All specialists" line.
+                const allOneRow = rows.length === 1 && doing.length > 1;
+                return (
+                  <View key={s.id} style={{ gap: 2 }}>
+                    <Choice
+                      title={s.name}
+                      meta={durationText(s.durationMinutes, t.units)}
+                      right={servicePriceText(s, salon.currency, locale, b.priceFrom)}
+                      onPress={() => pickService(s.id)}
+                    />
+                    {rows.map((r) => {
+                      const names = allOneRow
+                        ? b.allStaff
+                        : r.staff.map((x) => x.displayName).join(', ');
+                      const offer = `${formatPrice(r.priceGrosze, salon.currency, locale)} · ${durationText(r.durationMinutes, t.units)}`;
+                      return (
+                        <Pressable
+                          key={`${r.priceGrosze}|${r.durationMinutes}`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${fill(b.bookRow, { names })}, ${offer}`}
+                          onPress={() =>
+                            pickRow(
+                              s.id,
+                              r.staff.map((x) => x.id),
+                            )
+                          }
+                          style={({ pressed }) => [styles.priceRow, pressed && { opacity: 0.7 }]}
+                        >
+                          <Text style={[styles.text, { flex: 1 }]}>{names}</Text>
+                          <Text style={styles.muted}>{offer}</Text>
+                          <Text style={styles.chevron}>›</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                );
+              })}
             </View>
           ))}
         </View>
@@ -480,6 +530,23 @@ export function BookingScreen(props: {
           <Text role="heading" aria-level={2} style={styles.section}>
             {b.pickTime}
           </Text>
+          {rowStaff.length > 1 ? (
+            // Task 70c: the line's specialists over the times, "Any" first (as on Booksy).
+            <View style={styles.chips} accessibilityLabel={b.pickStaff}>
+              <Chip label={b.anyShort} pressed={!staffId} onPress={() => setStaffId(undefined)} />
+              {rowStaff.map((id) => {
+                const who = salon.staff.find((x) => x.id === id);
+                return who ? (
+                  <Chip
+                    key={id}
+                    label={who.displayName}
+                    pressed={staffId === id}
+                    onPress={() => setStaffId(id)}
+                  />
+                ) : null;
+              })}
+            </View>
+          ) : null}
           {slots === null ? (
             <Text style={styles.muted}>{t.visit.loadingSlots}</Text>
           ) : days.length === 0 ? (
@@ -817,6 +884,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   chevron: { color: colors.muted, fontSize: 22 },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
   days: { gap: 8, paddingVertical: 2 },
   dayChip: {
     width: 56,

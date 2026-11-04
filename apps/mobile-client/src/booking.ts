@@ -68,6 +68,41 @@ export function speakingStaff(
   return language ? staff.filter((s) => (s.languages ?? []).includes(language)) : staff;
 }
 
+/** One line under a service: the specialists with the same own price and length (task 70c). */
+export interface PriceRow {
+  staff: PublicLocation['staff'];
+  priceGrosze: number;
+  durationMinutes: number;
+}
+
+/**
+ * Task 70c (as 70b on the web): a service's specialists grouped by their own price and length
+ * (tasks 62, 70a), cheapest first, in the salon's order within a line ("Marek, Tomek — 90 zł").
+ */
+export function priceRows(
+  salon: PublicLocation,
+  serviceId: string,
+  staff: PublicLocation['staff'] = salon.staff,
+): PriceRow[] {
+  const service = salon.services.find((s) => s.id === serviceId);
+  if (!service) return [];
+  const rows: PriceRow[] = [];
+  for (const s of staff) {
+    if (!s.serviceIds.includes(serviceId)) continue;
+    const own = s.prices.find((p) => p.serviceId === serviceId);
+    const priceGrosze = own?.priceGrosze ?? service.priceGrosze;
+    const durationMinutes = own?.durationMinutes ?? service.durationMinutes;
+    const row = rows.find(
+      (r) => r.priceGrosze === priceGrosze && r.durationMinutes === durationMinutes,
+    );
+    if (row) row.staff.push(s);
+    else rows.push({ staff: [s], priceGrosze, durationMinutes });
+  }
+  return rows.sort(
+    (a, b) => a.priceGrosze - b.priceGrosze || a.durationMinutes - b.durationMinutes,
+  );
+}
+
 /** "Book again" / "Book" from a loyalty card: start with this service and specialist. */
 export interface BookingPreset {
   serviceId: string;

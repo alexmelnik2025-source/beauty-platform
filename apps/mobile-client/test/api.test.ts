@@ -290,6 +290,24 @@ describe('change time', () => {
     ]);
   });
 
+  it('asks for the free times of a price line ("any of these", task 70c)', async () => {
+    const paths: string[] = [];
+    const fetchFn = async (url: string) => {
+      paths.push(url.replace('https://api.test', ''));
+      return new Response(JSON.stringify({ slots: [] }), { status: 200 });
+    };
+    const api = new ClientApi('https://api.test', memoryStore(null), fetchFn);
+    await api.availability('gestalt', {
+      serviceId: 's1',
+      staffIds: ['k1', 'm2'],
+      from: '2026-11-28',
+      to: '2026-12-18',
+    });
+    expect(paths).toEqual([
+      '/v1/public/locations/gestalt/availability?serviceId=s1&from=2026-11-28&to=2026-12-18&staffIds=k1%2Cm2',
+    ]);
+  });
+
   it('moves a visit once per key, signed in; a taken time comes back as SLOT_TAKEN', async () => {
     const calls: { path: string; headers: Record<string, string>; body?: string }[] = [];
     let taken = false;

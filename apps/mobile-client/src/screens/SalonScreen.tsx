@@ -12,7 +12,8 @@ import type { ClientApi, Locale, PublicLocation } from '../api';
 import { API_URL } from '../config';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
-import { servicePriceText } from '../format';
+import { priceRows } from '../booking';
+import { formatPrice, servicePriceText } from '../format';
 import { addressText, durationText, openingRows, serviceGroups, specialtyText } from '../salon';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
@@ -173,17 +174,36 @@ export function SalonScreen(props: {
             {groups.length > 1 || g.name ? (
               <Text style={styles.group}>{g.name ?? t.salon.otherServices}</Text>
             ) : null}
-            {g.services.map((s) => (
-              <View key={s.id} style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.body}>{s.name}</Text>
-                  <Text style={styles.small}>{durationText(s.durationMinutes, t.units)}</Text>
+            {g.services.map((s) => {
+              // Task 70c: who does it for how much, when the specialists' prices or lengths differ.
+              const rows = priceRows(salon, s.id);
+              return (
+                <View key={s.id} style={{ gap: 2 }}>
+                  <View style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.body}>{s.name}</Text>
+                      <Text style={styles.small}>{durationText(s.durationMinutes, t.units)}</Text>
+                    </View>
+                    <Text style={styles.price}>
+                      {servicePriceText(s, salon.currency, locale, t.book.priceFrom)}
+                    </Text>
+                  </View>
+                  {rows.length > 1
+                    ? rows.map((r) => (
+                        <View key={`${r.priceGrosze}|${r.durationMinutes}`} style={styles.row}>
+                          <Text style={[styles.small, { flex: 1 }]}>
+                            {r.staff.map((x) => x.displayName).join(', ')}
+                          </Text>
+                          <Text style={styles.small}>
+                            {formatPrice(r.priceGrosze, salon.currency, locale)} ·{' '}
+                            {durationText(r.durationMinutes, t.units)}
+                          </Text>
+                        </View>
+                      ))
+                    : null}
                 </View>
-                <Text style={styles.price}>
-                  {servicePriceText(s, salon.currency, locale, t.book.priceFrom)}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         ))}
       </Section>

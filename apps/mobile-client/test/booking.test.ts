@@ -9,6 +9,7 @@ import {
   filterLanguages,
   legalUrl,
   manageUrl,
+  priceRows,
   speakingStaff,
   staffFor,
 } from '../src/booking';
@@ -273,5 +274,50 @@ describe('"book again" starts with the same service and specialist', () => {
       serviceId: '',
       gone: 'service',
     });
+  });
+});
+
+describe('price lines (task 70c)', () => {
+  const salon = {
+    services: [
+      { id: 'cut', priceGrosze: 9000, durationMinutes: 45 },
+      { id: 'beard', priceGrosze: 6000, durationMinutes: 30 },
+    ],
+    staff: [
+      { id: 'marek', serviceIds: ['cut', 'beard'], prices: [] },
+      {
+        id: 'kasia',
+        serviceIds: ['cut', 'beard'],
+        prices: [{ serviceId: 'cut', priceGrosze: 7500, durationMinutes: 45 }],
+      },
+      { id: 'tomek', serviceIds: ['cut', 'beard'], prices: [] },
+      {
+        id: 'ola',
+        serviceIds: ['cut'],
+        prices: [{ serviceId: 'cut', priceGrosze: 9000, durationMinutes: 60 }],
+      },
+    ],
+  } as unknown as PublicLocation;
+  const ids = (rows: ReturnType<typeof priceRows>) =>
+    rows.map((r) => [r.staff.map((s) => s.id).join(','), r.priceGrosze, r.durationMinutes]);
+
+  it('one line per price and length, cheapest first, the salon order within a line', () => {
+    expect(ids(priceRows(salon, 'cut'))).toEqual([
+      ['kasia', 7500, 45],
+      ['marek,tomek', 9000, 45],
+      ['ola', 9000, 60],
+    ]);
+  });
+
+  it('one line when everyone costs the same; nothing for an unknown service', () => {
+    expect(ids(priceRows(salon, 'beard'))).toEqual([['marek,kasia,tomek', 6000, 30]]);
+    expect(priceRows(salon, 'nope')).toEqual([]);
+  });
+
+  it('only the given specialists (the "Speaks" filter)', () => {
+    expect(ids(priceRows(salon, 'cut', salon.staff.slice(2)))).toEqual([
+      ['tomek', 9000, 45],
+      ['ola', 9000, 60],
+    ]);
   });
 });
