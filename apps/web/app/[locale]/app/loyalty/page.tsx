@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { BonusRulesForm } from '@/components/loyalty/BonusRulesForm';
 import { costLabel, RewardSheet, rewardLabel } from '@/components/loyalty/RewardSheet';
 import { TiersForm } from '@/components/loyalty/TiersForm';
 import { useSession } from '@/components/Session';
@@ -349,6 +350,8 @@ export default function LoyaltyPage() {
         </section>
 
         <TiersForm org={org} currency={symbol} />
+
+        <BonusRulesForm org={org} base={base} />
 
         <form className="section form" onSubmit={saveRules} aria-labelledby="loyalty-rules">
           <h2 id="loyalty-rules">{t.loyalty.rules}</h2>

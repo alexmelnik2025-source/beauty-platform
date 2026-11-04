@@ -19,7 +19,7 @@ import { serveApp } from './mobile-app';
  * client app for iPhone and Android (11b, part 3; its web preview).
  * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
  * The client then picks the coupon herself in "Moje wizyty" (10d, part 3).
- * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 79).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -333,6 +333,37 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     ['Standard', 0],
     ['Silver', 1],
   ]);
+
+  // ── Bonus rules (19): ×2 on Monday–Wednesday, the best rule per visit ──
+  const bonusForm = page.locator('form', {
+    has: page.getByRole('heading', { name: 'Dodatkowe pieczątki i punkty' }),
+  });
+  await expect(bonusForm.getByText('Brak zasad')).toBeVisible();
+  await bonusForm.getByRole('button', { name: '+ Dodaj zasadę' }).click();
+  await bonusForm.getByLabel('Nazwa zasady').fill('Spokojne dni ×2');
+  await bonusForm.getByLabel('Mnożnik (×)').fill('2');
+  for (const day of ['Poniedziałek', 'Wtorek', 'Środa']) {
+    await bonusForm.getByLabel(day, { exact: true }).check();
+  }
+  await bonusForm.getByRole('button', { name: 'Zapisz zasady' }).click();
+  await expect(bonusForm.getByText('Zapisano')).toBeVisible();
+  await bonusForm.scrollIntoViewIfNeeded();
+  await shot(page, '79-owner-loyalty-bonus-rules');
+  const bonus = await json<{ rules: { name: string; weekdays: number[]; multiplier: number }[] }>(
+    await request.get(`${orgBase}/loyalty/bonus-rules`, { headers: owner }),
+  );
+  expect(bonus.rules.map((r) => [r.name, r.weekdays, r.multiplier])).toEqual([
+    ['Spokojne dni ×2', [1, 2, 3], 2],
+  ]);
+  // The visits below count stamps without bonuses.
+  expect(
+    (
+      await request.put(`${orgBase}/loyalty/bonus-rules`, {
+        headers: owner,
+        data: { rules: [] },
+      })
+    ).ok(),
+  ).toBe(true);
 
   // ── Client card: exchange for a coupon, cancel it, correct by hand ────
   await page.goto('/pl/app/clients');
