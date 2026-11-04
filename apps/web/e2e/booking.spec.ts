@@ -342,6 +342,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();
   await shot(client, '07-client-manage');
+  // "Add to calendar" (task 20): the email and the page give the visit as an .ics file.
+  expect(confirmation.text).toContain('Dodaj do kalendarza:');
+  const calendarLink = client.getByRole('link', { name: 'Dodaj do kalendarza' });
+  const icsHref = (await calendarLink.getAttribute('href'))!;
+  expect(icsHref).toMatch(/\/v1\/public\/appointments\/\S+\/calendar\.ics$/);
+  const icsFile = await client.request.get(icsHref);
+  expect(icsFile.headers()['content-type']).toContain('text/calendar');
+  expect(await icsFile.text()).toContain('SUMMARY:Strzyżenie męskie');
   // Moving asks first: a tap on a time only proposes it, "Nie" keeps the old time (owner test T11).
   await client.getByRole('button', { name: 'Zmień termin' }).click();
   await client.locator('.times button').first().click();
