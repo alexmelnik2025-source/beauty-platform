@@ -52,25 +52,10 @@ export const MOVE_DAYS = 21;
 /** The catalogue shows this many salons at a time (the API allows up to 50). */
 export const PAGE_SIZE = 20;
 
-/** The web booking page of a salon (booking inside the app comes in a later part). */
+/** The web booking page of a salon (the app books inside itself; this is for sharing). */
 export function bookingUrl(webUrl: string, locale: Locale, slug: string): string {
   return `${webUrl.replace(/\/+$/, '')}/${locale}/b/${encodeURIComponent(slug)}`;
 }
-/**
- * "Book again": the web booking page that starts with the same service and specialist.
- * null when the salon no longer takes this service online.
- */
-export function bookAgainUrl(
-  webUrl: string,
-  locale: Locale,
-  visit: ClientAppointment,
-): string | null {
-  if (!visit.bookAgain) return null;
-  const params = new URLSearchParams({ service: visit.bookAgain.serviceId });
-  if (visit.bookAgain.staffId) params.set('staff', visit.bookAgain.staffId);
-  return `${bookingUrl(webUrl, locale, visit.bookAgain.slug)}?${params.toString()}`;
-}
-
 /** The local date YYYY-MM-DD `days` days after `date` (calendar days, no time zone). */
 export function addDays(date: string, days: number): string {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];

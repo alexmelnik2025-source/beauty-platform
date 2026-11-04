@@ -752,9 +752,22 @@ pnpm --filter @beauty/api-client generate
 - После записи: вошедший клиент — «Moje wizyty» (список перечитывается, визит уже там); не вошедший —
   «Zaloguj się do „Moich wizyt”» (экран входа с уже вписанным e-mail) и «Zmień lub odwołaj wizytę» (ссылка из письма).
   Токен сессии при записи приложению не выдаётся (так задумано на сервере: токен не попадает в тело ответа).
-- Пока только код по e-mail (SMS — после подключения шлюза). «Umów ponownie» в карточке визита и «Umów się» в бонусах
-  пока ведут на сайт.
+- Пока только код по e-mail (SMS — после подключения шлюза). «Umów ponownie» и «Umów się» — тоже в приложении
+  (часть 5).
 - Код: `availability` / `hold` / `sendBookingCode` / `confirmBooking` / `releaseHold` в `src/api.ts`, `src/booking.ts`
   (проверка формы, телефон, части дня, отсчёт), `src/screens/BookingScreen.tsx`; тесты `test/booking.test.ts`; e2e —
   скриншоты `64-client-app-book-service`, `64a-client-app-book-time`, `64b-client-app-book-details`,
   `64c-client-app-booked`.
+
+## Клиентское приложение: «Umów ponownie» и «Umów się» в приложении (задача 11b, часть 5)
+
+- «Umów ponownie» в карточке визита и «Umów się» на карточке бонусов больше не открывают сайт — запись идёт в самом
+  приложении (те же шаги и API, что в части 4б).
+- «Umów ponownie» начинает с той же услуги и того же мастера: сразу свободное время. Если в прошлый раз был
+  «Dowolny specjalista» — выбор мастера. Если мастер больше не делает эту услугу — выбор другого с пояснением
+  (остался один — сразу его время); если салон убрал услугу из онлайн-записи — прайс с пояснением.
+  Ссылка «Inna usługa lub specjalista» — выбрать другое. «‹ Wróć» с первого шага возвращает туда, откуда пришли
+  (карточка визита или «Moje bonusy»); после записи — «Moje wizyty» с новым визитом.
+- «Umów się» на карточке бонусов открывает запись этого салона с выбора услуги.
+- Код: `bookingStart` в `src/booking.ts` (где начинать запись), `src/screens/OpenBooking.tsx` (загрузка салона),
+  `preset` у `BookingScreen`; тесты `test/booking.test.ts`; e2e — скриншот `59f-client-app-book-again`.

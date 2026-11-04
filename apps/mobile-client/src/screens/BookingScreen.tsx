@@ -23,11 +23,13 @@ import {
 import {
   afterBookingError,
   BOOKING_DAYS,
+  bookingStart,
   checkContact,
   countdown,
   dayParts,
   manageUrl,
   staffFor,
+  type BookingPreset,
   type BookingStep,
   type ContactForm,
   type ContactProblem,
@@ -62,7 +64,8 @@ const PROBLEM_TEXT: Record<ContactProblem, (t: Dictionary) => string> = {
 /**
  * Booking in the app, without an account: service → specialist (or anyone) → a free time,
  * held for 10 minutes → name, phone, email and the salon's booking rules → the code from the
- * email → booked. The same API and rules as the web booking page.
+ * email → booked. The same API and rules as the web booking page. "Book again" starts with the
+ * same service and specialist (`preset`); "back" from there returns to where it was opened.
  */
 export function BookingScreen(props: {
   api: ClientApi;
@@ -72,15 +75,21 @@ export function BookingScreen(props: {
   /** Signed in: the email is filled in, and the visit appears in "My visits". */
   email?: string;
   signedIn: boolean;
+  /** Start with this service (and specialist): "Book again" or "Book" on a loyalty card. */
+  preset?: BookingPreset;
   onBack: () => void;
   /** After booking: to "My visits" (signed in) or to sign-in with this email. */
   onFinished: (email: string) => void;
 }) {
   const { api, t, locale, salon } = props;
   const b = t.book;
-  const [step, setStep] = useState<BookingStep>('service');
-  const [serviceId, setServiceId] = useState('');
-  const [staffId, setStaffId] = useState<string | undefined>(undefined);
+  const [start] = useState(() => bookingStart(salon, props.preset));
+  const [step, setStep] = useState<BookingStep>(start.step);
+  const [serviceId, setServiceId] = useState(start.serviceId);
+  const [staffId, setStaffId] = useState<string | undefined>(start.staffId);
+  // Shown until the client picks something: the service or specialist is no longer online.
+  const [gone, setGone] = useState(start.gone);
+  const presetStep = props.preset && start.step !== 'service' ? start.step : null;
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [day, setDay] = useState('');
   const [hold, setHold] = useState<Hold | null>(null);
@@ -154,12 +163,13 @@ export function BookingScreen(props: {
 
   const goBack = useCallback(() => {
     setError('');
-    if (step === 'staff') setStep('service');
+    if (step === presetStep) props.onBack();
+    else if (step === 'staff') setStep('service');
     else if (step === 'time') setStep(staffList.length > 1 ? 'staff' : 'service');
     else if (step === 'details') setStep('time');
     else if (step === 'code') setStep('details');
     else props.onBack();
-  }, [step, staffList.length, props]);
+  }, [step, staffList.length, props, presetStep]);
 
   // Android "back" goes one step back.
   useEffect(() => {
@@ -174,6 +184,7 @@ export function BookingScreen(props: {
   function pickService(id: string) {
     setServiceId(id);
     setError('');
+    setGone(undefined);
     const who = staffFor(salon, id);
     // With one specialist there is nothing to choose.
     if (who.length === 1) {
@@ -292,6 +303,24 @@ export function BookingScreen(props: {
               : ''}
           </Text>
         </Card>
+      ) : null}
+
+      {presetStep && step === presetStep ? (
+        <Button
+          kind="link"
+          label={b.otherService}
+          disabled={busy}
+          onPress={() => {
+            setError('');
+            setGone(undefined);
+            setStep('service');
+          }}
+        />
+      ) : null}
+      {gone && (step === 'service' || step === 'staff' || step === 'time') ? (
+        <Text role="note" style={styles.muted}>
+          {gone === 'service' ? b.serviceGone : b.staffGone}
+        </Text>
       ) : null}
 
       {error ? <ErrorText>{error}</ErrorText> : null}

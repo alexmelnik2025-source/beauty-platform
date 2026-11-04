@@ -54,7 +54,7 @@ export const pl = {
     cancelled: 'Wizyta odwołana.',
     callSalon: 'Zadzwoń do salonu',
     bookAgain: 'Umów ponownie',
-    bookAgainHint: 'Rezerwacja otworzy się w przeglądarce — ta sama usługa i specjalista.',
+    bookAgainHint: 'Ta sama usługa i specjalista — wybierz tylko termin.',
     tooLate: 'Na zmiany online jest już za późno. Zadzwoń do salonu.',
     move: 'Zmień termin',
     moveTitle: 'Wybierz nowy termin',
@@ -115,6 +115,9 @@ export const pl = {
   book: {
     title: 'Umów wizytę',
     back: '‹ Wróć',
+    otherService: 'Inna usługa lub specjalista',
+    serviceGone: 'Tej usługi nie można już zarezerwować online — wybierz inną.',
+    staffGone: 'Ten specjalista nie wykonuje już tej usługi — wybierz innego.',
     pickService: 'Wybierz usługę',
     pickStaff: 'Wybierz specjalistę',
     pickTime: 'Wybierz termin',

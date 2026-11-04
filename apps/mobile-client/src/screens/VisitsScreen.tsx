@@ -8,6 +8,7 @@ import type {
   Locale,
   Scope,
 } from '../api';
+import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
 import { formatDay, formatPrice, groupByDay, salonAddress } from '../format';
 import { fill, type Dictionary } from '../i18n';
@@ -31,6 +32,8 @@ export function VisitsScreen(props: {
   onLocale: (locale: Locale) => void;
   /** Opens the catalogue of salons (no sign-in needed). */
   onFindSalon: () => void;
+  /** The booking in the app: "Book again" on a visit, "Book" on a loyalty card. */
+  onBook: (slug: string, name: string, preset?: BookingPreset) => void;
   onSignOut: () => void;
   /** The server no longer accepts the session (signed out elsewhere, or it ended). */
   onSessionEnded: () => void;
@@ -83,6 +86,7 @@ export function VisitsScreen(props: {
         locale={locale}
         visit={open}
         onBack={closeVisit}
+        onBook={props.onBook}
         onChanged={visitChanged}
         onSessionEnded={onSessionEnded}
       />
@@ -122,7 +126,9 @@ export function VisitsScreen(props: {
         </View>
       ) : null}
 
-      {tab === 'bonuses' && bonuses ? <BonusesView t={t} locale={locale} items={bonuses} /> : null}
+      {tab === 'bonuses' && bonuses ? (
+        <BonusesView t={t} locale={locale} items={bonuses} onBook={props.onBook} />
+      ) : null}
 
       {tab !== 'bonuses' && items && items.length === 0 ? (
         <Text style={styles.empty}>

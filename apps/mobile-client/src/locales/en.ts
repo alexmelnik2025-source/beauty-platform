@@ -55,7 +55,7 @@ export const en: Dictionary = {
     cancelled: 'The visit is cancelled.',
     callSalon: 'Call the salon',
     bookAgain: 'Book again',
-    bookAgainHint: 'Booking opens in the browser — the same service and specialist.',
+    bookAgainHint: 'The same service and specialist — just pick a time.',
     tooLate: 'It is too late to change it online. Please call the salon.',
     move: 'Change time',
     moveTitle: 'Choose a new time',
@@ -115,6 +115,9 @@ export const en: Dictionary = {
   book: {
     title: 'Book a visit',
     back: '‹ Back',
+    otherService: 'Another service or specialist',
+    serviceGone: 'This service can no longer be booked online — please choose another.',
+    staffGone: 'This specialist no longer does this service — please choose another.',
     pickService: 'Choose a service',
     pickStaff: 'Choose a specialist',
     pickTime: 'Choose a time',

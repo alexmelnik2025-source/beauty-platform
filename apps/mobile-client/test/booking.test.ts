@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiError, ClientApi, type Hold, type PublicLocation, type Slot } from '../src/api';
 import {
   afterBookingError,
+  bookingStart,
   checkContact,
   countdown,
   dayParts,
@@ -180,6 +181,59 @@ describe('ClientApi booking', () => {
     expect(calls[4]).toMatchObject({
       url: `/v1/public/holds/${hold.holdId}/release`,
       body: { holdToken: hold.holdToken },
+    });
+  });
+});
+
+describe('"book again" starts with the same service and specialist', () => {
+  const salon = {
+    services: [{ id: 'cut' }, { id: 'beard' }, { id: 'nails' }],
+    staff: [
+      { id: 'kasia', serviceIds: ['cut', 'beard'] },
+      { id: 'alex', serviceIds: ['cut'] },
+      { id: 'ola', serviceIds: ['nails'] },
+    ],
+  } as unknown as PublicLocation;
+
+  it('without a preset — the price list', () => {
+    expect(bookingStart(salon)).toEqual({ step: 'service', serviceId: '' });
+  });
+
+  it('the same specialist still does the service — straight to free times', () => {
+    expect(bookingStart(salon, { serviceId: 'cut', staffId: 'alex' })).toEqual({
+      step: 'time',
+      serviceId: 'cut',
+      staffId: 'alex',
+    });
+  });
+
+  it('"any specialist" last time — the choice of specialist', () => {
+    expect(bookingStart(salon, { serviceId: 'cut', staffId: null })).toEqual({
+      step: 'staff',
+      serviceId: 'cut',
+    });
+  });
+
+  it('the specialist no longer does it — choose another, with a note', () => {
+    expect(bookingStart(salon, { serviceId: 'cut', staffId: 'ola' })).toEqual({
+      step: 'staff',
+      serviceId: 'cut',
+      gone: 'staff',
+    });
+    // Only one specialist left: nothing to choose, the free times of that one.
+    expect(bookingStart(salon, { serviceId: 'nails', staffId: 'kasia' })).toEqual({
+      step: 'time',
+      serviceId: 'nails',
+      staffId: 'ola',
+      gone: 'staff',
+    });
+  });
+
+  it('the salon no longer takes the service online — the price list, with a note', () => {
+    expect(bookingStart(salon, { serviceId: 'colour', staffId: 'kasia' })).toEqual({
+      step: 'service',
+      serviceId: '',
+      gone: 'service',
     });
   });
 });

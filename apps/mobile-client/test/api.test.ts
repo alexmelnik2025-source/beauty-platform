@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   addDays,
   ApiError,
-  bookAgainUrl,
   bookingUrl,
   ClientApi,
   type ClientAppointment,
@@ -247,23 +246,6 @@ describe('one visit', () => {
     const b = newRequestKey();
     expect(a).not.toBe(b);
     for (const key of [a, b]) expect(key).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
-  });
-
-  it('"book again" opens the same service and specialist on the web, or nothing', () => {
-    const visit = {
-      bookAgain: { slug: 'gestalt', serviceId: 's1', staffId: 'k1' },
-    } as ClientAppointment;
-    expect(bookAgainUrl('http://localhost:3000', 'ru', visit)).toBe(
-      'http://localhost:3000/ru/b/gestalt?service=s1&staff=k1',
-    );
-    expect(
-      bookAgainUrl('http://localhost:3000', 'pl', {
-        bookAgain: { slug: 'gestalt', serviceId: 's1', staffId: null },
-      } as ClientAppointment),
-    ).toBe('http://localhost:3000/pl/b/gestalt?service=s1');
-    expect(
-      bookAgainUrl('http://localhost:3000', 'pl', { bookAgain: null } as ClientAppointment),
-    ).toBe(null);
   });
 });
 

@@ -51,6 +51,47 @@ export function staffFor(salon: PublicLocation, serviceId: string): PublicLocati
   return salon.staff.filter((s) => s.serviceIds.includes(serviceId));
 }
 
+/** "Book again" / "Book" from a loyalty card: start with this service and specialist. */
+export interface BookingPreset {
+  serviceId: string;
+  staffId?: string | null;
+}
+
+/**
+ * Where the booking starts. With a preset: the free times of the same specialist, or the
+ * choice of specialist when that one no longer does the service (`staffGone`), or the price
+ * list when the salon no longer takes the service online (`serviceGone`).
+ */
+export function bookingStart(
+  salon: PublicLocation,
+  preset?: BookingPreset,
+): {
+  step: BookingStep;
+  serviceId: string;
+  staffId?: string;
+  gone?: 'service' | 'staff';
+} {
+  if (!preset) return { step: 'service', serviceId: '' };
+  if (!salon.services.some((s) => s.id === preset.serviceId)) {
+    return { step: 'service', serviceId: '', gone: 'service' };
+  }
+  const who = staffFor(salon, preset.serviceId);
+  if (preset.staffId && who.some((s) => s.id === preset.staffId)) {
+    return { step: 'time', serviceId: preset.serviceId, staffId: preset.staffId };
+  }
+  // With one specialist there is nothing to choose (as when the client taps the service).
+  const gone = preset.staffId ? ('staff' as const) : undefined;
+  if (who.length === 1) {
+    return {
+      step: 'time',
+      serviceId: preset.serviceId,
+      staffId: who[0]!.id,
+      ...(gone && { gone }),
+    };
+  }
+  return { step: 'staff', serviceId: preset.serviceId, ...(gone && { gone }) };
+}
+
 /** Morning (before 12), afternoon (12–17) and evening, without empty parts. */
 export function dayParts(
   slots: Slot[],

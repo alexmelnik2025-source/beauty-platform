@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   ApiError,
-  bookAgainUrl,
   newRequestKey,
   todayIn,
   type ClientApi,
@@ -10,7 +9,7 @@ import {
   type Locale,
   type Slot,
 } from '../api';
-import { WEB_URL } from '../config';
+import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
 import {
   dayChip,
@@ -35,6 +34,8 @@ export function VisitScreen(props: {
   /** The visit as the list showed it; refreshed from the server on opening. */
   visit: ClientAppointment;
   onBack: () => void;
+  /** "Book again": the booking in the app with the same service and specialist. */
+  onBook: (slug: string, name: string, preset: BookingPreset) => void;
   /** The visit changed (cancelled): the list reloads when the client goes back. */
   onChanged: () => void;
   onSessionEnded: () => void;
@@ -157,7 +158,7 @@ export function VisitScreen(props: {
   const v = t.visit;
   const day = formatDay(visit.date, locale);
   const actions = visitActions(visit);
-  const again = bookAgainUrl(WEB_URL, locale, visit);
+  const again = visit.bookAgain;
   const address = salonAddress(visit.salon);
   const faded = visit.status === 'cancelled' || visit.status === 'expired';
   const days = slotsByDay(slots ?? [], visit);
@@ -330,7 +331,15 @@ export function VisitScreen(props: {
       ) : null}
       {again ? (
         <>
-          <Button label={v.bookAgain} onPress={() => void Linking.openURL(again)} />
+          <Button
+            label={v.bookAgain}
+            onPress={() =>
+              props.onBook(again.slug, visit.salon.name, {
+                serviceId: again.serviceId,
+                staffId: again.staffId,
+              })
+            }
+          />
           <Text style={styles.small}>{v.bookAgainHint}</Text>
         </>
       ) : null}

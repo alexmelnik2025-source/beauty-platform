@@ -3,11 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ClientApi, type ClientPerson, type Locale, type PublicLocation } from './api';
+import type { BookingPreset } from './booking';
 import { API_URL } from './config';
 import { errorText } from './errors';
 import { DICTIONARIES, pickLocale } from './i18n';
 import { BookingScreen } from './screens/BookingScreen';
 import { CatalogScreen } from './screens/CatalogScreen';
+import { OpenBooking } from './screens/OpenBooking';
 import { SalonScreen } from './screens/SalonScreen';
 import { SignInScreen } from './screens/SignInScreen';
 import { VisitsScreen } from './screens/VisitsScreen';
@@ -20,12 +22,17 @@ type Stage =
   | { kind: 'signIn' }
   | { kind: 'visits'; person: ClientPerson };
 
-/** The catalogue, a salon and its booking, opened over sign-in or "My visits" (no sign-in needed). */
+/**
+ * The catalogue, a salon and its booking, opened over sign-in or "My visits" (no sign-in
+ * needed). "Book again" and "Book" on a loyalty card open the booking straight from "My visits"
+ * (`fromVisits`: back returns there) with the same service and specialist.
+ */
 type Finder =
   | null
   | { kind: 'catalog' }
   | { kind: 'salon'; slug: string; name: string }
-  | { kind: 'book'; salon: PublicLocation };
+  | { kind: 'open'; slug: string; name: string; preset?: BookingPreset }
+  | { kind: 'book'; salon: PublicLocation; preset?: BookingPreset; fromVisits?: boolean };
 
 const deviceLocale = pickLocale(Intl.DateTimeFormat().resolvedOptions().locale);
 
@@ -42,6 +49,11 @@ export default function App() {
   const [visitsKey, setVisitsKey] = useState(0);
   const [signInEmail, setSignInEmail] = useState('');
   const openCatalog = useCallback(() => setFinder({ kind: 'catalog' }), []);
+  const openBooking = useCallback(
+    (slug: string, name: string, preset?: BookingPreset) =>
+      setFinder({ kind: 'open', slug, name, ...(preset && { preset }) }),
+    [],
+  );
   const t = DICTIONARIES[locale];
   const localeRef = useRef(locale);
   localeRef.current = locale;
@@ -122,6 +134,7 @@ export default function App() {
                 onSignOut={signOut}
                 onSessionEnded={sessionEnded}
                 onFindSalon={openCatalog}
+                onBook={openBooking}
               />
             )}
           </View>
@@ -137,6 +150,23 @@ export default function App() {
               />
             </View>
           ) : null}
+          {finder?.kind === 'open' ? (
+            <OpenBooking
+              key={finder.slug}
+              api={api}
+              t={t}
+              slug={finder.slug}
+              name={finder.name}
+              onBack={() => setFinder(null)}
+              onLoaded={(salon) =>
+                setFinder((f) =>
+                  f?.kind === 'open'
+                    ? { kind: 'book', salon, preset: f.preset, fromVisits: true }
+                    : f,
+                )
+              }
+            />
+          ) : null}
           {finder?.kind === 'book' ? (
             <BookingScreen
               key={finder.salon.slug}
@@ -146,8 +176,11 @@ export default function App() {
               salon={finder.salon}
               email={stage.kind === 'visits' ? stage.person.email : undefined}
               signedIn={stage.kind === 'visits'}
+              preset={finder.preset}
               onBack={() =>
-                setFinder({ kind: 'salon', slug: finder.salon.slug, name: finder.salon.name })
+                finder.fromVisits
+                  ? setFinder(null)
+                  : setFinder({ kind: 'salon', slug: finder.salon.slug, name: finder.salon.name })
               }
               onFinished={(email) => {
                 setFinder(null);

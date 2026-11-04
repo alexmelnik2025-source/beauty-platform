@@ -1011,13 +1011,17 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await cancelAsk.getByRole('button', { name: 'Nie', exact: true }).click();
     await expect(cancelAsk).toBeHidden();
     await expect(phone.getByText('Potwierdzona')).toBeVisible();
-    // "Book again" opens the same service and specialist on the booking page.
-    const [againPage] = await Promise.all([
-      phone.context().waitForEvent('page'),
-      phone.getByRole('button', { name: 'Umów ponownie' }).click(),
-    ]);
-    await againPage.waitForURL(new RegExp(`/pl/b/${location.slug}\\?service=.+`));
-    await againPage.close();
+    // "Book again" books in the app: the same service and specialist, straight to free times;
+    // "back" returns to the visit card.
+    await phone.getByRole('button', { name: 'Umów ponownie' }).click();
+    await expect(phone.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
+    await expect(phone.getByText(/· Kasia$/)).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Inna usługa lub specjalista' })).toBeVisible();
+    await expect(phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first()).toBeVisible();
+    await shot(phone, '59f-client-app-book-again');
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(phone.getByRole('heading', { name: 'Strzyżenie męskie' })).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Odwołaj wizytę' })).toBeVisible();
     await phone.getByRole('button', { name: 'Odwołaj wizytę' }).click();
     await phone.getByRole('alertdialog').getByRole('button', { name: 'Tak, odwołaj' }).click();
     await expect(phone.getByText('Wizyta odwołana.')).toBeVisible();

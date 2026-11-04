@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
-import { bookingUrl, type ClientLoyaltyCard, type Locale } from '../api';
+import { StyleSheet, Text, View } from 'react-native';
+import type { ClientLoyaltyCard, Locale } from '../api';
 import {
   earningText,
   formatDate,
@@ -10,18 +10,29 @@ import {
   rewardText,
   signedPoints,
 } from '../bonus';
-import { WEB_URL } from '../config';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors } from '../ui';
 
 /** "My bonuses": a card per salon — stamps or points, rewards, coupons and history. */
-export function BonusesView(props: { t: Dictionary; locale: Locale; items: ClientLoyaltyCard[] }) {
+export function BonusesView(props: {
+  t: Dictionary;
+  locale: Locale;
+  items: ClientLoyaltyCard[];
+  /** "Book": the salon's booking in the app. */
+  onBook: (slug: string, name: string) => void;
+}) {
   const { t, locale, items } = props;
   if (items.length === 0) return <Text style={styles.empty}>{t.bonuses.empty}</Text>;
   return (
     <View style={{ gap: 16 }}>
       {items.map((card) => (
-        <BonusCard key={card.organization.id} t={t} locale={locale} card={card} />
+        <BonusCard
+          key={card.organization.id}
+          t={t}
+          locale={locale}
+          card={card}
+          onBook={props.onBook}
+        />
       ))}
     </View>
   );
@@ -31,10 +42,12 @@ function BonusCard({
   t,
   locale,
   card,
+  onBook,
 }: {
   t: Dictionary;
   locale: Locale;
   card: ClientLoyaltyCard;
+  onBook: (slug: string, name: string) => void;
 }) {
   const [showHistory, setShowHistory] = useState(false);
   const stamps = card.mode === 'stamps';
@@ -210,9 +223,7 @@ function BonusCard({
             <Button
               kind="secondary"
               label={t.bonuses.book}
-              onPress={() =>
-                void Linking.openURL(bookingUrl(WEB_URL, locale, card.bookingSlug as string))
-              }
+              onPress={() => onBook(card.bookingSlug as string, card.organization.name)}
             />
           </View>
         ) : null}
