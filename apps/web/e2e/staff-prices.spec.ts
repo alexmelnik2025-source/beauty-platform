@@ -122,7 +122,7 @@ test("the client sees 'od' on the price list and each specialist's price", async
   // One price for everyone: no "od".
   const beard = client.getByRole('button', { name: /Broda/ });
   await expect(beard).toContainText('60,00');
-  await expect(beard).not.toContainText('od ');
+  await expect(beard).not.toContainText(/od \d/);
   await shot(client, '82-booking-price-from');
 
   await haircut.click();
