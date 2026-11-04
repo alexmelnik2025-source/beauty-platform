@@ -83,6 +83,7 @@ export type {
   Slot,
   Staff,
   StaffCategory,
+  StaffPrices,
   TimeBlock,
   TimeBlockSeries,
   TimeOff,

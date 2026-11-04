@@ -56,6 +56,8 @@ export type LegalTemplates = Schemas['LegalTemplates'];
 export type ServiceCategory = Schemas['ServiceCategory'];
 export type Service = Schemas['Service'];
 export type Staff = Schemas['Staff'];
+/** Task 62: specialists' own prices of services (`GET …/staff-prices`). */
+export type StaffPrices = Schemas['StaffPrices'];
 /** What a specialist does: hairdresser, barber, nails… (the salon's own words are separate). */
 export type Specialty = Staff['specialties'][number];
 export type WorkingHours = Schemas['WorkingHours'];

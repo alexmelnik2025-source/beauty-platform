@@ -206,6 +206,19 @@ h3 {
   accent-color: var(--ink);
 }
 
+/* Task 62: a specialist's own price next to their tick in the service window. */
+.check:has(.staff-price) {
+  grid-template-columns: 22px 1fr 110px;
+  align-items: center;
+}
+
+.check input.staff-price {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 6px 8px;
+}
+
 .form {
   display: grid;
   gap: 16px;
