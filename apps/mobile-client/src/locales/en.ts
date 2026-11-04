@@ -215,6 +215,16 @@ export const en: Dictionary = {
     call: 'Call',
     noServices: 'The salon has no services for online booking yet.',
   },
+  favorites: {
+    tab: 'Favourites',
+    empty: 'No favourite salons yet. Open a salon in the catalogue and tap “♡ Add to favourites”.',
+    add: '♡ Add to favourites',
+    saved: '♥ In favourites',
+    remove: 'Remove from favourites',
+    open: 'See the salon',
+    notBookable: 'The salon has paused online booking.',
+    tooMany: 'You already have 100 favourite salons. Remove one to add another.',
+  },
   units: { h: 'h', min: 'min' },
   spoken: { pl: 'Polish', uk: 'Ukrainian', ru: 'Russian', be: 'Belarusian', en: 'English' },
   specialty: {

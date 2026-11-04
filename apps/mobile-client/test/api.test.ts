@@ -330,3 +330,53 @@ describe('change time', () => {
     expect(todayIn('America/New_York', late)).toBe('2026-11-04');
   });
 });
+
+describe('favourite salons (task 23)', () => {
+  const salon = {
+    slug: 'barber-one',
+    name: 'Barber One',
+    addressLine: 'Prosta 1',
+    city: 'Warszawa',
+    postalCode: '00-001',
+    bookable: true,
+    addedAt: '2026-11-04T10:00:00.000Z',
+  };
+
+  it('lists, saves and removes with the session token; the link name is escaped', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'GET /v1/client/me': () => [200, person],
+      'GET /v1/client/favorites': () => [200, { items: [salon] }],
+      'PUT /v1/client/favorites/barber%20one': () => [204],
+      'DELETE /v1/client/favorites/barber-one': () => [204],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('tok'), fetchFn);
+    await api.restore();
+    expect(api.signedIn).toBe(true);
+
+    expect((await api.favorites()).items).toEqual([salon]);
+    await expect(api.addFavorite('barber one')).resolves.toBeUndefined();
+    await expect(api.removeFavorite('barber-one')).resolves.toBeUndefined();
+    const favoriteCalls = calls.filter((c) => c.key.includes('/favorites'));
+    expect(favoriteCalls.map((c) => c.key)).toEqual([
+      'GET /v1/client/favorites',
+      'PUT /v1/client/favorites/barber%20one',
+      'DELETE /v1/client/favorites/barber-one',
+    ]);
+    expect(favoriteCalls.every((c) => c.auth === 'Bearer tok')).toBe(true);
+  });
+
+  it('a full list comes back with the code the screen explains', async () => {
+    const { fetchFn } = fakeServer({
+      'GET /v1/client/me': () => [200, person],
+      'PUT /v1/client/favorites/barber-one': () => [
+        409,
+        { error: { code: 'TOO_MANY_FAVORITES', message: 'At most 100 favourite salons' } },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('tok'), fetchFn);
+    await api.restore();
+    const error = await api.addFavorite('barber-one').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe('TOO_MANY_FAVORITES');
+  });
+});

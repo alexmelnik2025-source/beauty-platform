@@ -215,6 +215,17 @@ export const pl = {
     call: 'Zadzwoń',
     noServices: 'Salon nie ma jeszcze usług do rezerwacji online.',
   },
+  favorites: {
+    tab: 'Ulubione',
+    empty:
+      'Nie masz jeszcze ulubionych salonów. Otwórz salon w katalogu i dotknij „♡ Dodaj do ulubionych”.',
+    add: '♡ Dodaj do ulubionych',
+    saved: '♥ W ulubionych',
+    remove: 'Usuń z ulubionych',
+    open: 'Zobacz salon',
+    notBookable: 'Salon wstrzymał rezerwacje online.',
+    tooMany: 'Masz już 100 ulubionych salonów. Usuń któryś, aby dodać nowy.',
+  },
   units: { h: 'godz.', min: 'min' },
   spoken: { pl: 'polski', uk: 'ukraiński', ru: 'rosyjski', be: 'białoruski', en: 'angielski' },
   specialty: {

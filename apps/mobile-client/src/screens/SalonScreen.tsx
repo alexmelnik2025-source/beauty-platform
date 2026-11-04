@@ -18,7 +18,8 @@ import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
 /**
  * A salon's page: photos, address, languages, description, opening hours, price list and
- * specialists. "Book" starts the booking in the app.
+ * specialists. "Book" starts the booking in the app. A signed-in client can save the salon to
+ * "Favourites" (and take it off).
  */
 export function SalonScreen(props: {
   api: ClientApi;
@@ -28,10 +29,18 @@ export function SalonScreen(props: {
   name: string;
   onBack: () => void;
   onBook: (salon: PublicLocation) => void;
+  /** Signed in: the "Add to favourites" button is shown. */
+  signedIn: boolean;
+  /** The salon was saved or removed: "Favourites" in "My visits" reloads. */
+  onFavoriteChanged: () => void;
 }) {
-  const { api, t, locale } = props;
+  const { api, t, locale, signedIn, onFavoriteChanged } = props;
   const [salon, setSalon] = useState<PublicLocation | null>(null);
   const [error, setError] = useState('');
+  // null = not known yet (or not signed in): no button.
+  const [saved, setSaved] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [favoriteError, setFavoriteError] = useState('');
   const tRef = useRef(t);
   tRef.current = t;
 
@@ -47,6 +56,37 @@ export function SalonScreen(props: {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setSaved(null);
+      return;
+    }
+    let live = true;
+    api
+      .favorites()
+      .then((list) => live && setSaved(list.items.some((s) => s.slug === props.slug)))
+      .catch(() => live && setSaved(null));
+    return () => {
+      live = false;
+    };
+  }, [api, signedIn, props.slug]);
+
+  const toggleFavorite = useCallback(async () => {
+    if (saved === null) return;
+    setSaving(true);
+    setFavoriteError('');
+    try {
+      if (saved) await api.removeFavorite(props.slug);
+      else await api.addFavorite(props.slug);
+      setSaved(!saved);
+      onFavoriteChanged();
+    } catch (e) {
+      setFavoriteError(errorText(e, tRef.current));
+    } finally {
+      setSaving(false);
+    }
+  }, [api, saved, props.slug, onFavoriteChanged]);
 
   const back = <Button kind="link" label={t.salon.back} onPress={props.onBack} />;
   if (!salon) {
@@ -90,6 +130,16 @@ export function SalonScreen(props: {
         </ScrollView>
       ) : null}
       <Button label={t.salon.book} onPress={() => props.onBook(salon)} />
+      {saved !== null ? (
+        <Button
+          kind="secondary"
+          label={saved ? t.favorites.saved : t.favorites.add}
+          a11yLabel={saved ? t.favorites.remove : t.favorites.add}
+          busy={saving}
+          onPress={() => void toggleFavorite()}
+        />
+      ) : null}
+      {favoriteError ? <ErrorText>{favoriteError}</ErrorText> : null}
       <Text style={styles.small}>{t.salon.bookHint}</Text>
       {salon.phone ? (
         <Button
