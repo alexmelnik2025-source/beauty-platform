@@ -93,6 +93,29 @@ function BonusCard({ card }: { card: ClientLoyaltyCard }) {
               })}
             </strong>
           </p>
+          {card.tier ? (
+            <p className="small">
+              <strong>
+                {card.tier.current
+                  ? fill(t.bonuses.tier, { name: card.tier.current.name })
+                  : t.bonuses.tierNone}
+              </strong>{' '}
+              <span className="muted">
+                ·{' '}
+                {!card.tier.next
+                  ? t.bonuses.tierTop
+                  : card.tier.basis === 'visits'
+                    ? fill(t.bonuses.tierNextVisits, {
+                        name: card.tier.next.name,
+                        count: String(card.tier.next.missing),
+                      })
+                    : fill(t.bonuses.tierNextSpend, {
+                        name: card.tier.next.name,
+                        amount: formatPrice(card.tier.next.missing, card.currency, tag),
+                      })}
+              </span>
+            </p>
+          ) : null}
           <Progress card={card} />
           {ready ? (
             <p className="note" role="status">

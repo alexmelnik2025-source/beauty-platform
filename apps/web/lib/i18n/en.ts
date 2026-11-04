@@ -330,6 +330,11 @@ export const en: Dict = {
   },
   bonuses: {
     tab: 'My bonuses',
+    tier: 'Your tier: {name}',
+    tierNone: 'No tier yet',
+    tierNextVisits: 'Visits left to “{name}”: {count}',
+    tierNextSpend: 'Left to “{name}”: {amount}',
+    tierTop: 'The highest tier at this salon',
     empty:
       'No bonuses yet. When a salon you visit runs a loyalty program, your stamps and points appear here.',
     book: 'Book',

@@ -9,6 +9,7 @@ import {
   readyReward,
   rewardText,
   signedPoints,
+  tierText,
 } from '../bonus';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors } from '../ui';
@@ -54,6 +55,7 @@ function BonusCard({
   const ready = readyReward(card);
   const next = nextText(t, card);
   const bar = progress(t, card);
+  const tier = tierText(t, card, locale);
   const count = (n: number) =>
     fill(stamps ? t.bonuses.stampsCount : t.bonuses.pointsCount, { count: String(n) });
 
@@ -72,6 +74,12 @@ function BonusCard({
                 count: String(card.balance),
               })}
             </Text>
+            {tier ? (
+              <View>
+                <Text style={styles.text}>{tier.title}</Text>
+                <Text style={styles.muted}>{tier.detail}</Text>
+              </View>
+            ) : null}
             {bar?.kind === 'stamps' ? (
               <View role="list" aria-label={bar.label} style={styles.stamps}>
                 {bar.stamps.map((s, i) => (

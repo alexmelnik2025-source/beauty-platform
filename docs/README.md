@@ -949,3 +949,6 @@ pnpm --filter @beauty/api-client generate
   «Z ostatnich (dni)», строки «Nazwa poziomu», «Od (wizyt)» или «Od (zł)», «Rabat (%)», «+ Dodaj poziom»,
   «Zapisz poziomy». В карточке клиента — «Poziom: Silver · −5%» и сколько не хватает до следующего. Скриншот
   `73-owner-loyalty-tiers`.
+- Клиент (часть 4): в «Moje bonusy» на сайте и в приложении — «Twój poziom: Silver» и «Do poziomu „Gold” brakuje
+  wizyt: 3» (или суммы); 6 языков. Скидка уровня клиенту пока не обещается — она появится, когда будет применяться
+  в визите (часть 3).

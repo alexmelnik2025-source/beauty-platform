@@ -86,6 +86,11 @@ export const sq: Dictionary = {
   },
   bonuses: {
     tab: 'Bonuset e mia',
+    tier: 'Niveli juaj: {name}',
+    tierNone: 'Ende nuk keni nivel',
+    tierNextVisits: 'Deri te niveli “{name}” mungojnë vizita: {count}',
+    tierNextSpend: 'Deri te niveli “{name}” mungojnë: {amount}',
+    tierTop: 'Niveli më i lartë në këtë sallon',
     empty:
       'Ende nuk keni bonuse. Kur një sallon që vizitoni ka program besnikërie, vulat dhe pikët tuaja shfaqen këtu.',
     book: 'Rezervo',

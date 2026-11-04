@@ -7,6 +7,7 @@ import {
   nextText,
   progress,
   readyReward,
+  tierText,
   rewardText,
   signedPoints,
 } from '../src/bonus';
@@ -54,9 +55,47 @@ function card(extra: Partial<ClientLoyaltyCard> = {}): ClientLoyaltyCard {
     rewards: [reward('a', 3, 1), reward('b', 6, 4)],
     coupons: [],
     history: [],
+    tier: null,
     ...extra,
   };
 }
+
+describe('tier at the salon (10e)', () => {
+  const pl = DICTIONARIES.pl;
+  it('the tier and how far the next one is', () => {
+    expect(tierText(pl, card(), 'pl')).toBeNull();
+    expect(
+      tierText(
+        pl,
+        card({
+          tier: {
+            basis: 'visits',
+            periodDays: 365,
+            value: 2,
+            current: { name: 'Silver', discountPercent: 5 },
+            next: { name: 'Gold', threshold: 6, missing: 4 },
+          },
+        }),
+        'pl',
+      ),
+    ).toEqual({ title: 'Twój poziom: Silver', detail: 'Do poziomu „Gold” brakuje wizyt: 4' });
+    const spend = tierText(
+      pl,
+      card({
+        tier: {
+          basis: 'spend',
+          periodDays: 365,
+          value: 0,
+          current: null,
+          next: { name: 'VIP', threshold: 50_000, missing: 50_000 },
+        },
+      }),
+      'pl',
+    );
+    expect(spend?.title).toBe('Nie masz jeszcze poziomu');
+    expect(spend?.detail).toMatch(/^Do poziomu „VIP” brakuje: 500,00\s?zł$/);
+  });
+});
 
 describe('"My bonuses" texts', () => {
   it('a stamp card: visits left to the next reward, one circle per stamp, rewards marked', () => {

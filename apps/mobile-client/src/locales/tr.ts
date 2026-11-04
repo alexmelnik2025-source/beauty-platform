@@ -86,6 +86,11 @@ export const tr: Dictionary = {
   },
   bonuses: {
     tab: 'Bonuslarım',
+    tier: 'Seviyeniz: {name}',
+    tierNone: 'Henüz bir seviyeniz yok',
+    tierNextVisits: '“{name}” seviyesine kalan ziyaret: {count}',
+    tierNextSpend: '“{name}” seviyesine kalan: {amount}',
+    tierTop: 'Bu salondaki en yüksek seviye',
     empty:
       'Henüz bonus yok. Gittiğiniz salonun bir sadakat programı varsa damgalarınız ve puanlarınız burada görünür.',
     book: 'Randevu al',

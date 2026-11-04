@@ -393,6 +393,9 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   const bonus = anna.locator('section.bonus-card');
   await expect(bonus.getByRole('heading', { level: 2 })).toBeVisible();
   await expect(bonus.getByText('Pieczątki na karcie: 2')).toBeVisible();
+  // The tier the salon set (10e).
+  await expect(bonus.getByText('Twój poziom: Silver')).toBeVisible();
+  await expect(bonus).toContainText('To najwyższy poziom w tym salonie');
   await expect(bonus.getByText('Do „−25% na strzyżenie” zostało wizyt: 1')).toBeVisible();
   await expect(bonus.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
   // The removed reward is not offered; the salon's reasons are never shown to the client.
@@ -456,6 +459,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     const appCard = app.getByRole('region').first();
     await expect(appCard.getByRole('heading', { level: 2 })).toBeVisible();
     await expect(appCard.getByText('Pieczątki na karcie: 2')).toBeVisible();
+    await expect(appCard.getByText('Twój poziom: Silver')).toBeVisible();
     await expect(appCard.getByText('Do „−25% na strzyżenie” zostało wizyt: 1')).toBeVisible();
     await expect(appCard.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
     await expect(appCard.getByRole('list', { name: 'Moje kupony' })).toContainText(coupon.code);

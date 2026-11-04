@@ -85,6 +85,11 @@ export const pl = {
   },
   bonuses: {
     tab: 'Moje bonusy',
+    tier: 'Twój poziom: {name}',
+    tierNone: 'Nie masz jeszcze poziomu',
+    tierNextVisits: 'Do poziomu „{name}” brakuje wizyt: {count}',
+    tierNextSpend: 'Do poziomu „{name}” brakuje: {amount}',
+    tierTop: 'To najwyższy poziom w tym salonie',
     empty:
       'Na razie nie masz bonusów. Gdy salon, w którym bywasz, prowadzi program lojalnościowy, Twoje pieczątki i punkty pojawią się tutaj.',
     book: 'Umów się',

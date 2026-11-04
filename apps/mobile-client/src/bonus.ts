@@ -113,3 +113,25 @@ export function formatDate(iso: string, locale: Locale): string {
 export function signedPoints(points: number): string {
   return points > 0 ? `+${points}` : String(points);
 }
+
+/** The client's tier at the salon (task 10e): its name and how far the next one is; null = no tiers. */
+export function tierText(
+  t: Dictionary,
+  card: ClientLoyaltyCard,
+  locale: Locale,
+): { title: string; detail: string } | null {
+  const tier = card.tier;
+  if (!tier) return null;
+  const title = tier.current
+    ? fill(t.bonuses.tier, { name: tier.current.name })
+    : t.bonuses.tierNone;
+  const detail = !tier.next
+    ? t.bonuses.tierTop
+    : tier.basis === 'visits'
+      ? fill(t.bonuses.tierNextVisits, { name: tier.next.name, count: String(tier.next.missing) })
+      : fill(t.bonuses.tierNextSpend, {
+          name: tier.next.name,
+          amount: formatPrice(tier.next.missing, card.currency, locale),
+        });
+  return { title, detail };
+}
