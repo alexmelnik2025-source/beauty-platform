@@ -137,6 +137,9 @@ export type ResponseOf<
 /** Task 50: the waiting list — joined, and the entry behind the link in the email. */
 export type WaitlistJoined = Schemas['WaitlistJoined'];
 export type PublicWaitlistEntry = Schemas['PublicWaitlistEntry'];
+/** "Pokaż, co chcesz": the client's example photos for a visit (task 80b). */
+export type VisitPhoto = Schemas['VisitPhoto'];
+export type VisitPhotoList = Schemas['VisitPhotoList'];
 /** Task 50c: the salon's waiting list in the cabinet. */
 export type SalonWaitlist = Schemas['SalonWaitlist'];
 export type SalonWaitlistEntry = Schemas['SalonWaitlistEntry'];

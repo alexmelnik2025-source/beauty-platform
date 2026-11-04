@@ -35,6 +35,9 @@ export const serviceSchema = responseSchema(
     sortOrder: z.number().int(),
     categoryId: z.string().nullable(),
     color: z.string().nullable().describe('Calendar colour, #RRGGBB'),
+    wishPhotos: z
+      .boolean()
+      .describe('Task 80b: clients may add up to 3 example photos when booking it'),
     version: z.number().int(),
     createdAt: z.string(),
     updatedAt: z.string(),

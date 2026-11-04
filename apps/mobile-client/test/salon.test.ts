@@ -55,6 +55,7 @@ const service = (id: string, categoryId: string | null) => ({
   priceToGrosze: 9000,
   durationFromMinutes: 45,
   durationToMinutes: 45,
+  wishPhotos: false,
 });
 
 describe('catalogue search', () => {

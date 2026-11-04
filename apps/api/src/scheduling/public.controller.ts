@@ -147,6 +147,7 @@ export class PublicLocationsController {
           priceToGrosze: range.toGrosze,
           durationFromMinutes: minutes.fromMinutes,
           durationToMinutes: minutes.toMinutes,
+          wishPhotos: s.wishPhotos,
         };
       }),
       staff: listed.map((s) => ({

@@ -22,6 +22,11 @@ import { TimeBlocksController } from './time-blocks.controller';
 import { TimeBlocksService } from './time-blocks.service';
 import { VisitCalendarController } from './visit-calendar.controller';
 import { VisitCalendarService } from './visit-calendar.service';
+import {
+  AppointmentPhotosController,
+  PublicVisitPhotosController,
+} from './visit-photos.controller';
+import { VisitPhotosService } from './visit-photos.service';
 
 @Module({
   imports: [OrganizationsModule, SchedulingModule, LoyaltyModule],
@@ -34,6 +39,8 @@ import { VisitCalendarService } from './visit-calendar.service';
     CalendarController,
     NotificationsController,
     VisitCalendarController,
+    PublicVisitPhotosController,
+    AppointmentPhotosController,
   ],
   providers: [
     AppointmentWriter,
@@ -47,8 +54,15 @@ import { VisitCalendarService } from './visit-calendar.service';
     PublicBookingService,
     TimeBlocksService,
     VisitCalendarService,
+    VisitPhotosService,
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
-  exports: [AppointmentWriter, OutboxService, PublicBookingService, VisitCalendarService],
+  exports: [
+    AppointmentWriter,
+    OutboxService,
+    PublicBookingService,
+    VisitCalendarService,
+    VisitPhotosService,
+  ],
 })
 export class BookingModule {}

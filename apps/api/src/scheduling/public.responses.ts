@@ -70,6 +70,9 @@ export const publicLocationSchema = responseSchema(
               'Shortest duration among its specialists (task 70: each may have an own one)',
             ),
           durationToMinutes: z.number().int().describe('Longest duration among its specialists'),
+          wishPhotos: z
+            .boolean()
+            .describe('Task 80b: "Pokaż, co chcesz" — up to 3 example photos when booking'),
         }),
       ),
       staff: z.array(
