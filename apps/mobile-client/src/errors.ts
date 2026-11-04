@@ -12,6 +12,7 @@ export function errorText(error: unknown, t: Dictionary): string {
     if (error.code === 'TOO_LATE_TO_CHANGE') return t.visit.tooLate;
     if (error.code === 'SLOT_TAKEN') return t.visit.slotTaken;
     if (error.code?.startsWith('COUPON_')) return t.visit.couponNotAllowed;
+    if (error.code === 'TOO_MANY_FAVORITES') return t.favorites.tooMany;
     if (error.status === 429) return t.error.tooMany;
     if (error.status === 404) return t.error.notFound;
     return t.error.generic;

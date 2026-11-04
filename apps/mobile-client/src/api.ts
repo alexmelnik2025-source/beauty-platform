@@ -6,6 +6,7 @@ import type {
   ClientAppointment,
   ClientAppointmentList,
   ClientCodeSent,
+  ClientFavorites,
   ClientLoyalty,
   ClientLoyaltyCard,
   ClientPerson,
@@ -28,9 +29,11 @@ export type Scope = 'upcoming' | 'past';
 /** Languages a salon or specialist can speak with clients (Belarusian too). */
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
+export type FavoriteSalon = ClientFavorites['items'][number];
 export type {
   Availability,
   BookingConfirmed,
+  ClientFavorites,
   CodeSent,
   Hold,
   PublicLocation,
@@ -361,6 +364,21 @@ export class ClientApi {
   /** A salon's page: address, description, hours, price list, specialists. No sign-in. */
   salon(slug: string): Promise<PublicLocation> {
     return this.call<PublicLocation>('GET', `/v1/public/locations/${encodeURIComponent(slug)}`);
+  }
+
+  /** "Favourite salons" of the signed-in client, newest first (public salon data only). */
+  favorites(): Promise<ClientFavorites> {
+    return this.authed<ClientFavorites>('GET', '/v1/client/favorites');
+  }
+
+  /** Saves a salon to the favourites; saving it again changes nothing. */
+  addFavorite(slug: string): Promise<void> {
+    return this.authed<void>('PUT', `/v1/client/favorites/${encodeURIComponent(slug)}`);
+  }
+
+  /** Takes a salon off the favourites (no error when it is not there). */
+  removeFavorite(slug: string): Promise<void> {
+    return this.authed<void>('DELETE', `/v1/client/favorites/${encodeURIComponent(slug)}`);
   }
 
   private async forget(): Promise<void> {
