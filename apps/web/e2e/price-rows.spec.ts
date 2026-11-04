@@ -221,6 +221,9 @@ test('the client app shows the price lines and books the specialists of a line',
   try {
     const app = await phone.newPage();
     await app.goto(clientApp.url);
+    // The app opens on "My visits" sign-in; the catalogue needs no account.
+    await app.getByRole('button', { name: 'Znajdź salon' }).click();
+    await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
     await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(salonName('app'));
     await app
       .getByRole('article', { name: salonName('app') })
