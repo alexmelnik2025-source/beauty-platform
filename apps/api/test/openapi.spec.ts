@@ -194,6 +194,10 @@ describe('client-facing responses match the documented shapes exactly', () => {
 
     const me = await ctx.http().get('/v1/client/me').set(auth).expect(200);
     expectShape('ClientPerson', me.body);
+    await ctx.http().put(`/v1/client/favorites/${slug}`).set(auth).expect(204);
+    const favorites = await ctx.http().get('/v1/client/favorites').set(auth).expect(200);
+    expectShape('ClientFavorites', favorites.body);
+    expect(favorites.body.items).toHaveLength(1);
     const list = await ctx.http().get('/v1/client/appointments').set(auth).expect(200);
     expectShape('ClientAppointmentList', list.body);
     expect(list.body.items).toHaveLength(1);

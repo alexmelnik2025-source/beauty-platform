@@ -7554,6 +7554,91 @@
         ]
       }
     },
+    "/v1/client/favorites": {
+      "get": {
+        "description": "Newest first. Only public salon data; bookable=false while the salon has online booking off.",
+        "operationId": "ClientFavoritesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientFavorites"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My favourite salons",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/favorites/{slug}": {
+      "put": {
+        "description": "Idempotent. 404 when no salon with this booking link takes online bookings; 409 TOO_MANY_FAVORITES over 100.",
+        "operationId": "ClientFavoritesController_add",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a salon to my favourites",
+        "tags": [
+          "client app"
+        ]
+      },
+      "delete": {
+        "operationId": "ClientFavoritesController_remove",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a salon from my favourites (no error if it is not there)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/me/push-subscriptions/public-key": {
       "get": {
         "operationId": "PushController_publicKey",
@@ -9896,6 +9981,56 @@
         },
         "required": [
           "codeExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "ClientFavorites": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "addressLine": {
+                  "type": "string"
+                },
+                "city": {
+                  "type": "string"
+                },
+                "postalCode": {
+                  "type": "string"
+                },
+                "bookable": {
+                  "type": "boolean"
+                },
+                "addedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "slug",
+                "name",
+                "addressLine",
+                "city",
+                "postalCode",
+                "bookable",
+                "addedAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
         ],
         "additionalProperties": false
       },
