@@ -683,6 +683,20 @@ pnpm --filter @beauty/api-client generate
   `workingHours` / `timeOff` / `addTimeOff` / `removeTimeOff` в `src/api.ts`; тесты в `test/`; e2e — скриншот
   `32b-business-app-staff-schedule`.
 
+## Бизнес-приложение: клиенты (задача 18, часть a)
+
+- Владелец и менеджер: на экране дня ссылка «Klienci» — список клиентов (первые 50 по алфавиту), поиск по имени,
+  телефону, email или тегу. Мастер этой ссылки не видит (сервер и так отдаёт список только владельцу и менеджеру).
+- Карточка клиента: позвонить / SMS, email, согласие на рассылку (не для мастера), теги, заметка, число
+  состоявшихся визитов, «Najbliższe wizyty» и «Historia wizyt» в этом салоне.
+- Из карточки визита — «Karta klienta». Мастер видит только своих клиентов и (без права «история») только свои
+  визиты с ними; контакты и заметки — только с правами, иначе «…widoczny tylko z uprawnieniem» (поля приходят null).
+- Заметку и теги меняют владелец, менеджер и мастер с правами «widzi notatki» + «edytuje notatki» (как на сервере);
+  сохраняется с версией — если кто-то изменил клиента одновременно, карточка перечитывается.
+- Код: `src/screens/ClientsScreen.tsx`, `src/screens/ClientScreen.tsx`, `src/clients.ts`, вызовы `customers` /
+  `customer` / `updateCustomerNotes` в `src/api.ts`; тесты `test/clients.test.ts`; e2e — скриншоты
+  `32c-business-app-staff-client`, `33b-business-app-owner-clients`, `33c-business-app-owner-client`.
+
 ## Клиентское приложение: каталог салонов и страница салона (задача 11b, часть 4а)
 
 - Кнопка «Znajdź salon» на экране входа и в «Moje wizyty» — входить не нужно. Каталог — тот же

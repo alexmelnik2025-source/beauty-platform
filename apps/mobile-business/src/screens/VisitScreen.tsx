@@ -5,6 +5,7 @@ import { dayTitle, formatPrice, timeIn, visitActions } from '../day';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { ClientScreen } from './ClientScreen';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -26,6 +27,7 @@ export function VisitScreen(props: {
   const [visit, setVisit] = useState<AppointmentDetail | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [clientOpen, setClientOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -39,14 +41,15 @@ export function VisitScreen(props: {
     void load();
   }, [load]);
 
-  // Android "back" closes the card instead of the app.
+  // Android "back" closes the card instead of the app (the client card handles it itself).
   useEffect(() => {
+    if (clientOpen) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       onBack();
       return true;
     });
     return () => sub.remove();
-  }, [onBack]);
+  }, [onBack, clientOpen]);
 
   async function run(action: (v: AppointmentDetail) => Promise<AppointmentDetail>) {
     if (!visit) return;
@@ -75,6 +78,20 @@ export function VisitScreen(props: {
         <View style={styles.row}>{back}</View>
         {error ? <ErrorText>{error}</ErrorText> : <Text style={styles.muted}>{t.loading}</Text>}
       </View>
+    );
+  }
+
+  if (clientOpen && visit.customer) {
+    return (
+      <ClientScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        id={visit.customer.id}
+        timeZone={props.timeZone}
+        onBack={() => setClientOpen(false)}
+      />
     );
   }
 
@@ -124,6 +141,11 @@ export function VisitScreen(props: {
           <Text style={styles.muted}>{v.contactsHidden}</Text>
         ) : null}
         {visit.customer?.email ? <Text style={styles.muted}>{visit.customer.email}</Text> : null}
+        {visit.customer ? (
+          <View style={styles.row}>
+            <Button kind="link" label={t.clients.card} onPress={() => setClientOpen(true)} />
+          </View>
+        ) : null}
 
         <Text style={styles.label}>{v.service}</Text>
         <Text style={styles.value}>
