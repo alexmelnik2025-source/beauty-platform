@@ -296,7 +296,7 @@ describe('my bonuses', () => {
       .expect(200);
     await paidVisit(salon);
     const [card] = await myBonuses();
-    expect(card.bonuses).toEqual([
+    expect(card?.bonuses).toEqual([
       {
         name: 'Spokojne dni ×2',
         staffNames: ['Kasia'],
@@ -316,7 +316,7 @@ describe('my bonuses', () => {
     ]);
     // A specialist who left: the rule only for them is not shown.
     await ctx.prisma.staffMember.update({ where: { id: salon.staffId }, data: { active: false } });
-    expect((await myBonuses())[0].bonuses.map((b: { name: string }) => b.name)).toEqual([
+    expect((await myBonuses())[0]!.bonuses.map((b: { name: string }) => b.name)).toEqual([
       'Wróć w 3 tygodnie',
     ]);
     // The program switched off: the rules are not shown (and give nothing).
