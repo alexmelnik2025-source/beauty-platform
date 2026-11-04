@@ -2026,3 +2026,10 @@ label.btn:focus-within {
 .markdown a {
   overflow-wrap: anywhere;
 }
+
+/* Phone number with the country code picked from a list (launch task L5). */
+.phone-field {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 8px;
+}

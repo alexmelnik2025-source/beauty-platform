@@ -39,7 +39,7 @@ export type {
 /** Contact details the booking asks for (the same form as the web booking page). */
 export interface BookingContact {
   name: string;
-  /** E.164, e.g. +48600100200 (see normalizePhone in src/booking.ts). */
+  /** E.164, e.g. +48600100200 (see normalizePhone in src/phone.ts). */
   phone: string;
   email: string;
   acceptTerms: true;

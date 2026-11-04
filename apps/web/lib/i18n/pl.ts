@@ -201,6 +201,9 @@ export const pl = {
       unpaid: 'Anulowano opłatę',
     },
   },
+  phone: {
+    country: 'Kod kraju',
+  },
   booking: {
     bookVisit: 'Umów wizytę',
     stepService: 'Usługa',

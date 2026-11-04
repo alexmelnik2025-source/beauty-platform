@@ -8,9 +8,9 @@ import {
   dayParts,
   legalUrl,
   manageUrl,
-  normalizePhone,
   staffFor,
 } from '../src/booking';
+import { dialForTimeZone, normalizePhone } from '../src/phone';
 import { DICTIONARIES, fill, LOCALES } from '../src/i18n';
 
 const form = {
@@ -51,8 +51,22 @@ describe('booking form', () => {
         marketingConsent: false,
       },
     });
+  });
+
+  it('phone numbers in the salon country, or any other with its +code (launch task L5)', () => {
     expect(normalizePhone('0048 600-100-200')).toBe('+48600100200');
     expect(normalizePhone('+380 67 123 45 67')).toBe('+380671234567');
+    expect(dialForTimeZone('Europe/Warsaw')).toBe('48');
+    expect(dialForTimeZone('Europe/Istanbul')).toBe('90');
+    expect(dialForTimeZone('Europe/Tirane')).toBe('355');
+    expect(dialForTimeZone('Europe/Kyiv')).toBe('380');
+    expect(dialForTimeZone('America/New_York')).toBe('48');
+    expect(normalizePhone('0532 100 20 00', '90')).toBe('+905321002000');
+    expect(normalizePhone('06 1234 5678', '39')).toBe('+390612345678');
+    expect(checkContact({ ...form, phone: '050 123 45 67' }, '380')).toMatchObject({
+      ok: true,
+      contact: { phone: '+380501234567' },
+    });
   });
 
   it('says what to fix first, before asking the server', () => {

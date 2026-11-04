@@ -39,6 +39,7 @@ import { WEB_URL } from '../config';
 import { errorText } from '../errors';
 import { dayChip, formatDay, formatPrice, slotsByDay } from '../format';
 import { fill, type Dictionary } from '../i18n';
+import { dialForTimeZone } from '../phone';
 import { durationText, serviceGroups, specialtyText } from '../salon';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
@@ -96,7 +97,7 @@ export function BookingScreen(props: {
   const [hold, setHold] = useState<Hold | null>(null);
   const [form, setForm] = useState<ContactForm>({
     name: '',
-    phone: '+48 ',
+    phone: `+${dialForTimeZone(salon.timezone)} `,
     email: props.email ?? '',
     acceptTerms: false,
     marketingConsent: false,
@@ -226,7 +227,7 @@ export function BookingScreen(props: {
 
   async function sendCode() {
     if (!hold) return;
-    const checked = checkContact(form);
+    const checked = checkContact(form, dialForTimeZone(salon.timezone));
     if (!checked.ok) return setError(PROBLEM_TEXT[checked.problem](t));
     setBusy(true);
     setError('');

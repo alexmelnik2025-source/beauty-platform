@@ -14,7 +14,8 @@ import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
 import type { Hold, PublicAppointment, PublicLocation, Slot } from '@/lib/types';
-import { normalizePhone } from '../calendar/NewItemSheet';
+import { dialForTimeZone, normalizePhone } from '@/lib/phone';
+import { PhoneField } from '../PhoneField';
 import { LanguageBadges } from '../Languages';
 import { useSpecialtyText } from '../Specialties';
 import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
@@ -64,6 +65,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   const tag = LOCALE_TAGS[locale];
 
   const [salon, setSalon] = useState<PublicLocation | null>(null);
+  // The salon's country code is suggested for the phone number (launch task L5).
+  const dial = dialForTimeZone(salon?.timezone ?? 'Europe/Warsaw');
   const [closed, setClosed] = useState(false);
   const [step, setStep] = useState<Step>('service');
   const [serviceId, setServiceId] = useState('');
@@ -108,7 +111,7 @@ export function BookingFlow({ slug }: { slug: string }) {
     saveRemembered(null);
     setRemember(false);
     setRemembered(false);
-    setContact((c) => ({ ...c, name: '', phone: '+48 ', email: '' }));
+    setContact((c) => ({ ...c, name: '', phone: `+${dial} `, email: '' }));
   }
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -117,6 +120,8 @@ export function BookingFlow({ slug }: { slug: string }) {
     api<PublicLocation>(`/v1/public/locations/${slug}`, { auth: false })
       .then((loaded) => {
         setSalon(loaded);
+        const own = dialForTimeZone(loaded.timezone);
+        setContact((c) => (c.phone.trim() === '+48' ? { ...c, phone: `+${own} ` } : c));
         // "Book again" from the client app: ?service=…&staff=… skips straight to the times.
         const params = new URLSearchParams(window.location.search);
         const preService = loaded.services.find((s) => s.id === params.get('service'));
@@ -200,7 +205,7 @@ export function BookingFlow({ slug }: { slug: string }) {
         body: {
           holdToken: hold.holdToken,
           name: contact.name,
-          phone: normalizePhone(contact.phone),
+          phone: normalizePhone(contact.phone, dial),
           email: contact.email,
           locale,
           acceptTerms: contact.acceptTerms,
@@ -243,7 +248,11 @@ export function BookingFlow({ slug }: { slug: string }) {
       if (!embed) {
         saveRemembered(
           remember
-            ? { name: contact.name, phone: normalizePhone(contact.phone), email: contact.email }
+            ? {
+                name: contact.name,
+                phone: normalizePhone(contact.phone, dial),
+                email: contact.email,
+              }
             : null,
         );
       }
@@ -489,16 +498,13 @@ export function BookingFlow({ slug }: { slug: string }) {
                 onChange={(e) => setContact({ ...contact, name: e.target.value })}
               />
             </label>
-            <label className="field">
-              <span>{t.booking.phone}</span>
-              <input
-                type="tel"
-                autoComplete="tel"
-                required
-                value={contact.phone}
-                onChange={(e) => setContact({ ...contact, phone: e.target.value })}
-              />
-            </label>
+            <PhoneField
+              label={t.booking.phone}
+              required
+              value={contact.phone}
+              defaultDial={dial}
+              onChange={(phone) => setContact({ ...contact, phone })}
+            />
             <label className="field">
               <span>{t.booking.email}</span>
               <input
@@ -582,7 +588,7 @@ export function BookingFlow({ slug }: { slug: string }) {
             <h2>{codeChannel === 'sms' ? t.booking.codeTitleSms : t.booking.codeTitle}</h2>
             <p className="muted">
               {codeChannel === 'sms'
-                ? fill(t.booking.codeLeadSms, { phone: normalizePhone(contact.phone) })
+                ? fill(t.booking.codeLeadSms, { phone: normalizePhone(contact.phone, dial) })
                 : fill(t.booking.codeLead, { email: contact.email })}
             </p>
             <input

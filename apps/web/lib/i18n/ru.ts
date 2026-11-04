@@ -201,6 +201,9 @@ export const ru: Dict = {
       unpaid: 'Оплата отменена',
     },
   },
+  phone: {
+    country: 'Код страны',
+  },
   booking: {
     bookVisit: 'Записаться',
     stepService: 'Услуга',

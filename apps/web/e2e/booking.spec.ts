@@ -282,6 +282,17 @@ test('a client books online; the visit is in the salon and staff calendars; emai
 
   await expect(client.getByText(/Termin czeka na Ciebie/)).toBeVisible();
   await client.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
+  // Launch task L5: the salon's country code comes first; another country replaces the code.
+  const country = client.getByLabel('Kod kraju');
+  await expect(country).toHaveValue('PL');
+  await expect(country.locator('option').first()).toHaveText('Polska +48');
+  await expect(client.getByLabel('Telefon')).toHaveValue('+48 ');
+  await country.selectOption('UA');
+  await expect(client.getByLabel('Telefon')).toHaveValue('+380 ');
+  await client.getByLabel('Telefon').fill('+380 50 123 45 67');
+  await shot(client, '68-client-phone-country');
+  await country.selectOption('PL');
+  await expect(client.getByLabel('Telefon')).toHaveValue('+48 50 123 45 67');
   await client.getByLabel('Telefon').fill('600 100 200');
   await client.getByLabel('E-mail').fill(CLIENT);
   await client.getByLabel(/Akceptuję regulamin rezerwacji/).check();

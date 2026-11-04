@@ -201,6 +201,9 @@ export const uk: Dict = {
       unpaid: 'Оплату скасовано',
     },
   },
+  phone: {
+    country: 'Код країни',
+  },
   booking: {
     bookVisit: 'Записатися',
     stepService: 'Послуга',

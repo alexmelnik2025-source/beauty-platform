@@ -1,4 +1,5 @@
 import { ApiError, parseEmail, type BookingContact, type PublicLocation, type Slot } from './api';
+import { normalizePhone } from './phone';
 
 /**
  * Booking in the app (service → specialist → time → details → code), the same steps and rules
@@ -9,14 +10,6 @@ export type BookingStep = 'service' | 'staff' | 'time' | 'details' | 'code' | 'd
 
 /** The booking shows free times this many days ahead (as on the web). */
 export const BOOKING_DAYS = 21;
-
-/** "600 100 200" → "+48600100200"; "0048…" → "+48…"; other countries need their +code. */
-export function normalizePhone(value: string): string {
-  const compact = value.replace(/[\s()-]/g, '');
-  if (compact.startsWith('+')) return compact;
-  if (compact.startsWith('00')) return `+${compact.slice(2)}`;
-  return /^\d{9}$/.test(compact) ? `+48${compact}` : compact;
-}
 
 /** The form as the client typed it. */
 export interface ContactForm {
@@ -32,10 +25,12 @@ export type ContactProblem = 'name' | 'phone' | 'email' | 'terms';
 /** The details ready to send, or the first thing to fix (checked before asking the server). */
 export function checkContact(
   form: ContactForm,
+  /** The salon's country code, for a number typed without one. */
+  dial = '48',
 ): { ok: true; contact: BookingContact } | { ok: false; problem: ContactProblem } {
   const name = form.name.trim().replace(/\s+/g, ' ');
   if (name.length < 2) return { ok: false, problem: 'name' };
-  const phone = normalizePhone(form.phone);
+  const phone = normalizePhone(form.phone, dial);
   if (!/^\+\d{8,15}$/.test(phone)) return { ok: false, problem: 'phone' };
   const email = parseEmail(form.email);
   if (!email) return { ok: false, problem: 'email' };

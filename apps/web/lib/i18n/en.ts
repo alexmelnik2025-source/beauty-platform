@@ -201,6 +201,9 @@ export const en: Dict = {
       unpaid: 'Payment cancelled',
     },
   },
+  phone: {
+    country: 'Country code',
+  },
   booking: {
     bookVisit: 'Book a visit',
     stepService: 'Service',

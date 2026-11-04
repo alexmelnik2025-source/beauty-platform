@@ -5,10 +5,10 @@ import { useSession } from '@/components/Session';
 import { LanguagePicker } from '@/components/Languages';
 import { SalonPhotos } from '@/components/SalonPhotos';
 import { ShareBooking } from '@/components/ShareBooking';
-import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatCoordinates, parseCoordinates } from '@/lib/coordinates';
+import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { CURRENCIES, currencyName } from '@/lib/time';
 import type { LegalTemplates, Location } from '@/lib/types';
@@ -74,7 +74,7 @@ export default function SettingsPage() {
           postalCode: form.postalCode,
           latitude: point?.latitude ?? null,
           longitude: point?.longitude ?? null,
-          phone: form.phone ? normalizePhone(form.phone) : null,
+          phone: form.phone ? normalizePhone(form.phone, dialForTimeZone(form.timezone)) : null,
           currency: form.currency,
           onlineBookingEnabled: form.onlineBookingEnabled,
           minLeadMinutes: form.minLeadMinutes,

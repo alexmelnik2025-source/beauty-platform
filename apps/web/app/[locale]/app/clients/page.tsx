@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ClientLoyalty } from '@/components/loyalty/ClientLoyalty';
 import { useSession } from '@/components/Session';
-import { normalizePhone } from '@/components/calendar/NewItemSheet';
+import { PhoneField } from '@/components/PhoneField';
+import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
 import { errorText, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
@@ -114,10 +115,11 @@ function ClientSheet({
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
+  const dial = dialForTimeZone(useSession().location.timezone);
   const [client, setClient] = useState<ClientDetail | null>(null);
   const [form, setForm] = useState({
     name: '',
-    phone: '+48 ',
+    phone: `+${dial} `,
     email: '',
     locale: locale as string,
     note: '',
@@ -159,7 +161,7 @@ function ClientSheet({
           body: {
             version: client.version,
             name: form.name,
-            phone: normalizePhone(form.phone),
+            phone: normalizePhone(form.phone, dial),
             email: form.email || null,
             locale: form.locale,
             note: form.note || null,
@@ -171,7 +173,7 @@ function ClientSheet({
           method: 'POST',
           body: {
             name: form.name,
-            phone: normalizePhone(form.phone),
+            phone: normalizePhone(form.phone, dial),
             ...(form.email ? { email: form.email } : {}),
             locale: form.locale,
             ...(form.note ? { note: form.note } : {}),
@@ -218,15 +220,13 @@ function ClientSheet({
           />
         </label>
         <div className="row">
-          <label className="field">
-            <span>{t.clients.phone}</span>
-            <input
-              type="tel"
-              required
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            />
-          </label>
+          <PhoneField
+            label={t.clients.phone}
+            required
+            value={form.phone}
+            defaultDial={dial}
+            onChange={(phone) => setForm({ ...form, phone })}
+          />
           <label className="field">
             <span>{t.clients.email}</span>
             <input

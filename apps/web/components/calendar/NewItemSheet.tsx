@@ -6,6 +6,8 @@ import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { clockToMinutes, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
 import type { Customer, Service, Staff } from '@/lib/types';
+import { dialForTimeZone, normalizePhone } from '@/lib/phone';
+import { PhoneField } from '../PhoneField';
 import { useSession } from '../Session';
 import { ErrorBox, Sheet } from '../ui';
 
@@ -14,14 +16,6 @@ export interface NewItemDraft {
   staffId: string | null;
   date: string;
   minute: number;
-}
-
-/** "600 100 200" → "+48600100200"; anything starting with + is kept. */
-export function normalizePhone(value: string): string {
-  const compact = value.replace(/[\s()-]/g, '');
-  if (compact.startsWith('+')) return compact;
-  if (compact.startsWith('00')) return `+${compact.slice(2)}`;
-  return /^\d{9}$/.test(compact) ? `+48${compact}` : compact;
 }
 
 export function NewItemSheet({
@@ -60,7 +54,8 @@ export function NewItemSheet({
   const [search, setSearch] = useState('');
   const [found, setFound] = useState<Customer[]>([]);
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [fresh, setFresh] = useState({ name: '', phone: '+48 ', email: '' });
+  const dial = dialForTimeZone(session.location.timezone);
+  const [fresh, setFresh] = useState({ name: '', phone: `+${dial} `, email: '' });
   const [outside, setOutside] = useState(false);
   const [askOutside, setAskOutside] = useState(false);
   const [paidNow, setPaidNow] = useState(false);
@@ -119,7 +114,7 @@ export function NewItemSheet({
               : {
                   customer: {
                     name: fresh.name,
-                    phone: normalizePhone(fresh.phone),
+                    phone: normalizePhone(fresh.phone, dial),
                     ...(fresh.email ? { email: fresh.email } : {}),
                     locale,
                   },
@@ -282,15 +277,13 @@ export function NewItemSheet({
                   />
                 </label>
                 <div className="row">
-                  <label className="field">
-                    <span>{t.appointment.phone}</span>
-                    <input
-                      type="tel"
-                      required
-                      value={fresh.phone}
-                      onChange={(e) => setFresh({ ...fresh, phone: e.target.value })}
-                    />
-                  </label>
+                  <PhoneField
+                    label={t.appointment.phone}
+                    required
+                    value={fresh.phone}
+                    defaultDial={dial}
+                    onChange={(phone) => setFresh({ ...fresh, phone })}
+                  />
                   <label className="field">
                     <span>
                       {t.appointment.email} ({t.common.optional})
