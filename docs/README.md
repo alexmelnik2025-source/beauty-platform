@@ -944,14 +944,25 @@ pnpm --filter @beauty/api-client generate
   (`GET …/loyalty/accounts/:id` → `tier`) и в «Moje bonusy» (`tier` у салона).
 - API: `GET/PUT /v1/organizations/:org/loyalty/tiers` `{basis, periodDays, tiers[]}` — только владелец и менеджер;
   пустой список выключает уровни. Миграция `20261104200000_loyalty_tiers`, тесты `test/loyalty-tiers.spec.ts`.
-- Дальше: экраны кабинета и клиента, скидка уровня в визите. «Приоритетная запись» VIP — ждёт решения владельца.
+- «Приоритетная запись» VIP — ждёт решения владельца.
 - Кабинет (часть 2): в «Program lojalnościowy» — блок «Poziomy klientów»: «Poziom liczony z» (визиты / сумма),
   «Z ostatnich (dni)», строки «Nazwa poziomu», «Od (wizyt)» или «Od (zł)», «Rabat (%)», «+ Dodaj poziom»,
   «Zapisz poziomy». В карточке клиента — «Poziom: Silver · −5%» и сколько не хватает до следующего. Скриншот
   `73-owner-loyalty-tiers`.
 - Клиент (часть 4): в «Moje bonusy» на сайте и в приложении — «Twój poziom: Silver» и «Do poziomu „Gold” brakuje
-  wizyt: 3» (или суммы); 6 языков. Скидка уровня клиенту пока не обещается — она появится, когда будет применяться
-  в визите (часть 3).
+  wizyt: 3» (или суммы); 6 языков. Скидку уровня применяет сотрудник в визите (часть 3, ниже).
+- Скидка уровня в визите (часть 3): в карточке визита в кабинете, в блоке «Kupony klienta», — строка «Poziom klienta:
+  Silver · −5%» с кнопкой «Użyj −4,50 zł» (или причиной: «salon nie łączy rabatów», «osiągnięty maks. rabat»).
+  Скидка уровня — как процентный купон: входит в «maks. %» салона, без «łączenie rabatów» не совмещается с купоном;
+  сотрудник может её снять до «Opłacono». В визите запоминается название и % уровня на момент применения
+  («Rabat poziomu: Silver · −5%»), в истории — «Użyto rabatu poziomu». Отмена и «не пришёл» снимают скидку.
+  Бонусы и уровень считаются с оплаченной суммы (после всех скидок). Сама скидка не ставится автоматически —
+  её применяет сотрудник, как купон.
+- API: `GET …/appointments/:id/coupons` → `tier` `{name, discountPercent, discountGrosze, applied, problem}`;
+  `POST …/appointments/:id/tier-discount` `{version}`, `POST …/tier-discount/remove` `{version}`; у визита —
+  `tierDiscount`. Ошибки: `TIER_NO_DISCOUNT`, `COUPON_NOT_COMBINABLE`, `COUPON_NO_DISCOUNT`, `VISIT_NOT_CHANGEABLE`.
+  Миграция `20261104210000_appointment_tier_discount`, тесты `test/tier-discount.spec.ts`, скриншот
+  `73b-owner-visit-tier-discount`.
 
 ## Сгорание баллов (задача 10f, часть 1)
 

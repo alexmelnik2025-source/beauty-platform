@@ -188,6 +188,8 @@ export const en: Dict = {
       NOT_COMBINABLE: 'the salon does not combine discounts',
       NO_DISCOUNT: 'maximum discount reached',
     },
+    tier: 'Client tier',
+    tierUsed: 'Tier discount',
     newTime: 'New time',
     saveMove: 'Move appointment',
     date: 'Date',
@@ -228,6 +230,8 @@ export const en: Dict = {
       unpaid: 'Payment cancelled',
       coupon_applied: 'Coupon used',
       coupon_removed: 'Coupon removed',
+      tier_discount_applied: 'Tier discount used',
+      tier_discount_removed: 'Tier discount removed',
     },
   },
   phone: {

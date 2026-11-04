@@ -188,6 +188,8 @@ export const pl = {
       NOT_COMBINABLE: 'salon nie łączy rabatów',
       NO_DISCOUNT: 'osiągnięty maks. rabat',
     },
+    tier: 'Poziom klienta',
+    tierUsed: 'Rabat poziomu',
     newTime: 'Nowy termin',
     saveMove: 'Przenieś wizytę',
     date: 'Data',
@@ -228,6 +230,8 @@ export const pl = {
       unpaid: 'Anulowano opłatę',
       coupon_applied: 'Użyto kuponu',
       coupon_removed: 'Zdjęto kupon',
+      tier_discount_applied: 'Użyto rabatu poziomu',
+      tier_discount_removed: 'Zdjęto rabat poziomu',
     },
   },
   phone: {

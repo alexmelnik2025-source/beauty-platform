@@ -5040,6 +5040,135 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/tier-discount": {
+      "post": {
+        "description": "The client's tier in the salon now (task 10e), by the same rules as coupons: 409 COUPON_NOT_COMBINABLE (one discount per visit), COUPON_NO_DISCOUNT (maximum discount reached), COUPON_NOT_ACTIVE (already used), TIER_NO_DISCOUNT (no tier with a discount). Only a booked or \"came\" visit that is not paid (409 VISIT_NOT_CHANGEABLE).",
+        "operationId": "AppointmentsController_applyTierDiscount",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use the client's tier discount on the visit (lowers its price)",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/tier-discount/remove": {
+      "post": {
+        "operationId": "AppointmentsController_removeTierDiscount",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take the tier discount off a visit that is not paid yet",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons/{couponId}/remove": {
       "post": {
         "operationId": "AppointmentsController_removeCoupon",
@@ -7899,6 +8028,34 @@
             },
             "description": "Loyalty coupons used on this visit (task 10d)"
           },
+          "tierDiscount": {
+            "nullable": true,
+            "description": "The client's tier discount used on this visit (task 10e), as it was then",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "discountPercent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "discountGrosze": {
+                "nullable": true,
+                "description": "null when prices are hidden",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "name",
+              "discountPercent",
+              "discountGrosze"
+            ],
+            "additionalProperties": false
+          },
           "staffChosenByClient": {
             "type": "boolean",
             "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -7971,6 +8128,7 @@
           "priceGrosze",
           "discountGrosze",
           "coupons",
+          "tierDiscount",
           "staffChosenByClient",
           "firstVisit",
           "durationMinutes",
@@ -8160,6 +8318,34 @@
             },
             "description": "Loyalty coupons used on this visit (task 10d)"
           },
+          "tierDiscount": {
+            "nullable": true,
+            "description": "The client's tier discount used on this visit (task 10e), as it was then",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "discountPercent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "discountGrosze": {
+                "nullable": true,
+                "description": "null when prices are hidden",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "name",
+              "discountPercent",
+              "discountGrosze"
+            ],
+            "additionalProperties": false
+          },
           "staffChosenByClient": {
             "type": "boolean",
             "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -8257,6 +8443,7 @@
           "priceGrosze",
           "discountGrosze",
           "coupons",
+          "tierDiscount",
           "staffChosenByClient",
           "firstVisit",
           "durationMinutes",
@@ -8449,6 +8636,34 @@
               },
               "description": "Loyalty coupons used on this visit (task 10d)"
             },
+            "tierDiscount": {
+              "nullable": true,
+              "description": "The client's tier discount used on this visit (task 10e), as it was then",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "discountPercent": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "discountGrosze": {
+                  "nullable": true,
+                  "description": "null when prices are hidden",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "name",
+                "discountPercent",
+                "discountGrosze"
+              ],
+              "additionalProperties": false
+            },
             "staffChosenByClient": {
               "type": "boolean",
               "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -8521,6 +8736,7 @@
             "priceGrosze",
             "discountGrosze",
             "coupons",
+            "tierDiscount",
             "staffChosenByClient",
             "firstVisit",
             "durationMinutes",
@@ -9058,6 +9274,34 @@
                   },
                   "description": "Loyalty coupons used on this visit (task 10d)"
                 },
+                "tierDiscount": {
+                  "nullable": true,
+                  "description": "The client's tier discount used on this visit (task 10e), as it was then",
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "discountPercent": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "discountGrosze": {
+                      "nullable": true,
+                      "description": "null when prices are hidden",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "discountPercent",
+                    "discountGrosze"
+                  ],
+                  "additionalProperties": false
+                },
                 "staffChosenByClient": {
                   "type": "boolean",
                   "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -9130,6 +9374,7 @@
                 "priceGrosze",
                 "discountGrosze",
                 "coupons",
+                "tierDiscount",
                 "staffChosenByClient",
                 "firstVisit",
                 "durationMinutes",
@@ -14739,6 +14984,49 @@
       "VisitCoupons": {
         "type": "object",
         "properties": {
+          "tier": {
+            "nullable": true,
+            "description": "The client's tier discount in this salon (task 10e); null when the client has no tier with a discount",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "discountPercent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "discountGrosze": {
+                "nullable": true,
+                "description": "What it takes off (applied) or would take off this visit; null when prices are hidden or it cannot be used",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "applied": {
+                "type": "boolean",
+                "description": "Already used on this visit"
+              },
+              "problem": {
+                "nullable": true,
+                "description": "Why it cannot be used on this visit; null = it can",
+                "type": "string",
+                "enum": [
+                  "NOT_COMBINABLE",
+                  "NO_DISCOUNT"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "discountPercent",
+              "discountGrosze",
+              "applied",
+              "problem"
+            ],
+            "additionalProperties": false
+          },
           "applied": {
             "type": "array",
             "items": {
@@ -14863,6 +15151,7 @@
           }
         },
         "required": [
+          "tier",
           "applied",
           "available"
         ],

@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
 import type { VisitCouponsResponse } from '../booking/booking.responses';
 import type { LoyaltyCoupon, LoyaltyProgram, Prisma } from '../generated/prisma/client';
+import { tierStatus } from './loyalty-tiers';
 
 /** Why a coupon cannot be used on a visit (null = it can). */
 export type CouponProblem =
@@ -23,6 +24,9 @@ const ERRORS: Record<CouponProblem, [string, string]> = {
     'Nothing is left to take off: the visit already has the largest discount the salon allows',
   ],
 };
+
+/** The tier discount among a visit's discounts (it is a percentage discount like a coupon). */
+const TIER = 'tier';
 
 export const couponError = (problem: CouponProblem): AppException => {
   const [code, message] = ERRORS[problem];
@@ -90,8 +94,29 @@ export interface CouponVisit {
   serviceId: string;
   customerId: string | null;
   priceGrosze: number;
+  /** Task 10e: the part of the visit's discount that is the client's tier discount. */
+  tierDiscountGrosze: number;
+  tierName: string | null;
+  tierDiscountPercent: number | null;
   version: number;
 }
+
+/** Task 10e: the client's tier discount on a visit — used, or what it would take off. */
+export interface VisitTier {
+  name: string;
+  discountPercent: number;
+  discountGrosze: number;
+  applied: boolean;
+  /** A tier discount has no services or date, so only these can stop it. */
+  problem: Extract<CouponProblem, 'NOT_COMBINABLE' | 'NO_DISCOUNT'> | null;
+}
+
+const noTierDiscount = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'TIER_NO_DISCOUNT',
+    'The client has no tier with a discount in this salon',
+  );
 
 export const visitNotChangeable = (): AppException =>
   new AppException(
@@ -153,7 +178,8 @@ export class VisitCoupons {
     visit: Omit<CouponVisit, 'version'>,
     showPrices: boolean,
   ): Promise<VisitCouponsResponse> {
-    const applied = await this.applied(db, visit.id);
+    const used = await this.applied(db, visit.id);
+    const applied = withTier(used, visit);
     const unused = visit.customerId
       ? await db.loyaltyCoupon.findMany({
           where: {
@@ -168,8 +194,13 @@ export class VisitCoupons {
         })
       : [];
     const rules = await this.rules(db, visit.organizationId);
+    const tier = await this.tier(db, visit, rules, applied);
     return {
-      applied: applied.map((c) => ({
+      tier: tier && {
+        ...tier,
+        discountGrosze: showPrices && tier.problem === null ? tier.discountGrosze : null,
+      },
+      applied: used.map((c) => ({
         ...visitCouponFields(c),
         discountGrosze: showPrices ? (c.discountGrosze ?? 0) : null,
       })),
@@ -205,6 +236,118 @@ export class VisitCoupons {
     return byVisit;
   }
 
+  /**
+   * The client's tier discount on the visit (task 10e): the one used (as it was then), or the
+   * client's current tier and what it would take off by the same rules as a coupon. null when
+   * there is nothing to show (no client, no program or tiers, or a tier without a discount).
+   */
+  async tier(
+    db: Prisma.TransactionClient,
+    visit: Omit<CouponVisit, 'version'>,
+    rules: Rules,
+    applied: Applied[],
+    now = new Date(),
+  ): Promise<VisitTier | null> {
+    if (visit.tierDiscountGrosze > 0) {
+      return {
+        name: visit.tierName ?? '',
+        discountPercent: visit.tierDiscountPercent ?? 0,
+        discountGrosze: visit.tierDiscountGrosze,
+        applied: true,
+        problem: null,
+      };
+    }
+    if (!visit.customerId) return null;
+    const program = await db.loyaltyProgram.findUnique({
+      where: { organizationId: visit.organizationId },
+      include: { tiers: true },
+    });
+    if (!program?.enabled) return null;
+    const status = await tierStatus(db, program, visit.customerId, now);
+    const current = status?.current;
+    if (!current || current.discountPercent <= 0) return null;
+    const { discountGrosze, problem } = couponDiscount(
+      rules,
+      visit,
+      {
+        id: TIER,
+        kind: 'discount_percent',
+        discountPercent: current.discountPercent,
+        freeServiceId: null,
+        serviceIds: [],
+        status: 'active',
+        expiresAt: null,
+      },
+      applied,
+      now,
+    );
+    return {
+      ...current,
+      discountGrosze,
+      applied: false,
+      problem: problem === 'NOT_COMBINABLE' || problem === 'NO_DISCOUNT' ? problem : null,
+    };
+  }
+
+  /**
+   * Uses the client's tier discount on a visit (task 10e): the client's tier now, by the salon's
+   * rules (maximum share, combining with coupons). Returns what it took off.
+   */
+  async applyTier(tx: Prisma.TransactionClient, visit: CouponVisit): Promise<VisitTier> {
+    if (visit.tierDiscountGrosze > 0) throw couponError('ALREADY_APPLIED');
+    const rules = await this.rules(tx, visit.organizationId);
+    const tier = await this.tier(
+      tx,
+      visit,
+      rules,
+      withTier(await this.applied(tx, visit.id), visit),
+    );
+    if (!tier) throw noTierDiscount();
+    if (tier.problem) throw couponError(tier.problem);
+    const changed = await tx.appointment.updateMany({
+      where: {
+        id: visit.id,
+        version: visit.version,
+        status: { in: ['confirmed', 'completed'] },
+        paidAt: null,
+        tierDiscountGrosze: 0,
+      },
+      data: {
+        discountGrosze: { increment: tier.discountGrosze },
+        tierDiscountGrosze: tier.discountGrosze,
+        tierName: tier.name,
+        tierDiscountPercent: tier.discountPercent,
+        version: { increment: 1 },
+      },
+    });
+    if (changed.count !== 1) throw changedMeanwhile();
+    return { ...tier, applied: true };
+  }
+
+  /** Takes the tier discount off a visit that is not paid yet; the price goes back up. */
+  async removeTier(
+    tx: Prisma.TransactionClient,
+    visit: CouponVisit,
+  ): Promise<{ name: string | null; discountGrosze: number }> {
+    if (visit.tierDiscountGrosze <= 0) throw notFound('Tier discount');
+    const changed = await tx.appointment.updateMany({
+      where: {
+        id: visit.id,
+        version: visit.version,
+        status: { in: ['confirmed', 'completed'] },
+        paidAt: null,
+        tierDiscountGrosze: visit.tierDiscountGrosze,
+      },
+      data: {
+        discountGrosze: { decrement: visit.tierDiscountGrosze },
+        ...NO_TIER,
+        version: { increment: 1 },
+      },
+    });
+    if (changed.count !== 1) throw changedMeanwhile();
+    return { name: visit.tierName, discountGrosze: visit.tierDiscountGrosze };
+  }
+
   async applied(tx: Prisma.TransactionClient, appointmentId: string): Promise<LoyaltyCoupon[]> {
     return tx.loyaltyCoupon.findMany({
       where: { usedAppointmentId: appointmentId, status: 'used' },
@@ -223,7 +366,7 @@ export class VisitCoupons {
     rules: Rules,
   ): Promise<number> {
     if (coupon.status !== 'active') throw couponError('ALREADY_APPLIED');
-    const applied = await this.applied(tx, visit.id);
+    const applied = withTier(await this.applied(tx, visit.id), visit);
     const { discountGrosze, problem } = couponDiscount(rules, visit, coupon, applied);
     if (problem) throw couponError(problem);
     const visitChanged = await tx.appointment.updateMany({
@@ -286,11 +429,18 @@ export class VisitCoupons {
    */
   async releaseForVisit(tx: Prisma.TransactionClient, appointmentId: string): Promise<number> {
     const coupons = await this.applied(tx, appointmentId);
-    if (coupons.length === 0) return 0;
-    await tx.appointment.update({
-      where: { id: appointmentId },
-      data: { discountGrosze: 0 },
+    // The tier discount goes too: the visit did not happen, there is nothing to take it off.
+    const { count: hadTier } = await tx.appointment.updateMany({
+      where: { id: appointmentId, tierDiscountGrosze: { gt: 0 } },
+      data: { discountGrosze: 0, ...NO_TIER },
     });
+    if (coupons.length === 0) return 0;
+    if (hadTier === 0) {
+      await tx.appointment.update({
+        where: { id: appointmentId },
+        data: { discountGrosze: 0 },
+      });
+    }
     await this.release(
       tx,
       coupons.map((c) => c.id),
@@ -310,6 +460,15 @@ export class VisitCoupons {
       },
     });
   }
+}
+
+const NO_TIER = { tierDiscountGrosze: 0, tierName: null, tierDiscountPercent: null } as const;
+
+/** A visit's coupons and its tier discount as one more percentage discount. */
+function withTier(used: Applied[], visit: Pick<CouponVisit, 'tierDiscountGrosze'>): Applied[] {
+  return visit.tierDiscountGrosze > 0
+    ? [...used, { id: TIER, kind: 'discount_percent', discountGrosze: visit.tierDiscountGrosze }]
+    : used;
 }
 
 /** What every coupon list shows about a coupon. */

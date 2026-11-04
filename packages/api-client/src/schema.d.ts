@@ -1191,6 +1191,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/tier-discount": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Use the client's tier discount on the visit (lowers its price)
+         * @description The client's tier in the salon now (task 10e), by the same rules as coupons: 409 COUPON_NOT_COMBINABLE (one discount per visit), COUPON_NO_DISCOUNT (maximum discount reached), COUPON_NOT_ACTIVE (already used), TIER_NO_DISCOUNT (no tier with a discount). Only a booked or "came" visit that is not paid (409 VISIT_NOT_CHANGEABLE).
+         */
+        post: operations["AppointmentsController_applyTierDiscount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/tier-discount/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take the tier discount off a visit that is not paid yet */
+        post: operations["AppointmentsController_removeTierDiscount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons/{couponId}/remove": {
         parameters: {
             query?: never;
@@ -1971,6 +2008,13 @@ export interface components {
                 /** @description null when prices are hidden */
                 discountGrosze: number | null;
             }[];
+            /** @description The client's tier discount used on this visit (task 10e), as it was then */
+            tierDiscount: {
+                name: string;
+                discountPercent: number;
+                /** @description null when prices are hidden */
+                discountGrosze: number | null;
+            } | null;
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
             /** @description No completed visit of this client before this appointment */
@@ -2038,6 +2082,13 @@ export interface components {
                 /** @description null when prices are hidden */
                 discountGrosze: number | null;
             }[];
+            /** @description The client's tier discount used on this visit (task 10e), as it was then */
+            tierDiscount: {
+                name: string;
+                discountPercent: number;
+                /** @description null when prices are hidden */
+                discountGrosze: number | null;
+            } | null;
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
             /** @description No completed visit of this client before this appointment */
@@ -2111,6 +2162,13 @@ export interface components {
                 /** @description null when prices are hidden */
                 discountGrosze: number | null;
             }[];
+            /** @description The client's tier discount used on this visit (task 10e), as it was then */
+            tierDiscount: {
+                name: string;
+                discountPercent: number;
+                /** @description null when prices are hidden */
+                discountGrosze: number | null;
+            } | null;
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
             /** @description No completed visit of this client before this appointment */
@@ -2265,6 +2323,13 @@ export interface components {
                     /** @description null when prices are hidden */
                     discountGrosze: number | null;
                 }[];
+                /** @description The client's tier discount used on this visit (task 10e), as it was then */
+                tierDiscount: {
+                    name: string;
+                    discountPercent: number;
+                    /** @description null when prices are hidden */
+                    discountGrosze: number | null;
+                } | null;
                 /** @description The client chose this staff member themselves (not "any staff member") */
                 staffChosenByClient: boolean;
                 /** @description No completed visit of this client before this appointment */
@@ -3659,6 +3724,20 @@ export interface components {
             emailVerified: boolean;
         };
         VisitCoupons: {
+            /** @description The client's tier discount in this salon (task 10e); null when the client has no tier with a discount */
+            tier: {
+                name: string;
+                discountPercent: number;
+                /** @description What it takes off (applied) or would take off this visit; null when prices are hidden or it cannot be used */
+                discountGrosze: number | null;
+                /** @description Already used on this visit */
+                applied: boolean;
+                /**
+                 * @description Why it cannot be used on this visit; null = it can
+                 * @enum {string|null}
+                 */
+                problem: "NOT_COMBINABLE" | "NO_DISCOUNT" | null;
+            } | null;
             applied: {
                 id: string;
                 code: string;
@@ -5996,6 +6075,62 @@ export interface operations {
                     /** Format: uuid */
                     couponId?: string;
                     code?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
+            };
+        };
+    };
+    AppointmentsController_applyTierDiscount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
+            };
+        };
+    };
+    AppointmentsController_removeTierDiscount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
                 };
             };
         };

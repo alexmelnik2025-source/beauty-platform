@@ -557,6 +557,55 @@ export class AppointmentsService {
     return this.get(m, userId, locationId, appointmentId);
   }
 
+  // ── The client's tier discount on a visit (task 10e) ──
+
+  /**
+   * Uses the client's tier discount (their tier in the salon now) on a booked or "came" visit
+   * that is not paid yet, by the same rules as coupons: maximum share, combining discounts.
+   */
+  async applyTierDiscount(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    input: RemoveVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    assertCouponsChangeable(appointment, input.version);
+    const visit = toCouponVisit(appointment, input.version);
+    await this.prisma.$transaction(async (tx) => {
+      const tier = await this.visitCoupons.applyTier(tx, visit);
+      await this.writer.event(tx, appointment.id, 'tier_discount_applied', 'staff', userId, {
+        name: tier.name,
+        discountPercent: tier.discountPercent,
+        discountGrosze: tier.discountGrosze,
+      });
+    });
+    return this.get(m, userId, locationId, appointmentId);
+  }
+
+  /** Takes the tier discount off a visit that is not paid yet; the price goes back up. */
+  async removeTierDiscount(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    input: RemoveVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    assertCouponsChangeable(appointment, input.version);
+    const visit = toCouponVisit(appointment, input.version);
+    await this.prisma.$transaction(async (tx) => {
+      const removed = await this.visitCoupons.removeTier(tx, visit);
+      await this.writer.event(tx, appointment.id, 'tier_discount_removed', 'staff', userId, {
+        name: removed.name,
+      });
+    });
+    return this.get(m, userId, locationId, appointmentId);
+  }
+
   // ── Helpers ───────────────────────────────────────────
 
   /** Staff role: the staff profiles linked to the user at this location. Others: null (no limit). */
@@ -774,6 +823,14 @@ export class AppointmentsService {
         ...visitCouponFields(c),
         discountGrosze: prices ? (c.discountGrosze ?? 0) : null,
       })),
+      tierDiscount:
+        a.tierDiscountGrosze > 0
+          ? {
+              name: a.tierName ?? '',
+              discountPercent: a.tierDiscountPercent ?? 0,
+              discountGrosze: prices ? a.tierDiscountGrosze : null,
+            }
+          : null,
       staffChosenByClient: a.staffChosenByClient,
       firstVisit:
         a.customerId !== null &&
@@ -803,6 +860,9 @@ function toCouponVisit(a: Loaded, version: number): CouponVisit {
     serviceId: a.serviceId,
     customerId: a.customerId,
     priceGrosze: a.priceGrosze,
+    tierDiscountGrosze: a.tierDiscountGrosze,
+    tierName: a.tierName,
+    tierDiscountPercent: a.tierDiscountPercent,
     version,
   };
 }

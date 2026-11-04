@@ -219,6 +219,14 @@ export function AppointmentSheet({
                 </dd>
               </Fragment>
             ))}
+            {a.tierDiscount ? (
+              <>
+                <dt>{t.appointment.tierUsed}</dt>
+                <dd>
+                  {a.tierDiscount.name} · −{a.tierDiscount.discountPercent}%
+                </dd>
+              </>
+            ) : null}
             {a.priceGrosze !== null && a.discountGrosze ? (
               <>
                 <dt>{t.appointment.discount}</dt>
@@ -428,12 +436,56 @@ function CouponsBox({
     };
   }, [url]);
 
-  if (!coupons || (coupons.applied.length === 0 && coupons.available.length === 0)) return null;
+  if (
+    !coupons ||
+    (!coupons.tier && coupons.applied.length === 0 && coupons.available.length === 0)
+  ) {
+    return null;
+  }
+  // The client's tier discount (task 10e) is used and taken off like a coupon.
+  const tierUrl = url.replace(/\/coupons$/, '/tier-discount');
+  const tier = coupons.tier;
   return (
     <div className="stack" style={{ gap: 8 }}>
       <h3>{t.appointment.coupons}</h3>
       <p className="small muted">{t.appointment.couponsHint}</p>
       <ul className="history" aria-label={t.appointment.coupons}>
+        {tier ? (
+          <li className="tier-discount">
+            <span>
+              {tier.applied ? '✓ ' : ''}
+              {t.appointment.tier}: <strong>{tier.name}</strong> · −{tier.discountPercent}%
+              {tier.applied && tier.discountGrosze !== null ? (
+                <> · −{money(tier.discountGrosze)}</>
+              ) : null}
+              {tier.problem ? (
+                <span className="muted small"> · {t.appointment.couponProblem[tier.problem]}</span>
+              ) : null}
+            </span>
+            {tier.applied ? (
+              <button
+                type="button"
+                className="btn btn--quiet btn--small"
+                disabled={busy}
+                onClick={() =>
+                  onAction(() => api(`${tierUrl}/remove`, { method: 'POST', body: { version } }))
+                }
+              >
+                {t.appointment.couponRemove}
+              </button>
+            ) : tier.problem ? null : (
+              <button
+                type="button"
+                className="btn btn--small"
+                disabled={busy}
+                onClick={() => onAction(() => api(tierUrl, { method: 'POST', body: { version } }))}
+              >
+                {t.appointment.couponUse}
+                {tier.discountGrosze !== null ? ` −${money(tier.discountGrosze)}` : ''}
+              </button>
+            )}
+          </li>
+        ) : null}
         {coupons.applied.map((c) => (
           <li key={c.id}>
             <span>

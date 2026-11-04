@@ -343,6 +343,9 @@ function couponVisit(a: LoadedAppointment) {
     serviceId: a.serviceId,
     customerId: a.customerId,
     priceGrosze: a.priceGrosze,
+    tierDiscountGrosze: a.tierDiscountGrosze,
+    tierName: a.tierName,
+    tierDiscountPercent: a.tierDiscountPercent,
     version: a.version,
   };
 }

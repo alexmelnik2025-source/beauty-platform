@@ -63,6 +63,14 @@ export const appointmentSchema = responseSchema(
         }),
       )
       .describe('Loyalty coupons used on this visit (task 10d)'),
+    tierDiscount: z
+      .strictObject({
+        name: z.string(),
+        discountPercent: z.number().int(),
+        discountGrosze: z.number().int().nullable().describe('null when prices are hidden'),
+      })
+      .nullable()
+      .describe("The client's tier discount used on this visit (task 10e), as it was then"),
     staffChosenByClient: z
       .boolean()
       .describe('The client chose this staff member themselves (not "any staff member")'),
@@ -217,6 +225,27 @@ export type CalendarResponse = z.infer<typeof calendarSchema>;
 export const visitCouponsSchema = responseSchema(
   'VisitCoupons',
   z.strictObject({
+    tier: z
+      .strictObject({
+        name: z.string(),
+        discountPercent: z.number().int(),
+        discountGrosze: z
+          .number()
+          .int()
+          .nullable()
+          .describe(
+            'What it takes off (applied) or would take off this visit; null when prices are hidden or it cannot be used',
+          ),
+        applied: z.boolean().describe('Already used on this visit'),
+        problem: z
+          .enum(['NOT_COMBINABLE', 'NO_DISCOUNT'])
+          .nullable()
+          .describe('Why it cannot be used on this visit; null = it can'),
+      })
+      .nullable()
+      .describe(
+        "The client's tier discount in this salon (task 10e); null when the client has no tier with a discount",
+      ),
     applied: z.array(
       z.strictObject({
         ...visitCouponFields,

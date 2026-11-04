@@ -19,7 +19,7 @@ import { serveApp } from './mobile-app';
  * client app for iPhone and Android (11b, part 3; its web preview).
  * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
  * The client then picks the coupon herself in "Moje wizyty" (10d, part 3).
- * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 73b).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -590,5 +590,42 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await couponContext.close();
     couponApp.server.close();
   }
+
+  // ── The client's tier discount on a visit (10e, part 3): Silver −5% ───
+  const tierVisit = await json<{ id: string; date: string }>(
+    await request.post(`${base}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: services['Strzyżenie męskie'],
+        staffId: staff.id,
+        start: new Date(tomorrow + 4 * 3_600_000).toISOString(),
+        customerId: customer.id,
+        allowOutsideHours: true,
+      },
+    }),
+  );
+  await page.goto(`/pl/app/calendar?date=${tierVisit.date}`);
+  await page
+    .getByRole('button', { name: /Anna Kowalska/ })
+    .last()
+    .click();
+  const tierCard = page.getByRole('dialog');
+  const tierOffer = tierCard.getByRole('list', { name: 'Kupony klienta' });
+  await expect(tierOffer).toContainText('Poziom klienta: Silver · −5%');
+  await tierOffer.getByRole('button', { name: /Użyj −4,50/ }).click();
+  await expect(tierCard.getByText('Rabat poziomu')).toBeVisible();
+  await expect(tierCard).toContainText('Silver · −5%');
+  await expect(tierCard.getByText('Do zapłaty')).toBeVisible();
+  await expect(tierCard).toContainText('85,50');
+  await expect(tierCard).toContainText('Użyto rabatu poziomu');
+  await expect(tierOffer.getByRole('button', { name: 'Zdejmij' }).first()).toBeVisible();
+  await tierCard.getByText('Rabat poziomu').scrollIntoViewIfNeeded();
+  await shot(page, '73b-owner-visit-tier-discount');
+  const tiered = await json<{ discountGrosze: number; tierDiscount: { name: string } | null }>(
+    await request.get(`${base}/appointments/${tierVisit.id}`, { headers: owner }),
+  );
+  expect(tiered.discountGrosze).toBe(450);
+  expect(tiered.tierDiscount?.name).toBe('Silver');
+  await page.keyboard.press('Escape');
   await context.close();
 });

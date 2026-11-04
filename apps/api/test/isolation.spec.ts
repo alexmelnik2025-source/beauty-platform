@@ -149,6 +149,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/redemptions')) return { rewardId: currentIds?.rewardId };
   if (p.endsWith('/coupons/:couponId/cancel')) return { version: 1 };
   if (p.endsWith('/coupons/:couponId/remove')) return { version: 1 };
+  if (p.endsWith('/tier-discount') || p.endsWith('/tier-discount/remove')) return { version: 1 };
   if (p.endsWith('/appointments/:appointmentId/coupons')) {
     return { version: 1, couponId: currentIds?.couponId };
   }

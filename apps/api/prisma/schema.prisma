@@ -704,6 +704,11 @@ model Appointment {
   /// Task 10d: what the client's loyalty coupons take off the price (0 = none).
   /// The client pays priceGrosze - discountGrosze; loyalty is earned on that.
   discountGrosze      Int               @default(0) @map("discount_grosze")
+  /// Task 10e: the part of discountGrosze that is the client's tier discount (0 = none), with
+  /// the tier's name and percentage as they were when the staff used it.
+  tierDiscountGrosze  Int               @default(0) @map("tier_discount_grosze")
+  tierName            String?           @map("tier_name")
+  tierDiscountPercent Int?              @map("tier_discount_percent")
   durationMinutes     Int               @map("duration_minutes")
   bufferMinutes       Int               @map("buffer_minutes")
   note                String?

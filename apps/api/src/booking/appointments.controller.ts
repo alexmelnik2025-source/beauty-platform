@@ -225,6 +225,40 @@ export class AppointmentsController {
     return this.appointments.applyCoupon(m, auth.userId, locationId, appointmentId, body);
   }
 
+  @Post(':appointmentId/tier-discount')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Use the client's tier discount on the visit (lowers its price)",
+    description:
+      'The client\'s tier in the salon now (task 10e), by the same rules as coupons: 409 COUPON_NOT_COMBINABLE (one discount per visit), COUPON_NO_DISCOUNT (maximum discount reached), COUPON_NOT_ACTIVE (already used), TIER_NO_DISCOUNT (no tier with a discount). Only a booked or "came" visit that is not paid (409 VISIT_NOT_CHANGEABLE).',
+  })
+  @ApiZodBody(removeVisitCouponSchema)
+  @ApiZodResponse(appointmentDetailSchema)
+  applyTierDiscount(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Body(new ZodValidationPipe(removeVisitCouponSchema)) body: RemoveVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    return this.appointments.applyTierDiscount(m, auth.userId, locationId, appointmentId, body);
+  }
+
+  @Post(':appointmentId/tier-discount/remove')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Take the tier discount off a visit that is not paid yet' })
+  @ApiZodBody(removeVisitCouponSchema)
+  @ApiZodResponse(appointmentDetailSchema)
+  removeTierDiscount(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Body(new ZodValidationPipe(removeVisitCouponSchema)) body: RemoveVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    return this.appointments.removeTierDiscount(m, auth.userId, locationId, appointmentId, body);
+  }
+
   @Post(':appointmentId/coupons/:couponId/remove')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

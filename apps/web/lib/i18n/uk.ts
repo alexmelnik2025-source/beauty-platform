@@ -188,6 +188,8 @@ export const uk: Dict = {
       NOT_COMBINABLE: 'салон не поєднує знижки',
       NO_DISCOUNT: 'досягнуто макс. знижку',
     },
+    tier: 'Рівень клієнта',
+    tierUsed: 'Знижка рівня',
     newTime: 'Новий час',
     saveMove: 'Перенести запис',
     date: 'Дата',
@@ -228,6 +230,8 @@ export const uk: Dict = {
       unpaid: 'Оплату скасовано',
       coupon_applied: 'Використано купон',
       coupon_removed: 'Купон знято',
+      tier_discount_applied: 'Застосовано знижку рівня',
+      tier_discount_removed: 'Знижку рівня знято',
     },
   },
   phone: {
