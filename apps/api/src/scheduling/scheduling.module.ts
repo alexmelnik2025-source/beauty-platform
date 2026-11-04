@@ -13,6 +13,8 @@ import { PhotosService } from './photos.service';
 import { PublicLocationsController } from './public.controller';
 import { PublicDirectoryController } from './public-directory.controller';
 import { ScheduleService } from './schedule.service';
+import { StaffPricesController } from './staff-prices.controller';
+import { StaffPricesService } from './staff-prices';
 import {
   AvailabilityController,
   ServiceCategoriesController,
@@ -33,6 +35,7 @@ import {
     StaffPhotoController,
     PublicPhotosController,
     HappyHoursController,
+    StaffPricesController,
   ],
   providers: [
     CatalogService,
@@ -40,6 +43,7 @@ import {
     AvailabilityService,
     PhotosService,
     HappyHoursService,
+    StaffPricesService,
   ],
   exports: [AvailabilityService, HappyHoursService],
 })

@@ -7,7 +7,7 @@ import { api, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { currencySymbol, formatPrice } from '@/lib/time';
-import type { Service, ServiceCategory, Staff } from '@/lib/types';
+import type { Service, ServiceCategory, Staff, StaffPrices } from '@/lib/types';
 
 type Category = ServiceCategory;
 
@@ -226,6 +226,21 @@ function ServiceSheet({
     // A new service: everyone who takes visits performs it, until unticked (T5).
     staffIds: service?.staffIds ?? staff.filter((m) => m.active).map((m) => m.id),
   });
+  /** Task 62: each specialist's own price ("" = the service's price), as typed. */
+  const [ownPrices, setOwnPrices] = useState<Record<string, string>>({});
+  const [hadOwnPrices, setHadOwnPrices] = useState(false);
+  useEffect(() => {
+    if (!service) return;
+    api<StaffPrices>(`${base}/staff-prices`)
+      .then((res) => {
+        const mine = res.prices.filter((p) => p.serviceId === service.id);
+        setHadOwnPrices(mine.length > 0);
+        setOwnPrices(
+          Object.fromEntries(mine.map((p) => [p.staffId, (p.priceGrosze / 100).toFixed(2)])),
+        );
+      })
+      .catch(() => undefined);
+  }, [base, service]);
   // Specialists who take visits, and anyone inactive still linked (so they can be unticked).
   const choices = staff.filter((m) => m.active || form.staffIds.includes(m.id));
   const [error, setError] = useState('');
@@ -280,6 +295,19 @@ function ServiceSheet({
         saved = await api<ServiceRow>(`${base}/services/${saved.id}/staff`, {
           method: 'PUT',
           body: { staffIds: form.staffIds },
+        });
+      }
+      // Task 62: own prices of the ticked specialists; empty = the service's price.
+      const prices = form.staffIds
+        .filter((id) => (ownPrices[id] ?? '').trim() !== '')
+        .map((id) => ({
+          staffId: id,
+          priceGrosze: Math.round(Number(ownPrices[id]!.replace(',', '.')) * 100),
+        }));
+      if (prices.length > 0 || hadOwnPrices) {
+        await api(`${base}/services/${saved.id}/staff-prices`, {
+          method: 'PUT',
+          body: { prices },
         });
       }
       onSaved(saved);
@@ -411,9 +439,21 @@ function ServiceSheet({
                       })
                     }
                   />
-                  <span>{m.displayName}</span>
+                  <span className="grow">{m.displayName}</span>
+                  {form.staffIds.includes(m.id) ? (
+                    <input
+                      className="input staff-price"
+                      inputMode="decimal"
+                      pattern="[0-9]+([.,][0-9]{1,2})?"
+                      aria-label={fill(t.services.staffPrice, { name: m.displayName })}
+                      placeholder={form.price || '0.00'}
+                      value={ownPrices[m.id] ?? ''}
+                      onChange={(e) => setOwnPrices({ ...ownPrices, [m.id]: e.target.value })}
+                    />
+                  ) : null}
                 </label>
               ))}
+              <small className="muted">{t.services.staffPriceHint}</small>
               <small className={form.staffIds.length === 0 ? 'warn-text' : 'muted'}>
                 {form.staffIds.length === 0 ? t.services.noOnePerforms : t.services.whoPerformsHint}
               </small>

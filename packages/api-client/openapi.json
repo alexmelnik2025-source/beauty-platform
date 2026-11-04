@@ -4262,6 +4262,134 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff-prices": {
+      "get": {
+        "operationId": "StaffPricesController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPrices"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Specialists' own prices of services at this location",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff-prices": {
+      "put": {
+        "description": "Only specialists who perform the service; priceGrosze null = the service price. Booked visits keep their price.",
+        "operationId": "StaffPricesController_replace",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prices": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "priceGrosze": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000000
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "staffId",
+                        "priceGrosze"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "prices"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPrices"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the specialists' own prices of a service (the others take its price)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
     "/v1/public/locations/{slug}/holds": {
       "post": {
         "description": "start = a slot \"start\" from the availability list. Omit staffId for \"any staff member\". Send releaseHoldToken to free a previous hold.",
@@ -16510,6 +16638,18 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "priceFromGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Lowest price among its specialists (task 62: each may have an own price)"
+                },
+                "priceToGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Highest price among its specialists"
                 }
               },
               "required": [
@@ -16518,7 +16658,9 @@
                 "name",
                 "description",
                 "durationMinutes",
-                "priceGrosze"
+                "priceGrosze",
+                "priceFromGrosze",
+                "priceToGrosze"
               ],
               "additionalProperties": false
             }
@@ -16577,6 +16719,28 @@
                     "type": "string"
                   }
                 },
+                "prices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "serviceId": {
+                        "type": "string"
+                      },
+                      "priceGrosze": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "serviceId",
+                      "priceGrosze"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "This specialist's price of each service they perform (task 62)"
+                },
                 "photoUrl": {
                   "nullable": true,
                   "description": "Link to the photo; null when there is none",
@@ -16591,6 +16755,7 @@
                 "specialties",
                 "customSpecialty",
                 "serviceIds",
+                "prices",
                 "photoUrl"
               ],
               "additionalProperties": false
@@ -17827,6 +17992,41 @@
           ],
           "additionalProperties": false
         }
+      },
+      "StaffPrices": {
+        "type": "object",
+        "properties": {
+          "prices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "serviceId": {
+                  "type": "string"
+                },
+                "staffId": {
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "serviceId",
+                "staffId",
+                "priceGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Only the specialists with an own price; everyone else takes the service price"
+          }
+        },
+        "required": [
+          "prices"
+        ],
+        "additionalProperties": false
       },
       "TimeBlock": {
         "type": "object",

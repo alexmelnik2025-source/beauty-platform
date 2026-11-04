@@ -9,6 +9,7 @@ import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import type { Location } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { priceRange } from './staff-prices';
 import { SmsService } from '../sms/sms.service';
 import { AvailabilityService } from './availability.service';
 import { photoUrl } from './photos.service';
@@ -78,7 +79,10 @@ export class PublicLocationsController {
     const staff = await this.prisma.staffMember.findMany({
       where: { locationId: location.id, active: true },
       include: {
-        services: { where: { service: { active: true } }, select: { serviceId: true } },
+        services: {
+          where: { service: { active: true } },
+          select: { serviceId: true, priceGrosze: true },
+        },
         workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
         photo: { select: { id: true } },
       },
@@ -102,6 +106,7 @@ export class PublicLocationsController {
       select: { id: true },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
+    const basePrice = new Map(services.map((s) => [s.id, s.priceGrosze]));
     return {
       slug: location.slug,
       name: location.name,
@@ -119,14 +124,25 @@ export class PublicLocationsController {
       wishQuestions: wishQuestions(location),
       codeChannels: this.sms.available ? ['email', 'sms'] : ['email'],
       categories: categories.map((c) => ({ id: c.id, name: c.name })),
-      services: services.map((s) => ({
-        id: s.id,
-        categoryId: s.categoryId,
-        name: s.name,
-        description: s.description,
-        durationMinutes: s.durationMinutes,
-        priceGrosze: s.priceGrosze,
-      })),
+      services: services.map((s) => {
+        // Task 62: a specialist's own price, else the service's.
+        const range = priceRange(
+          s.priceGrosze,
+          listed
+            .flatMap((m) => m.services.filter((x) => x.serviceId === s.id))
+            .map((x) => x.priceGrosze),
+        );
+        return {
+          id: s.id,
+          categoryId: s.categoryId,
+          name: s.name,
+          description: s.description,
+          durationMinutes: s.durationMinutes,
+          priceGrosze: s.priceGrosze,
+          priceFromGrosze: range.fromGrosze,
+          priceToGrosze: range.toGrosze,
+        };
+      }),
       staff: listed.map((s) => ({
         id: s.id,
         displayName: s.displayName,
@@ -135,6 +151,12 @@ export class PublicLocationsController {
         specialties: s.specialties,
         customSpecialty: s.customSpecialty,
         serviceIds: s.services.map((x) => x.serviceId).sort(),
+        prices: s.services
+          .map((x) => ({
+            serviceId: x.serviceId,
+            priceGrosze: x.priceGrosze ?? basePrice.get(x.serviceId) ?? 0,
+          }))
+          .sort((a, b) => a.serviceId.localeCompare(b.serviceId)),
         photoUrl: s.photo ? photoUrl(s.photo.id) : null,
       })),
     };

@@ -229,9 +229,11 @@ export class CatalogService {
     const unique = [...new Set(staffIds)];
     await this.assertStaffInLocation(locationId, unique);
     const service = await this.prisma.$transaction(async (tx) => {
-      await tx.staffService.deleteMany({ where: { serviceId } });
+      // Kept links keep the specialist's own price (task 62).
+      await tx.staffService.deleteMany({ where: { serviceId, staffId: { notIn: unique } } });
       await tx.staffService.createMany({
         data: unique.map((staffId) => ({ staffId, serviceId })),
+        skipDuplicates: true,
       });
       await this.record(tx, m, actorUserId, 'service.staff_set', 'service', serviceId);
       return tx.service.findUniqueOrThrow({ where: { id: serviceId }, include: withStaff });
@@ -448,9 +450,11 @@ export class CatalogService {
     const unique = [...new Set(serviceIds)];
     await this.assertServicesInLocation(locationId, unique);
     const staff = await this.prisma.$transaction(async (tx) => {
-      await tx.staffService.deleteMany({ where: { staffId } });
+      // Kept links keep the specialist's own price (task 62).
+      await tx.staffService.deleteMany({ where: { staffId, serviceId: { notIn: unique } } });
       await tx.staffService.createMany({
         data: unique.map((serviceId) => ({ staffId, serviceId })),
+        skipDuplicates: true,
       });
       await this.record(tx, m, actorUserId, 'staff.services_set', 'staff_member', staffId);
       return tx.staffMember.findUniqueOrThrow({ where: { id: staffId }, include: withServices });

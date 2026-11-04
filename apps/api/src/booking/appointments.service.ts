@@ -47,6 +47,7 @@ export type {
   AppointmentResponse,
   VisitCouponsResponse,
 } from './booking.responses';
+import { listPriceFor } from '../scheduling/staff-prices';
 
 type Loaded = Appointment & {
   location: Location;
@@ -186,7 +187,8 @@ export class AppointmentsService {
       staffId: staff.id,
       serviceId: service.id,
       start: input.start,
-      listPriceGrosze: service.priceGrosze,
+      // The specialist's own price of the service, if any (task 62).
+      listPriceGrosze: await listPriceFor(this.prisma, staff.id, service),
     });
     if (input.alreadyHappened) {
       const walkIn = await this.writer.write(staff.id, times, async (tx) => {
