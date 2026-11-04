@@ -241,4 +241,83 @@ describe('salon report', () => {
     await report(owner.auth, { from: today, to: from }).expect(400);
     await report(owner.auth, { from: addDays(today, -365), to: today }).expect(200);
   });
+  it('every visit of the period as CSV for the accountant, without client contacts', async () => {
+    const d1 = addDays(today, -3);
+    await visit({ date: d1, status: 'completed', paid: true, discountGrosze: 1550, online: true });
+    await visit({
+      date: d1,
+      staffId: olaId,
+      serviceId: beardId,
+      email: 'ewa@example.com',
+      status: 'cancelled',
+      cancelledBy: 'customer',
+    });
+    await visit({ date: addDays(today, -1), staffId: olaId, status: 'no_show' });
+    const csv = (q: object = {}, auth = owner.auth) =>
+      ctx
+        .http()
+        .get(`${base}/reports/visits-csv`)
+        .query({ from, to: today, ...q })
+        .set(auth)
+        .buffer(true)
+        .parse((res, done) => {
+          let text = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk: string) => (text += chunk));
+          res.on('end', () => done(null, text));
+        });
+
+    const res = await csv().expect(200);
+    expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(res.headers['content-disposition']).toMatch(
+      new RegExp(`^attachment; filename="visits-.+-${from}-${today}\\.csv"$`),
+    );
+    const text = res.body as string;
+    expect(text.startsWith('\uFEFF')).toBe(true);
+    const lines = text.slice(1).trimEnd().split('\r\n');
+    expect(lines).toEqual([
+      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono',
+      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak`,
+      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie`,
+      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie`,
+    ]);
+    expect(text).not.toContain('+48600000002');
+    expect(text).not.toContain('@example.com');
+
+    const english = (await csv({ locale: 'en' }).expect(200)).body as string;
+    expect(english).toContain('Date;Time;Specialist;Service;Client;Status;Booked;Price');
+    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes');
+
+    // The same access as the report.
+    await csv({}, kasiaUser.auth).expect(403);
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = (await csv({}, kasiaUser.auth).expect(200)).body as string;
+    expect(own.trimEnd().split('\r\n')).toHaveLength(2);
+    expect(own).not.toContain(';Ola;');
+    await csv({ from: today, to: from }).expect(400);
+    await csv({ locale: 'xx' }).expect(400);
+  });
+
+  it('a client name that looks like a formula stays text', async () => {
+    const { visitsCsv } = await import('../src/reports/visits-csv');
+    const row = {
+      date: '2026-11-03',
+      time: '10:00',
+      staff: 'Kasia',
+      service: 'Cut; wash',
+      client: '=HYPERLINK("x")',
+      status: 'completed' as const,
+      cancelledBy: null,
+      online: false,
+      priceGrosze: 100,
+      discountGrosze: 0,
+      paid: true,
+    };
+    expect(visitsCsv([row], 'pl').split('\r\n')[1]).toBe(
+      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak`,
+    );
+  });
 });

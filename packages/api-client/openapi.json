@@ -7745,6 +7745,73 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/visits-csv": {
+      "get": {
+        "description": "Same access as the report. UTF-8 with a byte order mark, \";\" between columns, decimal comma (point for en); no client contacts.",
+        "operationId": "ReportsController_visitsCsv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-30"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-01"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every visit of a period as a CSV file for the accountant",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/v1/health": {
       "get": {
         "operationId": "HealthController_check",

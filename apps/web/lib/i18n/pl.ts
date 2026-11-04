@@ -832,6 +832,10 @@ export const pl = {
     colNoShow: 'Nie przyszli',
     colRevenue: 'Przychód',
     dayVisits: 'wizyty: {n}',
+    csv: 'Pobierz CSV',
+    downloading: 'Pobieranie…',
+    csvHint:
+      '„Pobierz CSV” — wszystkie wizyty z tego okresu dla księgowej (bez kontaktów klientów); otwiera się w Excelu.',
   },
 };
 

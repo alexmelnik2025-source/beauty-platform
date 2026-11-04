@@ -1904,6 +1904,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/visits-csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every visit of a period as a CSV file for the accountant
+         * @description Same access as the report. UTF-8 with a byte order mark, ";" between columns, decimal comma (point for en); no client contacts.
+         */
+        get: operations["ReportsController_visitsCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -7436,6 +7456,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalonReport"];
+                };
+            };
+        };
+    };
+    ReportsController_visitsCsv: {
+        parameters: {
+            query: {
+                locale?: "pl" | "uk" | "ru" | "en";
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };

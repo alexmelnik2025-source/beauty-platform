@@ -832,5 +832,9 @@ export const ru: Dict = {
     colNoShow: 'Не пришли',
     colRevenue: 'Выручка',
     dayVisits: 'визитов: {n}',
+    csv: 'Скачать CSV',
+    downloading: 'Загрузка…',
+    csvHint:
+      '«Скачать CSV» — все визиты за этот период для бухгалтера (без контактов клиентов); открывается в Excel.',
   },
 };
