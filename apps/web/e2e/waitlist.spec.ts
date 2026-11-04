@@ -226,8 +226,8 @@ test('a full day: the client joins the waiting list and leaves it from the email
     await expect(phone.getByText(`Zalogowano jako ${CARA}`)).toBeVisible();
     await phone.getByRole('tab', { name: 'Ulubione' }).click();
     await phone.getByRole('button', { name: 'Umów wizytę' }).click();
+    // Kasia is the only specialist: straight to her free times.
     await phone.getByRole('button', { name: /^Strzyżenie męskie,/ }).click();
-    await phone.getByRole('button', { name: /^Kasia/ }).click();
     await expect(phone.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
     await expect(phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first()).toBeVisible();
     await phone
