@@ -337,3 +337,134 @@ describe('staff members and blocks', () => {
     expect(list.body.map((b: { staffId: string | null }) => b.staffId)).toEqual([kasiaId, null]);
   });
 });
+
+// ── Every week (launch task L4) ───────────────────────
+
+describe('weekly blocks (the same time every week)', () => {
+  const series = (body: object, auth = owner.auth) =>
+    ctx.http().post(`${base}/time-blocks/series`).set(auth).send(body);
+  const local = (date: string, hh: number) =>
+    new Date(zonedToInstant(date, hh * 60, TZ)).toISOString();
+
+  it('blocks the same local time for the given weeks and leaves weeks with visits free', async () => {
+    // A visit in the second week, at the time the series would block.
+    const week2 = addDays(day, 7);
+    await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId,
+        staffId: kasiaId,
+        start: local(week2, 12),
+        customer: { name: 'Jan', phone: '+48600000001' },
+      })
+      .expect(201);
+
+    const res = await series({
+      staffId: kasiaId,
+      start: local(day, 11),
+      end: local(day, 14),
+      reason: 'Booksy',
+      weeks: 4,
+    }).expect(201);
+    expect(res.body.skippedDates).toEqual([week2]);
+    expect(res.body.items.map((b: { date: string; time: string }) => [b.date, b.time])).toEqual([
+      [day, '11:00'],
+      [addDays(day, 14), '11:00'],
+      [addDays(day, 21), '11:00'],
+    ]);
+    expect(new Set(res.body.items.map((b: { seriesId: string }) => b.seriesId))).toEqual(
+      new Set([res.body.seriesId]),
+    );
+
+    // Clients cannot book Kasia in the blocked time of the third week.
+    const third = addDays(day, 14);
+    const free = await ctx
+      .http()
+      .get(`/v1/public/locations/${slug}/availability`)
+      .query({ serviceId, staffId: kasiaId, from: third, to: third })
+      .expect(200);
+    const times = free.body.slots.map((s: { time: string }) => s.time);
+    expect(times).toContain('10:00');
+    expect(times).not.toContain('11:00');
+    expect(times).not.toContain('13:00');
+    expect(times).toContain('14:00');
+
+    // Removing the series frees every week again.
+    await ctx
+      .http()
+      .delete(`${base}/time-blocks/series/${res.body.seriesId}`)
+      .set(owner.auth)
+      .expect(204);
+    const left = await ctx
+      .http()
+      .get(`${base}/time-blocks`)
+      .query({ from: day, to: addDays(day, 28) })
+      .set(owner.auth)
+      .expect(200);
+    expect(left.body).toEqual([]);
+  });
+
+  it('keeps the local time across the change to summer time', async () => {
+    // Poland moves to summer time on Sunday 28 March 2027.
+    const res = await series({
+      staffId: null,
+      start: local('2027-03-22', 10),
+      end: local('2027-03-22', 12),
+      weeks: 2,
+    }).expect(201);
+    const [winter, summer] = res.body.items as { start: string; time: string }[];
+    expect([winter!.time, summer!.time]).toEqual(['10:00', '10:00']);
+    expect(winter!.start).toBe('2027-03-22T09:00:00.000Z');
+    expect(summer!.start).toBe('2027-03-29T08:00:00.000Z');
+  });
+
+  it('makes nothing when every week has a visit in the way', async () => {
+    for (const date of [day, addDays(day, 7)]) {
+      await ctx
+        .http()
+        .post(`${base}/appointments`)
+        .set(owner.auth)
+        .send({
+          serviceId,
+          staffId: kasiaId,
+          start: local(date, 12),
+          customer: { name: 'Jan', phone: '+48600000001' },
+        })
+        .expect(201);
+    }
+    const none = await series({ staffId: kasiaId, start: at(12), end: at(13), weeks: 2 });
+    expect(none.status).toBe(409);
+    expectError(none.body, 'APPOINTMENTS_IN_THE_WAY');
+    const blocks = await ctx
+      .http()
+      .get(`${base}/time-blocks`)
+      .query({ from: day, to: addDays(day, 14) })
+      .set(owner.auth)
+      .expect(200);
+    expect(blocks.body).toEqual([]);
+
+    const third = await series({ staffId: kasiaId, start: at(11), end: at(14), weeks: 3 });
+    expect(third.status).toBe(201);
+    expect(third.body.skippedDates).toEqual([day, addDays(day, 7)]);
+    expect(third.body.items.map((b: { date: string }) => b.date)).toEqual([addDays(day, 14)]);
+  });
+
+  it('checks the input and the salon', async () => {
+    for (const weeks of [1, 27]) {
+      const res = await series({ staffId: olaId, start: at(9), end: at(10), weeks }).expect(400);
+      expectError(res.body, 'VALIDATION_ERROR');
+    }
+    const other = await signUp(ctx, 'other@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    // Another salon's owner does not see this salon at all.
+    await series({ staffId: olaId, start: at(9), end: at(10), weeks: 2 }, other.auth).expect(404);
+    const made = await series({ staffId: olaId, start: at(9), end: at(10), weeks: 2 }).expect(201);
+    await ctx
+      .http()
+      .delete(`${base}/time-blocks/series/${made.body.seriesId}`)
+      .set(other.auth)
+      .expect(404);
+  });
+});

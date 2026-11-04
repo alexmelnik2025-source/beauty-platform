@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { AppException, forbidden, notFound } from '../common/app-exception';
@@ -7,7 +8,7 @@ import { LocationAccessService } from '../organizations/location-access.service'
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, instantToLocal, zonedToInstant } from '../scheduling/time';
 import { lockLocation, lockStaff, versionConflict } from './appointment-writer';
-import type { TimeBlockResponse } from './booking.responses';
+import type { TimeBlockResponse, TimeBlockSeriesResponse } from './booking.responses';
 import { listAppointmentsSchema } from './booking.schemas';
 
 const MINUTE_MS = 60_000;
@@ -38,6 +39,21 @@ export const createBlockSchema = z
   .refine(blockRange, 'end must be after start, at most 31 days later');
 export type CreateBlockInput = z.infer<typeof createBlockSchema>;
 
+/** The same time every week (launch task L4): the first block and how many weeks in a row. */
+export const createBlockSeriesSchema = z
+  .object({
+    staffId: z.uuid().nullable(),
+    start: fiveMinuteInstant,
+    end: fiveMinuteInstant,
+    reason: z.string().trim().max(200).optional(),
+    weeks: z.number().int().min(2).max(26),
+  })
+  .refine(
+    (b) => b.start < b.end && b.end - b.start <= 24 * 60 * MINUTE_MS,
+    'end must be after start, at most a day later',
+  );
+export type CreateBlockSeriesInput = z.infer<typeof createBlockSeriesSchema>;
+
 export const updateBlockSchema = z
   .object({
     version: z.number().int().min(1),
@@ -49,7 +65,7 @@ export const updateBlockSchema = z
   .refine(blockRange, 'end must be after start, at most 31 days later');
 export type UpdateBlockInput = z.infer<typeof updateBlockSchema>;
 
-export type { TimeBlockResponse } from './booking.responses';
+export type { TimeBlockResponse, TimeBlockSeriesResponse } from './booking.responses';
 
 const appointmentsInTheWay = (ids: string[]): AppException =>
   new AppException(
@@ -120,6 +136,79 @@ export class TimeBlocksService {
     return toResponse(block, location);
   }
 
+  /**
+   * The same local time every week for `weeks` weeks (summer/winter time is followed). Weeks
+   * where appointments are already in the way are left free and listed in skippedDates; when no
+   * week is free, nothing is made (409 APPOINTMENTS_IN_THE_WAY).
+   */
+  async createSeries(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    input: CreateBlockSeriesInput,
+  ): Promise<TimeBlockSeriesResponse> {
+    const location = await this.access.readable(m, locationId);
+    await this.assertMayBlock(m, userId, locationId, input.staffId);
+    const tz = location.timezone;
+    const first = instantToLocal(input.start, tz);
+    const last = instantToLocal(input.end, tz);
+    const seriesId = randomUUID();
+    const skippedDates: string[] = [];
+    const blocks = await this.prisma.$transaction(async (tx) => {
+      await this.lock(tx, location, input.staffId);
+      const made: TimeBlock[] = [];
+      let firstInTheWay: string[] = [];
+      for (let week = 0; week < input.weeks; week++) {
+        const date = addDays(first.date, 7 * week);
+        const start = zonedToInstant(date, first.minute, tz);
+        const end = zonedToInstant(addDays(last.date, 7 * week), last.minute, tz);
+        const inTheWay = await this.inTheWay(tx, location, input.staffId, start, end);
+        if (inTheWay.length > 0) {
+          skippedDates.push(date);
+          if (firstInTheWay.length === 0) firstInTheWay = inTheWay;
+          continue;
+        }
+        made.push(
+          await tx.timeBlock.create({
+            data: {
+              locationId,
+              staffId: input.staffId,
+              startAt: new Date(start),
+              endAt: new Date(end),
+              reason: input.reason ?? null,
+              seriesId,
+              createdByUserId: userId,
+            },
+          }),
+        );
+      }
+      if (made.length === 0) throw appointmentsInTheWay(firstInTheWay);
+      return made;
+    });
+    return { seriesId, items: blocks.map((b) => toResponse(b, location)), skippedDates };
+  }
+
+  /** Removes the blocks of a series that have not ended yet; past ones stay as they were. */
+  async removeSeries(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    seriesId: string,
+  ): Promise<void> {
+    await this.access.readable(m, locationId);
+    const any = await this.prisma.timeBlock.findFirst({
+      where: { seriesId, locationId, deletedAt: null },
+      orderBy: { startAt: 'asc' },
+    });
+    if (!any) throw notFound('Time block');
+    await this.findVisible(m, userId, locationId, any.id);
+    await this.assertMayBlock(m, userId, locationId, any.staffId);
+    await this.prisma.timeBlock.updateMany({
+      where: { seriesId, locationId, deletedAt: null, endAt: { gt: new Date() } },
+      data: { deletedAt: new Date(), version: { increment: 1 } },
+    });
+  }
+
   async update(
     m: MembershipContext,
     userId: string,
@@ -182,6 +271,17 @@ export class TimeBlocksService {
     start: number,
     end: number,
   ): Promise<void> {
+    await this.lock(tx, location, staffId);
+    const inTheWay = await this.inTheWay(tx, location, staffId, start, end);
+    if (inTheWay.length > 0) throw appointmentsInTheWay(inTheWay);
+  }
+
+  /** The staff member's calendar lock, or the whole location's for a location-wide block. */
+  private async lock(
+    tx: Prisma.TransactionClient,
+    location: Location,
+    staffId: string | null,
+  ): Promise<void> {
     if (staffId) {
       const staff = await tx.staffMember.findFirst({
         where: { id: staffId, locationId: location.id, active: true },
@@ -191,7 +291,17 @@ export class TimeBlocksService {
     } else {
       await lockLocation(tx, location.id);
     }
-    const inTheWay = await tx.appointment.findMany({
+  }
+
+  /** Live appointments (confirmed, or held and not expired) overlapping the time. */
+  private async inTheWay(
+    tx: Prisma.TransactionClient,
+    location: Location,
+    staffId: string | null,
+    start: number,
+    end: number,
+  ): Promise<string[]> {
+    const rows = await tx.appointment.findMany({
       where: {
         locationId: location.id,
         ...(staffId ? { staffId } : {}),
@@ -203,7 +313,7 @@ export class TimeBlocksService {
       orderBy: { startAt: 'asc' },
       take: 20,
     });
-    if (inTheWay.length > 0) throw appointmentsInTheWay(inTheWay.map((a) => a.id));
+    return rows.map((a) => a.id);
   }
 
   private async ownStaffIds(userId: string, locationId: string): Promise<string[]> {
@@ -268,6 +378,7 @@ export function toResponse(b: TimeBlock, location: Location): TimeBlockResponse 
     date: local.date,
     time: local.time,
     reason: b.reason,
+    seriesId: b.seriesId,
     version: b.version,
     deleted: b.deletedAt !== null,
     updatedAt: b.updatedAt.toISOString(),

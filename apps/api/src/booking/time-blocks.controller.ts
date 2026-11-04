@@ -20,15 +20,18 @@ import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CurrentMembership, MembershipGuard } from '../organizations/membership.guard';
-import { timeBlockListSchema, timeBlockSchema } from './booking.responses';
+import { timeBlockListSchema, timeBlockSchema, timeBlockSeriesSchema } from './booking.responses';
 import {
   createBlockSchema,
+  createBlockSeriesSchema,
   listBlocksSchema,
   TimeBlocksService,
   updateBlockSchema,
   type CreateBlockInput,
+  type CreateBlockSeriesInput,
   type ListBlocksQuery,
   type TimeBlockResponse,
+  type TimeBlockSeriesResponse,
   type UpdateBlockInput,
 } from './time-blocks.service';
 
@@ -72,6 +75,36 @@ export class TimeBlocksController {
     @Body(new ZodValidationPipe(createBlockSchema)) body: CreateBlockInput,
   ): Promise<TimeBlockResponse> {
     return this.blocks.create(m, auth.userId, locationId, body);
+  }
+
+  @Post('series')
+  @Idempotent()
+  @ApiOperation({
+    summary: 'Block the same time every week, for 2–26 weeks (e.g. while moving from Booksy)',
+    description:
+      'start/end are the first week; the following weeks keep the same local time. Weeks with live appointments in the way are left free and listed in skippedDates; 409 APPOINTMENTS_IN_THE_WAY when no week is free.',
+  })
+  @ApiZodBody(createBlockSeriesSchema)
+  @ApiZodResponse(timeBlockSeriesSchema, HttpStatus.CREATED)
+  createSeries(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(createBlockSeriesSchema)) body: CreateBlockSeriesInput,
+  ): Promise<TimeBlockSeriesResponse> {
+    return this.blocks.createSeries(m, auth.userId, locationId, body);
+  }
+
+  @Delete('series/:seriesId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove the blocks of a weekly series that have not ended yet' })
+  removeSeries(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('seriesId', uuid('Time block')) seriesId: string,
+  ): Promise<void> {
+    return this.blocks.removeSeries(m, auth.userId, locationId, seriesId);
   }
 
   @Patch(':blockId')

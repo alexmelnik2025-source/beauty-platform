@@ -125,6 +125,7 @@ export const timeBlockSchema = responseSchema(
     date: z.string().describe('Location-local start date, YYYY-MM-DD'),
     time: z.string().describe('Location-local start time, HH:MM'),
     reason: z.string().nullable(),
+    seriesId: z.string().nullable().describe('Blocks made together as "every week"; null = single'),
     version: z.number().int(),
     deleted: z.boolean(),
     updatedAt: z.string(),
@@ -133,6 +134,18 @@ export const timeBlockSchema = responseSchema(
 export type TimeBlockResponse = z.infer<typeof timeBlockSchema>;
 
 export const timeBlockListSchema = responseSchema('TimeBlockList', z.array(timeBlockSchema));
+
+export const timeBlockSeriesSchema = responseSchema(
+  'TimeBlockSeries',
+  z.strictObject({
+    seriesId: z.string(),
+    items: z.array(timeBlockSchema),
+    skippedDates: z
+      .array(z.string())
+      .describe('Location-local dates left free because appointments were already there'),
+  }),
+);
+export type TimeBlockSeriesResponse = z.infer<typeof timeBlockSeriesSchema>;
 
 const calendarStaffSchema = z.strictObject({
   id: z.string(),

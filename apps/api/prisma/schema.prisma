@@ -598,6 +598,8 @@ model TimeBlock {
   startAt         DateTime  @map("start_at") @db.Timestamptz(3)
   endAt           DateTime  @map("end_at") @db.Timestamptz(3)
   reason          String?
+  /// Blocks made together as "every week" share it (launch task L4); null = a single block.
+  seriesId        String?   @map("series_id") @db.Uuid
   createdByUserId String?   @map("created_by_user_id") @db.Uuid
   version         Int       @default(1)
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(3)
@@ -610,6 +612,7 @@ model TimeBlock {
   @@index([locationId, startAt])
   @@index([staffId, startAt])
   @@index([locationId, updatedAt])
+  @@index([seriesId])
   @@map("time_block")
 }
 

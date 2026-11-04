@@ -36,6 +36,7 @@ type Ids = Record<
   | 'categoryId'
   | 'membershipId'
   | 'blockId'
+  | 'seriesId'
   | 'serviceCategoryId'
   | 'invitationId'
   | 'photoId'
@@ -101,6 +102,14 @@ function validBody(route: Route): object {
   if (p.endsWith('/customers/:customerId')) return { version: 1, name: 'Hacked' };
   if (p.endsWith('/customers')) return { name: 'Hacker', phone: '+48500000001' };
   if (p.endsWith('/time-blocks/:blockId')) return { version: 1, reason: 'Hacked' };
+  if (p.endsWith('/time-blocks/series')) {
+    return {
+      staffId: null,
+      start: '2027-01-12T10:00:00.000Z',
+      end: '2027-01-12T11:00:00.000Z',
+      weeks: 2,
+    };
+  }
   if (p.endsWith('/time-blocks')) {
     return { staffId: null, start: '2027-01-12T10:00:00.000Z', end: '2027-01-12T11:00:00.000Z' };
   }
@@ -263,6 +272,17 @@ async function seedLocation(
       customer: { name: 'Jan Kowalski', phone: '+48600100200', email: 'jan@example.com' },
     })
     .expect(201);
+  const series = await ctx
+    .http()
+    .post(`${base}/time-blocks/series`)
+    .set(user.auth)
+    .send({
+      staffId: staff.body.id,
+      start: '2027-01-19T08:00:00.000Z',
+      end: '2027-01-19T09:00:00.000Z',
+      weeks: 2,
+    })
+    .expect(201);
   const block = await ctx
     .http()
     .post(`${base}/time-blocks`)
@@ -372,6 +392,7 @@ async function seedLocation(
     categoryId: category.body.id,
     membershipId: membership.id,
     blockId: block.body.id,
+    seriesId: series.body.seriesId,
     serviceCategoryId: serviceCategory.body.id,
     invitationId: invitation.body.id,
     photoId: photo.body.id,
@@ -460,7 +481,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|serviceCategoryId|invitationId|photoId|rewardId|couponId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|seriesId|serviceCategoryId|invitationId|photoId|rewardId|couponId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },

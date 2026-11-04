@@ -1213,6 +1213,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/time-blocks/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block the same time every week, for 2–26 weeks (e.g. while moving from Booksy)
+         * @description start/end are the first week; the following weeks keep the same local time. Weeks with live appointments in the way are left free and listed in skippedDates; 409 APPOINTMENTS_IN_THE_WAY when no week is free.
+         */
+        post: operations["TimeBlocksController_createSeries"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/time-blocks/series/{seriesId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove the blocks of a weekly series that have not ended yet */
+        delete: operations["TimeBlocksController_removeSeries"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/time-blocks/{blockId}": {
         parameters: {
             query?: never;
@@ -2081,6 +2118,8 @@ export interface components {
                 /** @description Location-local start time, HH:MM */
                 time: string;
                 reason: string | null;
+                /** @description Blocks made together as "every week"; null = single */
+                seriesId: string | null;
                 version: number;
                 deleted: boolean;
                 updatedAt: string;
@@ -3252,6 +3291,8 @@ export interface components {
             /** @description Location-local start time, HH:MM */
             time: string;
             reason: string | null;
+            /** @description Blocks made together as "every week"; null = single */
+            seriesId: string | null;
             version: number;
             deleted: boolean;
             updatedAt: string;
@@ -3268,10 +3309,35 @@ export interface components {
             /** @description Location-local start time, HH:MM */
             time: string;
             reason: string | null;
+            /** @description Blocks made together as "every week"; null = single */
+            seriesId: string | null;
             version: number;
             deleted: boolean;
             updatedAt: string;
         }[];
+        TimeBlockSeries: {
+            seriesId: string;
+            items: {
+                id: string;
+                locationId: string;
+                /** @description null = the whole location */
+                staffId: string | null;
+                start: string;
+                end: string;
+                /** @description Location-local start date, YYYY-MM-DD */
+                date: string;
+                /** @description Location-local start time, HH:MM */
+                time: string;
+                reason: string | null;
+                /** @description Blocks made together as "every week"; null = single */
+                seriesId: string | null;
+                version: number;
+                deleted: boolean;
+                updatedAt: string;
+            }[];
+            /** @description Location-local dates left free because appointments were already there */
+            skippedDates: string[];
+        };
         TimeOff: {
             id: string;
             /** @description Location-local, 'YYYY-MM-DDTHH:mm' */
@@ -5729,6 +5795,59 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TimeBlock"];
                 };
+            };
+        };
+    };
+    TimeBlocksController_createSeries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    staffId: string | null;
+                    /** Format: date-time */
+                    start: string;
+                    /** Format: date-time */
+                    end: string;
+                    reason?: string;
+                    weeks: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeBlockSeries"];
+                };
+            };
+        };
+    };
+    TimeBlocksController_removeSeries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                seriesId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
