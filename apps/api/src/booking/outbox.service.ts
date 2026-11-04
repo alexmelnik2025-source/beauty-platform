@@ -382,7 +382,17 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         manageLink = `${this.config.APP_WEB_URL}/${locale}/m/${token}`;
       }
       const { subject, text } = renderAppointmentEmail(kind, locale, details(locale, manageLink));
-      return [{ to: email, subject, text }];
+      // From the salon's name; a reply reaches the salon, not the platform (launch task L2).
+      return [
+        {
+          to: email,
+          subject,
+          text,
+          lang: locale,
+          senderName: appointment.location.name,
+          ...(appointment.location.email ? { replyTo: appointment.location.email } : {}),
+        },
+      ];
     }
 
     // Salon notifications: owners, managers of this location and the staff member.
@@ -404,7 +414,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     if (unique.length === 0) return null;
     return unique.map((user) => {
       const { subject, text } = renderAppointmentEmail(kind, user.locale, details(user.locale));
-      return { to: user.email, subject, text };
+      return { to: user.email, subject, text, lang: user.locale };
     });
   }
 }

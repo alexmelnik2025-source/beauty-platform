@@ -288,6 +288,7 @@ export class AuthService {
       to: user.email,
       subject: template.subject,
       text: template.text(user.name, link, token),
+      lang: user.locale,
     });
   }
 

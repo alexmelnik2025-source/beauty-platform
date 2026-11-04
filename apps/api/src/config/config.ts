@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
+import { parseMailbox } from '../mail/compose';
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
 
@@ -87,6 +88,27 @@ const configSchema = z
         message: `${config.SMS_TRANSPORT} is not allowed in production`,
       });
     }
+    // Launch task L2: links in emails must open for clients, and mail must come from a real domain.
+    if (config.NODE_ENV === 'production') {
+      const web = parseUrl(config.APP_WEB_URL);
+      if (!web || web.protocol !== 'https:' || isLocalHost(web.hostname)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['APP_WEB_URL'],
+          message: 'must be the public https:// address in production (links in emails use it)',
+        });
+      }
+      const from = parseMailbox(config.MAIL_FROM).address;
+      const domain = from.split('@')[1] ?? '';
+      if (!from.includes('@') || isLocalHost(domain)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['MAIL_FROM'],
+          message:
+            'must be an address on your domain in production, e.g. Salon <rezerwacje@example.pl>',
+        });
+      }
+    }
     if (Boolean(config.VAPID_PUBLIC_KEY) !== Boolean(config.VAPID_PRIVATE_KEY)) {
       ctx.addIssue({
         code: 'custom',
@@ -107,6 +129,25 @@ const configSchema = z
       ? { ...config, DATABASE_URL: preferIpv4Loopback(config.DATABASE_URL) }
       : config,
   );
+
+function parseUrl(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function isLocalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  return (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '::1' ||
+    host === '0.0.0.0' ||
+    /^127\./.test(host)
+  );
+}
 
 /**
  * Local development: "localhost" may resolve to IPv6 (::1) first — on a Mac every new

@@ -219,6 +219,7 @@ describe('Resend: duplicates are refused by idempotency key', () => {
   let server: Server;
   let url: string;
   let delivered: string[];
+  let lastBody: Record<string, unknown> = {};
   const seen = new Map<string, string>();
   let busyKey: string | undefined;
 
@@ -241,6 +242,7 @@ describe('Resend: duplicates are refused by idempotency key', () => {
           return reply(200, { id: `email-${key}` });
         }
         if (key) seen.set(key, body);
+        lastBody = JSON.parse(body);
         delivered.push(JSON.parse(body).to[0]);
         return reply(200, { id: `email-${delivered.length}` });
       });
@@ -277,6 +279,23 @@ describe('Resend: duplicates are refused by idempotency key', () => {
     );
     const wrongKey = new ResendMailService(url, 're_wrong', 'Salon <no-reply@example.com>');
     await expect(wrongKey.send(message)).rejects.toThrow('Resend answered 401 missing_api_key');
+  });
+
+  it('sends the salon as sender, its reply address and an HTML version (L2)', async () => {
+    const mail = new ResendMailService(url, 're_test', 'Salon <no-reply@example.com>');
+    await mail.send({
+      ...message,
+      senderName: 'Berber Moda',
+      replyTo: 'salon@example.com',
+      lang: 'tr',
+    });
+    expect(lastBody).toMatchObject({
+      from: '"Berber Moda" <no-reply@example.com>',
+      to: ['anna@example.com'],
+      reply_to: 'salon@example.com',
+      text: 'Do zobaczenia',
+    });
+    expect(lastBody.html).toContain('<html lang="tr">');
   });
 
   it('removes addresses from error texts', () => {

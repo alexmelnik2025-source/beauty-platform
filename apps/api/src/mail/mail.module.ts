@@ -10,8 +10,11 @@ import { MailService, MemoryMailService, ResendMailService, SmtpMailService } fr
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig): MailService => {
         switch (config.MAIL_TRANSPORT) {
-          case 'memory':
-            return new MemoryMailService();
+          case 'memory': {
+            const memory = new MemoryMailService();
+            memory.mailFrom = config.MAIL_FROM;
+            return memory;
+          }
           case 'resend':
             return new ResendMailService(
               config.RESEND_API_URL,

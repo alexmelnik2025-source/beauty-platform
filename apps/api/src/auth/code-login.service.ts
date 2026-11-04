@@ -114,7 +114,12 @@ export class CodeLoginService {
       await this.sms.send({ to: phone, text: SMS_TEXT[locale](code) });
     } else {
       const words = WORDS[locale];
-      await this.mail.send({ to: email, subject: words.subject, text: words.text(code) });
+      await this.mail.send({
+        to: email,
+        subject: words.subject,
+        text: words.text(code),
+        lang: locale,
+      });
     }
     return answer;
   }

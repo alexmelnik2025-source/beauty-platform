@@ -1,10 +1,38 @@
 import { Injectable, Logger } from '@nestjs/common';
 import nodemailer, { type Transporter } from 'nodemailer';
+import { senderMailbox, textToHtml } from './compose';
 
 export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /** Shown as the sender instead of the platform's name, e.g. the salon ("Berber Moda"). */
+  senderName?: string;
+  /** Where the client's reply goes, e.g. the salon's own email. */
+  replyTo?: string;
+  /** Language of the email (the HTML version's lang attribute). */
+  lang?: string;
+}
+
+/** What actually leaves: From with the salon's name, Reply-To, plain text and HTML. */
+export interface OutgoingMail {
+  from: string;
+  to: string;
+  replyTo?: string;
+  subject: string;
+  text: string;
+  html: string;
+}
+
+export function outgoing(message: MailMessage, mailFrom: string): OutgoingMail {
+  return {
+    from: senderMailbox(mailFrom, message.senderName),
+    to: message.to,
+    ...(message.replyTo ? { replyTo: message.replyTo } : {}),
+    subject: message.subject,
+    text: message.text,
+    html: textToHtml(message.text, message.lang),
+  };
 }
 
 export interface SendOptions {
@@ -46,8 +74,7 @@ export class SmtpMailService extends MailService {
 
   async send(message: MailMessage, options: SendOptions = {}): Promise<void> {
     await this.transporter.sendMail({
-      from: this.from,
-      ...message,
+      ...outgoing(message, this.from),
       ...(options.idempotencyKey
         ? {
             messageId: `<${options.idempotencyKey}@beauty-platform>`,
@@ -89,12 +116,7 @@ export class ResendMailService extends MailService {
     const response = await fetch(`${this.apiUrl.replace(/\/+$/, '')}/emails`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        from: this.from,
-        to: [message.to],
-        subject: message.subject,
-        text: message.text,
-      }),
+      body: JSON.stringify(resendBody(outgoing(message, this.from))),
       signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
     });
     if (response.ok) {
@@ -121,10 +143,23 @@ export class ResendMailService extends MailService {
   }
 }
 
+function resendBody(mail: OutgoingMail) {
+  return {
+    from: mail.from,
+    to: [mail.to],
+    ...(mail.replyTo ? { reply_to: mail.replyTo } : {}),
+    subject: mail.subject,
+    text: mail.text,
+    html: mail.html,
+  };
+}
+
 /** In-memory "provider" for tests: deduplicates by idempotency key like a real provider would. */
 @Injectable()
 export class MemoryMailService extends MailService {
-  readonly sent: MailMessage[] = [];
+  readonly sent: (MailMessage & { outgoing: OutgoingMail })[] = [];
+  /** MAIL_FROM of the test app, so tests see the same From header as SMTP would send. */
+  mailFrom = 'Beauty Platform <no-reply@localhost>';
   private readonly keys = new Set<string>();
   private failures = 0;
   private failureMessage = 'Simulated provider outage';
@@ -138,7 +173,7 @@ export class MemoryMailService extends MailService {
       if (this.keys.has(options.idempotencyKey)) return;
       this.keys.add(options.idempotencyKey);
     }
-    this.sent.push(message);
+    this.sent.push({ ...message, outgoing: outgoing(message, this.mailFrom) });
   }
 
   /** Test helper: the next `count` sends fail (with `message`, if given). */
@@ -148,11 +183,11 @@ export class MemoryMailService extends MailService {
   }
 
   /** Test helper: the last message sent to `to`. */
-  lastTo(to: string): MailMessage | undefined {
+  lastTo(to: string): (MailMessage & { outgoing: OutgoingMail }) | undefined {
     return [...this.sent].reverse().find((message) => message.to === to);
   }
 
-  allTo(to: string): MailMessage[] {
+  allTo(to: string): (MailMessage & { outgoing: OutgoingMail })[] {
     return this.sent.filter((message) => message.to === to);
   }
 

@@ -256,7 +256,14 @@ export class PublicBookingService {
       });
     } else {
       const { subject, text } = renderCodeEmail(input.locale, code, hold.location.name);
-      await this.mail.send({ to: input.email, subject, text });
+      await this.mail.send({
+        to: input.email,
+        subject,
+        text,
+        lang: input.locale,
+        senderName: hold.location.name,
+        ...(hold.location.email ? { replyTo: hold.location.email } : {}),
+      });
     }
     return { codeExpiresAt: expiresAt.toISOString(), channel };
   }

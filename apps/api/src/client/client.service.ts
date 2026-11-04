@@ -75,7 +75,7 @@ export class ClientService {
       update: { codeHash, expiresAt, attempts: 0, createdAt: new Date() },
     });
     const { subject, text } = renderClientCodeEmail(input.locale, code);
-    await this.mail.send({ to: input.email, subject, text });
+    await this.mail.send({ to: input.email, subject, text, lang: input.locale });
     return { codeExpiresAt: expiresAt.toISOString() };
   }
 

@@ -221,6 +221,8 @@ export class InvitationsService {
     await this.mail.send(
       {
         to: input.email,
+        senderName: organization.name,
+        lang: input.locale,
         subject: `${text.subject} — ${organization.name}`,
         text: text.text(
           organization.name,
