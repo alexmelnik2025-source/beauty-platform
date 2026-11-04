@@ -6,7 +6,7 @@ import { useSession } from '@/components/Session';
 import { PhoneField } from '@/components/PhoneField';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
 import type { Customer, CustomerDetail } from '@/lib/types';
 
@@ -15,9 +15,10 @@ type ClientRow = Customer;
 type ClientDetail = CustomerDetail;
 
 export default function ClientsPage() {
-  const { t } = useI18n();
-  const { orgId } = useSession();
+  const { t, locale } = useI18n();
+  const { orgId, role } = useSession();
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
   const [error, setError] = useState('');
@@ -34,6 +35,31 @@ export default function ClientsPage() {
     }
   }, [orgId, search, t]);
 
+  /** Task 21: the owner downloads all clients as a CSV file (column names in the cabinet language). */
+  async function exportCsv(): Promise<void> {
+    if (exporting) return;
+    setExporting(true);
+    setError('');
+    try {
+      const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
+      const res = await apiResponse(`/v1/organizations/${orgId}/customers/export.csv`, {
+        query: { lang },
+      });
+      const name =
+        /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ??
+        'klienci.csv';
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(await res.blob());
+      link.download = name;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 250);
     return () => window.clearTimeout(timer);
@@ -43,9 +69,22 @@ export default function ClientsPage() {
     <>
       <div className="page-head">
         <h1>{t.clients.title}</h1>
-        <button type="button" className="btn btn--small" onClick={() => setOpen('new')}>
-          + {t.clients.add}
-        </button>
+        <div className="page-head__actions">
+          {role === 'owner' && (
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              title={t.clients.exportHint}
+              disabled={exporting}
+              onClick={() => void exportCsv()}
+            >
+              {t.clients.export}
+            </button>
+          )}
+          <button type="button" className="btn btn--small" onClick={() => setOpen('new')}>
+            + {t.clients.add}
+          </button>
+        </div>
       </div>
       <div className="page">
         <input

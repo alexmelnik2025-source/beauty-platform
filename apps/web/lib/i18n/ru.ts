@@ -587,6 +587,8 @@ export const ru: Dict = {
     duplicatePhone: 'Клиент с таким номером уже есть.',
     duplicateEmail: 'Клиент с таким e-mail уже есть.',
     addAnyway: 'Всё равно добавить',
+    export: 'Экспорт CSV',
+    exportHint: 'Все клиенты салона в файле для Excel: контакты, согласие, визиты.',
   },
   notifications: {
     title: 'Уведомления',

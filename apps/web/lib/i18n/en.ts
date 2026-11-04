@@ -587,6 +587,8 @@ export const en: Dict = {
     duplicatePhone: 'A client with this phone number exists.',
     duplicateEmail: 'A client with this email exists.',
     addAnyway: 'Add anyway',
+    export: 'Export CSV',
+    exportHint: 'All clients of the salon in a file for Excel: contacts, consent, visits.',
   },
   notifications: {
     title: 'Notifications',

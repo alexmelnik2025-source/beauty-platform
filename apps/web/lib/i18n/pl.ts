@@ -587,6 +587,8 @@ export const pl = {
     duplicatePhone: 'Klient z tym numerem już istnieje.',
     duplicateEmail: 'Klient z tym e-mailem już istnieje.',
     addAnyway: 'Dodaj mimo to',
+    export: 'Eksportuj CSV',
+    exportHint: 'Wszyscy klienci salonu w pliku dla Excela: kontakty, zgoda, wizyty.',
   },
   notifications: {
     title: 'Powiadomienia',

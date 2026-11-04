@@ -622,6 +622,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByRole('dialog')).toContainText('Strzyżenie męskie');
   await shot(ownerPage, '19-owner-client');
   await ownerPage.keyboard.press('Escape');
+  // Task 21: the owner downloads all clients as a CSV file for Excel.
+  const [csv] = await Promise.all([
+    ownerPage.waitForEvent('download'),
+    ownerPage.getByRole('button', { name: 'Eksportuj CSV' }).click(),
+  ]);
+  expect(csv.suggestedFilename()).toMatch(/^klienci-\d{4}-\d{2}-\d{2}\.csv$/);
+  const csvText = (await readFile(await csv.path())).toString('utf8');
+  expect(csvText.startsWith('\uFEFF"Imię i nazwisko";"Telefon"')).toBe(true);
+  expect(csvText).toContain('"Anna Kowalska"');
+  await shot(ownerPage, '75-owner-clients-export');
   await ownerPage.goto('/pl/app/notifications');
   await expect(ownerPage.getByText('Nowa rezerwacja online').first()).toBeVisible();
   await shot(ownerPage, '20-owner-notifications');
