@@ -18,7 +18,14 @@ import { Idempotent } from '../common/idempotency.interceptor';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { setPaidSchema, type SetPaidInput } from '../loyalty/loyalty.schemas';
+import {
+  applyVisitCouponSchema,
+  removeVisitCouponSchema,
+  setPaidSchema,
+  type ApplyVisitCouponInput,
+  type RemoveVisitCouponInput,
+  type SetPaidInput,
+} from '../loyalty/loyalty.schemas';
 import {
   CurrentMembership,
   MembershipGuard,
@@ -28,12 +35,14 @@ import {
   AppointmentsService,
   type AppointmentDetailResponse,
   type AppointmentResponse,
+  type VisitCouponsResponse,
 } from './appointments.service';
 import {
   appointmentDetailSchema,
   appointmentListSchema,
   customerDetailSchema,
   customerListSchema,
+  visitCouponsSchema,
 } from './booking.responses';
 import {
   cancelSchema,
@@ -179,6 +188,66 @@ export class AppointmentsController {
     @Body(new ZodValidationPipe(setPaidSchema)) body: SetPaidInput,
   ): Promise<AppointmentDetailResponse> {
     return this.appointments.setPaid(m, auth.userId, locationId, appointmentId, body);
+  }
+
+  @Get(':appointmentId/coupons')
+  @ApiOperation({
+    summary: "Loyalty coupons on the visit and the client's other unused coupons",
+    description:
+      'For each unused coupon: what it would take off this visit, or why it cannot be used (problem). Who may change the visit may see this.',
+  })
+  @ApiZodResponse(visitCouponsSchema)
+  coupons(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+  ): Promise<VisitCouponsResponse> {
+    return this.appointments.coupons(m, auth.userId, locationId, appointmentId);
+  }
+
+  @Post(':appointmentId/coupons')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Use the client's loyalty coupon on the visit (lowers its price)",
+    description:
+      'couponId from the list, or the code the client shows. Only a booked or "came" visit that is not paid (409 VISIT_NOT_CHANGEABLE). The salon\'s rules: 409 COUPON_NOT_FOR_SERVICE, COUPON_NOT_COMBINABLE (one discount per visit), COUPON_NO_DISCOUNT (maximum discount reached), COUPON_EXPIRED, COUPON_NOT_ACTIVE. Another client\'s coupon → 404.',
+  })
+  @ApiZodBody(applyVisitCouponSchema)
+  @ApiZodResponse(appointmentDetailSchema)
+  applyCoupon(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Body(new ZodValidationPipe(applyVisitCouponSchema)) body: ApplyVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    return this.appointments.applyCoupon(m, auth.userId, locationId, appointmentId, body);
+  }
+
+  @Post(':appointmentId/coupons/:couponId/remove')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Take a coupon off a visit that is not paid yet; the client can use it again',
+  })
+  @ApiZodBody(removeVisitCouponSchema)
+  @ApiZodResponse(appointmentDetailSchema)
+  removeCoupon(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Param('couponId', uuid('Coupon')) couponId: string,
+    @Body(new ZodValidationPipe(removeVisitCouponSchema)) body: RemoveVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    return this.appointments.removeCoupon(
+      m,
+      auth.userId,
+      locationId,
+      appointmentId,
+      couponId,
+      body,
+    );
   }
 }
 

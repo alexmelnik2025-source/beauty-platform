@@ -22,6 +22,12 @@ export const pl = {
     LOYALTY_DISABLED: 'Program lojalnościowy jest wyłączony.',
     LOYALTY_NOT_ENOUGH: 'Klient ma za mało pieczątek lub punktów na tę nagrodę.',
     COUPON_NOT_ACTIVE: 'Ten kupon jest już wykorzystany, anulowany lub nieważny.',
+    COUPON_EXPIRED: 'Ten kupon stracił ważność.',
+    COUPON_NOT_FOR_SERVICE: 'Tego kuponu nie można użyć na tę usługę.',
+    COUPON_NOT_COMBINABLE: 'Salon nie łączy rabatów — na wizytę można użyć jednego kuponu.',
+    COUPON_NO_DISCOUNT: 'Wizyta ma już największy rabat, na jaki pozwala salon.',
+    VISIT_NOT_CHANGEABLE:
+      'Kupony można zmieniać tylko w nieopłaconej wizycie, która się nie odbyła lub właśnie się odbyła.',
     generic: 'Coś poszło nie tak. Spróbuj ponownie.',
     network: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
     VALIDATION_ERROR: 'Sprawdź pola formularza.',
@@ -207,6 +213,8 @@ export const pl = {
       no_show: 'Oznaczona jako nieobecność',
       paid: 'Opłacona',
       unpaid: 'Anulowano opłatę',
+      coupon_applied: 'Użyto kuponu',
+      coupon_removed: 'Zdjęto kupon',
     },
   },
   phone: {

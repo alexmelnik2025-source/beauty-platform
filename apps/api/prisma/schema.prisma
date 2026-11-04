@@ -478,23 +478,23 @@ model ServiceCategory {
 
 /// A person who performs services at a location. May or may not have a user account.
 model StaffMember {
-  id          String     @id @default(uuid(7)) @db.Uuid
-  locationId  String     @map("location_id") @db.Uuid
-  userId      String?    @map("user_id") @db.Uuid
+  id              String      @id @default(uuid(7)) @db.Uuid
+  locationId      String      @map("location_id") @db.Uuid
+  userId          String?     @map("user_id") @db.Uuid
   /// Shown to clients, e.g. "Kasia".
-  displayName String     @map("display_name")
-  bio         String?
+  displayName     String      @map("display_name")
+  bio             String?
   /// Languages this staff member speaks with clients.
-  languages   Language[] @default([])
+  languages       Language[]  @default([])
   /// What this specialist does, in the order the salon chose (task 11a, part 3).
   specialties     Specialty[] @default([])
   /// The salon's own words when the list has nothing that fits, e.g. "Trycholog".
   customSpecialty String?     @map("custom_specialty")
-  active      Boolean    @default(true)
-  sortOrder   Int        @default(0) @map("sort_order")
-  version     Int        @default(1)
-  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  active          Boolean     @default(true)
+  sortOrder       Int         @default(0) @map("sort_order")
+  version         Int         @default(1)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   location     Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
   user         User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -691,6 +691,9 @@ model Appointment {
   staffChosenByClient Boolean           @default(false) @map("staff_chosen_by_client")
   /// Snapshot at booking time; later price changes do not affect it.
   priceGrosze         Int               @map("price_grosze")
+  /// Task 10d: what the client's loyalty coupons take off the price (0 = none).
+  /// The client pays priceGrosze - discountGrosze; loyalty is earned on that.
+  discountGrosze      Int               @default(0) @map("discount_grosze")
   durationMinutes     Int               @map("duration_minutes")
   bufferMinutes       Int               @map("buffer_minutes")
   note                String?
@@ -1042,6 +1045,8 @@ model LoyaltyCoupon {
   /// Task 10d: the visit it was used on.
   usedAppointmentId   String?             @map("used_appointment_id") @db.Uuid
   usedAt              DateTime?           @map("used_at") @db.Timestamptz(3)
+  /// What it took off that visit's price.
+  discountGrosze      Int?                @map("discount_grosze")
   cancelledAt         DateTime?           @map("cancelled_at") @db.Timestamptz(3)
   cancelledByUserId   String?             @map("cancelled_by_user_id") @db.Uuid
   version             Int                 @default(1)
@@ -1054,5 +1059,6 @@ model LoyaltyCoupon {
 
   @@index([accountId, status])
   @@index([rewardId])
+  @@index([usedAppointmentId])
   @@map("loyalty_coupon")
 }

@@ -6,6 +6,16 @@ import {
   localeSchema,
 } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
+import { loyaltyRewardKindSchema } from '../loyalty/loyalty.schemas';
+
+const visitCouponFields = {
+  id: z.string(),
+  code: z.string(),
+  name: z.string(),
+  kind: loyaltyRewardKindSchema,
+  discountPercent: z.number().int().nullable(),
+  version: z.number().int(),
+};
 
 /** What the salon sees in the calendar, appointment cards, client cards and time blocks. */
 
@@ -38,6 +48,21 @@ export const appointmentSchema = responseSchema(
       .int()
       .nullable()
       .describe('Hundredths of the location currency; null when a staff member may not see prices'),
+    discountGrosze: z
+      .number()
+      .int()
+      .nullable()
+      .describe(
+        'What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden',
+      ),
+    coupons: z
+      .array(
+        z.strictObject({
+          ...visitCouponFields,
+          discountGrosze: z.number().int().nullable().describe('null when prices are hidden'),
+        }),
+      )
+      .describe('Loyalty coupons used on this visit (task 10d)'),
     staffChosenByClient: z
       .boolean()
       .describe('The client chose this staff member themselves (not "any staff member")'),
@@ -188,3 +213,33 @@ export const calendarSchema = responseSchema(
   }),
 );
 export type CalendarResponse = z.infer<typeof calendarSchema>;
+
+export const visitCouponsSchema = responseSchema(
+  'VisitCoupons',
+  z.strictObject({
+    applied: z.array(
+      z.strictObject({
+        ...visitCouponFields,
+        discountGrosze: z.number().int().nullable().describe('null when prices are hidden'),
+      }),
+    ),
+    available: z
+      .array(
+        z.strictObject({
+          ...visitCouponFields,
+          expiresAt: z.string().nullable(),
+          discountGrosze: z
+            .number()
+            .int()
+            .nullable()
+            .describe('What it would take off this visit; null when prices are hidden'),
+          problem: z
+            .enum(['EXPIRED', 'NOT_FOR_SERVICE', 'NOT_COMBINABLE', 'NO_DISCOUNT'])
+            .nullable()
+            .describe('Why it cannot be used on this visit; null = it can'),
+        }),
+      )
+      .describe("The client's unused coupons in this salon"),
+  }),
+);
+export type VisitCouponsResponse = z.infer<typeof visitCouponsSchema>;

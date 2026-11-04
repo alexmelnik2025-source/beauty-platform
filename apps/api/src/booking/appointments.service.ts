@@ -6,10 +6,21 @@ import type {
   AppointmentEvent,
   Customer,
   Location,
+  LoyaltyCoupon,
   Prisma,
 } from '../generated/prisma/client';
 import { LoyaltyLedger } from '../loyalty/loyalty-ledger';
-import type { SetPaidInput } from '../loyalty/loyalty.schemas';
+import type {
+  ApplyVisitCouponInput,
+  RemoveVisitCouponInput,
+  SetPaidInput,
+} from '../loyalty/loyalty.schemas';
+import {
+  couponDiscount,
+  visitNotChangeable,
+  VisitCoupons,
+  type CouponVisit,
+} from '../loyalty/visit-coupons';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from '../scheduling/availability.service';
@@ -22,13 +33,21 @@ import type {
   RescheduleInput,
   SetStatusInput,
 } from './booking.schemas';
-import type { AppointmentDetailResponse, AppointmentResponse } from './booking.responses';
+import type {
+  AppointmentDetailResponse,
+  AppointmentResponse,
+  VisitCouponsResponse,
+} from './booking.responses';
 import { OutboxService } from './outbox.service';
 
 const MINUTE_MS = 60_000;
 const REMINDER_BEFORE_MS = 24 * 60 * MINUTE_MS;
 
-export type { AppointmentDetailResponse, AppointmentResponse } from './booking.responses';
+export type {
+  AppointmentDetailResponse,
+  AppointmentResponse,
+  VisitCouponsResponse,
+} from './booking.responses';
 
 type Loaded = Appointment & {
   location: Location;
@@ -65,6 +84,7 @@ export class AppointmentsService {
     private readonly writer: AppointmentWriter,
     private readonly outbox: OutboxService,
     private readonly ledger: LoyaltyLedger,
+    private readonly visitCoupons: VisitCoupons,
   ) {}
 
   async list(
@@ -92,7 +112,8 @@ export class AppointmentsService {
       orderBy: [{ startAt: 'asc' }, { staffId: 'asc' }],
     });
     const firsts = await this.firstCompleted(rows);
-    return rows.map((row) => this.toResponse(row, m, firsts));
+    const coupons = await this.couponsOf(rows);
+    return rows.map((row) => this.toResponse(row, m, firsts, coupons));
   }
 
   async get(
@@ -107,7 +128,11 @@ export class AppointmentsService {
       orderBy: { createdAt: 'asc' },
     });
     const firsts = await this.firstCompleted([appointment]);
-    return { ...this.toResponse(appointment, m, firsts), history: events.map(toHistory) };
+    const coupons = await this.couponsOf([appointment]);
+    return {
+      ...this.toResponse(appointment, m, firsts, coupons),
+      history: events.map(toHistory),
+    };
   }
 
   /** A booking entered by the salon (phone call, walk-in). Confirmed immediately. */
@@ -323,8 +348,11 @@ export class AppointmentsService {
         },
       });
       if (result.count !== 1) throw versionConflict();
+      // The coupons were not used after all: the client gets them back.
+      const couponsReturned = await this.visitCoupons.releaseForVisit(tx, appointment.id);
       await this.writer.event(tx, appointment.id, 'cancelled', 'staff', userId, {
         reason: input.reason,
+        ...(couponsReturned > 0 ? { couponsReturned } : {}),
       });
       if (appointment.status === 'confirmed' && appointment.customer?.email) {
         await this.outbox.enqueue(tx, 'client_cancelled', {
@@ -371,13 +399,22 @@ export class AppointmentsService {
       });
       if (result.count !== 1) throw versionConflict();
       const taken = unpay ? await this.ledger.reverseForVisit(tx, appointment.id, userId) : 0;
+      // "Did not come": the coupons were not used after all, the client gets them back.
+      const couponsReturned =
+        input.status === 'no_show'
+          ? await this.visitCoupons.releaseForVisit(tx, appointment.id)
+          : 0;
+      const data = {
+        ...(taken > 0 ? { loyaltyTakenBack: taken } : {}),
+        ...(couponsReturned > 0 ? { couponsReturned } : {}),
+      };
       await this.writer.event(
         tx,
         appointment.id,
         input.status,
         'staff',
         userId,
-        taken > 0 ? { loyaltyTakenBack: taken } : undefined,
+        Object.keys(data).length > 0 ? data : undefined,
       );
     });
     return this.get(m, userId, locationId, appointmentId);
@@ -431,7 +468,8 @@ export class AppointmentsService {
             organizationId: appointment.location.organizationId,
             serviceId: appointment.serviceId,
             customerId: appointment.customerId,
-            priceGrosze: appointment.priceGrosze,
+            // Earned on what the client actually paid, after coupons.
+            priceGrosze: appointment.priceGrosze - appointment.discountGrosze,
           },
           userId,
         );
@@ -448,7 +486,133 @@ export class AppointmentsService {
     return this.get(m, userId, locationId, appointmentId);
   }
 
+  // ── Loyalty coupons on a visit (task 10d) ─────────────
+
+  /** Coupons used on the visit and the client's other unused coupons, with what each would take off. */
+  async coupons(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+  ): Promise<VisitCouponsResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    const prices = m.permissions.viewOwnEarnings;
+    const applied = await this.visitCoupons.applied(this.prisma, appointment.id);
+    const unused = appointment.customerId
+      ? await this.prisma.loyaltyCoupon.findMany({
+          where: {
+            status: 'active',
+            account: {
+              customerId: appointment.customerId,
+              program: { organizationId: appointment.location.organizationId },
+            },
+          },
+          orderBy: [{ expiresAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+          take: 50,
+        })
+      : [];
+    const rules = await this.couponRules(this.prisma, appointment.location.organizationId);
+    return {
+      applied: applied.map((c) => ({
+        ...visitCouponFields(c),
+        discountGrosze: prices ? (c.discountGrosze ?? 0) : null,
+      })),
+      available: unused.map((c) => {
+        const { discountGrosze, problem } = couponDiscount(rules, appointment, c, applied);
+        return {
+          ...visitCouponFields(c),
+          expiresAt: c.expiresAt?.toISOString() ?? null,
+          discountGrosze: prices && problem === null ? discountGrosze : null,
+          problem: problem === 'ALREADY_APPLIED' ? null : problem,
+        };
+      }),
+    };
+  }
+
+  /**
+   * Uses the client's coupon on a booked or "came" visit that is not paid yet. Whoever may
+   * change the visit may do it; the salon's rules are checked here, not in the app.
+   */
+  async applyCoupon(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    input: ApplyVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    assertCouponsChangeable(appointment, input.version);
+    const visit = toCouponVisit(appointment, input.version);
+    await this.prisma.$transaction(async (tx) => {
+      const coupon = await this.visitCoupons.findForVisit(tx, visit, input);
+      const rules = await this.couponRules(tx, visit.organizationId);
+      const discountGrosze = await this.visitCoupons.apply(tx, visit, coupon, rules);
+      await this.writer.event(tx, appointment.id, 'coupon_applied', 'staff', userId, {
+        couponId: coupon.id,
+        code: coupon.code,
+        name: coupon.name,
+        discountGrosze,
+      });
+    });
+    return this.get(m, userId, locationId, appointmentId);
+  }
+
+  /** Takes a coupon off a visit that is not paid yet; the client can use it again. */
+  async removeCoupon(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    couponId: string,
+    input: RemoveVisitCouponInput,
+  ): Promise<AppointmentDetailResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    assertCouponsChangeable(appointment, input.version);
+    const visit = toCouponVisit(appointment, input.version);
+    await this.prisma.$transaction(async (tx) => {
+      const coupon = await this.visitCoupons.remove(tx, visit, couponId);
+      await this.writer.event(tx, appointment.id, 'coupon_removed', 'staff', userId, {
+        couponId: coupon.id,
+        code: coupon.code,
+        name: coupon.name,
+      });
+    });
+    return this.get(m, userId, locationId, appointmentId);
+  }
+
   // ── Helpers ───────────────────────────────────────────
+
+  private async couponRules(
+    db: Prisma.TransactionClient,
+    organizationId: string,
+  ): Promise<{ maxDiscountPercent: number; allowStacking: boolean }> {
+    const program = await db.loyaltyProgram.findUnique({
+      where: { organizationId },
+      select: { maxDiscountPercent: true, allowStacking: true },
+    });
+    // Coupons exist only where a program was saved; these are the program's defaults.
+    return program ?? { maxDiscountPercent: 100, allowStacking: false };
+  }
+
+  /** Coupons used on these visits, by visit. */
+  private async couponsOf(rows: Appointment[]): Promise<Map<string, LoyaltyCoupon[]>> {
+    const ids = rows.filter((r) => r.discountGrosze > 0).map((r) => r.id);
+    const byVisit = new Map<string, LoyaltyCoupon[]>();
+    if (ids.length === 0) return byVisit;
+    const coupons = await this.prisma.loyaltyCoupon.findMany({
+      where: { usedAppointmentId: { in: ids }, status: 'used' },
+      orderBy: [{ usedAt: 'asc' }, { id: 'asc' }],
+    });
+    for (const c of coupons) {
+      const list = byVisit.get(c.usedAppointmentId!) ?? [];
+      list.push(c);
+      byVisit.set(c.usedAppointmentId!, list);
+    }
+    return byVisit;
+  }
 
   /** Staff role: the staff profiles linked to the user at this location. Others: null (no limit). */
   private async ownStaffIds(
@@ -634,7 +798,9 @@ export class AppointmentsService {
     a: Loaded,
     m: MembershipContext,
     firstCompleted: Map<string, number>,
+    coupons: Map<string, LoyaltyCoupon[]>,
   ): AppointmentResponse {
+    const prices = m.permissions.viewOwnEarnings;
     const local = instantToLocal(a.startAt.getTime(), a.location.timezone);
     const contacts = m.permissions.viewClientContacts;
     return {
@@ -657,7 +823,12 @@ export class AppointmentsService {
             email: contacts ? a.customer.email : null,
           }
         : null,
-      priceGrosze: m.permissions.viewOwnEarnings ? a.priceGrosze : null,
+      priceGrosze: prices ? a.priceGrosze : null,
+      discountGrosze: prices ? a.discountGrosze : null,
+      coupons: (coupons.get(a.id) ?? []).map((c) => ({
+        ...visitCouponFields(c),
+        discountGrosze: prices ? (c.discountGrosze ?? 0) : null,
+      })),
       staffChosenByClient: a.staffChosenByClient,
       firstVisit:
         a.customerId !== null &&
@@ -678,4 +849,34 @@ export class AppointmentsService {
 
 function toHistory(e: AppointmentEvent): AppointmentDetailResponse['history'][number] {
   return { type: e.type, actor: e.actor, at: e.createdAt.toISOString(), data: e.data };
+}
+
+function visitCouponFields(c: LoyaltyCoupon) {
+  return {
+    id: c.id,
+    code: c.code,
+    name: c.name,
+    kind: c.kind,
+    discountPercent: c.discountPercent,
+    version: c.version,
+  };
+}
+
+function toCouponVisit(a: Loaded, version: number): CouponVisit {
+  return {
+    id: a.id,
+    organizationId: a.location.organizationId,
+    serviceId: a.serviceId,
+    customerId: a.customerId,
+    priceGrosze: a.priceGrosze,
+    version,
+  };
+}
+
+/** Coupons change only on a booked or "came" visit that is not paid, at the version the caller read. */
+function assertCouponsChangeable(a: Loaded, version: number): void {
+  if (!['confirmed', 'completed'].includes(a.status) || a.paidAt !== null) {
+    throw visitNotChangeable();
+  }
+  if (a.version !== version) throw versionConflict();
 }

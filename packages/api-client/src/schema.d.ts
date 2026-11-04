@@ -1147,6 +1147,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Loyalty coupons on the visit and the client's other unused coupons
+         * @description For each unused coupon: what it would take off this visit, or why it cannot be used (problem). Who may change the visit may see this.
+         */
+        get: operations["AppointmentsController_coupons"];
+        put?: never;
+        /**
+         * Use the client's loyalty coupon on the visit (lowers its price)
+         * @description couponId from the list, or the code the client shows. Only a booked or "came" visit that is not paid (409 VISIT_NOT_CHANGEABLE). The salon's rules: 409 COUPON_NOT_FOR_SERVICE, COUPON_NOT_COMBINABLE (one discount per visit), COUPON_NO_DISCOUNT (maximum discount reached), COUPON_EXPIRED, COUPON_NOT_ACTIVE. Another client's coupon → 404.
+         */
+        post: operations["AppointmentsController_applyCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons/{couponId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a coupon off a visit that is not paid yet; the client can use it again */
+        post: operations["AppointmentsController_removeCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/customers": {
         parameters: {
             query?: never;
@@ -1837,6 +1878,20 @@ export interface components {
             } | null;
             /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
+            /** @description What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden */
+            discountGrosze: number | null;
+            /** @description Loyalty coupons used on this visit (task 10d) */
+            coupons: {
+                id: string;
+                code: string;
+                name: string;
+                /** @enum {string} */
+                kind: "discount_percent" | "free_service";
+                discountPercent: number | null;
+                version: number;
+                /** @description null when prices are hidden */
+                discountGrosze: number | null;
+            }[];
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
             /** @description No completed visit of this client before this appointment */
@@ -1890,6 +1945,20 @@ export interface components {
             } | null;
             /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
+            /** @description What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden */
+            discountGrosze: number | null;
+            /** @description Loyalty coupons used on this visit (task 10d) */
+            coupons: {
+                id: string;
+                code: string;
+                name: string;
+                /** @enum {string} */
+                kind: "discount_percent" | "free_service";
+                discountPercent: number | null;
+                version: number;
+                /** @description null when prices are hidden */
+                discountGrosze: number | null;
+            }[];
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
             /** @description No completed visit of this client before this appointment */
@@ -1949,6 +2018,20 @@ export interface components {
             } | null;
             /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
+            /** @description What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden */
+            discountGrosze: number | null;
+            /** @description Loyalty coupons used on this visit (task 10d) */
+            coupons: {
+                id: string;
+                code: string;
+                name: string;
+                /** @enum {string} */
+                kind: "discount_percent" | "free_service";
+                discountPercent: number | null;
+                version: number;
+                /** @description null when prices are hidden */
+                discountGrosze: number | null;
+            }[];
             /** @description The client chose this staff member themselves (not "any staff member") */
             staffChosenByClient: boolean;
             /** @description No completed visit of this client before this appointment */
@@ -2089,6 +2172,20 @@ export interface components {
                 } | null;
                 /** @description Hundredths of the location currency; null when a staff member may not see prices */
                 priceGrosze: number | null;
+                /** @description What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden */
+                discountGrosze: number | null;
+                /** @description Loyalty coupons used on this visit (task 10d) */
+                coupons: {
+                    id: string;
+                    code: string;
+                    name: string;
+                    /** @enum {string} */
+                    kind: "discount_percent" | "free_service";
+                    discountPercent: number | null;
+                    version: number;
+                    /** @description null when prices are hidden */
+                    discountGrosze: number | null;
+                }[];
                 /** @description The client chose this staff member themselves (not "any staff member") */
                 staffChosenByClient: boolean;
                 /** @description No completed visit of this client before this appointment */
@@ -3386,6 +3483,37 @@ export interface components {
             /** @enum {string} */
             locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             emailVerified: boolean;
+        };
+        VisitCoupons: {
+            applied: {
+                id: string;
+                code: string;
+                name: string;
+                /** @enum {string} */
+                kind: "discount_percent" | "free_service";
+                discountPercent: number | null;
+                version: number;
+                /** @description null when prices are hidden */
+                discountGrosze: number | null;
+            }[];
+            /** @description The client's unused coupons in this salon */
+            available: {
+                id: string;
+                code: string;
+                name: string;
+                /** @enum {string} */
+                kind: "discount_percent" | "free_service";
+                discountPercent: number | null;
+                version: number;
+                expiresAt: string | null;
+                /** @description What it would take off this visit; null when prices are hidden */
+                discountGrosze: number | null;
+                /**
+                 * @description Why it cannot be used on this visit; null = it can
+                 * @enum {string|null}
+                 */
+                problem: "EXPIRED" | "NOT_FOR_SERVICE" | "NOT_COMBINABLE" | "NO_DISCOUNT" | null;
+            }[];
         };
         WorkingHours: {
             timezone: string;
@@ -5614,6 +5742,88 @@ export interface operations {
                 "application/json": {
                     version: number;
                     paid: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
+            };
+        };
+    };
+    AppointmentsController_coupons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitCoupons"];
+                };
+            };
+        };
+    };
+    AppointmentsController_applyCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                    /** Format: uuid */
+                    couponId?: string;
+                    code?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
+            };
+        };
+    };
+    AppointmentsController_removeCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+                couponId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
                 };
             };
         };

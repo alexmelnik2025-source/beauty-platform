@@ -5,6 +5,7 @@ import { AppException, notFound } from '../common/app-exception';
 import { generateToken, hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { Appointment, Locale, Location, Prisma } from '../generated/prisma/client';
+import { VisitCoupons } from '../loyalty/visit-coupons';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
@@ -80,6 +81,7 @@ export class PublicBookingService {
     private readonly mail: MailService,
     private readonly sms: SmsService,
     private readonly limiter: RateLimiterService,
+    private readonly visitCoupons: VisitCoupons,
   ) {}
 
   async findBookable(slug: string): Promise<Location> {
@@ -440,8 +442,11 @@ export class PublicBookingService {
       });
       if (result.count !== 1) throw tooLate();
       const version = appointment.version + 1;
+      // The coupons were not used after all: the client gets them back.
+      const couponsReturned = await this.visitCoupons.releaseForVisit(tx, appointment.id);
       await this.writer.event(tx, appointment.id, 'cancelled', 'customer', null, {
         reason: reason ?? null,
+        ...(couponsReturned > 0 ? { couponsReturned } : {}),
       });
       await this.outbox.enqueue(tx, 'client_cancelled', { appointmentId: appointment.id, version });
       await this.outbox.enqueue(tx, 'salon_client_cancelled', {

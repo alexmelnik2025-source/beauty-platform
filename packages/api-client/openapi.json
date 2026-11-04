@@ -4861,6 +4861,196 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons": {
+      "get": {
+        "description": "For each unused coupon: what it would take off this visit, or why it cannot be used (problem). Who may change the visit may see this.",
+        "operationId": "AppointmentsController_coupons",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitCoupons"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Loyalty coupons on the visit and the client's other unused coupons",
+        "tags": [
+          "appointments"
+        ]
+      },
+      "post": {
+        "description": "couponId from the list, or the code the client shows. Only a booked or \"came\" visit that is not paid (409 VISIT_NOT_CHANGEABLE). The salon's rules: 409 COUPON_NOT_FOR_SERVICE, COUPON_NOT_COMBINABLE (one discount per visit), COUPON_NO_DISCOUNT (maximum discount reached), COUPON_EXPIRED, COUPON_NOT_ACTIVE. Another client's coupon → 404.",
+        "operationId": "AppointmentsController_applyCoupon",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "couponId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 20
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use the client's loyalty coupon on the visit (lowers its price)",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons/{couponId}/remove": {
+      "post": {
+        "operationId": "AppointmentsController_removeCoupon",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "couponId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a coupon off a visit that is not paid yet; the client can use it again",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/customers": {
       "get": {
         "operationId": "CustomersController_list",
@@ -7342,6 +7532,66 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
+          "discountGrosze": {
+            "nullable": true,
+            "description": "What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "coupons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "discount_percent",
+                    "free_service"
+                  ]
+                },
+                "discountPercent": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "discountGrosze": {
+                  "nullable": true,
+                  "description": "null when prices are hidden",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "kind",
+                "discountPercent",
+                "version",
+                "discountGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Loyalty coupons used on this visit (task 10d)"
+          },
           "staffChosenByClient": {
             "type": "boolean",
             "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -7412,6 +7662,8 @@
           "service",
           "customer",
           "priceGrosze",
+          "discountGrosze",
+          "coupons",
           "staffChosenByClient",
           "firstVisit",
           "durationMinutes",
@@ -7541,6 +7793,66 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
+          "discountGrosze": {
+            "nullable": true,
+            "description": "What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "coupons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "discount_percent",
+                    "free_service"
+                  ]
+                },
+                "discountPercent": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "discountGrosze": {
+                  "nullable": true,
+                  "description": "null when prices are hidden",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "kind",
+                "discountPercent",
+                "version",
+                "discountGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Loyalty coupons used on this visit (task 10d)"
+          },
           "staffChosenByClient": {
             "type": "boolean",
             "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -7636,6 +7948,8 @@
           "service",
           "customer",
           "priceGrosze",
+          "discountGrosze",
+          "coupons",
           "staffChosenByClient",
           "firstVisit",
           "durationMinutes",
@@ -7768,6 +8082,66 @@
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
             },
+            "discountGrosze": {
+              "nullable": true,
+              "description": "What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "coupons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "discount_percent",
+                      "free_service"
+                    ]
+                  },
+                  "discountPercent": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "discountGrosze": {
+                    "nullable": true,
+                    "description": "null when prices are hidden",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "id",
+                  "code",
+                  "name",
+                  "kind",
+                  "discountPercent",
+                  "version",
+                  "discountGrosze"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Loyalty coupons used on this visit (task 10d)"
+            },
             "staffChosenByClient": {
               "type": "boolean",
               "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -7838,6 +8212,8 @@
             "service",
             "customer",
             "priceGrosze",
+            "discountGrosze",
+            "coupons",
             "staffChosenByClient",
             "firstVisit",
             "durationMinutes",
@@ -8315,6 +8691,66 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "discountGrosze": {
+                  "nullable": true,
+                  "description": "What loyalty coupons take off priceGrosze (the client pays the difference); null when prices are hidden",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "coupons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "discount_percent",
+                          "free_service"
+                        ]
+                      },
+                      "discountPercent": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "discountGrosze": {
+                        "nullable": true,
+                        "description": "null when prices are hidden",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "code",
+                      "name",
+                      "kind",
+                      "discountPercent",
+                      "version",
+                      "discountGrosze"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Loyalty coupons used on this visit (task 10d)"
+                },
                 "staffChosenByClient": {
                   "type": "boolean",
                   "description": "The client chose this staff member themselves (not \"any staff member\")"
@@ -8385,6 +8821,8 @@
                 "service",
                 "customer",
                 "priceGrosze",
+                "discountGrosze",
+                "coupons",
                 "staffChosenByClient",
                 "firstVisit",
                 "durationMinutes",
@@ -13613,6 +14051,138 @@
           "name",
           "locale",
           "emailVerified"
+        ],
+        "additionalProperties": false
+      },
+      "VisitCoupons": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "discount_percent",
+                    "free_service"
+                  ]
+                },
+                "discountPercent": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "discountGrosze": {
+                  "nullable": true,
+                  "description": "null when prices are hidden",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "kind",
+                "discountPercent",
+                "version",
+                "discountGrosze"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "available": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "discount_percent",
+                    "free_service"
+                  ]
+                },
+                "discountPercent": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "expiresAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "discountGrosze": {
+                  "nullable": true,
+                  "description": "What it would take off this visit; null when prices are hidden",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "problem": {
+                  "nullable": true,
+                  "description": "Why it cannot be used on this visit; null = it can",
+                  "type": "string",
+                  "enum": [
+                    "EXPIRED",
+                    "NOT_FOR_SERVICE",
+                    "NOT_COMBINABLE",
+                    "NO_DISCOUNT"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "kind",
+                "discountPercent",
+                "version",
+                "expiresAt",
+                "discountGrosze",
+                "problem"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The client's unused coupons in this salon"
+          }
+        },
+        "required": [
+          "applied",
+          "available"
         ],
         "additionalProperties": false
       },

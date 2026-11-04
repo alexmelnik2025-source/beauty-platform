@@ -122,6 +122,22 @@ export const setPaidSchema = z.object({
   paid: z.boolean(),
 });
 
+/** Task 10d: a coupon on a visit, picked from the list (couponId) or typed from the client's screen (code). */
+export const applyVisitCouponSchema = z
+  .object({
+    version: z.number().int().min(1),
+    couponId: z.uuid().optional(),
+    code: z.string().trim().min(4).max(20).optional(),
+  })
+  .refine((v) => (v.couponId === undefined) !== (v.code === undefined), {
+    message: 'Send either couponId or code',
+    path: ['couponId'],
+  });
+
+export const removeVisitCouponSchema = z.object({ version: z.number().int().min(1) });
+
+export type ApplyVisitCouponInput = z.infer<typeof applyVisitCouponSchema>;
+export type RemoveVisitCouponInput = z.infer<typeof removeVisitCouponSchema>;
 export type UpdateLoyaltyProgramInput = z.infer<typeof updateLoyaltyProgramSchema>;
 export type ReplaceEarnRulesInput = z.infer<typeof replaceEarnRulesSchema>;
 export type ListLoyaltyTransactionsQuery = z.infer<typeof listLoyaltyTransactionsSchema>;

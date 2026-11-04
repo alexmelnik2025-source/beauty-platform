@@ -22,6 +22,12 @@ export const en: Dict = {
     LOYALTY_DISABLED: 'The loyalty program is switched off.',
     LOYALTY_NOT_ENOUGH: "The client doesn't have enough stamps or points for this reward.",
     COUPON_NOT_ACTIVE: 'This coupon is already used, cancelled or no longer valid.',
+    COUPON_EXPIRED: 'This coupon has expired.',
+    COUPON_NOT_FOR_SERVICE: 'This coupon does not cover this service.',
+    COUPON_NOT_COMBINABLE: 'The salon does not combine discounts — one coupon per visit.',
+    COUPON_NO_DISCOUNT: 'The visit already has the largest discount the salon allows.',
+    VISIT_NOT_CHANGEABLE:
+      'Coupons can be changed only on an unpaid visit that is booked or has just taken place.',
     generic: 'Something went wrong. Try again.',
     network: 'Cannot reach the server. Check your connection and try again.',
     VALIDATION_ERROR: 'Check the form fields.',
@@ -207,6 +213,8 @@ export const en: Dict = {
       no_show: 'Marked as no-show',
       paid: 'Marked as paid',
       unpaid: 'Payment cancelled',
+      coupon_applied: 'Coupon used',
+      coupon_removed: 'Coupon removed',
     },
   },
   phone: {
