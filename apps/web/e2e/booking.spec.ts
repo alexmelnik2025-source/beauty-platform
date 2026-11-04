@@ -1241,6 +1241,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await phone.getByRole('button', { name: 'Українська' }).click();
     await expect(phone.getByRole('heading', { name: 'Знайти салон' })).toBeVisible();
     await shot(phone, '62-client-app-catalogue-uk');
+    // Launch task L5, part 4: Turkish and Albanian in the client app too.
+    await phone.getByRole('button', { name: 'Türkçe' }).click();
+    await expect(phone.getByRole('heading', { name: 'Salon bul' })).toBeVisible();
+    await expect(salonCard.getByRole('button', { name: 'Salonu gör' })).toBeVisible();
+    await shot(phone, '71f-client-app-catalogue-tr');
+    await phone.getByRole('button', { name: 'Shqip' }).click();
+    await expect(phone.getByRole('heading', { name: 'Gjeni një sallon' })).toBeVisible();
+    await shot(phone, '71g-client-app-catalogue-sq');
+    await phone.getByRole('button', { name: 'Українська' }).click();
+    await expect(phone.getByRole('heading', { name: 'Знайти салон' })).toBeVisible();
     await phone.getByRole('button', { name: '‹ Назад' }).click();
     await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();
   } finally {

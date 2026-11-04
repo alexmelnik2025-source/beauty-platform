@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DICTIONARIES, fill, LOCALES, pickLocale } from '../src/i18n';
+import { appLocale, DICTIONARIES, fill, LOCALES, pickLocale } from '../src/i18n';
 
 /** Every key path of a dictionary, e.g. "signIn.title". */
 function keys(value: unknown, prefix = ''): string[] {
@@ -8,7 +8,7 @@ function keys(value: unknown, prefix = ''): string[] {
 }
 
 describe('translations', () => {
-  it('PL, UA, RU and EN have the same keys and no empty texts', () => {
+  it('PL, UA, RU, EN, TR and SQ have the same keys and no empty texts', () => {
     const base = keys(DICTIONARIES.pl).sort();
     for (const locale of LOCALES) {
       expect(keys(DICTIONARIES[locale]).sort(), locale).toEqual(base);
@@ -44,7 +44,23 @@ describe('translations', () => {
     expect(pickLocale('ru_RU')).toBe('ru');
     expect(pickLocale('en-US')).toBe('en');
     expect(pickLocale('be-BY')).toBe('ru');
+    expect(pickLocale('tr-TR')).toBe('tr');
+    expect(pickLocale('sq-AL')).toBe('sq');
     expect(pickLocale('de-DE')).toBe('pl');
     expect(pickLocale(undefined)).toBe('pl');
+  });
+
+  it('Turkish and Albanian are translated, not English copies (L5, part 4)', () => {
+    const english = DICTIONARIES.en;
+    for (const locale of ['tr', 'sq'] as const) {
+      const t = DICTIONARIES[locale];
+      expect(t.signIn.title).not.toBe(english.signIn.title);
+      expect(t.book.confirm).not.toBe(english.book.confirm);
+      expect(t.visit.cancelAsk).not.toBe(english.visit.cancelAsk);
+      expect(t.bonuses.tab).not.toBe(english.bonuses.tab);
+      expect(fill(t.visit.moveAsk, { day: 'X', time: '10:00' })).toContain('10:00');
+    }
+    expect(appLocale('tr')).toBe('tr');
+    expect(appLocale('de')).toBe('en');
   });
 });

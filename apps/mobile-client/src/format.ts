@@ -7,6 +7,8 @@ export const LOCALE_TAGS: Record<Locale, string> = {
   uk: 'uk-UA',
   ru: 'ru-RU',
   en: 'en-GB',
+  tr: 'tr-TR',
+  sq: 'sq-AL',
 };
 
 /** "wtorek, 10 listopada" for the salon-local date YYYY-MM-DD (no time zone shift). */

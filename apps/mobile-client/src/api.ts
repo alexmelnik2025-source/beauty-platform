@@ -21,7 +21,8 @@ import type {
  * same code is tested with Vitest (test/api.test.ts).
  */
 
-export type Locale = 'pl' | 'uk' | 'ru' | 'en';
+/** pl, uk, ru, en, tr (Turkish), sq (Albanian) — the same list as the API. */
+export type Locale = 'pl' | 'uk' | 'ru' | 'en' | 'tr' | 'sq';
 export type Scope = 'upcoming' | 'past';
 /** Languages a salon or specialist can speak with clients (Belarusian too). */
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
