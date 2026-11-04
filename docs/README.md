@@ -1052,3 +1052,7 @@ pnpm --filter @beauty/api-client generate
   `PUT /v1/public/appointments/:token/wishes` до начала визита (`canChangeWishes`); в истории — `wishes_changed`.
 - Миграция `20261104230000_visit_wishes`, тесты `apps/api/test/visit-wishes.spec.ts`. Дальше — 80b (фото-образцы),
   80c–80e (экраны).
+- Кабинет (80d): «Ustawienia» → «Pytania przy rezerwacji» — галочки вопросов (настроение, напиток + что есть в салоне:
+  kawa / herbata / woda, заметка для мастера); в карточке визита сверху блок «Życzenia klienta» иконками
+  (😄 / 🤫 / 😌, ☕ / 🍵 / 💧 / 🙅) и заметка ✍️. e2e: пожелания по ссылке визита → карточка у владельца (скриншот 09w),
+  настройки (скриншот 21w).

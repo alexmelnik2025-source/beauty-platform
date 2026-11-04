@@ -339,6 +339,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
 
   // The "manage" link from the email works.
   const manageLink = /(\/pl\/m\/\S+)/.exec(confirmation.text)![1]!;
+  // Task 80: the client's wishes for the visit, changed by the link (the booking step comes in 80c).
+  const manageToken = manageLink.split('/').pop()!;
+  const wishes = await client.request.put(`/v1/public/appointments/${manageToken}/wishes`, {
+    data: { mood: 'quiet', note: 'Wrażliwa skóra głowy' },
+  });
+  expect(wishes.ok()).toBe(true);
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();
   await shot(client, '07-client-manage');
@@ -417,6 +423,11 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await booked.click();
   await expect(ownerPage.getByRole('dialog')).toContainText('+48600100200');
   await shot(ownerPage, '09-owner-appointment');
+  // The specialist sees the wishes on top of the visit: 🤫 and the note.
+  const wishesCard = ownerPage.getByRole('region', { name: 'Życzenia klienta' });
+  await expect(wishesCard).toContainText('🤫 Woli ciszę');
+  await expect(wishesCard).toContainText('Wrażliwa skóra głowy');
+  await shot(ownerPage, '09w-owner-visit-wishes');
   await ownerPage.keyboard.press('Escape');
 
   // The owner books a walk-in for Ola through the form.
@@ -645,6 +656,15 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   await ownerPage.getByLabel('O salonie').fill('Barbershop na Woli. Zapraszamy!');
   await shot(ownerPage, '21-owner-settings');
+  // Task 80: questions when booking — mood and note on by default; the salon offers coffee and tea.
+  const wishSettings = ownerPage.getByRole('region', { name: 'Pytania przy rezerwacji' });
+  await expect(wishSettings.getByLabel(/Jak klient chce spędzić wizytę/)).toBeChecked();
+  await expect(wishSettings.getByLabel(/Informacja dla specjalisty/)).toBeChecked();
+  await wishSettings.getByLabel(/Coś do picia/).check();
+  await wishSettings.getByLabel(/Kawa/).check();
+  await wishSettings.getByLabel(/Herbata/).check();
+  await wishSettings.scrollIntoViewIfNeeded();
+  await shot(ownerPage, '21w-owner-wishes-settings');
   // Short link for Instagram and the booking button for the salon's own site.
   await expect(ownerPage.getByLabel('Krótki link')).toHaveValue(new RegExp(`/s/${location.slug}$`));
   await expect(ownerPage.getByLabel('Przycisk rezerwacji na Twoją stronę')).toHaveValue(
@@ -729,8 +749,11 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     privacyPolicy: string | null;
     latitude: number | null;
     longitude: number | null;
+    askDrink: boolean;
+    drinks: string[];
   }>(await request.get(base, { headers: owner }));
   expect([savedLocation.latitude, savedLocation.longitude]).toEqual([52.23251, 20.95634]);
+  expect([savedLocation.askDrink, savedLocation.drinks]).toEqual([true, ['coffee', 'tea']]);
   expect(savedLocation.languages).toEqual(['pl', 'uk', 'ru', 'be']);
   expect(savedLocation.description).toBe('Barbershop na Woli. Zapraszamy!');
   expect(savedLocation.privacyPolicy).toMatch(/^# Polityka prywatności rezerwacji online/);

@@ -1,5 +1,6 @@
 'use client';
 
+import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '@/components/wishes/wishes';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
 import { LanguagePicker } from '@/components/Languages';
@@ -79,6 +80,10 @@ export default function SettingsPage() {
           currency: form.currency,
           timezone: form.timezone,
           onlineBookingEnabled: form.onlineBookingEnabled,
+          askMood: form.askMood,
+          askDrink: form.askDrink,
+          drinks: form.drinks,
+          askNote: form.askNote,
           minLeadMinutes: form.minLeadMinutes,
           bookingHorizonDays: form.bookingHorizonDays,
           clientCancelDeadlineMinutes: form.clientCancelDeadlineMinutes,
@@ -215,6 +220,64 @@ export default function SettingsPage() {
               </select>
             </label>
           </div>
+        </section>
+        <section className="section" aria-labelledby="wishes-title">
+          <h2 id="wishes-title">{t.wishes.settingsTitle}</h2>
+          <p className="small muted">{t.wishes.settingsHint}</p>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={form.askMood}
+              onChange={(e) => setForm({ ...form, askMood: e.target.checked })}
+            />
+            <span>
+              {MOOD_ICON.chat} {MOOD_ICON.quiet} {MOOD_ICON.relax} {t.wishes.askMood}
+            </span>
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={form.askDrink}
+              onChange={(e) => setForm({ ...form, askDrink: e.target.checked })}
+            />
+            <span>
+              {DRINK_ICON.coffee} {t.wishes.askDrink}
+            </span>
+          </label>
+          {form.askDrink ? (
+            <fieldset className="field" style={{ marginLeft: 28 }}>
+              <legend className="small">{t.wishes.drinksOffered}</legend>
+              <div className="row">
+                {OFFERED_DRINKS.map((d) => (
+                  <label className="check" key={d}>
+                    <input
+                      type="checkbox"
+                      checked={form.drinks.includes(d)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          drinks: e.target.checked
+                            ? OFFERED_DRINKS.filter((x) => x === d || form.drinks.includes(x))
+                            : form.drinks.filter((x) => x !== d),
+                        })
+                      }
+                    />
+                    <span>
+                      {DRINK_ICON[d]} {t.wishes.drink[d]}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={form.askNote}
+              onChange={(e) => setForm({ ...form, askNote: e.target.checked })}
+            />
+            <span>✍️ {t.wishes.askNote}</span>
+          </label>
         </section>
         <section className="section" aria-labelledby="legal-title">
           <h2 id="legal-title">{t.legal.title}</h2>

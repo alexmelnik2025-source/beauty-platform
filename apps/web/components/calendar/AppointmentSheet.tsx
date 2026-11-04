@@ -1,5 +1,6 @@
 'use client';
 
+import { DRINK_ICON, hasWishes, MOOD_ICON } from '@/components/wishes/wishes';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
@@ -177,6 +178,23 @@ export function AppointmentSheet({
 
       {mode === 'view' ? (
         <>
+          {hasWishes(a.wishes) ? (
+            <section className="wishes-card" aria-label={t.wishes.title}>
+              <div className="wishes-card__icons">
+                {a.wishes.mood ? (
+                  <span title={t.wishes.mood[a.wishes.mood]}>
+                    {MOOD_ICON[a.wishes.mood]} {t.wishes.mood[a.wishes.mood]}
+                  </span>
+                ) : null}
+                {a.wishes.drink ? (
+                  <span title={t.wishes.drink[a.wishes.drink]}>
+                    {DRINK_ICON[a.wishes.drink]} {t.wishes.drink[a.wishes.drink]}
+                  </span>
+                ) : null}
+              </div>
+              {a.wishes.note ? <p className="wishes-card__note">✍️ {a.wishes.note}</p> : null}
+            </section>
+          ) : null}
           <dl className="kv">
             <dt>{t.appointment.client}</dt>
             <dd>

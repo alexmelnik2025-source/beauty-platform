@@ -2099,3 +2099,23 @@ label.btn:focus-within {
   grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
   gap: 8px;
 }
+
+/* ── Visit wishes (task 80) ───────────────────────────── */
+
+.wishes-card {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.wishes-card__icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 15px;
+}
+
+.wishes-card__note {
+  margin: 6px 0 0;
+}

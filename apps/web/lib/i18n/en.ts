@@ -621,6 +621,18 @@ export const en: Dict = {
     qrHint:
       'For a mirror, the counter, the door or a business card. Clients scan it with their phone and see free times right away. PNG for Canva and print shops, SVG stays sharp at any size.',
   },
+  wishes: {
+    title: "Client's wishes",
+    settingsTitle: 'Questions when booking',
+    settingsHint:
+      'The last, optional booking step — the client answers with one tap or skips it. The specialist sees the answers on the visit.',
+    askMood: 'How the client wants to spend the visit (chat, quiet, rest)',
+    askDrink: 'Something to drink',
+    drinksOffered: 'What do you have in the salon?',
+    askNote: 'A note for the specialist (up to 200 characters)',
+    mood: { chat: 'Happy to chat', quiet: 'Prefers quiet', relax: 'Wants to relax' },
+    drink: { coffee: 'Coffee', tea: 'Tea', water: 'Water', none: 'Nothing to drink' },
+  },
   settings: {
     title: 'Settings',
     salon: 'Salon',

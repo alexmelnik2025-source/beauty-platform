@@ -621,6 +621,18 @@ export const pl = {
     qrHint:
       'Na lustro, ladę, drzwi lub wizytówkę. Klient skanuje telefonem i od razu widzi wolne terminy. PNG — do Canvy i drukarni, SVG — ostry w każdym rozmiarze.',
   },
+  wishes: {
+    title: 'Życzenia klienta',
+    settingsTitle: 'Pytania przy rezerwacji',
+    settingsHint:
+      'Ostatni, nieobowiązkowy krok rezerwacji — klient odpowiada jednym dotknięciem albo pomija. Odpowiedzi widzi specjalista w wizycie.',
+    askMood: 'Jak klient chce spędzić wizytę (rozmowa, cisza, odpoczynek)',
+    askDrink: 'Coś do picia',
+    drinksOffered: 'Co macie w salonie?',
+    askNote: 'Informacja dla specjalisty (do 200 znaków)',
+    mood: { chat: 'Chętnie pogada', quiet: 'Woli ciszę', relax: 'Chce odpocząć' },
+    drink: { coffee: 'Kawa', tea: 'Herbata', water: 'Woda', none: 'Nic do picia' },
+  },
   settings: {
     title: 'Ustawienia',
     salon: 'Salon',
