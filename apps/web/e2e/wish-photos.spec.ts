@@ -11,13 +11,15 @@ import { serveApp } from './mobile-app';
 /**
  * Task 80b/80f: "Pokaż, co chcesz". The owner lets clients add example photos for a service;
  * a client books with a photo (through the API, as the booking page and the app do); the
- * owner sees the photo in the visit card and in the business app. Screenshots 21p–21r.
+ * owner sees the photo in the visit card and in the business app; on the booking page the
+ * client adds and removes a photo on the code step. Screenshots 21p–21r, 05p.
  */
 
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `photos-owner-${run}@example.com`;
 const CLIENT = `photos-client-${run}@example.com`;
+const CLIENT2 = `photos-client2-${run}@example.com`;
 const DESKTOP = { width: 1280, height: 900 };
 const PHONE = { width: 390, height: 844 };
 /** A client of its own (the API limits holds and codes per address). */
@@ -240,4 +242,34 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   } finally {
     businessApp.server.close();
   }
+
+  // ── The booking page: "Pokaż, co chcesz" on the code step ──────────────
+  const phoneContext = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    extraHTTPHeaders: { 'x-forwarded-for': '203.0.113.81' },
+  });
+  const client = await phoneContext.newPage();
+  await client.goto(`/pl/b/${location.slug}`);
+  await client.getByRole('button', { name: /Strzyżenie fade/ }).click();
+  await client.getByRole('button', { name: /Kasia/ }).click();
+  await client.locator('.times button').first().click();
+  await client.getByLabel('Imię i nazwisko').fill('Ola Nowak');
+  await client.getByLabel('Telefon').fill('600 500 400');
+  await client.getByLabel('E-mail', { exact: true }).fill(CLIENT2);
+  await client.getByLabel(/Akceptuję regulamin rezerwacji/).check();
+  await client.getByRole('button', { name: 'Wyślij kod' }).click();
+  await expect(client.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toBeVisible();
+  await client.locator('input[type=file]').setInputFiles({
+    name: 'fade.jpg',
+    mimeType: 'image/jpeg',
+    buffer: await drawnPhoto(client),
+  });
+  const mine = client.getByRole('img', { name: 'Twoje zdjęcie 1' });
+  await expect(mine).toBeVisible();
+  await shot(client, '05p-booking-wish-photos');
+  await client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' }).click();
+  await expect(mine).toHaveCount(0);
+  await expect(client.getByText('＋ Dodaj zdjęcie')).toBeVisible();
+  await phoneContext.close();
 });

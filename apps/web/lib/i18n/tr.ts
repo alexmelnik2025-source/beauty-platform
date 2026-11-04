@@ -107,6 +107,14 @@ export const tr: Dict = {
     remembered: 'Önceki ziyaretinizdeki seçimlerinizi işaretledik — değiştirebilirsiniz.',
     save: 'İstekleri kaydet',
     saved: 'İstekler kaydedildi.',
+    photosQ: 'Ne istediğinizi gösterin',
+    photosLead:
+      'En fazla 3 fotoğraf — örneğin istediğiniz saç kesimi. Uzman görecek; fotoğrafları randevudan 90 gün sonra sileriz.',
+    photosAdd: '＋ Fotoğraf ekle',
+    photosUploading: 'Gönderiliyor…',
+    photosRemove: 'Sil',
+    photoAlt: 'Fotoğrafınız {n}',
+    photosTooMany: 'En fazla 3 fotoğraf ekleyebilirsiniz.',
   },
   booking: {
     waitlistOpen: 'Bir saat boşalınca bana haber verin',

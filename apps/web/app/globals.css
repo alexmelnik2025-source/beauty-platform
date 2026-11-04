@@ -2233,6 +2233,19 @@ label.btn:focus-within {
   margin-top: 8px;
 }
 
+.wish-photos__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  list-style: none;
+}
+
+ul.wish-photos {
+  padding: 0;
+  margin: 8px 0;
+}
+
 .wish-photos img {
   display: block;
   width: 96px;

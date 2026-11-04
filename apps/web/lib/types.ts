@@ -78,6 +78,7 @@ export type {
   PublicAppointment,
   PublicLegalTexts,
   PublicWaitlistEntry,
+  VisitPhoto,
   VisitPhotoList,
   SalonWaitlist,
   SalonWaitlistEntry,

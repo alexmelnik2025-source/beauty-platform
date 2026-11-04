@@ -267,6 +267,14 @@ export const en: Dict = {
     remembered: 'We picked your choices from your last visit — you can change them.',
     save: 'Save wishes',
     saved: 'Wishes saved.',
+    photosQ: 'Show what you want',
+    photosLead:
+      'Up to 3 photos — e.g. the haircut you want. The specialist will see them; we delete them 90 days after the visit.',
+    photosAdd: '＋ Add a photo',
+    photosUploading: 'Uploading…',
+    photosRemove: 'Remove',
+    photoAlt: 'Your photo {n}',
+    photosTooMany: 'You can add at most 3 photos.',
   },
   booking: {
     waitlistOpen: 'Tell me when a time becomes free',

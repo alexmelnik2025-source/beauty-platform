@@ -1367,7 +1367,11 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
 - Кабинет (80f): в окне услуги галочка «Klient może dodać zdjęcia-inspiracje (do 3)»; в карточке визита блок
   «Zdjęcia od klienta» (миниатюры, клик — фото целиком, «Zdjęcia zostaną usunięte …»). Бизнес-приложение: в карточке
   визита «📷 Zdjęcia od klienta», тап открывает фото. e2e `apps/web/e2e/wish-photos.spec.ts`, скриншоты 21p–21r.
-  Дальше: шаг «Pokaż, co chcesz» на сайте записи и в клиентском приложении.
+- Сайт записи: на шаге кода, если салон включил фото для услуги, блок «📷 Pokaż, co chcesz» — до 3 фото
+  (браузер уменьшает до 1600 px JPEG), миниатюры с «Usuń», строка «zdjęcia usuniemy 90 dni po wizycie»; 6 языков
+  (`wishStep.photos*`), компонент `components/wishes/WishPhotos.tsx`. e2e — скриншот 05p.
+  Дальше: фото в клиентском приложении (нужен `expo-image-picker` — новая зависимость, отдельной задачей) и
+  удаление фото клиентом на странице визита по ссылке / в «Moje wizyty» (API уже есть).
 
 ## Цена услуги у каждого мастера (задача 62, часть 1 — API)
 

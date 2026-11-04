@@ -267,6 +267,14 @@ export const pl = {
     remembered: 'Zaznaczyliśmy wybory z Twojej poprzedniej wizyty — możesz je zmienić.',
     save: 'Zapisz życzenia',
     saved: 'Zapisano życzenia.',
+    photosQ: 'Pokaż, co chcesz',
+    photosLead:
+      'Do 3 zdjęć — np. fryzura, którą chcesz. Zobaczy je specjalista; zdjęcia usuniemy 90 dni po wizycie.',
+    photosAdd: '＋ Dodaj zdjęcie',
+    photosUploading: 'Wysyłamy…',
+    photosRemove: 'Usuń',
+    photoAlt: 'Twoje zdjęcie {n}',
+    photosTooMany: 'Możesz dodać najwyżej 3 zdjęcia.',
   },
   booking: {
     waitlistOpen: 'Powiadom mnie, gdy zwolni się termin',

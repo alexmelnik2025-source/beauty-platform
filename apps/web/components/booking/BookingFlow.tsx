@@ -24,6 +24,7 @@ import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
 import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
+import { WishPhotos } from '../wishes/WishPhotos';
 import type { VisitWishes } from '../wishes/wishes';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
@@ -800,6 +801,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                 <WishesPicker questions={wishQuestions} value={wishes} onChange={setWishes} />
               </section>
             ) : null}
+            {service?.wishPhotos ? <WishPhotos hold={hold} /> : null}
             <button className="btn btn--block" disabled={busy || code.length !== 6}>
               {t.booking.confirm}
             </button>

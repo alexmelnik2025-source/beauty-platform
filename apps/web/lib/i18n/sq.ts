@@ -107,6 +107,14 @@ export const sq: Dict = {
     remembered: 'Shënuam zgjedhjet nga vizita juaj e kaluar — mund t’i ndryshoni.',
     save: 'Ruaj dëshirat',
     saved: 'Dëshirat u ruajtën.',
+    photosQ: 'Tregoni çfarë dëshironi',
+    photosLead:
+      'Deri në 3 foto — p.sh. prerja që dëshironi. Specialisti do t’i shohë; fotot i fshijmë 90 ditë pas vizitës.',
+    photosAdd: '＋ Shto foto',
+    photosUploading: 'Po dërgohet…',
+    photosRemove: 'Hiq',
+    photoAlt: 'Fotoja juaj {n}',
+    photosTooMany: 'Mund të shtoni më së shumti 3 foto.',
   },
   booking: {
     waitlistOpen: 'Më njoftoni kur të lirohet një orar',
