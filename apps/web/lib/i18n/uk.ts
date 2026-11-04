@@ -232,6 +232,7 @@ export const uk: Dict = {
       coupon_removed: 'Купон знято',
       tier_discount_applied: 'Застосовано знижку рівня',
       tier_discount_removed: 'Знижку рівня знято',
+      wishes_changed: 'Клієнт змінив побажання до візиту',
     },
   },
   phone: {

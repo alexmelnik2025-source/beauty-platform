@@ -37,6 +37,7 @@ export const APPOINTMENT_EVENT_TYPES = [
   'coupon_removed',
   'tier_discount_applied',
   'tier_discount_removed',
+  'wishes_changed',
 ] as const;
 export type AppointmentEventType = (typeof APPOINTMENT_EVENT_TYPES)[number];
 

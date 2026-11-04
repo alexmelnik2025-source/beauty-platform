@@ -1,3 +1,4 @@
+import { wishQuestions } from '../booking/visit-wishes';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
@@ -94,6 +95,7 @@ function toOrganization(org: Organization, role: MembershipRole): OrganizationRe
 function toLocation(location: Location): LocationResponse {
   return {
     ...location,
+    drinks: wishQuestions({ ...location, askDrink: true }).drinks,
     createdAt: location.createdAt.toISOString(),
     updatedAt: location.updatedAt.toISOString(),
   };

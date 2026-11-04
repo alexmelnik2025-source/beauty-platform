@@ -1,3 +1,4 @@
+import { offeredDrinkSchema } from '../booking/visit-wishes';
 import { z } from 'zod';
 import { languageSchema, localeSchema, membershipRoleSchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
@@ -42,6 +43,10 @@ export const locationSchema = responseSchema(
     bookingHorizonDays: z.number().int(),
     clientCancelDeadlineMinutes: z.number().int(),
     onlineBookingEnabled: z.boolean(),
+    askMood: z.boolean().describe('Task 80: ask how the client wants to spend the visit'),
+    askDrink: z.boolean().describe('Task 80: offer a drink (only the drinks listed)'),
+    drinks: z.array(offeredDrinkSchema),
+    askNote: z.boolean().describe('Task 80: ask for a short note for the specialist'),
     languages: z
       .array(languageSchema)
       .describe('Languages the salon speaks with clients, in the salon’s order'),

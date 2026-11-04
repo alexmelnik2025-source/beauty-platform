@@ -1,3 +1,4 @@
+import { offeredDrinkSchema } from '../booking/visit-wishes';
 import { z } from 'zod';
 import { LOCALES } from '../auth/auth.schemas';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../common/currency';
@@ -70,6 +71,14 @@ const locationFields = {
     .min(0)
     .max(7 * 24 * 60),
   onlineBookingEnabled: z.boolean(),
+  /** Task 80: questions on the last booking step. */
+  askMood: z.boolean(),
+  askDrink: z.boolean(),
+  drinks: z
+    .array(offeredDrinkSchema)
+    .max(3)
+    .transform((list) => [...new Set(list)]),
+  askNote: z.boolean(),
   languages: languagesSchema,
   /** Shown on the booking page; an empty text removes it. */
   description: z
@@ -99,6 +108,10 @@ export const createLocationSchema = z.object({
   bookingHorizonDays: locationFields.bookingHorizonDays.default(30),
   clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
+  askMood: locationFields.askMood.default(true),
+  askDrink: locationFields.askDrink.default(false),
+  drinks: locationFields.drinks.default([]),
+  askNote: locationFields.askNote.default(true),
   languages: locationFields.languages.default([]),
   description: locationFields.description.optional(),
   bookingTerms: locationFields.bookingTerms.optional(),

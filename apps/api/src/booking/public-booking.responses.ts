@@ -1,3 +1,4 @@
+import { visitWishesSchema, wishQuestionsSchema } from './visit-wishes';
 import { z } from 'zod';
 import { appointmentStatusSchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
@@ -69,6 +70,11 @@ export const publicAppointmentSchema = responseSchema(
       }),
       changeableUntil: z.string().describe('Until when the client can still move or cancel online'),
       canChange: z.boolean(),
+      wishes: visitWishesSchema,
+      wishQuestions: wishQuestionsSchema,
+      canChangeWishes: z
+        .boolean()
+        .describe('The wishes can still be changed (confirmed visit that has not started)'),
     })
     .describe('An appointment as the client sees it'),
 );

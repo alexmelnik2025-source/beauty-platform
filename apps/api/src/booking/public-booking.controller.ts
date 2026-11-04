@@ -1,3 +1,4 @@
+import { visitWishesInputSchema, type VisitWishesInput } from './visit-wishes';
 import {
   Body,
   Controller,
@@ -8,6 +9,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Req,
   Res,
 } from '@nestjs/common';
@@ -148,6 +150,23 @@ export class PublicBookingController {
   get(@Req() req: AppRequest, @Param('token') token: string): Promise<PublicAppointmentResponse> {
     this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * MINUTE);
     return this.booking.getByToken(token);
+  }
+
+  @Put('appointments/:token/wishes')
+  @ApiOperation({
+    summary: 'Client changes the visit wishes (task 80), until the visit starts',
+    description:
+      'Answers to questions the salon does not ask are ignored; they are also remembered for the next booking. 409 TOO_LATE_TO_CHANGE once the visit has started.',
+  })
+  @ApiZodBody(visitWishesInputSchema)
+  @ApiZodResponse(publicAppointmentSchema)
+  updateWishes(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+    @Body(new ZodValidationPipe(visitWishesInputSchema)) body: VisitWishesInput,
+  ): Promise<PublicAppointmentResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * MINUTE);
+    return this.booking.updateWishesByToken(token, body);
   }
 
   @Post('appointments/:token/cancel')

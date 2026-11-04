@@ -233,6 +233,7 @@ export const ru: Dict = {
       coupon_removed: 'Купон снят',
       tier_discount_applied: 'Применена скидка уровня',
       tier_discount_removed: 'Скидка уровня снята',
+      wishes_changed: 'Клиент изменил пожелания к визиту',
     },
   },
   phone: {

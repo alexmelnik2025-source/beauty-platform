@@ -1,3 +1,4 @@
+import { visitWishesSchema } from './visit-wishes';
 import { z } from 'zod';
 import {
   appointmentSourceSchema,
@@ -78,6 +79,7 @@ export const appointmentSchema = responseSchema(
     durationMinutes: z.number().int(),
     bufferMinutes: z.number().int(),
     note: z.string().nullable(),
+    wishes: visitWishesSchema,
     holdExpiresAt: z.string().nullable(),
     cancelledAt: z.string().nullable(),
     cancelledBy: cancelledBySchema.nullable(),

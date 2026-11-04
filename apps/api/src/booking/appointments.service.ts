@@ -1,3 +1,4 @@
+import { toWishes } from './visit-wishes';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, forbidden, notFound } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
@@ -847,6 +848,7 @@ export class AppointmentsService {
       durationMinutes: a.durationMinutes,
       bufferMinutes: a.bufferMinutes,
       note: a.note,
+      wishes: toWishes(a),
       holdExpiresAt: a.holdExpiresAt?.toISOString() ?? null,
       cancelledAt: a.cancelledAt?.toISOString() ?? null,
       cancelledBy: a.cancelledBy,

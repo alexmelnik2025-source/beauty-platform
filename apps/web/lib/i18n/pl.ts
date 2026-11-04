@@ -232,6 +232,7 @@ export const pl = {
       coupon_removed: 'Zdjęto kupon',
       tier_discount_applied: 'Użyto rabatu poziomu',
       tier_discount_removed: 'Zdjęto rabat poziomu',
+      wishes_changed: 'Klient zmienił życzenia do wizyty',
     },
   },
   phone: {

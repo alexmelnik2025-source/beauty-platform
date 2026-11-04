@@ -1,3 +1,4 @@
+import { wishQuestions } from '../booking/visit-wishes';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiZodResponse } from '../common/openapi';
@@ -115,6 +116,7 @@ export class PublicLocationsController {
       description: location.description,
       openingHours: openingHours(listed.flatMap((s) => s.workingHours)),
       photos: photos.map((p) => ({ id: p.id, url: photoUrl(p.id) })),
+      wishQuestions: wishQuestions(location),
       codeChannels: this.sms.available ? ['email', 'sms'] : ['email'],
       categories: categories.map((c) => ({ id: c.id, name: c.name })),
       services: services.map((s) => ({

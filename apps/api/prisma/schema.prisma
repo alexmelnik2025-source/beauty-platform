@@ -154,6 +154,25 @@ enum LoyaltyTransactionType {
 }
 
 /// What a client's tier is measured by (task 10e).
+/// Task 80: how the client wants to spend the visit.
+enum VisitMood {
+  chat
+  quiet
+  relax
+
+  @@map("visit_mood")
+}
+
+/// Task 80: a drink offered by the salon; "none" = the client wants nothing.
+enum VisitDrink {
+  coffee
+  tea
+  water
+  none
+
+  @@map("visit_drink")
+}
+
 enum LoyaltyTierBasis {
   /// Paid visits in the period.
   visits
@@ -391,39 +410,45 @@ model MembershipLocation {
 
 /// A salon / branch. Booking settings live here.
 model Location {
-  id                          String     @id @default(uuid(7)) @db.Uuid
-  organizationId              String     @map("organization_id") @db.Uuid
+  id                          String       @id @default(uuid(7)) @db.Uuid
+  organizationId              String       @map("organization_id") @db.Uuid
   name                        String
   /// Public booking link: /b/<slug>
-  slug                        String     @unique
-  timezone                    String     @default("Europe/Warsaw")
+  slug                        String       @unique
+  timezone                    String       @default("Europe/Warsaw")
   /// ISO 4217 code of the currency the salon prices its services in; amounts are in hundredths of it.
-  currency                    String     @default("PLN") @db.Char(3)
-  addressLine                 String     @map("address_line")
+  currency                    String       @default("PLN") @db.Char(3)
+  addressLine                 String       @map("address_line")
   city                        String
-  postalCode                  String     @map("postal_code")
+  postalCode                  String       @map("postal_code")
   latitude                    Float?
   longitude                   Float?
   phone                       String?
   email                       String?
-  defaultLocale               Locale     @default(pl) @map("default_locale")
-  slotStepMinutes             Int        @default(15) @map("slot_step_minutes")
-  minLeadMinutes              Int        @default(60) @map("min_lead_minutes")
-  bookingHorizonDays          Int        @default(30) @map("booking_horizon_days")
-  clientCancelDeadlineMinutes Int        @default(120) @map("client_cancel_deadline_minutes")
-  onlineBookingEnabled        Boolean    @default(false) @map("online_booking_enabled")
+  defaultLocale               Locale       @default(pl) @map("default_locale")
+  slotStepMinutes             Int          @default(15) @map("slot_step_minutes")
+  minLeadMinutes              Int          @default(60) @map("min_lead_minutes")
+  bookingHorizonDays          Int          @default(30) @map("booking_horizon_days")
+  clientCancelDeadlineMinutes Int          @default(120) @map("client_cancel_deadline_minutes")
+  onlineBookingEnabled        Boolean      @default(false) @map("online_booking_enabled")
+  /// Task 80: questions on the last booking step, each switched on by the salon.
+  askMood                     Boolean      @default(true) @map("ask_mood")
+  askDrink                    Boolean      @default(false) @map("ask_drink")
+  /// Drinks the salon offers (never "none"); the drink question shows only these.
+  drinks                      VisitDrink[] @default([])
+  askNote                     Boolean      @default(true) @map("ask_note")
   /// Languages the salon speaks with clients, in the order chosen by the salon.
-  languages                   Language[] @default([])
+  languages                   Language[]   @default([])
   /// Shown on the booking page under the salon name: what the salon is about.
   description                 String?
   /// Booking terms (regulamin) in Markdown, written by the salon. Required to switch online booking on.
-  bookingTerms                String?    @map("booking_terms")
+  bookingTerms                String?      @map("booking_terms")
   /// Privacy policy in Markdown, written by the salon. Required to switch online booking on.
-  privacyPolicy               String?    @map("privacy_policy")
+  privacyPolicy               String?      @map("privacy_policy")
   /// Optimistic locking: every update must send the version it read.
-  version                     Int        @default(1)
-  createdAt                   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version                     Int          @default(1)
+  createdAt                   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships       MembershipLocation[]
@@ -655,21 +680,25 @@ model HappyHour {
 
 /// A salon's client. Belongs to the organization; no login in the MVP (client accounts come in 2.0).
 model Customer {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
+  id             String      @id @default(uuid(7)) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
   name           String
   /// E.164, e.g. +48123456789.
   phone          String
   /// Lower-cased. Optional for bookings entered by the salon.
   email          String?
-  locale         Locale   @default(pl)
+  locale         Locale      @default(pl)
   /// The salon's own note (preferences, allergies). Not shown to the client.
   note           String?
   /// Simple labels without any mailing ("regular", "short fade"). At most 10.
-  tags           String[] @default([])
-  version        Int      @default(1)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tags           String[]    @default([])
+  /// Task 80: the client's last wishes, offered again on the next booking.
+  wishMood       VisitMood?  @map("wish_mood")
+  wishDrink      VisitDrink? @map("wish_drink")
+  wishNote       String?     @map("wish_note")
+  version        Int         @default(1)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   appointments    Appointment[]
@@ -740,6 +769,10 @@ model Appointment {
   listPriceGrosze     Int?              @map("list_price_grosze")
   happyHourPercent    Int?              @map("happy_hour_percent")
   note                String?
+  /// Task 80: the client's wishes for this visit (seen like the visit note).
+  wishMood            VisitMood?        @map("wish_mood")
+  wishDrink           VisitDrink?       @map("wish_drink")
+  wishNote            String?           @map("wish_note")
   cancelledAt         DateTime?         @map("cancelled_at") @db.Timestamptz(3)
   cancelledBy         CancelledBy?      @map("cancelled_by")
   cancelReason        String?           @map("cancel_reason")

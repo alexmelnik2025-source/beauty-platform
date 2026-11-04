@@ -1,3 +1,4 @@
+import { wishQuestionsSchema } from '../booking/visit-wishes';
 import { z } from 'zod';
 import { languageSchema, specialtySchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
@@ -40,6 +41,7 @@ export const publicLocationSchema = responseSchema(
       photos: z
         .array(z.strictObject({ id: z.string(), url: z.string() }))
         .describe('Salon photos, oldest first: links to /v1/public/photos/<id>'),
+      wishQuestions: wishQuestionsSchema,
       codeChannels: z
         .array(z.enum(['email', 'sms']))
         .describe(

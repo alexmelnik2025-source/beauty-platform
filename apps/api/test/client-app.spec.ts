@@ -283,8 +283,12 @@ describe('client app: my visits in all salons', () => {
       salon: { slug: first.slug, city: 'Warszawa' },
       bookAgain: { slug: first.slug, serviceId: first.serviceId, staffId: first.staffId },
     });
-    // Nothing the salon keeps for itself.
-    expect(JSON.stringify(res.body)).not.toMatch(/note|tags|phone":"\+48600/);
+    // Nothing the salon keeps for itself (the client's own wishes note is theirs to see).
+    for (const item of res.body.items) {
+      expect(Object.keys(item)).not.toContain('note');
+      expect(item.wishes).toEqual({ mood: null, drink: null, note: null });
+    }
+    expect(JSON.stringify(res.body)).not.toMatch(/tags|phone":"\+48600/);
 
     const bob = await signIn(BOB);
     const bobs = await ctx.http().get('/v1/client/appointments').set(bob).expect(200);

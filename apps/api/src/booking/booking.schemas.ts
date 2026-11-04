@@ -1,3 +1,4 @@
+import { visitWishesInputSchema } from './visit-wishes';
 import { z } from 'zod';
 import { LOCALES } from '../auth/auth.schemas';
 import { localDateSchema } from '../scheduling/scheduling.schemas';
@@ -57,6 +58,8 @@ export const confirmSchema = z.object({
    * visit is already in the client app. The code just confirmed the email.
    */
   signIn: z.boolean().default(false),
+  /** Task 80: answers from the optional last step; questions the salon does not ask are ignored. */
+  wishes: visitWishesInputSchema.optional(),
 });
 
 export const releaseHoldSchema = z.object({ holdToken: token });

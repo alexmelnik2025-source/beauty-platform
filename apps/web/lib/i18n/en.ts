@@ -232,6 +232,7 @@ export const en: Dict = {
       coupon_removed: 'Coupon removed',
       tier_discount_applied: 'Tier discount used',
       tier_discount_removed: 'Tier discount removed',
+      wishes_changed: 'Client changed the visit wishes',
     },
   },
   phone: {
