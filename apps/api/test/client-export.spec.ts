@@ -193,9 +193,12 @@ describe('GET /v1/client/export', () => {
 
     const data = await myData(ANNA);
     expect(data.person.email).toBe(ANNA);
-    expect(data.salons.map((s) => s.salon).sort()).toEqual(['Berber Moda', 'Gestalt Barbershop']);
+    expect(data.salons.map((s) => s.salon).sort()).toEqual([
+      'Berber Moda Centrum',
+      'Gestalt Barbershop Centrum',
+    ]);
 
-    const inA = data.salons.find((s) => s.salon === 'Gestalt Barbershop')!;
+    const inA = data.salons.find((s) => s.salon === 'Gestalt Barbershop Centrum')!;
     expect(inA.client).toMatchObject({ name: 'Anna Kowalska', phone: '+48600100200', email: ANNA });
     expect(inA.visits).toHaveLength(1);
     expect(inA.visits[0]).toMatchObject({
@@ -216,7 +219,7 @@ describe('GET /v1/client/export', () => {
       expect.objectContaining({ type: 'adjust', points: 25, balanceAfter: 25 }),
     ]);
 
-    const inB = data.salons.find((s) => s.salon === 'Berber Moda')!;
+    const inB = data.salons.find((s) => s.salon === 'Berber Moda Centrum')!;
     expect(inB.client.name).toBe('Anna K.');
     expect(inB.visits[0]).toMatchObject({
       status: 'cancelled',
