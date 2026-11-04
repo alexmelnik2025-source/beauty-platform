@@ -411,6 +411,8 @@ model Location {
   minLeadMinutes              Int        @default(60) @map("min_lead_minutes")
   bookingHorizonDays          Int        @default(30) @map("booking_horizon_days")
   clientCancelDeadlineMinutes Int        @default(120) @map("client_cancel_deadline_minutes")
+  /// Task 22: the reminder email goes this many hours before the visit; 0 = no reminder.
+  reminderHoursBefore         Int        @default(24) @map("reminder_hours_before")
   onlineBookingEnabled        Boolean    @default(false) @map("online_booking_enabled")
   /// Languages the salon speaks with clients, in the order chosen by the salon.
   languages                   Language[] @default([])

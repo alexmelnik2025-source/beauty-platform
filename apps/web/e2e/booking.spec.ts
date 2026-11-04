@@ -654,6 +654,10 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Barbershop na Woli.\nKawa i parking dla klientów.',
   );
   await ownerPage.getByLabel('O salonie').fill('Barbershop na Woli. Zapraszamy!');
+  // Task 22: the reminder email — 24 h by default, the salon picks 3 h.
+  const reminder = ownerPage.getByLabel('Przypomnienie e-mail przed wizytą');
+  await expect(reminder).toHaveValue('24');
+  await reminder.selectOption('3');
   await shot(ownerPage, '21-owner-settings');
   // Short link for Instagram and the booking button for the salon's own site.
   await expect(ownerPage.getByLabel('Krótki link')).toHaveValue(new RegExp(`/s/${location.slug}$`));
@@ -739,8 +743,10 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     privacyPolicy: string | null;
     latitude: number | null;
     longitude: number | null;
+    reminderHoursBefore: number;
   }>(await request.get(base, { headers: owner }));
   expect([savedLocation.latitude, savedLocation.longitude]).toEqual([52.23251, 20.95634]);
+  expect(savedLocation.reminderHoursBefore).toBe(3);
   expect(savedLocation.languages).toEqual(['pl', 'uk', 'ru', 'be']);
   expect(savedLocation.description).toBe('Barbershop na Woli. Zapraszamy!');
   expect(savedLocation.privacyPolicy).toMatch(/^# Polityka prywatności rezerwacji online/);

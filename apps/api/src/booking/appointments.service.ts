@@ -40,8 +40,6 @@ import type {
 } from './booking.responses';
 import { OutboxService } from './outbox.service';
 
-const MINUTE_MS = 60_000;
-const REMINDER_BEFORE_MS = 24 * 60 * MINUTE_MS;
 
 export type {
   AppointmentDetailResponse,
@@ -764,10 +762,7 @@ export class AppointmentsService {
     const payload = { appointmentId: appointment.id, version: appointment.version };
     // The worker skips the email when the client has no address.
     await this.outbox.enqueue(tx, kind, payload);
-    const remindAt = appointment.startAt.getTime() - REMINDER_BEFORE_MS;
-    if (remindAt > Date.now()) {
-      await this.outbox.enqueue(tx, 'client_reminder', payload, { notBefore: new Date(remindAt) });
-    }
+    await this.outbox.enqueueReminder(tx, appointment);
   }
 
   /** Earliest completed visit per client, to mark first visits. */

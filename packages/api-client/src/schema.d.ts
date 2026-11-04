@@ -2796,6 +2796,8 @@ export interface components {
             minLeadMinutes: number;
             bookingHorizonDays: number;
             clientCancelDeadlineMinutes: number;
+            /** @description The reminder email goes this many hours before the visit; 0 = none */
+            reminderHoursBefore: number;
             onlineBookingEnabled: boolean;
             /** @description Languages the salon speaks with clients, in the salon’s order */
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
@@ -2831,6 +2833,8 @@ export interface components {
             minLeadMinutes: number;
             bookingHorizonDays: number;
             clientCancelDeadlineMinutes: number;
+            /** @description The reminder email goes this many hours before the visit; 0 = none */
+            reminderHoursBefore: number;
             onlineBookingEnabled: boolean;
             /** @description Languages the salon speaks with clients, in the salon’s order */
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
@@ -4302,6 +4306,8 @@ export interface operations {
                     bookingHorizonDays?: number;
                     /** @default 120 */
                     clientCancelDeadlineMinutes?: number;
+                    /** @default 24 */
+                    reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
                     /** @default false */
                     onlineBookingEnabled?: boolean;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
@@ -4373,6 +4379,7 @@ export interface operations {
                     minLeadMinutes?: number;
                     bookingHorizonDays?: number;
                     clientCancelDeadlineMinutes?: number;
+                    reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
                     onlineBookingEnabled?: boolean;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
                     description?: string | null;

@@ -100,6 +100,30 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  /**
+   * The reminder email before a visit, as many hours before as the salon chose
+   * (location.reminderHoursBefore; 0 = the salon sends none). Not queued when that
+   * moment has already passed (a visit booked shortly before it starts).
+   */
+  async enqueueReminder(
+    tx: Prisma.TransactionClient,
+    appointment: { id: string; version: number; startAt: Date },
+  ): Promise<void> {
+    const { location } = await tx.appointment.findUniqueOrThrow({
+      where: { id: appointment.id },
+      select: { location: { select: { reminderHoursBefore: true } } },
+    });
+    if (location.reminderHoursBefore <= 0) return;
+    const remindAt = appointment.startAt.getTime() - location.reminderHoursBefore * 3_600_000;
+    if (remindAt <= Date.now()) return;
+    await this.enqueue(
+      tx,
+      'client_reminder',
+      { appointmentId: appointment.id, version: appointment.version },
+      { notBefore: new Date(remindAt) },
+    );
+  }
+
   /** One worker cycle: housekeeping, then send what is due. */
   private async tick(): Promise<void> {
     if (this.running) return;

@@ -41,6 +41,10 @@ export const locationSchema = responseSchema(
     minLeadMinutes: z.number().int(),
     bookingHorizonDays: z.number().int(),
     clientCancelDeadlineMinutes: z.number().int(),
+    reminderHoursBefore: z
+      .number()
+      .int()
+      .describe('The reminder email goes this many hours before the visit; 0 = none'),
     onlineBookingEnabled: z.boolean(),
     languages: z
       .array(languageSchema)
