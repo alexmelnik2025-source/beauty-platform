@@ -97,6 +97,8 @@ export type LoyaltyAccount = Schemas['LoyaltyAccount'];
 export type LoyaltyTransaction = Schemas['LoyaltyTransaction'];
 export type LoyaltyReward = Schemas['LoyaltyReward'];
 export type LoyaltyCoupon = Schemas['LoyaltyCoupon'];
+/** Coupons on a visit and the client's unused ones (`GET …/appointments/{id}/coupons`). */
+export type VisitCoupons = Schemas['VisitCoupons'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

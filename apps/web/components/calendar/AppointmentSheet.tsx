@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
-import type { AppointmentDetail, Staff } from '@/lib/types';
+import type { AppointmentDetail, Staff, VisitCoupons } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox, Sheet, Spinner } from '../ui';
 
@@ -82,6 +82,7 @@ export function AppointmentSheet({
   }
 
   const end = minutesToClock(clockToMinutes(a.time) + a.durationMinutes);
+  const money = (hundredths: number) => formatPrice(hundredths, session.location.currency, tag);
   const live = a.status === 'confirmed';
   const started = Date.parse(a.start) <= Date.now();
 
@@ -207,7 +208,25 @@ export function AppointmentSheet({
             {a.priceGrosze !== null ? (
               <>
                 <dt>{t.appointment.price}</dt>
-                <dd>{formatPrice(a.priceGrosze, session.location.currency, tag)}</dd>
+                <dd>{money(a.priceGrosze)}</dd>
+              </>
+            ) : null}
+            {a.coupons.map((c) => (
+              <Fragment key={c.id}>
+                <dt>{t.appointment.couponUsed}</dt>
+                <dd>
+                  {c.name} <span className="muted small">{c.code}</span>
+                </dd>
+              </Fragment>
+            ))}
+            {a.priceGrosze !== null && a.discountGrosze ? (
+              <>
+                <dt>{t.appointment.discount}</dt>
+                <dd>−{money(a.discountGrosze)}</dd>
+                <dt>{t.appointment.toPay}</dt>
+                <dd>
+                  <strong>{money(a.priceGrosze - a.discountGrosze)}</strong>
+                </dd>
               </>
             ) : null}
             {a.note ? (
@@ -223,6 +242,19 @@ export function AppointmentSheet({
               </>
             ) : null}
           </dl>
+          {canChange &&
+          a.customer &&
+          !a.paidAt &&
+          (a.status === 'confirmed' || a.status === 'completed') ? (
+            <CouponsBox
+              key={a.version}
+              url={`${base}/appointments/${a.id}/coupons`}
+              version={a.version}
+              busy={busy}
+              money={money}
+              onAction={(action) => void run(action)}
+            />
+          ) : null}
           {a.history.length ? (
             <div className="stack" style={{ gap: 8 }}>
               <h3>{t.appointment.history}</h3>
@@ -359,5 +391,91 @@ export function AppointmentSheet({
         </form>
       ) : null}
     </Sheet>
+  );
+}
+
+/**
+ * The client's loyalty coupons on an unpaid visit (task 10d): what is used, and the client's
+ * other coupons with what each would take off — or why the salon's rules do not allow it.
+ * Reloaded whenever the visit changes (its version is the key).
+ */
+function CouponsBox({
+  url,
+  version,
+  busy,
+  money,
+  onAction,
+}: {
+  url: string;
+  version: number;
+  busy: boolean;
+  money: (hundredths: number) => string;
+  onAction: (action: () => Promise<unknown>) => void;
+}) {
+  const { t } = useI18n();
+  const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    api<VisitCoupons>(url)
+      .then((data) => {
+        if (live) setCoupons(data);
+      })
+      // Without the list the visit still works; coupons simply are not offered.
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [url]);
+
+  if (!coupons || (coupons.applied.length === 0 && coupons.available.length === 0)) return null;
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <h3>{t.appointment.coupons}</h3>
+      <p className="small muted">{t.appointment.couponsHint}</p>
+      <ul className="history" aria-label={t.appointment.coupons}>
+        {coupons.applied.map((c) => (
+          <li key={c.id}>
+            <span>
+              ✓ {c.name} <span className="muted small">{c.code}</span>
+              {c.discountGrosze !== null ? <> · −{money(c.discountGrosze)}</> : null}
+            </span>
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              disabled={busy}
+              onClick={() =>
+                onAction(() => api(`${url}/${c.id}/remove`, { method: 'POST', body: { version } }))
+              }
+            >
+              {t.appointment.couponRemove}
+            </button>
+          </li>
+        ))}
+        {coupons.available.map((c) => (
+          <li key={c.id}>
+            <span>
+              {c.name} <span className="muted small">{c.code}</span>
+              {c.problem ? (
+                <span className="muted small"> · {t.appointment.couponProblem[c.problem]}</span>
+              ) : null}
+            </span>
+            {c.problem ? null : (
+              <button
+                type="button"
+                className="btn btn--small"
+                disabled={busy}
+                onClick={() =>
+                  onAction(() => api(url, { method: 'POST', body: { version, couponId: c.id } }))
+                }
+              >
+                {t.appointment.couponUse}
+                {c.discountGrosze !== null ? ` −${money(c.discountGrosze)}` : ''}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

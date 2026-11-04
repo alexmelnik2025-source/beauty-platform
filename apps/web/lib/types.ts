@@ -86,5 +86,6 @@ export type {
   TimeBlockSeries,
   TimeOff,
   UnreadCount,
+  VisitCoupons,
   WorkingHours,
 } from '@beauty/api-client';

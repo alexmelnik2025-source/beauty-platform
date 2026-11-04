@@ -17,7 +17,8 @@ import { serveApp } from './mobile-app';
  * Finally the client opens "Moje bonusy" in "Moje wizyty" (10c): stamps on the card, how many
  * visits are left, the coupon code — and never the salon's notes. The same "Moje bonusy" in the
  * client app for iPhone and Android (11b, part 3; its web preview).
- * Screenshots go to e2e/screenshots (40–47, 63–63b).
+ * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -451,5 +452,35 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await appContext.close();
     clientApp.server.close();
   }
+
+  // ── The coupon on the next visit (10d): the price goes down ───────────
+  const next = await json<{ id: string; date: string }>(
+    await request.post(`${base}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: services['Strzyżenie męskie'],
+        staffId: staff.id,
+        start: new Date(tomorrow + 2 * 3_600_000).toISOString(),
+        customerId: customer.id,
+        allowOutsideHours: true,
+      },
+    }),
+  );
+  await page.goto(`/pl/app/calendar?date=${next.date}`);
+  await page.getByRole('button', { name: /Anna Kowalska/ }).click();
+  const nextCard = page.getByRole('dialog');
+  const offered = nextCard.getByRole('list', { name: 'Kupony klienta' });
+  await expect(offered).toContainText(coupon.code);
+  await offered.getByRole('button', { name: /Użyj −22,50/ }).click();
+  await expect(offered.getByRole('button', { name: 'Zdejmij' })).toBeVisible();
+  await expect(nextCard.getByText('Do zapłaty')).toBeVisible();
+  await expect(nextCard).toContainText('67,50');
+  await expect(nextCard).toContainText('Użyto kuponu');
+  await shot(page, '72-owner-visit-coupon');
+  const used = await json<{ discountGrosze: number; coupons: { code: string }[] }>(
+    await request.get(`${base}/appointments/${next.id}`, { headers: owner }),
+  );
+  expect(used.discountGrosze).toBe(2250);
+  expect(used.coupons.map((c) => c.code)).toEqual([coupon.code]);
   await context.close();
 });
