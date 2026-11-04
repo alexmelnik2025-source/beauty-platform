@@ -18,6 +18,14 @@ const clientExists = (code: string, message: string, existingId: string): AppExc
     { path: 'customerId', message: existingId },
   ]);
 
+/** Task 21: the client's data were erased; the card cannot be filled in again. */
+export const customerAnonymized = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'CUSTOMER_ANONYMIZED',
+    "The client's personal data were erased (GDPR)",
+  );
+
 /**
  * Clients belong to the organization. Owners see all of them; managers see
  * clients who have (had) appointments in their locations. Staff members see the
@@ -43,7 +51,8 @@ export class CustomersService {
         }
       : {};
     const rows = await this.prisma.customer.findMany({
-      where: { AND: [await this.visibleTo(m, null), search] },
+      // Erased clients (task 21) are not listed; their visits still show in the calendar.
+      where: { AND: [await this.visibleTo(m, null), search, { anonymizedAt: null }] },
       orderBy: { name: 'asc' },
       take: query.limit,
     });
@@ -136,7 +145,8 @@ export class CustomersService {
     customerId: string,
     input: UpdateCustomerInput,
   ): Promise<CustomerDetailResponse> {
-    await this.findVisible(m, actorUserId, customerId);
+    const existing = await this.findVisible(m, actorUserId, customerId);
+    if (existing.anonymizedAt) throw customerAnonymized();
     const { version, ...fields } = input;
     if (m.role === 'staff') {
       const onlyNotes = Object.keys(fields).every((key) => key === 'note' || key === 'tags');
@@ -250,6 +260,7 @@ function toCustomer(c: Customer, m: MembershipContext): CustomerResponse {
     locale: c.locale,
     note: notes ? c.note : null,
     tags: notes ? c.tags : null,
+    anonymizedAt: c.anonymizedAt?.toISOString() ?? null,
     version: c.version,
     createdAt: c.createdAt.toISOString(),
   };

@@ -1048,3 +1048,25 @@ pnpm --filter @beauty/api-client generate
 - Код: `VisitCalendarService.linkForClient`, `apps/api/src/client/client-calendar.controller.ts`,
   `apps/mobile-client/src/screens/VisitScreen.tsx`; тест в `test/visit-calendar.spec.ts`, шаг в
   `e2e/booking.spec.ts`.
+
+## Данные клиента по RODO: выгрузка и удаление (задача 21)
+
+- Спецификация MVP, «Права клиента»: выгрузка и удаление данных — по запросу клиента, через владельца салона.
+- В карточке клиента («Klienci») у **владельца** — раздел «Dane osobowe (RODO)»:
+  - «Pobierz dane klienta» — файл JSON со всем, что салон хранит: данные клиента, согласия, все визиты (место,
+    услуга, мастер, статус, цена, скидка, оплачено, заметка, причина отмены), бонусы (баланс, история, купоны).
+  - «Usuń dane klienta» → вопрос «…zostaną usunięte na zawsze… Usunąć?» → «Tak, usuń dane». Имя становится «—»,
+    телефон, e-mail, заметка и теги удаляются; у визитов — заметки, причины отмены и введённые при записи
+    контакты; имя клиента в уведомлениях сотрудников заменяется на «—»; ссылки управления визитом перестают
+    работать. Визиты, цены и записи бонусов остаются для статистики (журнал бонусов не изменяется — пометки
+    сотрудников в ручных корректировках остаются). Клиент пропадает из списка; карточка показывает «Dane klienta
+    usunięte (RODO) …» без формы.
+  - Пока у клиента есть будущие визиты — отказ «najpierw je odwołaj» (`CUSTOMER_HAS_UPCOMING_VISITS`).
+- API (только владелец; менеджер и мастер — 403, чужая организация — 404):
+  `GET /v1/organizations/:orgId/customers/:id/export`, `POST …/customers/:id/anonymize` `{ version }`.
+  Обе операции пишутся в журнал действий (`customer.exported`, `customer.anonymized`) без персональных данных.
+  У клиента новое поле `anonymizedAt`.
+- Срок хранения неактивных клиентов (предложение спецификации — 3 года) не автоматизирован: это решение владельца
+  с юристом.
+- Код: `apps/api/src/booking/customer-privacy.service.ts`, `customer-privacy.controller.ts`; тесты
+  `test/customer-privacy.spec.ts`, шаг в `e2e/booking.spec.ts`, скриншот `78-owner-client-erase`.

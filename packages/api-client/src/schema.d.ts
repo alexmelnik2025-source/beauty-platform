@@ -1311,6 +1311,43 @@ export interface paths {
         patch: operations["CustomersController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/customers/{customerId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything kept about the client, as a JSON file (GDPR access request; owner only) */
+        get: operations["CustomerPrivacyController_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/customers/{customerId}/anonymize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase the client's personal data (GDPR; owner only)
+         * @description Name becomes "—"; phone, email, notes, tags, visit notes, cancellation reasons and manage links are removed. Visits, prices and loyalty entries stay for statistics. 409 CUSTOMER_HAS_UPCOMING_VISITS while visits are planned; 409 CUSTOMER_ANONYMIZED when already erased.
+         */
+        post: operations["CustomerPrivacyController_anonymize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/time-blocks": {
         parameters: {
             query?: never;
@@ -2016,6 +2053,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AnonymizedCustomer: {
+            id: string;
+            anonymizedAt: string;
+            /** @description Visits stay (without personal data) for statistics */
+            visitsKept: number;
+        };
         Appointment: {
             id: string;
             locationId: string;
@@ -2671,6 +2714,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description When the owner erased the personal data (GDPR); the name is then "—" */
+            anonymizedAt: string | null;
             version: number;
             createdAt: string;
         };
@@ -2686,6 +2731,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description When the owner erased the personal data (GDPR); the name is then "—" */
+            anonymizedAt: string | null;
             version: number;
             createdAt: string;
             /** @description null for staff members */
@@ -2701,6 +2748,58 @@ export interface components {
                 staffName: string;
             }[];
         };
+        CustomerExport: {
+            exportedAt: string;
+            salon: {
+                name: string;
+            };
+            client: {
+                id: string;
+                name: string;
+                phone: string;
+                email: string | null;
+                /** @enum {string} */
+                language: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                note: string | null;
+                tags: string[];
+                createdAt: string;
+            };
+            consents: {
+                type: string;
+                version: string;
+                granted: boolean;
+                at: string;
+            }[];
+            visits: {
+                start: string;
+                place: string;
+                service: string;
+                specialist: string;
+                /** @enum {string} */
+                status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+                priceGrosze: number;
+                discountGrosze: number;
+                currency: string;
+                paid: boolean;
+                note: string | null;
+                cancelReason: string | null;
+            }[];
+            loyalty: {
+                balance: number;
+                history: {
+                    type: string;
+                    points: number;
+                    at: string;
+                    note: string | null;
+                }[];
+                coupons: {
+                    code: string;
+                    name: string;
+                    status: string;
+                    expiresAt: string | null;
+                }[];
+            }[];
+        };
         CustomerList: {
             id: string;
             name: string;
@@ -2713,6 +2812,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description When the owner erased the personal data (GDPR); the name is then "—" */
+            anonymizedAt: string | null;
             version: number;
             createdAt: string;
         }[];
@@ -6432,6 +6533,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerDetail"];
+                };
+            };
+        };
+    };
+    CustomerPrivacyController_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerExport"];
+                };
+            };
+        };
+    };
+    CustomerPrivacyController_anonymize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnonymizedCustomer"];
                 };
             };
         };

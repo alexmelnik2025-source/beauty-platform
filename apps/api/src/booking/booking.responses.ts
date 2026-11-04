@@ -119,6 +119,10 @@ export const customerSchema = responseSchema(
     locale: localeSchema,
     note: z.string().nullable().describe('null when the caller may not see notes and tags'),
     tags: z.array(z.string()).nullable(),
+    anonymizedAt: z
+      .string()
+      .nullable()
+      .describe('When the owner erased the personal data (GDPR); the name is then "—"'),
     version: z.number().int(),
     createdAt: z.string(),
   }),

@@ -54,6 +54,9 @@ export const pl = {
     NOT_FOUND: 'Nie znaleziono.',
     STAFF_SERVICE_MISMATCH: 'Ten specjalista nie wykonuje tej usługi.',
     CUSTOMER_PHONE_EXISTS: 'Klient z tym numerem już istnieje.',
+    CUSTOMER_HAS_UPCOMING_VISITS:
+      'Klient ma zaplanowane wizyty — najpierw je odwołaj, potem usuń dane.',
+    CUSTOMER_ANONYMIZED: 'Dane tego klienta zostały już usunięte.',
     CUSTOMER_EMAIL_EXISTS: 'Klient z tym e-mailem już istnieje.',
     CATEGORY_NAME_TAKEN: 'Taka nazwa już istnieje.',
     INVITATION_EXPIRED: 'To zaproszenie jest nieaktualne.',
@@ -587,6 +590,15 @@ export const pl = {
     duplicatePhone: 'Klient z tym numerem już istnieje.',
     duplicateEmail: 'Klient z tym e-mailem już istnieje.',
     addAnyway: 'Dodaj mimo to',
+    privacy: 'Dane osobowe (RODO)',
+    privacyHint:
+      'Na prośbę klienta: pobierz wszystko, co salon o nim przechowuje, albo usuń jego dane.',
+    export: 'Pobierz dane klienta',
+    erase: 'Usuń dane klienta',
+    eraseConfirm:
+      'Imię, telefon, e-mail, notatki i tagi zostaną usunięte na zawsze. Wizyty i ceny zostaną w statystyce — bez danych osobowych. Usunąć?',
+    eraseYes: 'Tak, usuń dane',
+    anonymized: 'Dane klienta usunięte (RODO) {date}.',
   },
   notifications: {
     title: 'Powiadomienia',
