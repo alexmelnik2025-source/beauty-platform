@@ -378,9 +378,25 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await client.getByRole('link', { name: 'Umów ponownie' }).click();
   await expect(client.locator('.times button').first()).toBeVisible();
   await shot(client, '07e-client-book-again');
+  // Task 51: no time that suits? A signed-in client joins the waiting list for a day.
+  await client
+    .getByRole('button', { name: 'Nie ma dogodnej godziny? Powiadom mnie, gdy się zwolni' })
+    .click();
+  await expect(client.getByRole('heading', { name: 'Lista oczekujących' })).toBeVisible();
+  await expect(client.getByText(`napiszemy na ${CLIENT}`)).toBeVisible();
+  await client.getByLabel('Dzień').selectOption({ index: 3 });
+  await client.getByRole('button', { name: 'Powiadom mnie' }).click();
+  await expect(client.getByRole('status')).toContainText('Zapisano na listę oczekujących');
+  await shot(client, '07g-client-waitlist');
   // The session survives a reload (httpOnly cookie).
   await client.goto('/pl/c');
   await expect(client.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+  // The day waited for is above the upcoming visits; leaving takes it away.
+  const leaveWaitlist = client.getByRole('button', { name: /^Wypisz się: Strzyżenie męskie, / });
+  await expect(client.getByRole('heading', { name: 'Lista oczekujących' })).toBeVisible();
+  await shot(client, '07h-client-visits-waitlist');
+  await leaveWaitlist.click();
+  await expect(leaveWaitlist).toBeHidden();
   // "My visits" installs as its own app, separate from the salon cabinet.
   const visitsManifestHref = await client.locator('link[rel="manifest"]').getAttribute('href');
   expect(visitsManifestHref).toBe('/manifests/visits-pl.webmanifest');

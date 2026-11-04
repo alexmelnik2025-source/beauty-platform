@@ -88,5 +88,7 @@ export type {
   TimeOff,
   UnreadCount,
   VisitCoupons,
+  Waitlist,
+  WaitlistEntry,
   WorkingHours,
 } from '@beauty/api-client';

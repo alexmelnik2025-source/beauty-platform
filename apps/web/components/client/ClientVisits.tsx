@@ -8,6 +8,7 @@ import { formatDay, formatPrice } from '@/lib/time';
 import type { ClientAppointment, ClientPerson } from '@/lib/types';
 import { InstallApp } from '../InstallApp';
 import { ClientBonuses } from './ClientBonuses';
+import { ClientWaitlist } from './ClientWaitlist';
 import { ErrorBox, LanguageSwitch, Spinner, Wordmark } from '../ui';
 
 type Scope = 'upcoming' | 'past' | 'bonuses';
@@ -225,6 +226,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
         ))}
       </div>
       <ErrorBox>{error}</ErrorBox>
+      {scope === 'upcoming' ? <ClientWaitlist onSignedOut={onSignedOut} /> : null}
       {scope === 'bonuses' ? (
         <ClientBonuses onSignedOut={onSignedOut} />
       ) : items === null ? (

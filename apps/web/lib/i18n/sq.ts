@@ -145,6 +145,21 @@ export const sq: Dict = {
     moved: 'Ora u ndryshua.',
     keep: 'Jo, mbaje',
   },
+  waitlist: {
+    open: 'Nuk ka orar që ju përshtatet? Më njoftoni kur të lirohet',
+    signInFirst: 'Për t’u regjistruar në listën e pritjes, hyni:',
+    title: 'Lista e pritjes',
+    lead: 'Zgjidhni një ditë. Kur dikush anulon dhe lirohet një orar, i shkruajmë {email} — kush vjen i pari.',
+    day: 'Dita',
+    join: 'Më njoftoni',
+    joined: 'Jeni në listën e pritjes për {day}. Do t’ju shkruajmë kur të lirohet një orar.',
+    tooMany:
+      'Mund të prisni për më së shumti 10 ditë njëkohësisht. Dilni nga njëra te “Takimet e mia”.',
+    any: 'çdo specialist',
+    waiting: 'Në pritje të një orari të lirë',
+    notified: 'Ju dërguam e-mail për një orar të lirë',
+    leave: 'Dil nga lista',
+  },
   visits: {
     title: 'Takimet e mia',
     coupons: 'Kuponat e mia',

@@ -1038,3 +1038,8 @@ API (сессия клиента — приложение или «Moje wizyty»
 письмо (запись помнит, каким письмом её уведомили). Салон не видит лист ожидания (пока), в письме нет данных
 отменившего клиента. Тексты писем и приложения — 6 языков. Тесты: `waitlist.spec.ts`, `apps/mobile-client/test/api.test.ts`;
 скриншоты `81w-client-app-waitlist`, `81x-client-app-waitlist-visits`.
+
+На сайте (часть 2) — то же: на странице записи под временем «Nie ma dogodnej godziny? Powiadom mnie, gdy się
+zwolni»; если клиент вошёл в «Moje wizyty» (cookie), выбирает день из списка и «Powiadom mnie», иначе — ссылка на
+вход. В «Moje wizyty» → «Nadchodzące» — «Lista oczekujących» с «Umów wizytę» и «Wypisz się». Скриншоты
+`07g-client-waitlist`, `07h-client-visits-waitlist`.

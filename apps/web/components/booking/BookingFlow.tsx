@@ -22,6 +22,7 @@ import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
+import { WaitlistOffer } from './WaitlistOffer';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
 /** Key of "any specialist" in the nearest-free-time map. */
@@ -521,6 +522,16 @@ export function BookingFlow({ slug }: { slug: string }) {
                 )}
               </>
             )}
+            {slots !== null ? (
+              <WaitlistOffer
+                key={`${service.id}-${staffId ?? ''}`}
+                slug={slug}
+                serviceId={service.id}
+                staffId={staffId}
+                days={days}
+                day={day}
+              />
+            ) : null}
             <button type="button" className="link-btn small" onClick={() => setStep('staff')}>
               {t.common.back}
             </button>
