@@ -220,4 +220,31 @@ describe('BusinessApi', () => {
       [`DELETE ${base}/time-off/t1`, undefined],
     ]);
   });
+  it('reads the salon report for a period; a refused report passes on 403', async () => {
+    const path = '/v1/organizations/o1/locations/l1/reports?from=2026-11-01&to=2026-11-04';
+    let allowed = true;
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a5', 'refresh-token-0123456789tuv')],
+      [`GET ${path}`]: () =>
+        allowed ? [200, { scope: 'location' }] : [403, { error: { code: 'FORBIDDEN' } }],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('refresh-token-0123456789abc'),
+      fetchFn,
+    );
+    await api.restore();
+    await expect(api.report('o1', 'l1', '2026-11-01', '2026-11-04')).resolves.toEqual({
+      scope: 'location',
+    });
+    allowed = false;
+    await expect(api.report('o1', 'l1', '2026-11-01', '2026-11-04')).rejects.toMatchObject({
+      status: 403,
+      code: 'FORBIDDEN',
+    });
+    expect(calls.slice(1).map((c) => [c.key, c.auth])).toEqual([
+      [`GET ${path}`, 'Bearer a5'],
+      [`GET ${path}`, 'Bearer a5'],
+    ]);
+  });
 });

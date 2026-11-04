@@ -7,11 +7,13 @@ import {
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * "Raporty" in the cabinet (task 14): the owner sees revenue, the average ticket, visits that
  * took place, no-shows, clients and the split by specialist, service and day for a period.
  * Screenshots 74 (computer) and 74b (phone) go to e2e/screenshots.
+ * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -187,4 +189,31 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(totals.getByText('opłacone wizyty: 3')).toBeVisible();
   await shot(page, '74b-owner-reports-phone');
   await context.close();
+
+  // ── Business app (web preview of apps/mobile-business): "Raporty" next to the calendar ──
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const app = await (
+      await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true })
+    ).newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Raporty' }).click();
+    await expect(app.getByRole('heading', { name: 'Raporty' })).toBeVisible();
+    await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+    await expect(app.getByText('opłacone wizyty: 3')).toBeVisible();
+    await expect(app.getByText(/240,00\s*zł/)).toBeVisible();
+    await expect(app.getByText('Ilian')).toBeVisible();
+    await expect(app.getByText(/150,00\s*zł/)).toBeVisible();
+    await shot(app, '75-business-app-reports');
+    await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+  } finally {
+    businessApp.server.close();
+  }
 });

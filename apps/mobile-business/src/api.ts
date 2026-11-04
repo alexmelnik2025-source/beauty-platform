@@ -5,6 +5,7 @@ import type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  SalonReport,
   Tokens,
   components,
 } from '@beauty/api-client';
@@ -21,7 +22,16 @@ export type StaffList = components['schemas']['StaffList'];
 export type WorkingHours = components['schemas']['WorkingHours'];
 export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
-export type { AppointmentDetail, Calendar, Location, LoginCodeSent, Me, PermissionCatalog, Tokens };
+export type {
+  AppointmentDetail,
+  Calendar,
+  Location,
+  LoginCodeSent,
+  Me,
+  PermissionCatalog,
+  SalonReport,
+  Tokens,
+};
 
 /** Where the refresh token lives: Keychain/Keystore on phones, browser storage in the web preview. */
 export interface TokenStore {
@@ -205,6 +215,18 @@ export class BusinessApi {
         version,
         paid,
       },
+    );
+  }
+
+  /**
+   * The salon report for a period (salon-local dates): the whole salon for an owner or manager,
+   * a specialist's own visits with the "prices and own results" permission (403 otherwise).
+   */
+  report(orgId: string, locationId: string, from: string, to: string): Promise<SalonReport> {
+    const query = new URLSearchParams({ from, to }).toString();
+    return this.authed<SalonReport>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports?${query}`,
     );
   }
 
