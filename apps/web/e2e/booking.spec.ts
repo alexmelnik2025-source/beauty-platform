@@ -656,6 +656,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.goto('/pl/app/notifications');
   await expect(ownerPage.getByText('Nowa rezerwacja online').first()).toBeVisible();
   await shot(ownerPage, '20-owner-notifications');
+  // "Dziennik zmian" (task 23): who changed what, newest first — owner only.
+  await ownerPage.goto('/pl/app/history');
+  await expect(ownerPage.getByRole('heading', { name: 'Dziennik zmian' })).toBeVisible();
+  await expect(ownerPage.getByText('Dodano usługę: Strzyżenie męskie').first()).toBeVisible();
+  await expect(ownerPage.getByText(/Aleksander Owner · /).first()).toBeVisible();
+  await shot(ownerPage, '79-owner-change-log');
   await ownerPage.goto('/pl/app/settings');
   await expect(ownerPage.getByLabel('Link dla klientów')).toHaveValue(
     new RegExp(`/pl/b/${location.slug}$`),

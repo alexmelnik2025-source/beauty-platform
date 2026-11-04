@@ -1070,3 +1070,15 @@ pnpm --filter @beauty/api-client generate
   с юристом.
 - Код: `apps/api/src/booking/customer-privacy.service.ts`, `customer-privacy.controller.ts`; тесты
   `test/customer-privacy.spec.ts`, шаг в `e2e/booking.spec.ts`, скриншот `78-owner-client-erase`.
+
+## Dziennik zmian для владельца (задача 23)
+
+- Спецификация MVP: «журнал действий сотрудников». У владельца в меню — «Dziennik zmian» (`/{язык}/app/history`):
+  кто и когда изменил услуги, команду, графики и отсутствия, права и приглашения, клиентов (в т.ч. выгрузка и
+  удаление по RODO), программу лояльности, настройки салона. Сверху новые, по 50, «Pokaż starsze». Рядом с
+  действием — текущее название (услуги, мастера, клиента…); значения полей не показываются. Изменения визитов —
+  в истории каждого визита. 4 языка интерфейса.
+- API: `GET /v1/organizations/:orgId/audit-log?before=&limit=` — только владелец (менеджер 403, чужая организация
+  404). Из метаданных отдаются только имена изменённых полей и дата (для графика на день).
+- Код: `apps/api/src/audit-log/`, тесты `test/audit-log.spec.ts`; страница `apps/web/app/[locale]/app/history`,
+  шаг в `e2e/booking.spec.ts`, скриншот `79-owner-change-log`.

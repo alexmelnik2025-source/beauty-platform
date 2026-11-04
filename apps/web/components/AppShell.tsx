@@ -36,6 +36,7 @@ export function menuItems(
     manager && { href: at('loyalty'), label: t.nav.loyalty },
     !manager && { href: at('schedule'), label: t.more.schedule },
     manager && { href: at('settings'), label: t.nav.settings },
+    session.role === 'owner' && { href: at('history'), label: t.nav.history },
     session.me.isPlatformAdmin && { href: at('admin/outbox'), label: t.more.admin },
   ];
   return items.filter((i): i is MenuItem => Boolean(i));

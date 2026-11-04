@@ -8144,6 +8144,47 @@
           "platform admin"
         ]
       }
+    },
+    "/v1/organizations/{orgId}/audit-log": {
+      "get": {
+        "description": "Field names only, never their values. Visits have their own history.",
+        "operationId": "AuditLogController_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLog"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Who changed what in the salon, newest first (owner only)",
+        "tags": [
+          "organizations"
+        ]
+      }
     }
   },
   "info": {
@@ -9084,6 +9125,93 @@
           ],
           "additionalProperties": false
         }
+      },
+      "AuditLog": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "description": "e.g. service.updated, staff.time_off_added"
+                },
+                "entityType": {
+                  "type": "string"
+                },
+                "entityId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "entityName": {
+                  "nullable": true,
+                  "description": "Current name of the service, specialist, client… (null when gone)",
+                  "type": "string"
+                },
+                "actor": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "fields": {
+                  "nullable": true,
+                  "description": "Names of the changed fields (never their values)",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "date": {
+                  "nullable": true,
+                  "description": "The day a schedule change is about",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "at",
+                "action",
+                "entityType",
+                "entityId",
+                "entityName",
+                "actor",
+                "fields",
+                "date"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "next": {
+            "nullable": true,
+            "description": "Pass as `before` for older entries",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "additionalProperties": false
       },
       "Availability": {
         "type": "object",

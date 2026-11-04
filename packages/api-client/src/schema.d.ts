@@ -2049,6 +2049,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who changed what in the salon, newest first (owner only)
+         * @description Field names only, never their values. Visits have their own history.
+         */
+        get: operations["AuditLogController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2287,6 +2307,28 @@ export interface components {
             version: number;
             createdAt: string;
         }[];
+        AuditLog: {
+            items: {
+                id: string;
+                at: string;
+                /** @description e.g. service.updated, staff.time_off_added */
+                action: string;
+                entityType: string;
+                entityId: string | null;
+                /** @description Current name of the service, specialist, client… (null when gone) */
+                entityName: string | null;
+                actor: {
+                    id: string;
+                    name: string;
+                } | null;
+                /** @description Names of the changed fields (never their values) */
+                fields: string[] | null;
+                /** @description The day a schedule change is about */
+                date: string | null;
+            }[];
+            /** @description Pass as `before` for older entries */
+            next: string | null;
+        };
         Availability: {
             timezone: string;
             serviceId: string;
@@ -7744,6 +7786,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailsRequeued"];
+                };
+            };
+        };
+    };
+    AuditLogController_list: {
+        parameters: {
+            query?: {
+                limit?: unknown;
+                before?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLog"];
                 };
             };
         };
