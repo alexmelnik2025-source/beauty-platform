@@ -11,10 +11,13 @@ import type {
   ClientLoyaltyCard,
   ClientPerson,
   ClientSignIn,
+  ClientWaitlist,
+  ClientWaitlistEntry,
   PublicLocation,
   PublicSalonDirectory,
   Slot,
   VisitCoupons,
+  WaitlistJoined,
 } from '@beauty/api-client';
 
 /**
@@ -30,6 +33,7 @@ export type Scope = 'upcoming' | 'past';
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
 export type FavoriteSalon = ClientFavorites['items'][number];
+export type { ClientWaitlist, ClientWaitlistEntry, WaitlistJoined };
 export type {
   Availability,
   BookingConfirmed,
@@ -402,6 +406,34 @@ export class ClientApi {
   /** Takes a salon off the favourites (no error when it is not there). */
   removeFavorite(slug: string): Promise<void> {
     return this.authed<void>('DELETE', `/v1/client/favorites/${encodeURIComponent(slug)}`);
+  }
+
+  /** Task 51: the signed-in client's waiting lists in every salon, soonest day first. */
+  waitlist(): Promise<ClientWaitlist> {
+    return this.authed<ClientWaitlist>('GET', '/v1/client/waitlist');
+  }
+
+  /**
+   * "Tell me when a time becomes free" for a full day, with the signed-in client's email
+   * (one specialist, or any when `staffId` is left out). Asking again changes nothing.
+   */
+  joinWaitlist(
+    slug: string,
+    input: { serviceId: string; staffId?: string; date: string; name: string; locale: Locale },
+  ): Promise<WaitlistJoined> {
+    return this.authed<WaitlistJoined>(
+      'POST',
+      `/v1/client/waitlist/locations/${encodeURIComponent(slug)}`,
+      { ...input, acceptTerms: true },
+    );
+  }
+
+  /** Leaves one waiting list (leaving twice is fine). */
+  leaveWaitlist(id: string): Promise<ClientWaitlistEntry> {
+    return this.authed<ClientWaitlistEntry>(
+      'POST',
+      `/v1/client/waitlist/${encodeURIComponent(id)}/cancel`,
+    );
   }
 
   private async forget(): Promise<void> {

@@ -6,13 +6,16 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 50: a full day on the booking page — "Powiadom mnie, gdy zwolni się termin". The client
  * joins the waiting list, gets the email with the link, opens it and leaves the list.
  * (That a freed time is emailed once is covered by apps/api/test/waitlist.spec.ts.)
  * Task 50c: the owner sees both waiting clients in the cabinet and removes one.
- * Screenshots go to e2e/screenshots (80–80b, 80c–80d).
+ * Task 51: in the client app a signed-in client joins the list for the full day, sees it in
+ * "Moje wizyty" and leaves it.
+ * Screenshots go to e2e/screenshots (80–80b, 80c–80d, 80g–80h).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -20,6 +23,7 @@ const run = Date.now().toString(36);
 const OWNER = `waitlist-owner-${run}@example.com`;
 const ANNA = `waitlist-anna-${run}@example.com`;
 const BOB = `waitlist-bob-${run}@example.com`;
+const CARA = `waitlist-cara-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
@@ -192,4 +196,78 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await page.getByRole('button', { name: 'Wypisz mnie z listy' }).click();
   await expect(page.getByText('Nie ma Cię już na liście oczekujących.')).toBeVisible();
   await context.close();
+
+  // ── Task 51: the client app (web preview of apps/mobile-client) ────────
+  // Cara signs in with an emailed code and has the salon in her favourites.
+  await json(await request.post('/v1/client/auth/code', { data: { email: CARA, locale: 'pl' } }));
+  const codeMail = await waitForEmail(CARA, /Kod logowania do Twoich wizyt/);
+  const session = await json<{ token: string }>(
+    await request.post('/v1/client/auth/verify', {
+      data: { email: CARA, code: /\b(\d{6})\b/.exec(codeMail.text)![1], clientType: 'mobile' },
+    }),
+  );
+  await json(
+    await request.put(`/v1/client/favorites/${location.slug}`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+    }),
+  );
+  const clientApp = await serveApp('mobile-client');
+  try {
+    const appContext = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      isMobile: true,
+    });
+    await appContext.addInitScript((token) => {
+      localStorage.setItem('beauty.client.session', token);
+    }, session.token);
+    const phone = await appContext.newPage();
+    await phone.goto(clientApp.url);
+    await expect(phone.getByText(`Zalogowano jako ${CARA}`)).toBeVisible();
+    await phone.getByRole('tab', { name: 'Ulubione' }).click();
+    await phone.getByRole('button', { name: 'Umów wizytę' }).click();
+    await phone.getByRole('button', { name: /^Strzyżenie męskie,/ }).click();
+    await phone.getByRole('button', { name: /^Kasia/ }).click();
+    await expect(phone.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
+    await expect(phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first()).toBeVisible();
+    await phone
+      .getByRole('button', { name: 'Nie ma dogodnego dnia? Powiadom mnie, gdy zwolni się termin' })
+      .click();
+    await expect(phone.getByRole('heading', { name: 'Lista oczekujących' })).toBeVisible();
+    // Only days without free times are offered; the full day is one of them.
+    const appFullDay = phone
+      .getByRole('button', { name: /^Czekam na termin:/ })
+      .filter({ hasText: new RegExp(`\\D${Number(taken.date.slice(8))}$`) });
+    // A name is needed first.
+    await appFullDay.first().click();
+    await expect(phone.getByText('Wpisz imię i nazwisko.')).toBeVisible();
+    await phone
+      .getByRole('textbox', { name: 'Imię i nazwisko' })
+      .filter({ visible: true })
+      .fill('Cara Nowak');
+    await appFullDay.first().click();
+    await expect(
+      phone.getByText('Zapisano na listę oczekujących:', { exact: false }),
+    ).toBeVisible();
+    await expect(appFullDay.first()).toHaveAttribute('aria-pressed', 'true');
+    await shot(phone, '80g-client-app-waitlist-join');
+    const joinedMail = await waitForEmail(CARA, /Jesteś na liście oczekujących/);
+    expect(joinedMail.text).toContain('Strzyżenie męskie u Kasia (Gestalt Barbershop)');
+
+    // "Moje wizyty": the waiting list above the visits; leaving takes it away.
+    await phone.reload();
+    await expect(phone.getByText(`Zalogowano jako ${CARA}`)).toBeVisible();
+    await expect(phone.getByRole('heading', { name: 'Lista oczekujących' })).toBeVisible();
+    await expect(phone.getByText('Czekamy na wolny termin')).toBeVisible();
+    await expect(phone.getByText('Gestalt Barbershop').first()).toBeVisible();
+    await shot(phone, '80h-client-app-waitlist-list');
+    await phone.getByRole('button', { name: /^Wypisz się: Strzyżenie męskie/ }).click();
+    await expect(phone.getByRole('heading', { name: 'Lista oczekujących' })).toHaveCount(0);
+    await phone.reload();
+    await expect(phone.getByText(`Zalogowano jako ${CARA}`)).toBeVisible();
+    await expect(phone.getByText('Czekamy na wolny termin')).toHaveCount(0);
+    await appContext.close();
+  } finally {
+    clientApp.server.close();
+  }
 });

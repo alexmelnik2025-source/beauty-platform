@@ -380,3 +380,41 @@ describe('favourite salons (task 61)', () => {
     expect((error as ApiError).code).toBe('TOO_MANY_FAVORITES');
   });
 });
+
+describe('ClientApi: waiting list (task 51)', () => {
+  it('lists, joins with the session (never an email) and leaves', async () => {
+    const entry = { id: 'w1', date: '2026-11-10', status: 'waiting' };
+    const { fetchFn, calls } = fakeServer({
+      'GET /v1/client/me': () => [200, person],
+      'GET /v1/client/waitlist': () => [200, { items: [entry] }],
+      'POST /v1/client/waitlist/locations/barber%20one': () => [
+        201,
+        { date: '2026-11-10', status: 'waiting', alreadyWaiting: false },
+      ],
+      'POST /v1/client/waitlist/w1/cancel': () => [200, { ...entry, status: 'cancelled' }],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('tok'), fetchFn);
+    await api.restore();
+
+    expect((await api.waitlist()).items).toEqual([entry]);
+    const joined = await api.joinWaitlist('barber one', {
+      serviceId: 's1',
+      date: '2026-11-10',
+      name: 'Anna',
+      locale: 'pl',
+    });
+    expect(joined.alreadyWaiting).toBe(false);
+    const join = calls.find((c) => c.key.startsWith('POST /v1/client/waitlist/locations'));
+    expect(join?.body).toEqual({
+      serviceId: 's1',
+      date: '2026-11-10',
+      name: 'Anna',
+      locale: 'pl',
+      acceptTerms: true,
+    });
+    expect((await api.leaveWaitlist('w1')).status).toBe('cancelled');
+    expect(
+      calls.filter((c) => c.key.includes('/waitlist')).every((c) => c.auth === 'Bearer tok'),
+    ).toBe(true);
+  });
+});

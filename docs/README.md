@@ -1305,7 +1305,15 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
   `GET /v1/organizations/:orgId/locations/:locationId/waitlist?from=YYYY-MM-DD`,
   `POST …/waitlist/:entryId/remove`. Тесты — `waitlist.spec.ts` (права, другой салон, повтор), `isolation.spec.ts`;
   e2e — скриншоты 80c–80d.
-- Дальше: удаление контактов старых заявок; лист ожидания в клиентском приложении (задача 51).
+- Клиентское приложение (51): на шаге «Wybierz termin» — «Nie ma dogodnego dnia? Powiadom mnie, gdy zwolni się
+  termin»: вошедший клиент вписывает имя и тапает день без свободного времени (пунктирная рамка) — письмо придёт на
+  e-mail, с которым он вошёл. В «Moje wizyty» → «Nadchodzące» сверху блок «Lista oczekujących» во всех салонах:
+  услуга, день, мастер, «Czekamy na wolny termin» / «Zwolnił się termin» (+ «Umów wizytę»), «Wypisz się». Без входа
+  приложение подсказывает войти (или записаться на странице салона). API: `GET /v1/client/waitlist`,
+  `POST /v1/client/waitlist/locations/:slug` (тело как у страницы записи, но без e-mail — берётся из сессии),
+  `POST /v1/client/waitlist/:id/cancel` (чужая заявка — 404). Тесты — `waitlist.spec.ts` (API), `test/api.test.ts`
+  и `test/waitlist.test.ts` (приложение), e2e — скриншоты 80g–80h.
+- Дальше: удаление контактов старых заявок.
 
 ## Пожелания к визиту (задача 80, часть 80a — API)
 

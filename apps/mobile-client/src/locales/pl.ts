@@ -246,6 +246,25 @@ export const pl = {
     notBookable: 'Salon wstrzymał rezerwacje online.',
     tooMany: 'Masz już 100 ulubionych salonów. Usuń któryś, aby dodać nowy.',
   },
+  waitlist: {
+    open: 'Nie ma dogodnego dnia? Powiadom mnie, gdy zwolni się termin',
+    title: 'Lista oczekujących',
+    lead: 'Wybierz dzień bez wolnych godzin. Gdy ktoś odwoła wizytę, dostaniesz e-mail — kto pierwszy, ten lepszy.',
+    signInFirst:
+      'Aby zapisać się na listę oczekujących w aplikacji, zaloguj się w „Moje wizyty” (albo zapisz się na stronie rezerwacji salonu).',
+    noFullDays: 'W najbliższych dniach są wolne terminy — wybierz jeden powyżej.',
+    nameNeeded: 'Wpisz imię i nazwisko.',
+    wait: 'Czekam na termin',
+    joined: 'Zapisano na listę oczekujących: {day}. Dostaniesz e-mail, gdy zwolni się termin.',
+    tooMany:
+      'W tym salonie możesz czekać najwyżej na 3 dni naraz. Wypisz się z któregoś w „Moje wizyty”.',
+    slotsAvailable: 'Tego dnia są już wolne godziny — zarezerwuj jedną z nich.',
+    badDay: 'Salon nie przyjmuje jeszcze rezerwacji na ten dzień.',
+    any: 'dowolny specjalista',
+    waiting: 'Czekamy na wolny termin',
+    notified: 'Zwolnił się termin — wysłaliśmy e-mail',
+    leave: 'Wypisz się',
+  },
   units: { h: 'godz.', min: 'min' },
   spoken: { pl: 'polski', uk: 'ukraiński', ru: 'rosyjski', be: 'białoruski', en: 'angielski' },
   specialty: {
