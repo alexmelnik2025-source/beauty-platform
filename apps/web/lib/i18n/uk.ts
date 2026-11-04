@@ -588,6 +588,8 @@ export const uk: Dict = {
     duplicatePhone: 'Клієнт із таким номером уже є.',
     duplicateEmail: 'Клієнт із таким e-mail уже є.',
     addAnyway: 'Усе одно додати',
+    export: 'Експорт CSV',
+    exportHint: 'Усі клієнти салону у файлі для Excel: контакти, згода, візити.',
   },
   notifications: {
     title: 'Сповіщення',
@@ -635,6 +637,9 @@ export const uk: Dict = {
     horizon: 'Найпізніше: днів наперед',
     deadline: 'Клієнт може змінити запис до: хвилин до',
     step: 'Час із кроком (хв)',
+    reminder: 'Нагадування e-mail перед візитом',
+    reminderNone: 'Не надсилати',
+    reminderHours: 'год до візиту',
     timeZone: 'Країна і часовий пояс',
     timeZoneHint: 'Години роботи, візити й листи — за часом цього поясу.',
     currency: 'Валюта цін',

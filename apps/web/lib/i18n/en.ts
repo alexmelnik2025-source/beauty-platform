@@ -590,6 +590,8 @@ export const en: Dict = {
     duplicatePhone: 'A client with this phone number exists.',
     duplicateEmail: 'A client with this email exists.',
     addAnyway: 'Add anyway',
+    export: 'Export CSV',
+    exportHint: 'All clients of the salon in a file for Excel: contacts, consent, visits.',
   },
   notifications: {
     title: 'Notifications',
@@ -638,6 +640,9 @@ export const en: Dict = {
     horizon: 'Latest: days ahead',
     deadline: 'Clients can change until: minutes before',
     step: 'Times every (min)',
+    reminder: 'Reminder email before the visit',
+    reminderNone: 'Do not send',
+    reminderHours: 'h before',
     timeZone: 'Country and time zone',
     timeZoneHint: 'Working hours, visits and emails use the time of this zone.',
     currency: 'Price currency',

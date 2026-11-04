@@ -82,6 +82,7 @@ export default function SettingsPage() {
           minLeadMinutes: form.minLeadMinutes,
           bookingHorizonDays: form.bookingHorizonDays,
           clientCancelDeadlineMinutes: form.clientCancelDeadlineMinutes,
+          reminderHoursBefore: form.reminderHoursBefore,
           slotStepMinutes: form.slotStepMinutes,
           languages: form.languages,
           description: form.description ?? '',
@@ -215,6 +216,16 @@ export default function SettingsPage() {
               </select>
             </label>
           </div>
+          <label className="field">
+            <span>{t.settings.reminder}</span>
+            <select value={form.reminderHoursBefore} onChange={num('reminderHoursBefore')}>
+              {[2, 3, 6, 12, 24, 48, 0].map((h) => (
+                <option key={h} value={h}>
+                  {h === 0 ? t.settings.reminderNone : `${h} ${t.settings.reminderHours}`}
+                </option>
+              ))}
+            </select>
+          </label>
         </section>
         <section className="section" aria-labelledby="legal-title">
           <h2 id="legal-title">{t.legal.title}</h2>

@@ -390,6 +390,12 @@ h3 {
   padding: 20px 24px;
 }
 
+.page-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 760px) {
   .page-head {
     padding: 14px 16px;

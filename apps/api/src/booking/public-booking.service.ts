@@ -29,7 +29,6 @@ const MAX_CODE_SENDS = 3;
 const MAX_CODE_ATTEMPTS = 5;
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
-const REMINDER_BEFORE_MS = 24 * 60 * MINUTE_MS;
 const MANAGE_LINK_DAYS_AFTER_VISIT = 7;
 /** Version of the booking terms text the client accepts. Change it when the text changes. */
 export const BOOKING_TERMS_VERSION = '2026-10-draft';
@@ -605,10 +604,7 @@ export class PublicBookingService {
     const payload = { appointmentId: appointment.id, version: appointment.version };
     await this.outbox.enqueue(tx, clientKind, payload);
     await this.outbox.enqueue(tx, salonKind, payload);
-    const remindAt = appointment.startAt.getTime() - REMINDER_BEFORE_MS;
-    if (remindAt > Date.now()) {
-      await this.outbox.enqueue(tx, 'client_reminder', payload, { notBefore: new Date(remindAt) });
-    }
+    await this.outbox.enqueueReminder(tx, appointment);
   }
 
   toPublic(

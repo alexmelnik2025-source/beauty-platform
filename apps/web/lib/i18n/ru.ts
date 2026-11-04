@@ -590,6 +590,8 @@ export const ru: Dict = {
     duplicatePhone: 'Клиент с таким номером уже есть.',
     duplicateEmail: 'Клиент с таким e-mail уже есть.',
     addAnyway: 'Всё равно добавить',
+    export: 'Экспорт CSV',
+    exportHint: 'Все клиенты салона в файле для Excel: контакты, согласие, визиты.',
   },
   notifications: {
     title: 'Уведомления',
@@ -637,6 +639,9 @@ export const ru: Dict = {
     horizon: 'Не позже чем: дней вперёд',
     deadline: 'Клиент может изменить запись до: минут до',
     step: 'Время с шагом (мин)',
+    reminder: 'Напоминание e-mail перед визитом',
+    reminderNone: 'Не отправлять',
+    reminderHours: 'ч до визита',
     timeZone: 'Страна и часовой пояс',
     timeZoneHint: 'Часы работы, визиты и письма — по времени этого пояса.',
     currency: 'Валюта цен',

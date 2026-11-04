@@ -9,9 +9,18 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { Idempotent } from '../common/idempotency.interceptor';
@@ -67,6 +76,11 @@ import {
   type CustomerDetailResponse,
   type CustomerResponse,
 } from './customers.service';
+import {
+  CustomersExportService,
+  exportCustomersSchema,
+  type ExportCustomersQuery,
+} from './customers-export';
 
 const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
 
@@ -290,7 +304,10 @@ export class AppointmentsController {
 @Controller('organizations/:orgId/customers')
 @UseGuards(MembershipGuard)
 export class CustomersController {
-  constructor(private readonly customers: CustomersService) {}
+  constructor(
+    private readonly customers: CustomersService,
+    private readonly exporter: CustomersExportService,
+  ) {}
 
   @Get()
   @RequireRoles('owner', 'manager')
@@ -321,6 +338,30 @@ export class CustomersController {
     @Body(new ZodValidationPipe(createCustomerSchema)) body: CreateCustomerInput,
   ): Promise<CustomerDetailResponse> {
     return this.customers.create(m, auth.userId, body);
+  }
+
+  @Get('export.csv')
+  @RequireRoles('owner')
+  @ApiOperation({
+    summary: 'All clients as a CSV file (owners only)',
+    description:
+      'Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Every export is written to the audit log.',
+  })
+  @ApiQuery({ name: 'lang', required: false, enum: ['pl', 'uk', 'ru', 'en'] })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async exportCsv(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Query(new ZodValidationPipe(exportCustomersSchema)) query: ExportCustomersQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const csv = await this.exporter.csv(m, auth.userId, query);
+    const day = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="klienci-${day}.csv"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.end(csv);
   }
 
   @Get(':customerId')

@@ -39,6 +39,9 @@ const legalText = z
   .transform((value) => (value === '' ? null : value))
   .nullable();
 
+/** The reminder times a salon can choose (task 22). */
+export const REMINDER_HOURS = [0, 2, 3, 6, 12, 24, 48] as const;
+
 const locationFields = {
   name: z.string().trim().min(1).max(100),
   slug,
@@ -69,6 +72,8 @@ const locationFields = {
     .int()
     .min(0)
     .max(7 * 24 * 60),
+  /** Hours before the visit the client gets a reminder email; 0 = none (task 22). */
+  reminderHoursBefore: z.union(REMINDER_HOURS.map((h) => z.literal(h))),
   onlineBookingEnabled: z.boolean(),
   languages: languagesSchema,
   /** Shown on the booking page; an empty text removes it. */
@@ -98,6 +103,7 @@ export const createLocationSchema = z.object({
   minLeadMinutes: locationFields.minLeadMinutes.default(60),
   bookingHorizonDays: locationFields.bookingHorizonDays.default(30),
   clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
+  reminderHoursBefore: locationFields.reminderHoursBefore.default(24),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
   languages: locationFields.languages.default([]),
   description: locationFields.description.optional(),

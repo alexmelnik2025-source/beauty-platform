@@ -590,6 +590,8 @@ export const pl = {
     duplicatePhone: 'Klient z tym numerem już istnieje.',
     duplicateEmail: 'Klient z tym e-mailem już istnieje.',
     addAnyway: 'Dodaj mimo to',
+    export: 'Eksportuj CSV',
+    exportHint: 'Wszyscy klienci salonu w pliku dla Excela: kontakty, zgoda, wizyty.',
   },
   notifications: {
     title: 'Powiadomienia',
@@ -638,6 +640,9 @@ export const pl = {
     horizon: 'Najdalej: dni naprzód',
     deadline: 'Klient może zmienić wizytę do: minut przed',
     step: 'Godziny co (min)',
+    reminder: 'Przypomnienie e-mail przed wizytą',
+    reminderNone: 'Nie wysyłaj',
+    reminderHours: 'godz. przed',
     timeZone: 'Kraj i strefa czasowa',
     timeZoneHint: 'Godziny pracy, wizyty i e-maile są w czasie tej strefy.',
     currency: 'Waluta cen',
