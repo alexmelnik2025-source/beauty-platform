@@ -27,6 +27,8 @@ async function bootstrap(): Promise<void> {
   });
   if (config.TRUST_PROXY > 0) app.set('trust proxy', config.TRUST_PROXY);
   app.enableShutdownHooks();
+  // No host: Node listens on every interface (IPv4 and IPv6), so a phone in the same Wi-Fi
+  // reaches the API at http://<Mac's address>:4000 (pnpm mobile:client / mobile:business).
   await app.listen(config.PORT);
   const logger = new Logger('Bootstrap');
   logger.log(`API listening on http://localhost:${config.PORT}/v1`);

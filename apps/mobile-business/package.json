@@ -5,7 +5,7 @@
   "description": "Business app for salon owners, managers and specialists (Expo, iPhone and Android)",
   "main": "index.ts",
   "scripts": {
-    "dev": "expo start",
+    "dev": "expo start --port 8082",
     "build": "expo export --platform android --platform ios --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
