@@ -42,6 +42,9 @@ export type ClientLoyaltyCard = ClientLoyalty['items'][number];
 /** "Favourite salons" in the client app. */
 export type ClientFavorites = Schemas['ClientFavorites'];
 export type FavoriteSalon = ClientFavorites['items'][number];
+/** Waiting list: "email me when a time frees up on this day". */
+export type Waitlist = Schemas['Waitlist'];
+export type WaitlistEntry = Schemas['WaitlistEntry'];
 
 /** Salon account: sign-in, the signed-in user, devices. */
 export type User = Schemas['User'];

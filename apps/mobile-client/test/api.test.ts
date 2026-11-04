@@ -331,7 +331,7 @@ describe('change time', () => {
   });
 });
 
-describe('favourite salons (task 23)', () => {
+describe('favourite salons (task 50)', () => {
   const salon = {
     slug: 'barber-one',
     name: 'Barber One',
@@ -378,5 +378,37 @@ describe('favourite salons (task 23)', () => {
     const error = await api.addFavorite('barber-one').catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).code).toBe('TOO_MANY_FAVORITES');
+  });
+});
+
+describe('waiting list (task 51)', () => {
+  it('joins a day, lists and leaves with the session token', async () => {
+    const entry = {
+      id: 'w1',
+      date: '2026-11-10',
+      salon: { slug: 'barber-one', name: 'Barber One' },
+      service: { id: 's1', name: 'Strzyżenie' },
+      staff: null,
+      notifiedAt: null,
+    };
+    const { fetchFn, calls } = fakeServer({
+      'GET /v1/client/me': () => [200, person],
+      'POST /v1/client/waitlist': () => [201, entry],
+      'GET /v1/client/waitlist': () => [200, { items: [entry] }],
+      'DELETE /v1/client/waitlist/w1': () => [204],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('tok'), fetchFn);
+    await api.restore();
+    await api.joinWaitlist({ slug: 'barber-one', serviceId: 's1', date: '2026-11-10' });
+    expect((await api.waitlist()).items).toEqual([entry]);
+    await api.leaveWaitlist('w1');
+    const sent = calls.filter((c) => c.key.includes('/waitlist'));
+    expect(sent.map((c) => c.key)).toEqual([
+      'POST /v1/client/waitlist',
+      'GET /v1/client/waitlist',
+      'DELETE /v1/client/waitlist/w1',
+    ]);
+    expect(sent[0]!.body).toEqual({ slug: 'barber-one', serviceId: 's1', date: '2026-11-10' });
+    expect(sent.every((c) => c.auth === 'Bearer tok')).toBe(true);
   });
 });

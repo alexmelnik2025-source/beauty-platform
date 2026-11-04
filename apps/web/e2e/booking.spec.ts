@@ -1158,6 +1158,17 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByRole('button', { name: 'Inna usługa lub specjalista' })).toBeVisible();
     await expect(phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first()).toBeVisible();
     await shot(phone, '59f-client-app-book-again');
+    // Task 51: no time that suits? The waiting list: pick a day, one email when a time frees up.
+    await phone
+      .getByRole('button', { name: 'Nie ma dogodnej godziny? Powiadom mnie, gdy się zwolni' })
+      .click();
+    await expect(phone.getByRole('heading', { name: 'Lista oczekujących' })).toBeVisible();
+    await phone
+      .getByRole('button', { name: /^Lista oczekujących: / })
+      .nth(2)
+      .click();
+    await expect(phone.getByRole('status')).toContainText('Zapisano na listę oczekujących');
+    await shot(phone, '81w-client-app-waitlist');
     await phone.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(phone.getByRole('heading', { name: 'Strzyżenie męskie' })).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Odwołaj wizytę' })).toBeVisible();
@@ -1169,11 +1180,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await shot(phone, '59b-client-app-cancelled');
     await phone.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+    // The waiting list is above the upcoming visits; leaving it takes it away.
+    await expect(phone.getByText('Lista oczekujących')).toBeVisible();
+    await expect(
+      phone.getByRole('button', { name: /^Wypisz się: Strzyżenie męskie, / }),
+    ).toBeVisible();
+    await shot(phone, '81x-client-app-waitlist-visits');
+    await phone.getByRole('button', { name: /^Wypisz się: Strzyżenie męskie, / }).click();
+    await expect(phone.getByText('Lista oczekujących')).toBeHidden();
     await phone.getByRole('tab', { name: 'Historia' }).click();
     await expect(phone.getByRole('tab', { name: 'Historia', selected: true })).toBeVisible();
     await phone.waitForLoadState('networkidle');
     await shot(phone, '58c-client-app-history');
-    // Task 23: a signed-in client saves a salon to "Favourites" on its page and books from there.
+    // Task 50: a signed-in client saves a salon to "Favourites" on its page and books from there.
     await phone.getByRole('button', { name: 'Znajdź salon' }).click();
     await phone
       .getByRole('article', { name: 'Gestalt Barbershop' })

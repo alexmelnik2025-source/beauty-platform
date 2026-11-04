@@ -38,6 +38,7 @@ import type {
   AppointmentResponse,
   VisitCouponsResponse,
 } from './booking.responses';
+import { freedBy, WaitlistService } from './waitlist.service';
 import { OutboxService } from './outbox.service';
 
 const MINUTE_MS = 60_000;
@@ -85,6 +86,7 @@ export class AppointmentsService {
     private readonly outbox: OutboxService,
     private readonly ledger: LoyaltyLedger,
     private readonly visitCoupons: VisitCoupons,
+    private readonly waitlist: WaitlistService,
   ) {}
 
   async list(
@@ -319,6 +321,9 @@ export class AppointmentsService {
         fromStaffId: appointment.staffId,
       });
       await this.notifyClient(tx, { ...appointment, ...times, version }, 'client_rescheduled');
+      if (appointment.status === 'confirmed') {
+        await this.waitlist.timeFreed(tx, { ...freedBy(appointment), version });
+      }
     });
     return this.get(m, userId, locationId, appointmentId);
   }
@@ -354,6 +359,12 @@ export class AppointmentsService {
         reason: input.reason,
         ...(couponsReturned > 0 ? { couponsReturned } : {}),
       });
+      if (appointment.status === 'confirmed') {
+        await this.waitlist.timeFreed(tx, {
+          ...freedBy(appointment),
+          version: input.version + 1,
+        });
+      }
       if (appointment.status === 'confirmed' && appointment.customer?.email) {
         await this.outbox.enqueue(tx, 'client_cancelled', {
           appointmentId: appointment.id,

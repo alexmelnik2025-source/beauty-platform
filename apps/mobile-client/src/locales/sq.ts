@@ -228,6 +228,19 @@ export const sq: Dictionary = {
     notBookable: 'Salloni ka pezulluar rezervimet online.',
     tooMany: 'Keni tashmë 100 sallone të preferuara. Hiqni një për të shtuar një të ri.',
   },
+  waitlist: {
+    open: 'Nuk ka orar që ju përshtatet? Më njoftoni kur të lirohet',
+    lead: 'Zgjidhni një ditë. Kur dikush anulon dhe lirohet një orar, merrni një e-mail — kush vjen i pari.',
+    signInFirst: 'Për t’u regjistruar në listën e pritjes, hyni te “Takimet e mia”.',
+    joined: 'Jeni në listën e pritjes për {day}. Do t’ju shkruajmë kur të lirohet një orar.',
+    tooMany:
+      'Mund të prisni për më së shumti 10 ditë njëkohësisht. Dilni nga njëra te “Takimet e mia”.',
+    title: 'Lista e pritjes',
+    any: 'çdo specialist',
+    waiting: 'Në pritje të një orari të lirë',
+    notified: 'Ju dërguam e-mail për një orar të lirë',
+    leave: 'Dil nga lista',
+  },
   units: { h: 'orë', min: 'min' },
   spoken: { pl: 'Polonisht', uk: 'Ukrainisht', ru: 'Rusisht', be: 'Bjellorusisht', en: 'Anglisht' },
   specialty: {

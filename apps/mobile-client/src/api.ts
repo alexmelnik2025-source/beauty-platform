@@ -15,6 +15,8 @@ import type {
   PublicSalonDirectory,
   Slot,
   VisitCoupons,
+  Waitlist,
+  WaitlistEntry,
 } from '@beauty/api-client';
 
 /**
@@ -30,6 +32,7 @@ export type Scope = 'upcoming' | 'past';
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
 export type FavoriteSalon = ClientFavorites['items'][number];
+export type { Waitlist, WaitlistEntry };
 export type {
   Availability,
   BookingConfirmed,
@@ -379,6 +382,28 @@ export class ClientApi {
   /** Takes a salon off the favourites (no error when it is not there). */
   removeFavorite(slug: string): Promise<void> {
     return this.authed<void>('DELETE', `/v1/client/favorites/${encodeURIComponent(slug)}`);
+  }
+
+  /** Waiting lists of the signed-in client: days still to come, soonest first. */
+  waitlist(): Promise<Waitlist> {
+    return this.authed<Waitlist>('GET', '/v1/client/waitlist');
+  }
+
+  /**
+   * "Email me when a time frees up on this day" (a service; one specialist or anyone).
+   * Joining the same day again re-arms the email.
+   */
+  joinWaitlist(input: {
+    slug: string;
+    serviceId: string;
+    staffId?: string;
+    date: string;
+  }): Promise<WaitlistEntry> {
+    return this.authed<WaitlistEntry>('POST', '/v1/client/waitlist', input);
+  }
+
+  leaveWaitlist(id: string): Promise<void> {
+    return this.authed<void>('DELETE', `/v1/client/waitlist/${encodeURIComponent(id)}`);
   }
 
   private async forget(): Promise<void> {

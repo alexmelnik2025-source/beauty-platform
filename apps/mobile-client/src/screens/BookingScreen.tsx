@@ -50,6 +50,7 @@ import { fill, type Dictionary } from '../i18n';
 import { dialForTimeZone } from '../phone';
 import { durationText, serviceGroups, specialtyText } from '../salon';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
+import { WaitlistPanel } from './WaitlistPanel';
 
 /** A booking error in the client's words (the same texts as the web booking page). */
 function bookingErrorText(error: unknown, t: Dictionary): string {
@@ -471,6 +472,18 @@ export function BookingScreen(props: {
               ))}
             </>
           )}
+          {slots !== null && serviceId ? (
+            <WaitlistPanel
+              key={`${serviceId}-${staffId ?? ''}`}
+              api={api}
+              t={t}
+              locale={locale}
+              salon={salon}
+              serviceId={serviceId}
+              staffId={staffId}
+              signedIn={props.signedIn}
+            />
+          ) : null}
         </View>
       ) : null}
 

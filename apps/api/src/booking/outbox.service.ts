@@ -6,6 +6,11 @@ import type { Locale, Prisma } from '../generated/prisma/client';
 import { MailService, maskEmails, type MailMessage } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  WAITLIST_FREED,
+  WaitlistService,
+  type WaitlistFreedNotification,
+} from './waitlist.service';
+import {
   formatPrice,
   formatWhen,
   renderAppointmentEmail,
@@ -67,6 +72,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly waitlist: WaitlistService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -371,6 +377,9 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   /** Builds the emails from current data; null = nothing to send any more. */
   private async render(row: ClaimedRow): Promise<MailMessage[] | null> {
     if (row.type === POINTS_EXPIRING) return this.renderPointsExpiring(row);
+    if (row.type === WAITLIST_FREED) {
+      return this.waitlist.render(row.id, row.payload as unknown as WaitlistFreedNotification);
+    }
     const kind = row.type as NotificationKind;
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: row.payload.appointmentId },

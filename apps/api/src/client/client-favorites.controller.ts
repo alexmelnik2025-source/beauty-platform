@@ -16,7 +16,7 @@ import { clientFavoritesSchema, type ClientFavoritesResponse } from './client-fa
 import { ClientFavoritesService } from './client-favorites.service';
 import type { ClientAuth } from './client.service';
 
-/** "Favourite salons" in the client app (task 23). */
+/** "Favourite salons" in the client app (task 50). */
 @ApiTags('client app')
 @Public()
 @UseGuards(ClientGuard)

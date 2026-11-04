@@ -198,6 +198,15 @@ describe('client-facing responses match the documented shapes exactly', () => {
     const favorites = await ctx.http().get('/v1/client/favorites').set(auth).expect(200);
     expectShape('ClientFavorites', favorites.body);
     expect(favorites.body.items).toHaveLength(1);
+    const joined = await ctx
+      .http()
+      .post('/v1/client/waitlist')
+      .set(auth)
+      .send({ slug, serviceId, date: addDays(localToday(Date.now(), TZ), 2) })
+      .expect(201);
+    expectShape('WaitlistEntry', joined.body);
+    const waitlist = await ctx.http().get('/v1/client/waitlist').set(auth).expect(200);
+    expectShape('Waitlist', waitlist.body);
     const list = await ctx.http().get('/v1/client/appointments').set(auth).expect(200);
     expectShape('ClientAppointmentList', list.body);
     expect(list.body.items).toHaveLength(1);

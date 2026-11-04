@@ -4,6 +4,7 @@ import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { ClientGuard } from './client-auth';
 import { ClientFavoritesController } from './client-favorites.controller';
 import { ClientFavoritesService } from './client-favorites.service';
+import { ClientWaitlistController } from './client-waitlist.controller';
 import { ClientController } from './client.controller';
 import { ClientLoyaltyService } from './client-loyalty.service';
 import { ClientService } from './client.service';
@@ -11,7 +12,7 @@ import { ClientService } from './client.service';
 /** "My visits" — the client app across salons. */
 @Module({
   imports: [BookingModule, LoyaltyModule],
-  controllers: [ClientController, ClientFavoritesController],
+  controllers: [ClientController, ClientFavoritesController, ClientWaitlistController],
   providers: [ClientService, ClientLoyaltyService, ClientFavoritesService, ClientGuard],
 })
 export class ClientModule {}

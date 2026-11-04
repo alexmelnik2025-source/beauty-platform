@@ -227,6 +227,18 @@ export const tr: Dictionary = {
     notBookable: 'Salon online randevuyu durdurdu.',
     tooMany: 'Zaten 100 favori salonunuz var. Yenisini eklemek için birini çıkarın.',
   },
+  waitlist: {
+    open: 'Uygun saat yok mu? Boşalınca bana haber verin',
+    lead: 'Bir gün seçin. Biri randevusunu iptal edip bir saat boşalınca e-posta alırsınız — ilk gelen alır.',
+    signInFirst: 'Bekleme listesine katılmak için “Randevularım”da oturum açın.',
+    joined: '{day} için bekleme listesindesiniz. Bir saat boşalınca size e-posta göndereceğiz.',
+    tooMany: 'Aynı anda en fazla 10 gün bekleyebilirsiniz. “Randevularım”dan birinden çıkın.',
+    title: 'Bekleme listesi',
+    any: 'herhangi bir uzman',
+    waiting: 'Boş saat bekleniyor',
+    notified: 'Boş saat için e-posta gönderdik',
+    leave: 'Listeden çık',
+  },
   units: { h: 'sa', min: 'dk' },
   spoken: { pl: 'Lehçe', uk: 'Ukraynaca', ru: 'Rusça', be: 'Belarusça', en: 'İngilizce' },
   specialty: {

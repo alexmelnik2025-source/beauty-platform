@@ -225,6 +225,18 @@ export const en: Dictionary = {
     notBookable: 'The salon has paused online booking.',
     tooMany: 'You already have 100 favourite salons. Remove one to add another.',
   },
+  waitlist: {
+    open: 'No time that suits you? Tell me when one frees up',
+    lead: 'Pick a day. When someone cancels and a time frees up, you get an email — first come, first served.',
+    signInFirst: 'To join the waiting list, sign in to “My visits”.',
+    joined: 'You are on the waiting list for {day}. We will email you when a time frees up.',
+    tooMany: 'You can wait for at most 10 days at once. Leave one in “My visits”.',
+    title: 'Waiting list',
+    any: 'any specialist',
+    waiting: 'Waiting for a free time',
+    notified: 'We emailed you about a free time',
+    leave: 'Leave',
+  },
   units: { h: 'h', min: 'min' },
   spoken: { pl: 'Polish', uk: 'Ukrainian', ru: 'Russian', be: 'Belarusian', en: 'English' },
   specialty: {

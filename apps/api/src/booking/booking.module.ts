@@ -17,6 +17,7 @@ import { PublicBookingController } from './public-booking.controller';
 import { PublicBookingService } from './public-booking.service';
 import { TimeBlocksController } from './time-blocks.controller';
 import { TimeBlocksService } from './time-blocks.service';
+import { WaitlistService } from './waitlist.service';
 
 @Module({
   imports: [OrganizationsModule, SchedulingModule, LoyaltyModule],
@@ -37,8 +38,9 @@ import { TimeBlocksService } from './time-blocks.service';
     OutboxService,
     PublicBookingService,
     TimeBlocksService,
+    WaitlistService,
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
-  exports: [AppointmentWriter, OutboxService, PublicBookingService],
+  exports: [AppointmentWriter, OutboxService, PublicBookingService, WaitlistService],
 })
 export class BookingModule {}

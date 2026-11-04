@@ -1874,6 +1874,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My waiting lists: days still to come, soonest first */
+        get: operations["ClientWaitlistController_list"];
+        put?: never;
+        /**
+         * Join the waiting list for a day
+         * @description One email to the confirmed address when a visit that day is cancelled or moved and a time is free for this service (and specialist, if chosen). Joining the same day again re-arms it. 400 DATE_OUT_OF_RANGE outside today…booking horizon; 409 TOO_MANY_WAITLIST over 10 days.
+         */
+        post: operations["ClientWaitlistController_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/waitlist/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Leave a waiting list */
+        delete: operations["ClientWaitlistController_leave"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/push-subscriptions/public-key": {
         parameters: {
             query?: never;
@@ -3820,6 +3858,46 @@ export interface components {
                  */
                 problem: "EXPIRED" | "NOT_FOR_SERVICE" | "NOT_COMBINABLE" | "NO_DISCOUNT" | null;
             }[];
+        };
+        Waitlist: {
+            items: {
+                id: string;
+                /** @description Local date at the salon, YYYY-MM-DD */
+                date: string;
+                salon: {
+                    slug: string;
+                    name: string;
+                };
+                service: {
+                    id: string;
+                    name: string;
+                };
+                staff: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                /** Format: date-time */
+                notifiedAt: string | null;
+            }[];
+        };
+        WaitlistEntry: {
+            id: string;
+            /** @description Local date at the salon, YYYY-MM-DD */
+            date: string;
+            salon: {
+                slug: string;
+                name: string;
+            };
+            service: {
+                id: string;
+                name: string;
+            };
+            staff: {
+                id: string;
+                displayName: string;
+            } | null;
+            /** Format: date-time */
+            notifiedAt: string | null;
         };
         WorkingHours: {
             timezone: string;
@@ -7347,6 +7425,74 @@ export interface operations {
             header?: never;
             path: {
                 slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientWaitlistController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Waitlist"];
+                };
+            };
+        };
+    };
+    ClientWaitlistController_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
+                    /** Format: uuid */
+                    serviceId: string;
+                    /** Format: uuid */
+                    staffId?: string;
+                    date: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistEntry"];
+                };
+            };
+        };
+    };
+    ClientWaitlistController_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
             };
             cookie?: never;
         };

@@ -19,6 +19,7 @@ import type {
   CreateHoldInput,
   SendCodeInput,
 } from './booking.schemas';
+import { freedBy, WaitlistService } from './waitlist.service';
 import { OutboxService } from './outbox.service';
 import type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
 
@@ -82,6 +83,7 @@ export class PublicBookingService {
     private readonly sms: SmsService,
     private readonly limiter: RateLimiterService,
     private readonly visitCoupons: VisitCoupons,
+    private readonly waitlist: WaitlistService,
   ) {}
 
   async findBookable(slug: string): Promise<Location> {
@@ -449,6 +451,7 @@ export class PublicBookingService {
         ...(couponsReturned > 0 ? { couponsReturned } : {}),
       });
       await this.outbox.enqueue(tx, 'client_cancelled', { appointmentId: appointment.id, version });
+      await this.waitlist.timeFreed(tx, { ...freedBy(appointment), version });
       await this.outbox.enqueue(tx, 'salon_client_cancelled', {
         appointmentId: appointment.id,
         version,
@@ -504,6 +507,7 @@ export class PublicBookingService {
             });
             const moved = { ...appointment, ...times, version };
             await this.notifyBooked(tx, moved, 'client_rescheduled', 'salon_client_rescheduled');
+            await this.waitlist.timeFreed(tx, { ...freedBy(appointment), version });
           },
         );
         return this.toPublic(

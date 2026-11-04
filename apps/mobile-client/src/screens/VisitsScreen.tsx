@@ -6,6 +6,7 @@ import type {
   ClientLoyaltyCard,
   ClientPerson,
   FavoriteSalon,
+  WaitlistEntry,
   Locale,
   Scope,
 } from '../api';
@@ -49,6 +50,8 @@ export function VisitsScreen(props: {
   const [items, setItems] = useState<ClientAppointment[] | null>(null);
   const [bonuses, setBonuses] = useState<ClientLoyaltyCard[] | null>(null);
   const [favorites, setFavorites] = useState<FavoriteSalon[] | null>(null);
+  // Waiting lists (task 51) are shown above the upcoming visits.
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ClientAppointment | null>(null);
@@ -59,7 +62,11 @@ export function VisitsScreen(props: {
     try {
       if (tab === 'bonuses') setBonuses((await api.loyalty()).items);
       else if (tab === 'favorites') setFavorites((await api.favorites()).items);
-      else setItems((await api.appointments(tab)).items);
+      else if (tab === 'upcoming') {
+        const [visits, waiting] = await Promise.all([api.appointments(tab), api.waitlist()]);
+        setItems(visits.items);
+        setWaitlist(waiting.items);
+      } else setItems((await api.appointments(tab)).items);
       setError('');
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
@@ -84,6 +91,19 @@ export function VisitsScreen(props: {
     seenVersion.current = favoritesVersion;
     if (tab === 'favorites') void load();
   }, [favoritesVersion, tab, load]);
+
+  const leaveWaitlist = useCallback(
+    async (id: string) => {
+      try {
+        await api.leaveWaitlist(id);
+        setWaitlist((list) => list.filter((e) => e.id !== id));
+      } catch (e) {
+        if (!api.signedIn) return onSessionEnded();
+        setError(errorText(e, t));
+      }
+    },
+    [api, t, onSessionEnded],
+  );
 
   const removeFavorite = useCallback(
     async (slug: string) => {
@@ -175,6 +195,43 @@ export function VisitsScreen(props: {
           onBook={props.onBook}
           onRemove={removeFavorite}
         />
+      ) : null}
+
+      {tab === 'upcoming' && waitlist.length > 0 ? (
+        <View style={{ gap: 8 }}>
+          <Text style={styles.day}>{t.waitlist.title}</Text>
+          {waitlist.map((entry) => (
+            <Card key={entry.id}>
+              <Text style={styles.service}>{entry.service.name}</Text>
+              <Text style={styles.muted}>
+                {formatDay(entry.date, locale)} · {entry.staff?.displayName ?? t.waitlist.any}
+              </Text>
+              <Text style={styles.salon}>{entry.salon.name}</Text>
+              <Text style={entry.notifiedAt ? styles.notified : styles.muted}>
+                {entry.notifiedAt ? t.waitlist.notified : t.waitlist.waiting}
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Button
+                  kind="link"
+                  label={t.salon.book}
+                  a11yLabel={`${t.salon.book}: ${entry.salon.name}`}
+                  onPress={() =>
+                    props.onBook(entry.salon.slug, entry.salon.name, {
+                      serviceId: entry.service.id,
+                      ...(entry.staff ? { staffId: entry.staff.id } : {}),
+                    })
+                  }
+                />
+                <Button
+                  kind="link"
+                  label={t.waitlist.leave}
+                  a11yLabel={`${t.waitlist.leave}: ${entry.service.name}, ${formatDay(entry.date, locale)}`}
+                  onPress={() => void leaveWaitlist(entry.id)}
+                />
+              </View>
+            </Card>
+          ))}
+        </View>
       ) : null}
 
       {(tab === 'upcoming' || tab === 'past') && items && items.length === 0 ? (
@@ -306,4 +363,5 @@ const styles = StyleSheet.create({
   },
   badgeOk: { color: '#1e6b3a', borderColor: '#b9dcc4', backgroundColor: '#eef7f0' },
   badgeOff: { color: colors.danger, borderColor: '#efc6c2' },
+  notified: { color: '#1e6b3a', fontSize: 14, fontWeight: '600' },
 });
