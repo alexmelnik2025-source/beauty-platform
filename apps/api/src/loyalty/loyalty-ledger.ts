@@ -297,6 +297,61 @@ export class LoyaltyLedger {
     });
   }
 
+  /**
+   * Points past their date (task 10f). Spending always uses the points that expire first, so
+   * what is due now = points granted with a date already passed − everything spent − what
+   * expired before; never more than the balance. A taken-back visit's points are not counted
+   * (in the client's favour). Adds one "expire" entry; returns how many points expired.
+   */
+  async expireDue(
+    tx: Prisma.TransactionClient,
+    accountId: string,
+    now = new Date(),
+  ): Promise<number> {
+    const [locked] = await tx.$queryRaw<{ balance: number }[]>`
+      SELECT balance FROM loyalty_account WHERE id = ${accountId}::uuid FOR UPDATE`;
+    const balance = locked?.balance ?? 0;
+    if (balance <= 0) return 0;
+    const sum = async (where: Prisma.LoyaltyTransactionWhereInput): Promise<number> =>
+      (
+        await tx.loyaltyTransaction.aggregate({
+          where: { accountId, ...where },
+          _sum: { points: true },
+        })
+      )._sum.points ?? 0;
+    const granted = await sum({
+      type: { in: ['earn', 'adjust'] },
+      points: { gt: 0 },
+      expiresAt: { lte: now },
+      reversedBy: { is: null },
+    });
+    if (granted <= 0) return 0;
+    const spent =
+      -(await sum({ type: 'redeem' })) -
+      (await sum({ type: 'adjust', points: { lt: 0 } })) -
+      // A cancelled coupon gave its points back.
+      (await sum({ type: 'reverse', reverses: { is: { type: 'redeem' } } }));
+    const expiredBefore = -(await sum({ type: 'expire' }));
+    const due = Math.min(balance, granted - spent - expiredBefore);
+    if (due <= 0) return 0;
+    const updated = await tx.loyaltyAccount.update({
+      where: { id: accountId },
+      data: { balance: { decrement: due } },
+    });
+    const count = await tx.loyaltyTransaction.count({ where: { accountId, type: 'expire' } });
+    await tx.loyaltyTransaction.create({
+      data: {
+        accountId,
+        type: 'expire',
+        points: -due,
+        balanceAfter: updated.balance,
+        dedupeKey: `expire:${accountId}:${count}`,
+        actorUserId: null,
+      },
+    });
+    return due;
+  }
+
   /** The client's account in the program, created on first use, with its row locked. */
   private async lockedAccount(
     tx: Prisma.TransactionClient,
