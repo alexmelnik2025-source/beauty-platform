@@ -1,12 +1,18 @@
 import { en } from './en';
 import { pl, type Dict } from './pl';
 import { ru } from './ru';
+import { sq } from './sq';
+import { tr } from './tr';
 import { uk } from './uk';
 
-export const LOCALES = ['pl', 'uk', 'ru', 'en'] as const;
+/** tr (Turkish) and sq (Albanian) cover what clients see; the salon dashboard falls back to English. */
+export const LOCALES = ['pl', 'uk', 'ru', 'en', 'tr', 'sq'] as const;
 export type Locale = (typeof LOCALES)[number];
 
-export const DICTIONARIES: Record<Locale, Dict> = { pl, uk, ru, en };
+/** Languages with the whole salon dashboard translated (its language switch offers these). */
+export const DASHBOARD_LOCALES: readonly Locale[] = ['pl', 'uk', 'ru', 'en'];
+
+export const DICTIONARIES: Record<Locale, Dict> = { pl, uk, ru, en, tr, sq };
 
 /** BCP 47 tags for dates, numbers and money. */
 export const LOCALE_TAGS: Record<Locale, string> = {
@@ -14,6 +20,8 @@ export const LOCALE_TAGS: Record<Locale, string> = {
   uk: 'uk-UA',
   ru: 'ru-RU',
   en: 'en-GB',
+  tr: 'tr-TR',
+  sq: 'sq-AL',
 };
 
 export function isLocale(value: string): value is Locale {

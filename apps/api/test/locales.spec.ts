@@ -3,6 +3,8 @@ import { APPOINTMENT_EVENT_TYPES } from '../src/booking/appointment-writer';
 import { en } from '../../web/lib/i18n/en';
 import { pl } from '../../web/lib/i18n/pl';
 import { ru } from '../../web/lib/i18n/ru';
+import { sq } from '../../web/lib/i18n/sq';
+import { tr } from '../../web/lib/i18n/tr';
 import { uk } from '../../web/lib/i18n/uk';
 
 function leafPaths(value: object, prefix = ''): string[] {
@@ -20,6 +22,25 @@ describe('web translations', () => {
     expect(leafPaths(uk)).toEqual(reference);
     expect(leafPaths(ru)).toEqual(reference);
     expect(leafPaths(en)).toEqual(reference);
+    expect(leafPaths(tr)).toEqual(reference);
+    expect(leafPaths(sq)).toEqual(reference);
+  });
+
+  it('Turkish and Albanian translate everything a client sees (L5, part 4)', () => {
+    const clientSide = ['common', 'booking', 'manage', 'visits', 'bonuses', 'install'] as const;
+    for (const dict of [tr, sq]) {
+      for (const section of clientSide) {
+        const theirs = dict[section] as Record<string, string>;
+        const english = en[section] as Record<string, string>;
+        for (const key of Object.keys(english)) {
+          // Words that are the same in every language (SMS, Email in Albanian).
+          if (['SMS', 'Email', 'min'].includes(english[key]!)) continue;
+          expect(theirs[key], `${dict.langName}: ${section}.${key}`).not.toBe(english[key]);
+        }
+      }
+      expect(dict.appointment.status.confirmed).not.toBe(en.appointment.status.confirmed);
+      expect(dict.legal.acceptTerms).not.toBe(en.legal.acceptTerms);
+    }
   });
 });
 
