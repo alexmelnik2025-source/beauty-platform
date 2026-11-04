@@ -14,7 +14,7 @@ import { serveApp } from './mobile-app';
  * "Raporty" in the cabinet (task 14): the owner sees revenue, the average ticket, visits that
  * took place, no-shows, clients and the split by specialist, service and day for a period.
  * Screenshots 74 (computer) and 74b (phone) go to e2e/screenshots.
- * "Pobierz CSV" downloads every visit of the period for the accountant (task 22).
+ * "Pobierz CSV" downloads every visit of the period for the accountant (task 30).
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
  */
 
@@ -183,7 +183,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(page.getByRole('heading', { name: 'Dzień po dniu' })).toBeVisible();
   await shot(page, '74-owner-reports');
 
-  // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 22).
+  // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Pobierz CSV' }).click(),
