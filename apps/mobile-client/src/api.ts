@@ -3,6 +3,8 @@ import type {
   ClientAppointment,
   ClientAppointmentList,
   ClientCodeSent,
+  ClientLoyalty,
+  ClientLoyaltyCard,
   ClientPerson,
   ClientSignIn,
   PublicLocation,
@@ -76,6 +78,8 @@ export type {
   ClientAppointment,
   ClientAppointmentList,
   ClientCodeSent,
+  ClientLoyalty,
+  ClientLoyaltyCard,
   ClientPerson,
   ClientSignIn,
 };
@@ -228,6 +232,14 @@ export class ClientApi {
       { start },
       { 'idempotency-key': key },
     );
+  }
+
+  /**
+   * "My bonuses": stamps or points in every salon where the client has a loyalty card, the
+   * rewards, coupons to show at the salon and the history (never the salon's notes).
+   */
+  loyalty(): Promise<ClientLoyalty> {
+    return this.authed<ClientLoyalty>('GET', '/v1/client/loyalty');
   }
 
   /** Salons open for online booking; `language` — spoken by the salon or one of its staff. No sign-in. */

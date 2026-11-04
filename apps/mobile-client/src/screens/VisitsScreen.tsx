@@ -1,14 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { ClientApi, ClientAppointment, ClientPerson, Locale, Scope } from '../api';
+import type {
+  ClientApi,
+  ClientAppointment,
+  ClientLoyaltyCard,
+  ClientPerson,
+  Locale,
+  Scope,
+} from '../api';
 import { errorText } from '../errors';
 import { formatDay, formatPrice, groupByDay, salonAddress } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { BonusesView } from './BonusesView';
 import { VisitScreen } from './VisitScreen';
 
-/** "My visits": upcoming and past visits in every salon, found by the client's email. */
+/** The tabs of the screen: upcoming visits, history, bonuses. */
+type Tab = Scope | 'bonuses';
+
+/**
+ * "My visits": upcoming and past visits in every salon, found by the client's email, and
+ * "My bonuses" — the loyalty cards of those salons.
+ */
 export function VisitsScreen(props: {
   api: ClientApi;
   t: Dictionary;
@@ -22,8 +36,9 @@ export function VisitsScreen(props: {
   onSessionEnded: () => void;
 }) {
   const { api, t, locale, onSessionEnded } = props;
-  const [scope, setScope] = useState<Scope>('upcoming');
+  const [tab, setTab] = useState<Tab>('upcoming');
   const [items, setItems] = useState<ClientAppointment[] | null>(null);
+  const [bonuses, setBonuses] = useState<ClientLoyaltyCard[] | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ClientAppointment | null>(null);
@@ -32,7 +47,8 @@ export function VisitsScreen(props: {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setItems((await api.appointments(scope)).items);
+      if (tab === 'bonuses') setBonuses((await api.loyalty()).items);
+      else setItems((await api.appointments(tab)).items);
       setError('');
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
@@ -40,10 +56,11 @@ export function VisitsScreen(props: {
     } finally {
       setLoading(false);
     }
-  }, [api, scope, t, onSessionEnded]);
+  }, [api, tab, t, onSessionEnded]);
 
   useEffect(() => {
     setItems(null);
+    setBonuses(null);
     void load();
   }, [load]);
 
@@ -83,16 +100,16 @@ export function VisitsScreen(props: {
       </View>
 
       <View style={styles.tabs} accessibilityRole="tablist">
-        {(['upcoming', 'past'] as const).map((s) => (
+        {(['upcoming', 'past', 'bonuses'] as const).map((s) => (
           <Pressable
             key={s}
             accessibilityRole="tab"
-            aria-selected={s === scope}
-            onPress={() => setScope(s)}
-            style={[styles.tab, s === scope && styles.tabActive]}
+            aria-selected={s === tab}
+            onPress={() => setTab(s)}
+            style={[styles.tab, s === tab && styles.tabActive]}
           >
-            <Text style={[styles.tabText, s === scope && styles.tabTextActive]}>
-              {s === 'upcoming' ? t.visits.upcoming : t.visits.past}
+            <Text style={[styles.tabText, s === tab && styles.tabTextActive]}>
+              {s === 'upcoming' ? t.visits.upcoming : s === 'past' ? t.visits.past : t.bonuses.tab}
             </Text>
           </Pressable>
         ))}
@@ -105,13 +122,15 @@ export function VisitsScreen(props: {
         </View>
       ) : null}
 
-      {items && items.length === 0 ? (
+      {tab === 'bonuses' && bonuses ? <BonusesView t={t} locale={locale} items={bonuses} /> : null}
+
+      {tab !== 'bonuses' && items && items.length === 0 ? (
         <Text style={styles.empty}>
-          {scope === 'upcoming' ? t.visits.emptyUpcoming : t.visits.emptyPast}
+          {tab === 'upcoming' ? t.visits.emptyUpcoming : t.visits.emptyPast}
         </Text>
       ) : null}
 
-      {items
+      {tab !== 'bonuses' && items
         ? groupByDay(items).map((group) => (
             <View key={group.date} style={{ gap: 8 }}>
               <Text style={styles.day}>{formatDay(group.date, locale)}</Text>
@@ -195,9 +214,16 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 4,
   },
-  tab: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabActive: { backgroundColor: colors.ink },
-  tabText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+  tabText: { color: colors.ink, fontSize: 14, fontWeight: '600', textAlign: 'center' },
   tabTextActive: { color: '#fff' },
   empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 32 },
   day: {

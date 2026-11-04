@@ -6,7 +6,8 @@ import {
   type Page,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { waitForEmail } from './mailpit';
+import { listTo, waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * "Program lojalnościowy" in the cabinet (task 10b): the owner sets up a stamp card, adds
@@ -14,8 +15,9 @@ import { waitForEmail } from './mailpit';
  * have stamps; then a visit is marked "came" and "paid" (a stamp), and in the client card the
  * owner exchanges stamps for a coupon, cancels it and corrects the balance by hand (10b, part 2).
  * Finally the client opens "Moje bonusy" in "Moje wizyty" (10c): stamps on the card, how many
- * visits are left, the coupon code — and never the salon's notes.
- * Screenshots go to e2e/screenshots (40–47).
+ * visits are left, the coupon code — and never the salon's notes. The same "Moje bonusy" in the
+ * client app for iPhone and Android (11b, part 3; its web preview).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -395,5 +397,59 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await myCoupons.scrollIntoViewIfNeeded();
   await shot(anna, '47-client-bonus-coupon');
   await annaPhone.close();
+
+  // ── The client app (11b, part 3): the same card, coupon and history ───
+  await json(
+    await request.post(`${orgBase}/loyalty/accounts/${customer.id}/adjustments`, {
+      headers: owner,
+      data: { points: 2, reason: 'Karta z Booksy' },
+    }),
+  );
+  const clientApp = await serveApp('mobile-client');
+  const appContext = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  try {
+    const app = await appContext.newPage();
+    await app.goto(clientApp.url);
+    await app.getByLabel('E-mail', { exact: true }).fill(ANNA);
+    const loginCode = /Kod logowania/;
+    const codesBefore = (await listTo(ANNA)).filter((m) => loginCode.test(m.Subject)).length;
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    // Wait for the new code, not the one the web sign-in above used.
+    await expect
+      .poll(async () => (await listTo(ANNA)).filter((m) => loginCode.test(m.Subject)).length)
+      .toBeGreaterThan(codesBefore);
+    const appMail = await waitForEmail(ANNA, loginCode);
+    await app.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(appMail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByText(`Zalogowano jako ${ANNA}`)).toBeVisible();
+    await app.getByRole('tab', { name: 'Moje bonusy' }).click();
+    await expect(app.getByRole('tab', { name: 'Moje bonusy', selected: true })).toBeVisible();
+    const appCard = app.getByRole('region').first();
+    await expect(appCard.getByRole('heading', { level: 2 })).toBeVisible();
+    await expect(appCard.getByText('Pieczątki na karcie: 2')).toBeVisible();
+    await expect(appCard.getByText('Do „−25% na strzyżenie” zostało wizyt: 1')).toBeVisible();
+    await expect(appCard.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
+    await expect(appCard.getByRole('list', { name: 'Moje kupony' })).toContainText(coupon.code);
+    await expect(appCard).not.toContainText('Broda gratis');
+    await shot(app, '63-client-app-bonuses');
+    // History on request; the salon's reasons are never shown to the client.
+    await appCard.getByRole('button', { name: 'Pokaż historię' }).click();
+    const appHistory = appCard.getByRole('list', { name: 'Historia' });
+    await expect(appHistory).toContainText('Ręczna zmiana');
+    await expect(appHistory).toContainText('Wymiana na nagrodę');
+    await expect(appCard).not.toContainText('Karta z Booksy');
+    await expect(appCard).not.toContainText('Pomyłka przy karcie');
+    await appCard.getByRole('list', { name: 'Moje kupony' }).scrollIntoViewIfNeeded();
+    await shot(app, '63a-client-app-bonus-history');
+    // In Ukrainian too.
+    await app.getByRole('button', { name: 'Українська' }).click();
+    await expect(app.getByRole('tab', { name: 'Мої бонуси', selected: true })).toBeVisible();
+    await expect(appCard.getByText('Штампів на картці: 2')).toBeVisible();
+    await app.getByRole('tab', { name: 'Мої бонуси' }).scrollIntoViewIfNeeded();
+    await shot(app, '63b-client-app-bonuses-uk');
+  } finally {
+    await appContext.close();
+    clientApp.server.close();
+  }
   await context.close();
 });
