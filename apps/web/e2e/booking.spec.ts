@@ -326,6 +326,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const code = /\b(\d{6})\b/.exec(codeMail.text)![1]!;
   await client.getByLabel('Kod z e-maila').fill(code);
   await shot(client, '05-client-code');
+  // Task 80: the optional wishes above "Potwierdź wizytę" — one tap, a short note.
+  const wishStep = client.getByRole('region', { name: 'Twoje życzenia' });
+  await wishStep.getByRole('button', { name: /Wolę ciszę/ }).click();
+  await expect(wishStep.getByRole('button', { name: /Wolę ciszę/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await wishStep
+    .getByLabel('Coś, o czym specjalista powinien wiedzieć?')
+    .fill('Wrażliwa skóra głowy');
+  await wishStep.scrollIntoViewIfNeeded();
+  await shot(client, '05w-client-wishes');
   await client.getByRole('button', { name: 'Potwierdź wizytę' }).click();
   await expect(client.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
   await shot(client, '06-client-done');
@@ -339,15 +351,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
 
   // The "manage" link from the email works.
   const manageLink = /(\/pl\/m\/\S+)/.exec(confirmation.text)![1]!;
-  // Task 80: the client's wishes for the visit, changed by the link (the booking step comes in 80c).
-  const manageToken = manageLink.split('/').pop()!;
-  const wishes = await client.request.put(`/v1/public/appointments/${manageToken}/wishes`, {
-    data: { mood: 'quiet', note: 'Wrażliwa skóra głowy' },
-  });
-  expect(wishes.ok()).toBe(true);
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();
   await shot(client, '07-client-manage');
+  // The wishes can be changed by the link until the visit.
+  const wishEdit = client.getByRole('form', { name: 'Twoje życzenia' });
+  await expect(wishEdit.getByRole('button', { name: /Wolę ciszę/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(wishEdit.getByLabel('Coś, o czym specjalista powinien wiedzieć?')).toHaveValue(
+    'Wrażliwa skóra głowy',
+  );
+  await shot(client, '07w-client-manage-wishes');
   // Moving asks first: a tap on a time only proposes it, "Nie" keeps the old time (owner test T11).
   await client.getByRole('button', { name: 'Zmień termin' }).click();
   await client.locator('.times button').first().click();

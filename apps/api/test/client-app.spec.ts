@@ -385,6 +385,27 @@ describe('client app: my visits in all salons', () => {
     expect(events.map((e) => e.type)).toContain('rescheduled');
   });
 
+  it('the client changes the visit wishes in the app; only on own visits (task 80)', async () => {
+    const id = await book(first, at(day, 10));
+    const bobsVisit = await book(first, at(day, 12), BOB);
+    const auth = await signIn(ANNA);
+    const res = await ctx
+      .http()
+      .put(`/v1/client/appointments/${id}/wishes`)
+      .set(auth)
+      .send({ mood: 'chat', note: 'Krótko po bokach' })
+      .expect(200);
+    expect(res.body.wishes).toEqual({ mood: 'chat', drink: null, note: 'Krótko po bokach' });
+    expect(res.body.canChangeWishes).toBe(true);
+    await ctx
+      .http()
+      .put(`/v1/client/appointments/${bobsVisit}/wishes`)
+      .set(auth)
+      .send({ mood: 'quiet' })
+      .expect(404);
+    await ctx.http().put(`/v1/client/appointments/${id}/wishes`).send({}).expect(401);
+  });
+
   it('"book again" disappears when the salon stops taking the service online', async () => {
     const id = await book(first, at(day, 10));
     await ctx.prisma.service.update({ where: { id: first.serviceId }, data: { active: false } });

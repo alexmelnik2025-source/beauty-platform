@@ -7744,6 +7744,97 @@
         ]
       }
     },
+    "/v1/client/appointments/{id}/wishes": {
+      "put": {
+        "description": "409 TOO_LATE_TO_CHANGE once the visit has started.",
+        "operationId": "ClientController_updateWishes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mood": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "chat",
+                          "quiet",
+                          "relax"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "drink": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "coffee",
+                          "tea",
+                          "water",
+                          "none"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAppointment"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the visit wishes (task 80), until the visit starts",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/appointments/{id}/coupons": {
       "get": {
         "operationId": "ClientController_coupons",

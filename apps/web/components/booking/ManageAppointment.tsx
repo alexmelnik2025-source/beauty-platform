@@ -7,6 +7,8 @@ import { addDays, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/ti
 import type { PublicAppointment, Slot } from '@/lib/types';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
+import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
+import type { VisitWishes } from '../wishes/wishes';
 
 type Mode = 'view' | 'move' | 'cancel';
 
@@ -175,6 +177,18 @@ export function AppointmentManager<T extends PublicAppointment>({
           </>
         ) : null}
 
+        {mode === 'view' && a.canChangeWishes && asksWishes(a.wishQuestions) ? (
+          <WishesEditor
+            key={a.id}
+            endpoint={endpoint}
+            appointment={a}
+            onSaved={(changed) => {
+              setA(changed);
+              setMessage(t.wishStep.saved);
+            }}
+          />
+        ) : null}
+
         {mode === 'view' && extra ? extra(a, setA) : null}
 
         {mode === 'cancel' ? (
@@ -301,5 +315,47 @@ export function AppointmentManager<T extends PublicAppointment>({
         ) : null}
       </main>
     </div>
+  );
+}
+
+/** Task 80: the client changes the wishes for the visit until it starts. */
+function WishesEditor<T extends PublicAppointment>({
+  endpoint,
+  appointment,
+  onSaved,
+}: {
+  endpoint: string;
+  appointment: T;
+  onSaved: (changed: T) => void;
+}) {
+  const { t } = useI18n();
+  const [value, setValue] = useState<VisitWishes>(appointment.wishes);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  return (
+    <form
+      className="form section"
+      aria-labelledby="wishes-edit-title"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError('');
+        api<T>(`${endpoint}/wishes`, {
+          method: 'PUT',
+          auth: false,
+          body: { mood: value.mood, drink: value.drink, note: value.note ?? '' },
+        })
+          .then(onSaved)
+          .catch((err) => setError(errorText(t, err)))
+          .finally(() => setBusy(false));
+      }}
+    >
+      <h2 id="wishes-edit-title">{t.wishStep.title}</h2>
+      <ErrorBox>{error}</ErrorBox>
+      <WishesPicker questions={appointment.wishQuestions} value={value} onChange={setValue} />
+      <button className="btn btn--quiet btn--block" disabled={busy}>
+        {t.wishStep.save}
+      </button>
+    </form>
   );
 }

@@ -1,3 +1,4 @@
+import { visitWishesInputSchema, type VisitWishesInput } from '../booking/visit-wishes';
 import {
   Body,
   Controller,
@@ -9,6 +10,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -227,6 +229,23 @@ export class ClientController {
     @Body(new ZodValidationPipe(clientRescheduleSchema)) body: ClientRescheduleInput,
   ): Promise<ClientAppointmentResponse> {
     return this.clients.reschedule(client, id, body);
+  }
+
+  @Put('appointments/:id/wishes')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Change the visit wishes (task 80), until the visit starts',
+    description: '409 TOO_LATE_TO_CHANGE once the visit has started.',
+  })
+  @ApiZodBody(visitWishesInputSchema)
+  @ApiZodResponse(clientAppointmentSchema)
+  updateWishes(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+    @Body(new ZodValidationPipe(visitWishesInputSchema)) body: VisitWishesInput,
+  ): Promise<ClientAppointmentResponse> {
+    return this.clients.updateWishes(client, id, body);
   }
 
   @Get('appointments/:id/coupons')

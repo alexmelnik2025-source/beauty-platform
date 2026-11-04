@@ -22,6 +22,8 @@ import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
+import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
+import type { VisitWishes } from '../wishes/wishes';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
 /** Key of "any specialist" in the nearest-free-time map. */
@@ -63,6 +65,37 @@ function loadRemembered(): RememberedContact | null {
   }
 }
 
+/** Task 80: the client's last wishes on this device (the salon remembers them too). */
+const WISHES_KEY = 'bp_booking_wishes';
+const NO_WISHES: VisitWishes = { mood: null, drink: null, note: null };
+
+function loadWishes(): VisitWishes | null {
+  try {
+    const raw = window.localStorage.getItem(WISHES_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<VisitWishes>;
+    return {
+      mood: v.mood === 'chat' || v.mood === 'quiet' || v.mood === 'relax' ? v.mood : null,
+      drink:
+        v.drink === 'coffee' || v.drink === 'tea' || v.drink === 'water' || v.drink === 'none'
+          ? v.drink
+          : null,
+      note: typeof v.note === 'string' ? v.note.slice(0, 200) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveWishes(value: VisitWishes | null): void {
+  try {
+    if (value) window.localStorage.setItem(WISHES_KEY, JSON.stringify(value));
+    else window.localStorage.removeItem(WISHES_KEY);
+  } catch {
+    // Blocked storage: nothing is prefilled next time.
+  }
+}
+
 function saveRemembered(value: RememberedContact | null): void {
   try {
     if (value) window.localStorage.setItem(REMEMBER_KEY, JSON.stringify(value));
@@ -101,6 +134,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   const [remember, setRemember] = useState(false);
   const [remembered, setRemembered] = useState(false);
   const [code, setCode] = useState('');
+  const [wishes, setWishes] = useState<VisitWishes>(NO_WISHES);
+  const [wishesRemembered, setWishesRemembered] = useState(false);
   const [result, setResult] = useState<{
     appointment: PublicAppointment;
     manageToken: string;
@@ -113,6 +148,11 @@ export function BookingFlow({ slug }: { slug: string }) {
       setEmbed(true);
       return;
     }
+    const lastWishes = loadWishes();
+    if (lastWishes && (lastWishes.mood || lastWishes.drink || lastWishes.note)) {
+      setWishes(lastWishes);
+      setWishesRemembered(true);
+    }
     const saved = loadRemembered();
     if (!saved) return;
     setContact((c) => ({ ...c, ...saved, phone: saved.phone || c.phone }));
@@ -122,6 +162,9 @@ export function BookingFlow({ slug }: { slug: string }) {
 
   function forgetMe() {
     saveRemembered(null);
+    saveWishes(null);
+    setWishes(NO_WISHES);
+    setWishesRemembered(false);
     setRemember(false);
     setRemembered(false);
     setContact((c) => ({ ...c, name: '', phone: `+${dial} `, email: '' }));
@@ -304,9 +347,15 @@ export function BookingFlow({ slug }: { slug: string }) {
         auth: false,
         idempotencyKey: `confirm-${hold.holdId}-${code}`,
         // "Remember me" also signs in to "My visits" on this device: the visit is already there.
-        body: { holdToken: hold.holdToken, code, signIn: remember },
+        body: {
+          holdToken: hold.holdToken,
+          code,
+          signIn: remember,
+          ...(asksWishes(salon?.wishQuestions) ? { wishes } : {}),
+        },
       });
       if (!embed) {
+        if (asksWishes(salon?.wishQuestions)) saveWishes(remember ? wishes : null);
         saveRemembered(
           remember
             ? {
@@ -343,6 +392,7 @@ export function BookingFlow({ slug }: { slug: string }) {
   if (!salon) return <Spinner />;
 
   const stepIndex = { service: 0, staff: 1, time: 2, details: 3, code: 3, done: 4 }[step];
+  const wishQuestions = asksWishes(salon.wishQuestions) ? salon.wishQuestions : null;
   const stepNames = [
     t.booking.stepService,
     t.booking.stepStaff,
@@ -669,6 +719,14 @@ export function BookingFlow({ slug }: { slug: string }) {
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             />
+            {wishQuestions ? (
+              <section className="wishes-step" aria-labelledby="wishes-step-title">
+                <h3 id="wishes-step-title">{t.wishStep.title}</h3>
+                <p className="muted small">{t.wishStep.lead}</p>
+                {wishesRemembered ? <p className="note small">{t.wishStep.remembered}</p> : null}
+                <WishesPicker questions={wishQuestions} value={wishes} onChange={setWishes} />
+              </section>
+            ) : null}
             <button className="btn btn--block" disabled={busy || code.length !== 6}>
               {t.booking.confirm}
             </button>

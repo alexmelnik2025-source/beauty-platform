@@ -238,6 +238,19 @@ export const en: Dict = {
   phone: {
     country: 'Country code',
   },
+  wishStep: {
+    title: 'Your wishes',
+    lead: 'Optional — one tap or “Skip”. The specialist will see them before the visit.',
+    moodQ: 'How would you like to spend the visit?',
+    mood: { chat: 'Happy to chat', quiet: 'I prefer quiet', relax: 'I want to relax, we will see' },
+    drinkQ: 'Something to drink?',
+    drink: { coffee: 'Coffee', tea: 'Tea', water: 'Water', none: 'Nothing' },
+    noteQ: 'Anything the specialist should know?',
+    notePlaceholder: 'E.g. sensitive scalp',
+    remembered: 'We picked your choices from your last visit — you can change them.',
+    save: 'Save wishes',
+    saved: 'Wishes saved.',
+  },
   booking: {
     bookVisit: 'Book a visit',
     stepService: 'Service',

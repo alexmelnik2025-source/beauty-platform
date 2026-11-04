@@ -238,6 +238,19 @@ export const pl = {
   phone: {
     country: 'Kod kraju',
   },
+  wishStep: {
+    title: 'Twoje życzenia',
+    lead: 'Nieobowiązkowe — jedno dotknięcie albo „Pomiń”. Specjalista zobaczy je przed wizytą.',
+    moodQ: 'Jak chcesz spędzić wizytę?',
+    mood: { chat: 'Chętnie pogadam', quiet: 'Wolę ciszę', relax: 'Chcę odpocząć, zobaczymy' },
+    drinkQ: 'Coś do picia?',
+    drink: { coffee: 'Kawa', tea: 'Herbata', water: 'Woda', none: 'Nic' },
+    noteQ: 'Coś, o czym specjalista powinien wiedzieć?',
+    notePlaceholder: 'Np. wrażliwa skóra głowy',
+    remembered: 'Zaznaczyliśmy wybory z Twojej poprzedniej wizyty — możesz je zmienić.',
+    save: 'Zapisz życzenia',
+    saved: 'Zapisano życzenia.',
+  },
   booking: {
     bookVisit: 'Umów wizytę',
     stepService: 'Usługa',

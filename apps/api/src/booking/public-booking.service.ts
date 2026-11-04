@@ -428,7 +428,14 @@ export class PublicBookingService {
     token: string,
     input: VisitWishesInput,
   ): Promise<PublicAppointmentResponse> {
-    const appointment = await this.byToken(token);
+    return this.updateWishes(await this.byToken(token), input);
+  }
+
+  /** The same for the client app ("My visits"); the caller checked the visit is theirs. */
+  async updateWishes(
+    appointment: Appointment & { location: Location },
+    input: VisitWishesInput,
+  ): Promise<PublicAppointmentResponse> {
     if (appointment.status !== 'confirmed' || Date.now() >= appointment.startAt.getTime()) {
       throw tooLate();
     }
