@@ -459,7 +459,12 @@ export function BookingScreen(props: {
                     {p.slots.map((slot) => (
                       <Chip
                         key={slot.start}
-                        label={slot.time}
+                        // The salon's happy hours (task 16): at least this much off.
+                        label={
+                          slot.discountPercent
+                            ? `${slot.time}  −${slot.discountPercent}%`
+                            : slot.time
+                        }
                         pressed={false}
                         onPress={() => {
                           if (!busy) void pickTime(slot);
@@ -481,7 +486,14 @@ export function BookingScreen(props: {
           </Text>
           <Text style={styles.text}>
             {hold.serviceName} · {hold.staffName} ·{' '}
+            {hold.listPriceGrosze !== null ? (
+              <Text style={{ textDecorationLine: 'line-through' }}>
+                {formatPrice(hold.listPriceGrosze, hold.currency, locale)}
+              </Text>
+            ) : null}
+            {hold.listPriceGrosze !== null ? ' ' : ''}
             {formatPrice(hold.priceGrosze, hold.currency, locale)}
+            {hold.happyHourPercent ? ` −${hold.happyHourPercent}%` : ''}
           </Text>
           <Text style={styles.muted} aria-live="polite">
             {fill(b.heldFor, { time: countdown(hold.expiresAt) })}
