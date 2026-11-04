@@ -56,6 +56,28 @@ export const salonReportSchema = responseSchema(
         }),
       )
       .describe('Every day of the period, in the salon time zone'),
+    weekdays: z
+      .array(
+        z.strictObject({
+          weekday: z.number().int().describe('1 = Monday … 7 = Sunday'),
+          completed: z.number().int(),
+          noShow: z.number().int(),
+          revenueGrosze: money('Paid on these weekdays'),
+        }),
+      )
+      .describe('Monday to Sunday: which days of the week are busy and which are weak'),
+    previous: z
+      .strictObject({
+        from: z.string(),
+        to: z.string(),
+        completed: z.number().int(),
+        noShow: z.number().int(),
+        paid: z.number().int(),
+        revenueGrosze: money('What paid visits brought'),
+        averageTicketGrosze: money('Average paid visit; 0 when none'),
+        clients: z.number().int(),
+      })
+      .describe('The same number of days just before the period, to compare with'),
   }),
 );
 

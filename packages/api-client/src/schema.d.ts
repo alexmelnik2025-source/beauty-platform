@@ -3570,6 +3570,28 @@ export interface components {
                 /** @description Paid that day, in hundredths of the salon currency */
                 revenueGrosze: number;
             }[];
+            /** @description Monday to Sunday: which days of the week are busy and which are weak */
+            weekdays: {
+                /** @description 1 = Monday … 7 = Sunday */
+                weekday: number;
+                completed: number;
+                noShow: number;
+                /** @description Paid on these weekdays, in hundredths of the salon currency */
+                revenueGrosze: number;
+            }[];
+            /** @description The same number of days just before the period, to compare with */
+            previous: {
+                from: string;
+                to: string;
+                completed: number;
+                noShow: number;
+                paid: number;
+                /** @description What paid visits brought, in hundredths of the salon currency */
+                revenueGrosze: number;
+                /** @description Average paid visit; 0 when none, in hundredths of the salon currency */
+                averageTicketGrosze: number;
+                clients: number;
+            };
         };
         Service: {
             id: string;

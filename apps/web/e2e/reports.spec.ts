@@ -181,7 +181,12 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(byStaff.getByRole('row').nth(1)).toContainText(/150,00\s*zł/);
   await expect(byStaff.getByRole('row').nth(2)).toContainText('Marek');
   await expect(page.getByRole('heading', { name: 'Dzień po dniu' })).toBeVisible();
+  // Monday to Sunday, and the days before the period to compare with (task 31).
+  await expect(page.getByRole('heading', { name: 'Dni tygodnia' })).toBeVisible();
+  await expect(page.getByText(/w porównaniu z tyloma samymi dniami wcześniej/)).toBeVisible();
   await shot(page, '74-owner-reports');
+  await page.getByRole('heading', { name: 'Dni tygodnia' }).scrollIntoViewIfNeeded();
+  await shot(page, '74c-owner-reports-weekdays');
 
   // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([

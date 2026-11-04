@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
 import { visitsCsv } from '../src/reports/visits-csv';
-import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
+import { addDays, isoWeekday, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -204,6 +204,26 @@ describe('salon report', () => {
       date: d2,
       completed: 2,
       revenueGrosze: 5000,
+    });
+    // Task 31: Monday to Sunday, and the 11 days before the period to compare with.
+    const weekdays = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+      weekday,
+      completed: 0,
+      noShow: 0,
+      revenueGrosze: 0,
+    }));
+    Object.assign(weekdays[isoWeekday(d1) - 1]!, { completed: 2, revenueGrosze: 14000 });
+    Object.assign(weekdays[isoWeekday(d2) - 1]!, { completed: 2, noShow: 1, revenueGrosze: 5000 });
+    expect(res.body.weekdays).toEqual(weekdays);
+    expect(res.body.previous).toEqual({
+      from: addDays(from, -11),
+      to: addDays(from, -1),
+      completed: 1,
+      noShow: 0,
+      paid: 1,
+      revenueGrosze: 8000,
+      averageTicketGrosze: 8000,
+      clients: 1,
     });
   });
 

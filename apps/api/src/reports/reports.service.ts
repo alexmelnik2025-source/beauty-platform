@@ -3,7 +3,13 @@ import { forbidden } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { addDays, datesBetween, instantToLocal, zonedToInstant } from '../scheduling/time';
+import {
+  addDays,
+  datesBetween,
+  instantToLocal,
+  isoWeekday,
+  zonedToInstant,
+} from '../scheduling/time';
 import type { Location } from '../generated/prisma/client';
 import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
@@ -91,6 +97,12 @@ export class ReportsService {
       ]),
     );
     const clients = new Set<string>();
+    const weekdays = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+      weekday,
+      completed: 0,
+      noShow: 0,
+      revenueGrosze: 0,
+    }));
 
     for (const a of rows) {
       const staffRow =
@@ -101,7 +113,9 @@ export class ReportsService {
       const serviceRow =
         services.get(a.service.id) ??
         services.set(a.service.id, { ...a.service, ...emptyCounts() }).get(a.service.id)!;
-      const day = days.get(instantToLocal(a.startAt.getTime(), tz).date);
+      const localDate = instantToLocal(a.startAt.getTime(), tz).date;
+      const day = days.get(localDate);
+      const weekday = weekdays[isoWeekday(localDate) - 1]!;
       const targets: Counts[] = [totals, staffRow, serviceRow];
 
       if (a.status === 'cancelled') {
@@ -113,10 +127,12 @@ export class ReportsService {
       if (a.status === 'confirmed') totals.upcoming++;
       if (a.status === 'no_show') {
         for (const t of targets) t.noShow++;
+        weekday.noShow++;
       }
       if (a.status === 'completed') {
         for (const t of targets) t.completed++;
         if (day) day.completed++;
+        weekday.completed++;
         if (a.customerId) clients.add(a.customerId);
         if (a.paidAt) {
           const paid = a.priceGrosze - a.discountGrosze;
@@ -126,6 +142,7 @@ export class ReportsService {
           }
           totals.discountGrosze += a.discountGrosze;
           if (day) day.revenueGrosze += paid;
+          weekday.revenueGrosze += paid;
         }
       }
     }
@@ -175,6 +192,60 @@ export class ReportsService {
           paid,
         })),
       days: [...days.values()],
+      weekdays,
+      previous: await this.previous(locationId, staffIds, tz, query),
+    };
+  }
+
+  /**
+   * Task 31: the same number of days just before the period, to compare with — "this month so
+   * far" (1–4 Nov) is compared with 28–31 Oct. Only what the comparison needs.
+   */
+  private async previous(
+    locationId: string,
+    staffIds: string[] | null,
+    tz: string,
+    query: ReportQuery,
+  ): Promise<SalonReport['previous']> {
+    const length = datesBetween(query.from, query.to).length;
+    const from = addDays(query.from, -length);
+    const to = addDays(query.from, -1);
+    const rows = await this.prisma.appointment.findMany({
+      where: {
+        locationId,
+        status: { in: ['completed', 'no_show'] },
+        startAt: {
+          gte: new Date(zonedToInstant(from, 0, tz)),
+          lt: new Date(zonedToInstant(query.from, 0, tz)),
+        },
+        ...(staffIds ? { staffId: { in: staffIds } } : {}),
+      },
+      select: {
+        status: true,
+        priceGrosze: true,
+        discountGrosze: true,
+        paidAt: true,
+        customerId: true,
+      },
+    });
+    const clients = new Set<string>();
+    const result = { from, to, completed: 0, noShow: 0, paid: 0, revenueGrosze: 0, clients: 0 };
+    for (const a of rows) {
+      if (a.status === 'no_show') {
+        result.noShow++;
+        continue;
+      }
+      result.completed++;
+      if (a.customerId) clients.add(a.customerId);
+      if (a.paidAt) {
+        result.paid++;
+        result.revenueGrosze += a.priceGrosze - a.discountGrosze;
+      }
+    }
+    result.clients = clients.size;
+    return {
+      ...result,
+      averageTicketGrosze: result.paid > 0 ? Math.round(result.revenueGrosze / result.paid) : 0,
     };
   }
 

@@ -23,6 +23,21 @@ function rangeOf(period: Period, today: string): { from: string; to: string } {
 
 const daysBetween = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / 86_400_000;
 
+/** Task 31: "+12%" / "−5%" against the days before; nothing when there is nothing to compare. */
+function change(now: number, before: number): { text: string; up: boolean } | null {
+  if (before <= 0 || now === before) return null;
+  const percent = Math.round(((now - before) / before) * 100);
+  if (percent === 0) return null;
+  return { text: `${percent > 0 ? '+' : '−'}${Math.abs(percent)}%`, up: percent > 0 };
+}
+
+/** Monday … Sunday in the reader's language (2026-11-02 was a Monday). */
+function weekdayName(weekday: number, localeTag: string): string {
+  return new Intl.DateTimeFormat(localeTag, { timeZone: 'UTC', weekday: 'long' }).format(
+    new Date(Date.UTC(2026, 10, 1 + weekday)),
+  );
+}
+
 /**
  * Task 14: the owner's report — visits, revenue, clients, specialists, services, day by day.
  * A specialist with "prices and own results" sees only their own visits (the server decides).
@@ -89,6 +104,14 @@ export default function ReportsPage() {
     ? totals.visits - totals.cancelledByClient - totals.cancelledBySalon
     : 0;
   const maxDay = Math.max(1, ...(report?.days.map((d) => d.revenueGrosze) ?? [1]));
+  const maxWeekday = Math.max(1, ...(report?.weekdays.map((d) => d.completed) ?? [1]));
+  const previous = report?.previous;
+  const trend = (now: number, before: number | undefined) => {
+    const c = before === undefined ? null : change(now, before);
+    return c ? (
+      <span className={c.up ? 'report-change report-change--up' : 'report-change'}>{c.text}</span>
+    ) : null;
+  };
 
   return (
     <>
@@ -157,14 +180,20 @@ export default function ReportsPage() {
             <div className="stats" data-testid="report-totals">
               <div className="stat">
                 <span className="small muted">{t.reports.revenue}</span>
-                <b>{money(totals.revenueGrosze)}</b>
+                <b>
+                  {money(totals.revenueGrosze)}{' '}
+                  {trend(totals.revenueGrosze, previous?.revenueGrosze)}
+                </b>
                 <span className="small muted">
                   {fill(t.reports.paidCount, { n: String(totals.paid) })}
                 </span>
               </div>
               <div className="stat">
                 <span className="small muted">{t.reports.average}</span>
-                <b>{money(totals.averageTicketGrosze)}</b>
+                <b>
+                  {money(totals.averageTicketGrosze)}{' '}
+                  {trend(totals.averageTicketGrosze, previous?.averageTicketGrosze)}
+                </b>
                 {totals.discountGrosze > 0 ? (
                   <span className="small muted">
                     {fill(t.reports.discounts, { amount: money(totals.discountGrosze) })}
@@ -173,7 +202,9 @@ export default function ReportsPage() {
               </div>
               <div className="stat">
                 <span className="small muted">{t.reports.completed}</span>
-                <b>{totals.completed}</b>
+                <b>
+                  {totals.completed} {trend(totals.completed, previous?.completed)}
+                </b>
                 <span className="small muted">
                   {fill(t.reports.upcoming, { n: String(totals.upcoming) })}
                 </span>
@@ -194,7 +225,9 @@ export default function ReportsPage() {
               </div>
               <div className="stat">
                 <span className="small muted">{t.reports.clients}</span>
-                <b>{totals.clients}</b>
+                <b>
+                  {totals.clients} {trend(totals.clients, previous?.clients)}
+                </b>
                 <span className="small muted">
                   {fill(t.reports.newClients, { n: String(totals.newClients) })}
                 </span>
@@ -209,6 +242,16 @@ export default function ReportsPage() {
                 </span>
               </div>
             </div>
+            {previous ? (
+              <p className="small muted">
+                {fill(t.reports.compared, {
+                  from: formatDay(previous.from, tag, { short: true }),
+                  to: formatDay(previous.to, tag, { short: true }),
+                  revenue: money(previous.revenueGrosze),
+                  visits: String(previous.completed),
+                })}
+              </p>
+            ) : null}
             <p className="small muted">{t.reports.revenueNote}</p>
             <p className="small muted">{t.reports.csvHint}</p>
 
@@ -248,6 +291,31 @@ export default function ReportsPage() {
                     </div>
                   </section>
                 ))}
+
+                <section className="section">
+                  <h2>{t.reports.byWeekday}</h2>
+                  <ol className="report-days">
+                    {report.weekdays.map((d) => (
+                      <li key={d.weekday}>
+                        <span className="small">{weekdayName(d.weekday, tag)}</span>
+                        <span className="report-bar" aria-hidden="true">
+                          <span style={{ width: `${(d.completed / maxWeekday) * 100}%` }} />
+                        </span>
+                        <span className="small">
+                          {fill(t.reports.dayVisits, { n: String(d.completed) })}
+                          <span className="muted">
+                            {' '}
+                            · {d.revenueGrosze ? money(d.revenueGrosze) : '—'}
+                            {d.noShow
+                              ? ` · ${fill(t.reports.weekdayNoShow, { n: String(d.noShow) })}`
+                              : ''}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="small muted">{t.reports.weekdayHint}</p>
+                </section>
 
                 <section className="section">
                   <h2>{t.reports.byDay}</h2>

@@ -836,6 +836,11 @@ export const pl = {
     downloading: 'Pobieranie…',
     csvHint:
       '„Pobierz CSV” — wszystkie wizyty z tego okresu dla księgowej (bez kontaktów klientów); otwiera się w Excelu.',
+    byWeekday: 'Dni tygodnia',
+    weekdayNoShow: 'nie przyszli: {n}',
+    weekdayHint: 'Słabsze dni widać od razu — można na nie dać promocję albo krótszy grafik.',
+    compared:
+      'Zmiana w % — w porównaniu z tyloma samymi dniami wcześniej ({from} – {to}: {revenue}, odbyte wizyty: {visits}).',
   },
 };
 

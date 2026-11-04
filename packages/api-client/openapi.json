@@ -14283,6 +14283,99 @@
               "additionalProperties": false
             },
             "description": "Every day of the period, in the salon time zone"
+          },
+          "weekdays": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weekday": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "1 = Monday … 7 = Sunday"
+                },
+                "completed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "noShow": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "revenueGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Paid on these weekdays, in hundredths of the salon currency"
+                }
+              },
+              "required": [
+                "weekday",
+                "completed",
+                "noShow",
+                "revenueGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Monday to Sunday: which days of the week are busy and which are weak"
+          },
+          "previous": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "completed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "noShow": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "paid": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "revenueGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What paid visits brought, in hundredths of the salon currency"
+              },
+              "averageTicketGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Average paid visit; 0 when none, in hundredths of the salon currency"
+              },
+              "clients": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "completed",
+              "noShow",
+              "paid",
+              "revenueGrosze",
+              "averageTicketGrosze",
+              "clients"
+            ],
+            "additionalProperties": false,
+            "description": "The same number of days just before the period, to compare with"
           }
         },
         "required": [
@@ -14293,7 +14386,9 @@
           "totals",
           "staff",
           "services",
-          "days"
+          "days",
+          "weekdays",
+          "previous"
         ],
         "additionalProperties": false
       },

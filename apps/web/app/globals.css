@@ -1469,6 +1469,17 @@ h3 {
 }
 
 /* Task 14: salon reports */
+.report-change {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--signal);
+  white-space: nowrap;
+}
+
+.report-change--up {
+  color: var(--ink);
+}
+
 .report-table-wrap {
   overflow-x: auto;
 }

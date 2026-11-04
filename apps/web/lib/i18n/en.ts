@@ -837,5 +837,10 @@ export const en: Dict = {
     downloading: 'Downloading…',
     csvHint:
       '“Download CSV” — every visit of this period for the accountant (no client contacts); opens in Excel.',
+    byWeekday: 'Days of the week',
+    weekdayNoShow: 'no-shows: {n}',
+    weekdayHint: 'Weak days show at once — a promotion or a shorter schedule may help.',
+    compared:
+      'Change in % — compared with the same number of days before ({from} – {to}: {revenue}, completed visits: {visits}).',
   },
 };
