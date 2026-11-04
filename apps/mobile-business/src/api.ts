@@ -26,6 +26,7 @@ export type CustomerList = components['schemas']['CustomerList'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type TimeBlock = components['schemas']['TimeBlock'];
 export type TimeBlockList = components['schemas']['TimeBlockList'];
+export type NotificationList = components['schemas']['NotificationList'];
 export type {
   AppointmentDetail,
   Calendar,
@@ -220,6 +221,21 @@ export class BusinessApi {
         paid,
       },
     );
+  }
+
+  /** New, moved and cancelled visits for this person, newest first (every salon they belong to). */
+  notifications(limit = 50): Promise<NotificationList> {
+    return this.authed<NotificationList>('GET', `/v1/me/notifications?limit=${limit}`);
+  }
+
+  /** The number on the bell. */
+  unreadNotifications(): Promise<{ unread: number }> {
+    return this.authed<{ unread: number }>('GET', '/v1/me/notifications/unread-count');
+  }
+
+  /** Mark some notifications, or all of them, as read. */
+  markNotificationsRead(which: { ids: string[] } | { all: true }): Promise<{ updated: number }> {
+    return this.authed<{ updated: number }>('POST', '/v1/me/notifications/read', which);
   }
 
   /** Blocked time of one day (a specialist gets what the server lets them see). */

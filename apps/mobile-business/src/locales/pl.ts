@@ -133,6 +133,22 @@ export const pl = {
     added: 'Czas zablokowany — klienci nie zapiszą się w tych godzinach.',
     removed: 'Czas odblokowany.',
   },
+  notifications: {
+    open: 'Powiadomienia',
+    title: 'Powiadomienia',
+    back: '‹ Wróć',
+    empty: 'Nie ma powiadomień w tym salonie.',
+    readAll: 'Oznacz wszystkie jako przeczytane',
+    unread: 'Nowe',
+    kind: {
+      booked: 'Nowa wizyta online',
+      created: 'Nowa wizyta (salon)',
+      rescheduled: 'Wizyta przeniesiona',
+      cancelled: 'Wizyta odwołana',
+    },
+    byClient: 'przez klienta',
+    bySalon: 'przez salon',
+  },
   schedule: {
     open: 'Mój grafik',
     title: 'Mój grafik',
