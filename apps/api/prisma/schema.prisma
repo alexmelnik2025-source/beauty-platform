@@ -153,6 +153,16 @@ enum LoyaltyTransactionType {
   @@map("loyalty_transaction_type")
 }
 
+/// What a client's tier is measured by (task 10e).
+enum LoyaltyTierBasis {
+  /// Paid visits in the period.
+  visits
+  /// What the client paid in the period (after coupons), in hundredths of the currency.
+  spend
+
+  @@map("loyalty_tier_basis")
+}
+
 /// What a reward from the salon's catalogue gives (task 10a, part 2).
 enum LoyaltyRewardKind {
   /// A discount of discountPercent on a visit.
@@ -893,34 +903,38 @@ model ClientSession {
 /// One loyalty program per salon (organization), set up by the owner or a manager.
 /// The platform sets no rules: every number here is the salon's choice. See docs/LOYALTY.md.
 model LoyaltyProgram {
-  id                 String      @id @default(uuid(7)) @db.Uuid
-  organizationId     String      @unique @map("organization_id") @db.Uuid
-  enabled            Boolean     @default(false)
-  mode               LoyaltyMode @default(stamps)
+  id                 String           @id @default(uuid(7)) @db.Uuid
+  organizationId     String           @unique @map("organization_id") @db.Uuid
+  enabled            Boolean          @default(false)
+  mode               LoyaltyMode      @default(stamps)
   /// stamps mode: stamps for one paid visit (a service rule overrides it).
-  stampsPerVisit     Int         @default(1) @map("stamps_per_visit")
+  stampsPerVisit     Int              @default(1) @map("stamps_per_visit")
   /// points mode: pointsPerUnit points for every full spendUnitGrosze spent
   /// (e.g. 10 points per 100 zł = 10 / 10000). A service rule overrides it.
-  pointsPerUnit      Int         @default(0) @map("points_per_unit")
-  spendUnitGrosze    Int         @default(10000) @map("spend_unit_grosze")
+  pointsPerUnit      Int              @default(0) @map("points_per_unit")
+  spendUnitGrosze    Int              @default(10000) @map("spend_unit_grosze")
   /// Visits cheaper than this earn nothing.
-  minSpendGrosze     Int         @default(0) @map("min_spend_grosze")
+  minSpendGrosze     Int              @default(0) @map("min_spend_grosze")
   /// points mode: points expire this many days after they were earned; null = never.
-  pointsValidityDays Int?        @map("points_validity_days")
+  pointsValidityDays Int?             @map("points_validity_days")
   /// Rewards may never take more than this share of a visit's price (task 10d).
-  maxDiscountPercent Int         @default(100) @map("max_discount_percent")
+  maxDiscountPercent Int              @default(100) @map("max_discount_percent")
   /// Several discounts on one visit (task 10d).
-  allowStacking      Boolean     @default(false) @map("allow_stacking")
+  allowStacking      Boolean          @default(false) @map("allow_stacking")
   /// The salon agrees to take part in the marketplace (only a flag until it exists, task 10g).
-  marketplaceEnabled Boolean     @default(false) @map("marketplace_enabled")
-  version            Int         @default(1)
-  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  marketplaceEnabled Boolean          @default(false) @map("marketplace_enabled")
+  /// Task 10e: tiers are reached by paid visits or by spend over the last tierPeriodDays.
+  tierBasis          LoyaltyTierBasis @default(visits) @map("tier_basis")
+  tierPeriodDays     Int              @default(365) @map("tier_period_days")
+  version            Int              @default(1)
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   earnRules    LoyaltyEarnRule[]
   accounts     LoyaltyAccount[]
   rewards      LoyaltyReward[]
+  tiers        LoyaltyTier[]
 
   @@map("loyalty_program")
 }
@@ -990,6 +1004,23 @@ model LoyaltyTransaction {
   @@index([accountId, createdAt])
   @@index([appointmentId])
   @@map("loyalty_transaction")
+}
+
+/// Task 10e: the salon's own client tiers (e.g. Standard / Silver / Gold / VIP): reached at a
+/// threshold of visits or spend (the program's tierBasis) and giving their own discount.
+model LoyaltyTier {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  programId       String   @map("program_id") @db.Uuid
+  name            String
+  /// Visits or hundredths of the currency, by the program's tierBasis; 0 = everyone.
+  threshold       Int
+  discountPercent Int      @default(0) @map("discount_percent")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, threshold])
+  @@map("loyalty_tier")
 }
 
 /// The salon's catalogue of rewards: what a client can take for stamps or points.

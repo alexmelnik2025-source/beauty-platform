@@ -1,7 +1,9 @@
 import { z } from 'zod';
-import type { LoyaltyMode, LoyaltyRewardKind } from '../generated/prisma/client';
+import type { LoyaltyMode, LoyaltyRewardKind, LoyaltyTierBasis } from '../generated/prisma/client';
 
 export const loyaltyModeSchema = z.enum(['stamps', 'points'] satisfies LoyaltyMode[]);
+export const loyaltyTierBasisSchema = z.enum(['visits', 'spend'] satisfies LoyaltyTierBasis[]);
+
 export const loyaltyRewardKindSchema = z.enum([
   'discount_percent',
   'free_service',
@@ -138,6 +140,26 @@ export const removeVisitCouponSchema = z.object({ version: z.number().int().min(
 
 export type ApplyVisitCouponInput = z.infer<typeof applyVisitCouponSchema>;
 export type RemoveVisitCouponInput = z.infer<typeof removeVisitCouponSchema>;
+/** Task 10e: the salon's tiers, replaced as a whole (an empty list switches tiers off). */
+export const replaceLoyaltyTiersSchema = z.object({
+  basis: loyaltyTierBasisSchema,
+  periodDays: z.number().int().min(30).max(1095),
+  tiers: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(40),
+        /** Visits, or hundredths of the currency (by basis); 0 = every client. */
+        threshold: z.number().int().min(0).max(100_000_000),
+        discountPercent: z.number().int().min(0).max(100),
+      }),
+    )
+    .max(8)
+    .refine((tiers) => new Set(tiers.map((t) => t.threshold)).size === tiers.length, {
+      message: 'Two tiers cannot have the same threshold',
+    }),
+});
+export type ReplaceLoyaltyTiersInput = z.infer<typeof replaceLoyaltyTiersSchema>;
+
 export type UpdateLoyaltyProgramInput = z.infer<typeof updateLoyaltyProgramSchema>;
 export type ReplaceEarnRulesInput = z.infer<typeof replaceEarnRulesSchema>;
 export type ListLoyaltyTransactionsQuery = z.infer<typeof listLoyaltyTransactionsSchema>;

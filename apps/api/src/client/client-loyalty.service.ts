@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DEFAULT_CURRENCY } from '../common/currency';
 import type { LoyaltyCoupon, LoyaltyReward } from '../generated/prisma/client';
+import { tierStatus } from '../loyalty/loyalty-tiers';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ClientLoyaltyCard, ClientLoyaltyResponse } from './client-loyalty.responses';
 import type { ClientAuth } from './client.service';
@@ -42,6 +43,7 @@ export class ClientLoyaltyService {
           },
         },
         rewards: { where: { archivedAt: null }, orderBy: [{ cost: 'asc' }, { sortOrder: 'asc' }] },
+        tiers: true,
         accounts: {
           where: { customerId: { in: customers.map((c) => c.id) } },
           include: {
@@ -105,6 +107,8 @@ export class ClientLoyaltyService {
       const upcoming = rewards.find((r) => r.missing > 0);
       const online = p.organization.locations.find((l) => l.onlineBookingEnabled);
       const shownAs = online ?? p.organization.locations[0];
+      const tier =
+        p.enabled && customerId ? await tierStatus(this.prisma, p, customerId, now) : null;
       items.push({
         organization: { id: p.organization.id, name: shownAs?.name ?? p.organization.name },
         bookingSlug: online?.slug ?? null,
@@ -112,6 +116,7 @@ export class ClientLoyaltyService {
         enabled: p.enabled,
         mode: p.mode,
         balance,
+        tier,
         lifetimeEarned: account?.lifetimeEarned ?? 0,
         earning: {
           stampsPerVisit: p.stampsPerVisit,

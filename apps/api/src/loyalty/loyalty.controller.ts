@@ -27,6 +27,7 @@ import {
   loyaltyAccountSchema,
   loyaltyCouponSchema,
   loyaltyProgramSchema,
+  loyaltyTiersSchema,
   loyaltyRewardListSchema,
   loyaltyRewardSchema,
   loyaltyTransactionListSchema,
@@ -34,6 +35,7 @@ import {
   type LoyaltyCouponResponse,
   type LoyaltyProgramResponse,
   type LoyaltyRewardResponse,
+  type LoyaltyTiersResponse,
   type LoyaltyTransactionResponse,
 } from './loyalty.responses';
 import {
@@ -44,6 +46,7 @@ import {
   listLoyaltyTransactionsSchema,
   redeemLoyaltyRewardSchema,
   replaceEarnRulesSchema,
+  replaceLoyaltyTiersSchema,
   updateLoyaltyProgramSchema,
   updateLoyaltyRewardSchema,
   type AdjustLoyaltyBalanceInput,
@@ -53,6 +56,7 @@ import {
   type ListLoyaltyTransactionsQuery,
   type RedeemLoyaltyRewardInput,
   type ReplaceEarnRulesInput,
+  type ReplaceLoyaltyTiersInput,
   type UpdateLoyaltyProgramInput,
   type UpdateLoyaltyRewardInput,
 } from './loyalty.schemas';
@@ -93,6 +97,30 @@ export class LoyaltyController {
     @Body(new ZodValidationPipe(updateLoyaltyProgramSchema)) body: UpdateLoyaltyProgramInput,
   ): Promise<LoyaltyProgramResponse> {
     return this.loyalty.updateProgram(m, auth.userId, body);
+  }
+
+  @Get('loyalty/tiers')
+  @ApiOperation({
+    summary: 'Client tiers (Standard / Silver / Gold / VIP — names are the salon’s)',
+  })
+  @ApiZodResponse(loyaltyTiersSchema)
+  getTiers(@CurrentMembership() m: MembershipContext): Promise<LoyaltyTiersResponse> {
+    return this.loyalty.getTiers(m);
+  }
+
+  @Put('loyalty/tiers')
+  @ApiOperation({
+    summary: 'Replace the client tiers: measured by paid visits or spend over the last periodDays',
+    description: 'An empty list switches tiers off. Thresholds must differ.',
+  })
+  @ApiZodBody(replaceLoyaltyTiersSchema)
+  @ApiZodResponse(loyaltyTiersSchema)
+  replaceTiers(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Body(new ZodValidationPipe(replaceLoyaltyTiersSchema)) body: ReplaceLoyaltyTiersInput,
+  ): Promise<LoyaltyTiersResponse> {
+    return this.loyalty.replaceTiers(m, auth.userId, body);
   }
 
   @Put('locations/:locationId/loyalty/earn-rules')

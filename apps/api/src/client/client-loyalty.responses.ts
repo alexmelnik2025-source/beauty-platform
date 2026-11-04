@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { responseSchema } from '../common/openapi';
-import { loyaltyTransactionTypeSchema } from '../loyalty/loyalty.responses';
+import {
+  loyaltyTierStatusSchema,
+  loyaltyTransactionTypeSchema,
+} from '../loyalty/loyalty.responses';
 import { loyaltyModeSchema, loyaltyRewardKindSchema } from '../loyalty/loyalty.schemas';
 
 /**
@@ -77,6 +80,7 @@ export const clientLoyaltyCardSchema = z.strictObject({
   rewards: z.array(clientLoyaltyRewardSchema).describe('Cheapest first'),
   coupons: z.array(clientLoyaltyCouponSchema).describe('Active first, then newest; at most 20'),
   history: z.array(clientLoyaltyHistorySchema).describe('Newest first, at most 30'),
+  tier: loyaltyTierStatusSchema.nullable().describe('My tier in this salon; null = no tiers'),
 });
 export type ClientLoyaltyCard = z.infer<typeof clientLoyaltyCardSchema>;
 

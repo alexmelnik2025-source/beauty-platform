@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import type { LoyaltyTransactionType } from '../generated/prisma/client';
 import { responseSchema } from '../common/openapi';
-import { loyaltyModeSchema, loyaltyRewardKindSchema } from './loyalty.schemas';
+import {
+  loyaltyModeSchema,
+  loyaltyRewardKindSchema,
+  loyaltyTierBasisSchema,
+} from './loyalty.schemas';
 
 export const loyaltyTransactionTypeSchema = z.enum([
   'earn',
@@ -115,6 +119,48 @@ export const loyaltyCouponSchema = responseSchema(
 );
 export type LoyaltyCouponResponse = z.infer<typeof loyaltyCouponSchema>;
 
+export const loyaltyTiersSchema = responseSchema(
+  'LoyaltyTiers',
+  z.strictObject({
+    basis: loyaltyTierBasisSchema.describe('visits = paid visits, spend = what clients paid'),
+    periodDays: z.number().int().describe('Counted over the last this many days'),
+    tiers: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          name: z.string(),
+          threshold: z.number().int().describe('Visits or hundredths of the currency'),
+          discountPercent: z.number().int(),
+        }),
+      )
+      .describe('Lowest threshold first; empty = no tiers'),
+  }),
+);
+export type LoyaltyTiersResponse = z.infer<typeof loyaltyTiersSchema>;
+
+export const loyaltyTierStatusSchema = responseSchema(
+  'LoyaltyTierStatus',
+  z
+    .strictObject({
+      basis: loyaltyTierBasisSchema,
+      periodDays: z.number().int(),
+      value: z.number().int().describe('Paid visits or what was paid (hundredths) in the period'),
+      current: z
+        .strictObject({ name: z.string(), discountPercent: z.number().int() })
+        .nullable()
+        .describe('null = below the lowest tier'),
+      next: z
+        .strictObject({
+          name: z.string(),
+          threshold: z.number().int(),
+          missing: z.number().int().describe('Visits or hundredths still needed'),
+        })
+        .nullable()
+        .describe('null = the highest tier reached'),
+    })
+    .describe("The client's tier (task 10e)"),
+);
+
 export const loyaltyAccountSchema = responseSchema(
   'LoyaltyAccount',
   z.strictObject({
@@ -124,6 +170,7 @@ export const loyaltyAccountSchema = responseSchema(
     lifetimeEarned: z.number().int(),
     transactions: z.array(loyaltyTransactionSchema).describe('Newest first, at most 100'),
     coupons: z.array(loyaltyCouponSchema).describe('Newest first, at most 100'),
+    tier: loyaltyTierStatusSchema.nullable().describe('null = the salon has no tiers'),
   }),
 );
 export type LoyaltyAccountResponse = z.infer<typeof loyaltyAccountSchema>;

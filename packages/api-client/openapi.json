@@ -6055,6 +6055,117 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/loyalty/tiers": {
+      "get": {
+        "operationId": "LoyaltyController_getTiers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyTiers"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Client tiers (Standard / Silver / Gold / VIP — names are the salon’s)",
+        "tags": [
+          "loyalty"
+        ]
+      },
+      "put": {
+        "description": "An empty list switches tiers off. Thresholds must differ.",
+        "operationId": "LoyaltyController_replaceTiers",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basis": {
+                    "type": "string",
+                    "enum": [
+                      "visits",
+                      "spend"
+                    ]
+                  },
+                  "periodDays": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 1095
+                  },
+                  "tiers": {
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000
+                        },
+                        "discountPercent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "threshold",
+                        "discountPercent"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "basis",
+                  "periodDays",
+                  "tiers"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoyaltyTiers"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the client tiers: measured by paid visits or spend over the last periodDays",
+        "tags": [
+          "loyalty"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/loyalty/earn-rules": {
       "put": {
         "operationId": "LoyaltyController_replaceEarnRules",
@@ -9805,6 +9916,86 @@
                     "additionalProperties": false
                   },
                   "description": "Newest first, at most 30"
+                },
+                "tier": {
+                  "nullable": true,
+                  "description": "My tier in this salon; null = no tiers",
+                  "type": "object",
+                  "properties": {
+                    "basis": {
+                      "type": "string",
+                      "enum": [
+                        "visits",
+                        "spend"
+                      ]
+                    },
+                    "periodDays": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "value": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Paid visits or what was paid (hundredths) in the period"
+                    },
+                    "current": {
+                      "nullable": true,
+                      "description": "null = below the lowest tier",
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "discountPercent": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "discountPercent"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "next": {
+                      "nullable": true,
+                      "description": "null = the highest tier reached",
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "missing": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991,
+                          "description": "Visits or hundredths still needed"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "threshold",
+                        "missing"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "basis",
+                    "periodDays",
+                    "value",
+                    "current",
+                    "next"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -9819,7 +10010,8 @@
                 "next",
                 "rewards",
                 "coupons",
-                "history"
+                "history",
+                "tier"
               ],
               "additionalProperties": false
             }
@@ -11144,6 +11336,86 @@
               "additionalProperties": false
             },
             "description": "Newest first, at most 100"
+          },
+          "tier": {
+            "nullable": true,
+            "description": "null = the salon has no tiers",
+            "type": "object",
+            "properties": {
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "visits",
+                  "spend"
+                ]
+              },
+              "periodDays": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "value": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Paid visits or what was paid (hundredths) in the period"
+              },
+              "current": {
+                "nullable": true,
+                "description": "null = below the lowest tier",
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "discountPercent": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "discountPercent"
+                ],
+                "additionalProperties": false
+              },
+              "next": {
+                "nullable": true,
+                "description": "null = the highest tier reached",
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "missing": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Visits or hundredths still needed"
+                  }
+                },
+                "required": [
+                  "name",
+                  "threshold",
+                  "missing"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "basis",
+              "periodDays",
+              "value",
+              "current",
+              "next"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -11152,7 +11424,8 @@
           "balance",
           "lifetimeEarned",
           "transactions",
-          "coupons"
+          "coupons",
+          "tier"
         ],
         "additionalProperties": false
       },
@@ -11528,6 +11801,143 @@
           ],
           "additionalProperties": false
         }
+      },
+      "LoyaltyTierStatus": {
+        "type": "object",
+        "properties": {
+          "basis": {
+            "type": "string",
+            "enum": [
+              "visits",
+              "spend"
+            ]
+          },
+          "periodDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "value": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Paid visits or what was paid (hundredths) in the period"
+          },
+          "current": {
+            "nullable": true,
+            "description": "null = below the lowest tier",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "discountPercent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "name",
+              "discountPercent"
+            ],
+            "additionalProperties": false
+          },
+          "next": {
+            "nullable": true,
+            "description": "null = the highest tier reached",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "missing": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits or hundredths still needed"
+              }
+            },
+            "required": [
+              "name",
+              "threshold",
+              "missing"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "basis",
+          "periodDays",
+          "value",
+          "current",
+          "next"
+        ],
+        "additionalProperties": false,
+        "description": "The client's tier (task 10e)"
+      },
+      "LoyaltyTiers": {
+        "type": "object",
+        "properties": {
+          "basis": {
+            "type": "string",
+            "enum": [
+              "visits",
+              "spend"
+            ],
+            "description": "visits = paid visits, spend = what clients paid"
+          },
+          "periodDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Counted over the last this many days"
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "threshold": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits or hundredths of the currency"
+                },
+                "discountPercent": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "threshold",
+                "discountPercent"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Lowest threshold first; empty = no tiers"
+          }
+        },
+        "required": [
+          "basis",
+          "periodDays",
+          "tiers"
+        ],
+        "additionalProperties": false
       },
       "LoyaltyTransaction": {
         "type": "object",

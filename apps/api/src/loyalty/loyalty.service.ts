@@ -17,8 +17,10 @@ import type {
   LoyaltyCouponResponse,
   LoyaltyRewardResponse,
   LoyaltyProgramResponse,
+  LoyaltyTiersResponse,
   LoyaltyTransactionResponse,
 } from './loyalty.responses';
+import { tierStatus } from './loyalty-tiers';
 import type {
   AdjustLoyaltyBalanceInput,
   CancelLoyaltyCouponInput,
@@ -27,6 +29,7 @@ import type {
   ListLoyaltyTransactionsQuery,
   RedeemLoyaltyRewardInput,
   ReplaceEarnRulesInput,
+  ReplaceLoyaltyTiersInput,
   UpdateLoyaltyProgramInput,
   UpdateLoyaltyRewardInput,
 } from './loyalty.schemas';
@@ -186,7 +189,14 @@ export class LoyaltyService {
     if (!customer) throw notFound('Customer');
     const program = await this.prisma.loyaltyProgram.findUnique({
       where: { organizationId: m.organizationId },
-      select: { id: true, mode: true },
+      select: {
+        id: true,
+        mode: true,
+        organizationId: true,
+        tierBasis: true,
+        tierPeriodDays: true,
+        tiers: true,
+      },
     });
     const account = program
       ? await this.prisma.loyaltyAccount.findUnique({
@@ -208,7 +218,62 @@ export class LoyaltyService {
       lifetimeEarned: account?.lifetimeEarned ?? 0,
       transactions: (account?.transactions ?? []).map(toTransactionResponse),
       coupons: (account?.coupons ?? []).map(toCouponResponse),
+      tier: program ? await tierStatus(this.prisma, program, customerId) : null,
     };
+  }
+
+  // ── Tiers (10e) ────────────────────────────────────────
+
+  async getTiers(m: MembershipContext): Promise<LoyaltyTiersResponse> {
+    const program = await this.prisma.loyaltyProgram.findUnique({
+      where: { organizationId: m.organizationId },
+      include: { tiers: { orderBy: { threshold: 'asc' } } },
+    });
+    return {
+      basis: program?.tierBasis ?? 'visits',
+      periodDays: program?.tierPeriodDays ?? 365,
+      tiers: (program?.tiers ?? []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        threshold: t.threshold,
+        discountPercent: t.discountPercent,
+      })),
+    };
+  }
+
+  /** Replaces the salon's tiers; clients' tiers follow at once (they are counted, not stored). */
+  async replaceTiers(
+    m: MembershipContext,
+    userId: string,
+    input: ReplaceLoyaltyTiersInput,
+  ): Promise<LoyaltyTiersResponse> {
+    await this.prisma.$transaction(async (tx) => {
+      const program = await tx.loyaltyProgram.upsert({
+        where: { organizationId: m.organizationId },
+        create: {
+          organizationId: m.organizationId,
+          tierBasis: input.basis,
+          tierPeriodDays: input.periodDays,
+        },
+        update: { tierBasis: input.basis, tierPeriodDays: input.periodDays },
+      });
+      await tx.loyaltyTier.deleteMany({ where: { programId: program.id } });
+      await tx.loyaltyTier.createMany({
+        data: input.tiers.map((t) => ({ programId: program.id, ...t })),
+      });
+      await this.audit.record(
+        {
+          organizationId: m.organizationId,
+          actorUserId: userId,
+          action: 'loyalty.tiers.replaced',
+          entityType: 'loyalty_program',
+          entityId: program.id,
+          metadata: { ...input },
+        },
+        tx,
+      );
+    });
+    return this.getTiers(m);
   }
 
   // ── Rewards catalogue (10a-2) ──────────────────────────

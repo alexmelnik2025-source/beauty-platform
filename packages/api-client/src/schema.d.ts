@@ -1401,6 +1401,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/loyalty/tiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Client tiers (Standard / Silver / Gold / VIP — names are the salon’s) */
+        get: operations["LoyaltyController_getTiers"];
+        /**
+         * Replace the client tiers: measured by paid visits or spend over the last periodDays
+         * @description An empty list switches tiers off. Thresholds must differ.
+         */
+        put: operations["LoyaltyController_replaceTiers"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/loyalty/earn-rules": {
         parameters: {
             query?: never;
@@ -2447,6 +2468,26 @@ export interface components {
                     expiresAt: string | null;
                     createdAt: string;
                 }[];
+                /** @description My tier in this salon; null = no tiers */
+                tier: {
+                    /** @enum {string} */
+                    basis: "visits" | "spend";
+                    periodDays: number;
+                    /** @description Paid visits or what was paid (hundredths) in the period */
+                    value: number;
+                    /** @description null = below the lowest tier */
+                    current: {
+                        name: string;
+                        discountPercent: number;
+                    } | null;
+                    /** @description null = the highest tier reached */
+                    next: {
+                        name: string;
+                        threshold: number;
+                        /** @description Visits or hundredths still needed */
+                        missing: number;
+                    } | null;
+                } | null;
             }[];
         };
         ClientPerson: {
@@ -2763,6 +2804,26 @@ export interface components {
                 createdAt: string;
                 version: number;
             }[];
+            /** @description null = the salon has no tiers */
+            tier: {
+                /** @enum {string} */
+                basis: "visits" | "spend";
+                periodDays: number;
+                /** @description Paid visits or what was paid (hundredths) in the period */
+                value: number;
+                /** @description null = below the lowest tier */
+                current: {
+                    name: string;
+                    discountPercent: number;
+                } | null;
+                /** @description null = the highest tier reached */
+                next: {
+                    name: string;
+                    threshold: number;
+                    /** @description Visits or hundredths still needed */
+                    missing: number;
+                } | null;
+            } | null;
         };
         LoyaltyCoupon: {
             id: string;
@@ -2862,6 +2923,43 @@ export interface components {
             archivedAt: string | null;
             version: number;
         }[];
+        /** @description The client's tier (task 10e) */
+        LoyaltyTierStatus: {
+            /** @enum {string} */
+            basis: "visits" | "spend";
+            periodDays: number;
+            /** @description Paid visits or what was paid (hundredths) in the period */
+            value: number;
+            /** @description null = below the lowest tier */
+            current: {
+                name: string;
+                discountPercent: number;
+            } | null;
+            /** @description null = the highest tier reached */
+            next: {
+                name: string;
+                threshold: number;
+                /** @description Visits or hundredths still needed */
+                missing: number;
+            } | null;
+        };
+        LoyaltyTiers: {
+            /**
+             * @description visits = paid visits, spend = what clients paid
+             * @enum {string}
+             */
+            basis: "visits" | "spend";
+            /** @description Counted over the last this many days */
+            periodDays: number;
+            /** @description Lowest threshold first; empty = no tiers */
+            tiers: {
+                id: string;
+                name: string;
+                /** @description Visits or hundredths of the currency */
+                threshold: number;
+                discountPercent: number;
+            }[];
+        };
         LoyaltyTransaction: {
             id: string;
             customer: {
@@ -6327,6 +6425,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoyaltyProgram"];
+                };
+            };
+        };
+    };
+    LoyaltyController_getTiers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyTiers"];
+                };
+            };
+        };
+    };
+    LoyaltyController_replaceTiers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    basis: "visits" | "spend";
+                    periodDays: number;
+                    tiers: {
+                        name: string;
+                        threshold: number;
+                        discountPercent: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyTiers"];
                 };
             };
         };
