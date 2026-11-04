@@ -20,6 +20,8 @@ const OWNER = `photos-owner-${run}@example.com`;
 const CLIENT = `photos-client-${run}@example.com`;
 const DESKTOP = { width: 1280, height: 900 };
 const PHONE = { width: 390, height: 844 };
+/** A client of its own (the API limits holds and codes per address). */
+const CLIENT_IP = { 'x-forwarded-for': '203.0.113.80' };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -157,17 +159,19 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   const slot = free.slots[0]!;
   const hold = await json<{ holdId: string; holdToken: string }>(
     await request.post(`/v1/public/locations/${location.slug}/holds`, {
+      headers: CLIENT_IP,
       data: { serviceId: service.id, staffId: staff.id, start: slot.start },
     }),
   );
   await json(
     await request.post(`/v1/public/holds/${hold.holdId}/photos`, {
-      headers: { 'X-Hold-Token': hold.holdToken, 'Content-Type': 'image/jpeg' },
+      headers: { ...CLIENT_IP, 'X-Hold-Token': hold.holdToken, 'Content-Type': 'image/jpeg' },
       data: await drawnPhoto(cabinet),
     }),
   );
   await json(
     await request.post(`/v1/public/holds/${hold.holdId}/code`, {
+      headers: CLIENT_IP,
       data: {
         holdToken: hold.holdToken,
         name: 'Piotr Zieliński',
@@ -181,6 +185,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   const mail = await waitForEmail(CLIENT, /Kod potwierdzenia/);
   const booked = await json<{ appointment: { id: string } }>(
     await request.post(`/v1/public/holds/${hold.holdId}/confirm`, {
+      headers: CLIENT_IP,
       data: { holdToken: hold.holdToken, code: /\b(\d{6})\b/.exec(mail.text)![1] },
     }),
   );
