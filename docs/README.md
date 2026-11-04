@@ -1360,6 +1360,20 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
   (подпись «Cena u: Kasia»; подсказка — цена услуги). Пустое поле = цена услуги. Сохраняется вместе с услугой
   (`PUT …/services/:id/staff-prices`). 4 языка, скриншот `80-owner-service-staff-price`.
 
+## Своя длительность мастера и «любой из этих» (задача 70a)
+
+- У мастера может быть своя длительность услуги (`staff_service.duration_minutes`, 5–480 мин, кратно 5; null — как у
+  услуги). API: `PUT …/services/:serviceId/staff-durations` (`{ durations: [{ staffId, durationMinutes }] }`, как
+  цены: неуказанные возвращаются к длительности услуги, только мастера услуги, владелец/менеджер), `GET …/staff-prices`
+  теперь отдаёт и `durations`. В «Dziennik zmian» — `service.staff_durations_set`.
+- Свободное время считается по длительности каждого мастера (группы по длительности, слоты объединяются по началу);
+  бронь, визит из кабинета и walk-in берут длительность мастера; перенос (кабинет и клиент) сохраняет длину визита.
+  Публичная страница: у мастера `prices[].durationMinutes`, у услуги `durationFromMinutes` / `durationToMinutes`.
+- «Dowolny» внутри группы мастеров (строка цен «ILYA, NAZAR — 162 zł»): `staffIds=a,b` в
+  `GET /v1/public/locations/:slug/availability` и `staffIds: [...]` в брони — назначается свободный мастер только из
+  группы. Миграция `20261105010000_staff_service_duration`, тесты — `staff-prices.spec.ts`. Дальше: поле длительности в
+  окне услуги в кабинете (70d), строки мастеров на странице записи (70b).
+
 ## Языки мастеров заметнее (задача 81)
 
 - Запись на сайте, шаг «Specjalista»: строка «Mówi po» с языками, на которых говорят **некоторые** мастера этой

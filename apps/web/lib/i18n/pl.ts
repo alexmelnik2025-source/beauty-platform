@@ -423,6 +423,8 @@ export const pl = {
       'service.updated': 'Zmieniono usługę',
       'service.deleted': 'Usunięto usługę',
       'service.staff_set': 'Zmieniono, kto wykonuje usługę',
+      'service.staff_prices_set': 'Zmieniono ceny usługi u specjalistów',
+      'service.staff_durations_set': 'Zmieniono czas usługi u specjalistów',
       'service_category.created': 'Dodano kategorię usług',
       'service_category.updated': 'Zmieniono kategorię usług',
       'service_category.deleted': 'Usunięto kategorię usług',

@@ -423,6 +423,8 @@ export const uk: Dict = {
       'service.updated': 'Змінено послугу',
       'service.deleted': 'Видалено послугу',
       'service.staff_set': 'Змінено, хто виконує послугу',
+      'service.staff_prices_set': 'Змінено ціни послуги у спеціалістів',
+      'service.staff_durations_set': 'Змінено тривалість послуги у спеціалістів',
       'service_category.created': 'Додано категорію послуг',
       'service_category.updated': 'Змінено категорію послуг',
       'service_category.deleted': 'Видалено категорію послуг',

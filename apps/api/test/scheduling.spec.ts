@@ -331,8 +331,14 @@ describe('public booking page', () => {
       specialties: [],
       customSpecialty: null,
       serviceIds: [serviceId],
-      // Task 62: the specialist's price of each service (here the service's own price).
-      prices: [{ serviceId, priceGrosze: res.body.services[0].priceGrosze }],
+      // Tasks 62, 70: the specialist's price and duration of each service (here the service's).
+      prices: [
+        {
+          serviceId,
+          priceGrosze: res.body.services[0].priceGrosze,
+          durationMinutes: res.body.services[0].durationMinutes,
+        },
+      ],
       photoUrl: null,
     });
     expect(res.body).not.toHaveProperty('organizationId');

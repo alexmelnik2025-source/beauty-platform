@@ -53,6 +53,8 @@ const service = (id: string, categoryId: string | null) => ({
   priceGrosze: 9000,
   priceFromGrosze: 9000,
   priceToGrosze: 9000,
+  durationFromMinutes: 45,
+  durationToMinutes: 45,
 });
 
 describe('catalogue search', () => {

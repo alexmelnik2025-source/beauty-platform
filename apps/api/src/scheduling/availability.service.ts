@@ -6,7 +6,13 @@ import { LocationAccessService } from '../organizations/location-access.service'
 import { PrismaService } from '../prisma/prisma.service';
 import type { AvailabilityResponse } from './public.responses';
 import type { AvailabilityQuery } from './scheduling.schemas';
-import { mergeSlots, type InstantRange, type LocalInterval, type StaffSchedule } from './slots';
+import {
+  mergeSlots,
+  type InstantRange,
+  type LocalInterval,
+  type Slot,
+  type StaffSchedule,
+} from './slots';
 import { happyHourPercent } from './happy-hours';
 import {
   addDays,
@@ -30,6 +36,10 @@ export interface ComputeOptions {
   /** Step between start times; defaults to the location's slot step. */
   stepMinutes?: number;
   now?: number;
+  /** A moved visit keeps its own length (task 70); otherwise each specialist's own duration. */
+  durationMinutes?: number;
+  /** Task 70: "any of these" specialists (when no single staffId is given). */
+  staffIds?: string[];
 }
 
 const MINUTE_MS = 60_000;
@@ -95,7 +105,13 @@ export class AvailabilityService {
     const date = instantToLocal(start, location.timezone).date;
     const result = await this.compute(
       location,
-      { serviceId, staffId, from: date, to: date },
+      {
+        serviceId,
+        staffId,
+        staffIds: staffId ? undefined : options.staffIds,
+        from: date,
+        to: date,
+      },
       window,
       options,
     );
@@ -119,9 +135,19 @@ export class AvailabilityService {
         locationId: location.id,
         active: true,
         services: { some: { serviceId: service.id } },
-        ...(query.staffId ? { id: query.staffId } : {}),
+        ...(query.staffId
+          ? { id: query.staffId }
+          : query.staffIds
+            ? { id: { in: query.staffIds } }
+            : {}),
       },
-      select: { id: true },
+      select: {
+        id: true,
+        services: {
+          where: { serviceId: service.id },
+          select: { durationMinutes: true },
+        },
+      },
     });
     if (query.staffId && staff.length === 0) {
       throw new AppException(
@@ -204,28 +230,68 @@ export class AvailabilityService {
       return { staffId, weekly: week, overrides: special, busy };
     });
 
-    const slots = mergeSlots(schedules, {
-      timeZone: location.timezone,
-      from: query.from,
-      to: query.to,
-      durationMinutes: service.durationMinutes,
-      bufferMinutes: service.bufferMinutes,
-      stepMinutes: options.stepMinutes ?? location.slotStepMinutes,
-      ...window,
-    });
+    // Task 70: a specialist may take longer or shorter than the service says — free times are
+    // counted per duration and merged by start time.
+    const durationOf = new Map(
+      staff.map((s) => [
+        s.id,
+        options.durationMinutes ?? s.services[0]?.durationMinutes ?? service.durationMinutes,
+      ]),
+    );
+    const byDuration = new Map<number, StaffSchedule[]>();
+    for (const schedule of schedules) {
+      const minutes = durationOf.get(schedule.staffId) ?? service.durationMinutes;
+      byDuration.set(minutes, [...(byDuration.get(minutes) ?? []), schedule]);
+    }
+    const slots = mergeByStart(
+      [...byDuration.entries()].map(([durationMinutes, group]) =>
+        mergeSlots(group, {
+          timeZone: location.timezone,
+          from: query.from,
+          to: query.to,
+          durationMinutes,
+          bufferMinutes: service.bufferMinutes,
+          stepMinutes: options.stepMinutes ?? location.slotStepMinutes,
+          ...window,
+        }),
+      ),
+      staffIds,
+    );
 
     // The salon's happy hours (task 16): what a visit at each time would get off the price.
     const rules = await this.prisma.happyHour.findMany({ where: { locationId: location.id } });
     return {
       timezone: location.timezone,
       serviceId: service.id,
-      durationMinutes: service.durationMinutes,
+      durationMinutes:
+        (query.staffId ? durationOf.get(query.staffId) : undefined) ?? service.durationMinutes,
       slots: slots.map((slot) => ({
         ...slot,
         discountPercent: slotDiscount(rules, service.id, slot),
       })),
     };
   }
+}
+
+/** Free times of several duration groups as one list by start time; staff in the salon's order. */
+function mergeByStart(lists: Slot[][], order: string[]): Slot[] {
+  if (lists.length === 0) return [];
+  if (lists.length === 1) return lists[0]!;
+  const rank = new Map(order.map((id, i) => [id, i]));
+  const byStart = new Map<string, Slot>();
+  for (const slot of lists.flat()) {
+    const seen = byStart.get(slot.start);
+    byStart.set(
+      slot.start,
+      seen ? { ...seen, staffIds: [...seen.staffIds, ...slot.staffIds] } : { ...slot },
+    );
+  }
+  return [...byStart.values()]
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+    .map((slot) => ({
+      ...slot,
+      staffIds: [...slot.staffIds].sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0)),
+    }));
 }
 
 /**

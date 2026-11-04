@@ -423,6 +423,8 @@ export const en: Dict = {
       'service.updated': 'Service changed',
       'service.deleted': 'Service deleted',
       'service.staff_set': 'Who performs the service changed',
+      'service.staff_prices_set': 'Specialists’ prices changed',
+      'service.staff_durations_set': 'Specialists’ durations changed',
       'service_category.created': 'Service category added',
       'service_category.updated': 'Service category changed',
       'service_category.deleted': 'Service category deleted',

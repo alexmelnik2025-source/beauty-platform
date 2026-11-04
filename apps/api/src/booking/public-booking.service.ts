@@ -23,7 +23,7 @@ import type {
 import { OutboxService } from './outbox.service';
 import type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
 import { acceptedWishes, toWishes, wishQuestions, type VisitWishesInput } from './visit-wishes';
-import { listPriceFor } from '../scheduling/staff-prices';
+import { offerFor } from '../scheduling/staff-prices';
 
 export const HOLD_MINUTES = 10;
 const CODE_MINUTES = 10;
@@ -121,10 +121,10 @@ export class PublicBookingService {
       input.staffId,
       input.start,
       window,
+      { staffIds: input.staffIds },
     );
     if (free.length === 0) throw slotTaken();
 
-    const times = timesFor(input.start, service);
     const candidates = await this.leastBusyFirst(free, location, input.start);
     const holdToken = generateToken();
     const expiresAt = new Date(Date.now() + HOLD_MINUTES * MINUTE_MS);
@@ -132,13 +132,15 @@ export class PublicBookingService {
     // "Any staff member": try the least busy one, then the next if someone was faster.
     for (const staffId of candidates) {
       try {
+        // The specialist's own price and duration of the service, if any (tasks 62, 70).
+        const offer = await offerFor(this.prisma, staffId, service);
+        const times = timesFor(input.start, { ...service, durationMinutes: offer.durationMinutes });
         // The salon's happy hours (task 16) set the price for this staff member and time.
         const price = await this.happyHours.priceFor(this.prisma, location, {
           staffId,
           serviceId: service.id,
           start: input.start,
-          // The specialist's own price of the service, if any (task 62).
-          listPriceGrosze: await listPriceFor(this.prisma, staffId, service),
+          listPriceGrosze: offer.priceGrosze,
         });
         const hold = await this.writer.write(staffId, times, (tx) =>
           tx.appointment.create({
@@ -153,7 +155,7 @@ export class PublicBookingService {
               holdExpiresAt: expiresAt,
               holdTokenHash: hashToken(holdToken),
               ...price,
-              durationMinutes: service.durationMinutes,
+              durationMinutes: offer.durationMinutes,
               bufferMinutes: service.bufferMinutes,
             },
             include: { staff: true },
@@ -519,7 +521,11 @@ export class PublicBookingService {
     this.assertChangeable(appointment);
     const location = appointment.location;
     const window = this.availability.publicWindow(location, Date.now());
-    const options = { excludeAppointmentId: appointment.id };
+    const options = {
+      excludeAppointmentId: appointment.id,
+      // The visit keeps its length (task 70).
+      durationMinutes: appointment.durationMinutes,
+    };
 
     let free = await this.availability.staffFreeAt(
       location,

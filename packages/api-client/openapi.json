@@ -3852,6 +3852,13 @@
             }
           },
           {
+            "name": "staffIds",
+            "required": false,
+            "in": "query",
+            "description": "Task 70: \"any of these\" specialists, comma-separated (ignored with staffId)",
+            "schema": {}
+          },
+          {
             "name": "staffId",
             "required": false,
             "in": "query",
@@ -4478,6 +4485,98 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff-durations": {
+      "put": {
+        "description": "Task 70. Only specialists who perform the service; durationMinutes null = the service duration (5–480, a multiple of 5). Free times and new visits use the specialist duration; booked visits keep theirs.",
+        "operationId": "StaffPricesController_replaceDurations",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "durations": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "durationMinutes": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 5,
+                              "maximum": 480
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "staffId",
+                        "durationMinutes"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "durations"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPrices"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the specialists' own durations of a service (the others take its duration)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
     "/v1/public/locations/{slug}/holds": {
       "post": {
         "description": "start = a slot \"start\" from the availability list. Omit staffId for \"any staff member\". Send releaseHoldToken to free a previous hold.",
@@ -4508,6 +4607,16 @@
                     "type": "string",
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "staffIds": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
                   },
                   "start": {
                     "type": "string",
@@ -16827,6 +16936,18 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
                   "description": "Highest price among its specialists"
+                },
+                "durationFromMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Shortest duration among its specialists (task 70: each may have an own one)"
+                },
+                "durationToMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Longest duration among its specialists"
                 }
               },
               "required": [
@@ -16837,7 +16958,9 @@
                 "durationMinutes",
                 "priceGrosze",
                 "priceFromGrosze",
-                "priceToGrosze"
+                "priceToGrosze",
+                "durationFromMinutes",
+                "durationToMinutes"
               ],
               "additionalProperties": false
             }
@@ -16908,15 +17031,21 @@
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
+                      },
+                      "durationMinutes": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
                       "serviceId",
-                      "priceGrosze"
+                      "priceGrosze",
+                      "durationMinutes"
                     ],
                     "additionalProperties": false
                   },
-                  "description": "This specialist's price of each service they perform (task 62)"
+                  "description": "This specialist's price and duration of each service they perform (tasks 62, 70)"
                 },
                 "photoUrl": {
                   "nullable": true,
@@ -18351,10 +18480,37 @@
               "additionalProperties": false
             },
             "description": "Only the specialists with an own price; everyone else takes the service price"
+          },
+          "durations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "serviceId": {
+                  "type": "string"
+                },
+                "staffId": {
+                  "type": "string"
+                },
+                "durationMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "serviceId",
+                "staffId",
+                "durationMinutes"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 70: only the specialists with an own duration; the others take the service one"
           }
         },
         "required": [
-          "prices"
+          "prices",
+          "durations"
         ],
         "additionalProperties": false
       },

@@ -63,6 +63,13 @@ export const publicLocationSchema = responseSchema(
             .int()
             .describe('Lowest price among its specialists (task 62: each may have an own price)'),
           priceToGrosze: z.number().int().describe('Highest price among its specialists'),
+          durationFromMinutes: z
+            .number()
+            .int()
+            .describe(
+              'Shortest duration among its specialists (task 70: each may have an own one)',
+            ),
+          durationToMinutes: z.number().int().describe('Longest duration among its specialists'),
         }),
       ),
       staff: z.array(
@@ -75,8 +82,16 @@ export const publicLocationSchema = responseSchema(
           customSpecialty: z.string().nullable(),
           serviceIds: z.array(z.string()),
           prices: z
-            .array(z.strictObject({ serviceId: z.string(), priceGrosze: z.number().int() }))
-            .describe("This specialist's price of each service they perform (task 62)"),
+            .array(
+              z.strictObject({
+                serviceId: z.string(),
+                priceGrosze: z.number().int(),
+                durationMinutes: z.number().int(),
+              }),
+            )
+            .describe(
+              "This specialist's price and duration of each service they perform (tasks 62, 70)",
+            ),
           photoUrl: z.string().nullable().describe('Link to the photo; null when there is none'),
         }),
       ),

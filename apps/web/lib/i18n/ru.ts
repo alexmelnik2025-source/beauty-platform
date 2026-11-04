@@ -429,6 +429,8 @@ export const ru: Dict = {
       'service.updated': 'Изменена услуга',
       'service.deleted': 'Удалена услуга',
       'service.staff_set': 'Изменено, кто выполняет услугу',
+      'service.staff_prices_set': 'Изменены цены услуги у специалистов',
+      'service.staff_durations_set': 'Изменена длительность услуги у специалистов',
       'service_category.created': 'Добавлена категория услуг',
       'service_category.updated': 'Изменена категория услуг',
       'service_category.deleted': 'Удалена категория услуг',

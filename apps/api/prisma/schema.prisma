@@ -585,10 +585,12 @@ model Photo {
 }
 
 model StaffService {
-  staffId     String @map("staff_id") @db.Uuid
-  serviceId   String @map("service_id") @db.Uuid
+  staffId         String @map("staff_id") @db.Uuid
+  serviceId       String @map("service_id") @db.Uuid
   /// Task 62 (owner, 04.11.2026): this specialist's own price; null = the service's price.
-  priceGrosze Int?   @map("price_grosze")
+  priceGrosze     Int?   @map("price_grosze")
+  /// Task 70 (owner, 04.11.2026): this specialist's own duration; null = the service's duration.
+  durationMinutes Int?   @map("duration_minutes")
 
   staff   StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
   service Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)

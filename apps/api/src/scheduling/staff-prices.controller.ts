@@ -11,16 +11,18 @@ import {
   RequireRoles,
 } from '../organizations/membership.guard';
 import {
+  replaceStaffDurationsSchema,
   replaceStaffPricesSchema,
   staffPricesSchema,
   StaffPricesService,
+  type ReplaceStaffDurationsInput,
   type ReplaceStaffPricesInput,
   type StaffPricesResponse,
 } from './staff-prices';
 
 const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
 
-/** Task 62: each specialist's own price of a service. */
+/** Tasks 62 and 70: each specialist's own price and duration of a service. */
 @ApiTags('services')
 @ApiBearerAuth()
 @Controller('organizations/:orgId/locations/:locationId')
@@ -55,5 +57,24 @@ export class StaffPricesController {
     @Body(new ZodValidationPipe(replaceStaffPricesSchema)) body: ReplaceStaffPricesInput,
   ): Promise<StaffPricesResponse> {
     return this.prices.replace(m, auth.userId, locationId, serviceId, body);
+  }
+
+  @Put('services/:serviceId/staff-durations')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: "Set the specialists' own durations of a service (the others take its duration)",
+    description:
+      'Task 70. Only specialists who perform the service; durationMinutes null = the service duration (5–480, a multiple of 5). Free times and new visits use the specialist duration; booked visits keep theirs.',
+  })
+  @ApiZodBody(replaceStaffDurationsSchema)
+  @ApiZodResponse(staffPricesSchema)
+  replaceDurations(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('serviceId', uuid('Service')) serviceId: string,
+    @Body(new ZodValidationPipe(replaceStaffDurationsSchema)) body: ReplaceStaffDurationsInput,
+  ): Promise<StaffPricesResponse> {
+    return this.prices.replaceDurations(m, auth.userId, locationId, serviceId, body);
   }
 }

@@ -257,3 +257,172 @@ describe("each specialist's own price", () => {
     );
   });
 });
+
+describe("each specialist's own duration (task 70)", () => {
+  const setDurations = (
+    durations: { staffId: string; durationMinutes: number | null }[],
+    auth = owner.auth,
+  ) =>
+    ctx.http().put(`${base}/services/${haircutId}/staff-durations`).set(auth).send({ durations });
+
+  const freeTimes = async (query: string): Promise<{ time: string; staffIds: string[] }[]> =>
+    (
+      await ctx
+        .http()
+        .get(
+          `/v1/public/locations/${slug}/availability?serviceId=${haircutId}&from=${day}&to=${day}${query}`,
+        )
+        .expect(200)
+    ).body.slots;
+
+  it('free times, holds and visits use the specialist’s own duration', async () => {
+    const res = await setDurations([{ staffId: ilia, durationMinutes: 60 }]).expect(200);
+    expect(registeredResponseSchema('StaffPrices').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.durations).toEqual([
+      { serviceId: haircutId, staffId: ilia, durationMinutes: 60 },
+    ]);
+    expect(res.body.prices).toEqual([]);
+
+    const pub = await ctx.http().get(`/v1/public/locations/${slug}`).expect(200);
+    expect(
+      registeredResponseSchema('PublicLocation').safeParse(pub.body).error?.issues ?? [],
+    ).toEqual([]);
+    expect(pub.body.services[0]).toMatchObject({
+      durationMinutes: 30,
+      durationFromMinutes: 30,
+      durationToMinutes: 60,
+    });
+    const minutesOf = (name: string) =>
+      pub.body.staff.find((s: { displayName: string }) => s.displayName === name).prices[0]
+        .durationMinutes;
+    expect([minutesOf('Marek'), minutesOf('Ilia')]).toEqual([30, 60]);
+
+    // Ilia's day ends at 18:00: his last start is 17:00, Marek's 17:30.
+    const iliaTimes = (await freeTimes(`&staffId=${ilia}`)).map((s) => s.time);
+    expect(iliaTimes).toContain('17:00');
+    expect(iliaTimes).not.toContain('17:30');
+    const all = await freeTimes('');
+    const late = all.find((s) => s.time === '17:30')!;
+    expect(late.staffIds).toEqual(expect.arrayContaining([marek, ola]));
+    expect(late.staffIds).not.toContain(ilia);
+    expect(all.find((s) => s.time === '17:00')!.staffIds).toContain(ilia);
+
+    // A visit with Ilia lasts an hour: 10:00–11:00; 10:30 is taken, 11:00 is free.
+    const withIlia = await visit(await bookOnline(at(day, 10), ilia));
+    expect(withIlia.durationMinutes).toBe(60);
+    expect(withIlia.endAt.getTime() - withIlia.startAt.getTime()).toBe(60 * 60_000);
+    const after = (await freeTimes(`&staffId=${ilia}`)).map((s) => s.time);
+    expect(after).not.toContain('10:30');
+    expect(after).toContain('11:00');
+
+    // By the salon too.
+    const manual = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId: haircutId,
+        staffId: ilia,
+        start: at(day, 12),
+        customer: { name: 'Jan Nowak', phone: '+48600000002' },
+      })
+      .expect(201);
+    expect(manual.body.durationMinutes).toBe(60);
+    const marekVisit = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId: haircutId,
+        staffId: marek,
+        start: at(day, 12),
+        customer: { name: 'Jan Nowak', phone: '+48600000002' },
+      })
+      .expect(201);
+    expect(marekVisit.body.durationMinutes).toBe(30);
+
+    // Moving Ilia's visit to Marek keeps its length.
+    const moved = await ctx
+      .http()
+      .post(`${base}/appointments/${withIlia.id}/reschedule`)
+      .set(owner.auth)
+      .send({ version: withIlia.version, start: at(day, 14), staffId: marek });
+    expect(moved.status, JSON.stringify(moved.body)).toBe(200);
+    expect((await visit(withIlia.id)).durationMinutes).toBe(60);
+
+    // Back to the service's duration.
+    const reset = await setDurations([]).expect(200);
+    expect(reset.body.durations).toEqual([]);
+    expect((await freeTimes(`&staffId=${ilia}`)).map((s) => s.time)).toContain('17:30');
+  });
+
+  it('"any of these" specialists: free times and the hold stay within the group', async () => {
+    const group = await freeTimes(`&staffIds=${ola},${marek}`);
+    expect(group.length).toBeGreaterThan(0);
+    for (const slot of group) {
+      expect(slot.staffIds.every((id) => id === ola || id === marek)).toBe(true);
+    }
+    // Repeated ids are fine; a bad id is a 400.
+    expect((await freeTimes(`&staffIds=${ola},${ola}`))[0]!.staffIds).toEqual([ola]);
+    await ctx
+      .http()
+      .get(
+        `/v1/public/locations/${slug}/availability?serviceId=${haircutId}&from=${day}&to=${day}&staffIds=nope`,
+      )
+      .expect(400);
+
+    // Ola is the only one in the group: the hold goes to her.
+    const h = await ctx
+      .http()
+      .post(`/v1/public/locations/${slug}/holds`)
+      .send({ serviceId: haircutId, start: at(day, 10), staffIds: [ola] })
+      .expect(201);
+    expect(h.body.staffId).toBe(ola);
+    // Ola is now held at 10:00; a hold for her group at the same time finds nobody.
+    const again = await ctx
+      .http()
+      .post(`/v1/public/locations/${slug}/holds`)
+      .send({ serviceId: haircutId, start: at(day, 10), staffIds: [ola] });
+    expect(again.status).toBe(409);
+  });
+
+  it('validation, permissions and the change log', async () => {
+    expect((await setDurations([{ staffId: ilia, durationMinutes: 7 }])).status).toBe(400);
+    expect((await setDurations([{ staffId: ilia, durationMinutes: 600 }])).status).toBe(400);
+    await ctx
+      .http()
+      .put(`${base}/services/${haircutId}/staff`)
+      .set(owner.auth)
+      .send({ staffIds: [marek] })
+      .expect(200);
+    expectError(
+      (await setDurations([{ staffId: ilia, durationMinutes: 45 }]).expect(400)).body,
+      'VALIDATION_ERROR',
+    );
+    const kasia = await signUp(ctx, 'kasia@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: kasia.userId,
+        organizationId: orgId,
+        role: 'staff',
+        locations: { create: [{ locationId }] },
+      },
+    });
+    expect((await setDurations([{ staffId: marek, durationMinutes: 45 }], kasia.auth)).status).toBe(
+      403,
+    );
+    await setDurations([{ staffId: marek, durationMinutes: 45 }]).expect(200);
+    expect(
+      await ctx.prisma.auditLog.count({ where: { action: 'service.staff_durations_set' } }),
+    ).toBe(1);
+    // Prices and durations are independent.
+    await setPrices([{ staffId: marek, priceGrosze: 9000 }]).expect(200);
+    const listed = await ctx.http().get(`${base}/staff-prices`).set(owner.auth).expect(200);
+    expect(listed.body).toEqual({
+      prices: [{ serviceId: haircutId, staffId: marek, priceGrosze: 9000 }],
+      durations: [{ serviceId: haircutId, staffId: marek, durationMinutes: 45 }],
+    });
+  });
+});

@@ -1005,6 +1005,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}/staff-durations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the specialists' own durations of a service (the others take its duration)
+         * @description Task 70. Only specialists who perform the service; durationMinutes null = the service duration (5–480, a multiple of 5). Free times and new visits use the specialist duration; booked visits keep theirs.
+         */
+        put: operations["StaffPricesController_replaceDurations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations/{slug}/holds": {
         parameters: {
             query?: never;
@@ -4249,6 +4269,10 @@ export interface components {
                 priceFromGrosze: number;
                 /** @description Highest price among its specialists */
                 priceToGrosze: number;
+                /** @description Shortest duration among its specialists (task 70: each may have an own one) */
+                durationFromMinutes: number;
+                /** @description Longest duration among its specialists */
+                durationToMinutes: number;
             }[];
             staff: {
                 id: string;
@@ -4259,10 +4283,11 @@ export interface components {
                 specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
                 customSpecialty: string | null;
                 serviceIds: string[];
-                /** @description This specialist's price of each service they perform (task 62) */
+                /** @description This specialist's price and duration of each service they perform (tasks 62, 70) */
                 prices: {
                     serviceId: string;
                     priceGrosze: number;
+                    durationMinutes: number;
                 }[];
                 /** @description Link to the photo; null when there is none */
                 photoUrl: string | null;
@@ -4604,6 +4629,12 @@ export interface components {
                 serviceId: string;
                 staffId: string;
                 priceGrosze: number;
+            }[];
+            /** @description Task 70: only the specialists with an own duration; the others take the service one */
+            durations: {
+                serviceId: string;
+                staffId: string;
+                durationMinutes: number;
             }[];
         };
         TimeBlock: {
@@ -6465,6 +6496,8 @@ export interface operations {
             query: {
                 to: unknown;
                 from: unknown;
+                /** @description Task 70: "any of these" specialists, comma-separated (ignored with staffId) */
+                staffIds?: unknown;
                 /** @description Omit for "any staff member" */
                 staffId?: unknown;
                 serviceId: unknown;
@@ -6767,6 +6800,38 @@ export interface operations {
             };
         };
     };
+    StaffPricesController_replaceDurations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    durations: {
+                        /** Format: uuid */
+                        staffId: string;
+                        durationMinutes: number | null;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffPrices"];
+                };
+            };
+        };
+    };
     PublicBookingController_createHold: {
         parameters: {
             query?: never;
@@ -6783,6 +6848,7 @@ export interface operations {
                     serviceId: string;
                     /** Format: uuid */
                     staffId?: string;
+                    staffIds?: string[];
                     /** Format: date-time */
                     start: string;
                     releaseHoldToken?: string;

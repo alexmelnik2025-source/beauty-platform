@@ -47,7 +47,7 @@ export type {
   AppointmentResponse,
   VisitCouponsResponse,
 } from './booking.responses';
-import { listPriceFor } from '../scheduling/staff-prices';
+import { offerFor } from '../scheduling/staff-prices';
 
 type Loaded = Appointment & {
   location: Location;
@@ -181,14 +181,15 @@ export class AppointmentsService {
     }
 
     const customer = await this.resolveCustomer(location, input);
-    const times = timesFor(input.start, service);
+    // The specialist's own price and duration of the service, if any (tasks 62, 70).
+    const offer = await offerFor(this.prisma, staff.id, service);
+    const times = timesFor(input.start, { ...service, durationMinutes: offer.durationMinutes });
     // The salon's happy hours (task 16) set the price for this staff member and time.
     const price = await this.happyHours.priceFor(this.prisma, location, {
       staffId: staff.id,
       serviceId: service.id,
       start: input.start,
-      // The specialist's own price of the service, if any (task 62).
-      listPriceGrosze: await listPriceFor(this.prisma, staff.id, service),
+      listPriceGrosze: offer.priceGrosze,
     });
     if (input.alreadyHappened) {
       const walkIn = await this.writer.write(staff.id, times, async (tx) => {
@@ -214,7 +215,7 @@ export class AppointmentsService {
             source: 'manual',
             ...times,
             ...price,
-            durationMinutes: service.durationMinutes,
+            durationMinutes: offer.durationMinutes,
             bufferMinutes: service.bufferMinutes,
             note: input.note ?? null,
             locale: customer.locale,
@@ -266,7 +267,7 @@ export class AppointmentsService {
           source: 'manual',
           ...times,
           ...price,
-          durationMinutes: service.durationMinutes,
+          durationMinutes: offer.durationMinutes,
           bufferMinutes: service.bufferMinutes,
           note: input.note ?? null,
           locale: customer.locale,
@@ -317,6 +318,7 @@ export class AppointmentsService {
         staffId,
         input.start,
         appointment.id,
+        appointment.durationMinutes,
       );
     }
     const times = timesFor(input.start, appointment);
@@ -706,9 +708,13 @@ export class AppointmentsService {
     staffId: string,
     start: number,
     excludeAppointmentId?: string,
+    keepDurationMinutes?: number,
   ): Promise<void> {
     const service = await this.prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
-    const times = timesFor(start, service);
+    // A moved visit keeps its own length; a new one takes the specialist's (task 70).
+    const durationMinutes =
+      keepDurationMinutes ?? (await offerFor(this.prisma, staffId, service)).durationMinutes;
+    const times = timesFor(start, { ...service, durationMinutes });
     const overlapping = await this.prisma.appointment.count({
       where: {
         staffId,
@@ -727,7 +733,7 @@ export class AppointmentsService {
       staffId,
       start,
       this.availability.staffWindow(Date.now()),
-      { stepMinutes: 5, excludeAppointmentId },
+      { stepMinutes: 5, excludeAppointmentId, durationMinutes: keepDurationMinutes },
     );
     if (!free.includes(staffId)) throw outsideHours();
   }

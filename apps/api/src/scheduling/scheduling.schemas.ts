@@ -161,6 +161,22 @@ export const availabilityQuerySchema = z
   .object({
     serviceId: z.uuid(),
     staffId: z.uuid().optional(),
+    /**
+     * Task 70: "any of these" — e.g. the specialists of one price row ("a,b,c" in the query
+     * string). Ignored together with staffId.
+     */
+    staffIds: z
+      .union([z.string(), z.array(z.string())])
+      .transform((v) => [
+        ...new Set(
+          (Array.isArray(v) ? v : v.split(','))
+            .flatMap((x) => x.split(','))
+            .map((x) => x.trim())
+            .filter(Boolean),
+        ),
+      ])
+      .pipe(z.array(z.uuid()).min(1).max(50))
+      .optional(),
     from: localDateSchema,
     to: localDateSchema,
   })

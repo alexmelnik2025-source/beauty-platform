@@ -9,7 +9,7 @@ import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import type { Location } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { priceRange } from './staff-prices';
+import { durationRange, priceRange } from './staff-prices';
 import { SmsService } from '../sms/sms.service';
 import { AvailabilityService } from './availability.service';
 import { photoUrl } from './photos.service';
@@ -81,7 +81,7 @@ export class PublicLocationsController {
       include: {
         services: {
           where: { service: { active: true } },
-          select: { serviceId: true, priceGrosze: true },
+          select: { serviceId: true, priceGrosze: true, durationMinutes: true },
         },
         workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
         photo: { select: { id: true } },
@@ -107,6 +107,7 @@ export class PublicLocationsController {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
     const basePrice = new Map(services.map((s) => [s.id, s.priceGrosze]));
+    const baseDuration = new Map(services.map((s) => [s.id, s.durationMinutes]));
     return {
       slug: location.slug,
       name: location.name,
@@ -125,12 +126,15 @@ export class PublicLocationsController {
       codeChannels: this.sms.available ? ['email', 'sms'] : ['email'],
       categories: categories.map((c) => ({ id: c.id, name: c.name })),
       services: services.map((s) => {
-        // Task 62: a specialist's own price, else the service's.
+        // Tasks 62 and 70: a specialist's own price and duration, else the service's.
+        const links = listed.flatMap((m) => m.services.filter((x) => x.serviceId === s.id));
         const range = priceRange(
           s.priceGrosze,
-          listed
-            .flatMap((m) => m.services.filter((x) => x.serviceId === s.id))
-            .map((x) => x.priceGrosze),
+          links.map((x) => x.priceGrosze),
+        );
+        const minutes = durationRange(
+          s.durationMinutes,
+          links.map((x) => x.durationMinutes),
         );
         return {
           id: s.id,
@@ -141,6 +145,8 @@ export class PublicLocationsController {
           priceGrosze: s.priceGrosze,
           priceFromGrosze: range.fromGrosze,
           priceToGrosze: range.toGrosze,
+          durationFromMinutes: minutes.fromMinutes,
+          durationToMinutes: minutes.toMinutes,
         };
       }),
       staff: listed.map((s) => ({
@@ -155,6 +161,7 @@ export class PublicLocationsController {
           .map((x) => ({
             serviceId: x.serviceId,
             priceGrosze: x.priceGrosze ?? basePrice.get(x.serviceId) ?? 0,
+            durationMinutes: x.durationMinutes ?? baseDuration.get(x.serviceId) ?? 0,
           }))
           .sort((a, b) => a.serviceId.localeCompare(b.serviceId)),
         photoUrl: s.photo ? photoUrl(s.photo.id) : null,
@@ -190,6 +197,11 @@ export class PublicLocationsController {
   })
   @ApiQuery({ name: 'serviceId', required: true })
   @ApiQuery({ name: 'staffId', required: false, description: 'Omit for "any staff member"' })
+  @ApiQuery({
+    name: 'staffIds',
+    required: false,
+    description: 'Task 70: "any of these" specialists, comma-separated (ignored with staffId)',
+  })
   @ApiQuery({ name: 'from', required: true, example: '2026-11-02' })
   @ApiQuery({ name: 'to', required: true, example: '2026-11-08' })
   @ApiZodResponse(availabilitySchema)
