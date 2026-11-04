@@ -2989,6 +2989,8 @@ export interface components {
                 weekdays: number[];
                 multiplier: number;
                 extraPoints: number;
+                /** @description Only when the client’s previous paid visit was at most this many days before; null = any visit */
+                withinDays: number | null;
             }[];
         };
         LoyaltyCoupon: {
@@ -6850,6 +6852,8 @@ export interface operations {
                         multiplier?: number;
                         /** @default 0 */
                         extraPoints?: number;
+                        /** @default null */
+                        withinDays?: number | null;
                     }[];
                 };
             };

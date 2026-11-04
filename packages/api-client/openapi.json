@@ -6582,6 +6582,19 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 100000
+                        },
+                        "withinDays": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 365
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "required": [
@@ -12142,6 +12155,13 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "withinDays": {
+                  "nullable": true,
+                  "description": "Only when the client’s previous paid visit was at most this many days before; null = any visit",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
@@ -12150,7 +12170,8 @@
                 "staff",
                 "weekdays",
                 "multiplier",
-                "extraPoints"
+                "extraPoints",
+                "withinDays"
               ],
               "additionalProperties": false
             },

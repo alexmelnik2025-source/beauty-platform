@@ -187,6 +187,8 @@ export const replaceLoyaltyBonusRulesSchema = z.object({
           multiplier: z.number().int().min(1).max(10).default(1),
           /** Added on top. */
           extraPoints: z.number().int().min(0).max(100_000).default(0),
+          /** Only when the previous paid visit was at most this many days before; null = any visit. */
+          withinDays: z.number().int().min(1).max(365).nullable().default(null),
         })
         .refine((r) => r.multiplier > 1 || r.extraPoints > 0, {
           message: 'A rule must give something extra: multiplier above 1 or extra points',

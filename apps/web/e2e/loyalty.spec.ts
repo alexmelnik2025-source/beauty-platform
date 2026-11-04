@@ -342,6 +342,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await bonusForm.getByRole('button', { name: '+ Dodaj zasadę' }).click();
   await bonusForm.getByLabel('Nazwa zasady').fill('Spokojne dni ×2');
   await bonusForm.getByLabel('Mnożnik (×)').fill('2');
+  await bonusForm.getByLabel('Gdy wraca w ciągu (dni)').fill('21');
   for (const day of ['Poniedziałek', 'Wtorek', 'Środa']) {
     await bonusForm.getByLabel(day, { exact: true }).check();
   }
@@ -350,10 +351,10 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await bonusForm.scrollIntoViewIfNeeded();
   await shot(page, '79-owner-loyalty-bonus-rules');
   const bonusSaved = await json<{
-    rules: { name: string; weekdays: number[]; multiplier: number }[];
+    rules: { name: string; weekdays: number[]; multiplier: number; withinDays: number | null }[];
   }>(await request.get(`${orgBase}/loyalty/bonus-rules`, { headers: owner }));
-  expect(bonusSaved.rules.map((r) => [r.name, r.weekdays, r.multiplier])).toEqual([
-    ['Spokojne dni ×2', [1, 2, 3], 2],
+  expect(bonusSaved.rules.map((r) => [r.name, r.weekdays, r.multiplier, r.withinDays])).toEqual([
+    ['Spokojne dni ×2', [1, 2, 3], 2, 21],
   ]);
   // The visits below count stamps without bonuses.
   expect(

@@ -1071,6 +1071,9 @@ model LoyaltyBonusRule {
   weekdays    Int[]    @default([])
   multiplier  Int      @default(1)
   extraPoints Int      @default(0) @map("extra_points")
+  /// Only when the client's previous paid visit at the salon was at most this many days
+  /// before (e.g. 21 = "comes every 3 weeks"); null = any visit.
+  withinDays  Int?     @map("within_days")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)

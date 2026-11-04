@@ -668,6 +668,8 @@ export const uk: Dict = {
     bonusDays: 'Дні (нічого не вибрано = щодня)',
     bonusMultiplier: 'Множник (×)',
     bonusExtra: 'Додатково (+)',
+    bonusWithin: 'Якщо повертається протягом (днів)',
+    bonusWithinAny: 'будь-який візит',
     bonusAdd: '+ Додати правило',
     bonusRemove: 'Видалити правило',
     bonusSave: 'Зберегти правила',

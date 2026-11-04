@@ -154,6 +154,13 @@ export const loyaltyBonusRulesSchema = responseSchema(
             .describe('ISO weekdays in the salon time zone, 1 = Monday; empty = every day'),
           multiplier: z.number().int(),
           extraPoints: z.number().int(),
+          withinDays: z
+            .number()
+            .int()
+            .nullable()
+            .describe(
+              'Only when the client’s previous paid visit was at most this many days before; null = any visit',
+            ),
         }),
       )
       .describe(
