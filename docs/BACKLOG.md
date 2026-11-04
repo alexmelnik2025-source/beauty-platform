@@ -67,7 +67,7 @@
     интервалы недели (или импорт занятости из .ics-ссылки — только если без платных сервисов). Владелец
     переносит записи из Booksy вручную. - [~] часть 1 (ветка `agent/l4-weekly-blocks`, 04.11.2026): API — `POST …/time-blocks/series` (то же время
     каждую неделю, 2–26 недель, недели с визитами пропускаются — `skippedDates`), `DELETE
-          …/time-blocks/series/:seriesId`; тесты. Дальше: влить после зелёного CI. - [ ] часть 2: в кабинете в «Zablokuj czas» — «Powtarzaj co tydzień przez N tygodni», в блоке — «Usuń całą
+      …/time-blocks/series/:seriesId`; тесты. Дальше: влить после зелёного CI. - [ ] часть 2: в кабинете в «Zablokuj czas» — «Powtarzaj co tydzień przez N tygodni», в блоке — «Usuń całą
     serię»; e2e со скриншотом
   - [~] **L5. Другие страны (владелец 03.11.2026: «чтобы работало во всех странах СНГ, Албании, Турции и ЕС»).**
     Сейчас валюта зашита как PLN (`apps/web/lib/time.ts`, `booking-templates.ts`, описания API «grosze»).
