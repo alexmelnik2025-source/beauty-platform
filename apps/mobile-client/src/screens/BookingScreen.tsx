@@ -37,7 +37,15 @@ import {
 } from '../booking';
 import { WEB_URL } from '../config';
 import { errorText } from '../errors';
-import { dayChip, formatDay, formatPrice, slotsByDay } from '../format';
+import {
+  ANY_STAFF,
+  dayChip,
+  formatDay,
+  formatPrice,
+  nearestByStaff,
+  nearestText,
+  slotsByDay,
+} from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { dialForTimeZone } from '../phone';
 import { durationText, serviceGroups, specialtyText } from '../salon';
@@ -138,6 +146,33 @@ export function BookingScreen(props: {
   useEffect(() => {
     if (step === 'time') void loadSlots();
   }, [step, loadSlots]);
+
+  // Task 12: each specialist's nearest free time on the "who" step ("Today from 14:30").
+  const [nearest, setNearest] = useState<Map<string, Slot> | null>(null);
+  useEffect(() => {
+    if (step !== 'staff' || !serviceId) return;
+    let live = true;
+    setNearest(null);
+    const from = todayIn(salon.timezone);
+    api
+      .availability(salon.slug, { serviceId, from, to: addDays(from, BOOKING_DAYS - 1) })
+      .then((res) => {
+        if (live) setNearest(nearestByStaff(res.slots));
+      })
+      // Only a hint: the specialists are there to pick without it.
+      .catch(() => {
+        if (live) setNearest(new Map());
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, step, serviceId, salon.slug, salon.timezone]);
+
+  function nearestFree(id: string): string | undefined {
+    if (nearest === null) return undefined;
+    const today = todayIn(salon.timezone);
+    return nearestText(nearest.get(id), { today, tomorrow: addDays(today, 1) }, b, locale);
+  }
 
   // The countdown of the held time; when it runs out, the client picks a time again.
   useEffect(() => {
@@ -360,6 +395,7 @@ export function BookingScreen(props: {
           <Choice
             title={b.anyStaff}
             meta={b.anyStaffHint}
+            free={nearestFree(ANY_STAFF)}
             onPress={() => {
               setStaffId(undefined);
               setStep('time');
@@ -370,6 +406,7 @@ export function BookingScreen(props: {
               key={s.id}
               title={s.displayName}
               meta={specialtyText(s, t.specialty) || undefined}
+              free={nearestFree(s.id)}
               onPress={() => {
                 setStaffId(s.id);
                 setStep('time');
@@ -596,17 +633,27 @@ export function BookingScreen(props: {
   );
 }
 
-function Choice(props: { title: string; meta?: string; right?: string; onPress: () => void }) {
+function Choice(props: {
+  title: string;
+  meta?: string;
+  /** The specialist's nearest free time (task 12). */
+  free?: string;
+  right?: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={[props.title, props.meta, props.right].filter(Boolean).join(', ')}
+      accessibilityLabel={[props.title, props.meta, props.free, props.right]
+        .filter(Boolean)
+        .join(', ')}
       onPress={props.onPress}
       style={({ pressed }) => [styles.choice, pressed && { opacity: 0.7 }]}
     >
       <View style={{ flex: 1 }}>
         <Text style={styles.strong}>{props.title}</Text>
         {props.meta ? <Text style={styles.muted}>{props.meta}</Text> : null}
+        {props.free ? <Text style={styles.free}>{props.free}</Text> : null}
       </View>
       {props.right ? <Text style={styles.strong}>{props.right}</Text> : null}
       <Text style={styles.chevron}>›</Text>
@@ -650,6 +697,7 @@ const styles = StyleSheet.create({
   text: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   strong: { color: colors.ink, fontSize: 16, fontWeight: '600' },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+  free: { color: colors.ink, fontSize: 13, fontWeight: '600', marginTop: 2 },
   big: { color: colors.ink, fontSize: 20, fontWeight: '700' },
   label: { color: colors.ink, fontSize: 14, fontWeight: '600' },
   progress: { flexDirection: 'row', gap: 6 },

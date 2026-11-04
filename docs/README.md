@@ -974,3 +974,11 @@ pnpm --filter @beauty/api-client generate
 мастера: у каждого слота список свободных `staffIds`), поэтому учитывает минимальный срок записи, горизонт,
 блокировки и пояс салона. Если запрос не удался — мастера показываются как раньше, без подсказки. 6 языков.
 Скриншот: `02-client-staff`.
+
+## Ближайший свободный термин в клиентском приложении (задача 12, часть 2)
+
+В записи в приложении на шаге «Wybierz specjalistę» под каждым мастером и под «Dowolny specjalista» — ближайший
+свободный термин, как на сайте: «Dziś wolne od 14:30», «Jutro wolne od 09:00», «Najbliższy wolny termin: pt., 6 lis,
+12:00» или «Brak wolnych terminów…». Один запрос публичной доступности без мастера; расчёт —
+`nearestByStaff` / `nearestText` в `apps/mobile-client/src/format.ts` (тесты Vitest). 6 языков.
+Скриншот: `64d-client-app-book-staff`.

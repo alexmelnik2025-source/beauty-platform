@@ -1201,6 +1201,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await phone.getByRole('button', { name: /^Strzyżenie męskie,/ }).click();
     await expect(phone.getByRole('heading', { name: 'Wybierz specjalistę' })).toBeVisible();
     await expect(phone.getByRole('button', { name: /^Dowolny specjalista/ })).toBeVisible();
+    // Task 12: each specialist's nearest free time, as on the booking page.
+    const appNearest = /(Dziś wolne od|Jutro wolne od|Najbliższy wolny termin: .+,) \d\d:\d\d/;
+    await expect(phone.getByRole('button', { name: /^Kasia/ })).toHaveAccessibleName(appNearest);
+    await expect(phone.getByRole('button', { name: /^Dowolny specjalista/ })).toHaveAccessibleName(
+      appNearest,
+    );
+    await shot(phone, '64d-client-app-book-staff');
     await phone.getByRole('button', { name: /^Kasia/ }).click();
     await expect(phone.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
     const bookTime = phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first();

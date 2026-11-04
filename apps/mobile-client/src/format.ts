@@ -1,4 +1,5 @@
 import type { ClientAppointment, Locale, Slot } from './api';
+import { fill } from './i18n';
 
 /** Dates and prices as the client reads them. No React Native here — tested in Vitest. */
 
@@ -87,6 +88,46 @@ export function slotsByDay(
     else days.push({ date: slot.date, slots: [slot] });
   }
   return days;
+}
+
+/** Key of "any specialist" in `nearestByStaff`. */
+export const ANY_STAFF = '';
+
+/**
+ * Task 12: the first free time of each specialist (and of anyone, under ANY_STAFF) from the
+ * free times of a service for every specialist (each slot lists who is free).
+ */
+export function nearestByStaff(slots: Slot[]): Map<string, Slot> {
+  const first = new Map<string, Slot>();
+  const sorted = [...slots].sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  for (const slot of sorted) {
+    if (slot.staffIds.length > 0 && !first.has(ANY_STAFF)) first.set(ANY_STAFF, slot);
+    for (const id of slot.staffIds) if (!first.has(id)) first.set(id, slot);
+  }
+  return first;
+}
+
+/**
+ * "Dziś wolne od 14:30" / "Jutro wolne od 09:00" / "Najbliższy wolny termin: pt., 6 lis, 12:00";
+ * `today` and `tomorrow` are the salon's local dates.
+ */
+export function nearestText(
+  slot: Slot | undefined,
+  days: { today: string; tomorrow: string },
+  texts: { nearestToday: string; nearestTomorrow: string; nearestOn: string; nearestNone: string },
+  locale: Locale,
+): string {
+  if (!slot) return texts.nearestNone;
+  if (slot.date === days.today) return fill(texts.nearestToday, { time: slot.time });
+  if (slot.date === days.tomorrow) return fill(texts.nearestTomorrow, { time: slot.time });
+  const [y, m, d] = slot.date.split('-').map(Number) as [number, number, number];
+  const day = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+  return fill(texts.nearestOn, { day, time: slot.time });
 }
 
 /** What the client can do with a visit on its card. */

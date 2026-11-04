@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { ClientAppointment, Slot } from '../src/api';
 import {
+  ANY_STAFF,
   dayChip,
   formatDay,
   formatMoment,
   formatPrice,
   groupByDay,
+  nearestByStaff,
+  nearestText,
   salonAddress,
   slotsByDay,
   visitActions,
 } from '../src/format';
+import { DICTIONARIES } from '../src/i18n';
 
 const visit = (id: string, date: string): ClientAppointment =>
   ({ id, date, time: '10:00' }) as ClientAppointment;
@@ -106,5 +110,43 @@ describe('change time', () => {
     expect(dayChip('2026-11-10', 'pl')).toEqual({ weekday: 'wt.', day: '10' });
     expect(dayChip('2026-11-10', 'en').weekday).toBe('Tue');
     expect(dayChip('2026-11-01', 'en').day).toBe('1');
+  });
+});
+
+describe('nearest free time of each specialist (task 12)', () => {
+  const at = (date: string, time: string, staffIds: string[]): Slot =>
+    ({ start: `${date}T${time}:00Z`, date, time, staffIds }) as Slot;
+  const texts = DICTIONARIES.pl.book;
+  const days = { today: '2026-11-04', tomorrow: '2026-11-05' };
+
+  it('the first time of each one, whatever order the slots come in', () => {
+    const first = nearestByStaff([
+      at('2026-11-05', '09:00', ['kasia', 'ola']),
+      at('2026-11-04', '14:30', ['kasia']),
+      at('2026-11-06', '12:00', ['alex']),
+    ]);
+    expect(first.get('kasia')?.time).toBe('14:30');
+    expect(first.get('ola')?.date).toBe('2026-11-05');
+    expect(first.get('alex')?.date).toBe('2026-11-06');
+    expect(first.get(ANY_STAFF)?.time).toBe('14:30');
+    expect(first.has('nobody')).toBe(false);
+  });
+
+  it('today, tomorrow, a later day or nothing in 3 weeks', () => {
+    expect(nearestText(at('2026-11-04', '14:30', []), days, texts, 'pl')).toBe(
+      'Dziś wolne od 14:30',
+    );
+    expect(nearestText(at('2026-11-05', '09:00', []), days, texts, 'pl')).toBe(
+      'Jutro wolne od 09:00',
+    );
+    expect(nearestText(at('2026-11-06', '12:00', []), days, texts, 'pl')).toMatch(
+      /^Najbliższy wolny termin: .*6.*, 12:00$/,
+    );
+    expect(nearestText(undefined, days, texts, 'pl')).toBe(
+      'Brak wolnych terminów w najbliższych 3 tygodniach',
+    );
+    expect(nearestText(at('2026-11-04', '14:30', []), days, DICTIONARIES.en.book, 'en')).toBe(
+      'Free today from 14:30',
+    );
   });
 });
