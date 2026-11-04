@@ -1173,7 +1173,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByRole('tab', { name: 'Historia', selected: true })).toBeVisible();
     await phone.waitForLoadState('networkidle');
     await shot(phone, '58c-client-app-history');
-    // Task 23: a signed-in client saves a salon to "Favourites" on its page and books from there.
+    // Task 61: a signed-in client saves a salon to "Favourites" on its page and books from there.
     await phone.getByRole('button', { name: 'Znajdź salon' }).click();
     await phone
       .getByRole('article', { name: 'Gestalt Barbershop' })

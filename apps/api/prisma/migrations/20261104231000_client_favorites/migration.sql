@@ -1,4 +1,4 @@
--- Task 23: "Favourite salons" in the client app.
+-- Task 61: "Favourite salons" in the client app.
 
 -- CreateTable
 CREATE TABLE "client_favorite" (

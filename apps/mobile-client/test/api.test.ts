@@ -331,7 +331,7 @@ describe('change time', () => {
   });
 });
 
-describe('favourite salons (task 23)', () => {
+describe('favourite salons (task 61)', () => {
   const salon = {
     slug: 'barber-one',
     name: 'Barber One',
