@@ -136,3 +136,14 @@ export function countdown(expiresAt: string, now: number = Date.now()): string {
 export function manageUrl(webUrl: string, locale: string, manageToken: string): string {
   return `${webUrl.replace(/\/+$/, '')}/${locale}/m/${encodeURIComponent(manageToken)}`;
 }
+
+/** The salon's booking terms or privacy policy on the web (linked from the consent checkbox). */
+export function legalUrl(
+  webUrl: string,
+  locale: string,
+  slug: string,
+  doc: 'terms' | 'privacy',
+): string {
+  const page = doc === 'terms' ? 'regulamin' : 'privacy';
+  return `${webUrl.replace(/\/+$/, '')}/${locale}/b/${encodeURIComponent(slug)}/${page}`;
+}

@@ -143,8 +143,9 @@ export const pl = {
     phone: 'Telefon',
     email: 'E-mail',
     emailHint: 'Wyślemy tu kod potwierdzenia i szczegóły wizyty.',
-    acceptTerms:
-      'Akceptuję zasady rezerwacji salonu i przetwarzanie danych w celu realizacji wizyty.',
+    acceptTerms: 'Akceptuję regulamin rezerwacji i politykę prywatności salonu.',
+    termsLink: 'Regulamin rezerwacji',
+    privacyLink: 'Polityka prywatności',
     marketing: 'Chcę dostawać wiadomości o nowościach salonu.',
     sendCode: 'Wyślij kod',
     codeTitle: 'Kod z e-maila',

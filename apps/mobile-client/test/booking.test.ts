@@ -6,6 +6,7 @@ import {
   checkContact,
   countdown,
   dayParts,
+  legalUrl,
   manageUrl,
   normalizePhone,
   staffFor,
@@ -94,6 +95,12 @@ describe('booking steps', () => {
     expect(countdown(hold.expiresAt, Date.parse('2026-11-10T10:05:01Z'))).toBe('4:59');
     expect(countdown(hold.expiresAt, Date.parse('2026-11-10T10:11:00Z'))).toBe('0:00');
     expect(manageUrl('https://app.test/', 'uk', 'tok')).toBe('https://app.test/uk/m/tok');
+    expect(legalUrl('https://app.test/', 'pl', 'gestalt', 'terms')).toBe(
+      'https://app.test/pl/b/gestalt/regulamin',
+    );
+    expect(legalUrl('https://app.test', 'en', 'gestalt', 'privacy')).toBe(
+      'https://app.test/en/b/gestalt/privacy',
+    );
   });
 
   it('texts with placeholders are in every language', () => {

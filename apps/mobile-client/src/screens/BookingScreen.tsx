@@ -27,6 +27,7 @@ import {
   checkContact,
   countdown,
   dayParts,
+  legalUrl,
   manageUrl,
   staffFor,
   type BookingPreset,
@@ -503,6 +504,18 @@ export function BookingScreen(props: {
             checked={form.acceptTerms}
             onChange={(acceptTerms) => setForm({ ...form, acceptTerms })}
           />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <Button
+              kind="link"
+              label={b.termsLink}
+              onPress={() => void Linking.openURL(legalUrl(WEB_URL, locale, salon.slug, 'terms'))}
+            />
+            <Button
+              kind="link"
+              label={b.privacyLink}
+              onPress={() => void Linking.openURL(legalUrl(WEB_URL, locale, salon.slug, 'privacy'))}
+            />
+          </View>
           <Check
             label={b.marketing}
             checked={form.marketingConsent}

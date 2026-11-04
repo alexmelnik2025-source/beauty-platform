@@ -1134,10 +1134,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     // The salon's booking rules must be accepted first.
     await phone.getByRole('button', { name: 'Wyślij kod' }).click();
     await expect(phone.getByText('Zaznacz akceptację zasad rezerwacji.')).toBeVisible();
-    await phone.getByRole('checkbox', { name: /Akceptuję zasady rezerwacji/ }).click();
+    await phone.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }).click();
     await expect(
-      phone.getByRole('checkbox', { name: /Akceptuję zasady rezerwacji/ }),
+      phone.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }),
     ).toBeChecked();
+    // Launch task L1: the salon's booking terms and privacy policy open on the web.
+    await expect(phone.getByRole('button', { name: 'Regulamin rezerwacji' })).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Polityka prywatności' })).toBeVisible();
     await shot(phone, '64b-client-app-book-details');
     await phone.getByRole('button', { name: 'Wyślij kod' }).click();
     await expect(phone.getByText(`Wysłaliśmy 6 cyfr na ${CLIENT4}.`)).toBeVisible();
