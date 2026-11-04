@@ -44,6 +44,7 @@ export class ClientLoyaltyService {
         },
         rewards: { where: { archivedAt: null }, orderBy: [{ cost: 'asc' }, { sortOrder: 'asc' }] },
         tiers: true,
+        bonusRules: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
         accounts: {
           where: { customerId: { in: customers.map((c) => c.id) } },
           include: {
@@ -72,6 +73,15 @@ export class ClientLoyaltyService {
       p.rewards.forEach(collect);
       p.accounts.forEach((a) => a.coupons.forEach(collect));
     }
+    // Specialists the bonus rules name (shown to clients like on the booking page).
+    const staffIds = [...new Set(programs.flatMap((p) => p.bonusRules.flatMap((r) => r.staffIds)))];
+    const staff = staffIds.length
+      ? await this.prisma.staffMember.findMany({
+          where: { id: { in: staffIds }, active: true },
+          select: { id: true, displayName: true },
+        })
+      : [];
+    const staffName = new Map(staff.map((s) => [s.id, s.displayName]));
     const services = await this.prisma.service.findMany({
       where: { id: { in: [...serviceIds] } },
       select: { id: true, name: true },
@@ -137,6 +147,21 @@ export class ClientLoyaltyService {
           : null,
         rewards,
         coupons,
+        bonuses: p.enabled
+          ? p.bonusRules
+              .map((r) => ({
+                name: r.name,
+                staffNames: r.staffIds
+                  .map((id) => staffName.get(id))
+                  .filter((n): n is string => n !== undefined),
+                weekdays: [...r.weekdays].sort((a, b) => a - b),
+                multiplier: r.multiplier,
+                extraPoints: r.extraPoints,
+                withinDays: r.withinDays,
+              }))
+              // A rule only for specialists who left says nothing to the client.
+              .filter((b, i) => p.bonusRules[i]!.staffIds.length === 0 || b.staffNames.length > 0)
+          : [],
         history: (account?.transactions ?? []).map((t) => ({
           id: t.id,
           type: t.type,

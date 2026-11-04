@@ -2617,6 +2617,18 @@ export interface components {
                         missing: number;
                     } | null;
                 } | null;
+                /** @description Extra stamps or points the salon gives (task 19); empty when the program is off */
+                bonuses: {
+                    name: string;
+                    /** @description Empty = at every specialist */
+                    staffNames: string[];
+                    /** @description ISO weekdays, 1 = Monday; empty = every day */
+                    weekdays: number[];
+                    multiplier: number;
+                    extraPoints: number;
+                    /** @description Only when back within this many days of the previous paid visit */
+                    withinDays: number | null;
+                }[];
             }[];
         };
         ClientPerson: {

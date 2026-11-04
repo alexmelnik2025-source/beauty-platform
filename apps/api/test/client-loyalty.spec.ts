@@ -275,6 +275,55 @@ describe('my bonuses', () => {
     expect(JSON.stringify(card)).not.toContain('Secret staff note');
   });
 
+  it('the salon’s bonus rules: names of specialists, days; none while the program is off', async () => {
+    const salon = await setupSalon('owner@example.com', 'Gestalt Barber');
+    await saveProgram(salon, {});
+    await ctx
+      .http()
+      .put(`${loyaltyUrl(salon)}/bonus-rules`)
+      .set(salon.owner.auth)
+      .send({
+        rules: [
+          {
+            name: 'Spokojne dni ×2',
+            staffIds: [salon.staffId],
+            weekdays: [3, 1, 2],
+            multiplier: 2,
+          },
+          { name: 'Wróć w 3 tygodnie', extraPoints: 1, withinDays: 21 },
+        ],
+      })
+      .expect(200);
+    await paidVisit(salon);
+    const [card] = await myBonuses();
+    expect(card.bonuses).toEqual([
+      {
+        name: 'Spokojne dni ×2',
+        staffNames: ['Kasia'],
+        weekdays: [1, 2, 3],
+        multiplier: 2,
+        extraPoints: 0,
+        withinDays: null,
+      },
+      {
+        name: 'Wróć w 3 tygodnie',
+        staffNames: [],
+        weekdays: [],
+        multiplier: 1,
+        extraPoints: 1,
+        withinDays: 21,
+      },
+    ]);
+    // A specialist who left: the rule only for them is not shown.
+    await ctx.prisma.staffMember.update({ where: { id: salon.staffId }, data: { active: false } });
+    expect((await myBonuses())[0].bonuses.map((b: { name: string }) => b.name)).toEqual([
+      'Wróć w 3 tygodnie',
+    ]);
+    // The program switched off: the rules are not shown (and give nothing).
+    await saveProgram(salon, { enabled: false });
+    expect(await myBonuses()).toEqual([]);
+  });
+
   it('coupons: active first with the code; cancelled ones are not shown; expired ones are marked', async () => {
     const salon = await setupSalon('owner@example.com', 'Gestalt Barber');
     await saveProgram(salon, { mode: 'points', pointsValidityDays: 365 });

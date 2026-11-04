@@ -10587,6 +10587,60 @@
                     "next"
                   ],
                   "additionalProperties": false
+                },
+                "bonuses": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "staffNames": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "Empty = at every specialist"
+                      },
+                      "weekdays": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "description": "ISO weekdays, 1 = Monday; empty = every day"
+                      },
+                      "multiplier": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "extraPoints": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "withinDays": {
+                        "nullable": true,
+                        "description": "Only when back within this many days of the previous paid visit",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "staffNames",
+                      "weekdays",
+                      "multiplier",
+                      "extraPoints",
+                      "withinDays"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Extra stamps or points the salon gives (task 19); empty when the program is off"
                 }
               },
               "required": [
@@ -10602,7 +10656,8 @@
                 "rewards",
                 "coupons",
                 "history",
-                "tier"
+                "tier",
+                "bonuses"
               ],
               "additionalProperties": false
             }

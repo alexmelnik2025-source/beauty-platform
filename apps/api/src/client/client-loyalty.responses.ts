@@ -81,6 +81,22 @@ export const clientLoyaltyCardSchema = z.strictObject({
   coupons: z.array(clientLoyaltyCouponSchema).describe('Active first, then newest; at most 20'),
   history: z.array(clientLoyaltyHistorySchema).describe('Newest first, at most 30'),
   tier: loyaltyTierStatusSchema.nullable().describe('My tier in this salon; null = no tiers'),
+  bonuses: z
+    .array(
+      z.strictObject({
+        name: z.string(),
+        staffNames: z.array(z.string()).describe('Empty = at every specialist'),
+        weekdays: z.array(z.number().int()).describe('ISO weekdays, 1 = Monday; empty = every day'),
+        multiplier: z.number().int(),
+        extraPoints: z.number().int(),
+        withinDays: z
+          .number()
+          .int()
+          .nullable()
+          .describe('Only when back within this many days of the previous paid visit'),
+      }),
+    )
+    .describe('Extra stamps or points the salon gives (task 19); empty when the program is off'),
 });
 export type ClientLoyaltyCard = z.infer<typeof clientLoyaltyCardSchema>;
 
