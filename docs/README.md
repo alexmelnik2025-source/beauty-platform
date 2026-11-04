@@ -705,3 +705,19 @@ pnpm --filter @beauty/api-client generate
 - Код: `appointment` / `cancel` / `bookAgainUrl` / `newRequestKey` в `src/api.ts`, `formatMoment` / `visitActions`
   в `src/format.ts`, `src/screens/VisitScreen.tsx`; тесты `test/api.test.ts`, `test/format.test.ts`; e2e —
   скриншоты `59-client-app-visit`, `59a-client-app-cancel-ask`, `59b-client-app-cancelled`.
+
+## Клиентское приложение: перенос визита (задача 11b, часть 2б)
+
+- В карточке визита «Zmień termin» (пока салон разрешает изменения онлайн — те же правила, что у отмены).
+  Открывается выбор: полоска дней и свободное время **того же специалиста** на ту же услугу на 3 недели вперёд
+  (`GET /v1/public/locations/:slug/availability`, тот же ответ, что видит страница записи). «Сегодня» считается
+  в поясе салона, а не телефона; текущее время визита в списке не предлагается.
+- Тап по времени — вопрос «Przenieść wizytę na …, godz. …? Nie / Tak, przenieś» (как T11 на вебе); без «Tak»
+  ничего не меняется. Перенос — `POST /v1/client/appointments/:id/reschedule` с `Idempotency-Key` (один на «Tak»).
+  Если время за это время заняли — «Ten termin właśnie się zajął. Wybierz inny.» и список свободного времени
+  обновляется; если срок изменений прошёл — карточка перечитывается и подсказывает звонить в салон.
+- После переноса — «Termin zmieniony.», новое время в карточке, список визитов перечитывается при возврате; салон и
+  клиент получают те же уведомления, что при переносе на вебе. Android «назад» сначала закрывает выбор времени.
+- Код: `freeTimes` / `reschedule` / `todayIn` / `addDays` в `src/api.ts`, `slotsByDay` / `dayChip` в `src/format.ts`,
+  `src/screens/VisitScreen.tsx`; тесты `test/api.test.ts`, `test/format.test.ts`; e2e — скриншоты
+  `59c-client-app-move`, `59d-client-app-move-ask`, `59e-client-app-moved`.
