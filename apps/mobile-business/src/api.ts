@@ -270,6 +270,36 @@ export class BusinessApi {
     );
   }
 
+  /** Moves a confirmed visit to another free time of the same specialist; the client gets an email. */
+  reschedule(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    start: string,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/reschedule`,
+      { version, start },
+    );
+  }
+
+  /** Cancels a visit for the salon, with the reason the client reads in the email. */
+  cancel(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    reason: string,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/cancel`,
+      { version, reason },
+    );
+  }
+
   private async keep(tokens: Tokens): Promise<void> {
     this.accessToken = tokens.accessToken;
     if (tokens.refreshToken) await this.store.set(tokens.refreshToken);

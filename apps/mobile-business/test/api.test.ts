@@ -246,4 +246,25 @@ describe('BusinessApi', () => {
     await expect(api.createAppointment('o1', 'l1', body)).resolves.toEqual({ id: 'a9' });
     expect(calls.at(-1)).toMatchObject({ body, auth: 'Bearer a1' });
   });
+  it('moves and cancels a visit with the version it read', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a1', 'r2-refresh-token-0123456789')],
+      'POST /v1/organizations/o1/locations/l1/appointments/a9/reschedule': () => [
+        200,
+        { id: 'a9' },
+      ],
+      'POST /v1/organizations/o1/locations/l1/appointments/a9/cancel': () => [200, { id: 'a9' }],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('saved-refresh-token-0123456789'),
+      fetchFn,
+    );
+    await api.reschedule('o1', 'l1', 'a9', 3, '2026-11-05T09:00:00Z');
+    await api.cancel('o1', 'l1', 'a9', 4, 'Mistrz chory');
+    expect(calls.slice(-2).map((c) => c.body)).toEqual([
+      { version: 3, start: '2026-11-05T09:00:00Z' },
+      { version: 4, reason: 'Mistrz chory' },
+    ]);
+  });
 });

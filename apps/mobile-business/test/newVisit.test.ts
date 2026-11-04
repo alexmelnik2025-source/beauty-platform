@@ -6,6 +6,8 @@ import {
   createProblem,
   freeTimes,
   localToInstant,
+  cancelReason,
+  mayMoveOrCancel,
   mayAddVisits,
   maySearchClients,
   newAppointmentBody,
@@ -205,5 +207,23 @@ describe('the client', () => {
     expect(createProblem(new ApiError(403, 'x', 'FORBIDDEN'))).toBe('forbidden');
     expect(createProblem(new ApiError(500, 'x'))).toBe('other');
     expect(createProblem(new TypeError('offline'))).toBe('other');
+  });
+});
+
+describe('move and cancel in the visit card', () => {
+  const now = Date.parse('2026-11-05T10:00:00Z');
+  it('only a confirmed visit that has not started, for someone who may change it', () => {
+    const future = { status: 'confirmed', start: '2026-11-05T12:00:00Z' };
+    expect(mayMoveOrCancel(future, true, now)).toBe(true);
+    expect(mayMoveOrCancel(future, false, now)).toBe(false);
+    expect(mayMoveOrCancel({ ...future, start: '2026-11-05T09:00:00Z' }, true, now)).toBe(false);
+    expect(mayMoveOrCancel({ ...future, status: 'cancelled' }, true, now)).toBe(false);
+    expect(mayMoveOrCancel({ ...future, status: 'completed' }, true, now)).toBe(false);
+  });
+
+  it('a reason is needed, tidied and at most 300 characters', () => {
+    expect(cancelReason('   ')).toBeNull();
+    expect(cancelReason('  Mistrz   chory ')).toBe('Mistrz chory');
+    expect(cancelReason('x'.repeat(400))).toHaveLength(300);
   });
 });

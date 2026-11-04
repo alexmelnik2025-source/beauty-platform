@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  BackHandler,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { ApiError, type AppointmentDetail, type BusinessApi, type Locale } from '../api';
-import { dayTitle, formatPrice, timeIn, visitActions } from '../day';
+import { addDays, dayTitle, formatPrice, timeIn, todayIn, visitActions } from '../day';
 import { errorText } from '../errors';
-import type { Dictionary } from '../i18n';
+import { fill, type Dictionary } from '../i18n';
+import { cancelReason, createProblem, freeTimes, mayMoveOrCancel } from '../newVisit';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -26,6 +36,15 @@ export function VisitScreen(props: {
   const [visit, setVisit] = useState<AppointmentDetail | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Move / cancel (task 17b).
+  const [mode, setMode] = useState<'move' | 'cancel' | null>(null);
+  const [moveDate, setMoveDate] = useState('');
+  const [times, setTimes] = useState<{ time: string; start: string }[] | null>(null);
+  const [ask, setAsk] = useState<{ time: string; start: string } | null>(null);
+  const [reason, setReason] = useState('');
+  const [askCancel, setAskCancel] = useState(false);
+  const [notice, setNotice] = useState('');
+  const today = todayIn(props.timeZone);
 
   const load = useCallback(async () => {
     try {
@@ -48,24 +67,46 @@ export function VisitScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
-  async function run(action: (v: AppointmentDetail) => Promise<AppointmentDetail>) {
-    if (!visit) return;
+  async function run(
+    action: (v: AppointmentDetail) => Promise<AppointmentDetail>,
+  ): Promise<boolean> {
+    if (!visit) return false;
     setBusy(true);
     setError('');
+    setNotice('');
     try {
       setVisit(await action(visit));
       props.onChanged();
+      return true;
     } catch (e) {
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
         setError(t.visit.conflict);
         await load();
       } else {
-        setError(errorText(e, t));
+        const kind = createProblem(e);
+        setError(kind === 'other' ? errorText(e, t) : t.newVisit.problem[kind]);
       }
+      return false;
     } finally {
       setBusy(false);
     }
   }
+
+  // Free times of the same specialist and service on the chosen day.
+  const serviceId = visit?.service.id;
+  const staffId = visit?.staff.id;
+  useEffect(() => {
+    if (mode !== 'move' || !moveDate || !serviceId || !staffId) return;
+    let alive = true;
+    setTimes(null);
+    api
+      .availability(salon.orgId, salon.locationId, { serviceId, staffId, date: moveDate })
+      .then((a) => alive && setTimes(freeTimes(a, staffId, moveDate)))
+      .catch((e: unknown) => alive && setError(errorText(e, t)));
+    return () => {
+      alive = false;
+    };
+  }, [api, salon, mode, moveDate, serviceId, staffId, t]);
 
   const v = t.visit;
   const back = <Button kind="link" label={v.back} onPress={onBack} />;
@@ -181,6 +222,159 @@ export function VisitScreen(props: {
           onPress={() => void setPaid(false)}
         />
       ) : null}
+
+      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+      {visit.status === 'cancelled' && visit.cancelReason ? (
+        <Card>
+          <Text style={styles.label}>{v.cancelReasonLabel}</Text>
+          <Text style={styles.value}>{visit.cancelReason}</Text>
+        </Card>
+      ) : null}
+
+      {mayMoveOrCancel(visit, props.canChange) && !mode ? (
+        <View style={styles.row}>
+          <Button
+            kind="secondary"
+            label={v.move}
+            onPress={() => {
+              setMode('move');
+              setAsk(null);
+              setMoveDate(visit.date < today ? today : visit.date);
+            }}
+          />
+          <Button
+            kind="secondary"
+            label={v.cancel}
+            onPress={() => {
+              setMode('cancel');
+              setAskCancel(false);
+            }}
+          />
+        </View>
+      ) : null}
+
+      {mode === 'move' ? (
+        <Card>
+          <Text style={styles.label}>{v.moveTitle}</Text>
+          <View style={styles.row}>
+            <Button
+              kind="secondary"
+              label="‹"
+              a11yLabel={v.previousDay}
+              disabled={moveDate <= today}
+              onPress={() => {
+                setMoveDate(addDays(moveDate, -1));
+                setAsk(null);
+              }}
+            />
+            <Text style={styles.dayName}>{dayTitle(moveDate, props.locale)}</Text>
+            <Button
+              kind="secondary"
+              label="›"
+              a11yLabel={v.nextDay}
+              onPress={() => {
+                setMoveDate(addDays(moveDate, 1));
+                setAsk(null);
+              }}
+            />
+          </View>
+          {ask ? (
+            <>
+              <Text style={styles.value}>
+                {fill(v.moveAsk, { when: `${dayTitle(moveDate, props.locale)} ${ask.time}` })}
+              </Text>
+              <View style={styles.row}>
+                <Button
+                  label={v.yes}
+                  busy={busy}
+                  onPress={() =>
+                    void run((a) =>
+                      api.reschedule(salon.orgId, salon.locationId, a.id, a.version, ask.start),
+                    ).then((ok) => {
+                      if (!ok) return;
+                      setMode(null);
+                      setNotice(v.moved);
+                    })
+                  }
+                />
+                <Button kind="secondary" label={v.no} onPress={() => setAsk(null)} />
+              </View>
+            </>
+          ) : !times ? (
+            <Text style={styles.muted}>{t.loading}</Text>
+          ) : times.length === 0 ? (
+            <Text style={styles.muted}>{v.noTimes}</Text>
+          ) : (
+            <View style={styles.times}>
+              {times.map((s) => (
+                <Pressable
+                  key={s.start}
+                  accessibilityRole="button"
+                  onPress={() => setAsk(s)}
+                  style={styles.time}
+                >
+                  <Text style={styles.timeText}>{s.time}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          <Button kind="link" label={v.close} onPress={() => setMode(null)} />
+        </Card>
+      ) : null}
+
+      {mode === 'cancel' ? (
+        <Card>
+          <TextInput
+            accessibilityLabel={v.reason}
+            placeholder={v.reason}
+            value={reason}
+            maxLength={300}
+            onChangeText={(text) => {
+              setReason(text);
+              setAskCancel(false);
+            }}
+            style={styles.input}
+          />
+          {askCancel ? (
+            <>
+              <Text style={styles.value}>{v.cancelAsk}</Text>
+              <View style={styles.row}>
+                <Button
+                  label={v.cancelYes}
+                  busy={busy}
+                  onPress={() =>
+                    void run((a) =>
+                      api.cancel(
+                        salon.orgId,
+                        salon.locationId,
+                        a.id,
+                        a.version,
+                        cancelReason(reason) ?? '',
+                      ),
+                    ).then((ok) => {
+                      if (!ok) return;
+                      setMode(null);
+                      setNotice(v.cancelled);
+                    })
+                  }
+                />
+                <Button kind="secondary" label={v.no} onPress={() => setAskCancel(false)} />
+              </View>
+            </>
+          ) : (
+            <View style={styles.row}>
+              <Button
+                label={v.cancel}
+                onPress={() => {
+                  if (cancelReason(reason)) setAskCancel(true);
+                  else setError(v.badReason);
+                }}
+              />
+              <Button kind="link" label={v.close} onPress={() => setMode(null)} />
+            </View>
+          )}
+        </Card>
+      ) : null}
     </ScrollView>
   );
 }
@@ -202,4 +396,27 @@ const styles = StyleSheet.create({
   label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   value: { fontSize: 17, color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
+  notice: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+  dayName: { fontSize: 16, fontWeight: '600', color: colors.ink, flexShrink: 1 },
+  times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  time: {
+    minWidth: 72,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+  },
+  timeText: { fontSize: 16, fontWeight: '600', color: colors.ink },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: colors.card,
+    color: colors.ink,
+  },
 });

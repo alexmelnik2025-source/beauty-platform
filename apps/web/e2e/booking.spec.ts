@@ -1107,6 +1107,25 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await shot(ownerApp, '74b-business-app-new-visit-saved');
     await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(ownerApp.getByText('Marek Nowicki')).toBeVisible();
+    // Move (with "Tak / Nie") and cancel (with a reason) in the visit card.
+    await ownerApp.getByText('Marek Nowicki').click();
+    await ownerApp.getByRole('button', { name: 'Przenieś' }).click();
+    await ownerApp.getByRole('button', { name: '19:00', exact: true }).click();
+    await expect(ownerApp.getByText(/^Przenieść na .* 19:00\?$/)).toBeVisible();
+    await shot(ownerApp, '75-business-app-move-visit');
+    await ownerApp.getByRole('button', { name: 'Tak', exact: true }).click();
+    await expect(ownerApp.getByRole('heading', { name: '19:00–19:45' })).toBeVisible();
+    await expect(ownerApp.getByText(/^Wizyta przeniesiona/)).toBeVisible();
+    await ownerApp.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+    await ownerApp.getByLabel('Powód (klient go zobaczy)').fill('Klient prosił o odwołanie');
+    await ownerApp.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+    await ownerApp.getByRole('button', { name: 'Tak, odwołaj' }).click();
+    await expect(ownerApp.getByText('Odwołana', { exact: true })).toBeVisible();
+    await expect(ownerApp.getByText('Klient prosił o odwołanie')).toBeVisible();
+    await expect(ownerApp.getByRole('button', { name: 'Przenieś' })).toHaveCount(0);
+    await shot(ownerApp, '75a-business-app-cancelled-visit');
+    await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(ownerApp.getByText('Marek Nowicki')).toHaveCount(0);
   } finally {
     businessApp.server.close();
   }

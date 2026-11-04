@@ -193,3 +193,21 @@ export function createProblem(error: unknown): CreateProblem {
   }
   return error.status === 403 ? 'forbidden' : 'other';
 }
+
+/**
+ * Move and cancel in the visit card (task 17b): a confirmed visit that has not started yet,
+ * for someone who may change it (the same rule as "came / did not come").
+ */
+export function mayMoveOrCancel(
+  visit: { status: string; start: string },
+  canChange: boolean,
+  now = Date.now(),
+): boolean {
+  return canChange && visit.status === 'confirmed' && Date.parse(visit.start) > now;
+}
+
+/** The cancel reason the client reads: 1–300 characters, or null when it is empty. */
+export function cancelReason(input: string): string | null {
+  const reason = input.trim().replace(/\s+/g, ' ');
+  return reason ? reason.slice(0, 300) : null;
+}
