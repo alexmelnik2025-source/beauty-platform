@@ -97,6 +97,12 @@ export const pl = {
     history: 'Historia wizyt',
     noVisits: 'Brak wizyt w tym salonie.',
     ownOnly: 'Widzisz tylko swoje wizyty z tym klientem.',
+    bonuses: 'Program lojalnościowy',
+    stamps: 'Pieczątki: {count}',
+    points: 'Punkty: {count}',
+    tier: 'Poziom: {tier}',
+    coupons: 'Aktywne kupony',
+    until: 'do {date}',
     status: {
       held: 'Rezerwacja w toku',
       confirmed: 'Potwierdzona',

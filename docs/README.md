@@ -674,7 +674,7 @@ pnpm --filter @beauty/api-client generate
   `workingHours` / `timeOff` / `addTimeOff` / `removeTimeOff` в `src/api.ts`; тесты в `test/`; e2e — скриншот
   `32b-business-app-staff-schedule`.
 
-## Бизнес-приложение: клиенты (задача 18, часть a)
+## Бизнес-приложение: клиенты (задача 18, части a и b)
 
 - Владелец и менеджер: на экране дня ссылка «Klienci» — список клиентов (первые 50 по алфавиту), поиск по имени,
   телефону, email или тегу. Мастер этой ссылки не видит (сервер и так отдаёт список только владельцу и менеджеру).
@@ -684,6 +684,9 @@ pnpm --filter @beauty/api-client generate
   визиты с ними; контакты и заметки — только с правами, иначе «…widoczny tylko z uprawnieniem» (поля приходят null).
 - Заметку и теги меняют владелец, менеджер и мастер с правами «widzi notatki» + «edytuje notatki» (как на сервере);
   сохраняется с версией — если кто-то изменил клиента одновременно, карточка перечитывается.
+- Часть b: владелец и менеджер видят в карточке «Program lojalnościowy» — «Pieczątki: 3» или «Punkty: 40»,
+  «Poziom: Silver · −5%» и активные купоны (название, код, «do 31.12.2026»); если у клиента в программе ещё ничего
+  нет — блока нет. Мастеру сервер бонусы не отдаёт. Скриншот `78-business-app-client-bonuses` (e2e лояльности).
 - Код: `src/screens/ClientsScreen.tsx`, `src/screens/ClientScreen.tsx`, `src/clients.ts`, вызовы `customers` /
   `customer` / `updateCustomerNotes` в `src/api.ts`; тесты `test/clients.test.ts`; e2e — скриншоты
   `32c-business-app-staff-client`, `33b-business-app-owner-clients`, `33c-business-app-owner-client`.

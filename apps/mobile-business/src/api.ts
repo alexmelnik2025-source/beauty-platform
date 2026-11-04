@@ -23,6 +23,7 @@ export type WorkingHours = components['schemas']['WorkingHours'];
 export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
 export type CustomerList = components['schemas']['CustomerList'];
+export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type {
   AppointmentDetail,
   Calendar,
@@ -243,6 +244,14 @@ export class BusinessApi {
     tags: string[],
   ): Promise<CustomerDetail> {
     return this.authed<CustomerDetail>('PATCH', customerPath(orgId, id), { version, note, tags });
+  }
+
+  /** Owner or manager only (the server checks): the client's stamps or points, tier and coupons. */
+  loyaltyAccount(orgId: string, customerId: string): Promise<LoyaltyAccount> {
+    return this.authed<LoyaltyAccount>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/loyalty/accounts/${enc(customerId)}`,
+    );
   }
 
   private async keep(tokens: Tokens): Promise<void> {

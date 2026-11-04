@@ -19,7 +19,8 @@ import { serveApp } from './mobile-app';
  * client app for iPhone and Android (11b, part 3; its web preview).
  * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
  * The client then picks the coupon herself in "Moje wizyty" (10d, part 3).
- * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 73b).
+ * The owner sees the client's stamps and tier in the business app's client card (18b).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 73b, 78).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -627,5 +628,35 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   expect(tiered.discountGrosze).toBe(450);
   expect(tiered.tierDiscount?.name).toBe('Silver');
   await page.keyboard.press('Escape');
+
+  // ── The owner's business app: the client card shows stamps and the tier (18b) ──
+  const businessApp = await serveApp('mobile-business');
+  const businessContext = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    isMobile: true,
+  });
+  try {
+    const app = await businessContext.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    await expect(app.getByText(`Wysłaliśmy 6-cyfrowy kod na ${OWNER}.`)).toBeVisible();
+    const ownerCode = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(ownerCode.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByLabel('Szukaj: imię, telefon, e-mail lub tag').fill('Anna');
+    await app.getByRole('button', { name: 'Szukaj', exact: true }).click();
+    await app.getByRole('button', { name: 'Karta klienta: Anna Kowalska', exact: true }).click();
+    await expect(app.getByRole('heading', { name: 'Anna Kowalska' })).toBeVisible();
+    await expect(app.getByText('Program lojalnościowy')).toBeVisible();
+    await expect(app.getByText(/^Pieczątki: \d+$/)).toBeVisible();
+    await expect(app.getByText('Poziom: Silver · −5%')).toBeVisible();
+    await shot(app, '78-business-app-client-bonuses');
+  } finally {
+    await businessContext.close();
+    businessApp.server.close();
+  }
   await context.close();
 });

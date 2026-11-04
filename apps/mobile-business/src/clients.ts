@@ -1,4 +1,4 @@
-import type { CustomerDetail, PermissionCatalog } from './api';
+import type { CustomerDetail, LoyaltyAccount, PermissionCatalog } from './api';
 import type { DayLocale } from './day';
 
 /** Client list and client card of the business app — plain functions, tested with Vitest. */
@@ -56,5 +56,43 @@ export function visitWhen(iso: string, timeZone: string, locale: DayLocale): str
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
+  }).format(new Date(iso));
+}
+
+export type ClientCoupon = LoyaltyAccount['coupons'][number];
+
+/**
+ * The bonus part of the card: null when the client has nothing in the program yet
+ * (no stamps or points ever, no coupons, the salon has no tiers).
+ */
+export function bonusSummary(
+  account: LoyaltyAccount,
+  now = new Date(),
+): {
+  mode: LoyaltyAccount['mode'];
+  balance: number;
+  tier: string | null;
+  coupons: ClientCoupon[];
+} | null {
+  const coupons = account.coupons.filter(
+    (c) =>
+      c.status === 'active' && (c.expiresAt === null || Date.parse(c.expiresAt) > now.getTime()),
+  );
+  const tier = account.tier?.current
+    ? `${account.tier.current.name}${account.tier.current.discountPercent > 0 ? ` · −${account.tier.current.discountPercent}%` : ''}`
+    : null;
+  if (account.lifetimeEarned === 0 && account.balance === 0 && coupons.length === 0 && !tier) {
+    return null;
+  }
+  return { mode: account.mode, balance: account.balance, tier, coupons };
+}
+
+/** "do 31.12.2026" — the last day of a coupon, in the salon's time zone. */
+export function dateIn(iso: string, timeZone: string, locale: DayLocale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    timeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   }).format(new Date(iso));
 }

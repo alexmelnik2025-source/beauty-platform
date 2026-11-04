@@ -99,6 +99,12 @@ export const en: Dictionary = {
     history: 'Visit history',
     noVisits: 'No visits in this salon.',
     ownOnly: 'You see only your own visits with this client.',
+    bonuses: 'Loyalty programme',
+    stamps: 'Stamps: {count}',
+    points: 'Points: {count}',
+    tier: 'Tier: {tier}',
+    coupons: 'Active coupons',
+    until: 'until {date}',
     status: {
       held: 'Booking in progress',
       confirmed: 'Confirmed',
