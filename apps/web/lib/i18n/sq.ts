@@ -143,6 +143,18 @@ export const sq: Dict = {
   },
   visits: {
     title: 'Takimet e mia',
+    coupons: 'Kuponat e mia',
+    couponsHint: 'Zgjidhni një kupon për këtë takim — salloni e zbret uljen nga çmimi.',
+    couponUse: 'Përdor',
+    couponRemove: 'Mos e përdor',
+    couponUsed: 'Kupon',
+    toPay: 'Për të paguar',
+    couponProblem: {
+      EXPIRED: 'ka skaduar',
+      NOT_FOR_SERVICE: 'jo për këtë shërbim',
+      NOT_COMBINABLE: 'një kupon për takim',
+      NO_DISCOUNT: 'u arrit ulja maksimale',
+    },
     lead: 'Të gjitha takimet tuaja në çdo sallon — pa fjalëkalim. Shkruani emailin me të cilin rezervoni.',
     email: 'Email',
     sendCode: 'Dërgo kodin',

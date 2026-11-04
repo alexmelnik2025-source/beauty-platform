@@ -928,3 +928,6 @@ pnpm --filter @beauty/api-client generate
   Салон видит в истории визита «Użyto kuponu» от клиента.
 - API: `GET /v1/client/appointments/:id/coupons`, `POST …/coupons` `{couponId}`,
   `POST …/coupons/:couponId/remove`. Тесты `test/client-coupons.spec.ts`.
+- Сайт (часть 3б): в «Moje wizyty» → визит — блок «Moje kupony»: использованный купон с суммой и «Do zapłaty»,
+  «Nie używaj»; остальные купоны с «Użyj −22,50 zł» или причиной. После срока изменений — только просмотр.
+  6 языков клиента (pl, uk, ru, en, tr, sq); e2e — скриншот `72b-client-visit-coupon`.

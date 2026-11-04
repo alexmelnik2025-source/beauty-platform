@@ -18,7 +18,8 @@ import { serveApp } from './mobile-app';
  * visits are left, the coupon code — and never the salon's notes. The same "Moje bonusy" in the
  * client app for iPhone and Android (11b, part 3; its web preview).
  * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
- * Screenshots go to e2e/screenshots (40–47, 63–63b, 72).
+ * The client then picks the coupon herself in "Moje wizyty" (10d, part 3).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72b).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -382,7 +383,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
       data: { points: 1, reason: 'Wizyta przed programem' },
     }),
   );
-  const coupon = await json<{ code: string }>(
+  const coupon = await json<{ id: string; code: string }>(
     await request.post(`${orgBase}/loyalty/accounts/${customer.id}/redemptions`, {
       headers: owner,
       data: { rewardId: rewards[0]!.id },
@@ -482,5 +483,44 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   );
   expect(used.discountGrosze).toBe(2250);
   expect(used.coupons.map((c) => c.code)).toEqual([coupon.code]);
+
+  // ── The client picks the coupon herself in "Moje wizyty" (10d, part 3) ─
+  const usedVisit = await json<{ version: number }>(
+    await request.get(`${base}/appointments/${next.id}`, { headers: owner }),
+  );
+  await json(
+    await request.post(`${base}/appointments/${next.id}/coupons/${coupon.id}/remove`, {
+      headers: owner,
+      data: { version: usedVisit.version },
+    }),
+  );
+  const annaWeb = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  const annaPage = await annaWeb.newPage();
+  await annaPage.goto('/pl/c');
+  await annaPage.getByLabel('E-mail').fill(ANNA);
+  const loginSubject = /Kod logowania/;
+  const sentBefore = (await listTo(ANNA)).filter((m) => loginSubject.test(m.Subject)).length;
+  await annaPage.getByRole('button', { name: 'Wyślij kod' }).click();
+  await expect
+    .poll(async () => (await listTo(ANNA)).filter((m) => loginSubject.test(m.Subject)).length)
+    .toBeGreaterThan(sentBefore);
+  const webCode = await waitForEmail(ANNA, loginSubject);
+  await annaPage.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(webCode.text)![1]!);
+  await annaPage.getByRole('button', { name: 'Zaloguj się' }).click();
+  await expect(annaPage.getByRole('button', { name: 'Moje bonusy' })).toBeVisible();
+  await annaPage.goto(`/pl/c/${next.id}`);
+  const myVisitCoupons = annaPage.getByRole('region', { name: 'Moje kupony' });
+  await myVisitCoupons.getByRole('button', { name: /Użyj −22,50/ }).click();
+  await expect(myVisitCoupons).toContainText('Do zapłaty: 67,50');
+  await expect(myVisitCoupons.getByRole('button', { name: 'Nie używaj' })).toBeVisible();
+  await myVisitCoupons.scrollIntoViewIfNeeded();
+  await shot(annaPage, '72b-client-visit-coupon');
+  await annaWeb.close();
+  const byClient = await json<{
+    discountGrosze: number;
+    history: { type: string; actor: string }[];
+  }>(await request.get(`${base}/appointments/${next.id}`, { headers: owner }));
+  expect(byClient.discountGrosze).toBe(2250);
+  expect(byClient.history.at(-1)).toMatchObject({ type: 'coupon_applied', actor: 'customer' });
   await context.close();
 });

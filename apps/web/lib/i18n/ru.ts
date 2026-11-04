@@ -297,6 +297,18 @@ export const ru: Dict = {
   },
   visits: {
     title: 'Мои визиты',
+    coupons: 'Мои купоны',
+    couponsHint: 'Выберите купон для этого визита — салон вычтет скидку из цены.',
+    couponUse: 'Применить',
+    couponRemove: 'Не применять',
+    couponUsed: 'Купон',
+    toPay: 'К оплате',
+    couponProblem: {
+      EXPIRED: 'срок истёк',
+      NOT_FOR_SERVICE: 'не на эту услугу',
+      NOT_COMBINABLE: 'один купон на визит',
+      NO_DISCOUNT: 'достигнута макс. скидка',
+    },
     lead: 'Все ваши визиты во всех салонах — без пароля. Укажите e-mail, на который вы записываетесь.',
     email: 'E-mail',
     sendCode: 'Отправить код',

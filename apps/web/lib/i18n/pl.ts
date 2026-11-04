@@ -296,6 +296,18 @@ export const pl = {
   },
   visits: {
     title: 'Moje wizyty',
+    coupons: 'Moje kupony',
+    couponsHint: 'Wybierz kupon do tej wizyty — rabat salon odejmie od ceny.',
+    couponUse: 'Użyj',
+    couponRemove: 'Nie używaj',
+    couponUsed: 'Kupon',
+    toPay: 'Do zapłaty',
+    couponProblem: {
+      EXPIRED: 'po terminie',
+      NOT_FOR_SERVICE: 'nie na tę usługę',
+      NOT_COMBINABLE: 'jeden kupon na wizytę',
+      NO_DISCOUNT: 'osiągnięty maks. rabat',
+    },
     lead: 'Wszystkie Twoje wizyty we wszystkich salonach — bez hasła. Podaj e-mail, na który się umawiasz.',
     email: 'E-mail',
     sendCode: 'Wyślij kod',

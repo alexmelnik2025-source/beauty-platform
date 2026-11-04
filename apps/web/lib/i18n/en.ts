@@ -296,6 +296,18 @@ export const en: Dict = {
   },
   visits: {
     title: 'My visits',
+    coupons: 'My coupons',
+    couponsHint: 'Pick a coupon for this visit — the salon takes the discount off the price.',
+    couponUse: 'Use',
+    couponRemove: 'Don’t use',
+    couponUsed: 'Coupon',
+    toPay: 'To pay',
+    couponProblem: {
+      EXPIRED: 'expired',
+      NOT_FOR_SERVICE: 'not for this service',
+      NOT_COMBINABLE: 'one coupon per visit',
+      NO_DISCOUNT: 'maximum discount reached',
+    },
     lead: 'All your appointments in every salon — no password. Enter the email you book with.',
     email: 'Email',
     sendCode: 'Send code',

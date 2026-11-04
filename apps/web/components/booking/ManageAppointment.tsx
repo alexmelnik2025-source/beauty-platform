@@ -30,8 +30,8 @@ export function AppointmentManager<T extends PublicAppointment>({
   title?: string;
   /** Shown first in the page body (e.g. a link back to the list). */
   top?: ReactNode;
-  /** Extra actions below the appointment (e.g. "book again"). */
-  extra?: (appointment: T) => ReactNode;
+  /** Extra actions below the appointment (e.g. "book again"); `update` shows a changed appointment. */
+  extra?: (appointment: T, update: (changed: T) => void) => ReactNode;
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
@@ -175,7 +175,7 @@ export function AppointmentManager<T extends PublicAppointment>({
           </>
         ) : null}
 
-        {mode === 'view' && extra ? extra(a) : null}
+        {mode === 'view' && extra ? extra(a, setA) : null}
 
         {mode === 'cancel' ? (
           <form

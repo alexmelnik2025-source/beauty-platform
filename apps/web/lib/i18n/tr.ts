@@ -143,6 +143,18 @@ export const tr: Dict = {
   },
   visits: {
     title: 'Randevularım',
+    coupons: 'Kuponlarım',
+    couponsHint: 'Bu randevu için bir kupon seçin — salon indirimi fiyattan düşer.',
+    couponUse: 'Kullan',
+    couponRemove: 'Kullanma',
+    couponUsed: 'Kupon',
+    toPay: 'Ödenecek',
+    couponProblem: {
+      EXPIRED: 'süresi doldu',
+      NOT_FOR_SERVICE: 'bu hizmet için değil',
+      NOT_COMBINABLE: 'randevu başına bir kupon',
+      NO_DISCOUNT: 'en yüksek indirime ulaşıldı',
+    },
     lead: 'Tüm salonlardaki bütün randevularınız — şifresiz. Randevu aldığınız e-postayı girin.',
     email: 'E-posta',
     sendCode: 'Kod gönder',
