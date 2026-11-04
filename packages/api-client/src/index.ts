@@ -105,6 +105,8 @@ export type LoyaltyReward = Schemas['LoyaltyReward'];
 export type LoyaltyCoupon = Schemas['LoyaltyCoupon'];
 /** The salon's client tiers (`GET …/loyalty/tiers`). */
 export type LoyaltyTiers = Schemas['LoyaltyTiers'];
+/** Extra stamps or points by specialist and weekday (`GET …/loyalty/bonus-rules`, task 19). */
+export type LoyaltyBonusRules = Schemas['LoyaltyBonusRules'];
 /** Coupons on a visit and the client's unused ones (`GET …/appointments/{id}/coupons`). */
 export type VisitCoupons = Schemas['VisitCoupons'];
 /** Task 23: the owner's change log (`GET /v1/organizations/{orgId}/audit-log`). */

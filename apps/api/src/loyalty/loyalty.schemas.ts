@@ -160,6 +160,45 @@ export const replaceLoyaltyTiersSchema = z.object({
 });
 export type ReplaceLoyaltyTiersInput = z.infer<typeof replaceLoyaltyTiersSchema>;
 
+/** Task 19: extra stamps or points at chosen specialists and/or weekdays, replaced as a whole. */
+export const replaceLoyaltyBonusRulesSchema = z.object({
+  rules: z
+    .array(
+      z
+        .object({
+          name: z.string().trim().min(1).max(60),
+          /** Empty = every specialist. */
+          staffIds: z
+            .array(z.uuid())
+            .max(100)
+            .default([])
+            .refine((ids) => new Set(ids).size === ids.length, {
+              message: 'Each specialist may appear only once',
+            }),
+          /** ISO weekdays, 1 = Monday … 7 = Sunday; empty = every day. */
+          weekdays: z
+            .array(z.number().int().min(1).max(7))
+            .max(7)
+            .default([])
+            .refine((days) => new Set(days).size === days.length, {
+              message: 'Each day may appear only once',
+            }),
+          /** The visit's stamps or points are multiplied by this (1 = no change). */
+          multiplier: z.number().int().min(1).max(10).default(1),
+          /** Added on top. */
+          extraPoints: z.number().int().min(0).max(100_000).default(0),
+          /** Only when the previous paid visit was at most this many days before; null = any visit. */
+          withinDays: z.number().int().min(1).max(365).nullable().default(null),
+        })
+        .refine((r) => r.multiplier > 1 || r.extraPoints > 0, {
+          message: 'A rule must give something extra: multiplier above 1 or extra points',
+          path: ['multiplier'],
+        }),
+    )
+    .max(20),
+});
+export type ReplaceLoyaltyBonusRulesInput = z.infer<typeof replaceLoyaltyBonusRulesSchema>;
+
 export type UpdateLoyaltyProgramInput = z.infer<typeof updateLoyaltyProgramSchema>;
 export type ReplaceEarnRulesInput = z.infer<typeof replaceEarnRulesSchema>;
 export type ListLoyaltyTransactionsQuery = z.infer<typeof listLoyaltyTransactionsSchema>;

@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException } from '../common/app-exception';
+import { daysBetween, instantToLocal, isoWeekday } from '../scheduling/time';
+import { withBonus } from './loyalty-bonus';
 import type {
   LoyaltyCoupon,
   LoyaltyProgram,
@@ -85,10 +87,49 @@ export class LoyaltyLedger {
     if (!visit.customerId) return 0;
     const program = await tx.loyaltyProgram.findUnique({
       where: { organizationId: visit.organizationId },
-      include: { earnRules: { where: { serviceId: visit.serviceId } } },
+      include: { earnRules: { where: { serviceId: visit.serviceId } }, bonusRules: true },
     });
     if (!program?.enabled) return 0;
-    const points = earnAmount(program, program.earnRules[0]?.points, visit.priceGrosze);
+    const base = earnAmount(program, program.earnRules[0]?.points, visit.priceGrosze);
+    let points = base;
+    let bonusNote: string | null = null;
+    if (base > 0 && program.bonusRules.length > 0) {
+      // Task 19: the specialist and the weekday of the visit in the salon's time zone.
+      const appointment = await tx.appointment.findUniqueOrThrow({
+        where: { id: visit.id },
+        select: { staffId: true, startAt: true, location: { select: { timezone: true } } },
+      });
+      const zone = appointment.location.timezone;
+      const date = instantToLocal(appointment.startAt.getTime(), zone).date;
+      // Task 19c: rules for clients who come back within N days need the previous paid visit.
+      let daysSincePrevious: number | null = null;
+      if (program.bonusRules.some((r) => r.withinDays !== null)) {
+        const previous = await tx.appointment.findFirst({
+          where: {
+            id: { not: visit.id },
+            customerId: visit.customerId,
+            location: { organizationId: visit.organizationId },
+            paidAt: { not: null },
+            startAt: { lt: appointment.startAt },
+          },
+          orderBy: { startAt: 'desc' },
+          select: { startAt: true },
+        });
+        if (previous) {
+          daysSincePrevious = daysBetween(
+            instantToLocal(previous.startAt.getTime(), zone).date,
+            date,
+          );
+        }
+      }
+      const bonus = withBonus(base, program.bonusRules, {
+        staffId: appointment.staffId,
+        weekday: isoWeekday(date),
+        daysSincePrevious,
+      });
+      points = bonus.points;
+      if (bonus.rule) bonusNote = `${bonus.rule.name}: ${base} → ${points}`;
+    }
     if (points <= 0) return 0;
 
     const account = await this.lockedAccount(tx, program.id, visit.customerId);
@@ -114,6 +155,7 @@ export class LoyaltyLedger {
         dedupeKey: `earn:${visit.id}:${earlier}`,
         expiresAt,
         actorUserId,
+        note: bonusNote,
       },
     });
     return points;

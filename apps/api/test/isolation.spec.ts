@@ -144,6 +144,9 @@ function validBody(route: Route): object {
       tiers: [{ name: 'VIP', threshold: 1, discountPercent: 50 }],
     };
   }
+  if (p.endsWith('/loyalty/bonus-rules')) {
+    return { rules: [{ name: 'Hacked', weekdays: [1], multiplier: 10 }] };
+  }
   if (p.endsWith('/loyalty/rewards/:rewardId')) return { version: 1, ...REWARD };
   if (p.endsWith('/loyalty/rewards')) return REWARD;
   if (p.endsWith('/adjustments')) return { points: 1000, reason: 'Hacked' };

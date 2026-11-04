@@ -142,6 +142,8 @@ function BonusCard({ card }: { card: ClientLoyaltyCard }) {
               : ''}
           </p>
 
+          <Extras card={card} />
+
           {card.rewards.length ? (
             <div className="stack" style={{ gap: 8 }}>
               <h3>{t.bonuses.rewards}</h3>
@@ -208,6 +210,51 @@ function BonusCard({ card }: { card: ClientLoyaltyCard }) {
 }
 
 /** A stamp card (a circle per stamp, rewards marked) or a bar to the next reward. */
+/** Task 19: the salon's "more for a visit" rules — ×2 on quiet days, at a specialist, when back soon. */
+function Extras({ card }: { card: ClientLoyaltyCard }) {
+  const { t, locale } = useI18n();
+  if (card.bonuses.length === 0) return null;
+  const tag = LOCALE_TAGS[locale];
+  // 2023-01-02 was a Monday: ISO weekday n is that date + n − 1 days.
+  const day = (n: number) =>
+    new Intl.DateTimeFormat(tag, { weekday: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2023, 0, 1 + n)),
+    );
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <h3>{t.bonuses.extraTitle}</h3>
+      <ul className="history" aria-label={`${t.bonuses.extraTitle}: ${card.organization.name}`}>
+        {card.bonuses.map((b, i) => (
+          <li key={i}>
+            <span>
+              <strong>{b.name}</strong>
+              <span className="muted" style={{ display: 'block' }}>
+                {[
+                  b.weekdays.map(day).join(', '),
+                  b.staffNames.length
+                    ? fill(t.bonuses.extraAt, { names: b.staffNames.join(', ') })
+                    : '',
+                  b.withinDays ? fill(t.bonuses.extraWithin, { days: String(b.withinDays) }) : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </span>
+            <span className="chip chip--ready">
+              {[
+                b.multiplier > 1 ? `×${b.multiplier}` : '',
+                b.extraPoints ? `+${b.extraPoints}` : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Progress({ card }: { card: ClientLoyaltyCard }) {
   const { t } = useI18n();
   const top = card.rewards.at(-1)?.cost ?? 0;

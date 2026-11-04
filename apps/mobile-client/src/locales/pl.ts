@@ -85,6 +85,9 @@ export const pl = {
     loadingSlots: 'Szukamy wolnych terminów…',
   },
   bonuses: {
+    extraTitle: 'Więcej za wizytę',
+    extraAt: 'u: {names}',
+    extraWithin: 'gdy wracasz w ciągu {days} dni',
     tab: 'Moje bonusy',
     tier: 'Twój poziom: {name}',
     tierNone: 'Nie masz jeszcze poziomu',

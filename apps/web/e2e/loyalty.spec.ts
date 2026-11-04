@@ -20,7 +20,7 @@ import { serveApp } from './mobile-app';
  * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
  * The client then picks the coupon herself in "Moje wizyty" (10d, part 3).
  * The owner sees the client's stamps and tier in the business app's client card (18b).
- * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 73b, 78).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 73b, 78, 79).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -335,6 +335,30 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     ['Silver', 1],
   ]);
 
+  // ── Bonus rules (19): ×2 on Monday–Wednesday, the best rule per visit ──
+  const bonusForm = page.locator('form', {
+    has: page.getByRole('heading', { name: 'Dodatkowe pieczątki i punkty' }),
+  });
+  await expect(bonusForm.getByText('Brak zasad')).toBeVisible();
+  await bonusForm.getByRole('button', { name: '+ Dodaj zasadę' }).click();
+  await bonusForm.getByLabel('Nazwa zasady').fill('Spokojne dni ×2');
+  await bonusForm.getByLabel('Mnożnik (×)').fill('2');
+  await bonusForm.getByLabel('Gdy wraca w ciągu (dni)').fill('21');
+  for (const day of ['Poniedziałek', 'Wtorek', 'Środa']) {
+    await bonusForm.getByLabel(day, { exact: true }).check();
+  }
+  await bonusForm.getByRole('button', { name: 'Zapisz zasady' }).click();
+  await expect(bonusForm.getByText('Zapisano')).toBeVisible();
+  await bonusForm.scrollIntoViewIfNeeded();
+  await shot(page, '79-owner-loyalty-bonus-rules');
+  const bonusSaved = await json<{
+    rules: { name: string; weekdays: number[]; multiplier: number; withinDays: number | null }[];
+  }>(await request.get(`${orgBase}/loyalty/bonus-rules`, { headers: owner }));
+  expect(bonusSaved.rules.map((r) => [r.name, r.weekdays, r.multiplier, r.withinDays])).toEqual([
+    ['Spokojne dni ×2', [1, 2, 3], 2, 21],
+  ]);
+  // The rule stays: the client sees it in “Moje bonusy” (no visit is paid after this).
+
   // ── Client card: exchange for a coupon, cancel it, correct by hand ────
   await page.goto('/pl/app/clients');
   await page.getByRole('button', { name: /Anna Kowalska/ }).click();
@@ -401,6 +425,11 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(bonus.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
   // The removed reward is not offered; the salon's reasons are never shown to the client.
   await expect(bonus).not.toContainText('Broda gratis');
+  // The salon's bonus rule (19): Monday–Wednesday ×2 when back within 21 days.
+  const extras = bonus.getByRole('list', { name: /^Więcej za wizytę/ });
+  await expect(extras).toContainText('Spokojne dni ×2');
+  await expect(extras).toContainText('gdy wracasz w ciągu 21 dni');
+  await expect(extras).toContainText('×2');
   await bonus.getByText('Historia').click();
   await expect(bonus).toContainText('Ręczna zmiana');
   await expect(bonus).not.toContainText('Pomyłka przy karcie');
@@ -465,6 +494,9 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await expect(appCard.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
     await expect(appCard.getByRole('list', { name: 'Moje kupony' })).toContainText(coupon.code);
     await expect(appCard).not.toContainText('Broda gratis');
+    await expect(appCard.getByRole('list', { name: /^Więcej za wizytę/ })).toContainText(
+      'Spokojne dni ×2',
+    );
     await shot(app, '63-client-app-bonuses');
     // History on request; the salon's reasons are never shown to the client.
     await appCard.getByRole('button', { name: 'Pokaż historię' }).click();

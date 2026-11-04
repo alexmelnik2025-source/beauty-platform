@@ -135,3 +135,28 @@ export function tierText(
         });
   return { title, detail };
 }
+
+type Extra = ClientLoyaltyCard['bonuses'][number];
+
+/** "×2 +1" — what a salon's bonus rule adds to a paid visit (task 19). */
+export function extraBadge(b: Extra): string {
+  return [b.multiplier > 1 ? `×${b.multiplier}` : '', b.extraPoints ? `+${b.extraPoints}` : '']
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** "pon., wt., śr. · u: Kasia · gdy wracasz w ciągu 21 dni" — when the rule applies. */
+export function extraText(t: Dictionary, b: Extra, locale: Locale): string {
+  // 2023-01-02 was a Monday: ISO weekday n is that date + n − 1 days.
+  const day = (n: number) =>
+    new Intl.DateTimeFormat(LOCALE_TAGS[locale], { weekday: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2023, 0, 1 + n)),
+    );
+  return [
+    b.weekdays.map(day).join(', '),
+    b.staffNames.length ? fill(t.bonuses.extraAt, { names: b.staffNames.join(', ') }) : '',
+    b.withinDays ? fill(t.bonuses.extraWithin, { days: String(b.withinDays) }) : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
