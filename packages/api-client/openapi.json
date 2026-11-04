@@ -5506,6 +5506,100 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/customers/{customerId}/export": {
+      "get": {
+        "operationId": "CustomerPrivacyController_export",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerExport"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything kept about the client, as a JSON file (GDPR access request; owner only)",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/customers/{customerId}/anonymize": {
+      "post": {
+        "description": "Name becomes \"—\"; phone, email, notes, tags, visit notes, cancellation reasons and manage links are removed. Visits, prices and loyalty entries stay for statistics. 409 CUSTOMER_HAS_UPCOMING_VISITS while visits are planned; 409 CUSTOMER_ANONYMIZED when already erased.",
+        "operationId": "CustomerPrivacyController_anonymize",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnonymizedCustomer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Erase the client's personal data (GDPR; owner only)",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/time-blocks": {
       "get": {
         "operationId": "TimeBlocksController_list",
@@ -7922,6 +8016,29 @@
       }
     },
     "schemas": {
+      "AnonymizedCustomer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "anonymizedAt": {
+            "type": "string"
+          },
+          "visitsKept": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Visits stay (without personal data) for statistics"
+          }
+        },
+        "required": [
+          "id",
+          "anonymizedAt",
+          "visitsKept"
+        ],
+        "additionalProperties": false
+      },
       "Appointment": {
         "type": "object",
         "properties": {
@@ -10544,6 +10661,11 @@
               "type": "string"
             }
           },
+          "anonymizedAt": {
+            "nullable": true,
+            "description": "When the owner erased the personal data (GDPR); the name is then \"—\"",
+            "type": "string"
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -10561,6 +10683,7 @@
           "locale",
           "note",
           "tags",
+          "anonymizedAt",
           "version",
           "createdAt"
         ],
@@ -10607,6 +10730,11 @@
             "items": {
               "type": "string"
             }
+          },
+          "anonymizedAt": {
+            "nullable": true,
+            "description": "When the owner erased the personal data (GDPR); the name is then \"—\"",
+            "type": "string"
           },
           "version": {
             "type": "integer",
@@ -10674,10 +10802,266 @@
           "locale",
           "note",
           "tags",
+          "anonymizedAt",
           "version",
           "createdAt",
           "marketingConsent",
           "visits"
+        ],
+        "additionalProperties": false
+      },
+      "CustomerExport": {
+        "type": "object",
+        "properties": {
+          "exportedAt": {
+            "type": "string"
+          },
+          "salon": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "email": {
+                "nullable": true,
+                "type": "string"
+              },
+              "language": {
+                "type": "string",
+                "enum": [
+                  "pl",
+                  "uk",
+                  "ru",
+                  "en",
+                  "tr",
+                  "sq"
+                ]
+              },
+              "note": {
+                "nullable": true,
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone",
+              "email",
+              "language",
+              "note",
+              "tags",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          "consents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "granted": {
+                  "type": "boolean"
+                },
+                "at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "version",
+                "granted",
+                "at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "visits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "string"
+                },
+                "place": {
+                  "type": "string"
+                },
+                "service": {
+                  "type": "string"
+                },
+                "specialist": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "held",
+                    "confirmed",
+                    "cancelled",
+                    "expired",
+                    "completed",
+                    "no_show"
+                  ]
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "discountGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "paid": {
+                  "type": "boolean"
+                },
+                "note": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "cancelReason": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "place",
+                "service",
+                "specialist",
+                "status",
+                "priceGrosze",
+                "discountGrosze",
+                "currency",
+                "paid",
+                "note",
+                "cancelReason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "loyalty": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "balance": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "history": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "points": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "at": {
+                        "type": "string"
+                      },
+                      "note": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "points",
+                      "at",
+                      "note"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "coupons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "expiresAt": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "name",
+                      "status",
+                      "expiresAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "balance",
+                "history",
+                "coupons"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "exportedAt",
+          "salon",
+          "client",
+          "consents",
+          "visits",
+          "loyalty"
         ],
         "additionalProperties": false
       },
@@ -10725,6 +11109,11 @@
                 "type": "string"
               }
             },
+            "anonymizedAt": {
+              "nullable": true,
+              "description": "When the owner erased the personal data (GDPR); the name is then \"—\"",
+              "type": "string"
+            },
             "version": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -10742,6 +11131,7 @@
             "locale",
             "note",
             "tags",
+            "anonymizedAt",
             "version",
             "createdAt"
           ],

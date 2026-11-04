@@ -9,6 +9,8 @@ import { AppointmentsController, CustomersController } from './appointments.cont
 import { AppointmentsService } from './appointments.service';
 import { CalendarController } from './calendar.controller';
 import { CalendarService } from './calendar.service';
+import { CustomerPrivacyController } from './customer-privacy.controller';
+import { CustomerPrivacyService } from './customer-privacy.service';
 import { CustomersService } from './customers.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
@@ -26,6 +28,7 @@ import { VisitCalendarService } from './visit-calendar.service';
     PublicBookingController,
     AppointmentsController,
     CustomersController,
+    CustomerPrivacyController,
     TimeBlocksController,
     CalendarController,
     NotificationsController,
@@ -35,6 +38,7 @@ import { VisitCalendarService } from './visit-calendar.service';
     AppointmentWriter,
     AppointmentsService,
     CalendarService,
+    CustomerPrivacyService,
     CustomersService,
     NotificationsService,
     OutboxService,

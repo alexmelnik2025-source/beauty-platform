@@ -54,6 +54,9 @@ export const en: Dict = {
     NOT_FOUND: 'Not found.',
     STAFF_SERVICE_MISMATCH: 'This specialist does not offer this service.',
     CUSTOMER_PHONE_EXISTS: 'A client with this phone number exists.',
+    CUSTOMER_HAS_UPCOMING_VISITS:
+      'The client has upcoming visits — cancel them first, then erase the data.',
+    CUSTOMER_ANONYMIZED: "This client's data have already been erased.",
     CUSTOMER_EMAIL_EXISTS: 'A client with this email exists.',
     CATEGORY_NAME_TAKEN: 'This name is already taken.',
     INVITATION_EXPIRED: 'This invitation is no longer valid.',
@@ -587,6 +590,15 @@ export const en: Dict = {
     duplicatePhone: 'A client with this phone number exists.',
     duplicateEmail: 'A client with this email exists.',
     addAnyway: 'Add anyway',
+    privacy: 'Personal data (GDPR)',
+    privacyHint:
+      "On the client's request: download everything the salon keeps about them, or erase their data.",
+    export: 'Download client data',
+    erase: 'Erase client data',
+    eraseConfirm:
+      'Name, phone, email, notes and tags will be erased for good. Visits and prices stay in the statistics — without personal data. Erase?',
+    eraseYes: 'Yes, erase the data',
+    anonymized: 'Client data erased (GDPR) {date}.',
   },
   notifications: {
     title: 'Notifications',

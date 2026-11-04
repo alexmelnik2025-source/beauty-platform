@@ -630,6 +630,29 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByRole('dialog')).toContainText('Strzyżenie męskie');
   await shot(ownerPage, '19-owner-client');
   await ownerPage.keyboard.press('Escape');
+  // GDPR (task 21): the owner downloads a client's data and erases them on request.
+  await json(
+    await request.post(`/v1/organizations/${org.id}/customers`, {
+      headers: owner,
+      data: { name: 'Ewa Usuwana', phone: '+48600999888', email: 'ewa.rodo@example.com' },
+    }),
+  );
+  await ownerPage.reload();
+  await ownerPage.getByRole('button', { name: /Ewa Usuwana/ }).click();
+  const ewaDialog = ownerPage.getByRole('dialog');
+  await expect(ewaDialog).toContainText('Dane osobowe (RODO)');
+  const [exported] = await Promise.all([
+    ownerPage.waitForEvent('download'),
+    ewaDialog.getByRole('button', { name: 'Pobierz dane klienta' }).click(),
+  ]);
+  expect(exported.suggestedFilename()).toMatch(/^client-.+\.json$/);
+  await ewaDialog.getByRole('button', { name: 'Usuń dane klienta' }).click();
+  await expect(ewaDialog.getByRole('alertdialog')).toContainText('zostaną usunięte na zawsze');
+  await shot(ownerPage, '78-owner-client-erase');
+  await ewaDialog.getByRole('button', { name: 'Tak, usuń dane' }).click();
+  await expect(ownerPage.getByRole('dialog')).toBeHidden();
+  await expect(ownerPage.getByRole('button', { name: /Ewa Usuwana/ })).toHaveCount(0);
+  await expect(ownerPage.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
   await ownerPage.goto('/pl/app/notifications');
   await expect(ownerPage.getByText('Nowa rezerwacja online').first()).toBeVisible();
   await shot(ownerPage, '20-owner-notifications');

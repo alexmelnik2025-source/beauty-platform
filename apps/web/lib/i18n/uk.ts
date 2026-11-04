@@ -54,6 +54,9 @@ export const uk: Dict = {
     NOT_FOUND: 'Не знайдено.',
     STAFF_SERVICE_MISMATCH: 'Цей майстер не виконує цю послугу.',
     CUSTOMER_PHONE_EXISTS: 'Клієнт із таким номером уже є.',
+    CUSTOMER_HAS_UPCOMING_VISITS:
+      'У клієнта є заплановані візити — спершу скасуйте їх, потім видаліть дані.',
+    CUSTOMER_ANONYMIZED: 'Дані цього клієнта вже видалено.',
     CUSTOMER_EMAIL_EXISTS: 'Клієнт із таким e-mail уже є.',
     CATEGORY_NAME_TAKEN: 'Така назва вже існує.',
     INVITATION_EXPIRED: 'Це запрошення неактуальне.',
@@ -585,6 +588,15 @@ export const uk: Dict = {
     duplicatePhone: 'Клієнт із таким номером уже є.',
     duplicateEmail: 'Клієнт із таким e-mail уже є.',
     addAnyway: 'Усе одно додати',
+    privacy: 'Персональні дані (RODO)',
+    privacyHint:
+      'На прохання клієнта: завантажте все, що салон про нього зберігає, або видаліть його дані.',
+    export: 'Завантажити дані клієнта',
+    erase: 'Видалити дані клієнта',
+    eraseConfirm:
+      'Ім’я, телефон, e-mail, нотатки й теги буде видалено назавжди. Візити й ціни залишаться в статистиці — без персональних даних. Видалити?',
+    eraseYes: 'Так, видалити дані',
+    anonymized: 'Дані клієнта видалено (RODO) {date}.',
   },
   notifications: {
     title: 'Сповіщення',

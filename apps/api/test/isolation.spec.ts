@@ -99,6 +99,7 @@ function validBody(route: Route): object {
   }
   if (p.endsWith('/service-categories/:serviceCategoryId')) return { version: 1, name: 'Hacked' };
   if (p.endsWith('/service-categories')) return { name: 'Hacked' };
+  if (p.endsWith('/customers/:customerId/anonymize')) return { version: 1 };
   if (p.endsWith('/customers/:customerId')) return { version: 1, name: 'Hacked' };
   if (p.endsWith('/customers')) return { name: 'Hacker', phone: '+48500000001' };
   if (p.endsWith('/time-blocks/:blockId')) return { version: 1, reason: 'Hacked' };

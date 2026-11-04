@@ -54,6 +54,9 @@ export const ru: Dict = {
     NOT_FOUND: 'Не найдено.',
     STAFF_SERVICE_MISMATCH: 'Этот мастер не выполняет эту услугу.',
     CUSTOMER_PHONE_EXISTS: 'Клиент с таким номером уже есть.',
+    CUSTOMER_HAS_UPCOMING_VISITS:
+      'У клиента есть запланированные визиты — сначала отмените их, затем удалите данные.',
+    CUSTOMER_ANONYMIZED: 'Данные этого клиента уже удалены.',
     CUSTOMER_EMAIL_EXISTS: 'Клиент с таким e-mail уже есть.',
     CATEGORY_NAME_TAKEN: 'Такое название уже есть.',
     INVITATION_EXPIRED: 'Это приглашение неактуально.',
@@ -587,6 +590,15 @@ export const ru: Dict = {
     duplicatePhone: 'Клиент с таким номером уже есть.',
     duplicateEmail: 'Клиент с таким e-mail уже есть.',
     addAnyway: 'Всё равно добавить',
+    privacy: 'Персональные данные (RODO)',
+    privacyHint:
+      'По просьбе клиента: скачайте всё, что салон о нём хранит, или удалите его данные.',
+    export: 'Скачать данные клиента',
+    erase: 'Удалить данные клиента',
+    eraseConfirm:
+      'Имя, телефон, e-mail, заметки и теги будут удалены навсегда. Визиты и цены останутся в статистике — без персональных данных. Удалить?',
+    eraseYes: 'Да, удалить данные',
+    anonymized: 'Данные клиента удалены (RODO) {date}.',
   },
   notifications: {
     title: 'Уведомления',
