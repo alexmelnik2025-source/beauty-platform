@@ -21,6 +21,23 @@ export type StaffList = components['schemas']['StaffList'];
 export type WorkingHours = components['schemas']['WorkingHours'];
 export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
+export type ServiceList = components['schemas']['ServiceList'];
+export type Availability = components['schemas']['Availability'];
+export type CustomerList = components['schemas']['CustomerList'];
+/** What the salon sends to book a client (phone call, walk-in); see NewVisitScreen. */
+export interface NewAppointment {
+  serviceId: string;
+  staffId: string;
+  /** ISO instant on a 5-minute mark. */
+  start: string;
+  customerId?: string;
+  customer?: { name: string; phone: string; email?: string; locale?: Locale };
+  note?: string;
+  /** A walk-in entered afterwards (today or yesterday): saved as "came". */
+  alreadyHappened?: boolean;
+  /** With alreadyHappened: paid too, so loyalty stamps or points are earned. */
+  paid?: boolean;
+}
 export type { AppointmentDetail, Calendar, Location, LoginCodeSent, Me, PermissionCatalog, Tokens };
 
 /** Where the refresh token lives: Keychain/Keystore on phones, browser storage in the web preview. */
@@ -205,6 +222,51 @@ export class BusinessApi {
         version,
         paid,
       },
+    );
+  }
+
+  /** The salon's services (with who performs each); inactive ones are left out on the screen. */
+  services(orgId: string, locationId: string): Promise<ServiceList> {
+    return this.authed<ServiceList>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services`,
+    );
+  }
+
+  /** Free start times of one specialist for a service on one day (salon-local date). */
+  availability(
+    orgId: string,
+    locationId: string,
+    query: { serviceId: string; staffId: string; date: string },
+  ): Promise<Availability> {
+    const params = new URLSearchParams({
+      serviceId: query.serviceId,
+      staffId: query.staffId,
+      from: query.date,
+      to: query.date,
+    }).toString();
+    return this.authed<Availability>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/availability?${params}`,
+    );
+  }
+
+  /** Owner or manager only (the server checks): clients by name, phone or email. */
+  customers(orgId: string, search: string): Promise<CustomerList> {
+    const params = new URLSearchParams({ search, limit: '20' }).toString();
+    return this.authed<CustomerList>('GET', `/v1/organizations/${enc(orgId)}/customers?${params}`);
+  }
+
+  /** Books a client on behalf of the salon; the server checks the rights and the time again. */
+  createAppointment(
+    orgId: string,
+    locationId: string,
+    body: NewAppointment,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments`,
+      body,
     );
   }
 

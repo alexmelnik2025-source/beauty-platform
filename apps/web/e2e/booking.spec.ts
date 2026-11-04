@@ -1054,6 +1054,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await shot(kasiaApp, '32b-business-app-staff-schedule');
     await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // "New visit" for a specialist: only herself, and no search in the salon's clients.
+    await kasiaApp.getByRole('button', { name: '+ Nowa wizyta' }).click();
+    await expect(kasiaApp.getByRole('heading', { name: 'Nowa wizyta' })).toBeVisible();
+    await kasiaApp.getByRole('button', { name: /^Strzyżenie męskie ·/ }).click();
+    await expect(kasiaApp.getByText('✓ Kasia')).toBeVisible();
+    await expect(kasiaApp.getByRole('button', { name: 'Ola', exact: true })).toHaveCount(0);
+    await expect(kasiaApp.getByLabel('Szukaj: imię, telefon lub e-mail')).toHaveCount(0);
+    await expect(kasiaApp.getByLabel('Imię i nazwisko')).toBeVisible();
+    await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
     // The refresh token is kept: opening the app again needs no new code.
     await kasiaApp.reload();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
@@ -1074,6 +1084,29 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await shot(ownerApp, '33a-business-app-owner-visit');
     await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // The owner books a client who phoned: service → specialist → day and free time → client.
+    await ownerApp.getByRole('button', { name: '+ Nowa wizyta' }).click();
+    await expect(ownerApp.getByRole('heading', { name: 'Nowa wizyta' })).toBeVisible();
+    await shot(ownerApp, '74-business-app-new-visit-services');
+    await ownerApp.getByRole('button', { name: /^Strzyżenie męskie ·/ }).click();
+    await ownerApp.getByRole('button', { name: 'Alex', exact: true }).click();
+    for (let i = 0; i < 10; i++) {
+      await ownerApp.getByRole('button', { name: 'Następny dzień' }).click();
+    }
+    await ownerApp.getByRole('button', { name: '20:00', exact: true }).click();
+    await expect(ownerApp.getByLabel('Szukaj: imię, telefon lub e-mail')).toBeVisible();
+    await ownerApp.getByLabel('Imię i nazwisko').fill('Marek Nowicki');
+    await ownerApp.getByLabel('Telefon', { exact: true }).fill('601 202 303');
+    await shot(ownerApp, '74a-business-app-new-visit-form');
+    await ownerApp.getByRole('button', { name: 'Zapisz wizytę' }).click();
+    // Saved: the new visit's card, booked by the salon, with the number in the salon's code.
+    await expect(ownerApp.getByRole('heading', { name: '20:00–20:45' })).toBeVisible();
+    await expect(ownerApp.getByText('Marek Nowicki')).toBeVisible();
+    await expect(ownerApp.getByText('Dodana przez salon')).toBeVisible();
+    await expect(ownerApp.getByRole('button', { name: 'Zadzwoń +48601202303' })).toBeVisible();
+    await shot(ownerApp, '74b-business-app-new-visit-saved');
+    await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(ownerApp.getByText('Marek Nowicki')).toBeVisible();
   } finally {
     businessApp.server.close();
   }

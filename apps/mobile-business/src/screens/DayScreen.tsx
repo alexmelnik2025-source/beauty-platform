@@ -5,6 +5,8 @@ import { addDays, dayTitle, myStaffId, onlyMine, staffOfDay, todayIn, visitsOfDa
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { mayAddVisits, type MyRights } from '../newVisit';
+import { NewVisitScreen } from './NewVisitScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ScheduleScreen } from './ScheduleScreen';
 import { VisitScreen } from './VisitScreen';
@@ -33,6 +35,8 @@ export function DayScreen(props: {
   const [canChange, setCanChange] = useState(salon.role !== 'staff');
   const [mineId, setMineId] = useState<string | null>(null);
   const [mineOnly, setMineOnly] = useState(false);
+  const [rights, setRights] = useState<MyRights | null>(null);
+  const [adding, setAdding] = useState(false);
 
   // Once per salon: may this person mark visits, and are they one of the specialists?
   useEffect(() => {
@@ -46,6 +50,7 @@ export function DayScreen(props: {
       if (!alive) return;
       if (perms.status === 'fulfilled') {
         const p = perms.value.me;
+        setRights(p);
         setCanChange(p.role !== 'staff' || p.permissions.changeOwnAppointments);
       }
       if (me.status === 'fulfilled' && staff.status === 'fulfilled') {
@@ -92,6 +97,30 @@ export function DayScreen(props: {
         staffId={mineId}
         today={today}
         onBack={() => setScheduleOpen(false)}
+      />
+    );
+  }
+
+  if (adding && rights) {
+    return (
+      <NewVisitScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        today={today}
+        date={date}
+        me={rights}
+        mineId={mineId}
+        onBack={() => setAdding(false)}
+        onCreated={(visit) => {
+          // The new visit's card, and its day behind it.
+          setAdding(false);
+          setDate(visit.date);
+          setOpenId(visit.id);
+          void load();
+        }}
       />
     );
   }
@@ -153,6 +182,9 @@ export function DayScreen(props: {
         />
         <Button kind="link" label={t.day.refresh} onPress={load} />
       </View>
+      {rights && mayAddVisits(rights, mineId) ? (
+        <Button label={t.newVisit.open} onPress={() => setAdding(true)} />
+      ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       {visits ? (
