@@ -135,6 +135,22 @@ export const en: Dictionary = {
     added: 'Time blocked — clients cannot book these hours.',
     removed: 'Time unblocked.',
   },
+  notifications: {
+    open: 'Notifications',
+    title: 'Notifications',
+    back: '‹ Back',
+    empty: 'No notifications in this salon.',
+    readAll: 'Mark all as read',
+    unread: 'New',
+    kind: {
+      booked: 'New online booking',
+      created: 'New visit (salon)',
+      rescheduled: 'Visit moved',
+      cancelled: 'Visit cancelled',
+    },
+    byClient: 'by the client',
+    bySalon: 'by the salon',
+  },
   schedule: {
     open: 'My schedule',
     title: 'My schedule',
