@@ -276,7 +276,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   await client.locator('.times button').first().click();
   await client.getByLabel('Imię i nazwisko').fill('Ola Nowak');
   await client.getByLabel('Telefon').fill('600 500 400');
-  await client.getByLabel('E-mail', { exact: true }).fill(CLIENT2);
+  await client.getByLabel('E-mail').fill(CLIENT2);
   await client.getByLabel(/Akceptuję regulamin rezerwacji/).check();
   await client.getByRole('button', { name: 'Wyślij kod' }).click();
   await expect(client.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toBeVisible();
