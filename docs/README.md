@@ -721,3 +721,18 @@ pnpm --filter @beauty/api-client generate
 - Код: `freeTimes` / `reschedule` / `todayIn` / `addDays` в `src/api.ts`, `slotsByDay` / `dayChip` в `src/format.ts`,
   `src/screens/VisitScreen.tsx`; тесты `test/api.test.ts`, `test/format.test.ts`; e2e — скриншоты
   `59c-client-app-move`, `59d-client-app-move-ask`, `59e-client-app-moved`.
+
+## Клиентское приложение: «Moje bonusy» (задача 11b, часть 3)
+
+- В «Moje wizyty» третья вкладка «Moje bonusy» (рядом с «Nadchodzące» и «Historia»): по карточке на каждый салон,
+  где у клиента есть программа лояльности (`GET /v1/client/loyalty`, тот же ответ, что у вкладки на вебе).
+- В карточке: «Pieczątki na karcie: N» или «Punkty: N»; карта отметок (кружок на отметку, ★ — награда) или шкала
+  до следующей награды; «Do „…” zostało wizyt: N»; если награду уже можно взять — подсказка попросить обмен в салоне;
+  как начисляются бонусы (за визит / за каждые N zł, минимум, срок баллов); список наград с «dostępna» / «brakuje: N».
+- «Moje kupony» — код крупно (его можно выделить и скопировать), статус и срок; использованные и истёкшие — бледнее.
+- «Pokaż historię» — операции с датами и ±; причины, которые пишет салон, клиенту не показываются (их нет в ответе
+  API). Если салон выключил программу — сообщение, купоны остаются. «Umów się» — страница записи салона на сайте.
+- Тексты те же, что на вебе, во всех 4 языках. Код: `loyalty` в `src/api.ts`, `src/bonus.ts` (тексты и карта
+  отметок, без React Native), `src/screens/BonusesView.tsx`, вкладка в `src/screens/VisitsScreen.tsx`; тесты
+  `test/bonus.test.ts`; e2e (`loyalty.spec.ts`) — скриншоты `63-client-app-bonuses`, `63a-client-app-bonus-history`,
+  `63b-client-app-bonuses-uk`.
