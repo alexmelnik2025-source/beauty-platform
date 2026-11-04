@@ -24,6 +24,19 @@ import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
+/** Key of "any specialist" in the nearest-free-time map. */
+const ANY_STAFF = '';
+
+/** The first free slot of each specialist (and of anyone, under ANY_STAFF); slots come in time order. */
+function nearestByStaff(slots: Slot[]): Map<string, Slot> {
+  const first = new Map<string, Slot>();
+  const sorted = [...slots].sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  for (const slot of sorted) {
+    if (slot.staffIds.length > 0 && !first.has(ANY_STAFF)) first.set(ANY_STAFF, slot);
+    for (const id of slot.staffIds) if (!first.has(id)) first.set(id, slot);
+  }
+  return first;
+}
 const DAYS_SHOWN = 21;
 /** Name, phone and email kept on this device when the client ticks "remember me". */
 const REMEMBER_KEY = 'bp_booking_contact';
@@ -138,6 +151,54 @@ export function BookingFlow({ slug }: { slug: string }) {
 
   const service = salon?.services.find((s) => s.id === serviceId);
   const tz = salon?.timezone ?? 'Europe/Warsaw';
+
+  // Task 12: the nearest free time of every specialist on the "who" step ("Today from 14:30").
+  const [nearest, setNearest] = useState<Map<string, Slot> | null>(null);
+  useEffect(() => {
+    if (step !== 'staff' || !serviceId) return;
+    let live = true;
+    setNearest(null);
+    const from = todayIn(tz);
+    api<{ slots: Slot[] }>(`/v1/public/locations/${slug}/availability`, {
+      auth: false,
+      query: { serviceId, from, to: addDays(from, DAYS_SHOWN - 1) },
+    })
+      .then((res) => {
+        if (live) setNearest(nearestByStaff(res.slots));
+      })
+      // Only a hint: without it the specialists are still there to pick.
+      .catch(() => {
+        if (live) setNearest(new Map());
+      });
+    return () => {
+      live = false;
+    };
+  }, [step, serviceId, slug, tz]);
+
+  function nearestText(slot: Slot | undefined): string {
+    if (!slot) return t.booking.nearestNone;
+    const today = todayIn(tz);
+    if (slot.date === today) return fill(t.booking.nearestToday, { time: slot.time });
+    if (slot.date === addDays(today, 1))
+      return fill(t.booking.nearestTomorrow, { time: slot.time });
+    return fill(t.booking.nearestOn, {
+      day: formatDay(slot.date, tag, { short: true }),
+      time: slot.time,
+    });
+  }
+
+  function nearestFree(id: string): ReactNode {
+    if (nearest === null) return null;
+    const slot = nearest.get(id);
+    return (
+      <span
+        className="c-free"
+        data-state={slot ? (slot.date === todayIn(tz) ? 'today' : 'later') : 'none'}
+      >
+        {nearestText(slot)}
+      </span>
+    );
+  }
 
   const loadSlots = useCallback(async () => {
     if (!serviceId) return;
@@ -370,6 +431,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                   <span className="c-body">
                     <span className="c-name">{t.booking.anyStaff}</span>
                     <span className="c-meta">{t.booking.anyStaffHint}</span>
+                    {nearestFree(ANY_STAFF)}
                   </span>
                 </button>
               </li>
@@ -399,6 +461,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                       ) : null}
                       {s.bio ? <span className="c-meta">{s.bio}</span> : null}
                       <LanguageBadges codes={s.languages ?? []} />
+                      {nearestFree(s.id)}
                     </span>
                   </button>
                 </li>

@@ -274,6 +274,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Barber, Fryzjer',
   );
   await expect(client.getByRole('button', { name: /Alex/ }).locator('.c-specialty')).toHaveCount(0);
+  // Task 12: everyone's nearest free time — today, tomorrow or the day it is.
+  const nearestFree = /^(Dziś wolne od|Jutro wolne od|Najbliższy wolny termin: .+,) \d\d:\d\d$/;
+  await expect(client.getByRole('button', { name: /Kasia/ }).locator('.c-free')).toHaveText(
+    nearestFree,
+  );
+  await expect(
+    client.getByRole('button', { name: /Dowolny specjalista/ }).locator('.c-free'),
+  ).toHaveText(nearestFree);
   await shot(client, '02-client-staff');
   await client.getByRole('button', { name: /Kasia/ }).click();
   await expect(client.locator('.times button').first()).toBeVisible();
