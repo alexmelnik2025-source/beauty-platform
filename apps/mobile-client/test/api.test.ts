@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addDays,
   ApiError,
   bookAgainUrl,
   bookingUrl,
@@ -8,6 +9,7 @@ import {
   newRequestKey,
   PAGE_SIZE,
   parseEmail,
+  todayIn,
   type TokenStore,
 } from '../src/api';
 
@@ -262,5 +264,67 @@ describe('one visit', () => {
     expect(
       bookAgainUrl('http://localhost:3000', 'pl', { bookAgain: null } as ClientAppointment),
     ).toBe(null);
+  });
+});
+
+describe('change time', () => {
+  const visit = {
+    id: 'a1',
+    service: { id: 's1' },
+    staff: { id: 'k1' },
+    salon: { slug: 'gestalt barber' },
+  } as ClientAppointment;
+
+  it('asks for free times of the same specialist and service, three weeks from the given day', async () => {
+    const paths: string[] = [];
+    const fetchFn = async (url: string) => {
+      paths.push(url.replace('https://api.test', ''));
+      return new Response(JSON.stringify({ slots: [] }), { status: 200 });
+    };
+    const api = new ClientApi('https://api.test', memoryStore(null), fetchFn);
+    await api.freeTimes(visit, '2026-11-28');
+    expect(paths).toEqual([
+      '/v1/public/locations/gestalt%20barber/availability?serviceId=s1&staffId=k1&from=2026-11-28&to=2026-12-18',
+    ]);
+  });
+
+  it('moves a visit once per key, signed in; a taken time comes back as SLOT_TAKEN', async () => {
+    const calls: { path: string; headers: Record<string, string>; body?: string }[] = [];
+    let taken = false;
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      calls.push({
+        path: url.replace('https://api.test', ''),
+        headers: (init?.headers ?? {}) as Record<string, string>,
+        body: init?.body ? String(init.body) : undefined,
+      });
+      if (taken) {
+        return new Response(JSON.stringify({ error: { code: 'SLOT_TAKEN', message: 'Taken' } }), {
+          status: 409,
+        });
+      }
+      return new Response(JSON.stringify({ id: 'a1', time: '17:30' }), { status: 200 });
+    };
+    const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
+    await api.restore().catch(() => null);
+    const moved = await api.reschedule('a1', '2026-11-10T16:30:00.000Z', 'key-12345678');
+    expect(moved.time).toBe('17:30');
+    const call = calls.at(-1)!;
+    expect(call.path).toBe('/v1/client/appointments/a1/reschedule');
+    expect(call.headers.authorization).toBe('Bearer session-token');
+    expect(call.headers['idempotency-key']).toBe('key-12345678');
+    expect(JSON.parse(call.body!)).toEqual({ start: '2026-11-10T16:30:00.000Z' });
+    taken = true;
+    const error = await api.reschedule('a1', '2026-11-10T16:30:00.000Z').catch((e: unknown) => e);
+    expect((error as ApiError).code).toBe('SLOT_TAKEN');
+  });
+
+  it('days are counted on the calendar, and "today" is the salon’s day, not the phone’s', () => {
+    expect(addDays('2026-11-28', 20)).toBe('2026-12-18');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2026-03-28', 2)).toBe('2026-03-30'); // over the switch to summer time
+    // 23:30 UTC on 4 Nov is already 5 Nov in Warsaw, still 4 Nov in New York.
+    const late = new Date('2026-11-04T23:30:00Z');
+    expect(todayIn('Europe/Warsaw', late)).toBe('2026-11-05');
+    expect(todayIn('America/New_York', late)).toBe('2026-11-04');
   });
 });

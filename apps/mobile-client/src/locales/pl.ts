@@ -56,6 +56,18 @@ export const pl = {
     bookAgain: 'Umów ponownie',
     bookAgainHint: 'Rezerwacja otworzy się w przeglądarce — ta sama usługa i specjalista.',
     tooLate: 'Na zmiany online jest już za późno. Zadzwoń do salonu.',
+    move: 'Zmień termin',
+    moveTitle: 'Wybierz nowy termin',
+    moveLead: 'Wolne godziny u: {staff}. Usługa i specjalista zostają te same.',
+    moveAsk: 'Przenieść wizytę na {day}, godz. {time}?',
+    moveNo: 'Nie',
+    moveYes: 'Tak, przenieś',
+    moved: 'Termin zmieniony.',
+    moveClose: 'Zostaw obecny termin',
+    noSlots:
+      'W najbliższych tygodniach nie ma wolnych terminów u tego specjalisty. Zadzwoń do salonu.',
+    slotTaken: 'Ten termin właśnie się zajął. Wybierz inny.',
+    loadingSlots: 'Szukamy wolnych terminów…',
   },
   catalog: {
     title: 'Znajdź salon',

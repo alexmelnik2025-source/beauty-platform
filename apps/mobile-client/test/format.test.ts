@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { ClientAppointment } from '../src/api';
+import type { ClientAppointment, Slot } from '../src/api';
 import {
+  dayChip,
   formatDay,
   formatMoment,
   formatPrice,
   groupByDay,
   salonAddress,
+  slotsByDay,
   visitActions,
 } from '../src/format';
 
@@ -60,16 +62,47 @@ describe('visit card', () => {
   it('cancel only while the salon allows it; after the deadline — call the salon', () => {
     const future = new Date(Date.now() + 86_400_000).toISOString();
     const base = { status: 'confirmed', canChange: true, end: future } as ClientAppointment;
-    expect(visitActions(base)).toEqual({ cancel: true, tooLate: false });
-    expect(visitActions({ ...base, canChange: false })).toEqual({ cancel: false, tooLate: true });
+    expect(visitActions(base)).toEqual({ cancel: true, move: true, tooLate: false });
+    expect(visitActions({ ...base, canChange: false })).toEqual({
+      cancel: false,
+      move: false,
+      tooLate: true,
+    });
     expect(visitActions({ ...base, status: 'cancelled', canChange: false })).toEqual({
       cancel: false,
+      move: false,
       tooLate: false,
     });
     const past = new Date(Date.now() - 3_600_000).toISOString();
     expect(visitActions({ ...base, status: 'completed', canChange: false, end: past })).toEqual({
       cancel: false,
+      move: false,
       tooLate: false,
     });
+  });
+});
+
+describe('change time', () => {
+  const slot = (date: string, time: string, start: string): Slot =>
+    ({ date, time, start, staffIds: ['k1'] }) as Slot;
+
+  it('groups free times by day and leaves out the visit’s own time', () => {
+    const slots = [
+      slot('2026-11-10', '10:00', '2026-11-10T09:00:00.000Z'),
+      slot('2026-11-10', '10:30', '2026-11-10T09:30:00.000Z'),
+      slot('2026-11-12', '17:30', '2026-11-12T16:30:00.000Z'),
+    ];
+    const days = slotsByDay(slots, { start: '2026-11-10T09:00:00Z' });
+    expect(days.map((d) => d.date)).toEqual(['2026-11-10', '2026-11-12']);
+    expect(days[0]!.slots.map((s) => s.time)).toEqual(['10:30']);
+    // The only free time of a day is the visit's own: that day is not offered.
+    expect(slotsByDay([slots[0]!], { start: slots[0]!.start })).toEqual([]);
+    expect(slotsByDay([])).toEqual([]);
+  });
+
+  it('day chips: short weekday and the day of the month, in the app language', () => {
+    expect(dayChip('2026-11-10', 'pl')).toEqual({ weekday: 'wt.', day: '10' });
+    expect(dayChip('2026-11-10', 'en').weekday).toBe('Tue');
+    expect(dayChip('2026-11-01', 'en').day).toBe('1');
   });
 });

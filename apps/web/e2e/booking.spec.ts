@@ -979,6 +979,28 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText(/Odwołać lub zmienić online możesz do/)).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Umów ponownie' })).toBeVisible();
     await shot(phone, '59-client-app-visit');
+    // Change time: the same specialist's free days and times, then a question before moving.
+    await phone.getByRole('button', { name: 'Zmień termin' }).click();
+    await expect(phone.getByRole('heading', { name: 'Wybierz nowy termin' })).toBeVisible();
+    await expect(phone.getByText('Wolne godziny u: Kasia.', { exact: false })).toBeVisible();
+    const freeTime = phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first();
+    await expect(freeTime).toBeVisible();
+    await shot(phone, '59c-client-app-move');
+    const newTime = (await freeTime.textContent())!.trim();
+    await freeTime.click();
+    const moveAsk = phone.getByRole('alertdialog');
+    await expect(moveAsk).toContainText(`Przenieść wizytę na`);
+    await expect(moveAsk).toContainText(`godz. ${newTime}?`);
+    await shot(phone, '59d-client-app-move-ask');
+    // "Nie" changes nothing; "Tak" moves the visit.
+    await moveAsk.getByRole('button', { name: 'Nie', exact: true }).click();
+    await expect(moveAsk).toBeHidden();
+    await freeTime.click();
+    await phone.getByRole('alertdialog').getByRole('button', { name: 'Tak, przenieś' }).click();
+    await expect(phone.getByText('Termin zmieniony.')).toBeVisible();
+    await expect(phone.getByText(`godz. ${newTime}`, { exact: false }).first()).toBeVisible();
+    await expect(phone.getByRole('heading', { name: 'Wybierz nowy termin' })).toBeHidden();
+    await shot(phone, '59e-client-app-moved');
     await phone.getByRole('button', { name: 'Odwołaj wizytę' }).click();
     const cancelAsk = phone.getByRole('alertdialog');
     await expect(cancelAsk).toContainText('Odwołać wizytę');

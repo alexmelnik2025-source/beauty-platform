@@ -1,21 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
+  ApiError,
   bookAgainUrl,
   newRequestKey,
+  todayIn,
   type ClientApi,
   type ClientAppointment,
   type Locale,
+  type Slot,
 } from '../api';
 import { WEB_URL } from '../config';
 import { errorText } from '../errors';
-import { formatDay, formatMoment, formatPrice, salonAddress, visitActions } from '../format';
+import {
+  dayChip,
+  formatDay,
+  formatMoment,
+  formatPrice,
+  salonAddress,
+  slotsByDay,
+  visitActions,
+} from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
 /**
- * One visit: when, what, with whom, where and for how much; cancel (asks first, until the
- * salon's deadline), call the salon, book the same service again.
+ * One visit: when, what, with whom, where and for how much; change the time or cancel (both
+ * ask first, until the salon's deadline), call the salon, book the same service again.
  */
 export function VisitScreen(props: {
   api: ClientApi;
@@ -34,10 +45,16 @@ export function VisitScreen(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
+  /** "Change time": the specialist's free times (null while loading), the day and the time picked. */
+  const [moving, setMoving] = useState(false);
+  const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [pickedDay, setPickedDay] = useState('');
+  const [pending, setPending] = useState<Slot | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
   // One key per "Yes": a second tap or a retry after a lost answer cancels once.
   const keyRef = useRef(newRequestKey());
+  const moveKeyRef = useRef(newRequestKey());
 
   const refresh = useCallback(async () => {
     try {
@@ -55,11 +72,68 @@ export function VisitScreen(props: {
   // Android "back" closes the card instead of the app.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack();
+      if (moving) setMoving(false);
+      else onBack();
       return true;
     });
     return () => sub.remove();
-  }, [onBack]);
+  }, [onBack, moving]);
+
+  // Free times of the same specialist, from today in the salon's time zone.
+  const visitId = visit.id;
+  const loadSlots = useCallback(
+    async (target: ClientAppointment) => {
+      setSlots(null);
+      setPending(null);
+      try {
+        const res = await api.freeTimes(target, todayIn(target.timezone));
+        const days = slotsByDay(res.slots, target);
+        setSlots(res.slots);
+        setPickedDay((current) =>
+          days.some((d) => d.date === current) ? current : (days[0]?.date ?? ''),
+        );
+      } catch (e) {
+        setSlots([]);
+        setError(errorText(e, tRef.current));
+      }
+    },
+    [api],
+  );
+
+  function startMoving() {
+    setMoving(true);
+    setAsking(false);
+    setError('');
+    setDone('');
+    void loadSlots(visit);
+  }
+
+  async function move(slot: Slot) {
+    setBusy(true);
+    setError('');
+    try {
+      setVisit(await api.reschedule(visitId, slot.start, moveKeyRef.current));
+      moveKeyRef.current = newRequestKey();
+      setPending(null);
+      setMoving(false);
+      setDone(t.visit.moved);
+      props.onChanged();
+    } catch (e) {
+      if (!api.signedIn) return onSessionEnded();
+      setPending(null);
+      setError(errorText(e, t));
+      moveKeyRef.current = newRequestKey();
+      if (e instanceof ApiError && e.code === 'TOO_LATE_TO_CHANGE') {
+        setMoving(false);
+        await refresh();
+      } else {
+        // Someone took the time meanwhile: show what is free now.
+        await loadSlots(visit);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function cancel() {
     setBusy(true);
@@ -86,6 +160,7 @@ export function VisitScreen(props: {
   const again = bookAgainUrl(WEB_URL, locale, visit);
   const address = salonAddress(visit.salon);
   const faded = visit.status === 'cancelled' || visit.status === 'expired';
+  const days = slotsByDay(slots ?? [], visit);
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -136,7 +211,95 @@ export function VisitScreen(props: {
       ) : null}
       {actions.tooLate ? <Text style={styles.muted}>{v.tooLateHint}</Text> : null}
 
-      {actions.cancel && !asking ? (
+      {actions.move && !moving && !asking ? <Button label={v.move} onPress={startMoving} /> : null}
+      {actions.move && moving ? (
+        <View style={styles.move}>
+          <Text role="heading" aria-level={2} style={styles.moveTitle}>
+            {v.moveTitle}
+          </Text>
+          <Text style={styles.muted}>{fill(v.moveLead, { staff: visit.staff.displayName })}</Text>
+          {slots === null ? (
+            <Text role="status" style={styles.muted}>
+              {v.loadingSlots}
+            </Text>
+          ) : days.length === 0 ? (
+            <Text style={styles.muted}>{v.noSlots}</Text>
+          ) : (
+            <>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.days}
+              >
+                {days.map((d) => {
+                  const chip = dayChip(d.date, locale);
+                  const on = d.date === pickedDay;
+                  return (
+                    <Pressable
+                      key={d.date}
+                      accessibilityRole="button"
+                      accessibilityLabel={formatDay(d.date, locale)}
+                      aria-pressed={on}
+                      disabled={busy}
+                      onPress={() => {
+                        setPickedDay(d.date);
+                        setPending(null);
+                      }}
+                      style={[styles.dayChip, on && styles.dayChipOn]}
+                    >
+                      <Text style={[styles.dayWeek, on && styles.onText]}>{chip.weekday}</Text>
+                      <Text style={[styles.dayNumber, on && styles.onText]}>{chip.day}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <View style={styles.times}>
+                {(days.find((d) => d.date === pickedDay)?.slots ?? []).map((slot) => (
+                  <Chip
+                    key={slot.start}
+                    label={slot.time}
+                    pressed={pending?.start === slot.start}
+                    onPress={() => {
+                      if (!busy) setPending(slot);
+                    }}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+          {pending ? (
+            <View role="alertdialog" aria-label={v.move} style={[styles.ask, styles.askMove]}>
+              <Text style={styles.askText}>
+                {fill(v.moveAsk, { day: formatDay(pending.date, locale), time: pending.time })}
+              </Text>
+              <View style={styles.askButtons}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    kind="secondary"
+                    label={v.moveNo}
+                    disabled={busy}
+                    onPress={() => setPending(null)}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button label={v.moveYes} busy={busy} onPress={() => void move(pending)} />
+                </View>
+              </View>
+            </View>
+          ) : null}
+          <Button
+            kind="link"
+            label={v.moveClose}
+            disabled={busy}
+            onPress={() => {
+              setMoving(false);
+              setPending(null);
+            }}
+          />
+        </View>
+      ) : null}
+
+      {actions.cancel && !asking && !moving ? (
         <Button kind="secondary" label={v.cancel} onPress={() => setAsking(true)} />
       ) : null}
       {actions.cancel && asking ? (
@@ -207,6 +370,31 @@ const styles = StyleSheet.create({
   },
   askText: { fontSize: 16, color: colors.ink, fontWeight: '600' },
   askButtons: { flexDirection: 'row', gap: 10 },
+  askMove: { borderColor: colors.ink },
+  move: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    gap: 12,
+  },
+  moveTitle: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  days: { gap: 8, paddingVertical: 2 },
+  dayChip: {
+    width: 56,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  dayChipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  dayWeek: { fontSize: 12, color: colors.muted, textTransform: 'capitalize' },
+  dayNumber: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  onText: { color: '#fff' },
+  times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   badge: {
     fontSize: 12,
     fontWeight: '700',

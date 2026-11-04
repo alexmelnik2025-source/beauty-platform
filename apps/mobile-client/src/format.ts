@@ -1,4 +1,4 @@
-import type { ClientAppointment, Locale } from './api';
+import type { ClientAppointment, Locale, Slot } from './api';
 
 /** Dates and prices as the client reads them. No React Native here — tested in Vitest. */
 
@@ -59,15 +59,46 @@ export function formatMoment(iso: string, timeZone: string, locale: Locale): str
   }).format(new Date(iso));
 }
 
+/** "wt" + "10" for the day strip of "Change time" (salon-local date, no time zone shift). */
+export function dayChip(date: string, locale: Locale): { weekday: string; day: string } {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const weekday = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+    timeZone: 'UTC',
+    weekday: 'short',
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+  return { weekday, day: String(d) };
+}
+
+/**
+ * Free times grouped by the salon's local day, in order; the visit's own time is left out
+ * (moving to the same time changes nothing).
+ */
+export function slotsByDay(
+  slots: Slot[],
+  current?: { start: string },
+): { date: string; slots: Slot[] }[] {
+  const days: { date: string; slots: Slot[] }[] = [];
+  for (const slot of slots) {
+    if (current && Date.parse(slot.start) === Date.parse(current.start)) continue;
+    const last = days.at(-1);
+    if (last && last.date === slot.date) last.slots.push(slot);
+    else days.push({ date: slot.date, slots: [slot] });
+  }
+  return days;
+}
+
 /** What the client can do with a visit on its card. */
 export function visitActions(visit: ClientAppointment): {
   cancel: boolean;
+  /** Change the time (same rules as cancelling: confirmed and before the salon's deadline). */
+  move: boolean;
   /** Still ahead and confirmed, but past the salon's deadline — call the salon instead. */
   tooLate: boolean;
 } {
   const confirmed = visit.status === 'confirmed';
   return {
     cancel: confirmed && visit.canChange,
+    move: confirmed && visit.canChange,
     tooLate: confirmed && !visit.canChange && Date.parse(visit.end) > Date.now(),
   };
 }

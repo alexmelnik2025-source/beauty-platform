@@ -1,4 +1,5 @@
 import type {
+  Availability,
   ClientAppointment,
   ClientAppointmentList,
   ClientCodeSent,
@@ -6,6 +7,7 @@ import type {
   ClientSignIn,
   PublicLocation,
   PublicSalonDirectory,
+  Slot,
 } from '@beauty/api-client';
 
 /**
@@ -19,7 +21,10 @@ export type Scope = 'upcoming' | 'past';
 /** Languages a salon or specialist can speak with clients (Belarusian too). */
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
-export type { PublicLocation, PublicSalonDirectory };
+export type { Availability, PublicLocation, PublicSalonDirectory, Slot };
+
+/** "Change time" looks this many days ahead (the API gives at most 31 days per request). */
+export const MOVE_DAYS = 21;
 
 /** The catalogue shows this many salons at a time (the API allows up to 50). */
 export const PAGE_SIZE = 20;
@@ -41,6 +46,23 @@ export function bookAgainUrl(
   const params = new URLSearchParams({ service: visit.bookAgain.serviceId });
   if (visit.bookAgain.staffId) params.set('staff', visit.bookAgain.staffId);
   return `${bookingUrl(webUrl, locale, visit.bookAgain.slug)}?${params.toString()}`;
+}
+
+/** The local date YYYY-MM-DD `days` days after `date` (calendar days, no time zone). */
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Today's date in the salon's time zone (not the phone's): free times start from it. */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
 }
 
 /** A fresh Idempotency-Key: a second tap (or a retry after a lost answer) does the change once. */
@@ -170,6 +192,40 @@ export class ClientApi {
       'POST',
       `/v1/client/appointments/${encodeURIComponent(id)}/cancel`,
       {},
+      { 'idempotency-key': key },
+    );
+  }
+
+  /**
+   * Free times of the visit's specialist for the same service, `days` days from `from`
+   * (the salon's local date). Public: the same answer the booking page gets.
+   */
+  freeTimes(
+    visit: ClientAppointment,
+    from: string,
+    days: number = MOVE_DAYS,
+  ): Promise<Availability> {
+    const params = new URLSearchParams({
+      serviceId: visit.service.id,
+      staffId: visit.staff.id,
+      from,
+      to: addDays(from, days - 1),
+    });
+    return this.call<Availability>(
+      'GET',
+      `/v1/public/locations/${encodeURIComponent(visit.salon.slug)}/availability?${params.toString()}`,
+    );
+  }
+
+  /**
+   * Moves a visit to a free time (`start` of a slot from freeTimes), with the same specialist.
+   * Until the salon's deadline — otherwise TOO_LATE_TO_CHANGE; a time taken meanwhile — SLOT_TAKEN.
+   */
+  reschedule(id: string, start: string, key: string = newRequestKey()): Promise<ClientAppointment> {
+    return this.authed<ClientAppointment>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/reschedule`,
+      { start },
       { 'idempotency-key': key },
     );
   }
