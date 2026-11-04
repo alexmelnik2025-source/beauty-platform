@@ -829,5 +829,9 @@ export const en: Dict = {
     colNoShow: 'No-shows',
     colRevenue: 'Revenue',
     dayVisits: 'visits: {n}',
+    csv: 'Download CSV',
+    downloading: 'Downloading…',
+    csvHint:
+      '“Download CSV” — every visit of this period for the accountant (no client contacts); opens in Excel.',
   },
 };
