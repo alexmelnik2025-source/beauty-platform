@@ -24,6 +24,8 @@ export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
 export type CustomerList = components['schemas']['CustomerList'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
+export type TimeBlock = components['schemas']['TimeBlock'];
+export type TimeBlockList = components['schemas']['TimeBlockList'];
 export type {
   AppointmentDetail,
   Calendar,
@@ -220,6 +222,28 @@ export class BusinessApi {
     );
   }
 
+  /** Blocked time of one day (a specialist gets what the server lets them see). */
+  timeBlocks(orgId: string, locationId: string, date: string): Promise<TimeBlockList> {
+    const query = new URLSearchParams({ from: date, to: date }).toString();
+    return this.authed<TimeBlockList>('GET', `${blocksPath(orgId, locationId)}?${query}`);
+  }
+
+  /**
+   * Blocks time of one specialist or (staffId null) the whole salon; ISO times with offset.
+   * 409 APPOINTMENTS_IN_THE_WAY when visits are booked then.
+   */
+  addTimeBlock(
+    orgId: string,
+    locationId: string,
+    body: { staffId: string | null; start: string; end: string; reason?: string },
+  ): Promise<TimeBlock> {
+    return this.authed<TimeBlock>('POST', blocksPath(orgId, locationId), body);
+  }
+
+  removeTimeBlock(orgId: string, locationId: string, id: string): Promise<void> {
+    return this.authed<void>('DELETE', `${blocksPath(orgId, locationId)}/${enc(id)}`);
+  }
+
   /** Owner or manager only (the server checks): clients by name, phone, email or tag. */
   customers(orgId: string, search: string, limit = 50): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
@@ -318,3 +342,5 @@ const appointmentPath = (orgId: string, locationId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments/${enc(id)}`;
 const customerPath = (orgId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/customers/${enc(id)}`;
+const blocksPath = (orgId: string, locationId: string) =>
+  `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/time-blocks`;

@@ -691,6 +691,18 @@ pnpm --filter @beauty/api-client generate
   `customer` / `updateCustomerNotes` в `src/api.ts`; тесты `test/clients.test.ts`; e2e — скриншоты
   `32c-business-app-staff-client`, `33b-business-app-owner-clients`, `33c-business-app-owner-client`.
 
+## Бизнес-приложение: блокировка времени (задача 19)
+
+- На экране дня — «Zablokowany czas»: перерывы, встречи, закрытый салон в этот день («12:00–12:30 · Cały salon»,
+  причина). «+ Zablokuj czas»: кого (владелец/менеджер — любой мастер или «Cały salon»; мастер — только себя и только
+  с правом «blokuje swój czas»), «Od» / «Do» кнопками ‹ › по 15 минут, причина. Если в это время уже есть визиты —
+  «W tym czasie są już wizyty…» (сервер, 409 `APPOINTMENTS_IN_THE_WAY`).
+- «Odblokuj» с подтверждением — у тех же людей, что могут блокировать (сервер проверяет те же права).
+- Время уходит на сервер с поясом салона (`localToIso`, учитывает переход на зимнее/летнее время).
+- Код: `src/screens/BlockScreen.tsx`, `src/blocks.ts`, `timeBlocks` / `addTimeBlock` / `removeTimeBlock` в
+  `src/api.ts`; тесты `test/blocks.test.ts`; e2e — скриншоты `33d-business-app-block-time`,
+  `33e-business-app-blocked-day`.
+
 ## Клиентское приложение: каталог салонов и страница салона (задача 11b, часть 4а)
 
 - Кнопка «Znajdź salon» на экране входа и в «Moje wizyty» — входить не нужно. Каталог — тот же

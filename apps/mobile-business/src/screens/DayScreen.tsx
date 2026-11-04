@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { BusinessApi, Calendar, Locale } from '../api';
+import type {
+  BusinessApi,
+  Calendar,
+  Locale,
+  PermissionCatalog,
+  StaffList,
+  TimeBlockList,
+} from '../api';
+import { blocksOfDay, blockTargets, canRemoveBlock } from '../blocks';
 import { addDays, dayTitle, myStaffId, onlyMine, staffOfDay, todayIn, visitsOfDay } from '../day';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { BlockScreen } from './BlockScreen';
 import { ClientsScreen } from './ClientsScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ScheduleScreen } from './ScheduleScreen';
@@ -32,6 +41,12 @@ export function DayScreen(props: {
   const [openId, setOpenId] = useState<string | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blocks, setBlocks] = useState<{ date: string; list: TimeBlockList } | null>(null);
+  const [staffList, setStaffList] = useState<StaffList>([]);
+  const [myPerms, setMyPerms] = useState<PermissionCatalog['me'] | null>(null);
+  const [removeId, setRemoveId] = useState<string | null>(null);
+  const [info, setInfo] = useState('');
   const [canChange, setCanChange] = useState(salon.role !== 'staff');
   const [mineId, setMineId] = useState<string | null>(null);
   const [mineOnly, setMineOnly] = useState(false);
@@ -48,8 +63,10 @@ export function DayScreen(props: {
       if (!alive) return;
       if (perms.status === 'fulfilled') {
         const p = perms.value.me;
+        setMyPerms(p);
         setCanChange(p.role !== 'staff' || p.permissions.changeOwnAppointments);
       }
+      if (staff.status === 'fulfilled') setStaffList(staff.value);
       if (me.status === 'fulfilled' && staff.status === 'fulfilled') {
         setMineId(myStaffId(staff.value, me.value.user.id));
       }
@@ -62,7 +79,12 @@ export function DayScreen(props: {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setCalendar(await api.calendar(salon.orgId, salon.locationId, date));
+      const [day, dayBlocks] = await Promise.all([
+        api.calendar(salon.orgId, salon.locationId, date),
+        api.timeBlocks(salon.orgId, salon.locationId, date).catch(() => null),
+      ]);
+      setCalendar(day);
+      setBlocks(dayBlocks ? { date, list: dayBlocks } : null);
       setError('');
     } catch (e) {
       setError(errorText(e, t));
@@ -98,6 +120,29 @@ export function DayScreen(props: {
     );
   }
 
+  const targets = myPerms ? blockTargets(myPerms, staffList, mineId) : [];
+
+  if (blockOpen) {
+    return (
+      <BlockScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        date={date}
+        today={today}
+        timeZone={props.timeZone}
+        targets={targets}
+        onBack={() => setBlockOpen(false)}
+        onSaved={() => {
+          setBlockOpen(false);
+          setInfo(t.blocks.added);
+          void load();
+        }}
+      />
+    );
+  }
+
   if (clientsOpen) {
     return (
       <ClientsScreen
@@ -127,6 +172,19 @@ export function DayScreen(props: {
     );
   }
   const working = calendar && calendar.from === date ? staffOfDay(calendar, date) : [];
+  const dayBlocks =
+    blocks && blocks.date === date ? blocksOfDay(blocks.list, staffList, date, props.timeZone) : [];
+
+  async function unblock(id: string) {
+    setRemoveId(null);
+    try {
+      await api.removeTimeBlock(salon.orgId, salon.locationId, id);
+      setInfo(t.blocks.removed);
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    }
+  }
 
   return (
     <ScrollView
@@ -172,6 +230,7 @@ export function DayScreen(props: {
         <Button kind="link" label={t.day.refresh} onPress={load} />
       </View>
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {info ? <Text style={styles.info}>{info}</Text> : null}
 
       {visits ? (
         <>
@@ -181,6 +240,52 @@ export function DayScreen(props: {
               ? t.day.nobodyWorks
               : working.map((w) => `${w.name} ${w.hours}`).join(' · ')}
           </Text>
+
+          {dayBlocks.length > 0 || targets.length > 0 ? (
+            <View style={[styles.row, styles.sectionRow]}>
+              <Text style={styles.section}>{t.blocks.title}</Text>
+              {targets.length > 0 ? (
+                <Button
+                  kind="link"
+                  label={`+ ${t.blocks.add}`}
+                  onPress={() => {
+                    setInfo('');
+                    setBlockOpen(true);
+                  }}
+                />
+              ) : null}
+            </View>
+          ) : null}
+          {dayBlocks.map((block) => (
+            <View key={block.id} style={styles.block}>
+              <Text style={styles.blockTime}>
+                {block.start}–{block.end} · {block.staff ?? t.blocks.wholeSalon}
+              </Text>
+              {block.reason ? <Text style={styles.muted}>{block.reason}</Text> : null}
+              {canRemoveBlock(block, targets) ? (
+                removeId === block.id ? (
+                  <View style={styles.row}>
+                    <Text style={styles.muted}>{t.blocks.removeAsk}</Text>
+                    <Button label={t.blocks.yes} onPress={() => void unblock(block.id)} />
+                    <Button
+                      kind="secondary"
+                      label={t.blocks.no}
+                      onPress={() => setRemoveId(null)}
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.row}>
+                    <Button
+                      kind="link"
+                      label={t.blocks.remove}
+                      a11yLabel={`${t.blocks.remove} ${block.start}–${block.end}`}
+                      onPress={() => setRemoveId(block.id)}
+                    />
+                  </View>
+                )
+              ) : null}
+            </View>
+          ))}
 
           <View style={[styles.row, styles.sectionRow]}>
             <Text style={styles.section}>
@@ -249,4 +354,14 @@ const styles = StyleSheet.create({
   },
   badgeBad: { backgroundColor: '#f6dcd9', color: colors.danger },
   customer: { fontSize: 17, fontWeight: '600', color: colors.ink },
+  info: { color: '#2e7d32', fontSize: 15 },
+  block: {
+    backgroundColor: '#ece9e3',
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.muted,
+  },
+  blockTime: { fontSize: 16, fontWeight: '600', color: colors.ink },
 });
