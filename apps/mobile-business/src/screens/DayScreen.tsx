@@ -5,6 +5,7 @@ import { addDays, dayTitle, myStaffId, onlyMine, staffOfDay, todayIn, visitsOfDa
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { ClientsScreen } from './ClientsScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ScheduleScreen } from './ScheduleScreen';
 import { VisitScreen } from './VisitScreen';
@@ -30,6 +31,7 @@ export function DayScreen(props: {
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [clientsOpen, setClientsOpen] = useState(false);
   const [canChange, setCanChange] = useState(salon.role !== 'staff');
   const [mineId, setMineId] = useState<string | null>(null);
   const [mineOnly, setMineOnly] = useState(false);
@@ -96,6 +98,19 @@ export function DayScreen(props: {
     );
   }
 
+  if (clientsOpen) {
+    return (
+      <ClientsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        onBack={() => setClientsOpen(false)}
+      />
+    );
+  }
+
   if (openId) {
     return (
       <VisitScreen
@@ -123,6 +138,9 @@ export function DayScreen(props: {
         <View style={styles.row}>
           {props.canChangeSalon ? (
             <Button kind="link" label={t.changeSalon} onPress={props.onChangeSalon} />
+          ) : null}
+          {salon.role !== 'staff' ? (
+            <Button kind="link" label={t.clients.open} onPress={() => setClientsOpen(true)} />
           ) : null}
           {mineId ? (
             <Button kind="link" label={t.schedule.open} onPress={() => setScheduleOpen(true)} />

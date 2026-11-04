@@ -1,6 +1,7 @@
 import type {
   AppointmentDetail,
   Calendar,
+  CustomerDetail,
   Location,
   LoginCodeSent,
   Me,
@@ -21,7 +22,17 @@ export type StaffList = components['schemas']['StaffList'];
 export type WorkingHours = components['schemas']['WorkingHours'];
 export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
-export type { AppointmentDetail, Calendar, Location, LoginCodeSent, Me, PermissionCatalog, Tokens };
+export type CustomerList = components['schemas']['CustomerList'];
+export type {
+  AppointmentDetail,
+  Calendar,
+  CustomerDetail,
+  Location,
+  LoginCodeSent,
+  Me,
+  PermissionCatalog,
+  Tokens,
+};
 
 /** Where the refresh token lives: Keychain/Keystore on phones, browser storage in the web preview. */
 export interface TokenStore {
@@ -208,6 +219,32 @@ export class BusinessApi {
     );
   }
 
+  /** Owner or manager only (the server checks): clients by name, phone, email or tag. */
+  customers(orgId: string, search: string, limit = 50): Promise<CustomerList> {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (search.trim()) query.set('search', search.trim());
+    return this.authed<CustomerList>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,
+    );
+  }
+
+  /** One client card; a specialist gets only their own clients, contacts and notes by permission. */
+  customer(orgId: string, id: string): Promise<CustomerDetail> {
+    return this.authed<CustomerDetail>('GET', customerPath(orgId, id));
+  }
+
+  /** The client's note and tags (a specialist needs the permission). Send the version that was read. */
+  updateCustomerNotes(
+    orgId: string,
+    id: string,
+    version: number,
+    note: string | null,
+    tags: string[],
+  ): Promise<CustomerDetail> {
+    return this.authed<CustomerDetail>('PATCH', customerPath(orgId, id), { version, note, tags });
+  }
+
   private async keep(tokens: Tokens): Promise<void> {
     this.accessToken = tokens.accessToken;
     if (tokens.refreshToken) await this.store.set(tokens.refreshToken);
@@ -270,3 +307,5 @@ const staffPath = (orgId: string, locationId: string, staffId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff/${enc(staffId)}`;
 const appointmentPath = (orgId: string, locationId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments/${enc(id)}`;
+const customerPath = (orgId: string, id: string) =>
+  `/v1/organizations/${enc(orgId)}/customers/${enc(id)}`;
