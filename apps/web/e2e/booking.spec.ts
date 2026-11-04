@@ -1115,7 +1115,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(annaRow).toBeVisible();
     await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    // Blocked time (task 19): a month later, when nothing is booked, the whole salon 12:00–12:30.
+    // Blocked time (task 18c): a month later, when nothing is booked, the whole salon 12:00–12:30.
     for (let i = 0; i < 30; i++) {
       await ownerApp.getByRole('button', { name: 'Następny dzień' }).click();
     }
@@ -1139,7 +1139,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await ownerApp.getByRole('button', { name: 'Tak, odblokuj' }).click();
     await expect(ownerApp.getByText('Czas odblokowany.')).toBeVisible();
     await expect(ownerApp.getByText('12:00–12:30 · Cały salon')).toHaveCount(0);
-    // The bell (task 20): Anna's online booking, opening it shows the visit card.
+    // The bell (task 18d): Anna's online booking, opening it shows the visit card.
     await ownerApp.getByRole('button', { name: /^Powiadomienia/ }).click();
     await expect(ownerApp.getByRole('heading', { name: 'Powiadomienia' })).toBeVisible();
     const annaNotice = ownerApp
