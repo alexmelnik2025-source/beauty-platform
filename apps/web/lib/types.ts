@@ -51,6 +51,7 @@ export type {
   ClientLoyaltyCard,
   ClientPerson,
   FailedEmail,
+  HappyHours,
   Hold,
   Invitation,
   LegalTemplates,

@@ -59,6 +59,8 @@ export type Location = Schemas['Location'];
 export type LegalTemplates = Schemas['LegalTemplates'];
 export type ServiceCategory = Schemas['ServiceCategory'];
 export type Service = Schemas['Service'];
+/** Task 16: the salon's happy hours (a lower price on chosen weekdays and hours). */
+export type HappyHours = Schemas['HappyHours'];
 export type Staff = Schemas['Staff'];
 /** Task 62: specialists' own prices of services (`GET …/staff-prices`). */
 export type StaffPrices = Schemas['StaffPrices'];

@@ -36,6 +36,7 @@ export function menuItems(
     manager && { href: at('clients'), label: t.nav.clients, bottom: true },
     { href: at('notifications'), label: t.nav.notifications, bottom: true, badge: true },
     manager && { href: at('services'), label: t.nav.services },
+    manager && { href: at('happy-hours'), label: t.nav.happyHours },
     manager && { href: at('team'), label: t.nav.team },
     manager && { href: at('loyalty'), label: t.nav.loyalty },
     (manager || session.permissions.viewOwnEarnings === true) && {

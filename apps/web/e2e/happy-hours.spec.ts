@@ -8,8 +8,9 @@ import {
 import { waitForEmail } from './mailpit';
 
 /**
- * Task 16: the salon's happy hours. The owner sets −20% at Kasia's (via the API for now); the
- * client sees "−20%" at the free times and the lower price on the held visit. Screenshots 76, 76a.
+ * Task 16: the salon's happy hours. The owner sets −20% at Kasia's (via the API); the client
+ * sees "−20%" at the free times and the lower price on the held visit. Then the owner manages
+ * the rules in the cabinet's "Happy hours" page (part 3). Screenshots 76, 76a, 76b, 76c.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -133,4 +134,40 @@ test('the client sees happy-hour prices at the free times and on the held visit'
   await expect(summary).toContainText('−20%');
   await shot(client, '76a-booking-happy-hour-price');
   await phone.close();
+
+  // Part 3: the owner sees the rule in the cabinet, adds Tuesday afternoons −15% for one
+  // service and removes it again.
+  const desk = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
+  const owner = await desk.newPage();
+  await owner.goto('/pl/login');
+  await owner.getByLabel('E-mail').fill(OWNER);
+  await owner.getByLabel('Hasło').fill(PASSWORD);
+  await owner.getByRole('button', { name: 'Zaloguj się' }).click();
+  await owner.waitForURL(/\/pl\/app\/calendar/);
+  await owner.getByRole('link', { name: 'Happy hours' }).first().click();
+  await expect(owner.getByRole('heading', { name: 'Happy hours' })).toBeVisible();
+  await expect(owner.getByText('−20% · Codziennie · 08:00–12:00')).toBeVisible();
+  await expect(owner.getByText('Specjaliści: Kasia')).toBeVisible();
+  await expect(owner.getByText('Usługi: wszystkie')).toBeVisible();
+  await owner.getByRole('button', { name: '+ Dodaj tańsze godziny' }).click();
+  const sheet = owner.getByRole('dialog');
+  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(sheet.getByText('Wybierz co najmniej jeden dzień.')).toBeVisible();
+  await sheet.getByLabel('Wtorek').check();
+  await sheet.getByLabel('Od', { exact: true }).fill('14:00');
+  await sheet.getByLabel(/^Do \(/).fill('16:00');
+  await sheet.getByLabel('Rabat, %').fill('15');
+  await sheet.getByLabel('Strzyżenie męskie').check();
+  await shot(owner, '76b-owner-happy-hours-form');
+  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(owner.getByText('Zapisano tańsze godziny.')).toBeVisible();
+  await expect(owner.getByText('−15% · wt. · 14:00–16:00')).toBeVisible();
+  await expect(owner.getByText('Usługi: Strzyżenie męskie')).toBeVisible();
+  await shot(owner, '76c-owner-happy-hours');
+  await owner.getByRole('button', { name: 'Usuń tańsze godziny 2' }).click();
+  await owner.getByRole('button', { name: 'Tak, usuń' }).click();
+  await expect(owner.getByText('Usunięto tańsze godziny.')).toBeVisible();
+  await expect(owner.getByText('−15% · wt. · 14:00–16:00')).toHaveCount(0);
+  await expect(owner.getByText('−20% · Codziennie · 08:00–12:00')).toBeVisible();
+  await desk.close();
 });
