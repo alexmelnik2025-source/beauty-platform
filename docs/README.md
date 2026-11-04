@@ -736,3 +736,25 @@ pnpm --filter @beauty/api-client generate
   отметок, без React Native), `src/screens/BonusesView.tsx`, вкладка в `src/screens/VisitsScreen.tsx`; тесты
   `test/bonus.test.ts`; e2e (`loyalty.spec.ts`) — скриншоты `63-client-app-bonuses`, `63a-client-app-bonus-history`,
   `63b-client-app-bonuses-uk`.
+
+## Клиентское приложение: запись в приложении (задача 11b, часть 4б)
+
+- На странице салона «Umów wizytę» теперь открывает запись прямо в приложении (раньше — сайт). Вход не нужен.
+- Шаги как на сайте: услуга (по группам прайса) → специалист или «Dowolny specjalista» (если услугу делает один
+  мастер — шаг пропускается) → день и свободное время на 3 недели вперёд (утро / день / вечер, в поясе салона) →
+  время держится 10 минут (обратный отсчёт; истекло — снова выбор времени) → имя, телефон (`600 100 200` → `+48…`),
+  e-mail, галочка «Akceptuję zasady rezerwacji…» (обязательно) и «wiadomości o nowościach» (по желанию) → код из
+  e-maila → «Do zobaczenia!». Тот же API, что у страницы записи: `POST /v1/public/locations/:slug/holds`
+  (`Idempotency-Key`), `…/holds/:id/code`, `…/holds/:id/confirm` (ключ `confirm-<hold>-<код>`, как на вебе),
+  при уходе с записи время освобождается (`…/release`).
+- Ошибки — те же тексты, что на сайте: время заняли — свежий список; 10 минут прошли, 3 кода, много попыток — снова
+  выбор времени; неверный код — остаёмся на шаге кода. Поля проверяются до отправки на сервер.
+- После записи: вошедший клиент — «Moje wizyty» (список перечитывается, визит уже там); не вошедший —
+  «Zaloguj się do „Moich wizyt”» (экран входа с уже вписанным e-mail) и «Zmień lub odwołaj wizytę» (ссылка из письма).
+  Токен сессии при записи приложению не выдаётся (так задумано на сервере: токен не попадает в тело ответа).
+- Пока только код по e-mail (SMS — после подключения шлюза). «Umów ponownie» в карточке визита и «Umów się» в бонусах
+  пока ведут на сайт.
+- Код: `availability` / `hold` / `sendBookingCode` / `confirmBooking` / `releaseHold` в `src/api.ts`, `src/booking.ts`
+  (проверка формы, телефон, части дня, отсчёт), `src/screens/BookingScreen.tsx`; тесты `test/booking.test.ts`; e2e —
+  скриншоты `64-client-app-book-service`, `64a-client-app-book-time`, `64b-client-app-book-details`,
+  `64c-client-app-booked`.
