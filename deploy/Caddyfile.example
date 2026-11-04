@@ -1,0 +1,19 @@
+# Caddy: HTTPS for the booking site, certificates from Let's Encrypt are issued and renewed
+# automatically. Copy to /etc/caddy/Caddyfile and replace the domain (scripts/server-setup.sh
+# does this for you). The app listens only on 127.0.0.1:3000 (compose.production.yml).
+booking.example.invalid {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	log {
+		output file /var/log/caddy/booking.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
