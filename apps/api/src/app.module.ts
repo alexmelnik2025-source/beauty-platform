@@ -13,6 +13,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PushModule } from './push/push.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SchedulingModule } from './scheduling/scheduling.module';
     ClientModule,
     PushModule,
     HealthModule,
+    WaitlistModule,
     AdminModule,
   ],
 })
