@@ -689,3 +689,19 @@ pnpm --filter @beauty/api-client generate
 - Код: `directory` / `salon` / `bookingUrl` в `src/api.ts`, `src/salon.ts` (поиск, часы, группы услуг),
   `src/screens/CatalogScreen.tsx`, `src/screens/SalonScreen.tsx`; тесты `test/salon.test.ts`, `test/api.test.ts`;
   e2e — скриншоты `60-client-app-catalogue`, `61-client-app-salon`, `62-client-app-catalogue-uk`.
+
+## Клиентское приложение: карточка визита (задача 11b, часть 2а)
+
+- Тап по визиту в «Moje wizyty» открывает карточку: услуга, день и время, статус, специалист, длительность, цена,
+  салон и адрес. При открытии карточка перечитывает визит с сервера (`GET /v1/client/appointments/:id`).
+- «Odwołaj wizytę» — только пока салон разрешает изменения онлайн (`canChange`; срок показан в поясе салона:
+  «Odwołać lub zmienić online możesz do …»). Сначала вопрос «Odwołać wizytę …? Nie / Tak, odwołaj» — без «Tak»
+  ничего не меняется. Запрос несёт `Idempotency-Key` (один на нажатие «Tak»): двойной тап или повтор после
+  потерянного ответа отменяет один раз. После срока — «Na zmiany online jest już za późno. Zadzwoń do salonu.»
+- «Zadzwoń do salonu» (если у салона есть телефон) и «Umów ponownie» — страница записи на сайте сразу с той же
+  услугой и мастером (`?service=…&staff=…`, как на вебе); запись в самом приложении — часть 4б.
+- Android «назад» закрывает карточку; после отмены список визитов перечитывается при возврате.
+- Перенос на другое время в приложении — часть 2б (тот же вопрос перед переносом, как T11).
+- Код: `appointment` / `cancel` / `bookAgainUrl` / `newRequestKey` в `src/api.ts`, `formatMoment` / `visitActions`
+  в `src/format.ts`, `src/screens/VisitScreen.tsx`; тесты `test/api.test.ts`, `test/format.test.ts`; e2e —
+  скриншоты `59-client-app-visit`, `59a-client-app-cancel-ask`, `59b-client-app-cancelled`.
