@@ -136,7 +136,8 @@ export function AppointmentManager<T extends PublicAppointment>({
             {a.time} · {formatDay(a.date, tag, { short: true })}
           </span>
           <span>
-            {a.service.name} · {a.staff.displayName} · {formatPrice(a.service.priceGrosze, tag)}
+            {a.service.name} · {a.staff.displayName} ·{' '}
+            {formatPrice(a.service.priceGrosze, a.currency, tag)}
           </span>
           <span className="small">{t.appointment.status[a.status]}</span>
         </div>

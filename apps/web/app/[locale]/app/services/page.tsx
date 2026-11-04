@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } 
 import { useSession } from '@/components/Session';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
-import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
-import { formatPrice } from '@/lib/time';
+import { currencySymbol, formatPrice } from '@/lib/time';
 import type { Service, ServiceCategory, Staff } from '@/lib/types';
 
 type Category = ServiceCategory;
@@ -144,7 +144,7 @@ export default function ServicesPage() {
                           <span className="small warn-text">{t.services.noOnePerforms}</span>
                         ) : null}
                       </span>
-                      <span>{formatPrice(s.priceGrosze, tag)}</span>
+                      <span>{formatPrice(s.priceGrosze, location.currency, tag)}</span>
                     </button>
                   </li>
                 ))}
@@ -212,7 +212,8 @@ function ServiceSheet({
   onSaved: (saved: ServiceRow) => void;
   onDeleted: (id: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { location } = useSession();
   const [form, setForm] = useState({
     name: service?.name ?? '',
     description: service?.description ?? '',
@@ -315,7 +316,11 @@ function ServiceSheet({
             />
           </label>
           <label className="field">
-            <span>{t.services.price}</span>
+            <span>
+              {fill(t.services.price, {
+                currency: currencySymbol(location.currency, LOCALE_TAGS[locale]),
+              })}
+            </span>
             <input
               inputMode="decimal"
               required

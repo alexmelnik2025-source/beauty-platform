@@ -9,7 +9,8 @@ import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatCoordinates, parseCoordinates } from '@/lib/coordinates';
-import { errorText, fill, useI18n } from '@/lib/i18n';
+import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { CURRENCIES, currencyName } from '@/lib/time';
 import type { LegalTemplates, Location } from '@/lib/types';
 
 type LocationSettings = Location;
@@ -74,6 +75,7 @@ export default function SettingsPage() {
           latitude: point?.latitude ?? null,
           longitude: point?.longitude ?? null,
           phone: form.phone ? normalizePhone(form.phone) : null,
+          currency: form.currency,
           onlineBookingEnabled: form.onlineBookingEnabled,
           minLeadMinutes: form.minLeadMinutes,
           bookingHorizonDays: form.bookingHorizonDays,
@@ -280,6 +282,17 @@ export default function SettingsPage() {
           <label className="field">
             <span>{t.settings.phone}</span>
             <input type="tel" value={form.phone ?? ''} onChange={text('phone')} />
+          </label>
+          <label className="field">
+            <span>{t.settings.currency}</span>
+            <select value={form.currency} onChange={text('currency')}>
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {currencyName(c, LOCALE_TAGS[locale])}
+                </option>
+              ))}
+            </select>
+            <span className="small muted">{t.settings.currencyHint}</span>
           </label>
           <label className="field">
             <span>{t.profile.description}</span>

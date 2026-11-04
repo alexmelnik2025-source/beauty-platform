@@ -172,7 +172,7 @@ export function NewItemSheet({
               {activeServices.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} · {s.durationMinutes} {t.common.minutes} ·{' '}
-                  {formatPrice(s.priceGrosze, tag)}
+                  {formatPrice(s.priceGrosze, session.location.currency, tag)}
                 </option>
               ))}
             </select>

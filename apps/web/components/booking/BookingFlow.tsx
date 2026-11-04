@@ -699,7 +699,7 @@ function ServiceList({
                     {s.durationMinutes} {t.common.minutes}
                     {s.description ? ` · ${s.description}` : ''}
                   </span>
-                  <span className="c-price">{formatPrice(s.priceGrosze, tag)}</span>
+                  <span className="c-price">{formatPrice(s.priceGrosze, salon.currency, tag)}</span>
                 </button>
               </li>
             ))}
@@ -744,7 +744,7 @@ function HoldSummary({
         {hold.time} · {formatDay(hold.date, tag, { short: true })}
       </span>
       <span>
-        {hold.serviceName} · {hold.staffName} · {formatPrice(hold.priceGrosze, tag)}
+        {hold.serviceName} · {hold.staffName} · {formatPrice(hold.priceGrosze, hold.currency, tag)}
       </span>
       <span className="small muted timer" aria-live="polite">
         {fill(t.booking.heldFor, { time: clock })}

@@ -2,6 +2,8 @@
  * Time-zone arithmetic with the built-in Intl API (the same rules as the API's
  * scheduling/time.ts). Local date = 'YYYY-MM-DD' in the salon's time zone.
  */
+import type { Currency } from '@beauty/api-client';
+
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
 
@@ -98,8 +100,60 @@ export function weekdayShort(date: string, localeTag: string): string {
   );
 }
 
-export function formatPrice(grosze: number, localeTag: string): string {
-  return new Intl.NumberFormat(localeTag, { style: 'currency', currency: 'PLN' }).format(
-    grosze / 100,
+/**
+ * Currencies a salon can choose (the API accepts exactly these; the type checks the list stays
+ * inside what it accepts). Poland first, then the EU, then the rest of Europe and the CIS.
+ */
+export const CURRENCIES = [
+  'PLN',
+  'EUR',
+  'CZK',
+  'HUF',
+  'RON',
+  'SEK',
+  'DKK',
+  'NOK',
+  'CHF',
+  'GBP',
+  'ALL',
+  'TRY',
+  'MKD',
+  'RSD',
+  'BAM',
+  'MDL',
+  'UAH',
+  'GEL',
+  'AMD',
+  'AZN',
+  'KZT',
+  'KGS',
+  'UZS',
+  'TJS',
+  'TMT',
+  'BYN',
+  'RUB',
+  'USD',
+] as const satisfies readonly Currency[];
+
+/** "PLN — złoty polski" in the reader's language. */
+export function currencyName(currency: string, localeTag: string): string {
+  const name = new Intl.DisplayNames([localeTag], { type: 'currency' }).of(currency);
+  return name && name !== currency ? `${currency} — ${name}` : currency;
+}
+
+/** "zł", "€", "₺": the short sign of a currency, for form labels. */
+export function currencySymbol(currency: string, localeTag: string): string {
+  return (
+    new Intl.NumberFormat(localeTag, { style: 'currency', currency })
+      .formatToParts(0)
+      .find((p) => p.type === 'currency')?.value ?? currency
   );
+}
+
+/**
+ * "45,00 zł", "€45.00": prices come in hundredths of the salon's currency (ISO 4217, launch
+ * task L5), written the way the reader's language does.
+ */
+export function formatPrice(hundredths: number, currency: string, localeTag: string): string {
+  return new Intl.NumberFormat(localeTag, { style: 'currency', currency }).format(hundredths / 100);
 }

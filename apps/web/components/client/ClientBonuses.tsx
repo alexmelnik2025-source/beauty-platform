@@ -109,10 +109,10 @@ function BonusCard({ card }: { card: ClientLoyaltyCard }) {
               ? fill(t.bonuses.earnStamps, { count: String(card.earning.stampsPerVisit) })
               : fill(t.bonuses.earnPoints, {
                   count: String(card.earning.pointsPerUnit),
-                  amount: formatPrice(card.earning.spendUnitGrosze, tag),
+                  amount: formatPrice(card.earning.spendUnitGrosze, card.currency, tag),
                 })}
             {card.earning.minSpendGrosze > 0
-              ? ` · ${fill(t.bonuses.minSpend, { amount: formatPrice(card.earning.minSpendGrosze, tag) })}`
+              ? ` · ${fill(t.bonuses.minSpend, { amount: formatPrice(card.earning.minSpendGrosze, card.currency, tag) })}`
               : ''}
             {!stamps && card.earning.pointsValidityDays
               ? ` · ${fill(t.bonuses.validity, { days: String(card.earning.pointsValidityDays) })}`

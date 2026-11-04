@@ -207,7 +207,7 @@ export function AppointmentSheet({
             {a.priceGrosze !== null ? (
               <>
                 <dt>{t.appointment.price}</dt>
-                <dd>{formatPrice(a.priceGrosze, tag)}</dd>
+                <dd>{formatPrice(a.priceGrosze, session.location.currency, tag)}</dd>
               </>
             ) : null}
             {a.note ? (

@@ -691,6 +691,35 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     1200, 1600,
   ]);
 
+  // Launch task L5: the salon's currency. Polish złoty unless the salon picks another one; the
+  // service list, the service form and the booking page then show prices in it.
+  const currency = ownerPage.getByLabel('Waluta cen');
+  await expect(currency).toHaveValue('PLN');
+  await expect(currency.locator('option[value="TRY"]')).toHaveText(/^TRY — lira turecka$/i);
+  await currency.selectOption('EUR');
+  await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ownerPage.getByText('Zapisano')).toBeVisible();
+  await currency.scrollIntoViewIfNeeded();
+  await shot(ownerPage, '67-owner-currency');
+  await ownerPage.goto('/pl/app/services');
+  await expect(ownerPage.getByText(/^90,00\s€$/).first()).toBeVisible();
+  await ownerPage
+    .getByRole('button', { name: /Strzyżenie męskie/ })
+    .first()
+    .click();
+  await expect(ownerPage.getByRole('dialog').getByLabel('Cena (€)')).toHaveValue('90.00');
+  await shot(ownerPage, '67b-owner-service-price-euro');
+  const euroPage = await ownerPage.context().newPage();
+  await euroPage.goto(`/pl/b/${location.slug}`);
+  await expect(euroPage.locator('.c-price', { hasText: /^90,00\s€$/ }).first()).toBeVisible();
+  await shot(euroPage, '67c-booking-prices-euro');
+  await euroPage.close();
+  // Back to złoty for the rest of the scenario.
+  await ownerPage.goto('/pl/app/settings');
+  await ownerPage.getByLabel('Waluta cen').selectOption('PLN');
+  await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ownerPage.getByText('Zapisano')).toBeVisible();
+
   // The owner's calendar on a phone.
   const ownerPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
   const ownerMobile = await ownerPhone.newPage();

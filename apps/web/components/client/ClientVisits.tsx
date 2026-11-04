@@ -244,7 +244,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
                     </strong>
                     <span className="small">
                       {a.service.name} · {a.staff.displayName} ·{' '}
-                      {formatPrice(a.service.priceGrosze, tag)}
+                      {formatPrice(a.service.priceGrosze, a.currency, tag)}
                     </span>
                     <span className="small muted">
                       {a.salon.name}

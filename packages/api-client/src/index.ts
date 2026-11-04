@@ -5,11 +5,18 @@
  *   pnpm --filter @beauty/api-client generate
  * CI fails while openapi.json or src/schema.d.ts are out of date.
  */
-import type { components, paths } from './schema.js';
+import type { components, operations, paths } from './schema.js';
 
 export type { components, paths };
 
 type Schemas = components['schemas'];
+
+/** A currency a salon can price its services in (ISO 4217); amounts are in hundredths of it. */
+export type Currency = NonNullable<
+  NonNullable<
+    operations['LocationsController_update']['requestBody']
+  >['content']['application/json']['currency']
+>;
 
 /** The salon page for clients (`GET /v1/public/locations/{slug}`). */
 export type PublicLocation = Schemas['PublicLocation'];

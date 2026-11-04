@@ -6,9 +6,10 @@ import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { currencySymbol } from '@/lib/time';
 import type { LoyaltyProgram, LoyaltyReward, LoyaltyTransaction, Service } from '@/lib/types';
 
-/** What the form edits: amounts in złoty as typed, empty validity = no limit. */
+/** What the form edits: amounts in the salon's currency as typed, empty validity = no limit. */
 interface ProgramForm {
   enabled: boolean;
   mode: LoyaltyProgram['mode'];
@@ -102,6 +103,8 @@ export default function LoyaltyPage() {
 
   if (!program || !form) return error ? <ErrorBox>{error}</ErrorBox> : <Spinner />;
   const tag = LOCALE_TAGS[locale];
+  // Amounts of the program are in the salon's currency (launch task L5).
+  const symbol = currencySymbol(session.location.currency, tag);
   const stamps = form.mode === 'stamps';
   const serviceName = (id: string) =>
     services.find((s) => s.id === id)?.name ?? t.loyalty.otherService;
@@ -161,7 +164,7 @@ export default function LoyaltyPage() {
 
   const general = stamps
     ? `${form.stampsPerVisit}`
-    : `${form.pointsPerUnit} / ${form.spendUnit || '?'} zł`;
+    : `${form.pointsPerUnit} / ${form.spendUnit || '?'} ${symbol}`;
 
   return (
     <>
@@ -236,7 +239,7 @@ export default function LoyaltyPage() {
                 />
               </label>
               <label className="field">
-                <span>{t.loyalty.spendUnit}</span>
+                <span>{fill(t.loyalty.spendUnit, { currency: symbol })}</span>
                 <input
                   inputMode="decimal"
                   required
@@ -248,7 +251,7 @@ export default function LoyaltyPage() {
             </div>
           )}
           <label className="field">
-            <span>{t.loyalty.minSpend}</span>
+            <span>{fill(t.loyalty.minSpend, { currency: symbol })}</span>
             <input
               inputMode="decimal"
               pattern="\d+([.,]\d{1,2})?"
