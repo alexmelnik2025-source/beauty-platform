@@ -1945,6 +1945,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Salon report for a period: visits, revenue, clients, by specialist, service and day
+         * @description Owners and managers: the whole salon. A specialist: only their own visits, and only with the "viewOwnEarnings" permission (403 otherwise). At most 366 days.
+         */
+        get: operations["ReportsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/visits-csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every visit of a period as a CSV file for the accountant
+         * @description Same access as the report. UTF-8 with a byte order mark, ";" between columns, decimal comma (point for en); no client contacts.
+         */
+        get: operations["ReportsController_visitsCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -3628,6 +3668,102 @@ export interface components {
         PushPublicKey: {
             /** @description null: push messages are off on this server */
             publicKey: string | null;
+        };
+        SalonReport: {
+            location: {
+                id: string;
+                name: string;
+                timezone: string;
+                currency: string;
+            };
+            from: string;
+            to: string;
+            /**
+             * @description location = the whole salon; own = only the visits of the signed-in specialist
+             * @enum {string}
+             */
+            scope: "location" | "own";
+            totals: {
+                /** @description Every booked visit in the period, cancelled ones too */
+                visits: number;
+                /** @description Booked and not marked yet */
+                upcoming: number;
+                /** @description Visits that took place ("came") */
+                completed: number;
+                /** @description "Did not come" */
+                noShow: number;
+                /** @description What paid visits brought (price minus discounts), in hundredths of the salon currency */
+                revenueGrosze: number;
+                /** @description Visits marked as paid */
+                paid: number;
+                cancelledByClient: number;
+                cancelledBySalon: number;
+                /** @description Visits the clients booked themselves (not cancelled) */
+                online: number;
+                /** @description Discounts on paid visits, in hundredths of the salon currency */
+                discountGrosze: number;
+                /** @description Average paid visit; 0 when none, in hundredths of the salon currency */
+                averageTicketGrosze: number;
+                /** @description Different clients with a visit that took place */
+                clients: number;
+                /** @description Clients whose first visit at this salon that took place is in the period */
+                newClients: number;
+            };
+            /** @description Specialists with any visit in the period, by revenue */
+            staff: {
+                id: string;
+                displayName: string;
+                /** @description Visits that took place ("came") */
+                completed: number;
+                /** @description "Did not come" */
+                noShow: number;
+                /** @description What paid visits brought (price minus discounts), in hundredths of the salon currency */
+                revenueGrosze: number;
+                /** @description Visits marked as paid */
+                paid: number;
+            }[];
+            /** @description Services with any visit in the period, by revenue */
+            services: {
+                id: string;
+                name: string;
+                /** @description Visits that took place ("came") */
+                completed: number;
+                /** @description "Did not come" */
+                noShow: number;
+                /** @description What paid visits brought (price minus discounts), in hundredths of the salon currency */
+                revenueGrosze: number;
+                /** @description Visits marked as paid */
+                paid: number;
+            }[];
+            /** @description Every day of the period, in the salon time zone */
+            days: {
+                date: string;
+                completed: number;
+                /** @description Paid that day, in hundredths of the salon currency */
+                revenueGrosze: number;
+            }[];
+            /** @description Monday to Sunday: which days of the week are busy and which are weak */
+            weekdays: {
+                /** @description 1 = Monday … 7 = Sunday */
+                weekday: number;
+                completed: number;
+                noShow: number;
+                /** @description Paid on these weekdays, in hundredths of the salon currency */
+                revenueGrosze: number;
+            }[];
+            /** @description The same number of days just before the period, to compare with */
+            previous: {
+                from: string;
+                to: string;
+                completed: number;
+                noShow: number;
+                paid: number;
+                /** @description What paid visits brought, in hundredths of the salon currency */
+                revenueGrosze: number;
+                /** @description Average paid visit; 0 when none, in hundredths of the salon currency */
+                averageTicketGrosze: number;
+                clients: number;
+            };
         };
         Service: {
             id: string;
@@ -7603,6 +7739,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ReportsController_get: {
+        parameters: {
+            query: {
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonReport"];
+                };
+            };
+        };
+    };
+    ReportsController_visitsCsv: {
+        parameters: {
+            query: {
+                locale?: "pl" | "uk" | "ru" | "en";
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
             };
         };
     };

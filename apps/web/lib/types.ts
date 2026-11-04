@@ -79,6 +79,7 @@ export type {
   PublicSalonDirectory,
   PushPublicKey,
   Role,
+  SalonReport,
   Service,
   ServiceCategory,
   Slot,

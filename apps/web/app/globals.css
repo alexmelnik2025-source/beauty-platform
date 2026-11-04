@@ -1489,6 +1489,74 @@ h3 {
   font-size: 1.5rem;
 }
 
+/* Task 14: salon reports */
+.report-change {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--signal);
+  white-space: nowrap;
+}
+
+.report-change--up {
+  color: var(--ink);
+}
+
+.report-table-wrap {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.report-table th,
+.report-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.report-table th:first-child {
+  text-align: left;
+  white-space: normal;
+}
+
+.report-table thead th {
+  font-weight: 400;
+  color: var(--graphite);
+}
+
+.report-days {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-days li {
+  display: grid;
+  grid-template-columns: minmax(84px, 120px) 1fr minmax(120px, auto);
+  gap: 10px;
+  align-items: center;
+}
+
+.report-bar {
+  height: 10px;
+  background: var(--fog);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+}
+
+.report-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
 .copy-field {
   display: flex;
   gap: 8px;

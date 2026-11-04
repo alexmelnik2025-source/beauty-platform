@@ -88,6 +88,8 @@ export type PushPublicKey = Schemas['PushPublicKey'];
 export type Photo = Schemas['Photo'];
 /** Platform administrators: the email queue. */
 export type OutboxStats = Schemas['OutboxStats'];
+/** The salon owner's report for a period (task 14). */
+export type SalonReport = Schemas['SalonReport'];
 export type FailedEmail = Schemas['FailedEmail'];
 /** Public catalogue of salons with its map. */
 export type PublicSalonDirectory = Schemas['PublicSalonDirectory'];

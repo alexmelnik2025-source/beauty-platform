@@ -6,6 +6,7 @@ import type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  SalonReport,
   Tokens,
   components,
 } from '@beauty/api-client';
@@ -51,6 +52,7 @@ export type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  SalonReport,
   Tokens,
 };
 
@@ -376,6 +378,18 @@ export class BusinessApi {
       'POST',
       `${appointmentPath(orgId, locationId, id)}/cancel`,
       { version, reason },
+    );
+  }
+
+  /**
+   * The salon report for a period (salon-local dates): the whole salon for an owner or manager,
+   * a specialist's own visits with the "prices and own results" permission (403 otherwise).
+   */
+  report(orgId: string, locationId: string, from: string, to: string): Promise<SalonReport> {
+    const query = new URLSearchParams({ from, to }).toString();
+    return this.authed<SalonReport>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports?${query}`,
     );
   }
 

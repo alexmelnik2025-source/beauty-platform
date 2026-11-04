@@ -20,6 +20,7 @@ import { ClientsScreen } from './ClientsScreen';
 import { mayAddVisits, type MyRights } from '../newVisit';
 import { NewVisitScreen } from './NewVisitScreen';
 import type { SalonChoice } from './SalonsScreen';
+import { ReportsScreen } from './ReportsScreen';
 import { ScheduleScreen } from './ScheduleScreen';
 import { VisitScreen } from './VisitScreen';
 
@@ -58,6 +59,8 @@ export function DayScreen(props: {
   const [mineOnly, setMineOnly] = useState(false);
   const [rights, setRights] = useState<MyRights | null>(null);
   const [adding, setAdding] = useState(false);
+  const [canReport, setCanReport] = useState(salon.role !== 'staff');
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   // Once per salon: may this person mark visits, and are they one of the specialists?
   useEffect(() => {
@@ -74,6 +77,8 @@ export function DayScreen(props: {
         setMyPerms(p);
         setRights(p);
         setCanChange(p.role !== 'staff' || p.permissions.changeOwnAppointments);
+        // Reports: the whole salon for owners and managers, own results with the permission.
+        setCanReport(p.role !== 'staff' || p.permissions.viewOwnEarnings);
       }
       if (staff.status === 'fulfilled') setStaffList(staff.value);
       if (me.status === 'fulfilled' && staff.status === 'fulfilled') {
@@ -120,6 +125,19 @@ export function DayScreen(props: {
   // a specialist's calendar already holds just their own visits (the server decides).
   const showMineSwitch = salon.role !== 'staff' && mineId !== null;
   const visits = all && showMineSwitch && mineOnly ? onlyMine(all, mineId) : all;
+
+  if (reportsOpen) {
+    return (
+      <ReportsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        today={today}
+        onBack={() => setReportsOpen(false)}
+      />
+    );
+  }
 
   if (scheduleOpen && mineId) {
     return (
@@ -265,6 +283,9 @@ export function DayScreen(props: {
           ) : null}
           {mineId ? (
             <Button kind="link" label={t.schedule.open} onPress={() => setScheduleOpen(true)} />
+          ) : null}
+          {canReport ? (
+            <Button kind="link" label={t.reports.open} onPress={() => setReportsOpen(true)} />
           ) : null}
           <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
         </View>

@@ -1,0 +1,84 @@
+import { Controller, Get, Param, ParseUUIDPipe, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
+import { CurrentAuth } from '../auth/decorators';
+import { notFound } from '../common/app-exception';
+import { ApiZodResponse } from '../common/openapi';
+import type { AuthContext, MembershipContext } from '../common/request-context';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { CurrentMembership, MembershipGuard } from '../organizations/membership.guard';
+import { salonReportSchema, type SalonReport } from './reports.responses';
+import {
+  reportQuerySchema,
+  visitsCsvQuerySchema,
+  type ReportQuery,
+  type VisitsCsvQuery,
+} from './reports.schemas';
+import { CSV_LOCALES } from './visits-csv';
+import { ReportsService } from './reports.service';
+
+const locationIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Location') });
+
+@ApiTags('reports')
+@ApiBearerAuth()
+@Controller('organizations/:orgId/locations/:locationId/reports')
+@UseGuards(MembershipGuard)
+export class ReportsController {
+  constructor(private readonly reports: ReportsService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Salon report for a period: visits, revenue, clients, by specialist, service and day',
+    description:
+      'Owners and managers: the whole salon. A specialist: only their own visits, and only with the "viewOwnEarnings" permission (403 otherwise). At most 366 days.',
+  })
+  @ApiQuery({ name: 'from', example: '2026-11-01' })
+  @ApiQuery({ name: 'to', example: '2026-11-30' })
+  @ApiZodResponse(salonReportSchema)
+  get(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Query(new ZodValidationPipe(reportQuerySchema)) query: ReportQuery,
+  ): Promise<SalonReport> {
+    return this.reports.get(m, auth.userId, locationId, query);
+  }
+
+  @Get('visits-csv')
+  @ApiOperation({
+    summary: 'Every visit of a period as a CSV file for the accountant',
+    description:
+      'Same access as the report. UTF-8 with a byte order mark, ";" between columns, decimal comma (point for en); no client contacts.',
+  })
+  @ApiQuery({ name: 'from', example: '2026-11-01' })
+  @ApiQuery({ name: 'to', example: '2026-11-30' })
+  @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async visitsCsv(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Query(new ZodValidationPipe(visitsCsvQuerySchema)) query: VisitsCsvQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, fileName } = await this.reports.visitsCsv(
+      m,
+      auth.userId,
+      locationId,
+      query,
+      query.locale,
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
+  }
+}
