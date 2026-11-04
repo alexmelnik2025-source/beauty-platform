@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { LOCALES, useI18n } from '@/lib/i18n';
+import { DASHBOARD_LOCALES, LOCALES, useI18n } from '@/lib/i18n';
 
 export function Wordmark({ href }: { href?: string }) {
   const { locale } = useI18n();
@@ -14,14 +14,18 @@ export function Wordmark({ href }: { href?: string }) {
   );
 }
 
-/** Links to the same page in the other languages; `query` (e.g. "?embed=1") is kept. */
+/**
+ * Links to the same page in the other languages; `query` (e.g. "?embed=1") is kept. The salon
+ * dashboard offers only the languages it is fully translated into.
+ */
 export function LanguageSwitch({ query = '' }: { query?: string }) {
   const { locale, t } = useI18n();
   const pathname = usePathname() ?? `/${locale}`;
   const rest = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '');
+  const dashboard = /^\/(app|login|register|verify-email|invite)(\/|$)/.test(rest);
   return (
     <nav className="lang" aria-label={t.common.language}>
-      {LOCALES.map((l) => (
+      {(dashboard ? DASHBOARD_LOCALES : LOCALES).map((l) => (
         <a key={l} href={`/${l}${rest}${query}`} aria-current={l === locale} lang={l}>
           {l.toUpperCase()}
         </a>
