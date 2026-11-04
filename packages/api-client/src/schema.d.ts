@@ -1569,6 +1569,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What happened at the location between two local days (max 366 days)
+         * @description Visits, no-shows, cancellations and what the clients paid (after discounts), by staff member, service and day. Owners and managers of the location only.
+         */
+        get: operations["ReportsController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/auth/code": {
         parameters: {
             query?: never;
@@ -3371,6 +3391,65 @@ export interface components {
         PushPublicKey: {
             /** @description null: push messages are off on this server */
             publicKey: string | null;
+        };
+        SalonReport: {
+            from: string;
+            to: string;
+            /** @description ISO 4217 code of the location currency */
+            currency: string;
+            totals: {
+                /** @description Booked visits in the period (holds that were never confirmed are left out) */
+                appointments: number;
+                /** @description Visits the client came to */
+                completed: number;
+                noShow: number;
+                cancelledByClient: number;
+                cancelledBySalon: number;
+                /** @description Booked and not marked yet (came / did not come) */
+                upcoming: number;
+                /** @description Booked by the clients themselves online */
+                online: number;
+                /** @description "Came" visits marked as paid */
+                paidVisits: number;
+                /** @description What the clients paid for paid visits, after discounts, in hundredths of the location currency */
+                revenueGrosze: number;
+                /** @description Coupon and tier discounts on paid visits, in hundredths of the location currency */
+                discountGrosze: number;
+                /** @description revenueGrosze / paidVisits, rounded down; null without paid visits */
+                averageTicketGrosze: number | null;
+                /** @description No-shows out of came + did not come, rounded; null when neither */
+                noShowPercent: number | null;
+                /** @description Different clients who came */
+                clients: number;
+                /** @description Clients who came to the salon for the first time in this period */
+                newClients: number;
+            };
+            /** @description Staff members with visits in the period, most paid first */
+            byStaff: {
+                staffId: string;
+                displayName: string;
+                completed: number;
+                noShow: number;
+                paidVisits: number;
+                /** @description What the clients paid, in hundredths of the location currency */
+                revenueGrosze: number;
+            }[];
+            /** @description Services with visits in the period, most paid first */
+            byService: {
+                serviceId: string;
+                name: string;
+                completed: number;
+                paidVisits: number;
+                /** @description What the clients paid, in hundredths of the location currency */
+                revenueGrosze: number;
+            }[];
+            /** @description Every local day of the period, in order */
+            byDay: {
+                date: string;
+                completed: number;
+                /** @description What the clients paid, in hundredths of the location currency */
+                revenueGrosze: number;
+            }[];
         };
         Service: {
             id: string;
@@ -6752,6 +6831,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoyaltyCoupon"];
+                };
+            };
+        };
+    };
+    ReportsController_summary: {
+        parameters: {
+            query: {
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonReport"];
                 };
             };
         };

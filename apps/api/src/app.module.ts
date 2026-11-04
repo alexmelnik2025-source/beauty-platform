@@ -12,6 +12,7 @@ import { SmsModule } from './sms/sms.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PushModule } from './push/push.module';
+import { ReportsModule } from './reports/reports.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 
 @Module({
@@ -26,6 +27,7 @@ import { SchedulingModule } from './scheduling/scheduling.module';
     SchedulingModule,
     BookingModule,
     LoyaltyModule,
+    ReportsModule,
     ClientModule,
     PushModule,
     HealthModule,
