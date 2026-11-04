@@ -1014,8 +1014,20 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(kasiaApp.getByText('Kontakt widoczny tylko z uprawnieniem')).toBeVisible();
     await expect(kasiaApp.getByText(annaVisit.customer!.phone!)).toHaveCount(0);
     await shot(kasiaApp, '32a-business-app-staff-visit');
+    // The client card from the visit: her own visits with Anna, still no contacts.
+    await kasiaApp.getByRole('button', { name: 'Karta klienta', exact: true }).click();
+    await expect(kasiaApp.getByRole('heading', { name: 'Anna Kowalska' })).toBeVisible();
+    await expect(kasiaApp.getByText('Najbliższe wizyty')).toBeVisible();
+    await expect(kasiaApp.getByText(annaVisit.customer!.phone!)).toHaveCount(0);
+    await expect(kasiaApp.getByRole('button', { name: 'Klienci' })).toHaveCount(0);
+    await shot(kasiaApp, '32c-business-app-staff-client');
+    await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(
+      kasiaApp.getByRole('button', { name: 'Karta klienta', exact: true }),
+    ).toBeVisible();
     await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await expect(kasiaApp.getByRole('button', { name: 'Klienci' })).toHaveCount(0);
     // Her own schedule: weekly hours and time off, read only for a specialist.
     await kasiaApp.getByRole('button', { name: 'Mój grafik' }).click();
     await expect(kasiaApp.getByRole('heading', { name: 'Mój grafik' })).toBeVisible();
@@ -1045,6 +1057,35 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(ownerApp.getByText('Usługa', { exact: true })).toBeVisible();
     await expect(ownerApp.getByText(/można zaznaczyć, gdy wizyta się zacznie/)).toBeVisible();
     await shot(ownerApp, '33a-business-app-owner-visit');
+    await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // Clients: search, the card with contacts, the note and tags saved from the phone.
+    await ownerApp.getByRole('button', { name: 'Klienci' }).click();
+    await expect(ownerApp.getByRole('heading', { name: 'Klienci' })).toBeVisible();
+    await ownerApp.getByLabel('Szukaj: imię, telefon, e-mail lub tag').fill('Kowalska');
+    await ownerApp.getByRole('button', { name: 'Szukaj', exact: true }).click();
+    const annaRow = ownerApp.getByRole('button', {
+      name: 'Karta klienta: Anna Kowalska',
+      exact: true,
+    });
+    await expect(annaRow).toBeVisible();
+    await shot(ownerApp, '33b-business-app-owner-clients');
+    await annaRow.click();
+    await expect(ownerApp.getByRole('heading', { name: 'Anna Kowalska' })).toBeVisible();
+    await expect(
+      ownerApp.getByRole('button', { name: `Zadzwoń ${annaVisit.customer!.phone!}` }),
+    ).toBeVisible();
+    await expect(ownerApp.getByText('Historia wizyt')).toBeVisible();
+    await ownerApp.getByRole('button', { name: 'Zmień notatkę i tagi' }).click();
+    await ownerApp.getByLabel('Notatka', { exact: true }).fill('Lubi krótko po bokach.');
+    await ownerApp.getByLabel('Tagi', { exact: true }).fill('stała klientka, broda');
+    await ownerApp.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(ownerApp.getByText('Zapisano.')).toBeVisible();
+    await expect(ownerApp.getByText('Lubi krótko po bokach.')).toBeVisible();
+    await expect(ownerApp.getByText('stała klientka', { exact: true })).toBeVisible();
+    await shot(ownerApp, '33c-business-app-owner-client');
+    await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(annaRow).toBeVisible();
     await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
   } finally {
