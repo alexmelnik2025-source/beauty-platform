@@ -1010,3 +1010,7 @@ pnpm --filter @beauty/api-client generate
 - API: `GET /v1/organizations/:orgId/locations/:locationId/reports?from=&to=` (`ReportsService`, схема ответа
   `SalonReport`). Удержанные и истёкшие слоты не считаются. Тесты `apps/api/test/reports.spec.ts`, e2e
   `apps/web/e2e/reports.spec.ts`, скриншоты 74 (компьютер) и 74b (телефон).
+- Бизнес-приложение (задача 15): кнопка «Raporty» на экране дня (у владельца и менеджера; у мастера — с правом
+  «Widzi ceny i swoje wyniki»): «Ten miesiąc», «Poprzedni miesiąc», «Ostatnie 30 dni», те же цифры карточками и
+  списки по специалистам и услугам; «‹ Wróć» и кнопка «назад» Android возвращают в календарь. Код —
+  `apps/mobile-business/src/screens/ReportsScreen.tsx`, периоды — `src/reports.ts` (тесты), скриншот 75.
