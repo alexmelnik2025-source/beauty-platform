@@ -191,6 +191,13 @@ export const en: Dict = {
     to: 'To',
     createBlock: 'Block',
     removeBlock: 'Remove block',
+    repeatWeekly: 'Repeat every week',
+    repeatWeeks: 'For how many weeks',
+    repeatHint: 'The same time every week — e.g. visits that are still in Booksy.',
+    skippedWeeks: 'Blocked: {count}. These days stayed free because they have visits: {dates}.',
+    done: 'Done',
+    weeklySeries: 'Repeats every week',
+    removeSeries: 'Remove the whole series',
     events: {
       created: 'Added by the salon',
       confirmed: 'Confirmed by the client',

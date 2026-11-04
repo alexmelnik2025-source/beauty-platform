@@ -83,6 +83,7 @@ export type {
   Staff,
   StaffCategory,
   TimeBlock,
+  TimeBlockSeries,
   TimeOff,
   UnreadCount,
   WorkingHours,

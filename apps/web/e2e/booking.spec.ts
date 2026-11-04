@@ -456,6 +456,42 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(ownerPage, '53-owner-walk-in-card');
   await ownerPage.keyboard.press('Escape');
 
+  // Launch task L4: Ola's visits still kept in Booksy — the same time blocked every week. The
+  // first week already has Jan Kowalski at 20:00, so that day stays free and is named.
+  const weekLater = (date: string, weeks: number) =>
+    new Date(Date.parse(`${date}T12:00:00Z`) + weeks * 7 * 24 * 60 * 60_000)
+      .toISOString()
+      .slice(0, 10);
+  await ownerPage.goto(`/pl/app/calendar?date=${visit!.date}`);
+  await ownerPage
+    .getByRole('button', { name: /Nowa wizyta/ })
+    .first()
+    .click();
+  const weekly = ownerPage.getByRole('dialog');
+  await weekly.getByRole('button', { name: 'Zablokuj czas' }).click();
+  await weekly.getByLabel('Specjalista').selectOption(staffIds[1]!);
+  await weekly.getByLabel('Data').fill(visit!.date);
+  await weekly.getByLabel('Od', { exact: true }).fill('19:30');
+  await weekly.getByLabel('Do', { exact: true }).fill('20:15');
+  await weekly.getByLabel('Powód (np. szkolenie)').fill('Booksy');
+  await weekly.getByLabel('Powtarzaj co tydzień').check();
+  await weekly.getByLabel('Przez ile tygodni').fill('3');
+  await weekly.getByRole('button', { name: 'Zablokuj', exact: true }).click();
+  await expect(weekly.getByRole('status')).toContainText('Zablokowano 2.');
+  await shot(ownerPage, '70-owner-weekly-block');
+  await weekly.getByRole('button', { name: 'Gotowe' }).click();
+  await expect(weekly).toBeHidden();
+  await ownerPage.goto(`/pl/app/calendar?date=${weekLater(visit!.date, 1)}`);
+  await ownerPage.getByRole('button', { name: 'Booksy' }).first().click();
+  const seriesSheet = ownerPage.getByRole('dialog');
+  await expect(seriesSheet).toContainText('Powtarza się co tydzień');
+  await shot(ownerPage, '70b-owner-weekly-block-card');
+  await seriesSheet.getByRole('button', { name: 'Usuń całą serię' }).click();
+  await expect(seriesSheet).toBeHidden();
+  await expect(ownerPage.getByRole('button', { name: 'Booksy' })).toHaveCount(0);
+  await ownerPage.goto(`/pl/app/calendar?date=${weekLater(visit!.date, 2)}`);
+  await expect(ownerPage.getByRole('button', { name: 'Booksy' })).toHaveCount(0);
+
   // The other sections of the cabinet.
   await ownerPage.goto('/pl/app/services');
   await expect(ownerPage.getByText('Strzyżenie + broda').first()).toBeVisible();

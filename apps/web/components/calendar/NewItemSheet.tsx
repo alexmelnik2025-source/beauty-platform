@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
-import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { calendarErrorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
-import { clockToMinutes, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
-import type { Customer, Service, Staff } from '@/lib/types';
+import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
+import type { Customer, Service, Staff, TimeBlockSeries } from '@/lib/types';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { useSession } from '../Session';
@@ -50,6 +50,10 @@ export function NewItemSheet({
   const [time, setTime] = useState(minutesToClock(draft.minute));
   const [endTime, setEndTime] = useState(minutesToClock(Math.min(draft.minute + 60, 1435)));
   const [reason, setReason] = useState('');
+  // Launch task L4: the same time every week (e.g. visits still kept in Booksy).
+  const [repeat, setRepeat] = useState(false);
+  const [weeks, setWeeks] = useState(8);
+  const [skipped, setSkipped] = useState<{ count: number; dates: string[] } | null>(null);
   const [note, setNote] = useState('');
   const [search, setSearch] = useState('');
   const [found, setFound] = useState<Customer[]>([]);
@@ -96,11 +100,20 @@ export function NewItemSheet({
     try {
       if (kind === 'block') {
         const end = new Date(zonedToInstant(date, clockToMinutes(endTime), tz)).toISOString();
-        await api(`${base}/time-blocks`, {
-          method: 'POST',
-          idempotencyKey: key,
-          body: { staffId: staffId || null, start, end, reason: reason || undefined },
-        });
+        const body = { staffId: staffId || null, start, end, reason: reason || undefined };
+        if (repeat) {
+          const made = await api<TimeBlockSeries>(`${base}/time-blocks/series`, {
+            method: 'POST',
+            idempotencyKey: key,
+            body: { ...body, weeks },
+          });
+          if (made.skippedDates.length > 0) {
+            setSkipped({ count: made.items.length, dates: made.skippedDates });
+            return;
+          }
+        } else {
+          await api(`${base}/time-blocks`, { method: 'POST', idempotencyKey: key, body });
+        }
       } else {
         await api(`${base}/appointments`, {
           method: 'POST',
@@ -228,10 +241,47 @@ export function NewItemSheet({
         </div>
 
         {kind === 'block' ? (
-          <label className="field">
-            <span>{t.appointment.blockReason}</span>
-            <input value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} />
-          </label>
+          <>
+            <label className="field">
+              <span>{t.appointment.blockReason}</span>
+              <input value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} />
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={repeat}
+                onChange={(e) => setRepeat(e.target.checked)}
+              />
+              <span>{t.appointment.repeatWeekly}</span>
+            </label>
+            {repeat ? (
+              <label className="field">
+                <span>{t.appointment.repeatWeeks}</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={26}
+                  required
+                  value={weeks}
+                  onChange={(e) => setWeeks(Number(e.target.value))}
+                />
+                <span className="small muted">{t.appointment.repeatHint}</span>
+              </label>
+            ) : null}
+            {skipped ? (
+              <div className="note" role="status">
+                <p>
+                  {fill(t.appointment.skippedWeeks, {
+                    count: String(skipped.count),
+                    dates: skipped.dates.map((d) => formatDay(d, LOCALE_TAGS[locale])).join(', '),
+                  })}
+                </p>
+                <button type="button" className="btn" onClick={() => onCreated(date)}>
+                  {t.appointment.done}
+                </button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <>
             {canSearchClients && !customer ? (

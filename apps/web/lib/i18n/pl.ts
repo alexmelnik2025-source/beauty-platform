@@ -191,6 +191,13 @@ export const pl = {
     to: 'Do',
     createBlock: 'Zablokuj',
     removeBlock: 'Usuń blokadę',
+    repeatWeekly: 'Powtarzaj co tydzień',
+    repeatWeeks: 'Przez ile tygodni',
+    repeatHint: 'Ta sama godzina w każdym tygodniu — np. wizyty, które jeszcze są w Booksy.',
+    skippedWeeks: 'Zablokowano {count}. Te dni zostały wolne, bo są w nich wizyty: {dates}.',
+    done: 'Gotowe',
+    weeklySeries: 'Powtarza się co tydzień',
+    removeSeries: 'Usuń całą serię',
     events: {
       created: 'Dodana przez salon',
       confirmed: 'Potwierdzona przez klienta',

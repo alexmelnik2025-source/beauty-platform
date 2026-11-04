@@ -30,10 +30,15 @@ export function BlockSheet({
   const end = toLocal(block.end, tz);
   const staff = staffList.find((s) => s.id === block.staffId);
 
-  async function remove() {
+  async function remove(series = false) {
     setBusy(true);
     try {
-      await api(`${base}/time-blocks/${block.id}`, { method: 'DELETE' });
+      await api(
+        series && block.seriesId
+          ? `${base}/time-blocks/series/${block.seriesId}`
+          : `${base}/time-blocks/${block.id}`,
+        { method: 'DELETE' },
+      );
       onChanged();
       onClose();
     } catch (err) {
@@ -47,9 +52,26 @@ export function BlockSheet({
       title={t.calendar.blocked}
       onClose={onClose}
       footer={
-        <button type="button" className="btn btn--danger" disabled={busy} onClick={remove}>
-          {t.appointment.removeBlock}
-        </button>
+        <>
+          <button
+            type="button"
+            className="btn btn--danger"
+            disabled={busy}
+            onClick={() => void remove()}
+          >
+            {t.appointment.removeBlock}
+          </button>
+          {block.seriesId ? (
+            <button
+              type="button"
+              className="btn btn--quiet"
+              disabled={busy}
+              onClick={() => void remove(true)}
+            >
+              {t.appointment.removeSeries}
+            </button>
+          ) : null}
+        </>
       }
     >
       <ErrorBox>{error}</ErrorBox>
@@ -62,6 +84,12 @@ export function BlockSheet({
       <dl className="kv">
         <dt>{t.appointment.staff}</dt>
         <dd>{staff?.displayName ?? t.calendar.wholeSalon}</dd>
+        {block.seriesId ? (
+          <>
+            <dt>{t.appointment.repeatWeekly}</dt>
+            <dd>{t.appointment.weeklySeries}</dd>
+          </>
+        ) : null}
         {block.reason ? (
           <>
             <dt>{t.appointment.note}</dt>

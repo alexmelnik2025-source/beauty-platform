@@ -191,6 +191,14 @@ export const ru: Dict = {
     to: 'До',
     createBlock: 'Заблокировать',
     removeBlock: 'Снять блокировку',
+    repeatWeekly: 'Повторять каждую неделю',
+    repeatWeeks: 'Сколько недель',
+    repeatHint: 'То же время каждую неделю — например, визиты, которые ещё в Booksy.',
+    skippedWeeks:
+      'Заблокировано: {count}. Эти дни остались свободными, потому что в них есть визиты: {dates}.',
+    done: 'Готово',
+    weeklySeries: 'Повторяется каждую неделю',
+    removeSeries: 'Удалить всю серию',
     events: {
       created: 'Добавлена салоном',
       confirmed: 'Подтверждена клиентом',
