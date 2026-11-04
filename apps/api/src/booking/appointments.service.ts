@@ -682,6 +682,16 @@ export class AppointmentsService {
     if (requested && !m.permissions.bookOutsideHours) throw forbidden();
   }
 
+  /** Task 80b: the visit if this member may see it (same rule as the visit card), else 404. */
+  visible(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+  ): Promise<Appointment> {
+    return this.findVisible(m, userId, locationId, appointmentId);
+  }
+
   private async findVisible(
     m: MembershipContext,
     userId: string,

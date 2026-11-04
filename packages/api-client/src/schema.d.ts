@@ -1612,6 +1612,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/holds/{holdId}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The example photos added to the held time */
+        get: operations["PublicVisitPhotosController_listForHold"];
+        put?: never;
+        /**
+         * Add an example photo to the held time (at most 3)
+         * @description 409 PHOTOS_NOT_ASKED: the salon does not ask for photos for this service; 409 TOO_MANY_PHOTOS; 410 HOLD_EXPIRED; 413 PHOTO_TOO_LARGE; 415 UNSUPPORTED_PHOTO.
+         */
+        post: operations["PublicVisitPhotosController_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/holds/{holdId}/photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove an example photo from the held time */
+        delete: operations["PublicVisitPhotosController_removeFromHold"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The example photos of the visit (by the link from the email) */
+        get: operations["PublicVisitPhotosController_listByLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an example photo before the visit
+         * @description 409 TOO_LATE_TO_CHANGE once the visit has started.
+         */
+        delete: operations["PublicVisitPhotosController_removeByLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/visit-photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The picture behind a signed link (valid for an hour)
+         * @description Links come from the photo lists; an expired or changed link is 404.
+         */
+        get: operations["PublicVisitPhotosController_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The client's example photos for the visit
+         * @description Seen by whoever may open the visit (like its note); deleted 90 days after it.
+         */
+        get: operations["AppointmentPhotosController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/loyalty/program": {
         parameters: {
             query?: never;
@@ -4249,6 +4364,8 @@ export interface components {
                 priceFromGrosze: number;
                 /** @description Highest price among its specialists */
                 priceToGrosze: number;
+                /** @description Task 80b: "Pokaż, co chcesz" — up to 3 example photos when booking */
+                wishPhotos: boolean;
             }[];
             staff: {
                 id: string;
@@ -4453,6 +4570,8 @@ export interface components {
             categoryId: string | null;
             /** @description Calendar colour, #RRGGBB */
             color: string | null;
+            /** @description Task 80b: clients may add up to 3 example photos when booking it */
+            wishPhotos: boolean;
             version: number;
             createdAt: string;
             updatedAt: string;
@@ -4486,6 +4605,8 @@ export interface components {
             categoryId: string | null;
             /** @description Calendar colour, #RRGGBB */
             color: string | null;
+            /** @description Task 80b: clients may add up to 3 example photos when booking it */
+            wishPhotos: boolean;
             version: number;
             createdAt: string;
             updatedAt: string;
@@ -4758,6 +4879,26 @@ export interface components {
                  */
                 problem: "EXPIRED" | "NOT_FOR_SERVICE" | "NOT_COMBINABLE" | "NO_DISCOUNT" | null;
             }[];
+        };
+        VisitPhoto: {
+            id: string;
+            /** @description Signed link to the picture, valid for an hour (for <img>) */
+            url: string;
+            contentType: string;
+            sizeBytes: number;
+            createdAt: string;
+        };
+        VisitPhotoList: {
+            items: {
+                id: string;
+                /** @description Signed link to the picture, valid for an hour (for <img>) */
+                url: string;
+                contentType: string;
+                sizeBytes: number;
+                createdAt: string;
+            }[];
+            /** @description When the photos are deleted (90 days after the visit); null for a hold */
+            deleteAfter: string | null;
         };
         WaitlistJoined: {
             /** @description YYYY-MM-DD in the salon time zone */
@@ -5889,6 +6030,8 @@ export interface operations {
                     sortOrder?: number;
                     categoryId?: string | null;
                     color?: string | null;
+                    /** @default false */
+                    wishPhotos?: boolean;
                     staffIds?: string[];
                 };
             };
@@ -5968,6 +6111,7 @@ export interface operations {
                     sortOrder?: number;
                     categoryId?: string | null;
                     color?: string | null;
+                    wishPhotos?: boolean;
                     version: number;
                 };
             };
@@ -7839,6 +7983,172 @@ export interface operations {
                 };
                 content: {
                     "text/calendar": string;
+                };
+            };
+        };
+    };
+    PublicVisitPhotosController_listForHold: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-hold-token": string;
+                /** @description The holdToken of the hold */
+                "X-Hold-Token": string;
+            };
+            path: {
+                holdId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitPhotoList"];
+                };
+            };
+        };
+    };
+    PublicVisitPhotosController_add: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-hold-token": string;
+                /** @description The holdToken of the hold */
+                "X-Hold-Token": string;
+            };
+            path: {
+                holdId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The picture itself (not a form), at most 3 MB; the app shrinks it first */
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitPhoto"];
+                };
+            };
+        };
+    };
+    PublicVisitPhotosController_removeFromHold: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-hold-token": string;
+                /** @description The holdToken of the hold */
+                "X-Hold-Token": string;
+            };
+            path: {
+                holdId: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicVisitPhotosController_listByLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitPhotoList"];
+                };
+            };
+        };
+    };
+    PublicVisitPhotosController_removeByLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicVisitPhotosController_file: {
+        parameters: {
+            query: {
+                exp: string;
+                sig: string;
+            };
+            header?: never;
+            path: {
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AppointmentPhotosController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitPhotoList"];
                 };
             };
         };

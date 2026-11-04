@@ -2413,6 +2413,10 @@
                       }
                     ]
                   },
+                  "wishPhotos": {
+                    "default": false,
+                    "type": "boolean"
+                  },
                   "staffIds": {
                     "maxItems": 200,
                     "type": "array",
@@ -2586,6 +2590,9 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "wishPhotos": {
+                    "type": "boolean"
                   },
                   "version": {
                     "type": "integer",
@@ -6881,6 +6888,324 @@
         "summary": "The appointment behind a \"manage\" link as a calendar file (.ics)",
         "tags": [
           "public booking"
+        ]
+      }
+    },
+    "/v1/public/holds/{holdId}/photos": {
+      "post": {
+        "description": "409 PHOTOS_NOT_ASKED: the salon does not ask for photos for this service; 409 TOO_MANY_PHOTOS; 410 HOLD_EXPIRED; 413 PHOTO_TOO_LARGE; 415 UNSUPPORTED_PHOTO.",
+        "operationId": "PublicVisitPhotosController_add",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hold-token",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Hold-Token",
+            "in": "header",
+            "description": "The holdToken of the hold",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The picture itself (not a form), at most 3 MB; the app shrinks it first",
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitPhoto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Add an example photo to the held time (at most 3)",
+        "tags": [
+          "public booking"
+        ]
+      },
+      "get": {
+        "operationId": "PublicVisitPhotosController_listForHold",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hold-token",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Hold-Token",
+            "in": "header",
+            "description": "The holdToken of the hold",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitPhotoList"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The example photos added to the held time",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/holds/{holdId}/photos/{photoId}": {
+      "delete": {
+        "operationId": "PublicVisitPhotosController_removeFromHold",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "photoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hold-token",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Hold-Token",
+            "in": "header",
+            "description": "The holdToken of the hold",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Remove an example photo from the held time",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/photos": {
+      "get": {
+        "operationId": "PublicVisitPhotosController_listByLink",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitPhotoList"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The example photos of the visit (by the link from the email)",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/photos/{photoId}": {
+      "delete": {
+        "description": "409 TOO_LATE_TO_CHANGE once the visit has started.",
+        "operationId": "PublicVisitPhotosController_removeByLink",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "photoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Remove an example photo before the visit",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/visit-photos/{photoId}": {
+      "get": {
+        "description": "Links come from the photo lists; an expired or changed link is 404.",
+        "operationId": "PublicVisitPhotosController_file",
+        "parameters": [
+          {
+            "name": "photoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exp",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sig",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The picture behind a signed link (valid for an hour)",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/photos": {
+      "get": {
+        "description": "Seen by whoever may open the visit (like its note); deleted 90 days after it.",
+        "operationId": "AppointmentPhotosController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitPhotoList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The client's example photos for the visit",
+        "tags": [
+          "appointments"
         ]
       }
     },
@@ -16827,6 +17152,10 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
                   "description": "Highest price among its specialists"
+                },
+                "wishPhotos": {
+                  "type": "boolean",
+                  "description": "Task 80b: \"Pokaż, co chcesz\" — up to 3 example photos when booking"
                 }
               },
               "required": [
@@ -16837,7 +17166,8 @@
                 "durationMinutes",
                 "priceGrosze",
                 "priceFromGrosze",
-                "priceToGrosze"
+                "priceToGrosze",
+                "wishPhotos"
               ],
               "additionalProperties": false
             }
@@ -17695,6 +18025,10 @@
             "description": "Calendar colour, #RRGGBB",
             "type": "string"
           },
+          "wishPhotos": {
+            "type": "boolean",
+            "description": "Task 80b: clients may add up to 3 example photos when booking it"
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -17726,6 +18060,7 @@
           "sortOrder",
           "categoryId",
           "color",
+          "wishPhotos",
           "version",
           "createdAt",
           "updatedAt",
@@ -17844,6 +18179,10 @@
               "description": "Calendar colour, #RRGGBB",
               "type": "string"
             },
+            "wishPhotos": {
+              "type": "boolean",
+              "description": "Task 80b: clients may add up to 3 example photos when booking it"
+            },
             "version": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -17875,6 +18214,7 @@
             "sortOrder",
             "categoryId",
             "color",
+            "wishPhotos",
             "version",
             "createdAt",
             "updatedAt",
@@ -18941,6 +19281,86 @@
           "tier",
           "applied",
           "available"
+        ],
+        "additionalProperties": false
+      },
+      "VisitPhoto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Signed link to the picture, valid for an hour (for <img>)"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "contentType",
+          "sizeBytes",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "VisitPhotoList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Signed link to the picture, valid for an hour (for <img>)"
+                },
+                "contentType": {
+                  "type": "string"
+                },
+                "sizeBytes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "url",
+                "contentType",
+                "sizeBytes",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "deleteAfter": {
+            "nullable": true,
+            "description": "When the photos are deleted (90 days after the visit); null for a hold",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "deleteAfter"
         ],
         "additionalProperties": false
       },

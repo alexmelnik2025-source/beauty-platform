@@ -473,6 +473,7 @@ model Location {
   photos            Photo[]
   clientFavorites   ClientFavorite[]
   waitlist          WaitlistEntry[]
+  visitPhotos       VisitPhoto[]
 
   @@index([organizationId])
   @@map("location")
@@ -494,6 +495,8 @@ model Service {
   categoryId      String?  @map("category_id") @db.Uuid
   /// Calendar colour, "#RRGGBB".
   color           String?
+  /// Task 80b: clients may add up to 3 example photos ("Pokaż, co chcesz") when booking it.
+  wishPhotos      Boolean  @default(false) @map("wish_photos")
   version         Int      @default(1)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -582,6 +585,26 @@ model Photo {
 
   @@index([locationId])
   @@map("photo")
+}
+
+/// Task 80b: a client's example photo for a visit ("Pokaż, co chcesz"). Seen like the visit
+/// note; deleted 90 days after the visit, with an unconfirmed hold, or when the client erases data.
+model VisitPhoto {
+  id            String   @id @default(uuid()) @db.Uuid
+  appointmentId String   @map("appointment_id") @db.Uuid
+  locationId    String   @map("location_id") @db.Uuid
+  /// image/jpeg, image/png or image/webp — taken from the file's first bytes.
+  contentType   String   @map("content_type")
+  sizeBytes     Int      @map("size_bytes")
+  data          Bytes
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  location    Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@index([locationId])
+  @@map("visit_photo")
 }
 
 model StaffService {
@@ -813,6 +836,7 @@ model Appointment {
   verificationCode VerificationCode?
   accessTokens     AppointmentAccessToken[]
   loyaltyEntries   LoyaltyTransaction[]
+  wishPhotos       VisitPhoto[]
 
   @@index([locationId, startAt])
   @@index([staffId, startAt])
@@ -1031,7 +1055,7 @@ model LoyaltyProgram {
   createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   earnRules    LoyaltyEarnRule[]
   accounts     LoyaltyAccount[]
   rewards      LoyaltyReward[]

@@ -241,6 +241,8 @@ export class CustomerPrivacyService {
         await tx.$executeRaw`UPDATE appointment_event SET data = data - 'reason' WHERE appointment_id = ANY(${ids}::uuid[]) AND data ? 'reason'`;
         await tx.$executeRaw`UPDATE notification SET data = jsonb_set(data, '{customerName}', ${JSON.stringify(ANONYMIZED_NAME)}::jsonb) WHERE appointment_id = ANY(${ids}::uuid[]) AND data ? 'customerName'`;
         await tx.appointmentAccessToken.deleteMany({ where: { appointmentId: { in: ids } } });
+        // Task 80b: the client's example photos.
+        await tx.visitPhoto.deleteMany({ where: { appointmentId: { in: ids } } });
       }
       await this.audit.record(
         {

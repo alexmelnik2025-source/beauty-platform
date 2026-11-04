@@ -28,6 +28,8 @@ const serviceFields = {
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, 'use #RRGGBB')
     .nullable(),
+  /** Task 80b: clients may add up to 3 example photos when booking this service. */
+  wishPhotos: z.boolean(),
 };
 
 const staffIds = z.array(z.uuid()).max(200);
@@ -40,6 +42,7 @@ export const createServiceSchema = z.object({
   bufferMinutes: serviceFields.bufferMinutes.default(0),
   active: serviceFields.active.default(true),
   sortOrder: serviceFields.sortOrder.default(0),
+  wishPhotos: serviceFields.wishPhotos.default(false),
   /** Specialists who perform it; without them clients cannot book the service online. */
   staffIds: staffIds.optional(),
 });

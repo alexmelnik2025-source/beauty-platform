@@ -63,6 +63,9 @@ export const publicLocationSchema = responseSchema(
             .int()
             .describe('Lowest price among its specialists (task 62: each may have an own price)'),
           priceToGrosze: z.number().int().describe('Highest price among its specialists'),
+          wishPhotos: z
+            .boolean()
+            .describe('Task 80b: "Pokaż, co chcesz" — up to 3 example photos when booking'),
         }),
       ),
       staff: z.array(

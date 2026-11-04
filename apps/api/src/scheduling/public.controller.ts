@@ -141,6 +141,7 @@ export class PublicLocationsController {
           priceGrosze: s.priceGrosze,
           priceFromGrosze: range.fromGrosze,
           priceToGrosze: range.toGrosze,
+          wishPhotos: s.wishPhotos,
         };
       }),
       staff: listed.map((s) => ({
