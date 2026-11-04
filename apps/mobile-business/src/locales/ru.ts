@@ -97,6 +97,12 @@ export const ru: Dictionary = {
     history: 'История визитов',
     noVisits: 'В этом салоне визитов нет.',
     ownOnly: 'Вы видите только свои визиты с этим клиентом.',
+    bonuses: 'Программа лояльности',
+    stamps: 'Штампы: {count}',
+    points: 'Баллы: {count}',
+    tier: 'Уровень: {tier}',
+    coupons: 'Активные купоны',
+    until: 'до {date}',
     status: {
       held: 'Бронирование идёт',
       confirmed: 'Подтверждён',
