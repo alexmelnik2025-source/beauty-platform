@@ -23,6 +23,8 @@ const CLIENT = `photos-client-${run}@example.com`;
 const CLIENT2 = `photos-client2-${run}@example.com`;
 const DESKTOP = { width: 1280, height: 900 };
 const PHONE = { width: 390, height: 844 };
+/** The salon's own address: the API limits sign-ups, sign-ins and codes per address. */
+const OWNER_IP = { 'x-forwarded-for': '203.0.113.82' };
 /** A client of its own (the API limits holds and codes per address). */
 const CLIENT_IP = { 'x-forwarded-for': '203.0.113.80' };
 
@@ -34,15 +36,26 @@ async function json<T>(res: APIResponse): Promise<T> {
 }
 
 async function verifiedUser(api: APIRequestContext, email: string, name: string) {
-  await json(await api.post('/v1/auth/register', { data: { email, password: PASSWORD, name } }));
+  await json(
+    await api.post('/v1/auth/register', {
+      headers: OWNER_IP,
+      data: { email, password: PASSWORD, name },
+    }),
+  );
   const mail = await waitForEmail(email, /Potwierdź adres/);
   const token = /token=([^\s&]+)/.exec(mail.text)?.[1];
   expect(token, 'verification link').toBeTruthy();
   await json(
-    await api.post('/v1/auth/verify-email', { data: { token: decodeURIComponent(token!) } }),
+    await api.post('/v1/auth/verify-email', {
+      headers: OWNER_IP,
+      data: { token: decodeURIComponent(token!) },
+    }),
   );
   const login = await json<{ accessToken: string }>(
-    await api.post('/v1/auth/login', { data: { email, password: PASSWORD, clientType: 'mobile' } }),
+    await api.post('/v1/auth/login', {
+      headers: OWNER_IP,
+      data: { email, password: PASSWORD, clientType: 'mobile' },
+    }),
   );
   return { Authorization: `Bearer ${login.accessToken}` };
 }
@@ -127,6 +140,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
     viewport: DESKTOP,
     locale: 'pl-PL',
     timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: OWNER_IP,
   });
   const cabinet = await desk.newPage();
   await cabinet.goto('/pl/login');
@@ -219,7 +233,12 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   const businessApp = await serveApp('mobile-business');
   try {
     const phone = await (
-      await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true })
+      await browser.newContext({
+        viewport: PHONE,
+        locale: 'pl-PL',
+        isMobile: true,
+        extraHTTPHeaders: OWNER_IP,
+      })
     ).newPage();
     await phone.goto(businessApp.url);
     await phone.getByLabel('E-mail lub telefon').fill(OWNER);
