@@ -73,6 +73,18 @@ export function VisitScreen(props: {
     void refresh();
   }, [refresh]);
 
+  /** Task 22: the phone opens the visit's .ics file and offers to add it to its calendar. */
+  async function addToCalendar() {
+    setError('');
+    try {
+      const { url } = await api.calendarLink(visit.id);
+      await Linking.openURL(url);
+    } catch (e) {
+      if (!api.signedIn) return onSessionEnded();
+      setError(errorText(e, t));
+    }
+  }
+
   // Android "back" closes the card instead of the app.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -419,6 +431,14 @@ export function VisitScreen(props: {
         </View>
       ) : null}
 
+      {visit.status === 'confirmed' && !moving ? (
+        <Button
+          kind="secondary"
+          label={v.addToCalendar}
+          disabled={busy}
+          onPress={() => void addToCalendar()}
+        />
+      ) : null}
       {visit.salon.phone ? (
         <Button
           kind="secondary"

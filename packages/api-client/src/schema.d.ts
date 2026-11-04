@@ -1874,6 +1874,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/calendar-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A link to one of my visits as a calendar file (.ics), to open on the phone */
+        post: operations["ClientCalendarController_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/push-subscriptions/public-key": {
         parameters: {
             query?: never;
@@ -2406,6 +2423,10 @@ export interface components {
                 deleted: boolean;
                 updatedAt: string;
             }[];
+        };
+        CalendarLink: {
+            /** @description The visit as an .ics file; opening it adds the visit to the calendar */
+            url: string;
         };
         ClientAppointment: {
             id: string;
@@ -7396,6 +7417,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientAppointment"];
+                };
+            };
+        };
+    };
+    ClientCalendarController_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarLink"];
                 };
             };
         };

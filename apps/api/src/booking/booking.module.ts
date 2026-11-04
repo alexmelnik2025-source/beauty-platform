@@ -43,6 +43,6 @@ import { VisitCalendarService } from './visit-calendar.service';
     VisitCalendarService,
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
-  exports: [AppointmentWriter, OutboxService, PublicBookingService],
+  exports: [AppointmentWriter, OutboxService, PublicBookingService, VisitCalendarService],
 })
 export class BookingModule {}

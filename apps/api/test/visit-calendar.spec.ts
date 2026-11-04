@@ -251,3 +251,35 @@ describe('"Add to calendar" for a booked visit', () => {
     expect(res.text).toContain('BEGIN:VEVENT');
   });
 });
+
+describe('"Add to calendar" in the client app (task 22)', () => {
+  async function signIn(email: string): Promise<{ Authorization: string }> {
+    await ctx.http().post('/v1/client/auth/code').send({ email, locale: 'pl' }).expect(202);
+    const code = ctx.mail.lastTo(email)?.text.match(/\b(\d{6})\b/)?.[1];
+    const res = await ctx
+      .http()
+      .post('/v1/client/auth/verify')
+      .send({ email, code, clientType: 'mobile' })
+      .expect(200);
+    return { Authorization: `Bearer ${res.body.token}` };
+  }
+
+  it('gives a signed-in client a link to the calendar file of their own visit only', async () => {
+    const { id } = await book(at(day, 10));
+    const anna = await signIn(CLIENT.email);
+    const res = await ctx
+      .http()
+      .post(`/v1/client/appointments/${id}/calendar-link`)
+      .set(anna)
+      .expect(200);
+    expect(res.body.url).toMatch(/^http.+\/v1\/public\/appointments\/\S+\/calendar\.ics$/);
+    const token = /appointments\/(\S+)\/calendar\.ics$/.exec(res.body.url)?.[1] ?? '';
+    const file = await ics(token).expect(200);
+    expect(unfold(file.text)).toContain(`UID:${id}@beauty-platform`);
+
+    // Someone else's visit looks like a missing one; without signing in — 401.
+    const other = await signIn('someone.else@example.com');
+    await ctx.http().post(`/v1/client/appointments/${id}/calendar-link`).set(other).expect(404);
+    await ctx.http().post(`/v1/client/appointments/${id}/calendar-link`).expect(401);
+  });
+});

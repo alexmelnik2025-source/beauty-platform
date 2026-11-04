@@ -225,6 +225,15 @@ export class ClientApi {
    * Cancels a visit (until the salon's deadline — otherwise TOO_LATE_TO_CHANGE).
    * One key per tap of "Yes": a repeated request does not cancel twice.
    */
+  /** Task 22: a link to the visit as an .ics file; opening it adds the visit to the calendar. */
+  calendarLink(id: string): Promise<{ url: string }> {
+    return this.authed<{ url: string }>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/calendar-link`,
+      {},
+    );
+  }
+
   cancel(id: string, key: string = newRequestKey()): Promise<ClientAppointment> {
     return this.authed<ClientAppointment>(
       'POST',

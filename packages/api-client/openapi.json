@@ -7733,6 +7733,42 @@
         ]
       }
     },
+    "/v1/client/appointments/{id}/calendar-link": {
+      "post": {
+        "operationId": "ClientCalendarController_link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarLink"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A link to one of my visits as a calendar file (.ics), to open on the phone",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/me/push-subscriptions/public-key": {
       "get": {
         "operationId": "PushController_publicKey",
@@ -9647,6 +9683,19 @@
           "timeOff",
           "appointments",
           "blocks"
+        ],
+        "additionalProperties": false
+      },
+      "CalendarLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The visit as an .ics file; opening it adds the visit to the calendar"
+          }
+        },
+        "required": [
+          "url"
         ],
         "additionalProperties": false
       },

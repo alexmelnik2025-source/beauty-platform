@@ -1039,3 +1039,12 @@ pnpm --filter @beauty/api-client generate
 - Код: `apps/api/src/booking/ics.ts` (формат: экранирование, перенос длинных строк без разрыва букв),
   `visit-calendar.service.ts`, `visit-calendar.controller.ts`; тесты `test/visit-calendar.spec.ts`, шаг в
   `e2e/booking.spec.ts`.
+
+## «Dodaj do kalendarza» в клиентском приложении (задача 22)
+
+- В карточке будущего визита в приложении клиента (iPhone/Android) — кнопка «Dodaj do kalendarza» (6 языков):
+  приложение просит у сервера ссылку `POST /v1/client/appointments/:id/calendar-link` (только свой визит, чужой — 404) и открывает файл `.ics` — телефон предлагает добавить визит в календарь. Ссылка одноразово создаётся для
+  этого визита и действует, как ссылки из писем (до недели после визита). Файл тот же, что в задаче 20.
+- Код: `VisitCalendarService.linkForClient`, `apps/api/src/client/client-calendar.controller.ts`,
+  `apps/mobile-client/src/screens/VisitScreen.tsx`; тест в `test/visit-calendar.spec.ts`, шаг в
+  `e2e/booking.spec.ts`.
