@@ -57,6 +57,7 @@ export type {
   InvitationPreview,
   Location,
   LoyaltyAccount,
+  LoyaltyBonusRules,
   LoyaltyCoupon,
   LoyaltyProgram,
   LoyaltyReward,
