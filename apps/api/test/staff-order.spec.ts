@@ -102,11 +102,15 @@ describe('the order of the staff', () => {
   it('a moved staff member gets a new version, so an old edit form cannot undo the order', async () => {
     const kasia = await addStaff('Kasia');
     const ola = await addStaff('Ola');
-    const before = await ctx.http().get(`${base}/staff/${ola}`).set(owner.auth).expect(200);
+    // Kasia moves from first (sortOrder 0) to second (10); Ola keeps 0 and her version.
+    const before = await ctx.http().get(`${base}/staff/${kasia}`).set(owner.auth).expect(200);
+    const olaBefore = await ctx.http().get(`${base}/staff/${ola}`).set(owner.auth).expect(200);
     await order([ola, kasia]).expect(200);
+    const olaAfter = await ctx.http().get(`${base}/staff/${ola}`).set(owner.auth).expect(200);
+    expect(olaAfter.body.version).toBe(olaBefore.body.version);
     const stale = await ctx
       .http()
-      .patch(`${base}/staff/${ola}`)
+      .patch(`${base}/staff/${kasia}`)
       .set(owner.auth)
       .send({ version: before.body.version, bio: 'Barber' })
       .expect(409);
