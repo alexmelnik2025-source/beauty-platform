@@ -349,10 +349,10 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(bonusForm.getByText('Zapisano')).toBeVisible();
   await bonusForm.scrollIntoViewIfNeeded();
   await shot(page, '79-owner-loyalty-bonus-rules');
-  const bonus = await json<{ rules: { name: string; weekdays: number[]; multiplier: number }[] }>(
-    await request.get(`${orgBase}/loyalty/bonus-rules`, { headers: owner }),
-  );
-  expect(bonus.rules.map((r) => [r.name, r.weekdays, r.multiplier])).toEqual([
+  const bonusSaved = await json<{
+    rules: { name: string; weekdays: number[]; multiplier: number }[];
+  }>(await request.get(`${orgBase}/loyalty/bonus-rules`, { headers: owner }));
+  expect(bonusSaved.rules.map((r) => [r.name, r.weekdays, r.multiplier])).toEqual([
     ['Spokojne dni ×2', [1, 2, 3], 2],
   ]);
   // The visits below count stamps without bonuses.
