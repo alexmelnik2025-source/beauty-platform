@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type {
   BusinessApi,
@@ -17,6 +17,8 @@ import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { BlockScreen } from './BlockScreen';
 import { NotificationsScreen } from './NotificationsScreen';
 import { ClientsScreen } from './ClientsScreen';
+import { mayAddVisits, type MyRights } from '../newVisit';
+import { NewVisitScreen } from './NewVisitScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ScheduleScreen } from './ScheduleScreen';
 import { VisitScreen } from './VisitScreen';
@@ -54,6 +56,8 @@ export function DayScreen(props: {
   const [canChange, setCanChange] = useState(salon.role !== 'staff');
   const [mineId, setMineId] = useState<string | null>(null);
   const [mineOnly, setMineOnly] = useState(false);
+  const [rights, setRights] = useState<MyRights | null>(null);
+  const [adding, setAdding] = useState(false);
 
   // Once per salon: may this person mark visits, and are they one of the specialists?
   useEffect(() => {
@@ -68,6 +72,7 @@ export function DayScreen(props: {
       if (perms.status === 'fulfilled') {
         const p = perms.value.me;
         setMyPerms(p);
+        setRights(p);
         setCanChange(p.role !== 'staff' || p.permissions.changeOwnAppointments);
       }
       if (staff.status === 'fulfilled') setStaffList(staff.value);
@@ -80,7 +85,10 @@ export function DayScreen(props: {
     };
   }, [api, salon]);
 
+  // Only the newest answer is shown: tapping through days quickly must not leave an older day.
+  const latest = useRef(0);
   const load = useCallback(async () => {
+    const request = ++latest.current;
     setLoading(true);
     try {
       const [day, dayBlocks, bell] = await Promise.all([
@@ -88,14 +96,15 @@ export function DayScreen(props: {
         api.timeBlocks(salon.orgId, salon.locationId, date).catch(() => null),
         api.unreadNotifications().catch(() => null),
       ]);
+      if (request !== latest.current) return;
       if (bell) setUnread(bell.unread);
       setCalendar(day);
       setBlocks(dayBlocks ? { date, list: dayBlocks } : null);
       setError('');
     } catch (e) {
-      setError(errorText(e, t));
+      if (request === latest.current) setError(errorText(e, t));
     } finally {
-      setLoading(false);
+      if (request === latest.current) setLoading(false);
     }
   }, [api, salon, date, t]);
 
@@ -127,6 +136,32 @@ export function DayScreen(props: {
   }
 
   const targets = myPerms ? blockTargets(myPerms, staffList, mineId) : [];
+
+  if (adding && rights) {
+    return (
+      <NewVisitScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        today={today}
+        date={date}
+        me={rights}
+        mineId={mineId}
+        onBack={() => setAdding(false)}
+        onCreated={(visit) => {
+          // The new visit's card, and its day behind it.
+          // Another day loads by itself; the same day is read again (an older answer for the
+          // previous day must not arrive after the new one).
+          setAdding(false);
+          setOpenId(visit.id);
+          if (visit.date === date) void load();
+          else setDate(visit.date);
+        }}
+      />
+    );
+  }
 
   if (bellOpen) {
     return (
@@ -257,6 +292,9 @@ export function DayScreen(props: {
         />
         <Button kind="link" label={t.day.refresh} onPress={load} />
       </View>
+      {rights && mayAddVisits(rights, mineId) ? (
+        <Button label={t.newVisit.open} onPress={() => setAdding(true)} />
+      ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
 

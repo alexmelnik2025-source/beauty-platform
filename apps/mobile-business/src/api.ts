@@ -27,6 +27,22 @@ export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type TimeBlock = components['schemas']['TimeBlock'];
 export type TimeBlockList = components['schemas']['TimeBlockList'];
 export type NotificationList = components['schemas']['NotificationList'];
+export type ServiceList = components['schemas']['ServiceList'];
+export type Availability = components['schemas']['Availability'];
+/** What the salon sends to book a client (phone call, walk-in); see NewVisitScreen. */
+export interface NewAppointment {
+  serviceId: string;
+  staffId: string;
+  /** ISO instant on a 5-minute mark. */
+  start: string;
+  customerId?: string;
+  customer?: { name: string; phone: string; email?: string; locale?: Locale };
+  note?: string;
+  /** A walk-in entered afterwards (today or yesterday): saved as "came". */
+  alreadyHappened?: boolean;
+  /** With alreadyHappened: paid too, so loyalty stamps or points are earned. */
+  paid?: boolean;
+}
 export type {
   AppointmentDetail,
   Calendar,
@@ -291,6 +307,75 @@ export class BusinessApi {
     return this.authed<LoyaltyAccount>(
       'GET',
       `/v1/organizations/${enc(orgId)}/loyalty/accounts/${enc(customerId)}`,
+    );
+  }
+
+  /** The salon's services (with who performs each); inactive ones are left out on the screen. */
+  services(orgId: string, locationId: string): Promise<ServiceList> {
+    return this.authed<ServiceList>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services`,
+    );
+  }
+
+  /** Free start times of one specialist for a service on one day (salon-local date). */
+  availability(
+    orgId: string,
+    locationId: string,
+    query: { serviceId: string; staffId: string; date: string },
+  ): Promise<Availability> {
+    const params = new URLSearchParams({
+      serviceId: query.serviceId,
+      staffId: query.staffId,
+      from: query.date,
+      to: query.date,
+    }).toString();
+    return this.authed<Availability>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/availability?${params}`,
+    );
+  }
+
+  /** Books a client on behalf of the salon; the server checks the rights and the time again. */
+  createAppointment(
+    orgId: string,
+    locationId: string,
+    body: NewAppointment,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments`,
+      body,
+    );
+  }
+
+  /** Moves a confirmed visit to another free time of the same specialist; the client gets an email. */
+  reschedule(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    start: string,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/reschedule`,
+      { version, start },
+    );
+  }
+
+  /** Cancels a visit for the salon, with the reason the client reads in the email. */
+  cancel(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    reason: string,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/cancel`,
+      { version, reason },
     );
   }
 
