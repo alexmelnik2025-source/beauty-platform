@@ -47,3 +47,27 @@ export function groupByDay(
   }
   return groups;
 }
+
+/** "10 listopada 15:30" — a moment (ISO) shown in the salon's time zone, not the phone's. */
+export function formatMoment(iso: string, timeZone: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+    timeZone,
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso));
+}
+
+/** What the client can do with a visit on its card. */
+export function visitActions(visit: ClientAppointment): {
+  cancel: boolean;
+  /** Still ahead and confirmed, but past the salon's deadline — call the salon instead. */
+  tooLate: boolean;
+} {
+  const confirmed = visit.status === 'confirmed';
+  return {
+    cancel: confirmed && visit.canChange,
+    tooLate: confirmed && !visit.canChange && Date.parse(visit.end) > Date.now(),
+  };
+}

@@ -969,6 +969,39 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText('u: Kasia').first()).toBeVisible();
     await expect(phone.getByText('Potwierdzona').first()).toBeVisible();
     await shot(phone, '58b-client-app-visits');
+    // The visit card: details, cancel (asks first), call the salon, book the same again.
+    await phone
+      .getByRole('button', { name: /Strzyżenie męskie, Gestalt Barbershop/ })
+      .first()
+      .click();
+    await expect(phone.getByRole('heading', { name: 'Strzyżenie męskie' })).toBeVisible();
+    await expect(phone.getByText('Kasia', { exact: true })).toBeVisible();
+    await expect(phone.getByText(/Odwołać lub zmienić online możesz do/)).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Umów ponownie' })).toBeVisible();
+    await shot(phone, '59-client-app-visit');
+    await phone.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+    const cancelAsk = phone.getByRole('alertdialog');
+    await expect(cancelAsk).toContainText('Odwołać wizytę');
+    await shot(phone, '59a-client-app-cancel-ask');
+    // "Nie" changes nothing.
+    await cancelAsk.getByRole('button', { name: 'Nie', exact: true }).click();
+    await expect(cancelAsk).toBeHidden();
+    await expect(phone.getByText('Potwierdzona')).toBeVisible();
+    // "Book again" opens the same service and specialist on the booking page.
+    const [againPage] = await Promise.all([
+      phone.context().waitForEvent('page'),
+      phone.getByRole('button', { name: 'Umów ponownie' }).click(),
+    ]);
+    await againPage.waitForURL(new RegExp(`/pl/b/${location.slug}\\?service=.+`));
+    await againPage.close();
+    await phone.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+    await phone.getByRole('alertdialog').getByRole('button', { name: 'Tak, odwołaj' }).click();
+    await expect(phone.getByText('Wizyta odwołana.')).toBeVisible();
+    await expect(phone.getByText('Odwołana', { exact: true })).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Odwołaj wizytę' })).toBeHidden();
+    await shot(phone, '59b-client-app-cancelled');
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
     await phone.getByRole('tab', { name: 'Historia' }).click();
     await expect(phone.getByRole('tab', { name: 'Historia', selected: true })).toBeVisible();
     await phone.waitForLoadState('networkidle');

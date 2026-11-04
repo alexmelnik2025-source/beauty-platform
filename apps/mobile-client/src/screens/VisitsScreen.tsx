@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, ClientAppointment, ClientPerson, Locale, Scope } from '../api';
 import { errorText } from '../errors';
@@ -6,6 +6,7 @@ import { formatDay, formatPrice, groupByDay, salonAddress } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { VisitScreen } from './VisitScreen';
 
 /** "My visits": upcoming and past visits in every salon, found by the client's email. */
 export function VisitsScreen(props: {
@@ -25,6 +26,8 @@ export function VisitsScreen(props: {
   const [items, setItems] = useState<ClientAppointment[] | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState<ClientAppointment | null>(null);
+  const changed = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,6 +46,31 @@ export function VisitsScreen(props: {
     setItems(null);
     void load();
   }, [load]);
+
+  const closeVisit = useCallback(() => {
+    setOpen(null);
+    if (changed.current) {
+      changed.current = false;
+      void load();
+    }
+  }, [load]);
+  const visitChanged = useCallback(() => {
+    changed.current = true;
+  }, []);
+
+  if (open) {
+    return (
+      <VisitScreen
+        api={api}
+        t={t}
+        locale={locale}
+        visit={open}
+        onBack={closeVisit}
+        onChanged={visitChanged}
+        onSessionEnded={onSessionEnded}
+      />
+    );
+  }
 
   return (
     <ScrollView
@@ -88,7 +116,13 @@ export function VisitsScreen(props: {
             <View key={group.date} style={{ gap: 8 }}>
               <Text style={styles.day}>{formatDay(group.date, locale)}</Text>
               {group.items.map((visit) => (
-                <VisitCard key={visit.id} visit={visit} t={t} locale={locale} />
+                <VisitCard
+                  key={visit.id}
+                  visit={visit}
+                  t={t}
+                  locale={locale}
+                  onOpen={() => setOpen(visit)}
+                />
               ))}
             </View>
           ))
@@ -105,35 +139,47 @@ function VisitCard({
   visit,
   t,
   locale,
+  onOpen,
 }: {
   visit: ClientAppointment;
   t: Dictionary;
   locale: Locale;
+  onOpen: () => void;
 }) {
   const faded = visit.status === 'cancelled' || visit.status === 'expired';
   const address = salonAddress(visit.salon);
   return (
-    <Card>
-      <View style={styles.cardTop}>
-        <Text style={[styles.time, faded && styles.faded]}>{visit.time}</Text>
-        <Text
-          style={[
-            styles.badge,
-            visit.status === 'confirmed' && styles.badgeOk,
-            (visit.status === 'cancelled' || visit.status === 'no_show') && styles.badgeOff,
-          ]}
-        >
-          {t.visits.status[visit.status]}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${visit.time} ${visit.service.name}, ${visit.salon.name}`}
+      accessibilityHint={t.visit.open}
+      onPress={onOpen}
+      style={({ pressed }) => pressed && { opacity: 0.7 }}
+    >
+      <Card>
+        <View style={styles.cardTop}>
+          <Text style={[styles.time, faded && styles.faded]}>{visit.time}</Text>
+          <Text
+            style={[
+              styles.badge,
+              visit.status === 'confirmed' && styles.badgeOk,
+              (visit.status === 'cancelled' || visit.status === 'no_show') && styles.badgeOff,
+            ]}
+          >
+            {t.visits.status[visit.status]}
+          </Text>
+        </View>
+        <Text style={[styles.service, faded && styles.faded]}>{visit.service.name}</Text>
+        <Text style={styles.muted}>
+          {fill(t.visits.with, { staff: visit.staff.displayName })} ·{' '}
+          {visit.service.durationMinutes} {t.visits.minutes} ·{' '}
+          {formatPrice(visit.service.priceGrosze, locale)}
         </Text>
-      </View>
-      <Text style={[styles.service, faded && styles.faded]}>{visit.service.name}</Text>
-      <Text style={styles.muted}>
-        {fill(t.visits.with, { staff: visit.staff.displayName })} · {visit.service.durationMinutes}{' '}
-        {t.visits.minutes} · {formatPrice(visit.service.priceGrosze, locale)}
-      </Text>
-      <Text style={styles.salon}>{visit.salon.name}</Text>
-      {address ? <Text style={styles.muted}>{address}</Text> : null}
-    </Card>
+        <Text style={styles.salon}>{visit.salon.name}</Text>
+        {address ? <Text style={styles.muted}>{address}</Text> : null}
+        <Text style={styles.more}>{t.visit.open} ›</Text>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -165,6 +211,7 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   time: { fontSize: 22, fontWeight: '700', color: colors.ink },
   service: { fontSize: 17, fontWeight: '600', color: colors.ink },
+  more: { color: colors.ink, fontSize: 14, fontWeight: '600', marginTop: 6 },
   salon: { fontSize: 15, fontWeight: '600', color: colors.ink, marginTop: 6 },
   faded: { color: colors.muted, textDecorationLine: 'line-through' },
   badge: {

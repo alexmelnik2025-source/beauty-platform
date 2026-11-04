@@ -9,6 +9,7 @@ export function errorText(error: unknown, t: Dictionary): string {
   if (error instanceof ApiError) {
     if (error.code && NEW_CODE_NEEDED.includes(error.code)) return t.signIn.newCodeNeeded;
     if (error.code === 'INVALID_CODE') return t.signIn.badCode;
+    if (error.code === 'TOO_LATE_TO_CHANGE') return t.visit.tooLate;
     if (error.status === 429) return t.error.tooMany;
     if (error.status === 404) return t.error.notFound;
     return t.error.generic;

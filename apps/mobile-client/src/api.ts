@@ -28,6 +28,28 @@ export const PAGE_SIZE = 20;
 export function bookingUrl(webUrl: string, locale: Locale, slug: string): string {
   return `${webUrl.replace(/\/+$/, '')}/${locale}/b/${encodeURIComponent(slug)}`;
 }
+/**
+ * "Book again": the web booking page that starts with the same service and specialist.
+ * null when the salon no longer takes this service online.
+ */
+export function bookAgainUrl(
+  webUrl: string,
+  locale: Locale,
+  visit: ClientAppointment,
+): string | null {
+  if (!visit.bookAgain) return null;
+  const params = new URLSearchParams({ service: visit.bookAgain.serviceId });
+  if (visit.bookAgain.staffId) params.set('staff', visit.bookAgain.staffId);
+  return `${bookingUrl(webUrl, locale, visit.bookAgain.slug)}?${params.toString()}`;
+}
+
+/** A fresh Idempotency-Key: a second tap (or a retry after a lost answer) does the change once. */
+export function newRequestKey(): string {
+  const uuid = (globalThis.crypto as { randomUUID?: () => string } | undefined)?.randomUUID?.();
+  if (uuid) return uuid;
+  return `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export type {
   ClientAppointment,
   ClientAppointmentList,
@@ -131,6 +153,27 @@ export class ClientApi {
     return this.authed<ClientAppointmentList>('GET', `/v1/client/appointments?scope=${scope}`);
   }
 
+  /** One of my visits, as it is now (status, whether it can still be changed online). */
+  appointment(id: string): Promise<ClientAppointment> {
+    return this.authed<ClientAppointment>(
+      'GET',
+      `/v1/client/appointments/${encodeURIComponent(id)}`,
+    );
+  }
+
+  /**
+   * Cancels a visit (until the salon's deadline — otherwise TOO_LATE_TO_CHANGE).
+   * One key per tap of "Yes": a repeated request does not cancel twice.
+   */
+  cancel(id: string, key: string = newRequestKey()): Promise<ClientAppointment> {
+    return this.authed<ClientAppointment>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/cancel`,
+      {},
+      { 'idempotency-key': key },
+    );
+  }
+
   /** Salons open for online booking; `language` — spoken by the salon or one of its staff. No sign-in. */
   directory(
     query: { page?: number; language?: SpokenLanguage } = {},
@@ -154,18 +197,29 @@ export class ClientApi {
   }
 
   /** A signed-in call; a session the server no longer accepts signs out on this phone. */
-  private async authed<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async authed<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<T> {
     if (!this.token) throw new ApiError(401, 'Not signed in');
     try {
-      return await this.call<T>(method, path, body, this.token);
+      return await this.call<T>(method, path, body, this.token, extraHeaders);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) await this.forget();
       throw error;
     }
   }
 
-  private async call<T>(method: string, path: string, body?: unknown, token?: string): Promise<T> {
-    const headers: Record<string, string> = { accept: 'application/json' };
+  private async call<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    token?: string,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<T> {
+    const headers: Record<string, string> = { accept: 'application/json', ...extraHeaders };
     if (body !== undefined) headers['content-type'] = 'application/json';
     if (token) headers.authorization = `Bearer ${token}`;
     const res = await this.fetchFn(`${this.baseUrl}${path}`, {

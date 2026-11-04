@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   ApiError,
+  bookAgainUrl,
   bookingUrl,
   ClientApi,
+  type ClientAppointment,
+  newRequestKey,
   PAGE_SIZE,
   parseEmail,
   type TokenStore,
@@ -179,5 +182,85 @@ describe('catalogue (no sign-in)', () => {
     expect(bookingUrl('http://localhost:3000/', 'uk', 'gestalt-bema')).toBe(
       'http://localhost:3000/uk/b/gestalt-bema',
     );
+  });
+});
+
+describe('one visit', () => {
+  /** Remembers the headers too: cancelling must carry an Idempotency-Key. */
+  function recordingFetch(answer: (method: string, path: string) => [number, unknown?]) {
+    const calls: {
+      method: string;
+      path: string;
+      headers: Record<string, string>;
+      body?: string;
+    }[] = [];
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      const path = url.replace('https://api.test', '');
+      calls.push({
+        method,
+        path,
+        headers: (init?.headers ?? {}) as Record<string, string>,
+        body: init?.body ? String(init.body) : undefined,
+      });
+      const [status, data] = answer(method, path);
+      return new Response(JSON.stringify(data ?? {}), { status });
+    };
+    return { fetchFn, calls };
+  }
+
+  it('reads a visit and cancels it once per key, signed in', async () => {
+    const { fetchFn, calls } = recordingFetch((method, path) =>
+      path === '/v1/client/appointments/a1' && method === 'GET'
+        ? [200, { id: 'a1', status: 'confirmed' }]
+        : path === '/v1/client/appointments/a1/cancel' && method === 'POST'
+          ? [200, { id: 'a1', status: 'cancelled' }]
+          : [404],
+    );
+    const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
+    await api.restore().catch(() => null);
+    calls.length = 0;
+    expect((await api.appointment('a1')).status).toBe('confirmed');
+    expect((await api.cancel('a1', 'key-12345678')).status).toBe('cancelled');
+    const cancel = calls.at(-1)!;
+    expect(cancel.headers.authorization).toBe('Bearer session-token');
+    expect(cancel.headers['idempotency-key']).toBe('key-12345678');
+    expect(cancel.body).toBe('{}');
+  });
+
+  it('too late to cancel comes back with the code the screen explains', async () => {
+    const { fetchFn } = recordingFetch(() => [
+      409,
+      { error: { code: 'TOO_LATE_TO_CHANGE', message: 'Too late' } },
+    ]);
+    const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
+    await api.restore().catch(() => null);
+    const error = await api.cancel('a1').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe('TOO_LATE_TO_CHANGE');
+  });
+
+  it('request keys are new every time and fit the API rule (8–100 letters, digits, - _)', () => {
+    const a = newRequestKey();
+    const b = newRequestKey();
+    expect(a).not.toBe(b);
+    for (const key of [a, b]) expect(key).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
+  });
+
+  it('"book again" opens the same service and specialist on the web, or nothing', () => {
+    const visit = {
+      bookAgain: { slug: 'gestalt', serviceId: 's1', staffId: 'k1' },
+    } as ClientAppointment;
+    expect(bookAgainUrl('http://localhost:3000', 'ru', visit)).toBe(
+      'http://localhost:3000/ru/b/gestalt?service=s1&staff=k1',
+    );
+    expect(
+      bookAgainUrl('http://localhost:3000', 'pl', {
+        bookAgain: { slug: 'gestalt', serviceId: 's1', staffId: null },
+      } as ClientAppointment),
+    ).toBe('http://localhost:3000/pl/b/gestalt?service=s1');
+    expect(
+      bookAgainUrl('http://localhost:3000', 'pl', { bookAgain: null } as ClientAppointment),
+    ).toBe(null);
   });
 });
