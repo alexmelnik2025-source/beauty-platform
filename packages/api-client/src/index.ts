@@ -13,6 +13,8 @@ type Schemas = components['schemas'];
 
 /** The salon page for clients (`GET /v1/public/locations/{slug}`). */
 export type PublicLocation = Schemas['PublicLocation'];
+/** Booking terms and privacy policy of a salon (`GET …/legal`). */
+export type PublicLegalTexts = Schemas['PublicLegalTexts'];
 /** Free start times (`GET …/availability`). */
 export type Availability = Schemas['Availability'];
 export type Slot = Schemas['Slot'];
@@ -42,6 +44,8 @@ export type Session = Schemas['SessionList'][number];
 /** Salon cabinet: organizations, locations and the catalogue. */
 export type Organization = Schemas['Organization'];
 export type Location = Schemas['Location'];
+/** Templates of the legal texts with the salon details filled in. */
+export type LegalTemplates = Schemas['LegalTemplates'];
 export type ServiceCategory = Schemas['ServiceCategory'];
 export type Service = Schemas['Service'];
 export type Staff = Schemas['Staff'];

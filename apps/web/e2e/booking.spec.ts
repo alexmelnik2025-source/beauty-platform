@@ -284,8 +284,23 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await client.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
   await client.getByLabel('Telefon').fill('600 100 200');
   await client.getByLabel('E-mail').fill(CLIENT);
-  await client.getByLabel(/Akceptuję zasady/).check();
+  await client.getByLabel(/Akceptuję regulamin rezerwacji/).check();
   await shot(client, '04-client-details');
+  // Launch task L1: the consent links to the salon's own booking terms and privacy policy.
+  await expect(client.getByRole('link', { name: 'regulamin rezerwacji' })).toHaveAttribute(
+    'href',
+    `/pl/b/${location.slug}/regulamin`,
+  );
+  await expect(client.getByRole('link', { name: 'politykę prywatności' })).toHaveAttribute(
+    'href',
+    `/pl/b/${location.slug}/privacy`,
+  );
+  const termsPage = await client.context().newPage();
+  await termsPage.goto(`/pl/b/${location.slug}/regulamin`);
+  await expect(termsPage.getByRole('heading', { name: 'Regulamin rezerwacji' })).toBeVisible();
+  await expect(termsPage.getByText('Zmiany do 2 godzin przed wizytą.')).toBeVisible();
+  await shot(termsPage, '66-client-booking-terms');
+  await termsPage.close();
   await client.getByRole('button', { name: 'Wyślij kod' }).click();
 
   const codeMail = await waitForEmail(CLIENT, /Kod potwierdzenia/);
@@ -610,6 +625,21 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.emulateMedia({ media: 'screen' });
   await expect(ownerPage.locator('html')).not.toHaveClass(/print-qr/);
   await expect(ownerPage.getByLabel('Krótki link')).toBeVisible();
+  // Launch task L1: the salon's booking terms and privacy policy, with a template to start from.
+  const terms = ownerPage.getByLabel('Regulamin rezerwacji', { exact: true });
+  await expect(terms).toHaveValue(/^# Regulamin rezerwacji/);
+  const privacy = ownerPage.getByLabel('Polityka prywatności', { exact: true });
+  ownerPage.once('dialog', (dialog) => void dialog.accept());
+  await ownerPage
+    .getByRole('region', { name: 'Regulamin i prywatność' })
+    .getByRole('button', { name: 'Wstaw szablon' })
+    .nth(1)
+    .click();
+  await expect(privacy).toHaveValue(/Polityka prywatności rezerwacji online — Gestalt Barbershop/);
+  await expect(privacy).toHaveValue(/Administratorem danych jest GESTALT,/);
+  await expect(ownerPage.getByText(/Do uzupełnienia: .*\{KRS\}/)).toBeVisible();
+  await privacy.scrollIntoViewIfNeeded();
+  await shot(ownerPage, '65-owner-legal-texts');
   // The place on the catalogue map, pasted as Google Maps copies it.
   const place = ownerPage.getByLabel('Miejsce na mapie katalogu');
   await expect(place).toHaveValue('52.2325, 20.9563');
@@ -622,12 +652,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const savedLocation = await json<{
     languages: string[];
     description: string | null;
+    privacyPolicy: string | null;
     latitude: number | null;
     longitude: number | null;
   }>(await request.get(base, { headers: owner }));
   expect([savedLocation.latitude, savedLocation.longitude]).toEqual([52.23251, 20.95634]);
   expect(savedLocation.languages).toEqual(['pl', 'uk', 'ru', 'be']);
   expect(savedLocation.description).toBe('Barbershop na Woli. Zapraszamy!');
+  expect(savedLocation.privacyPolicy).toMatch(/^# Polityka prywatności rezerwacji online/);
   // Salon photos: two big pictures, shrunk before upload and saved at once; one removed.
   await expect(ownerPage.getByText('0 z 10', { exact: true })).toBeVisible();
   await ownerPage
@@ -738,7 +770,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ola.getByLabel('Imię i nazwisko').fill('Ola Wiśniewska');
   await ola.getByLabel('Telefon').fill('600 300 400');
   await ola.getByLabel('E-mail').fill(CLIENT2);
-  await ola.getByLabel(/Akceptuję zasady/).check();
+  await ola.getByLabel(/Akceptuję regulamin rezerwacji/).check();
   await ola.getByLabel(/Zapamiętaj mnie/).check();
   await shot(ola, '24-client-remember-me');
   await ola.getByRole('button', { name: 'Wyślij kod' }).click();
@@ -779,7 +811,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await piotr.getByLabel('Imię i nazwisko').fill('Piotr Zieliński');
   await piotr.getByLabel('Telefon').fill('600 500 600');
   await piotr.getByLabel('E-mail').fill(CLIENT3);
-  await piotr.getByLabel(/Akceptuję zasady/).check();
+  await piotr.getByLabel(/Akceptuję regulamin rezerwacji/).check();
   await expect(piotr.getByRole('button', { name: 'E-mail', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',

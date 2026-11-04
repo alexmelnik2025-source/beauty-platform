@@ -517,7 +517,17 @@ export function BookingFlow({ slug }: { slug: string }) {
                 checked={contact.acceptTerms}
                 onChange={(e) => setContact({ ...contact, acceptTerms: e.target.checked })}
               />
-              <span>{t.booking.acceptTerms}</span>
+              <span>
+                {t.legal.acceptBefore}
+                <a href={`/${locale}/b/${slug}/regulamin`} target="_blank" rel="noopener">
+                  {t.legal.acceptTerms}
+                </a>
+                {t.legal.acceptMiddle}
+                <a href={`/${locale}/b/${slug}/privacy`} target="_blank" rel="noopener">
+                  {t.legal.acceptPrivacy}
+                </a>
+                {t.legal.acceptAfter}
+              </span>
             </label>
             <label className="check">
               <input

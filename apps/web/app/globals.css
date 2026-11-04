@@ -1981,3 +1981,48 @@ label.btn:focus-within {
 .bonus-card .chip {
   flex: none;
 }
+
+/* Booking terms and privacy policy written by the salon (Markdown subset). */
+.legal-page {
+  display: grid;
+  gap: 12px;
+  padding-block: 24px;
+  justify-items: start;
+}
+.markdown {
+  line-height: 1.6;
+  max-width: 70ch;
+}
+.markdown h1 {
+  font-size: 1.5rem;
+  margin: 0 0 12px;
+}
+.markdown h2 {
+  font-size: 1.15rem;
+  margin: 20px 0 8px;
+}
+.markdown h3 {
+  font-size: 1rem;
+  margin: 16px 0 6px;
+}
+.markdown p,
+.markdown ol,
+.markdown ul {
+  margin: 0 0 10px;
+}
+.markdown ol,
+.markdown ul {
+  padding-inline-start: 22px;
+}
+.markdown li + li {
+  margin-top: 4px;
+}
+.markdown blockquote {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-inline-start: 3px solid currentColor;
+  opacity: 0.8;
+}
+.markdown a {
+  overflow-wrap: anywhere;
+}

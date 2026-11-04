@@ -221,8 +221,6 @@ export const pl = {
     phone: 'Telefon',
     email: 'E-mail',
     emailHint: 'Wyślemy tu kod potwierdzenia i szczegóły wizyty.',
-    acceptTerms:
-      'Akceptuję zasady rezerwacji salonu i przetwarzanie danych w celu realizacji wizyty.',
     marketing: 'Chcę dostawać wiadomości o nowościach salonu.',
     sendCode: 'Wyślij kod',
     codeTitle: 'Kod z e-maila',
@@ -691,6 +689,27 @@ export const pl = {
     joined: 'Jesteś w zespole.',
     invalid: 'To zaproszenie jest nieaktualne. Poproś o nowe.',
     wrongEmail: 'Jesteś zalogowany(a) na inny adres. Wyloguj się i zaloguj na {email}.',
+  },
+  legal: {
+    title: 'Regulamin i prywatność',
+    hint: 'Klienci akceptują te teksty przy rezerwacji. Bez nich nie można włączyć rezerwacji online.',
+    terms: 'Regulamin rezerwacji',
+    privacy: 'Polityka prywatności',
+    markdownHint: 'Nagłówki: # Tytuł, ## Rozdział. Listy: 1. lub -. Pusta linia — nowy akapit.',
+    useTemplate: 'Wstaw szablon',
+    replaceAsk: 'Zastąpić obecny tekst szablonem?',
+    templateNote:
+      'Wstawiono szablon z danymi salonu. Uzupełnij pola w nawiasach { } i sprawdź treść z prawnikiem — to nie jest porada prawna. Tekst zapisze się po kliknięciu „Zapisz”.',
+    missing: 'Do uzupełnienia: {list}',
+    preview: 'Zobacz, jak widzą to klienci',
+    notWritten: 'Salon nie dodał jeszcze tego dokumentu. Zapytaj w salonie.',
+    back: '‹ Wróć do rezerwacji',
+    updated: 'Ostatnia zmiana: {date}',
+    acceptBefore: 'Akceptuję ',
+    acceptTerms: 'regulamin rezerwacji',
+    acceptMiddle: ' i ',
+    acceptPrivacy: 'politykę prywatności',
+    acceptAfter: ' salonu.',
   },
 };
 

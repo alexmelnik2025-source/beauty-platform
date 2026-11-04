@@ -9,10 +9,17 @@ import { normalizePhone } from '@/components/calendar/NewItemSheet';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatCoordinates, parseCoordinates } from '@/lib/coordinates';
-import { errorText, useI18n } from '@/lib/i18n';
-import type { Location } from '@/lib/types';
+import { errorText, fill, useI18n } from '@/lib/i18n';
+import type { LegalTemplates, Location } from '@/lib/types';
 
 type LocationSettings = Location;
+type LegalKey = 'bookingTerms' | 'privacyPolicy';
+const LEGAL_KEYS: LegalKey[] = ['bookingTerms', 'privacyPolicy'];
+
+/** Placeholders like {KRS} that the salon still has to replace, each once. */
+function placeholders(...texts: (string | null)[]): string[] {
+  return [...new Set(texts.join('\n').match(/\{[A-Z_]+\}/g) ?? [])];
+}
 
 export default function SettingsPage() {
   const { t, locale } = useI18n();
@@ -25,6 +32,7 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [coordinates, setCoordinates] = useState('');
+  const [templateNote, setTemplateNote] = useState(false);
 
   useEffect(() => {
     api<LocationSettings>(url)
@@ -73,11 +81,20 @@ export default function SettingsPage() {
           slotStepMinutes: form.slotStepMinutes,
           languages: form.languages,
           description: form.description ?? '',
+          // Only when changed: a salon that took bookings before the texts existed can still
+          // save its other settings.
+          ...Object.fromEntries(
+            LEGAL_KEYS.filter((key) => (form[key] ?? '') !== (loc[key] ?? '')).map((key) => [
+              key,
+              form[key] ?? '',
+            ]),
+          ),
         },
       });
       setLoc(saved);
       setForm(saved);
       setCoordinates(formatCoordinates(saved.latitude, saved.longitude));
+      setTemplateNote(false);
       setMessage(t.actions.saved);
       void session.reload();
     } catch (err) {
@@ -86,6 +103,21 @@ export default function SettingsPage() {
       setBusy(false);
     }
   }
+
+  async function insertTemplate(key: LegalKey) {
+    if (!form) return;
+    if (form[key]?.trim() && !window.confirm(t.legal.replaceAsk)) return;
+    setError('');
+    try {
+      const templates = await api<LegalTemplates>(`${url}/legal-templates`);
+      setForm({ ...form, [key]: templates[key] });
+      setTemplateNote(true);
+    } catch (err) {
+      setError(errorText(t, err));
+    }
+  }
+
+  const missing = placeholders(form.bookingTerms, form.privacyPolicy);
 
   return (
     <>
@@ -179,6 +211,44 @@ export default function SettingsPage() {
               </select>
             </label>
           </div>
+        </section>
+        <section className="section" aria-labelledby="legal-title">
+          <h2 id="legal-title">{t.legal.title}</h2>
+          <p className="small muted">{t.legal.hint}</p>
+          {LEGAL_KEYS.map((key) => (
+            <div className="field" key={key}>
+              <label className="field">
+                <span>{key === 'bookingTerms' ? t.legal.terms : t.legal.privacy}</span>
+                <textarea rows={8} maxLength={50000} value={form[key] ?? ''} onChange={text(key)} />
+              </label>
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  onClick={() => void insertTemplate(key)}
+                >
+                  {t.legal.useTemplate}
+                </button>
+                {loc[key] ? (
+                  <a
+                    className="btn btn--quiet"
+                    href={`/${locale}/b/${loc.slug}/${key === 'bookingTerms' ? 'regulamin' : 'privacy'}`}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {t.legal.preview}
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ))}
+          <span className="small muted">{t.legal.markdownHint}</span>
+          {templateNote ? <p className="note">{t.legal.templateNote}</p> : null}
+          {missing.length > 0 ? (
+            <p className="note" role="status">
+              {fill(t.legal.missing, { list: missing.join(', ') })}
+            </p>
+          ) : null}
         </section>
         <ShareBooking slug={loc.slug} name={loc.name} />
         <section className="section">
