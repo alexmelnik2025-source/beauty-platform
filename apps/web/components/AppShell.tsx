@@ -34,6 +34,7 @@ export function menuItems(
     manager && { href: at('services'), label: t.nav.services },
     manager && { href: at('team'), label: t.nav.team },
     manager && { href: at('loyalty'), label: t.nav.loyalty },
+    manager && { href: at('reports'), label: t.nav.reports },
     !manager && { href: at('schedule'), label: t.more.schedule },
     manager && { href: at('settings'), label: t.nav.settings },
     session.me.isPlatformAdmin && { href: at('admin/outbox'), label: t.more.admin },

@@ -101,6 +101,7 @@ export type LoyaltyCoupon = Schemas['LoyaltyCoupon'];
 export type LoyaltyTiers = Schemas['LoyaltyTiers'];
 /** Coupons on a visit and the client's unused ones (`GET …/appointments/{id}/coupons`). */
 export type VisitCoupons = Schemas['VisitCoupons'];
+export type SalonReport = Schemas['SalonReport'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

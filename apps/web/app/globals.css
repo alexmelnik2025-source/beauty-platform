@@ -2033,3 +2033,91 @@ label.btn:focus-within {
   grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
   gap: 8px;
 }
+
+/* ── Reports (task 14) ───────────────────────────────── */
+
+.report-periods button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.report-periods button[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.report-card strong {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--steel);
+}
+
+.report-bar {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  height: 100%;
+  min-width: 2px;
+}
+
+.report-bar span {
+  width: 100%;
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+  background: var(--ink);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-table th,
+.report-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+.report-table th:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+
+.report-table thead th {
+  color: var(--graphite);
+  font-size: 0.8rem;
+  font-weight: 500;
+}

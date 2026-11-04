@@ -974,3 +974,8 @@ pnpm --filter @beauty/api-client generate
   после купонов и скидки уровня), скидки, средний чек, клиенты и новые клиенты (первый визит в салоне — в этом
   периоде). По мастерам и услугам (больше выручки — выше) и по каждому дню периода.
 - Считается из самих визитов при каждом запросе — всегда актуально, ничего не хранится. Тесты `test/reports.spec.ts`.
+- Кабинет (часть 2): «Raporty» в меню владельца и менеджера (на телефоне — в «Więcej»): период «Ten tydzień»,
+  «Ten miesiąc» (по умолчанию), «Poprzedni miesiąc» или «Własny okres» (Od / Do); карточки итогов («Zapłacono»,
+  «Średni rachunek», «Nieobecności» с %, «Odwołane», «Klienci / Nowi», «Zapisy online»), столбики «Dzień po dniu»
+  (выручка за день), таблицы «Specjaliści» и «Usługi». 4 языка. e2e `e2e/reports.spec.ts`, скриншоты
+  `74-owner-reports`, `74a-owner-reports-phone`.
