@@ -433,6 +433,7 @@ model Location {
   timeBlocks        TimeBlock[]
   serviceCategories ServiceCategory[]
   photos            Photo[]
+  clientFavorites   ClientFavorite[]
 
   @@index([organizationId])
   @@map("location")
@@ -847,9 +848,24 @@ model Person {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
 
-  sessions ClientSession[]
+  sessions  ClientSession[]
+  favorites ClientFavorite[]
 
   @@map("person")
+}
+
+/// A salon the client keeps in "Favourite salons" in the client app (one row per person and salon).
+model ClientFavorite {
+  personId   String   @map("person_id") @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  person   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([personId, locationId])
+  @@index([locationId])
+  @@map("client_favorite")
 }
 
 /// One-time 6-digit sign-in code for the client app. Only the hash is stored.
