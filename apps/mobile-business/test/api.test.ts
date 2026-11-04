@@ -220,4 +220,30 @@ describe('BusinessApi', () => {
       [`DELETE ${base}/time-off/t1`, undefined],
     ]);
   });
+  it('books a client: services, free times, client search and the new visit', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a1', 'r2-refresh-token-0123456789')],
+      'GET /v1/organizations/o1/locations/l1/services': () => [200, []],
+      'GET /v1/organizations/o1/locations/l1/availability?serviceId=v1&staffId=s1&from=2026-11-05&to=2026-11-05':
+        () => [200, { timezone: 'Europe/Warsaw', serviceId: 'v1', durationMinutes: 30, slots: [] }],
+      'GET /v1/organizations/o1/customers?search=Jan+N&limit=20': () => [200, []],
+      'POST /v1/organizations/o1/locations/l1/appointments': () => [201, { id: 'a9' }],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('saved-refresh-token-0123456789'),
+      fetchFn,
+    );
+    await api.services('o1', 'l1');
+    await api.availability('o1', 'l1', { serviceId: 'v1', staffId: 's1', date: '2026-11-05' });
+    await api.customers('o1', 'Jan N');
+    const body = {
+      serviceId: 'v1',
+      staffId: 's1',
+      start: '2026-11-05T08:00:00Z',
+      customer: { name: 'Jan', phone: '+48600100200', locale: 'pl' as const },
+    };
+    await expect(api.createAppointment('o1', 'l1', body)).resolves.toEqual({ id: 'a9' });
+    expect(calls.at(-1)).toMatchObject({ body, auth: 'Bearer a1' });
+  });
 });
