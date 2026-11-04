@@ -1115,6 +1115,30 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(annaRow).toBeVisible();
     await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // Blocked time (task 19): a month later, when nothing is booked, the whole salon 12:00–12:30.
+    for (let i = 0; i < 30; i++) {
+      await ownerApp.getByRole('button', { name: 'Następny dzień' }).click();
+    }
+    await expect(ownerApp.getByText('Brak wizyt tego dnia.')).toBeVisible();
+    await ownerApp.getByRole('button', { name: '+ Zablokuj czas' }).click();
+    await expect(ownerApp.getByRole('heading', { name: 'Zablokuj czas' })).toBeVisible();
+    await ownerApp.getByRole('button', { name: 'Cały salon' }).click();
+    await ownerApp.getByRole('button', { name: 'Do: 15 minut wcześniej' }).click();
+    await ownerApp.getByRole('button', { name: 'Do: 15 minut wcześniej' }).click();
+    await expect(ownerApp.getByLabel('Do 12:30')).toBeVisible();
+    await ownerApp.getByLabel('Powód (np. przerwa)').fill('Szkolenie zespołu');
+    await shot(ownerApp, '33d-business-app-block-time');
+    await ownerApp.getByRole('button', { name: 'Zablokuj', exact: true }).click();
+    await expect(
+      ownerApp.getByText('Czas zablokowany — klienci nie zapiszą się w tych godzinach.'),
+    ).toBeVisible();
+    await expect(ownerApp.getByText('12:00–12:30 · Cały salon')).toBeVisible();
+    await expect(ownerApp.getByText('Szkolenie zespołu')).toBeVisible();
+    await shot(ownerApp, '33e-business-app-blocked-day');
+    await ownerApp.getByRole('button', { name: 'Odblokuj 12:00–12:30' }).click();
+    await ownerApp.getByRole('button', { name: 'Tak, odblokuj' }).click();
+    await expect(ownerApp.getByText('Czas odblokowany.')).toBeVisible();
+    await expect(ownerApp.getByText('12:00–12:30 · Cały salon')).toHaveCount(0);
   } finally {
     businessApp.server.close();
   }
