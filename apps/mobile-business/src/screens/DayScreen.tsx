@@ -116,10 +116,12 @@ export function DayScreen(props: {
         onBack={() => setAdding(false)}
         onCreated={(visit) => {
           // The new visit's card, and its day behind it.
+          // Another day loads by itself; the same day is read again (an older answer for the
+          // previous day must not arrive after the new one).
           setAdding(false);
-          setDate(visit.date);
           setOpenId(visit.id);
-          void load();
+          if (visit.date === date) void load();
+          else setDate(visit.date);
         }}
       />
     );
