@@ -700,7 +700,7 @@ pnpm --filter @beauty/api-client generate
   `customer` / `updateCustomerNotes` в `src/api.ts`; тесты `test/clients.test.ts`; e2e — скриншоты
   `32c-business-app-staff-client`, `33b-business-app-owner-clients`, `33c-business-app-owner-client`.
 
-## Бизнес-приложение: блокировка времени (задача 19)
+## Бизнес-приложение: блокировка времени (задача 18, часть c)
 
 - На экране дня — «Zablokowany czas»: перерывы, встречи, закрытый салон в этот день («12:00–12:30 · Cały salon»,
   причина). «+ Zablokuj czas»: кого (владелец/менеджер — любой мастер или «Cały salon»; мастер — только себя и только
@@ -712,7 +712,7 @@ pnpm --filter @beauty/api-client generate
   `src/api.ts`; тесты `test/blocks.test.ts`; e2e — скриншоты `33d-business-app-block-time`,
   `33e-business-app-blocked-day`.
 
-## Бизнес-приложение: уведомления (задача 20)
+## Бизнес-приложение: уведомления (задача 18, часть d)
 
 - На экране дня — «Powiadomienia (3)» с числом непрочитанных (тот же колокольчик, что в кабинете,
   `GET /v1/me/notifications`): новая запись онлайн, визит добавлен салоном, перенесён, отменён — только этого
