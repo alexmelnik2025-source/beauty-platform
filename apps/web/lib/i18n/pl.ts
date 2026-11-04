@@ -793,6 +793,12 @@ export const pl = {
     askNote: 'Informacja dla specjalisty (do 200 znaków)',
     mood: { chat: 'Chętnie pogada', quiet: 'Woli ciszę', relax: 'Chce odpocząć' },
     drink: { coffee: 'Kawa', tea: 'Herbata', water: 'Woda', none: 'Nic do picia' },
+    photosAsk: 'Klient może dodać zdjęcia-inspiracje (do 3)',
+    photosAskHint:
+      'Przy rezerwacji: „Pokaż, co chcesz” — np. fryzura ze zdjęcia. Zdjęcia widzi specjalista w wizycie; usuwamy je 90 dni po wizycie.',
+    photosTitle: 'Zdjęcia od klienta',
+    photoAlt: 'Zdjęcie od klienta {n}',
+    photosDeleted: 'Zdjęcia zostaną usunięte {date}.',
   },
   settings: {
     title: 'Ustawienia',

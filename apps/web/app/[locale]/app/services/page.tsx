@@ -223,6 +223,7 @@ function ServiceSheet({
     categoryId: service?.categoryId ?? '',
     color: service?.color ?? PALETTE[0]!,
     active: service?.active ?? true,
+    wishPhotos: service?.wishPhotos ?? false,
     // A new service: everyone who takes visits performs it, until unticked (T5).
     staffIds: service?.staffIds ?? staff.filter((m) => m.active).map((m) => m.id),
   });
@@ -284,6 +285,7 @@ function ServiceSheet({
       categoryId: form.categoryId || null,
       color: form.color,
       active: form.active,
+      wishPhotos: form.wishPhotos,
     };
     try {
       let saved = service
@@ -434,6 +436,19 @@ function ServiceSheet({
             onChange={(e) => setForm({ ...form, active: e.target.checked })}
           />
           <span>{t.services.active}</span>
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={form.wishPhotos}
+            onChange={(e) => setForm({ ...form, wishPhotos: e.target.checked })}
+          />
+          <span>
+            {t.wishes.photosAsk}
+            <span className="small muted" style={{ display: 'block' }}>
+              {t.wishes.photosAskHint}
+            </span>
+          </span>
         </label>
         <fieldset className="section" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend>

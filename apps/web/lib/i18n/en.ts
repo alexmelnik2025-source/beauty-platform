@@ -793,6 +793,12 @@ export const en: Dict = {
     askNote: 'A note for the specialist (up to 200 characters)',
     mood: { chat: 'Happy to chat', quiet: 'Prefers quiet', relax: 'Wants to relax' },
     drink: { coffee: 'Coffee', tea: 'Tea', water: 'Water', none: 'Nothing to drink' },
+    photosAsk: 'Clients can add inspiration photos (up to 3)',
+    photosAskHint:
+      'When booking: “Show what you want” — e.g. a haircut from a photo. The specialist sees them in the visit; they are deleted 90 days after it.',
+    photosTitle: 'Photos from the client',
+    photoAlt: 'Photo from the client {n}',
+    photosDeleted: 'The photos will be deleted on {date}.',
   },
   settings: {
     title: 'Settings',

@@ -2225,6 +2225,23 @@ label.btn:focus-within {
   margin: 6px 0 0;
 }
 
+/* Task 80b: the client's example photos in the visit card. */
+.wish-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.wish-photos img {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line);
+}
+
 .wish-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));

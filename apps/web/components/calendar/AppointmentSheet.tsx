@@ -5,7 +5,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
-import type { AppointmentDetail, Staff, VisitCoupons } from '@/lib/types';
+import type { AppointmentDetail, Staff, VisitCoupons, VisitPhotoList } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox, Sheet, Spinner } from '../ui';
 
@@ -33,6 +33,8 @@ export function AppointmentSheet({
   const canOutside = manager || session.permissions.bookOutsideHours === true;
 
   const [a, setA] = useState<AppointmentDetail | null>(null);
+  /** Task 80b: the client's example photos ("Pokaż, co chcesz"). */
+  const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
   const [mode, setMode] = useState<Mode>('view');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,8 +44,12 @@ export function AppointmentSheet({
 
   const load = useCallback(async () => {
     try {
-      const detail = await api<AppointmentDetail>(`${base}/appointments/${id}`);
+      const [detail, pictures] = await Promise.all([
+        api<AppointmentDetail>(`${base}/appointments/${id}`),
+        api<VisitPhotoList>(`${base}/appointments/${id}/photos`).catch(() => null),
+      ]);
       setA(detail);
+      setPhotos(pictures);
       setMove({ date: detail.date, time: detail.time, staffId: detail.staff.id, outside: false });
     } catch (err) {
       setError(calendarErrorText(t, err));
@@ -193,6 +199,32 @@ export function AppointmentSheet({
                 ) : null}
               </div>
               {a.wishes.note ? <p className="wishes-card__note">✍️ {a.wishes.note}</p> : null}
+            </section>
+          ) : null}
+          {photos && photos.items.length > 0 ? (
+            <section className="wishes-card" aria-label={t.wishes.photosTitle}>
+              <div className="wishes-card__icons">📷 {t.wishes.photosTitle}</div>
+              <div className="wish-photos">
+                {photos.items.map((p, i) => (
+                  <a key={p.id} href={p.url} target="_blank" rel="noreferrer">
+                    <img
+                      src={p.url}
+                      alt={t.wishes.photoAlt.replace('{n}', String(i + 1))}
+                      loading="lazy"
+                    />
+                  </a>
+                ))}
+              </div>
+              {photos.deleteAfter ? (
+                <p className="small muted" style={{ margin: '6px 0 0' }}>
+                  {t.wishes.photosDeleted.replace(
+                    '{date}',
+                    new Intl.DateTimeFormat(tag, { dateStyle: 'long', timeZone: tz }).format(
+                      new Date(photos.deleteAfter),
+                    ),
+                  )}
+                </p>
+              ) : null}
             </section>
           ) : null}
           <dl className="kv">
