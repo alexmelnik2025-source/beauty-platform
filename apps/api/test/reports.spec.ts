@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
+import { visitsCsv } from '../src/reports/visits-csv';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
@@ -301,8 +302,7 @@ describe('salon report', () => {
     await csv({ locale: 'xx' }).expect(400);
   });
 
-  it('a client name that looks like a formula stays text', async () => {
-    const { visitsCsv } = await import('../src/reports/visits-csv');
+  it('a client name that looks like a formula stays text', () => {
     const row = {
       date: '2026-11-03',
       time: '10:00',
