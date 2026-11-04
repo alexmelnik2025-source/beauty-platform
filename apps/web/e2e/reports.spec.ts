@@ -232,7 +232,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await shot(app, '75-business-app-reports');
     // Monday to Sunday in the app too (task 32).
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
-    await expect(app.getByText('poniedziałek')).toBeVisible();
+    await expect(app.getByText('poniedziałek', { exact: true })).toBeVisible();
     await shot(app, '75b-business-app-reports-weekdays');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
