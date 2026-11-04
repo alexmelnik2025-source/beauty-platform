@@ -56,3 +56,27 @@ export const salonWaitlistSchema = responseSchema(
   }),
 );
 export type SalonWaitlistResponse = z.infer<typeof salonWaitlistSchema>;
+
+/** Task 51: the signed-in client's own waiting lists in the app (no other clients, no contacts). */
+export const clientWaitlistEntrySchema = responseSchema(
+  'ClientWaitlistEntry',
+  z.strictObject({
+    id: z.string(),
+    salon: z.strictObject({ name: z.string(), slug: z.string(), timezone: z.string() }),
+    serviceId: z.string(),
+    serviceName: z.string(),
+    staffId: z.string().nullable(),
+    staffName: z.string().nullable().describe('null = any specialist'),
+    date: z.string().describe('YYYY-MM-DD in the salon time zone'),
+    status: waitlistStatusSchema,
+    notifiedAt: z.string().nullable().describe('When the client was told a time became free'),
+    createdAt: z.string(),
+  }),
+);
+export type ClientWaitlistEntryResponse = z.infer<typeof clientWaitlistEntrySchema>;
+
+export const clientWaitlistSchema = responseSchema(
+  'ClientWaitlist',
+  z.strictObject({ items: z.array(clientWaitlistEntrySchema) }),
+);
+export type ClientWaitlistResponse = z.infer<typeof clientWaitlistSchema>;

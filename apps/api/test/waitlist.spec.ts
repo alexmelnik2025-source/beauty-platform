@@ -330,3 +330,92 @@ describe('waiting list', () => {
     ).toHaveLength(1);
   });
 });
+
+/** Signs in through the client app (mobile) and returns the auth header. */
+async function clientSignIn(email: string): Promise<{ Authorization: string }> {
+  await ctx.http().post('/v1/client/auth/code').send({ email, locale: 'pl' }).expect(202);
+  const code = ctx.mail.lastTo(email)?.text.match(/\b(\d{6})\b/)?.[1];
+  const res = await ctx
+    .http()
+    .post('/v1/client/auth/verify')
+    .send({ email, code, clientType: 'mobile' })
+    .expect(200);
+  return { Authorization: `Bearer ${res.body.token}` };
+}
+
+describe('waiting list in the client app (51)', () => {
+  it('the client joins with their own email, sees their days and leaves', async () => {
+    const d2 = dayAhead(2);
+    const d3 = dayAhead(3);
+    await fillDay(d2);
+    await fillDay(d3);
+    const anna = await clientSignIn(ANNA);
+    await ctx.http().get('/v1/client/waitlist').expect(401);
+    await ctx.http().post(`/v1/client/waitlist/locations/${slug}`).send({}).expect(401);
+
+    const body = { serviceId, staffId, date: d3, name: 'Anna', locale: 'pl', acceptTerms: true };
+    const joined = await ctx
+      .http()
+      .post(`/v1/client/waitlist/locations/${slug}`)
+      .set(anna)
+      .send(body)
+      .expect(201);
+    expect(joined.body).toEqual({ date: d3, status: 'waiting', alreadyWaiting: false });
+    // An email in the body is not accepted: it is always the signed-in client's.
+    await ctx
+      .http()
+      .post(`/v1/client/waitlist/locations/${slug}`)
+      .set(anna)
+      .send({ ...body, date: d2, staffId: undefined, email: BOB })
+      .expect(400);
+    await ctx
+      .http()
+      .post(`/v1/client/waitlist/locations/${slug}`)
+      .set(anna)
+      .send({ ...body, date: d2, staffId: undefined })
+      .expect(201);
+    // Same rules as the booking page.
+    expectError(
+      (
+        await ctx
+          .http()
+          .post(`/v1/client/waitlist/locations/${slug}`)
+          .set(anna)
+          .send({ ...body, date: dayAhead(5) })
+          .expect(409)
+      ).body,
+      'SLOTS_AVAILABLE',
+    );
+    await outbox.drain();
+    expect(ctx.mail.lastTo(ANNA)?.subject).toBe('Jesteś na liście oczekujących');
+    // Bob (booking page) is not shown to Anna.
+    await join(d3, BOB).expect(201);
+
+    const list = await ctx.http().get('/v1/client/waitlist').set(anna).expect(200);
+    expect(list.body.items).toHaveLength(2);
+    expect(list.body.items[0]).toMatchObject({
+      salon: { name: 'Barber Centrum', slug, timezone: TZ },
+      serviceName: 'Strzyżenie',
+      staffId: null,
+      staffName: null,
+      date: d2,
+      status: 'waiting',
+      notifiedAt: null,
+    });
+    expect(list.body.items[1]).toMatchObject({ date: d3, staffName: 'Kasia' });
+    expect(JSON.stringify(list.body)).not.toContain(BOB);
+
+    // Leaving: twice is fine; not listed any more; another client gets 404.
+    const id = list.body.items[0].id as string;
+    const left = await ctx.http().post(`/v1/client/waitlist/${id}/cancel`).set(anna).expect(200);
+    expect(left.body.status).toBe('cancelled');
+    await ctx.http().post(`/v1/client/waitlist/${id}/cancel`).set(anna).expect(200);
+    const bob = await clientSignIn(BOB);
+    await ctx.http().post(`/v1/client/waitlist/${id}/cancel`).set(bob).expect(404);
+    await ctx.http().post('/v1/client/waitlist/not-an-id/cancel').set(bob).expect(404);
+    const after = await ctx.http().get('/v1/client/waitlist').set(anna).expect(200);
+    expect(after.body.items.map((e: { date: string }) => e.date)).toEqual([d3]);
+    const bobs = await ctx.http().get('/v1/client/waitlist').set(bob).expect(200);
+    expect(bobs.body.items).toHaveLength(1);
+  });
+});

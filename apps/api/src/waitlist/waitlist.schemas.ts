@@ -34,3 +34,7 @@ export const salonWaitlistQuerySchema = z
   })
   .strict();
 export type SalonWaitlistQuery = z.infer<typeof salonWaitlistQuerySchema>;
+
+/** Task 51: joining from the client app — the email is the signed-in client's own. */
+export const clientJoinWaitlistSchema = joinWaitlistSchema.omit({ email: true }).strict();
+export type ClientJoinWaitlistInput = z.infer<typeof clientJoinWaitlistSchema>;

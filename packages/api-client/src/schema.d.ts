@@ -2147,6 +2147,157 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My waiting lists in every salon
+         * @description Days from today on (salon time zone), soonest first; left/removed are not shown.
+         */
+        get: operations["ClientWaitlistController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/waitlist/locations/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tell me when a time becomes free (a full day), with my email
+         * @description Same rules as the booking page: 409 SLOTS_AVAILABLE, 409 WAITLIST_LIMIT, 400 WAITLIST_DATE.
+         */
+        post: operations["ClientWaitlistController_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/waitlist/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave one of my waiting lists (404 for anyone else’s) */
+        post: operations["ClientWaitlistController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/locations/{slug}/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tell me when a time becomes free (a full day)
+         * @description One email when a time becomes free on that day. 409 SLOTS_AVAILABLE: the day has free times, book one; 409 WAITLIST_LIMIT: this email already waits for 3 days at the salon; 400 WAITLIST_DATE: outside today … the booking horizon.
+         */
+        post: operations["WaitlistController_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/waitlist/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The waiting-list entry behind the link in the email */
+        get: operations["WaitlistController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/waitlist/{token}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave the waiting list */
+        post: operations["WaitlistController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who waits for a free time at this location (from a day on, by day)
+         * @description Waiting and already told clients from `from` (default: today in the salon time zone) on, with names and contacts. Clients who left the list or were removed are not listed.
+         */
+        get: operations["WaitlistSalonController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/waitlist/{entryId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a client from the waiting list ("Usuń z listy")
+         * @description No email is sent; removing twice is fine. The entry is kept as cancelled.
+         */
+        post: operations["WaitlistSalonController_remove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/push-subscriptions/public-key": {
         parameters: {
             query?: never;
@@ -2248,100 +2399,6 @@ export interface paths {
         get: operations["HealthController_check"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/locations/{slug}/waitlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Tell me when a time becomes free (a full day)
-         * @description One email when a time becomes free on that day. 409 SLOTS_AVAILABLE: the day has free times, book one; 409 WAITLIST_LIMIT: this email already waits for 3 days at the salon; 400 WAITLIST_DATE: outside today … the booking horizon.
-         */
-        post: operations["WaitlistController_join"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/waitlist/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The waiting-list entry behind the link in the email */
-        get: operations["WaitlistController_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/waitlist/{token}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Leave the waiting list */
-        post: operations["WaitlistController_cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/waitlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Who waits for a free time at this location (from a day on, by day)
-         * @description Waiting and already told clients from `from` (default: today in the salon time zone) on, with names and contacts. Clients who left the list or were removed are not listed.
-         */
-        get: operations["WaitlistSalonController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/waitlist/{entryId}/remove": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Remove a client from the waiting list ("Usuń z listy")
-         * @description No email is sent; removing twice is fine. The entry is kept as cancelled.
-         */
-        post: operations["WaitlistSalonController_remove"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3290,6 +3347,48 @@ export interface components {
             expiresAt: string;
             /** @description Mobile only: keep it in the Keychain/Keystore and send as `Authorization: Bearer` */
             token?: string;
+        };
+        ClientWaitlist: {
+            items: {
+                id: string;
+                salon: {
+                    name: string;
+                    slug: string;
+                    timezone: string;
+                };
+                serviceId: string;
+                serviceName: string;
+                staffId: string | null;
+                /** @description null = any specialist */
+                staffName: string | null;
+                /** @description YYYY-MM-DD in the salon time zone */
+                date: string;
+                /** @enum {string} */
+                status: "waiting" | "notified" | "cancelled";
+                /** @description When the client was told a time became free */
+                notifiedAt: string | null;
+                createdAt: string;
+            }[];
+        };
+        ClientWaitlistEntry: {
+            id: string;
+            salon: {
+                name: string;
+                slug: string;
+                timezone: string;
+            };
+            serviceId: string;
+            serviceName: string;
+            staffId: string | null;
+            /** @description null = any specialist */
+            staffName: string | null;
+            /** @description YYYY-MM-DD in the salon time zone */
+            date: string;
+            /** @enum {string} */
+            status: "waiting" | "notified" | "cancelled";
+            /** @description When the client was told a time became free */
+            notifiedAt: string | null;
+            createdAt: string;
         };
         CodeSent: {
             codeExpiresAt: string;
@@ -8785,6 +8884,215 @@ export interface operations {
             };
         };
     };
+    ClientWaitlistController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientWaitlist"];
+                };
+            };
+        };
+    };
+    ClientWaitlistController_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    serviceId: string;
+                    /** Format: uuid */
+                    staffId?: string;
+                    date: string;
+                    name: string;
+                    phone?: string;
+                    /**
+                     * @default pl
+                     * @enum {string}
+                     */
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                    /** @constant */
+                    acceptTerms: true;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistJoined"];
+                };
+            };
+        };
+    };
+    ClientWaitlistController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientWaitlistEntry"];
+                };
+            };
+        };
+    };
+    WaitlistController_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    serviceId: string;
+                    /** Format: uuid */
+                    staffId?: string;
+                    date: string;
+                    name: string;
+                    email: string;
+                    phone?: string;
+                    /**
+                     * @default pl
+                     * @enum {string}
+                     */
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                    /** @constant */
+                    acceptTerms: true;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistJoined"];
+                };
+            };
+        };
+    };
+    WaitlistController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWaitlistEntry"];
+                };
+            };
+        };
+    };
+    WaitlistController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWaitlistEntry"];
+                };
+            };
+        };
+    };
+    WaitlistSalonController_list: {
+        parameters: {
+            query?: {
+                /** @description YYYY-MM-DD */
+                from?: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonWaitlist"];
+                };
+            };
+        };
+    };
+    WaitlistSalonController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                entryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonWaitlistEntry"];
+                };
+            };
+        };
+    };
     PushController_publicKey: {
         parameters: {
             query?: never;
@@ -8922,135 +9230,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
-                };
-            };
-        };
-    };
-    WaitlistController_join: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    serviceId: string;
-                    /** Format: uuid */
-                    staffId?: string;
-                    date: string;
-                    name: string;
-                    email: string;
-                    phone?: string;
-                    /**
-                     * @default pl
-                     * @enum {string}
-                     */
-                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
-                    /** @constant */
-                    acceptTerms: true;
-                };
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WaitlistJoined"];
-                };
-            };
-        };
-    };
-    WaitlistController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicWaitlistEntry"];
-                };
-            };
-        };
-    };
-    WaitlistController_cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicWaitlistEntry"];
-                };
-            };
-        };
-    };
-    WaitlistSalonController_list: {
-        parameters: {
-            query?: {
-                /** @description YYYY-MM-DD */
-                from?: unknown;
-            };
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SalonWaitlist"];
-                };
-            };
-        };
-    };
-    WaitlistSalonController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                entryId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SalonWaitlistEntry"];
                 };
             };
         };

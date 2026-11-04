@@ -18,12 +18,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from '../scheduling/availability.service';
 import { addDays, localToday } from '../scheduling/time';
 import type {
+  ClientWaitlistEntryResponse,
+  ClientWaitlistResponse,
   PublicWaitlistEntryResponse,
   SalonWaitlistEntryResponse,
   SalonWaitlistResponse,
   WaitlistJoinedResponse,
 } from './waitlist.responses';
-import type { JoinWaitlistInput, SalonWaitlistQuery } from './waitlist.schemas';
+import type {
+  ClientJoinWaitlistInput,
+  JoinWaitlistInput,
+  SalonWaitlistQuery,
+} from './waitlist.schemas';
 
 /** Outbox types (rendered by OutboxService.renderWaitlist). */
 export const WAITLIST_JOINED = 'waitlist_joined';
@@ -47,6 +53,29 @@ const SALON_INCLUDE = {
   service: { select: { name: true } },
   staff: { select: { displayName: true } },
 } satisfies Prisma.WaitlistEntryInclude;
+
+const CLIENT_INCLUDE = {
+  location: { select: { name: true, slug: true, timezone: true } },
+  service: { select: { name: true } },
+  staff: { select: { displayName: true } },
+} satisfies Prisma.WaitlistEntryInclude;
+
+type ClientRow = Prisma.WaitlistEntryGetPayload<{ include: typeof CLIENT_INCLUDE }>;
+
+function toClient(e: ClientRow): ClientWaitlistEntryResponse {
+  return {
+    id: e.id,
+    salon: { name: e.location.name, slug: e.location.slug, timezone: e.location.timezone },
+    serviceId: e.serviceId,
+    serviceName: e.service.name,
+    staffId: e.staffId,
+    staffName: e.staff?.displayName ?? null,
+    date: fromDate(e.date),
+    status: e.status,
+    notifiedAt: e.notifiedAt?.toISOString() ?? null,
+    createdAt: e.createdAt.toISOString(),
+  };
+}
 
 type SalonRow = Prisma.WaitlistEntryGetPayload<{ include: typeof SALON_INCLUDE }>;
 
@@ -215,6 +244,59 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       });
     }
     return this.get(token);
+  }
+
+  /**
+   * Task 51: the client app joins with the signed-in client's own (already confirmed) email.
+   * Same rules and the same "you are on the list" email as the booking page.
+   */
+  joinAsClient(
+    email: string,
+    slug: string,
+    input: ClientJoinWaitlistInput,
+    ip: string,
+  ): Promise<WaitlistJoinedResponse> {
+    return this.join(slug, { ...input, email }, ip);
+  }
+
+  /**
+   * Task 51: "Lista oczekujących" in the client app — the entries made with the client's email
+   * in every salon, from today (in each salon's time zone) on; left/removed entries are not shown.
+   */
+  async listForClient(email: string, now = Date.now()): Promise<ClientWaitlistResponse> {
+    const rows = await this.prisma.waitlistEntry.findMany({
+      where: {
+        email: email.toLowerCase(),
+        status: { in: ['waiting', 'notified'] },
+        // Time zones differ by at most a day; the exact check is per salon below.
+        date: { gte: toDate(addDays(fromDate(new Date(now)), -1)) },
+      },
+      include: CLIENT_INCLUDE,
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      take: 200,
+    });
+    return {
+      items: rows
+        .filter((e) => fromDate(e.date) >= localToday(now, e.location.timezone))
+        .map(toClient),
+    };
+  }
+
+  /** Task 51: the client leaves one of their own lists. Leaving twice is fine. */
+  async cancelForClient(email: string, entryId: string): Promise<ClientWaitlistEntryResponse> {
+    const entry = await this.prisma.waitlistEntry.findFirst({
+      where: { id: entryId, email: email.toLowerCase() },
+    });
+    if (!entry) throw notFound('Waiting list entry');
+    await this.prisma.waitlistEntry.updateMany({
+      where: { id: entry.id, status: 'waiting' },
+      data: { status: 'cancelled', cancelledAt: new Date() },
+    });
+    const fresh = await this.prisma.waitlistEntry.findUniqueOrThrow({
+      where: { id: entry.id },
+      include: CLIENT_INCLUDE,
+    });
+    return toClient(fresh);
   }
 
   /**
