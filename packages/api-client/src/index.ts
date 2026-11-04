@@ -104,6 +104,8 @@ export type LoyaltyCoupon = Schemas['LoyaltyCoupon'];
 export type LoyaltyTiers = Schemas['LoyaltyTiers'];
 /** Coupons on a visit and the client's unused ones (`GET …/appointments/{id}/coupons`). */
 export type VisitCoupons = Schemas['VisitCoupons'];
+/** Task 23: the owner's change log (`GET /v1/organizations/{orgId}/audit-log`). */
+export type AuditLog = Schemas['AuditLog'];
 
 /** Body of a successful JSON response: `ResponseOf<'/v1/client/me', 'get'>`. */
 export type ResponseOf<

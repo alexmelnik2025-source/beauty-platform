@@ -342,6 +342,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();
   await shot(client, '07-client-manage');
+  // "Add to calendar" (task 20): the email and the page give the visit as an .ics file.
+  expect(confirmation.text).toContain('Dodaj do kalendarza:');
+  const calendarLink = client.getByRole('link', { name: 'Dodaj do kalendarza' });
+  const icsHref = (await calendarLink.getAttribute('href'))!;
+  expect(icsHref).toMatch(/\/v1\/public\/appointments\/\S+\/calendar\.ics$/);
+  const icsFile = await client.request.get(icsHref);
+  expect(icsFile.headers()['content-type']).toContain('text/calendar');
+  expect(await icsFile.text()).toContain('SUMMARY:Strzyżenie męskie');
   // Moving asks first: a tap on a time only proposes it, "Nie" keeps the old time (owner test T11).
   await client.getByRole('button', { name: 'Zmień termin' }).click();
   await client.locator('.times button').first().click();
@@ -645,9 +653,38 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   expect(csvText.startsWith('\uFEFF"Imię i nazwisko";"Telefon"')).toBe(true);
   expect(csvText).toContain('"Anna Kowalska"');
   await shot(ownerPage, '75-owner-clients-export');
+  // GDPR (task 21): the owner downloads a client's data and erases them on request.
+  await json(
+    await request.post(`/v1/organizations/${org.id}/customers`, {
+      headers: owner,
+      data: { name: 'Ewa Usuwana', phone: '+48600999888', email: 'ewa.rodo@example.com' },
+    }),
+  );
+  await ownerPage.reload();
+  await ownerPage.getByRole('button', { name: /Ewa Usuwana/ }).click();
+  const ewaDialog = ownerPage.getByRole('dialog');
+  await expect(ewaDialog).toContainText('Dane osobowe (RODO)');
+  const [exported] = await Promise.all([
+    ownerPage.waitForEvent('download'),
+    ewaDialog.getByRole('button', { name: 'Pobierz dane klienta' }).click(),
+  ]);
+  expect(exported.suggestedFilename()).toMatch(/^client-.+\.json$/);
+  await ewaDialog.getByRole('button', { name: 'Usuń dane klienta' }).click();
+  await expect(ewaDialog.getByRole('alertdialog')).toContainText('zostaną usunięte na zawsze');
+  await shot(ownerPage, '78-owner-client-erase');
+  await ewaDialog.getByRole('button', { name: 'Tak, usuń dane' }).click();
+  await expect(ownerPage.getByRole('dialog')).toBeHidden();
+  await expect(ownerPage.getByRole('button', { name: /Ewa Usuwana/ })).toHaveCount(0);
+  await expect(ownerPage.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
   await ownerPage.goto('/pl/app/notifications');
   await expect(ownerPage.getByText('Nowa rezerwacja online').first()).toBeVisible();
   await shot(ownerPage, '20-owner-notifications');
+  // "Dziennik zmian" (task 23): who changed what, newest first — owner only.
+  await ownerPage.goto('/pl/app/history');
+  await expect(ownerPage.getByRole('heading', { name: 'Dziennik zmian' })).toBeVisible();
+  await expect(ownerPage.getByText('Dodano usługę: Strzyżenie męskie').first()).toBeVisible();
+  await expect(ownerPage.getByText(/Aleksander Owner · /).first()).toBeVisible();
+  await shot(ownerPage, '79-owner-change-log');
   await ownerPage.goto('/pl/app/settings');
   await expect(ownerPage.getByLabel('Link dla klientów')).toHaveValue(
     new RegExp(`/pl/b/${location.slug}$`),
@@ -1282,6 +1319,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText(/Odwołać lub zmienić online możesz do/)).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Umów ponownie' })).toBeVisible();
     await shot(phone, '59-client-app-visit');
+    // "Add to calendar" (task 22): the app gets a link to the visit's .ics file and opens it.
+    const [calendarLink] = await Promise.all([
+      phone.waitForResponse((r) => r.url().endsWith('/calendar-link')),
+      phone.getByRole('button', { name: 'Dodaj do kalendarza' }).click(),
+    ]);
+    const { url: icsUrl } = (await calendarLink.json()) as { url: string };
+    const appIcs = await phone.request.get(icsUrl);
+    expect(appIcs.headers()['content-type']).toContain('text/calendar');
+    expect(await appIcs.text()).toContain('SUMMARY:Strzyżenie męskie');
+    for (const extra of phone.context().pages()) if (extra !== phone) await extra.close();
     // Change time: the same specialist's free days and times, then a question before moving.
     await phone.getByRole('button', { name: 'Zmień termin' }).click();
     await expect(phone.getByRole('heading', { name: 'Wybierz nowy termin' })).toBeVisible();

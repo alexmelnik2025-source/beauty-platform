@@ -7,7 +7,7 @@ import { PhoneField } from '@/components/PhoneField';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
-import { errorText, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
+import { errorText, fill, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
 import type { Customer, CustomerDetail } from '@/lib/types';
 
 type ClientRow = Customer;
@@ -154,7 +154,8 @@ function ClientSheet({
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
-  const dial = dialForTimeZone(useSession().location.timezone);
+  const session = useSession();
+  const dial = dialForTimeZone(session.location.timezone);
   const [client, setClient] = useState<ClientDetail | null>(null);
   const [form, setForm] = useState({
     name: '',
@@ -237,9 +238,20 @@ function ClientSheet({
     );
   }
 
+  const erasedOn = client?.anonymizedAt
+    ? new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'long', year: 'numeric' }).format(
+        new Date(client.anonymizedAt),
+      )
+    : null;
+
   return (
     <Sheet title={client ? client.name : t.clients.add} onClose={onClose}>
-      <form className="form" onSubmit={(e) => void save(e)}>
+      {erasedOn ? (
+        <p className="note" role="status">
+          {fill(t.clients.anonymized, { date: erasedOn })}
+        </p>
+      ) : null}
+      <form className="form" onSubmit={(e) => void save(e)} hidden={Boolean(erasedOn)}>
         <ErrorBox>{error}</ErrorBox>
         {duplicate && !client ? (
           <button
@@ -340,6 +352,100 @@ function ClientSheet({
         </section>
       ) : null}
       {client ? <ClientLoyalty orgId={orgId} customerId={client.id} /> : null}
+      {client && !erasedOn && session.role === 'owner' ? (
+        <ClientPrivacy orgId={orgId} client={client} onErased={onSaved} />
+      ) : null}
     </Sheet>
+  );
+}
+
+/**
+ * Task 21 (GDPR, owner only): download everything kept about the client, or erase the
+ * personal data — visits stay in the statistics without them.
+ */
+function ClientPrivacy({
+  orgId,
+  client,
+  onErased,
+}: {
+  orgId: string;
+  client: ClientDetail;
+  onErased: () => void;
+}) {
+  const { t } = useI18n();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const path = `/v1/organizations/${orgId}/customers/${client.id}`;
+
+  async function download() {
+    setError('');
+    try {
+      const data = await api<unknown>(`${path}/export`);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `client-${client.id}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(errorText(t, err));
+    }
+  }
+
+  async function erase() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`${path}/anonymize`, { method: 'POST', body: { version: client.version } });
+      onErased();
+    } catch (err) {
+      setError(errorText(t, err));
+      setBusy(false);
+      setConfirming(false);
+    }
+  }
+
+  return (
+    <section className="section stack">
+      <h3>{t.clients.privacy}</h3>
+      <p className="small muted">{t.clients.privacyHint}</p>
+      <ErrorBox>{error}</ErrorBox>
+      <button type="button" className="btn btn--quiet btn--block" onClick={() => void download()}>
+        {t.clients.exportOne}
+      </button>
+      {confirming ? (
+        <div className="summary" role="alertdialog" aria-label={t.clients.erase}>
+          <span>{t.clients.eraseConfirm}</span>
+          <div className="row">
+            <button
+              type="button"
+              className="btn btn--quiet"
+              disabled={busy}
+              onClick={() => setConfirming(false)}
+            >
+              {t.actions.no}
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              disabled={busy}
+              onClick={() => void erase()}
+            >
+              {t.clients.eraseYes}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="btn btn--danger btn--block"
+          onClick={() => setConfirming(true)}
+        >
+          {t.clients.erase}
+        </button>
+      )}
+    </section>
   );
 }

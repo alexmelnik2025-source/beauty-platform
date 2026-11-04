@@ -68,6 +68,7 @@ export const ru: Dictionary = {
     cancelYes: 'Да, отменить',
     cancelled: 'Визит отменён.',
     callSalon: 'Позвонить в салон',
+    addToCalendar: 'Добавить в календарь',
     bookAgain: 'Записаться снова',
     bookAgainHint: 'Та же услуга и мастер — выберите только время.',
     tooLate: 'Изменить онлайн уже поздно. Позвоните в салон.',

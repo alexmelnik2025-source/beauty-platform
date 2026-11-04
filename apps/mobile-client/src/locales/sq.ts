@@ -69,6 +69,7 @@ export const sq: Dictionary = {
     cancelYes: 'Po, anuloje',
     cancelled: 'Takimi u anulua.',
     callSalon: 'Telefono sallonin',
+    addToCalendar: 'Shtoje në kalendar',
     bookAgain: 'Rezervo përsëri',
     bookAgainHint: 'I njëjti shërbim dhe specialist — thjesht zgjidhni orën.',
     tooLate: 'Është tepër vonë për ta ndryshuar online. Ju lutemi telefononi sallonin.',

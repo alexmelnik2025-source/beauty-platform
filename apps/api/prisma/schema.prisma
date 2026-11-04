@@ -669,6 +669,8 @@ model Customer {
   note           String?
   /// Simple labels without any mailing ("regular", "short fade"). At most 10.
   tags           String[] @default([])
+  /// Task 21 (GDPR): the owner erased the client's personal data; visits stay for statistics.
+  anonymizedAt   DateTime? @map("anonymized_at") @db.Timestamptz(3)
   version        Int      @default(1)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)

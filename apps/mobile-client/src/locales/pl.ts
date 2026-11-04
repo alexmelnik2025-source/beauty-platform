@@ -67,6 +67,7 @@ export const pl = {
     cancelYes: 'Tak, odwołaj',
     cancelled: 'Wizyta odwołana.',
     callSalon: 'Zadzwoń do salonu',
+    addToCalendar: 'Dodaj do kalendarza',
     bookAgain: 'Umów ponownie',
     bookAgainHint: 'Ta sama usługa i specjalista — wybierz tylko termin.',
     tooLate: 'Na zmiany online jest już za późno. Zadzwoń do salonu.',

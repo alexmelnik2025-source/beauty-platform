@@ -12,7 +12,9 @@ type Mode = 'view' | 'move' | 'cancel';
 
 /** The "manage my appointment" page behind the secret link from the email. */
 export function ManageAppointment({ token }: { token: string }) {
-  return <AppointmentManager endpoint={`/v1/public/appointments/${token}`} />;
+  const endpoint = `/v1/public/appointments/${token}`;
+  // Task 20: the server's .ics keeps the same event when the visit moves (UID + SEQUENCE).
+  return <AppointmentManager endpoint={endpoint} calendarHref={`${endpoint}/calendar.ics`} />;
 }
 
 /**
@@ -21,11 +23,14 @@ export function ManageAppointment({ token }: { token: string }) {
  */
 export function AppointmentManager<T extends PublicAppointment>({
   endpoint,
+  calendarHref,
   title,
   top,
   extra,
 }: {
   endpoint: string;
+  /** The visit as an .ics file from the server; without it the file is made in the browser. */
+  calendarHref?: string;
   /** Small caption above the salon name. */
   title?: string;
   /** Shown first in the page body (e.g. a link back to the list). */
@@ -147,13 +152,19 @@ export function AppointmentManager<T extends PublicAppointment>({
             <p className="small muted">
               {a.canChange ? fill(t.manage.changeUntil, { time: until }) : t.manage.tooLate}
             </p>
-            <button
-              type="button"
-              className="btn btn--quiet btn--block"
-              onClick={() => downloadIcs(a)}
-            >
-              {t.booking.addToCalendar}
-            </button>
+            {calendarHref ? (
+              <a className="btn btn--quiet btn--block" href={calendarHref} download>
+                {t.booking.addToCalendar}
+              </a>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--quiet btn--block"
+                onClick={() => downloadIcs(a)}
+              >
+                {t.booking.addToCalendar}
+              </button>
+            )}
             {a.canChange ? (
               <>
                 <button type="button" className="btn btn--block" onClick={() => setMode('move')}>

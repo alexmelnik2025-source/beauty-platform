@@ -1331,6 +1331,43 @@ export interface paths {
         patch: operations["CustomersController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/customers/{customerId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything kept about the client, as a JSON file (GDPR access request; owner only) */
+        get: operations["CustomerPrivacyController_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/customers/{customerId}/anonymize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase the client's personal data (GDPR; owner only)
+         * @description Name becomes "—"; phone, email, notes, tags, visit notes, cancellation reasons and manage links are removed. Visits, prices and loyalty entries stay for statistics. 409 CUSTOMER_HAS_UPCOMING_VISITS while visits are planned; 409 CUSTOMER_ANONYMIZED when already erased.
+         */
+        post: operations["CustomerPrivacyController_anonymize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/time-blocks": {
         parameters: {
             query?: never;
@@ -1472,6 +1509,26 @@ export interface paths {
         put?: never;
         /** Mark as read: {"ids": [...]} or {"all": true} */
         post: operations["NotificationsController_markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/calendar.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The appointment behind a "manage" link as a calendar file (.ics)
+         * @description For "Add to calendar". UID stays the same and SEQUENCE grows with each change, so importing it again updates the event; a cancelled visit has STATUS:CANCELLED.
+         */
+        get: operations["VisitCalendarController_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1894,6 +1951,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/calendar-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A link to one of my visits as a calendar file (.ics), to open on the phone */
+        post: operations["ClientCalendarController_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/push-subscriptions/public-key": {
         parameters: {
             query?: never;
@@ -2055,10 +2129,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who changed what in the salon, newest first (owner only)
+         * @description Field names only, never their values. Visits have their own history.
+         */
+        get: operations["AuditLogController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AnonymizedCustomer: {
+            id: string;
+            anonymizedAt: string;
+            /** @description Visits stay (without personal data) for statistics */
+            visitsKept: number;
+        };
         Appointment: {
             id: string;
             locationId: string;
@@ -2287,6 +2387,28 @@ export interface components {
             version: number;
             createdAt: string;
         }[];
+        AuditLog: {
+            items: {
+                id: string;
+                at: string;
+                /** @description e.g. service.updated, staff.time_off_added */
+                action: string;
+                entityType: string;
+                entityId: string | null;
+                /** @description Current name of the service, specialist, client… (null when gone) */
+                entityName: string | null;
+                actor: {
+                    id: string;
+                    name: string;
+                } | null;
+                /** @description Names of the changed fields (never their values) */
+                fields: string[] | null;
+                /** @description The day a schedule change is about */
+                date: string | null;
+            }[];
+            /** @description Pass as `before` for older entries */
+            next: string | null;
+        };
         Availability: {
             timezone: string;
             serviceId: string;
@@ -2468,6 +2590,10 @@ export interface components {
                 deleted: boolean;
                 updatedAt: string;
             }[];
+        };
+        CalendarLink: {
+            /** @description The visit as an .ics file; opening it adds the visit to the calendar */
+            url: string;
         };
         ClientAppointment: {
             id: string;
@@ -2796,6 +2922,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description When the owner erased the personal data (GDPR); the name is then "—" */
+            anonymizedAt: string | null;
             version: number;
             createdAt: string;
         };
@@ -2811,6 +2939,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description When the owner erased the personal data (GDPR); the name is then "—" */
+            anonymizedAt: string | null;
             version: number;
             createdAt: string;
             /** @description null for staff members */
@@ -2826,6 +2956,58 @@ export interface components {
                 staffName: string;
             }[];
         };
+        CustomerExport: {
+            exportedAt: string;
+            salon: {
+                name: string;
+            };
+            client: {
+                id: string;
+                name: string;
+                phone: string;
+                email: string | null;
+                /** @enum {string} */
+                language: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                note: string | null;
+                tags: string[];
+                createdAt: string;
+            };
+            consents: {
+                type: string;
+                version: string;
+                granted: boolean;
+                at: string;
+            }[];
+            visits: {
+                start: string;
+                place: string;
+                service: string;
+                specialist: string;
+                /** @enum {string} */
+                status: "held" | "confirmed" | "cancelled" | "expired" | "completed" | "no_show";
+                priceGrosze: number;
+                discountGrosze: number;
+                currency: string;
+                paid: boolean;
+                note: string | null;
+                cancelReason: string | null;
+            }[];
+            loyalty: {
+                balance: number;
+                history: {
+                    type: string;
+                    points: number;
+                    at: string;
+                    note: string | null;
+                }[];
+                coupons: {
+                    code: string;
+                    name: string;
+                    status: string;
+                    expiresAt: string | null;
+                }[];
+            }[];
+        };
         CustomerList: {
             id: string;
             name: string;
@@ -2838,6 +3020,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description When the owner erased the personal data (GDPR); the name is then "—" */
+            anonymizedAt: string | null;
             version: number;
             createdAt: string;
         }[];
@@ -6688,6 +6872,54 @@ export interface operations {
             };
         };
     };
+    CustomerPrivacyController_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerExport"];
+                };
+            };
+        };
+    };
+    CustomerPrivacyController_anonymize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnonymizedCustomer"];
+                };
+            };
+        };
+    };
     TimeBlocksController_list: {
         parameters: {
             query: {
@@ -6953,6 +7185,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationsMarked"];
+                };
+            };
+        };
+    };
+    VisitCalendarController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description iCalendar (RFC 5545) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
                 };
             };
         };
@@ -7670,6 +7924,27 @@ export interface operations {
             };
         };
     };
+    ClientCalendarController_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarLink"];
+                };
+            };
+        };
+    };
     PushController_publicKey: {
         parameters: {
             query?: never;
@@ -7873,6 +8148,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailsRequeued"];
+                };
+            };
+        };
+    };
+    AuditLogController_list: {
+        parameters: {
+            query?: {
+                limit?: unknown;
+                before?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLog"];
                 };
             };
         };

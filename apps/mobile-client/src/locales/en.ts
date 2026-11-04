@@ -68,6 +68,7 @@ export const en: Dictionary = {
     cancelYes: 'Yes, cancel',
     cancelled: 'The visit is cancelled.',
     callSalon: 'Call the salon',
+    addToCalendar: 'Add to calendar',
     bookAgain: 'Book again',
     bookAgainHint: 'The same service and specialist — just pick a time.',
     tooLate: 'It is too late to change it online. Please call the salon.',
