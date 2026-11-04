@@ -4,8 +4,10 @@ import type { MembershipContext } from '../common/request-context';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, datesBetween, instantToLocal, zonedToInstant } from '../scheduling/time';
+import type { Location } from '../generated/prisma/client';
 import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
+import { visitsCsv, type CsvLocale } from './visits-csv';
 
 interface Counts {
   completed: number;
@@ -40,23 +42,13 @@ export class ReportsService {
     locationId: string,
     query: ReportQuery,
   ): Promise<SalonReport> {
-    const location = await this.access.readable(m, locationId);
-    const own = m.role === 'staff';
-    if (own && !m.permissions.viewOwnEarnings) {
-      throw forbidden();
-    }
-    let staffIds: string[] | null = null;
-    if (own) {
-      const mine = await this.prisma.staffMember.findMany({
-        where: { locationId, userId },
-        select: { id: true },
-      });
-      staffIds = mine.map((s) => s.id);
-    }
-
+    const { location, staffIds, own, rangeStart, rangeEnd } = await this.scope(
+      m,
+      userId,
+      locationId,
+      query,
+    );
     const tz = location.timezone;
-    const rangeStart = new Date(zonedToInstant(query.from, 0, tz));
-    const rangeEnd = new Date(zonedToInstant(addDays(query.to, 1), 0, tz));
     const rows = await this.prisma.appointment.findMany({
       where: {
         locationId,
@@ -183,6 +175,101 @@ export class ReportsService {
           paid,
         })),
       days: [...days.values()],
+    };
+  }
+
+  /** Task 21: every visit of the period as CSV (same access as the report), oldest first. */
+  async visitsCsv(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    query: ReportQuery,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const { location, staffIds, rangeStart, rangeEnd } = await this.scope(
+      m,
+      userId,
+      locationId,
+      query,
+    );
+    const rows = await this.prisma.appointment.findMany({
+      where: {
+        locationId,
+        status: { notIn: ['held', 'expired'] },
+        startAt: { gte: rangeStart, lt: rangeEnd },
+        ...(staffIds ? { staffId: { in: staffIds } } : {}),
+      },
+      select: {
+        status: true,
+        source: true,
+        startAt: true,
+        priceGrosze: true,
+        discountGrosze: true,
+        paidAt: true,
+        cancelledBy: true,
+        customer: { select: { name: true } },
+        staff: { select: { displayName: true } },
+        service: { select: { name: true } },
+      },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+    });
+    const csv = visitsCsv(
+      rows.map((a) => {
+        const local = instantToLocal(a.startAt.getTime(), location.timezone);
+        return {
+          date: local.date,
+          time: local.time,
+          staff: a.staff.displayName,
+          service: a.service.name,
+          client: a.customer?.name ?? null,
+          status: a.status as 'confirmed' | 'completed' | 'no_show' | 'cancelled',
+          cancelledBy: a.cancelledBy,
+          online: a.source === 'online',
+          priceGrosze: a.priceGrosze,
+          discountGrosze: a.discountGrosze,
+          paid: a.paidAt !== null,
+        };
+      }),
+      locale,
+    );
+    return { csv, fileName: `visits-${location.slug}-${query.from}-${query.to}.csv` };
+  }
+
+  /**
+   * Who sees what: owners and managers the whole location; a specialist only their own visits,
+   * and only with "viewOwnEarnings". The period in the salon's own dates.
+   */
+  private async scope(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    query: ReportQuery,
+  ): Promise<{
+    location: Location;
+    staffIds: string[] | null;
+    own: boolean;
+    rangeStart: Date;
+    rangeEnd: Date;
+  }> {
+    const location = await this.access.readable(m, locationId);
+    const own = m.role === 'staff';
+    if (own && !m.permissions.viewOwnEarnings) {
+      throw forbidden();
+    }
+    let staffIds: string[] | null = null;
+    if (own) {
+      const mine = await this.prisma.staffMember.findMany({
+        where: { locationId, userId },
+        select: { id: true },
+      });
+      staffIds = mine.map((s) => s.id);
+    }
+    return {
+      location,
+      staffIds,
+      own,
+      rangeStart: new Date(zonedToInstant(query.from, 0, location.timezone)),
+      rangeEnd: new Date(zonedToInstant(addDays(query.to, 1), 0, location.timezone)),
     };
   }
 }
