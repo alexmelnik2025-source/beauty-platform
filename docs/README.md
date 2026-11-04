@@ -830,3 +830,16 @@ pnpm --filter @beauty/api-client generate
 - e2e: `countries.spec.ts` (владелец в Стамбуле) — скриншоты `69-onboarding-istanbul`, `69b-settings-time-zone`;
   выбор кода страны в записи — `68-client-phone-country`.
 - Дальше по L5: языки tr и sq для записи и писем.
+
+## Блокировка времени каждую неделю (задача запуска L4)
+
+- На время перехода с Booksy: в «Nowa wizyta» → «Zablokuj czas» галочка «Powtarzaj co tydzień» и «Przez ile
+  tygodni» (2–26). Блокируется то же местное время каждую неделю (переход на летнее/зимнее время учитывается).
+- Недели, где в это время уже есть визит, остаются свободными: окно пишет «Zablokowano 2. Te dni zostały wolne, bo
+  są w nich wizyty: …» и кнопку «Gotowe». Если свободной недели нет — ошибка «есть визиты в это время».
+- В карточке блока серии — «Powtarza się co tydzień» и «Usuń całą serię» (удаляет блоки, которые ещё не
+  закончились; прошедшие остаются). «Usuń blokadę» по-прежнему удаляет один блок.
+- API: `POST /v1/organizations/:org/locations/:loc/time-blocks/series` (`weeks`, ответ `items`, `skippedDates`,
+  `seriesId`), `DELETE …/time-blocks/series/:seriesId`; у блока поле `seriesId`. Права те же, что у обычного блока.
+  Миграция `20261104170000_time_block_series`, тесты в `test/time-blocks.spec.ts` и проверка изоляции.
+- e2e — скриншоты `70-owner-weekly-block`, `70b-owner-weekly-block-card`.
