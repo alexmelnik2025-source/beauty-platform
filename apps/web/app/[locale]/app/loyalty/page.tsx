@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { costLabel, RewardSheet, rewardLabel } from '@/components/loyalty/RewardSheet';
+import { TiersForm } from '@/components/loyalty/TiersForm';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -346,6 +347,8 @@ export default function LoyaltyPage() {
             <span>{t.loyalty.showArchived}</span>
           </label>
         </section>
+
+        <TiersForm org={org} currency={symbol} />
 
         <form className="section form" onSubmit={saveRules} aria-labelledby="loyalty-rules">
           <h2 id="loyalty-rules">{t.loyalty.rules}</h2>

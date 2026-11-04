@@ -60,6 +60,7 @@ export type {
   LoyaltyCoupon,
   LoyaltyProgram,
   LoyaltyReward,
+  LoyaltyTiers,
   LoyaltyTransaction,
   Me,
   Member,

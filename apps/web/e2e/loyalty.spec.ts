@@ -309,12 +309,39 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   expect([afterVisit.balance, afterVisit.lifetimeEarned]).toEqual([3, 1]);
   await page.keyboard.press('Escape');
 
+  // ── Client tiers (10e): Standard from 0 visits, Silver from 1 with −5% ─
+  await page.goto('/pl/app/loyalty');
+  const tiersForm = page.locator('form', {
+    has: page.getByRole('heading', { name: 'Poziomy klientów' }),
+  });
+  await expect(tiersForm.getByText('Brak poziomów')).toBeVisible();
+  await tiersForm.getByRole('button', { name: '+ Dodaj poziom' }).click();
+  await tiersForm.getByLabel('Nazwa poziomu').nth(0).fill('Standard');
+  await tiersForm.getByLabel('Od (wizyt)').nth(0).fill('0');
+  await tiersForm.getByRole('button', { name: '+ Dodaj poziom' }).click();
+  await tiersForm.getByLabel('Nazwa poziomu').nth(1).fill('Silver');
+  await tiersForm.getByLabel('Od (wizyt)').nth(1).fill('1');
+  await tiersForm.getByLabel('Rabat (%)').nth(1).fill('5');
+  await tiersForm.getByRole('button', { name: 'Zapisz poziomy' }).click();
+  await expect(tiersForm.getByText('Zapisano')).toBeVisible();
+  await tiersForm.scrollIntoViewIfNeeded();
+  await shot(page, '73-owner-loyalty-tiers');
+  const tiers = await json<{ tiers: { name: string; threshold: number }[] }>(
+    await request.get(`${orgBase}/loyalty/tiers`, { headers: owner }),
+  );
+  expect(tiers.tiers.map((t) => [t.name, t.threshold])).toEqual([
+    ['Standard', 0],
+    ['Silver', 1],
+  ]);
+
   // ── Client card: exchange for a coupon, cancel it, correct by hand ────
   await page.goto('/pl/app/clients');
   await page.getByRole('button', { name: /Anna Kowalska/ }).click();
   const client = page.getByRole('dialog');
   await expect(client.getByText('Pieczątki na karcie: 3')).toBeVisible();
   await expect(client.getByText('Łącznie zebrane: 1')).toBeVisible();
+  // One paid visit: already Silver (10e).
+  await expect(client.getByText('Poziom: Silver · −5%')).toBeVisible();
   await client.getByRole('button', { name: 'Wymień: −25% na strzyżenie' }).click();
   await expect(client.getByText(/Kupon [A-Z0-9]{4}-[A-Z0-9]{4} jest gotowy\./)).toBeVisible();
   await expect(client.getByText('Pieczątki na karcie: 0')).toBeVisible();

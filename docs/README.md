@@ -945,3 +945,7 @@ pnpm --filter @beauty/api-client generate
 - API: `GET/PUT /v1/organizations/:org/loyalty/tiers` `{basis, periodDays, tiers[]}` — только владелец и менеджер;
   пустой список выключает уровни. Миграция `20261104200000_loyalty_tiers`, тесты `test/loyalty-tiers.spec.ts`.
 - Дальше: экраны кабинета и клиента, скидка уровня в визите. «Приоритетная запись» VIP — ждёт решения владельца.
+- Кабинет (часть 2): в «Program lojalnościowy» — блок «Poziomy klientów»: «Poziom liczony z» (визиты / сумма),
+  «Z ostatnich (dni)», строки «Nazwa poziomu», «Od (wizyt)» или «Od (zł)», «Rabat (%)», «+ Dodaj poziom»,
+  «Zapisz poziomy». В карточке клиента — «Poziom: Silver · −5%» и сколько не хватает до следующего. Скриншот
+  `73-owner-loyalty-tiers`.

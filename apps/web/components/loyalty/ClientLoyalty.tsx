@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { formatPrice } from '@/lib/time';
 import type { LoyaltyAccount, LoyaltyProgram, LoyaltyReward } from '@/lib/types';
 import { costLabel } from './RewardSheet';
 
@@ -16,6 +18,7 @@ import { costLabel } from './RewardSheet';
 export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId: string }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
+  const currency = useSession().location.currency;
   const org = `/v1/organizations/${orgId}`;
   const [account, setAccount] = useState<LoyaltyAccount | null>(null);
   const [program, setProgram] = useState<LoyaltyProgram | null>(null);
@@ -106,6 +109,31 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
           {fill(t.loyalty.lifetime, { count: String(account.lifetimeEarned) })}
         </div>
       </div>
+      {account.tier ? (
+        <div>
+          <span className="chip">
+            {account.tier.current
+              ? fill(t.loyalty.tierCurrent, { name: account.tier.current.name }) +
+                (account.tier.current.discountPercent
+                  ? ` · −${account.tier.current.discountPercent}%`
+                  : '')
+              : t.loyalty.tierBelow}
+          </span>{' '}
+          <span className="small muted">
+            {account.tier.next
+              ? account.tier.basis === 'visits'
+                ? fill(t.loyalty.tierNextVisits, {
+                    name: account.tier.next.name,
+                    count: String(account.tier.next.missing),
+                  })
+                : fill(t.loyalty.tierNextSpend, {
+                    name: account.tier.next.name,
+                    amount: formatPrice(account.tier.next.missing, currency, tag),
+                  })
+              : t.loyalty.tierTop}
+          </span>
+        </div>
+      ) : null}
 
       {program.enabled && rewards.length ? (
         <div className="stack" style={{ gap: 8 }}>
