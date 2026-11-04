@@ -175,13 +175,7 @@ export function newAppointmentBody(input: {
 
 /** Which message the screen shows when the server says no. */
 export type CreateProblem =
-  | 'taken'
-  | 'outsideHours'
-  | 'past'
-  | 'tooLongAgo'
-  | 'notStarted'
-  | 'forbidden'
-  | 'other';
+  'taken' | 'outsideHours' | 'past' | 'tooLongAgo' | 'notStarted' | 'forbidden' | 'other';
 
 export function createProblem(error: unknown): CreateProblem {
   if (!(error instanceof ApiError)) return 'other';
