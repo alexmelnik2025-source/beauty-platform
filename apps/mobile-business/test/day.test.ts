@@ -176,8 +176,8 @@ describe('visit card', () => {
   });
 
   it('prices in złoty', () => {
-    expect(formatPrice(4500, 'pl').replace(/\s/g, ' ')).toBe('45,00 zł');
-    expect(formatPrice(4500, 'en')).toContain('45.00');
+    expect(formatPrice(4500, 'PLN', 'pl').replace(/\s/g, ' ')).toBe('45,00 zł');
+    expect(formatPrice(4500, 'EUR', 'en')).toContain('€45.00');
   });
 });
 

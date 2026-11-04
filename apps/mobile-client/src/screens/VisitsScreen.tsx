@@ -198,7 +198,7 @@ function VisitCard({
         <Text style={styles.muted}>
           {fill(t.visits.with, { staff: visit.staff.displayName })} ·{' '}
           {visit.service.durationMinutes} {t.visits.minutes} ·{' '}
-          {formatPrice(visit.service.priceGrosze, locale)}
+          {formatPrice(visit.service.priceGrosze, visit.currency, locale)}
         </Text>
         <Text style={styles.salon}>{visit.salon.name}</Text>
         {address ? <Text style={styles.muted}>{address}</Text> : null}

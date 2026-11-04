@@ -298,7 +298,7 @@ export function BookingScreen(props: {
           <Text style={styles.strong}>{service.name}</Text>
           <Text style={styles.muted}>
             {durationText(service.durationMinutes, t.units)} ·{' '}
-            {formatPrice(service.priceGrosze, locale)}
+            {formatPrice(service.priceGrosze, salon.currency, locale)}
             {step !== 'staff'
               ? ` · ${staffList.find((s) => s.id === staffId)?.displayName ?? (hold?.staffName || b.anyStaff)}`
               : ''}
@@ -342,7 +342,7 @@ export function BookingScreen(props: {
                   key={s.id}
                   title={s.name}
                   meta={durationText(s.durationMinutes, t.units)}
-                  right={formatPrice(s.priceGrosze, locale)}
+                  right={formatPrice(s.priceGrosze, salon.currency, locale)}
                   onPress={() => pickService(s.id)}
                 />
               ))}
@@ -442,7 +442,8 @@ export function BookingScreen(props: {
             {hold.time} · {formatDay(hold.date, locale)}
           </Text>
           <Text style={styles.text}>
-            {hold.serviceName} · {hold.staffName} · {formatPrice(hold.priceGrosze, locale)}
+            {hold.serviceName} · {hold.staffName} ·{' '}
+            {formatPrice(hold.priceGrosze, hold.currency, locale)}
           </Text>
           <Text style={styles.muted} aria-live="polite">
             {fill(b.heldFor, { time: countdown(hold.expiresAt) })}

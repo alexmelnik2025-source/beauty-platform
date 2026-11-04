@@ -51,11 +51,13 @@ export function earningText(t: Dictionary, card: ClientLoyaltyCard, locale: Loca
       ? fill(t.bonuses.earnStamps, { count: String(e.stampsPerVisit) })
       : fill(t.bonuses.earnPoints, {
           count: String(e.pointsPerUnit),
-          amount: formatPrice(e.spendUnitGrosze, locale),
+          amount: formatPrice(e.spendUnitGrosze, card.currency, locale),
         }),
   ];
   if (e.minSpendGrosze > 0) {
-    parts.push(fill(t.bonuses.minSpend, { amount: formatPrice(e.minSpendGrosze, locale) }));
+    parts.push(
+      fill(t.bonuses.minSpend, { amount: formatPrice(e.minSpendGrosze, card.currency, locale) }),
+    );
   }
   if (card.mode === 'points' && e.pointsValidityDays) {
     parts.push(fill(t.bonuses.validity, { days: String(e.pointsValidityDays) }));

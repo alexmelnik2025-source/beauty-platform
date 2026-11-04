@@ -20,10 +20,10 @@ export function formatDay(date: string, locale: Locale): string {
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
-/** Prices come in grosze. */
-export function formatPrice(grosze: number, locale: Locale): string {
-  return new Intl.NumberFormat(LOCALE_TAGS[locale], { style: 'currency', currency: 'PLN' }).format(
-    grosze / 100,
+/** Prices come in hundredths of the salon's currency (ISO 4217, launch task L5). */
+export function formatPrice(hundredths: number, currency: string, locale: Locale): string {
+  return new Intl.NumberFormat(LOCALE_TAGS[locale], { style: 'currency', currency }).format(
+    hundredths / 100,
   );
 }
 

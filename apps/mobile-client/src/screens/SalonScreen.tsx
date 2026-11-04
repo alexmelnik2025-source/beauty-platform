@@ -129,7 +129,9 @@ export function SalonScreen(props: {
                   <Text style={styles.body}>{s.name}</Text>
                   <Text style={styles.small}>{durationText(s.durationMinutes, t.units)}</Text>
                 </View>
-                <Text style={styles.price}>{formatPrice(s.priceGrosze, locale)}</Text>
+                <Text style={styles.price}>
+                  {formatPrice(s.priceGrosze, salon.currency, locale)}
+                </Text>
               </View>
             ))}
           </View>

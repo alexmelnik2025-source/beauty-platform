@@ -50,6 +50,7 @@ export default function App() {
             locationId: location.id,
             locationName: location.name,
             city: location.city,
+            currency: location.currency,
           });
         }
       }

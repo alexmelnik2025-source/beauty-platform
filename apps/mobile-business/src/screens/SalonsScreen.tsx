@@ -9,6 +9,8 @@ export type SalonChoice = {
   locationId: string;
   locationName: string;
   city: string;
+  /** ISO 4217: prices of this location are in hundredths of it. */
+  currency: string;
 };
 
 /** The salons this person was invited to (several organizations or several locations). */

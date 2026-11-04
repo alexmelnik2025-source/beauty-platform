@@ -74,7 +74,7 @@ describe('catalogue search', () => {
 
 describe('salon page', () => {
   it('formats prices and durations', () => {
-    expect(formatPrice(9000, 'pl').replace(/\s/g, ' ')).toBe('90,00 zł');
+    expect(formatPrice(9000, 'PLN', 'pl').replace(/\s/g, ' ')).toBe('90,00 zł');
     expect(durationText(45, pl.units)).toBe('45 min');
     expect(durationText(60, pl.units)).toBe('1 godz.');
     expect(durationText(75, pl.units)).toBe('1 godz. 15 min');

@@ -194,7 +194,10 @@ export function VisitScreen(props: {
       <Card>
         <Row label={v.staff} value={visit.staff.displayName} />
         <Row label={v.duration} value={`${visit.service.durationMinutes} ${t.visits.minutes}`} />
-        <Row label={v.price} value={formatPrice(visit.service.priceGrosze, locale)} />
+        <Row
+          label={v.price}
+          value={formatPrice(visit.service.priceGrosze, visit.currency, locale)}
+        />
       </Card>
 
       <Card>

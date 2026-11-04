@@ -114,10 +114,10 @@ export function visitActions(
   return { came: live, noShow: live, pay: done && !visit.paidAt, unpay: done && !!visit.paidAt };
 }
 
-/** "45,00 zł" — prices come in grosze (1 PLN = 100). */
-export function formatPrice(grosze: number, locale: DayLocale): string {
-  return new Intl.NumberFormat(INTL_LOCALE[locale], { style: 'currency', currency: 'PLN' }).format(
-    grosze / 100,
+/** "45,00 zł", "€45.00" — prices come in hundredths of the salon's currency (launch task L5). */
+export function formatPrice(hundredths: number, currency: string, locale: DayLocale): string {
+  return new Intl.NumberFormat(INTL_LOCALE[locale], { style: 'currency', currency }).format(
+    hundredths / 100,
   );
 }
 

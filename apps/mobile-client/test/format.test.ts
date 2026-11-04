@@ -20,8 +20,10 @@ describe('format', () => {
     expect(formatDay('2026-11-10', 'en')).toContain('Tuesday');
   });
 
-  it('prices in złoty from grosze', () => {
-    expect(formatPrice(9000, 'pl').replace(/\s/g, ' ')).toBe('90,00 zł');
+  it('prices in the salon currency from hundredths', () => {
+    expect(formatPrice(9000, 'PLN', 'pl').replace(/\s/g, ' ')).toBe('90,00 zł');
+    expect(formatPrice(9000, 'EUR', 'en')).toBe('€90.00');
+    expect(formatPrice(50000, 'TRY', 'pl').replace(/\s/g, ' ')).toBe('500,00 TRY');
   });
 
   it('address from the parts the salon filled in', () => {

@@ -140,7 +140,9 @@ export function VisitScreen(props: {
         {visit.priceGrosze !== null ? (
           <>
             <Text style={styles.label}>{v.price}</Text>
-            <Text style={styles.value}>{formatPrice(visit.priceGrosze, props.locale)}</Text>
+            <Text style={styles.value}>
+              {formatPrice(visit.priceGrosze, salon.currency, props.locale)}
+            </Text>
           </>
         ) : null}
 
