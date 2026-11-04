@@ -2300,14 +2300,14 @@ export interface components {
             id: string;
             email: string;
             /** @enum {string} */
-            locale: "pl" | "uk" | "ru" | "en";
+            locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
         };
         ClientSignIn: {
             person: {
                 id: string;
                 email: string;
                 /** @enum {string} */
-                locale: "pl" | "uk" | "ru" | "en";
+                locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             };
             expiresAt: string;
             /** @description Mobile only: keep it in the Keychain/Keystore and send as `Authorization: Bearer` */
@@ -2326,7 +2326,7 @@ export interface components {
             /** @description null when the caller may not see client contacts */
             email: string | null;
             /** @enum {string} */
-            locale: "pl" | "uk" | "ru" | "en";
+            locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
@@ -2341,7 +2341,7 @@ export interface components {
             /** @description null when the caller may not see client contacts */
             email: string | null;
             /** @enum {string} */
-            locale: "pl" | "uk" | "ru" | "en";
+            locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
@@ -2368,7 +2368,7 @@ export interface components {
             /** @description null when the caller may not see client contacts */
             email: string | null;
             /** @enum {string} */
-            locale: "pl" | "uk" | "ru" | "en";
+            locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
@@ -2492,7 +2492,7 @@ export interface components {
             phone: string | null;
             email: string | null;
             /** @enum {string} */
-            defaultLocale: "pl" | "uk" | "ru" | "en";
+            defaultLocale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             slotStepMinutes: number;
             minLeadMinutes: number;
             bookingHorizonDays: number;
@@ -2527,7 +2527,7 @@ export interface components {
             phone: string | null;
             email: string | null;
             /** @enum {string} */
-            defaultLocale: "pl" | "uk" | "ru" | "en";
+            defaultLocale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             slotStepMinutes: number;
             minLeadMinutes: number;
             bookingHorizonDays: number;
@@ -2753,7 +2753,7 @@ export interface components {
                 email: string;
                 name: string;
                 /** @enum {string} */
-                locale: "pl" | "uk" | "ru" | "en";
+                locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 emailVerified: boolean;
             };
             organizations: {
@@ -3368,7 +3368,7 @@ export interface components {
                 email: string;
                 name: string;
                 /** @enum {string} */
-                locale: "pl" | "uk" | "ru" | "en";
+                locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 emailVerified: boolean;
             };
             /** @description Mobile only: keep it in the Keychain/Keystore. Web: an httpOnly cookie instead */
@@ -3384,7 +3384,7 @@ export interface components {
             email: string;
             name: string;
             /** @enum {string} */
-            locale: "pl" | "uk" | "ru" | "en";
+            locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
             emailVerified: boolean;
         };
         WorkingHours: {
@@ -3436,7 +3436,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 };
             };
         };
@@ -3549,7 +3549,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 };
             };
         };
@@ -3588,7 +3588,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 };
             };
         };
@@ -3892,7 +3892,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    defaultLocale?: "pl" | "uk" | "ru" | "en";
+                    defaultLocale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     /** @default 15 */
                     slotStepMinutes?: 5 | 10 | 15 | 30;
                     /** @default 60 */
@@ -3967,7 +3967,7 @@ export interface operations {
                     phone?: string | null;
                     email?: string | null;
                     /** @enum {string} */
-                    defaultLocale?: "pl" | "uk" | "ru" | "en";
+                    defaultLocale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     slotStepMinutes?: 5 | 10 | 15 | 30;
                     minLeadMinutes?: number;
                     bookingHorizonDays?: number;
@@ -4253,7 +4253,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 };
             };
         };
@@ -5251,7 +5251,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     /** @constant */
                     acceptTerms: true;
                     /** @default false */
@@ -5461,7 +5461,7 @@ export interface operations {
                          * @default pl
                          * @enum {string}
                          */
-                        locale?: "pl" | "uk" | "ru" | "en";
+                        locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     };
                     note?: string;
                     /** @default false */
@@ -5667,7 +5667,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     note?: string;
                     tags?: string[];
                     /** @default false */
@@ -5724,7 +5724,7 @@ export interface operations {
                     phone?: string;
                     email?: string | null;
                     /** @enum {string} */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     note?: string | null;
                     tags?: string[];
                 };
@@ -6356,7 +6356,7 @@ export interface operations {
                      * @default pl
                      * @enum {string}
                      */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 };
             };
         };
@@ -6384,7 +6384,7 @@ export interface operations {
                     email: string;
                     code: string;
                     /** @enum {string} */
-                    locale?: "pl" | "uk" | "ru" | "en";
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     /**
                      * @default web
                      * @enum {string}
@@ -6451,7 +6451,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    locale: "pl" | "uk" | "ru" | "en";
+                    locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 };
             };
         };

@@ -33,7 +33,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   }
                 },
@@ -233,7 +235,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   }
                 }
@@ -306,7 +310,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   }
                 },
@@ -835,7 +841,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   },
                   "slotStepMinutes": {
@@ -1148,7 +1156,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   },
                   "slotStepMinutes": {
@@ -1765,7 +1775,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   }
                 },
@@ -4045,7 +4057,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   },
                   "acceptTerms": {
@@ -4453,7 +4467,9 @@
                           "pl",
                           "uk",
                           "ru",
-                          "en"
+                          "en",
+                          "tr",
+                          "sq"
                         ]
                       }
                     },
@@ -4914,7 +4930,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   },
                   "note": {
@@ -5052,7 +5070,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   },
                   "note": {
@@ -6507,7 +6527,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   }
                 },
@@ -6562,7 +6584,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   },
                   "clientType": {
@@ -6662,7 +6686,9 @@
                       "pl",
                       "uk",
                       "ru",
-                      "en"
+                      "en",
+                      "tr",
+                      "sq"
                     ]
                   }
                 },
@@ -9170,7 +9196,9 @@
               "pl",
               "uk",
               "ru",
-              "en"
+              "en",
+              "tr",
+              "sq"
             ]
           }
         },
@@ -9199,7 +9227,9 @@
                   "pl",
                   "uk",
                   "ru",
-                  "en"
+                  "en",
+                  "tr",
+                  "sq"
                 ]
               }
             },
@@ -9269,7 +9299,9 @@
               "pl",
               "uk",
               "ru",
-              "en"
+              "en",
+              "tr",
+              "sq"
             ]
           },
           "note": {
@@ -9331,7 +9363,9 @@
               "pl",
               "uk",
               "ru",
-              "en"
+              "en",
+              "tr",
+              "sq"
             ]
           },
           "note": {
@@ -9446,7 +9480,9 @@
                 "pl",
                 "uk",
                 "ru",
-                "en"
+                "en",
+                "tr",
+                "sq"
               ]
             },
             "note": {
@@ -9955,7 +9991,9 @@
               "pl",
               "uk",
               "ru",
-              "en"
+              "en",
+              "tr",
+              "sq"
             ]
           },
           "slotStepMinutes": {
@@ -10108,7 +10146,9 @@
                 "pl",
                 "uk",
                 "ru",
-                "en"
+                "en",
+                "tr",
+                "sq"
               ]
             },
             "slotStepMinutes": {
@@ -11030,7 +11070,9 @@
                   "pl",
                   "uk",
                   "ru",
-                  "en"
+                  "en",
+                  "tr",
+                  "sq"
                 ]
               },
               "emailVerified": {
@@ -13490,7 +13532,9 @@
                   "pl",
                   "uk",
                   "ru",
-                  "en"
+                  "en",
+                  "tr",
+                  "sq"
                 ]
               },
               "emailVerified": {
@@ -13554,7 +13598,9 @@
               "pl",
               "uk",
               "ru",
-              "en"
+              "en",
+              "tr",
+              "sq"
             ]
           },
           "emailVerified": {

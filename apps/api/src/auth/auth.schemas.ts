@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const LOCALES = ['pl', 'uk', 'ru', 'en'] as const;
+export const LOCALES = ['pl', 'uk', 'ru', 'en', 'tr', 'sq'] as const;
 
 const email = z
   .string()

@@ -25,6 +25,16 @@ const WORDS: Record<Locale, { subject: string; text: (code: string) => string }>
     text: (code) =>
       `Code: ${code}\n\nEnter it to see your appointments in all salons. The code is valid for 10 minutes.\nIf this wasn't you, ignore this email.`,
   },
+  tr: {
+    subject: 'Ziyaretlerim için giriş kodu',
+    text: (code) =>
+      `Kod: ${code}\n\nTüm salonlardaki randevularınızı görmek için bu kodu girin. Kod 10 dakika geçerlidir.\nBu siz değilseniz, bu e-postayı dikkate almayın.`,
+  },
+  sq: {
+    subject: 'Kodi i hyrjes për takimet tuaja',
+    text: (code) =>
+      `Kodi: ${code}\n\nShkruajeni për të parë takimet tuaja në të gjitha sallonet. Kodi është i vlefshëm 10 minuta.\nNëse nuk ishit ju, injorojeni këtë email.`,
+  },
 };
 
 export function renderClientCodeEmail(

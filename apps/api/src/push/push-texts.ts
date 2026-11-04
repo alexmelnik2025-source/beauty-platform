@@ -26,6 +26,18 @@ const TITLES: Record<Locale, Record<string, string>> = {
     'appointment.rescheduled': 'Appointment moved',
     'appointment.cancelled': 'Appointment cancelled',
   },
+  tr: {
+    'appointment.booked': 'Yeni online rezervasyon',
+    'appointment.created': 'Yeni randevu',
+    'appointment.rescheduled': 'Randevu taşındı',
+    'appointment.cancelled': 'Randevu iptal edildi',
+  },
+  sq: {
+    'appointment.booked': 'Rezervim i ri online',
+    'appointment.created': 'Takim i ri',
+    'appointment.rescheduled': 'Takimi u zhvendos',
+    'appointment.cancelled': 'Takimi u anulua',
+  },
 };
 
 /** What the notification feed stores in `data` (see NotificationsService). */

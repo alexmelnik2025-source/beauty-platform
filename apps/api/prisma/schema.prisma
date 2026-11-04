@@ -14,11 +14,14 @@ datasource db {
   provider = "postgresql"
 }
 
+/// tr = Turkish, sq = Albanian (booking, client app and emails; the cabinet falls back to English).
 enum Locale {
   pl
   uk
   ru
   en
+  tr
+  sq
 
   @@map("locale")
 }

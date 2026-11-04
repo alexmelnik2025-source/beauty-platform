@@ -2,7 +2,7 @@ import type { Locale } from '../generated/prisma/client';
 import { formatMoney } from '../common/currency';
 
 /**
- * Booking emails in the four interface languages. Polish is the reference text;
+ * Booking emails in the interface languages (pl, uk, ru, en, tr, sq). Polish is the reference text;
  * the other versions must be proofread by native speakers before the beta.
  */
 
@@ -175,6 +175,70 @@ const WORDS: Record<Locale, Words> = {
       `Your confirmation code for ${salon}: ${code}\n\nThe code is valid for 10 minutes. If you did not make a booking, ignore this email.`,
     codeSms: (code, salon) => `${code} is your booking code for ${salon}. Valid 10 min.`,
   },
+  tr: {
+    subjects: {
+      client_confirmation: 'Randevunuz onaylandı',
+      client_rescheduled: 'Randevu saati değişti',
+      client_cancelled: 'Randevu iptal edildi',
+      client_reminder: 'Hatırlatma: yarınki randevunuz',
+      salon_new_booking: 'Yeni online rezervasyon',
+      salon_client_cancelled: 'Müşteri randevuyu iptal etti',
+      salon_client_rescheduled: 'Müşteri randevuyu taşıdı',
+    },
+    intro: {
+      client_confirmation: 'Randevunuz onaylandı.',
+      client_rescheduled: 'Randevunuzun saati değiştirildi.',
+      client_cancelled: 'Randevunuz iptal edildi.',
+      client_reminder: 'Randevunuzu hatırlatırız.',
+      salon_new_booking: 'İnternetten yeni bir rezervasyon.',
+      salon_client_cancelled: 'Bir müşteri randevusunu iptal etti.',
+      salon_client_rescheduled: 'Bir müşteri randevusunu başka bir saate taşıdı.',
+    },
+    service: 'Hizmet',
+    staff: 'Uzman',
+    when: 'Tarih ve saat',
+    where: 'Adres',
+    price: 'Fiyat',
+    client: 'Müşteri',
+    manage: 'Randevuyu değiştir veya iptal et',
+    reason: 'Neden',
+    codeSubject: 'Rezervasyon onay kodunuz',
+    codeText: (code, salon) =>
+      `${salon} için rezervasyon onay kodunuz: ${code}\n\nKod 10 dakika geçerlidir. Rezervasyon yapmadıysanız bu e-postayı dikkate almayın.`,
+    codeSms: (code, salon) => `${code} — ${salon} rezervasyon kodunuz. 10 dk geçerli.`,
+  },
+  sq: {
+    subjects: {
+      client_confirmation: 'Takimi u konfirmua',
+      client_rescheduled: 'Ora e takimit ndryshoi',
+      client_cancelled: 'Takimi u anulua',
+      client_reminder: 'Kujtesë: takimi juaj nesër',
+      salon_new_booking: 'Rezervim i ri online',
+      salon_client_cancelled: 'Klienti anuloi takimin',
+      salon_client_rescheduled: 'Klienti e zhvendosi takimin',
+    },
+    intro: {
+      client_confirmation: 'Takimi juaj është konfirmuar.',
+      client_rescheduled: 'Ora e takimit tuaj ka ndryshuar.',
+      client_cancelled: 'Takimi juaj është anuluar.',
+      client_reminder: 'Ju kujtojmë për takimin tuaj.',
+      salon_new_booking: 'Një rezervim i ri përmes internetit.',
+      salon_client_cancelled: 'Një klient anuloi takimin.',
+      salon_client_rescheduled: 'Një klient e zhvendosi takimin në një orë tjetër.',
+    },
+    service: 'Shërbimi',
+    staff: 'Specialisti',
+    when: 'Data dhe ora',
+    where: 'Adresa',
+    price: 'Çmimi',
+    client: 'Klienti',
+    manage: 'Ndryshoni ose anuloni takimin',
+    reason: 'Arsyeja',
+    codeSubject: 'Kodi i konfirmimit të rezervimit',
+    codeText: (code, salon) =>
+      `Kodi juaj i konfirmimit për ${salon}: ${code}\n\nKodi është i vlefshëm 10 minuta. Nëse nuk keni bërë rezervim, injorojeni këtë email.`,
+    codeSms: (code, salon) => `${code} — kodi i rezervimit në ${salon}. I vlefshëm 10 min.`,
+  },
 };
 
 export const LOCALE_TAGS: Record<Locale, string> = {
@@ -182,6 +246,8 @@ export const LOCALE_TAGS: Record<Locale, string> = {
   uk: 'uk-UA',
   ru: 'ru-RU',
   en: 'en-GB',
+  tr: 'tr-TR',
+  sq: 'sq-AL',
 };
 
 export function formatWhen(date: Date, timeZone: string, locale: Locale): string {

@@ -6,7 +6,7 @@ import { ClientApi, type ClientPerson, type Locale, type PublicLocation } from '
 import type { BookingPreset } from './booking';
 import { API_URL } from './config';
 import { errorText } from './errors';
-import { DICTIONARIES, pickLocale } from './i18n';
+import { appLocale, DICTIONARIES, pickLocale } from './i18n';
 import { BookingScreen } from './screens/BookingScreen';
 import { CatalogScreen } from './screens/CatalogScreen';
 import { OpenBooking } from './screens/OpenBooking';
@@ -60,7 +60,7 @@ export default function App() {
 
   const signedIn = useCallback((person: ClientPerson) => {
     // The language the client chose last time (it is also the language of the salons' emails).
-    setLocale(person.locale);
+    setLocale(appLocale(person.locale));
     setStage({ kind: 'visits', person });
   }, []);
 

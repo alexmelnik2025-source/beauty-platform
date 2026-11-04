@@ -22,6 +22,9 @@ const SMS_TEXT: Record<Locale, (code: string) => string> = {
   uk: (code) => `Код входу до застосунку салону: ${code}. Дійсний ${LOGIN_CODE_MINUTES} хв.`,
   ru: (code) => `Код входа в приложение салона: ${code}. Действует ${LOGIN_CODE_MINUTES} мин.`,
   en: (code) => `Salon app sign-in code: ${code}. Valid for ${LOGIN_CODE_MINUTES} min.`,
+  tr: (code) => `Salon uygulaması giriş kodu: ${code}. ${LOGIN_CODE_MINUTES} dk geçerli.`,
+  sq: (code) =>
+    `Kodi i hyrjes në aplikacionin e sallonit: ${code}. I vlefshëm ${LOGIN_CODE_MINUTES} min.`,
 };
 
 const WORDS: Record<Locale, { subject: string; text: (code: string) => string }> = {
@@ -44,6 +47,16 @@ const WORDS: Record<Locale, { subject: string; text: (code: string) => string }>
     subject: 'Sign-in code for the salon app',
     text: (code) =>
       `Code: ${code}\n\nEnter it in the app to sign in. The code is valid for ${LOGIN_CODE_MINUTES} minutes.\n\nIf this was not you, ignore this email.`,
+  },
+  tr: {
+    subject: 'Salon uygulaması giriş kodu',
+    text: (code) =>
+      `Kod: ${code}\n\nGiriş yapmak için bu kodu uygulamaya girin. Kod ${LOGIN_CODE_MINUTES} dakika geçerlidir.\n\nBu siz değilseniz, bu e-postayı dikkate almayın.`,
+  },
+  sq: {
+    subject: 'Kodi i hyrjes në aplikacionin e sallonit',
+    text: (code) =>
+      `Kodi: ${code}\n\nShkruajeni në aplikacion për t'u identifikuar. Kodi është i vlefshëm ${LOGIN_CODE_MINUTES} minuta.\n\nNëse nuk ishit ju, injorojeni këtë email.`,
   },
 };
 

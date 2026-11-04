@@ -74,6 +74,16 @@ const TEXTS: Record<
     text: (org, link, phone) =>
       `${org} invites you to join their team.\n\nTo join, open the link (valid for 7 days) and sign in with a code we send to this email address. No password or sign-up needed:\n${link}\n\nYou can also sign in to the salon app with this email address${phone ? ` or the number ${phone}` : ''}.\n\nIf you were not expecting this, ignore this email.`,
   },
+  tr: {
+    subject: 'Ekibe davet',
+    text: (org, link, phone) =>
+      `${org} sizi ekibine davet ediyor.\n\nKatılmak için bağlantıyı açın (7 gün geçerli) ve bu e-posta adresine göndereceğimiz kodla giriş yapın. Şifre veya kayıt gerekmez:\n${link}\n\nSalon uygulamasına bu e-posta adresiyle${phone ? ` veya ${phone} numarasıyla` : ''} de giriş yapabilirsiniz.\n\nBu daveti beklemiyorsanız bu e-postayı dikkate almayın.`,
+  },
+  sq: {
+    subject: 'Ftesë për në ekip',
+    text: (org, link, phone) =>
+      `${org} ju fton të bashkoheni me ekipin.\n\nPër t'u bashkuar, hapni lidhjen (e vlefshme 7 ditë) dhe identifikohuni me kodin që do t'ju dërgojmë në këtë adresë emaili. Nuk nevojitet fjalëkalim as regjistrim:\n${link}\n\nMund të identifikoheni edhe në aplikacionin e sallonit me këtë adresë emaili${phone ? ` ose me numrin ${phone}` : ''}.\n\nNëse nuk e prisnit këtë ftesë, injorojeni këtë email.`,
+  },
 };
 
 const invitationGone = (): AppException =>

@@ -26,7 +26,7 @@ export const specialtySchema = z.enum([
 ] satisfies Specialty[]);
 
 /** Interface and email languages. */
-export const localeSchema = z.enum(['pl', 'uk', 'ru', 'en'] satisfies Locale[]);
+export const localeSchema = z.enum(['pl', 'uk', 'ru', 'en', 'tr', 'sq'] satisfies Locale[]);
 
 export const appointmentStatusSchema = z.enum([
   'held',

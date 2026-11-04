@@ -14,6 +14,11 @@ export const LANGUAGE_NAMES: Record<Locale, string> = {
   en: 'English',
 };
 
+/** A language from the API (it may know more than this app, e.g. tr, sq) → one the app has. */
+export function appLocale(value: string): Locale {
+  return (LOCALES as string[]).includes(value) ? (value as Locale) : 'en';
+}
+
 /** The phone's language if we have it (e.g. "uk-UA" → uk, "be" → ru), otherwise Polish. */
 export function pickLocale(tag: string | undefined): Locale {
   const lang = (tag ?? '').toLowerCase().split(/[-_]/)[0];
