@@ -1045,4 +1045,3 @@ pnpm --filter @beauty/api-client generate
   записывается. Письма — 6 языков, от имени салона, ответ — на e-mail салона.
 - Тесты: `apps/api/test/waitlist.spec.ts`, e2e `apps/web/e2e/waitlist.spec.ts` (скриншоты 80–80b).
 - Дальше (50c): список ждущих в кабинете по дням; удаление контактов старых заявок.
-
