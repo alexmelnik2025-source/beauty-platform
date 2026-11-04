@@ -46,6 +46,28 @@ export function staffFor(salon: PublicLocation, serviceId: string): PublicLocati
   return salon.staff.filter((s) => s.serviceIds.includes(serviceId));
 }
 
+type SpokenLanguage = PublicLocation['staff'][number]['languages'][number];
+const SPOKEN_ORDER: SpokenLanguage[] = ['pl', 'uk', 'ru', 'be', 'en'];
+
+/**
+ * Task 81: languages worth a "Speaks" chip on the specialist step — spoken by some, not all,
+ * of the specialists (a language everyone speaks would filter nothing).
+ */
+export function filterLanguages(staff: PublicLocation['staff']): SpokenLanguage[] {
+  return SPOKEN_ORDER.filter((code) => {
+    const n = staff.filter((s) => (s.languages ?? []).includes(code)).length;
+    return n > 0 && n < staff.length;
+  });
+}
+
+/** The specialists who speak the language; null = no filter. */
+export function speakingStaff(
+  staff: PublicLocation['staff'],
+  language: SpokenLanguage | null,
+): PublicLocation['staff'] {
+  return language ? staff.filter((s) => (s.languages ?? []).includes(language)) : staff;
+}
+
 /** "Book again" / "Book" from a loyalty card: start with this service and specialist. */
 export interface BookingPreset {
   serviceId: string;

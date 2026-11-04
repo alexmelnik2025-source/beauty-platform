@@ -143,6 +143,8 @@ export const uk: Dictionary = {
     staffGone: 'Цей майстер більше не виконує цю послугу — оберіть іншого.',
     pickService: 'Оберіть послугу',
     pickStaff: 'Оберіть майстра',
+    speaksFilter: 'Говорить',
+    speaksAll: 'Усі',
     pickTime: 'Оберіть час',
     badName: 'Вкажіть імʼя та прізвище.',
     badPhone: 'Вкажіть номер телефону, напр. 600 100 200.',

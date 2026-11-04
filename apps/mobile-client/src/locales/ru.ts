@@ -143,6 +143,8 @@ export const ru: Dictionary = {
     staffGone: 'Этот мастер больше не делает эту услугу — выберите другого.',
     pickService: 'Выберите услугу',
     pickStaff: 'Выберите мастера',
+    speaksFilter: 'Говорит на',
+    speaksAll: 'Все',
     pickTime: 'Выберите время',
     badName: 'Укажите имя и фамилию.',
     badPhone: 'Укажите номер телефона, например 600 100 200.',

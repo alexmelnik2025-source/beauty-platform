@@ -143,6 +143,8 @@ export const en: Dictionary = {
     staffGone: 'This specialist no longer does this service — please choose another.',
     pickService: 'Choose a service',
     pickStaff: 'Choose a specialist',
+    speaksFilter: 'Speaks',
+    speaksAll: 'Everyone',
     pickTime: 'Choose a time',
     badName: 'Enter your full name.',
     badPhone: 'Enter a phone number, e.g. 600 100 200.',

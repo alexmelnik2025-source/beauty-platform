@@ -6,8 +6,10 @@ import {
   checkContact,
   countdown,
   dayParts,
+  filterLanguages,
   legalUrl,
   manageUrl,
+  speakingStaff,
   staffFor,
 } from '../src/booking';
 import { dialForTimeZone, normalizePhone } from '../src/phone';
@@ -90,6 +92,18 @@ describe('booking steps', () => {
       ],
     } as unknown as PublicLocation;
     expect(staffFor(salon, 'cut').map((s) => s.id)).toEqual(['a', 'c']);
+  });
+
+  it('"Speaks" chips only for languages some, not all, specialists speak (task 81)', () => {
+    const staff = [
+      { id: 'kasia', languages: ['pl', 'uk'] },
+      { id: 'ola', languages: ['pl'] },
+      { id: 'alex', languages: ['en', 'pl'] },
+    ] as unknown as PublicLocation['staff'];
+    expect(filterLanguages(staff)).toEqual(['uk', 'en']);
+    expect(speakingStaff(staff, 'en').map((s) => s.id)).toEqual(['alex']);
+    expect(speakingStaff(staff, null)).toHaveLength(3);
+    expect(filterLanguages(staff.slice(1, 2))).toEqual([]);
   });
 
   it('times by part of the day, without empty parts', () => {

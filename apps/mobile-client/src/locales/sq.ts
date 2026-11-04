@@ -145,6 +145,8 @@ export const sq: Dictionary = {
     staffGone: 'Ky specialist nuk e ofron më këtë shërbim — ju lutemi zgjidhni një tjetër.',
     pickService: 'Zgjidhni një shërbim',
     pickStaff: 'Zgjidhni një specialist',
+    speaksFilter: 'Flet',
+    speaksAll: 'Të gjithë',
     pickTime: 'Zgjidhni një orë',
     badName: 'Shkruani emrin dhe mbiemrin.',
     badPhone: 'Shkruani një numër telefoni, p.sh. 069 123 4567.',

@@ -1526,6 +1526,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
       appNearest,
     );
     await shot(phone, '64d-client-app-book-staff');
+    // Task 81c: "Mówi po" in the app too — only the specialists who speak the language.
+    await expect(phone.getByRole('button', { name: 'ukraiński', exact: true })).toBeVisible();
+    await phone.getByRole('button', { name: 'angielski', exact: true }).click();
+    await expect(phone.getByRole('button', { name: /^Alex/ })).toBeVisible();
+    await expect(phone.getByRole('button', { name: /^Kasia/ })).toHaveCount(0);
+    await expect(phone.getByRole('button', { name: /^Dowolny specjalista/ })).toHaveCount(0);
+    await shot(phone, '64e-client-app-book-speaks');
+    await phone.getByRole('button', { name: 'Wszyscy', exact: true }).click();
     await phone.getByRole('button', { name: /^Kasia/ }).click();
     await expect(phone.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
     const bookTime = phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first();

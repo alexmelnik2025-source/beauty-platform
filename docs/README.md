@@ -1358,4 +1358,7 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
 - Мастер сам правит свои языки в «Mój grafik» → «Moje języki»: `PUT …/staff/:staffId/languages` — владелец и менеджер
   точки или сам мастер (только свой профиль, иначе 403). Тесты — `team.spec.ts`; e2e — `booking.spec.ts` (скриншот
   02l), `team-invite.spec.ts` (54, 57l).
-- Дальше: фильтр в клиентском приложении (81c); значки языков в строках цен — вместе с задачей 70b.
+- 81c: то же в клиентском приложении — на шаге «Wybierz specjalistę» строка «Mówi po» с кнопками языков (как в
+  каталоге), «Wszyscy» — сброс, «Dowolny specjalista» скрыт при выбранном языке. Логика — `filterLanguages` и
+  `speakingStaff` в `apps/mobile-client/src/booking.ts` (тест `booking.test.ts`); 6 языков; e2e — скриншот
+  `64e-client-app-book-speaks`. Значки языков в строках цен — вместе с задачей 70b.

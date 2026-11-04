@@ -145,6 +145,8 @@ export const tr: Dictionary = {
     staffGone: 'Bu uzman artık bu hizmeti vermiyor — lütfen başka birini seçin.',
     pickService: 'Bir hizmet seçin',
     pickStaff: 'Bir uzman seçin',
+    speaksFilter: 'Konuştuğu dil',
+    speaksAll: 'Herkes',
     pickTime: 'Bir saat seçin',
     badName: 'Adınızı ve soyadınızı girin.',
     badPhone: 'Bir telefon numarası girin, ör. 532 100 20 00.',

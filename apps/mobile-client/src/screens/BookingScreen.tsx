@@ -19,6 +19,7 @@ import {
   type Locale,
   type PublicLocation,
   type Slot,
+  type SpokenLanguage,
 } from '../api';
 import {
   afterBookingError,
@@ -29,6 +30,8 @@ import {
   dayParts,
   legalUrl,
   manageUrl,
+  filterLanguages,
+  speakingStaff,
   staffFor,
   type BookingPreset,
   type BookingStep,
@@ -97,6 +100,8 @@ export function BookingScreen(props: {
   const [step, setStep] = useState<BookingStep>(start.step);
   const [serviceId, setServiceId] = useState(start.serviceId);
   const [staffId, setStaffId] = useState<string | undefined>(start.staffId);
+  /** Task 81: "Speaks EN" — only the specialists who speak the chosen language. */
+  const [speaks, setSpeaks] = useState<SpokenLanguage | null>(null);
   // Shown until the client picks something: the service or specialist is no longer online.
   const [gone, setGone] = useState(start.gone);
   const presetStep = props.preset && start.step !== 'service' ? start.step : null;
@@ -122,6 +127,9 @@ export function BookingScreen(props: {
 
   const service = salon.services.find((s) => s.id === serviceId);
   const staffList = staffFor(salon, serviceId);
+  const languages = filterLanguages(staffList);
+  const activeSpeaks = speaks && languages.includes(speaks) ? speaks : null;
+  const shownStaff = speakingStaff(staffList, activeSpeaks);
 
   const loadSlots = useCallback(async () => {
     setSlots(null);
@@ -392,16 +400,37 @@ export function BookingScreen(props: {
           <Text role="heading" aria-level={2} style={styles.section}>
             {b.pickStaff}
           </Text>
-          <Choice
-            title={b.anyStaff}
-            meta={b.anyStaffHint}
-            free={nearestFree(ANY_STAFF)}
-            onPress={() => {
-              setStaffId(undefined);
-              setStep('time');
-            }}
-          />
-          {staffList.map((s) => (
+          {languages.length > 0 ? (
+            <View style={styles.chips} accessibilityLabel={b.speaksFilter}>
+              <Text style={styles.muted}>{b.speaksFilter}</Text>
+              <Chip
+                label={b.speaksAll}
+                pressed={activeSpeaks === null}
+                onPress={() => setSpeaks(null)}
+              />
+              {languages.map((l) => (
+                <Chip
+                  key={l}
+                  label={t.spoken[l]}
+                  pressed={activeSpeaks === l}
+                  onPress={() => setSpeaks(l)}
+                />
+              ))}
+            </View>
+          ) : null}
+          {/* "Any specialist" could pick someone without the language: hidden while filtering. */}
+          {activeSpeaks ? null : (
+            <Choice
+              title={b.anyStaff}
+              meta={b.anyStaffHint}
+              free={nearestFree(ANY_STAFF)}
+              onPress={() => {
+                setStaffId(undefined);
+                setStep('time');
+              }}
+            />
+          )}
+          {shownStaff.map((s) => (
             <Choice
               key={s.id}
               title={s.displayName}
@@ -705,6 +734,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', marginLeft: -8 },
   brand: { color: colors.gold, fontSize: 13, fontWeight: '700', letterSpacing: 2 },
   section: { color: colors.ink, fontSize: 18, fontWeight: '700' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   group: { color: colors.gold, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },
   text: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   strong: { color: colors.ink, fontSize: 16, fontWeight: '600' },

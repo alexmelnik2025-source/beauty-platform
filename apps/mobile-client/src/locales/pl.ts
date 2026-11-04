@@ -143,6 +143,8 @@ export const pl = {
     staffGone: 'Ten specjalista nie wykonuje już tej usługi — wybierz innego.',
     pickService: 'Wybierz usługę',
     pickStaff: 'Wybierz specjalistę',
+    speaksFilter: 'Mówi po',
+    speaksAll: 'Wszyscy',
     pickTime: 'Wybierz termin',
     badName: 'Wpisz imię i nazwisko.',
     badPhone: 'Wpisz numer telefonu, np. 600 100 200.',
