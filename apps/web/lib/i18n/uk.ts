@@ -113,6 +113,7 @@ export const uk: Dict = {
     notifications: 'Сповіщення',
     settings: 'Налаштування',
     happyHours: 'Happy hours',
+    waitingList: 'Лист очікування',
   },
   directory: {
     title: 'Знайти салон',
@@ -459,6 +460,7 @@ export const uk: Dict = {
       'loyalty.reward.redeemed': 'Обміняно бали на нагороду',
       'loyalty.coupon.cancelled': 'Скасовано купон',
       'loyalty.balance.adjusted': 'Ручне коригування балів',
+      'waitlist.removed': 'Клієнта видалено з листа очікування',
     } as Record<string, string>,
   },
   more: {
@@ -559,6 +561,21 @@ export const uk: Dict = {
     copied: 'Скопійовано',
   },
   weekdays: ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'Пʼятниця', 'Субота', 'Неділя'],
+  waitingList: {
+    title: 'Лист очікування',
+    hint: 'Клієнти, які хочуть візит у повністю зайнятий день. Коли звільниться час, вони отримають один e-mail і зможуть записатися самі.',
+    empty: 'Ніхто не чекає на вільний час.',
+    anyStaff: 'будь-який спеціаліст',
+    waiting: 'Чекає',
+    notified: 'Повідомлено {time}',
+    askedAt: 'Записався(-лась) {time}',
+    remove: 'Видалити зі списку',
+    removeOne: 'Видалити зі списку: {name}',
+    removeAsk: 'Видалити {name} зі списку? Клієнт не отримає повідомлення.',
+    removeYes: 'Так, видалити',
+    removeNo: 'Ні',
+    removed: '{name} видалено з листа очікування.',
+  },
   happyHours: {
     title: 'Happy hours',
     add: 'Додати години зі знижкою',

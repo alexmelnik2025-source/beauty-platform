@@ -9,13 +9,21 @@ import {
 import { AppException, notFound } from '../common/app-exception';
 import { generateToken, hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
+import { AuditService } from '../common/audit.service';
+import type { MembershipContext } from '../common/request-context';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Location, Prisma, WaitlistEntry } from '../generated/prisma/client';
+import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from '../scheduling/availability.service';
 import { addDays, localToday } from '../scheduling/time';
-import type { PublicWaitlistEntryResponse, WaitlistJoinedResponse } from './waitlist.responses';
-import type { JoinWaitlistInput } from './waitlist.schemas';
+import type {
+  PublicWaitlistEntryResponse,
+  SalonWaitlistEntryResponse,
+  SalonWaitlistResponse,
+  WaitlistJoinedResponse,
+} from './waitlist.responses';
+import type { JoinWaitlistInput, SalonWaitlistQuery } from './waitlist.schemas';
 
 /** Outbox types (rendered by OutboxService.renderWaitlist). */
 export const WAITLIST_JOINED = 'waitlist_joined';
@@ -35,6 +43,30 @@ const TIMES_IN_EMAIL = 6;
 const toDate = (date: string): Date => new Date(`${date}T00:00:00.000Z`);
 const fromDate = (date: Date): string => date.toISOString().slice(0, 10);
 
+const SALON_INCLUDE = {
+  service: { select: { name: true } },
+  staff: { select: { displayName: true } },
+} satisfies Prisma.WaitlistEntryInclude;
+
+type SalonRow = Prisma.WaitlistEntryGetPayload<{ include: typeof SALON_INCLUDE }>;
+
+function toSalon(e: SalonRow): SalonWaitlistEntryResponse {
+  return {
+    id: e.id,
+    date: fromDate(e.date),
+    serviceId: e.serviceId,
+    serviceName: e.service.name,
+    staffId: e.staffId,
+    staffName: e.staff?.displayName ?? null,
+    name: e.name,
+    email: e.email,
+    phone: e.phone,
+    status: e.status,
+    createdAt: e.createdAt.toISOString(),
+    notifiedAt: e.notifiedAt?.toISOString() ?? null,
+  };
+}
+
 /**
  * Task 50: the waiting list. A client asks to be told when a time becomes free on a day
  * that is full; every minute (on the server that runs the background workers) waiting
@@ -51,6 +83,8 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly availability: AvailabilityService,
     private readonly limiter: RateLimiterService,
+    private readonly access: LocationAccessService,
+    private readonly audit: AuditService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -181,6 +215,64 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       });
     }
     return this.get(token);
+  }
+
+  /**
+   * Task 50c: the location's list for owners and managers, from a day on (today in the salon's
+   * time zone by default), by day and then by who asked first. Left/removed entries are not shown.
+   */
+  async listForSalon(
+    m: MembershipContext,
+    locationId: string,
+    query: SalonWaitlistQuery,
+  ): Promise<SalonWaitlistResponse> {
+    const location = await this.access.writable(m, locationId);
+    const from = query.from ?? localToday(Date.now(), location.timezone);
+    const rows = await this.prisma.waitlistEntry.findMany({
+      where: { locationId, status: { in: ['waiting', 'notified'] }, date: { gte: toDate(from) } },
+      include: SALON_INCLUDE,
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      take: 500,
+    });
+    return { from, items: rows.map(toSalon) };
+  }
+
+  /** "Usuń z listy": the salon removes a client (no email). Removing twice is fine. */
+  async removeBySalon(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    entryId: string,
+  ): Promise<SalonWaitlistEntryResponse> {
+    await this.access.writable(m, locationId);
+    const entry = await this.prisma.waitlistEntry.findFirst({
+      where: { id: entryId, locationId },
+    });
+    if (!entry) throw notFound('Waiting list entry');
+    if (entry.status !== 'cancelled') {
+      await this.prisma.$transaction(async (tx) => {
+        const changed = await tx.waitlistEntry.updateMany({
+          where: { id: entry.id, status: { not: 'cancelled' } },
+          data: { status: 'cancelled', cancelledAt: new Date() },
+        });
+        if (changed.count === 0) return;
+        await this.audit.record(
+          {
+            organizationId: m.organizationId,
+            actorUserId,
+            action: 'waitlist.removed',
+            entityType: 'waitlist_entry',
+            entityId: entry.id,
+          },
+          tx,
+        );
+      });
+    }
+    const fresh = await this.prisma.waitlistEntry.findUniqueOrThrow({
+      where: { id: entry.id },
+      include: SALON_INCLUDE,
+    });
+    return toSalon(fresh);
   }
 
   /**

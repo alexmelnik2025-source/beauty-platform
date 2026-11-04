@@ -113,6 +113,7 @@ export const en: Dict = {
     notifications: 'Notifications',
     settings: 'Settings',
     happyHours: 'Happy hours',
+    waitingList: 'Waiting list',
   },
   directory: {
     title: 'Find a salon',
@@ -459,6 +460,7 @@ export const en: Dict = {
       'loyalty.reward.redeemed': 'Points exchanged for a reward',
       'loyalty.coupon.cancelled': 'Coupon cancelled',
       'loyalty.balance.adjusted': 'Manual points correction',
+      'waitlist.removed': 'Client removed from the waiting list',
     } as Record<string, string>,
   },
   more: {
@@ -560,6 +562,21 @@ export const en: Dict = {
     copied: 'Copied',
   },
   weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  waitingList: {
+    title: 'Waiting list',
+    hint: 'Clients who want a visit on a full day. When a time becomes free they get one email and can book it themselves.',
+    empty: 'Nobody is waiting for a free time.',
+    anyStaff: 'any specialist',
+    waiting: 'Waiting',
+    notified: 'Told {time}',
+    askedAt: 'Joined {time}',
+    remove: 'Remove from the list',
+    removeOne: 'Remove from the list: {name}',
+    removeAsk: 'Remove {name} from the list? The client gets no message.',
+    removeYes: 'Yes, remove',
+    removeNo: 'No',
+    removed: '{name} removed from the waiting list.',
+  },
   happyHours: {
     title: 'Happy hours',
     add: 'Add happy hours',

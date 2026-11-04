@@ -2288,6 +2288,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who waits for a free time at this location (from a day on, by day)
+         * @description Waiting and already told clients from `from` (default: today in the salon time zone) on, with names and contacts. Clients who left the list or were removed are not listed.
+         */
+        get: operations["WaitlistSalonController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/waitlist/{entryId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a client from the waiting list ("Usuń z listy")
+         * @description No email is sent; removing twice is fine. The entry is kept as cancelled.
+         */
+        post: operations["WaitlistSalonController_remove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/outbox": {
         parameters: {
             query?: never;
@@ -4357,6 +4397,46 @@ export interface components {
                 averageTicketGrosze: number;
                 clients: number;
             };
+        };
+        SalonWaitlist: {
+            /** @description The first day listed (YYYY-MM-DD) */
+            from: string;
+            items: {
+                id: string;
+                /** @description YYYY-MM-DD in the salon time zone */
+                date: string;
+                serviceId: string;
+                serviceName: string;
+                staffId: string | null;
+                /** @description null = any specialist */
+                staffName: string | null;
+                name: string;
+                email: string;
+                phone: string | null;
+                /** @enum {string} */
+                status: "waiting" | "notified" | "cancelled";
+                createdAt: string;
+                /** @description When the client was told a time became free */
+                notifiedAt: string | null;
+            }[];
+        };
+        SalonWaitlistEntry: {
+            id: string;
+            /** @description YYYY-MM-DD in the salon time zone */
+            date: string;
+            serviceId: string;
+            serviceName: string;
+            staffId: string | null;
+            /** @description null = any specialist */
+            staffName: string | null;
+            name: string;
+            email: string;
+            phone: string | null;
+            /** @enum {string} */
+            status: "waiting" | "notified" | "cancelled";
+            createdAt: string;
+            /** @description When the client was told a time became free */
+            notifiedAt: string | null;
         };
         Service: {
             id: string;
@@ -8859,6 +8939,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicWaitlistEntry"];
+                };
+            };
+        };
+    };
+    WaitlistSalonController_list: {
+        parameters: {
+            query?: {
+                /** @description YYYY-MM-DD */
+                from?: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonWaitlist"];
+                };
+            };
+        };
+    };
+    WaitlistSalonController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                entryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonWaitlistEntry"];
                 };
             };
         };

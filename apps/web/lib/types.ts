@@ -78,6 +78,8 @@ export type {
   PublicAppointment,
   PublicLegalTexts,
   PublicWaitlistEntry,
+  SalonWaitlist,
+  SalonWaitlistEntry,
   PublicLocation,
   PublicSalon,
   PublicSalonDirectory,

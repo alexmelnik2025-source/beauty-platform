@@ -9132,6 +9132,95 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/waitlist": {
+      "get": {
+        "description": "Waiting and already told clients from `from` (default: today in the salon time zone) on, with names and contacts. Clients who left the list or were removed are not listed.",
+        "operationId": "WaitlistSalonController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "YYYY-MM-DD",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalonWaitlist"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Who waits for a free time at this location (from a day on, by day)",
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/waitlist/{entryId}/remove": {
+      "post": {
+        "description": "No email is sent; removing twice is fine. The entry is kept as cancelled.",
+        "operationId": "WaitlistSalonController_remove",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalonWaitlistEntry"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a client from the waiting list (\"Usuń z listy\")",
+        "tags": [
+          "booking"
+        ]
+      }
+    },
     "/v1/admin/outbox": {
       "get": {
         "operationId": "AdminOutboxController_stats",
@@ -17400,6 +17489,159 @@
           "days",
           "weekdays",
           "previous"
+        ],
+        "additionalProperties": false
+      },
+      "SalonWaitlist": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The first day listed (YYYY-MM-DD)"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD in the salon time zone"
+                },
+                "serviceId": {
+                  "type": "string"
+                },
+                "serviceName": {
+                  "type": "string"
+                },
+                "staffId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "staffName": {
+                  "nullable": true,
+                  "description": "null = any specialist",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "phone": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "waiting",
+                    "notified",
+                    "cancelled"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "notifiedAt": {
+                  "nullable": true,
+                  "description": "When the client was told a time became free",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "date",
+                "serviceId",
+                "serviceName",
+                "staffId",
+                "staffName",
+                "name",
+                "email",
+                "phone",
+                "status",
+                "createdAt",
+                "notifiedAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "from",
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "SalonWaitlistEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD in the salon time zone"
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "staffId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "staffName": {
+            "nullable": true,
+            "description": "null = any specialist",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "notified",
+              "cancelled"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "notifiedAt": {
+            "nullable": true,
+            "description": "When the client was told a time became free",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "serviceId",
+          "serviceName",
+          "staffId",
+          "staffName",
+          "name",
+          "email",
+          "phone",
+          "status",
+          "createdAt",
+          "notifiedAt"
         ],
         "additionalProperties": false
       },

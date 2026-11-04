@@ -41,7 +41,8 @@ type Ids = Record<
   | 'invitationId'
   | 'photoId'
   | 'rewardId'
-  | 'couponId',
+  | 'couponId'
+  | 'entryId',
   string
 >;
 
@@ -156,6 +157,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/coupons/:couponId/cancel')) return { version: 1 };
   if (p.endsWith('/coupons/:couponId/remove')) return { version: 1 };
   if (p.endsWith('/tier-discount') || p.endsWith('/tier-discount/remove')) return { version: 1 };
+  if (p.endsWith('/waitlist/:entryId/remove')) return {};
   if (p.endsWith('/happy-hours')) {
     return { rules: [{ weekdays: [1], start: '10:00', end: '12:00', discountPercent: 50 }] };
   }
@@ -406,6 +408,17 @@ async function seedLocation(
     .set(user.auth)
     .send({ rewardId: reward.body.id })
     .expect(201);
+  // A client waiting for a free time (task 50c).
+  const entry = await ctx.prisma.waitlistEntry.create({
+    data: {
+      locationId: org.locationId,
+      serviceId: service.body.id,
+      date: new Date(`${DATE}T00:00:00.000Z`),
+      name: 'Waiting Client',
+      email: `waiting-${org.orgId}@example.com`,
+      tokenHash: `isolation-${org.orgId}`,
+    },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -424,6 +437,7 @@ async function seedLocation(
     photoId: photo.body.id,
     rewardId: reward.body.id,
     couponId: coupon.body.id,
+    entryId: entry.id,
   };
 }
 
@@ -464,6 +478,7 @@ async function snapshotOf(ids: Ids) {
       select: { id: true, staffId: true, sizeBytes: true },
       orderBy: { id: 'asc' },
     }),
+    waitlist: await ctx.prisma.waitlistEntry.findMany({ where: { locationId: ids.locationId } }),
   };
 }
 
@@ -507,7 +522,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|seriesId|serviceCategoryId|invitationId|photoId|rewardId|couponId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|seriesId|serviceCategoryId|invitationId|photoId|rewardId|couponId|entryId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },

@@ -27,6 +27,8 @@ let slug: string;
 let base: string;
 let serviceId: string;
 let staffId: string;
+let orgId: string;
+let locationId: string;
 
 beforeAll(async () => {
   ctx = await createTestApp();
@@ -43,6 +45,8 @@ beforeEach(async () => {
   owner = await signUp(ctx, 'owner@example.com');
   const org = await createOrgWithLocation(ctx, owner, 'Barber');
   slug = org.slug;
+  orgId = org.orgId;
+  locationId = org.locationId;
   base = `/v1/organizations/${org.orgId}/locations/${org.locationId}`;
   serviceId = (
     await ctx
@@ -208,5 +212,121 @@ describe('waiting list', () => {
     expectError((await join(dayAhead(6)).expect(409)).body, 'WAITLIST_LIMIT');
     // Another client may still wait for that day; "any specialist" works too.
     await join(dayAhead(6), BOB, { staffId: undefined }).expect(201);
+  });
+
+  it('the salon sees who waits by day with contacts and can remove a client (50c)', async () => {
+    const d2 = dayAhead(2);
+    const d4 = dayAhead(4);
+    await fillDay(d2);
+    await fillDay(d4);
+    await join(d4, ANNA, { phone: '+48 600 111 222' }).expect(201);
+    await join(d2, BOB, { name: 'Bob Brown', staffId: undefined }).expect(201);
+    await join(d2, 'carol@example.com', { name: 'Carol' }).expect(201);
+    await outbox.drain();
+    // Carol leaves from her email: she is not listed any more.
+    await ctx
+      .http()
+      .post(`/v1/public/waitlist/${leaveToken('carol@example.com')}/cancel`)
+      .expect(200);
+
+    const list = await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200);
+    expect(list.body.from).toBe(localToday(Date.now(), TZ));
+    expect(list.body.items.map((e: { name: string }) => e.name)).toEqual([
+      'Bob Brown',
+      'Anna Kowalska',
+    ]);
+    expect(list.body.items[0]).toMatchObject({
+      date: d2,
+      serviceName: 'Strzyżenie',
+      staffId: null,
+      staffName: null,
+      email: BOB,
+      phone: null,
+      status: 'waiting',
+      notifiedAt: null,
+    });
+    expect(list.body.items[1]).toMatchObject({
+      date: d4,
+      staffName: 'Kasia',
+      email: ANNA,
+      phone: '+48600111222',
+    });
+    // From a later day on.
+    const later = await ctx.http().get(`${base}/waitlist?from=${d4}`).set(owner.auth).expect(200);
+    expect(later.body.items).toHaveLength(1);
+    await ctx.http().get(`${base}/waitlist?from=tomorrow`).set(owner.auth).expect(400);
+
+    // Removing: no email, listed no more, twice is fine, the change log has it.
+    const bob = list.body.items[0].id as string;
+    const sent = ctx.mail.allTo(BOB).length;
+    const removed = await ctx
+      .http()
+      .post(`${base}/waitlist/${bob}/remove`)
+      .set(owner.auth)
+      .expect(200);
+    expect(removed.body.status).toBe('cancelled');
+    await ctx.http().post(`${base}/waitlist/${bob}/remove`).set(owner.auth).expect(200);
+    await outbox.drain();
+    expect(ctx.mail.allTo(BOB)).toHaveLength(sent);
+    const after = await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200);
+    expect(after.body.items.map((e: { name: string }) => e.name)).toEqual(['Anna Kowalska']);
+    const log = await ctx
+      .http()
+      .get(`/v1/organizations/${orgId}/audit-log`)
+      .set(owner.auth)
+      .expect(200);
+    expect(log.body.items[0]).toMatchObject({ action: 'waitlist.removed', entityId: bob });
+    // A removed client is not told when a time frees up.
+    expect(await waitlist.sweep()).toBe(0);
+    await ctx
+      .http()
+      .post(`${base}/waitlist/0190f0f0-0000-7000-8000-000000000000/remove`)
+      .set(owner.auth)
+      .expect(404);
+  });
+
+  it("owner and the location's manager only; other salons see nothing (50c)", async () => {
+    const day = dayAhead(3);
+    await fillDay(day);
+    await join(day).expect(201);
+    const entry = (await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200)).body
+      .items[0].id as string;
+
+    const manager = await signUp(ctx, 'manager@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: manager.userId,
+        organizationId: orgId,
+        role: 'manager',
+        locations: { create: [{ locationId }] },
+      },
+    });
+    const managed = await ctx.http().get(`${base}/waitlist`).set(manager.auth).expect(200);
+    expect(managed.body.items).toHaveLength(1);
+
+    const kasia = await signUp(ctx, 'kasia@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: kasia.userId,
+        organizationId: orgId,
+        role: 'staff',
+        locations: { create: [{ locationId }] },
+      },
+    });
+    await ctx.http().get(`${base}/waitlist`).set(kasia.auth).expect(403);
+    await ctx.http().post(`${base}/waitlist/${entry}/remove`).set(kasia.auth).expect(403);
+
+    // Another salon's owner: their own salon's path with this entry, or this salon's path.
+    const other = await signUp(ctx, 'other@example.com');
+    const otherOrg = await createOrgWithLocation(ctx, other, 'Inny');
+    const otherBase = `/v1/organizations/${otherOrg.orgId}/locations/${otherOrg.locationId}`;
+    await ctx.http().post(`${otherBase}/waitlist/${entry}/remove`).set(other.auth).expect(404);
+    expect(
+      (await ctx.http().get(`${otherBase}/waitlist`).set(other.auth).expect(200)).body.items,
+    ).toEqual([]);
+    await ctx.http().get(`${base}/waitlist`).set(other.auth).expect(404);
+    expect(
+      (await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200)).body.items,
+    ).toHaveLength(1);
   });
 });

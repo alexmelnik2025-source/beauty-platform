@@ -26,3 +26,11 @@ export const joinWaitlistSchema = z.object({
   acceptTerms: z.literal(true, { message: 'the booking terms must be accepted' }),
 });
 export type JoinWaitlistInput = z.infer<typeof joinWaitlistSchema>;
+
+/** Task 50c: the salon's list from a day on (default: today in the salon's time zone). */
+export const salonWaitlistQuerySchema = z
+  .object({
+    from: localDateSchema.optional(),
+  })
+  .strict();
+export type SalonWaitlistQuery = z.infer<typeof salonWaitlistQuerySchema>;

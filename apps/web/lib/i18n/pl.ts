@@ -113,6 +113,7 @@ export const pl = {
     notifications: 'Powiadomienia',
     settings: 'Ustawienia',
     happyHours: 'Happy hours',
+    waitingList: 'Lista oczekujących',
   },
   directory: {
     title: 'Znajdź salon',
@@ -459,6 +460,7 @@ export const pl = {
       'loyalty.reward.redeemed': 'Wymieniono punkty na nagrodę',
       'loyalty.coupon.cancelled': 'Anulowano kupon',
       'loyalty.balance.adjusted': 'Ręczna korekta punktów',
+      'waitlist.removed': 'Usunięto klienta z listy oczekujących',
     } as Record<string, string>,
   },
   more: {
@@ -560,6 +562,21 @@ export const pl = {
     copied: 'Skopiowano',
   },
   weekdays: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'],
+  waitingList: {
+    title: 'Lista oczekujących',
+    hint: 'Klienci, którzy chcą wizyty w pełny dzień. Gdy zwolni się termin, dostają jeden e-mail i mogą się zapisać sami.',
+    empty: 'Nikt nie czeka na wolny termin.',
+    anyStaff: 'dowolny specjalista',
+    waiting: 'Czeka',
+    notified: 'Powiadomiony(-a) {time}',
+    askedAt: 'Zapisał(a) się {time}',
+    remove: 'Usuń z listy',
+    removeOne: 'Usuń z listy: {name}',
+    removeAsk: 'Usunąć {name} z listy? Klient nie dostanie wiadomości.',
+    removeYes: 'Tak, usuń',
+    removeNo: 'Nie',
+    removed: 'Usunięto {name} z listy oczekujących.',
+  },
   happyHours: {
     title: 'Happy hours',
     add: 'Dodaj tańsze godziny',

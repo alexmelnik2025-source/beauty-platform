@@ -1298,7 +1298,14 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
   termin» со свободными часами и ссылкой на запись (`?service=…&staff=…`), статус `notified`. Кто первый — тот и
   записывается. Письма — 6 языков, от имени салона, ответ — на e-mail салона.
 - Тесты: `apps/api/test/waitlist.spec.ts`, e2e `apps/web/e2e/waitlist.spec.ts` (скриншоты 80–80b).
-- Дальше (50c): список ждущих в кабинете по дням; удаление контактов старых заявок.
+- Кабинет (50c): пункт меню «Lista oczekujących» (владелец и менеджер точки; мастерам 403) — ждущие по дням с
+  сегодняшнего (в поясе салона): имя, услуга, мастер или «dowolny specjalista», e-mail и телефон ссылками, «Czeka» /
+  «Powiadomiony(-a) …», когда записался. «Usuń z listy» (с вопросом «Tak, usuń / Nie») — без письма клиенту, запись
+  остаётся со статусом `cancelled`, в «Dziennik zmian» — `waitlist.removed`. API:
+  `GET /v1/organizations/:orgId/locations/:locationId/waitlist?from=YYYY-MM-DD`,
+  `POST …/waitlist/:entryId/remove`. Тесты — `waitlist.spec.ts` (права, другой салон, повтор), `isolation.spec.ts`;
+  e2e — скриншоты 80c–80d.
+- Дальше: удаление контактов старых заявок; лист ожидания в клиентском приложении (задача 51).
 
 ## Пожелания к визиту (задача 80, часть 80a — API)
 
