@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **D1. `pnpm dev` падал из-за телефонных приложений** (ручной тест владельца на Mac, 04.11.2026) — готово на ветке
+  `agent/dev-script-mobile`: `pnpm dev` / `./scripts/dev.sh` поднимают только API и веб; приложения — отдельно
+  `pnpm mobile:client` (порт 8081) и `pnpm mobile:business` (8082) с адресом Mac в сети для телефона; `pnpm dev:all` —
+  всё вместе, падение одного не валит остальные; README «Проверить приложения на iPhone». Ждёт CI (GitHub Actions
+  остановлен из-за оплаты), затем влить.
+
 - **CI НЕ ЗАПУСКАЕТСЯ (04.11.2026, ~18:50):** GitHub Actions не стартует ни одну проверку — «recent account payments
   have failed or your spending limit needs to be increased». Нужен владелец: GitHub → Settings → Billing & plans.
   Пока CI не работает, ничего не вливается в main.

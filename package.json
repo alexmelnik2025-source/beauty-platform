@@ -6,7 +6,10 @@
     "node": ">=24 <25"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=@beauty/api --filter=@beauty/web",
+    "dev:all": "turbo run dev --continue",
+    "mobile:client": "node scripts/mobile.mjs client",
+    "mobile:business": "node scripts/mobile.mjs business",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
