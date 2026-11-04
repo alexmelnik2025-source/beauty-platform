@@ -1717,6 +1717,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My coupons in this salon: used on the visit, and the others with what each takes off */
+        get: operations["ClientController_coupons"];
+        put?: never;
+        /**
+         * Use one of my coupons on an upcoming visit (until the salon’s deadline)
+         * @description 409 TOO_LATE_TO_CHANGE after the deadline; the salon's rules as for the salon (COUPON_NOT_FOR_SERVICE, COUPON_NOT_COMBINABLE, COUPON_NO_DISCOUNT, COUPON_EXPIRED, COUPON_NOT_ACTIVE).
+         */
+        post: operations["ClientController_applyCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/appointments/{id}/coupons/{couponId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a coupon off an upcoming visit (until the salon’s deadline) */
+        post: operations["ClientController_removeCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/push-subscriptions/public-key": {
         parameters: {
             query?: never;
@@ -2262,6 +2300,15 @@ export interface components {
                 serviceId: string;
                 staffId: string | null;
             } | null;
+            /** @description What the client's loyalty coupons take off service.priceGrosze */
+            discountGrosze: number;
+            /** @description Loyalty coupons used on this visit */
+            coupons: {
+                id: string;
+                code: string;
+                name: string;
+                discountGrosze: number;
+            }[];
         };
         ClientAppointmentList: {
             items: {
@@ -2304,6 +2351,15 @@ export interface components {
                     serviceId: string;
                     staffId: string | null;
                 } | null;
+                /** @description What the client's loyalty coupons take off service.priceGrosze */
+                discountGrosze: number;
+                /** @description Loyalty coupons used on this visit */
+                coupons: {
+                    id: string;
+                    code: string;
+                    name: string;
+                    discountGrosze: number;
+                }[];
             }[];
         };
         ClientCodeSent: {
@@ -6781,6 +6837,77 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientAppointment"];
+                };
+            };
+        };
+    };
+    ClientController_coupons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitCoupons"];
+                };
+            };
+        };
+    };
+    ClientController_applyCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    couponId: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientAppointment"];
+                };
+            };
+        };
+    };
+    ClientController_removeCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                couponId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

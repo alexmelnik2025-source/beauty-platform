@@ -918,3 +918,13 @@ pnpm --filter @beauty/api-client generate
 - В данных визита: «Cena», «Użyty kupon» (название и код), «Rabat» и «Do zapłaty». После «Opłacono» купоны не
   меняются (сначала «Cofnij opłatę»).
 - 4 языка кабинета; e2e — шаг в `apps/web/e2e/loyalty.spec.ts`, скриншот `72-owner-visit-coupon`.
+
+## Клиент выбирает купон для визита (задача 10d, часть 3а — API)
+
+- В «Moje wizyty» клиент видит у будущего визита свои купоны этого салона и сколько каждый снимет; может
+  использовать купон и снять его — до срока изменений салона (как перенос и отмена; позже — 409
+  `TOO_LATE_TO_CHANGE`). Правила салона те же, что у сотрудника; чужой визит или купон — 404.
+- У визита клиента — `discountGrosze` и `coupons` (название, код, сумма). Отмена визита клиентом возвращает купон.
+  Салон видит в истории визита «Użyto kuponu» от клиента.
+- API: `GET /v1/client/appointments/:id/coupons`, `POST …/coupons` `{couponId}`,
+  `POST …/coupons/:couponId/remove`. Тесты `test/client-coupons.spec.ts`.

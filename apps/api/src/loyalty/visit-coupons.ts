@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
+import type { VisitCouponsResponse } from '../booking/booking.responses';
 import type { LoyaltyCoupon, LoyaltyProgram, Prisma } from '../generated/prisma/client';
 
 /** Why a coupon cannot be used on a visit (null = it can). */
@@ -134,6 +135,76 @@ export class VisitCoupons {
     return coupon;
   }
 
+  /** The salon's discount rules; coupons exist only where a program was saved (else its defaults). */
+  async rules(db: Prisma.TransactionClient, organizationId: string): Promise<Rules> {
+    const program = await db.loyaltyProgram.findUnique({
+      where: { organizationId },
+      select: { maxDiscountPercent: true, allowStacking: true },
+    });
+    return program ?? { maxDiscountPercent: 100, allowStacking: false };
+  }
+
+  /**
+   * Coupons used on the visit and the client's other unused coupons in this salon, each with what
+   * it would take off or why it cannot be used. showPrices=false hides the amounts.
+   */
+  async overview(
+    db: Prisma.TransactionClient,
+    visit: Omit<CouponVisit, 'version'>,
+    showPrices: boolean,
+  ): Promise<VisitCouponsResponse> {
+    const applied = await this.applied(db, visit.id);
+    const unused = visit.customerId
+      ? await db.loyaltyCoupon.findMany({
+          where: {
+            status: 'active',
+            account: {
+              customerId: visit.customerId,
+              program: { organizationId: visit.organizationId },
+            },
+          },
+          orderBy: [{ expiresAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+          take: 50,
+        })
+      : [];
+    const rules = await this.rules(db, visit.organizationId);
+    return {
+      applied: applied.map((c) => ({
+        ...visitCouponFields(c),
+        discountGrosze: showPrices ? (c.discountGrosze ?? 0) : null,
+      })),
+      available: unused.map((c) => {
+        const { discountGrosze, problem } = couponDiscount(rules, visit, c, applied);
+        return {
+          ...visitCouponFields(c),
+          expiresAt: c.expiresAt?.toISOString() ?? null,
+          discountGrosze: showPrices && problem === null ? discountGrosze : null,
+          problem: problem === 'ALREADY_APPLIED' ? null : problem,
+        };
+      }),
+    };
+  }
+
+  /** Coupons used on these visits, by visit (only visits with a discount are looked up). */
+  async usedOn(
+    db: Prisma.TransactionClient,
+    rows: { id: string; discountGrosze: number }[],
+  ): Promise<Map<string, LoyaltyCoupon[]>> {
+    const ids = rows.filter((r) => r.discountGrosze > 0).map((r) => r.id);
+    const byVisit = new Map<string, LoyaltyCoupon[]>();
+    if (ids.length === 0) return byVisit;
+    const coupons = await db.loyaltyCoupon.findMany({
+      where: { usedAppointmentId: { in: ids }, status: 'used' },
+      orderBy: [{ usedAt: 'asc' }, { id: 'asc' }],
+    });
+    for (const c of coupons) {
+      const list = byVisit.get(c.usedAppointmentId!) ?? [];
+      list.push(c);
+      byVisit.set(c.usedAppointmentId!, list);
+    }
+    return byVisit;
+  }
+
   async applied(tx: Prisma.TransactionClient, appointmentId: string): Promise<LoyaltyCoupon[]> {
     return tx.loyaltyCoupon.findMany({
       where: { usedAppointmentId: appointmentId, status: 'used' },
@@ -239,6 +310,18 @@ export class VisitCoupons {
       },
     });
   }
+}
+
+/** What every coupon list shows about a coupon. */
+export function visitCouponFields(c: LoyaltyCoupon) {
+  return {
+    id: c.id,
+    code: c.code,
+    name: c.name,
+    kind: c.kind,
+    discountPercent: c.discountPercent,
+    version: c.version,
+  };
 }
 
 /** "k7qm 4xtb", "K7QM4XTB" → "K7QM-4XTB" (as printed on the coupon). */

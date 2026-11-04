@@ -38,6 +38,20 @@ export const clientAppointmentSchema = responseSchema(
       .describe(
         'Same service and staff member again; null when the salon no longer takes it online',
       ),
+    discountGrosze: z
+      .number()
+      .int()
+      .describe("What the client's loyalty coupons take off service.priceGrosze"),
+    coupons: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          code: z.string(),
+          name: z.string(),
+          discountGrosze: z.number().int(),
+        }),
+      )
+      .describe('Loyalty coupons used on this visit'),
   }),
 );
 export type ClientAppointmentResponse = z.infer<typeof clientAppointmentSchema>;

@@ -60,7 +60,7 @@ const holdExpired = (): AppException =>
     'The 10 minutes to confirm have passed. Choose the time again',
   );
 
-const tooLate = (): AppException =>
+export const tooLate = (): AppException =>
   new AppException(
     HttpStatus.CONFLICT,
     'TOO_LATE_TO_CHANGE',

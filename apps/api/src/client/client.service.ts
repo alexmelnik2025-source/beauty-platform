@@ -3,15 +3,25 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
 import { hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
-import type { AppointmentStatus, Locale, Person, Prisma } from '../generated/prisma/client';
+import type {
+  AppointmentStatus,
+  Locale,
+  LoyaltyCoupon,
+  Person,
+  Prisma,
+} from '../generated/prisma/client';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ClientRescheduleInput } from '../booking/booking.schemas';
-import { PublicBookingService } from '../booking/public-booking.service';
+import { AppointmentWriter } from '../booking/appointment-writer';
+import { PublicBookingService, tooLate } from '../booking/public-booking.service';
+import type { VisitCouponsResponse } from '../booking/booking.responses';
+import { VisitCoupons } from '../loyalty/visit-coupons';
 import { createClientSession } from './client-session';
 import type { ClientAppointmentResponse, PersonResponse } from './client.responses';
 import { renderClientCodeEmail } from './client-templates';
 import type {
+  ClientApplyCouponInput,
   ListClientAppointmentsInput,
   RequestClientCodeInput,
   VerifyClientCodeInput,
@@ -58,6 +68,8 @@ export class ClientService {
     private readonly mail: MailService,
     private readonly limiter: RateLimiterService,
     private readonly booking: PublicBookingService,
+    private readonly visitCoupons: VisitCoupons,
+    private readonly writer: AppointmentWriter,
   ) {}
 
   // ── Sign-in ───────────────────────────────────────────
@@ -187,11 +199,65 @@ export class ClientService {
             orderBy: { startAt: 'desc' },
             take: PAST_LIMIT,
           });
-    return { items: items.map((a) => this.toClient(a)) };
+    const coupons = await this.visitCoupons.usedOn(this.prisma, items);
+    return { items: items.map((a) => this.toClient(a, coupons.get(a.id) ?? [])) };
   }
 
   async get(auth: ClientAuth, id: string): Promise<ClientAppointmentResponse> {
-    return this.toClient(await this.mine(auth, id));
+    const a = await this.mine(auth, id);
+    const coupons = await this.visitCoupons.usedOn(this.prisma, [a]);
+    return this.toClient(a, coupons.get(a.id) ?? []);
+  }
+
+  // ── Loyalty coupons on an upcoming visit (task 10d) ───
+
+  /** The client's coupons in this salon: used on the visit, and the others with what each takes off. */
+  async coupons(auth: ClientAuth, id: string): Promise<VisitCouponsResponse> {
+    const a = await this.mine(auth, id);
+    return this.visitCoupons.overview(this.prisma, couponVisit(a), true);
+  }
+
+  /**
+   * The client picks a coupon for an upcoming visit, until the salon's deadline for changes
+   * (like moving or cancelling). The salon's rules are checked on the server.
+   */
+  async applyCoupon(
+    auth: ClientAuth,
+    id: string,
+    input: ClientApplyCouponInput,
+  ): Promise<ClientAppointmentResponse> {
+    const a = await this.changeable(auth, id);
+    await this.prisma.$transaction(async (tx) => {
+      const visit = couponVisit(a);
+      const coupon = await this.visitCoupons.findForVisit(tx, visit, input);
+      const rules = await this.visitCoupons.rules(tx, visit.organizationId);
+      const discountGrosze = await this.visitCoupons.apply(tx, visit, coupon, rules);
+      await this.writer.event(tx, a.id, 'coupon_applied', 'customer', null, {
+        couponId: coupon.id,
+        code: coupon.code,
+        name: coupon.name,
+        discountGrosze,
+      });
+    });
+    return this.get(auth, id);
+  }
+
+  /** The client takes a coupon off an upcoming visit (until the deadline); it can be used again. */
+  async removeCoupon(
+    auth: ClientAuth,
+    id: string,
+    couponId: string,
+  ): Promise<ClientAppointmentResponse> {
+    const a = await this.changeable(auth, id);
+    await this.prisma.$transaction(async (tx) => {
+      const coupon = await this.visitCoupons.remove(tx, couponVisit(a), couponId);
+      await this.writer.event(tx, a.id, 'coupon_removed', 'customer', null, {
+        couponId: coupon.id,
+        code: coupon.code,
+        name: coupon.name,
+      });
+    });
+    return this.get(auth, id);
   }
 
   async cancel(
@@ -233,10 +299,24 @@ export class ClientService {
     return appointment;
   }
 
-  private toClient(a: LoadedAppointment): ClientAppointmentResponse {
+  /** An upcoming visit the client may still change (the salon's deadline), else 409 TOO_LATE_TO_CHANGE. */
+  private async changeable(auth: ClientAuth, id: string): Promise<LoadedAppointment> {
+    const a = await this.mine(auth, id);
+    if (!this.booking.toPublic(a).canChange) throw tooLate();
+    return a;
+  }
+
+  private toClient(a: LoadedAppointment, coupons: LoyaltyCoupon[]): ClientAppointmentResponse {
     const bookable = a.location.onlineBookingEnabled && a.service.active;
     return {
       ...this.booking.toPublic(a),
+      discountGrosze: a.discountGrosze,
+      coupons: coupons.map((c) => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        discountGrosze: c.discountGrosze ?? 0,
+      })),
       bookAgain: bookable
         ? {
             slug: a.location.slug,
@@ -254,4 +334,15 @@ export class ClientService {
   private codeHash(email: string, code: string): string {
     return hashToken(`client:${email}:${code}`);
   }
+}
+
+function couponVisit(a: LoadedAppointment) {
+  return {
+    id: a.id,
+    organizationId: a.location.organizationId,
+    serviceId: a.serviceId,
+    customerId: a.customerId,
+    priceGrosze: a.priceGrosze,
+    version: a.version,
+  };
 }

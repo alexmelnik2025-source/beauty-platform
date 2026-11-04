@@ -35,3 +35,7 @@ export type RequestClientCodeInput = z.infer<typeof requestClientCodeSchema>;
 export type VerifyClientCodeInput = z.infer<typeof verifyClientCodeSchema>;
 export type ListClientAppointmentsInput = z.infer<typeof listClientAppointmentsSchema>;
 export type UpdatePersonInput = z.infer<typeof updatePersonSchema>;
+
+/** Task 10d: the client picks one of their coupons for an upcoming visit. */
+export const clientApplyCouponSchema = z.object({ couponId: z.uuid() });
+export type ClientApplyCouponInput = z.infer<typeof clientApplyCouponSchema>;

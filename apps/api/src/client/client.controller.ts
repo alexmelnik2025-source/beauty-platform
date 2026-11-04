@@ -30,11 +30,14 @@ import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import { clearClientCookie, ClientGuard, CurrentClient, setClientCookie } from './client-auth';
+import { visitCouponsSchema, type VisitCouponsResponse } from '../booking/booking.responses';
 import {
+  clientApplyCouponSchema,
   listClientAppointmentsSchema,
   requestClientCodeSchema,
   updatePersonSchema,
   verifyClientCodeSchema,
+  type ClientApplyCouponInput,
   type ListClientAppointmentsInput,
   type RequestClientCodeInput,
   type UpdatePersonInput,
@@ -224,5 +227,53 @@ export class ClientController {
     @Body(new ZodValidationPipe(clientRescheduleSchema)) body: ClientRescheduleInput,
   ): Promise<ClientAppointmentResponse> {
     return this.clients.reschedule(client, id, body);
+  }
+
+  @Get('appointments/:id/coupons')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'My coupons in this salon: used on the visit, and the others with what each takes off',
+  })
+  @ApiZodResponse(visitCouponsSchema)
+  coupons(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+  ): Promise<VisitCouponsResponse> {
+    return this.clients.coupons(client, id);
+  }
+
+  @Post('appointments/:id/coupons')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Use one of my coupons on an upcoming visit (until the salon’s deadline)',
+    description:
+      "409 TOO_LATE_TO_CHANGE after the deadline; the salon's rules as for the salon (COUPON_NOT_FOR_SERVICE, COUPON_NOT_COMBINABLE, COUPON_NO_DISCOUNT, COUPON_EXPIRED, COUPON_NOT_ACTIVE).",
+  })
+  @ApiZodBody(clientApplyCouponSchema)
+  @ApiZodResponse(clientAppointmentSchema)
+  applyCoupon(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+    @Body(new ZodValidationPipe(clientApplyCouponSchema)) body: ClientApplyCouponInput,
+  ): Promise<ClientAppointmentResponse> {
+    return this.clients.applyCoupon(client, id, body);
+  }
+
+  @Post('appointments/:id/coupons/:couponId/remove')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Take a coupon off an upcoming visit (until the salon’s deadline)' })
+  @ApiZodResponse(clientAppointmentSchema)
+  removeCoupon(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+    @Param('couponId', new ParseUUIDPipe({ exceptionFactory: () => notFound('Coupon') }))
+    couponId: string,
+  ): Promise<ClientAppointmentResponse> {
+    return this.clients.removeCoupon(client, id, couponId);
   }
 }

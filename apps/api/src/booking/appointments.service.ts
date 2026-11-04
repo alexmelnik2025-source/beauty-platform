@@ -16,7 +16,7 @@ import type {
   SetPaidInput,
 } from '../loyalty/loyalty.schemas';
 import {
-  couponDiscount,
+  visitCouponFields,
   visitNotChangeable,
   VisitCoupons,
   type CouponVisit,
@@ -112,7 +112,7 @@ export class AppointmentsService {
       orderBy: [{ startAt: 'asc' }, { staffId: 'asc' }],
     });
     const firsts = await this.firstCompleted(rows);
-    const coupons = await this.couponsOf(rows);
+    const coupons = await this.visitCoupons.usedOn(this.prisma, rows);
     return rows.map((row) => this.toResponse(row, m, firsts, coupons));
   }
 
@@ -128,7 +128,7 @@ export class AppointmentsService {
       orderBy: { createdAt: 'asc' },
     });
     const firsts = await this.firstCompleted([appointment]);
-    const coupons = await this.couponsOf([appointment]);
+    const coupons = await this.visitCoupons.usedOn(this.prisma, [appointment]);
     return {
       ...this.toResponse(appointment, m, firsts, coupons),
       history: events.map(toHistory),
@@ -497,37 +497,11 @@ export class AppointmentsService {
   ): Promise<VisitCouponsResponse> {
     const appointment = await this.findVisible(m, userId, locationId, appointmentId);
     await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
-    const prices = m.permissions.viewOwnEarnings;
-    const applied = await this.visitCoupons.applied(this.prisma, appointment.id);
-    const unused = appointment.customerId
-      ? await this.prisma.loyaltyCoupon.findMany({
-          where: {
-            status: 'active',
-            account: {
-              customerId: appointment.customerId,
-              program: { organizationId: appointment.location.organizationId },
-            },
-          },
-          orderBy: [{ expiresAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
-          take: 50,
-        })
-      : [];
-    const rules = await this.couponRules(this.prisma, appointment.location.organizationId);
-    return {
-      applied: applied.map((c) => ({
-        ...visitCouponFields(c),
-        discountGrosze: prices ? (c.discountGrosze ?? 0) : null,
-      })),
-      available: unused.map((c) => {
-        const { discountGrosze, problem } = couponDiscount(rules, appointment, c, applied);
-        return {
-          ...visitCouponFields(c),
-          expiresAt: c.expiresAt?.toISOString() ?? null,
-          discountGrosze: prices && problem === null ? discountGrosze : null,
-          problem: problem === 'ALREADY_APPLIED' ? null : problem,
-        };
-      }),
-    };
+    return this.visitCoupons.overview(
+      this.prisma,
+      toCouponVisit(appointment, appointment.version),
+      m.permissions.viewOwnEarnings,
+    );
   }
 
   /**
@@ -547,7 +521,7 @@ export class AppointmentsService {
     const visit = toCouponVisit(appointment, input.version);
     await this.prisma.$transaction(async (tx) => {
       const coupon = await this.visitCoupons.findForVisit(tx, visit, input);
-      const rules = await this.couponRules(tx, visit.organizationId);
+      const rules = await this.visitCoupons.rules(tx, visit.organizationId);
       const discountGrosze = await this.visitCoupons.apply(tx, visit, coupon, rules);
       await this.writer.event(tx, appointment.id, 'coupon_applied', 'staff', userId, {
         couponId: coupon.id,
@@ -584,35 +558,6 @@ export class AppointmentsService {
   }
 
   // ── Helpers ───────────────────────────────────────────
-
-  private async couponRules(
-    db: Prisma.TransactionClient,
-    organizationId: string,
-  ): Promise<{ maxDiscountPercent: number; allowStacking: boolean }> {
-    const program = await db.loyaltyProgram.findUnique({
-      where: { organizationId },
-      select: { maxDiscountPercent: true, allowStacking: true },
-    });
-    // Coupons exist only where a program was saved; these are the program's defaults.
-    return program ?? { maxDiscountPercent: 100, allowStacking: false };
-  }
-
-  /** Coupons used on these visits, by visit. */
-  private async couponsOf(rows: Appointment[]): Promise<Map<string, LoyaltyCoupon[]>> {
-    const ids = rows.filter((r) => r.discountGrosze > 0).map((r) => r.id);
-    const byVisit = new Map<string, LoyaltyCoupon[]>();
-    if (ids.length === 0) return byVisit;
-    const coupons = await this.prisma.loyaltyCoupon.findMany({
-      where: { usedAppointmentId: { in: ids }, status: 'used' },
-      orderBy: [{ usedAt: 'asc' }, { id: 'asc' }],
-    });
-    for (const c of coupons) {
-      const list = byVisit.get(c.usedAppointmentId!) ?? [];
-      list.push(c);
-      byVisit.set(c.usedAppointmentId!, list);
-    }
-    return byVisit;
-  }
 
   /** Staff role: the staff profiles linked to the user at this location. Others: null (no limit). */
   private async ownStaffIds(
@@ -849,17 +794,6 @@ export class AppointmentsService {
 
 function toHistory(e: AppointmentEvent): AppointmentDetailResponse['history'][number] {
   return { type: e.type, actor: e.actor, at: e.createdAt.toISOString(), data: e.data };
-}
-
-function visitCouponFields(c: LoyaltyCoupon) {
-  return {
-    id: c.id,
-    code: c.code,
-    name: c.name,
-    kind: c.kind,
-    discountPercent: c.discountPercent,
-    version: c.version,
-  };
 }
 
 function toCouponVisit(a: Loaded, version: number): CouponVisit {
