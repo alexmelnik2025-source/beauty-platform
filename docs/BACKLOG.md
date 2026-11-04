@@ -22,6 +22,17 @@
 - **CI НЕ ЗАПУСКАЕТСЯ (04.11.2026, ~18:50):** GitHub Actions не стартует ни одну проверку — «recent account payments
   have failed or your spending limit needs to be increased». Нужен владелец: GitHub → Settings → Billing & plans.
   Пока CI не работает, ничего не вливается в main.
+  **План влития после восстановления CI (04.11.2026, 19:10, запуск агента):** готовых веток ~14, все отстают от
+  main на 1–20 коммитов, 8 из них добавляют миграции — вливать по одной (rebase на свежий main → CI → fast-forward),
+  миграции переименовывать по дате при конфликте порядка. Порядок — от старых и без миграций к новым:
+  `32-app-reports-weekdays` → `18d-app-notifications` → `17b-app-move-cancel` → `40-client-data-export` →
+  `23-audit-log` → `61-favorites` → `19d-bonus-for-clients` → `50b-waitlist-web` → `80-visit-wishes` →
+  `62-staff-price` / `62b-staff-price-web`.
+  **Дубли — вливать только одну:** `agent/62-staff-price` и `agent/70-staff-prices` (70a) делают одно и то же (своя
+  цена мастера, оба создают `test/staff-prices.spec.ts` и миграцию) — основа 62 (к ней уже есть кабинет 62b), из 70a
+  перенести только то, чего нет в 62 (своя длительность, `staffIds` для «Dowolny»), 70-staff-prices не вливать.
+  Так же 50 vs 24 (лист ожидания, см. ниже). Новые задачи до восстановления CI не начинать: в облачном запуске
+  бинарники Prisma не скачиваются (403), поэтому локально тесты API не идут — новый код был бы вовсе не проверен.
 - **17. Бизнес-приложение: новый визит, перенос и отмена** — готово на ветке `agent/17b-app-move-cancel` (включает 17a;
   check и e2e были зелёными до остановки CI), ждёт CI и влития fast-forward. 17a: «+ Nowa wizyta» (услуга → мастер →
   время → клиент, «Klient już był»); 17b: «Przenieś» / «Odwołaj wizytę» в карточке визита.
