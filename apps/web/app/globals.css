@@ -1971,6 +1971,118 @@ label.btn:focus-within {
   font-size: 1.3rem;
 }
 
+/* Task 70b: the price list as in Booksy — the service, its specialists' circles, then one
+   line per price and length ("ILYA, NAZAR · 162 zł · 1g 20min [Umów]"). */
+.service-cards {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.service-card {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.service-card .choice-list button {
+  padding-bottom: 8px;
+  border-bottom: 0;
+}
+
+.service-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.service-team .avatar {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.price-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.price-rows li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 6px 0;
+  border-top: 1px dashed var(--line);
+}
+
+.pr-who {
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.pr-name .lang-badges {
+  display: inline-flex;
+  margin-left: 4px;
+  vertical-align: 1px;
+}
+
+.pr-offer {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .price-rows li {
+    grid-template-columns: 1fr auto;
+  }
+
+  .pr-offer {
+    grid-row: 2;
+    grid-column: 1;
+    color: var(--graphite);
+  }
+
+  .price-rows .btn {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+}
+
+/* The row's specialists over the calendar, "Dowolny" first. */
+.row-staff {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.row-staff button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 64px;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: none;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.row-staff button[aria-pressed='true'] {
+  outline: 2px solid var(--ink);
+  font-weight: 600;
+}
+
 /* ── Public catalogue of salons ───────────────────────── */
 
 .directory-inner {

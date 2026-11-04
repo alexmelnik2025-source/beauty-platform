@@ -26,6 +26,7 @@ import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import { WishPhotos } from '../wishes/WishPhotos';
 import type { VisitWishes } from '../wishes/wishes';
+import { formatLength, priceRows } from './price-rows';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
 /** Key of "any specialist" in the nearest-free-time map. */
@@ -119,6 +120,13 @@ export function BookingFlow({ slug }: { slug: string }) {
   const [step, setStep] = useState<Step>('service');
   const [serviceId, setServiceId] = useState('');
   const [staffId, setStaffId] = useState<string | undefined>(undefined);
+  /**
+   * Task 70b: "Umów" on a price row of several specialists — "any of these" (or one of them,
+   * picked in the circles over the calendar). Empty when the client went through the staff step.
+   */
+  const [rowStaff, setRowStaff] = useState<string[]>([]);
+  /** The client came from the price list straight to the times: "Back" returns there. */
+  const [fromList, setFromList] = useState(false);
   /** Task 81: "Speaks EN" — only specialists who speak the chosen language. */
   const [speaks, setSpeaks] = useState<Spoken | ''>('');
   const [slots, setSlots] = useState<Slot[] | null>(null);
@@ -253,13 +261,19 @@ export function BookingFlow({ slug }: { slug: string }) {
     const from = todayIn(tz);
     const res = await api<{ slots: Slot[] }>(`/v1/public/locations/${slug}/availability`, {
       auth: false,
-      query: { serviceId, staffId, from, to: addDays(from, DAYS_SHOWN - 1) },
+      query: {
+        serviceId,
+        staffId,
+        ...(!staffId && rowStaff.length > 1 ? { staffIds: rowStaff.join(',') } : {}),
+        from,
+        to: addDays(from, DAYS_SHOWN - 1),
+      },
     });
     setSlots(res.slots);
     setDay((current) =>
       current && res.slots.some((s) => s.date === current) ? current : (res.slots[0]?.date ?? ''),
     );
-  }, [serviceId, staffId, slug, tz]);
+  }, [serviceId, staffId, rowStaff, slug, tz]);
 
   useEffect(() => {
     if (step === 'time') void loadSlots().catch((err) => setError(errorText(t, err)));
@@ -281,6 +295,7 @@ export function BookingFlow({ slug }: { slug: string }) {
         body: {
           serviceId,
           staffId,
+          ...(!staffId && rowStaff.length > 1 ? { staffIds: rowStaff } : {}),
           start: slot.start,
           ...(hold ? { releaseHoldToken: hold.holdToken } : {}),
         },
@@ -477,10 +492,22 @@ export function BookingFlow({ slug }: { slug: string }) {
         {step === 'service' ? (
           <ServiceList
             salon={salon}
-            onPick={(id) => {
+            speaks={speaks}
+            onSpeaks={setSpeaks}
+            onPick={(id, row) => {
               setServiceId(id);
-              setStaffId(undefined);
               setError('');
+              if (row) {
+                // A price row: one specialist → their times; several → "any of these" first.
+                setStaffId(row.length === 1 ? row[0] : undefined);
+                setRowStaff(row.length > 1 ? row : []);
+                setFromList(true);
+                setStep('time');
+                return;
+              }
+              setStaffId(undefined);
+              setRowStaff([]);
+              setFromList(false);
               setStep('staff');
             }}
           />
@@ -523,6 +550,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                     className="with-avatar"
                     onClick={() => {
                       setStaffId(undefined);
+                      setRowStaff([]);
                       setStep('time');
                     }}
                   >
@@ -551,6 +579,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                     className="with-avatar"
                     onClick={() => {
                       setStaffId(s.id);
+                      setRowStaff([]);
                       setStep('time');
                     }}
                   >
@@ -586,6 +615,38 @@ export function BookingFlow({ slug }: { slug: string }) {
         {step === 'time' && service ? (
           <section className="stack">
             <h2>{service.name}</h2>
+            {rowStaff.length > 1 ? (
+              // Task 70b: the row's specialists over the calendar, "Dowolny" first (as in Booksy).
+              <div className="row-staff" role="group" aria-label={t.booking.stepStaff}>
+                <button type="button" aria-pressed={!staffId} onClick={() => setStaffId(undefined)}>
+                  <span className="avatar avatar--staff avatar--any" aria-hidden="true">
+                    ∗
+                  </span>
+                  <span>{t.booking.anyShort}</span>
+                </button>
+                {rowStaff.map((id) => {
+                  const s = salon.staff.find((x) => x.id === id);
+                  if (!s) return null;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={staffId === id}
+                      onClick={() => setStaffId(id)}
+                    >
+                      <span className="avatar avatar--staff" aria-hidden="true">
+                        {s.photoUrl ? (
+                          <img src={s.photoUrl} alt="" decoding="async" />
+                        ) : (
+                          initials(s.displayName)
+                        )}
+                      </span>
+                      <span>{s.displayName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             {slots === null ? (
               <Spinner />
             ) : slots.length === 0 ? (
@@ -649,7 +710,11 @@ export function BookingFlow({ slug }: { slug: string }) {
                 )}
               </>
             )}
-            <button type="button" className="link-btn small" onClick={() => setStep('staff')}>
+            <button
+              type="button"
+              className="link-btn small"
+              onClick={() => setStep(fromList ? 'service' : 'staff')}
+            >
               {t.common.back}
             </button>
           </section>
@@ -871,13 +936,29 @@ export function BookingFlow({ slug }: { slug: string }) {
 
 function ServiceList({
   salon,
+  speaks,
+  onSpeaks,
   onPick,
 }: {
   salon: PublicLocation;
-  onPick: (serviceId: string) => void;
+  speaks: Spoken | '';
+  onSpeaks: (code: Spoken | '') => void;
+  /** Without a row: the specialist step; with one: straight to the times of these specialists. */
+  onPick: (serviceId: string, row?: string[]) => void;
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
+  // Task 81 on the price list: languages spoken by some, not all, of the salon's specialists.
+  const filterLanguages = SPOKEN.filter((code) => {
+    const n = salon.staff.filter((s) => (s.languages ?? []).includes(code)).length;
+    return n > 0 && n < salon.staff.length;
+  });
+  const active = speaks && filterLanguages.includes(speaks) ? speaks : '';
+  const team = active
+    ? salon.staff.filter((s) => (s.languages ?? []).includes(active))
+    : salon.staff;
+  const length = (minutes: number) => formatLength(minutes, t.booking.hoursShort, t.common.minutes);
+
   const groups = [
     ...salon.categories.map((c) => ({
       id: c.id,
@@ -889,32 +970,144 @@ function ServiceList({
       name: salon.categories.length ? t.booking.otherServices : '',
       services: salon.services.filter((s) => !s.categoryId),
     },
-  ].filter((g) => g.services.length > 0);
+  ]
+    .map((g) => ({
+      ...g,
+      services: g.services
+        .map((service) => {
+          const doing = salon.staff.filter((x) => x.serviceIds.includes(service.id));
+          return { service, doing, rows: priceRows(service, team) };
+        })
+        // While filtering by language, a service nobody speaking it does is hidden.
+        .filter((x) => !active || x.rows.length > 0),
+    }))
+    .filter((g) => g.services.length > 0);
 
   return (
-    <section>
+    <section className="stack">
+      {filterLanguages.length > 0 ? (
+        <div className="field">
+          <span id="speaks-list-filter">{t.languages.filterLabel}</span>
+          <span className="chips" role="group" aria-labelledby="speaks-list-filter">
+            <button type="button" aria-pressed={active === ''} onClick={() => onSpeaks('')}>
+              {t.languages.filterAll}
+            </button>
+            {filterLanguages.map((code) => (
+              <button
+                key={code}
+                type="button"
+                aria-pressed={active === code}
+                aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
+                onClick={() => onSpeaks(code)}
+              >
+                <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
+              </button>
+            ))}
+          </span>
+        </div>
+      ) : null}
       {groups.map((g) => (
         <div key={g.id}>
           {g.name ? <h3 className="group-title">{g.name}</h3> : null}
-          <ul className="choice-list">
-            {g.services.map((s) => (
-              <li key={s.id}>
-                <button type="button" onClick={() => onPick(s.id)}>
-                  <span className="c-name">{s.name}</span>
-                  <span className="c-meta">
-                    {s.durationMinutes} {t.common.minutes}
-                    {s.description ? ` · ${s.description}` : ''}
-                  </span>
-                  <span className="c-price">
-                    {s.priceFromGrosze < s.priceToGrosze
-                      ? fill(t.booking.priceFrom, {
-                          price: formatPrice(s.priceFromGrosze, salon.currency, tag),
-                        })
-                      : formatPrice(s.priceFromGrosze, salon.currency, tag)}
-                  </span>
-                </button>
-              </li>
-            ))}
+          <ul className="service-cards">
+            {g.services.map(({ service: s, doing, rows }) => {
+              // Everyone doing the service at one price: one "All specialists" row.
+              const allOneRow =
+                !active &&
+                rows.length === 1 &&
+                doing.length > 1 &&
+                rows[0]?.staff.length === doing.length;
+              return (
+                <li key={s.id} className="service-card">
+                  <ul className="choice-list">
+                    <li>
+                      <button type="button" onClick={() => onPick(s.id)}>
+                        <span className="c-name">{s.name}</span>
+                        <span className="c-meta">
+                          {s.durationMinutes} {t.common.minutes}
+                          {s.description ? ` · ${s.description}` : ''}
+                        </span>
+                        <span className="c-price">
+                          {s.priceFromGrosze < s.priceToGrosze
+                            ? fill(t.booking.priceFrom, {
+                                price: formatPrice(s.priceFromGrosze, salon.currency, tag),
+                              })
+                            : formatPrice(s.priceFromGrosze, salon.currency, tag)}
+                        </span>
+                      </button>
+                    </li>
+                  </ul>
+                  {rows.length > 0 ? (
+                    <>
+                      <div className="service-team">
+                        {rows
+                          .flatMap((r) => r.staff)
+                          .map((x) => (
+                            <button
+                              key={x.id}
+                              type="button"
+                              className="avatar avatar--staff"
+                              title={x.displayName}
+                              aria-label={fill(t.booking.staffTimes, { name: x.displayName })}
+                              onClick={() => onPick(s.id, [x.id])}
+                            >
+                              {x.photoUrl ? (
+                                <img src={x.photoUrl} alt="" decoding="async" />
+                              ) : (
+                                initials(x.displayName)
+                              )}
+                            </button>
+                          ))}
+                      </div>
+                      <ul className="price-rows">
+                        {rows.map((r) => {
+                          const names = r.staff.map((x) => x.displayName).join(', ');
+                          return (
+                            <li key={`${r.priceGrosze}|${r.durationMinutes}`}>
+                              <span className="pr-who">
+                                {allOneRow
+                                  ? t.booking.allStaff
+                                  : r.staff.map((x, i) => (
+                                      <span key={x.id} className="pr-name">
+                                        {x.displayName}
+                                        {/* Only languages not everyone speaks: the ones worth choosing by. */}
+                                        <LanguageBadges
+                                          codes={(x.languages ?? []).filter((c) =>
+                                            filterLanguages.includes(c),
+                                          )}
+                                        />
+                                        {i < r.staff.length - 1 ? ', ' : ''}
+                                      </span>
+                                    ))}
+                              </span>
+                              <span className="pr-offer">
+                                {formatPrice(r.priceGrosze, salon.currency, tag)} ·{' '}
+                                {length(r.durationMinutes)}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn--small"
+                                aria-label={fill(t.booking.bookRowLabel, {
+                                  names: allOneRow ? t.booking.allStaff : names,
+                                })}
+                                onClick={() =>
+                                  onPick(
+                                    s.id,
+                                    r.staff.map((x) => x.id),
+                                  )
+                                }
+                              >
+                                {t.booking.bookRow}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </div>
       ))}
