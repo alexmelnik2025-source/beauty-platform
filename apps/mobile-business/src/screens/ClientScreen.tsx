@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ApiError, type BusinessApi, type CustomerDetail, type Locale } from '../api';
 import {
+  ApiError,
+  type BusinessApi,
+  type CustomerDetail,
+  type Locale,
+  type LoyaltyAccount,
+} from '../api';
+import {
+  bonusSummary,
   canEditNotes,
   completedCount,
+  dateIn,
   parseTags,
   splitVisits,
   visitWhen,
@@ -39,6 +47,7 @@ export function ClientScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
+  const [account, setAccount] = useState<LoyaltyAccount | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -51,6 +60,13 @@ export function ClientScreen(props: {
   useEffect(() => {
     void load();
     let alive = true;
+    // Owners and managers: stamps or points, tier and coupons (the server refuses specialists).
+    if (salon.role !== 'staff') {
+      void api.loyaltyAccount(salon.orgId, id).then(
+        (a) => alive && setAccount(a),
+        () => undefined,
+      );
+    }
     void api.permissions(salon.orgId).then(
       ({ me }) => {
         if (!alive) return;
@@ -62,7 +78,7 @@ export function ClientScreen(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, load]);
+  }, [api, salon, id, load]);
 
   // Android "back" closes the card instead of the app.
   useEffect(() => {
@@ -121,6 +137,7 @@ export function ClientScreen(props: {
   }
 
   const { upcoming, past } = splitVisits(client.visits, salon.locationId);
+  const bonus = account ? bonusSummary(account) : null;
   const notesVisible = client.note !== null || client.tags !== null;
   const visitRow = (v: ClientVisit) => (
     <View key={v.id} style={styles.visit}>
@@ -226,6 +243,37 @@ export function ClientScreen(props: {
           </>
         )}
       </Card>
+
+      {bonus ? (
+        <Card>
+          <Text style={styles.label}>{c.bonuses}</Text>
+          <Text style={styles.value}>
+            {fill(bonus.mode === 'stamps' ? c.stamps : c.points, { count: String(bonus.balance) })}
+          </Text>
+          {bonus.tier ? (
+            <Text style={styles.value}>{fill(c.tier, { tier: bonus.tier })}</Text>
+          ) : null}
+          {bonus.coupons.length > 0 ? (
+            <>
+              <Text style={styles.label}>{c.coupons}</Text>
+              {bonus.coupons.map((coupon) => (
+                <Text key={coupon.id} style={styles.value}>
+                  {coupon.name} · {coupon.code}
+                  {coupon.expiresAt ? (
+                    <Text style={styles.muted}>
+                      {' '}
+                      ·{' '}
+                      {fill(c.until, {
+                        date: dateIn(coupon.expiresAt, props.timeZone, props.locale),
+                      })}
+                    </Text>
+                  ) : null}
+                </Text>
+              ))}
+            </>
+          ) : null}
+        </Card>
+      ) : null}
 
       {ownOnly ? <Text style={styles.muted}>{c.ownOnly}</Text> : null}
       {upcoming.length > 0 ? (

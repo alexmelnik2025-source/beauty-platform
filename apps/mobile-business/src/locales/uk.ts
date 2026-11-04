@@ -97,6 +97,12 @@ export const uk: Dictionary = {
     history: 'Історія візитів',
     noVisits: 'У цьому салоні візитів немає.',
     ownOnly: 'Ви бачите лише свої візити з цим клієнтом.',
+    bonuses: 'Програма лояльності',
+    stamps: 'Штампи: {count}',
+    points: 'Бали: {count}',
+    tier: 'Рівень: {tier}',
+    coupons: 'Активні купони',
+    until: 'до {date}',
     status: {
       held: 'Бронювання триває',
       confirmed: 'Підтверджено',

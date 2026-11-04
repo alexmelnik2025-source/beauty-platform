@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { BusinessApi, type PermissionCatalog, type TokenStore } from '../src/api';
-import { canEditNotes, completedCount, parseTags, splitVisits, visitWhen } from '../src/clients';
+import {
+  BusinessApi,
+  type LoyaltyAccount,
+  type PermissionCatalog,
+  type TokenStore,
+} from '../src/api';
+import {
+  bonusSummary,
+  canEditNotes,
+  completedCount,
+  dateIn,
+  parseTags,
+  splitVisits,
+  visitWhen,
+} from '../src/clients';
 
 type Me = PermissionCatalog['me'];
 const staff = (permissions: Partial<Me['permissions']>): Me =>
@@ -83,6 +96,7 @@ describe('BusinessApi clients', () => {
     await api.customer('o1', 'c1');
     await api.updateCustomerNotes('o1', 'c1', 2, 'Lubi krótko', ['vip']);
     await api.updateCustomerNotes('o1', 'c1', 3, null, []);
+    await api.loyaltyAccount('o1', 'c1');
     expect(calls.slice(1).map((c) => [c.key, c.body, c.auth])).toEqual([
       ['GET /v1/organizations/o1/customers?limit=50&search=Anna+Kow', undefined, 'Bearer a9'],
       ['GET /v1/organizations/o1/customers?limit=20', undefined, 'Bearer a9'],
@@ -97,6 +111,77 @@ describe('BusinessApi clients', () => {
         { version: 3, note: null, tags: [] },
         'Bearer a9',
       ],
+      ['GET /v1/organizations/o1/loyalty/accounts/c1', undefined, 'Bearer a9'],
     ]);
+  });
+});
+
+describe('bonus part of the client card', () => {
+  const account = (over: Partial<LoyaltyAccount>): LoyaltyAccount => ({
+    customer: { id: 'c1', name: 'Anna' },
+    mode: 'stamps',
+    balance: 0,
+    lifetimeEarned: 0,
+    transactions: [],
+    coupons: [],
+    tier: null,
+    ...over,
+  });
+  const coupon = (id: string, status: string, expiresAt: string | null) =>
+    ({
+      id,
+      status,
+      expiresAt,
+      name: '−20%',
+      code: 'K7QM-4XTB',
+    }) as LoyaltyAccount['coupons'][number];
+  const now = new Date('2026-11-04T12:00:00Z');
+
+  it('nothing in the program yet → no bonus part', () => {
+    expect(bonusSummary(account({}), now)).toBeNull();
+  });
+
+  it('balance, tier with its discount and only usable coupons', () => {
+    const summary = bonusSummary(
+      account({
+        mode: 'points',
+        balance: 40,
+        lifetimeEarned: 90,
+        coupons: [
+          coupon('a', 'active', '2026-12-31T22:59:59Z'),
+          coupon('b', 'used', null),
+          coupon('c', 'active', '2026-11-01T00:00:00Z'),
+          coupon('d', 'active', null),
+        ],
+        tier: {
+          basis: 'visits',
+          periodDays: 365,
+          value: 6,
+          current: { name: 'Silver', discountPercent: 5 },
+          next: null,
+        },
+      }),
+      now,
+    );
+    expect(summary).toMatchObject({ mode: 'points', balance: 40, tier: 'Silver · −5%' });
+    expect(summary!.coupons.map((c) => c.id)).toEqual(['a', 'd']);
+    expect(dateIn('2026-12-31T22:59:59Z', 'Europe/Warsaw', 'pl')).toBe('31.12.2026');
+  });
+
+  it('a tier without a discount is shown by its name; spent stamps still count', () => {
+    const summary = bonusSummary(
+      account({
+        lifetimeEarned: 10,
+        tier: {
+          basis: 'spend',
+          periodDays: 365,
+          value: 0,
+          current: { name: 'Standard', discountPercent: 0 },
+          next: null,
+        },
+      }),
+      now,
+    );
+    expect(summary).toMatchObject({ mode: 'stamps', balance: 0, tier: 'Standard' });
   });
 });
