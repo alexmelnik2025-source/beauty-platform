@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ClientApi, type ClientLoyaltyCard, type TokenStore } from '../src/api';
 import {
   earningText,
+  extraBadge,
+  extraText,
   formatDate,
   MAX_STAMPS_DRAWN,
   nextText,
@@ -56,6 +58,7 @@ function card(extra: Partial<ClientLoyaltyCard> = {}): ClientLoyaltyCard {
     coupons: [],
     history: [],
     tier: null,
+    bonuses: [],
     ...extra,
   };
 }
@@ -211,5 +214,31 @@ describe('ClientApi.loyalty', () => {
       url: 'https://api.test/v1/client/loyalty',
       auth: 'Bearer tok-0123456789',
     });
+  });
+});
+
+describe('the salon’s bonus rules (task 19)', () => {
+  const rule = {
+    name: 'Spokojne dni',
+    staffNames: ['Kasia'],
+    weekdays: [1, 2, 3],
+    multiplier: 2,
+    extraPoints: 0,
+    withinDays: 21,
+  };
+
+  it('says what is added and when, in the client’s language', () => {
+    expect(extraBadge(rule)).toBe('×2');
+    expect(extraBadge({ ...rule, multiplier: 1, extraPoints: 5 })).toBe('+5');
+    expect(extraBadge({ ...rule, extraPoints: 1 })).toBe('×2 +1');
+    expect(extraText(pl, rule, 'pl')).toBe(
+      'pon., wt., śr. · u: Kasia · gdy wracasz w ciągu 21 dni',
+    );
+    expect(extraText(DICTIONARIES.en, rule, 'en')).toBe(
+      'Mon, Tue, Wed · with Kasia · when you come back within 21 days',
+    );
+    expect(extraText(pl, { ...rule, staffNames: [], weekdays: [7], withinDays: null }, 'pl')).toBe(
+      'niedz.',
+    );
   });
 });

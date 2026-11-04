@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { ClientLoyaltyCard, Locale } from '../api';
 import {
   earningText,
+  extraBadge,
+  extraText,
   formatDate,
   nextText,
   progress,
@@ -122,6 +124,25 @@ function BonusCard({
             ) : null}
             {next ? <Text style={styles.text}>{next}</Text> : null}
             <Text style={styles.muted}>{earningText(t, card, locale)}</Text>
+
+            {card.bonuses.length ? (
+              <View style={{ gap: 6, marginTop: 6 }}>
+                <Text role="heading" aria-level={3} style={styles.section}>
+                  {t.bonuses.extraTitle}
+                </Text>
+                <View role="list" aria-label={`${t.bonuses.extraTitle}: ${card.organization.name}`}>
+                  {card.bonuses.map((b, i) => (
+                    <View key={i} role="listitem" style={styles.row}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.strong}>{b.name}</Text>
+                        <Text style={styles.muted}>{extraText(t, b, locale)}</Text>
+                      </View>
+                      <Text style={[styles.chip, styles.chipReady]}>{extraBadge(b)}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
             {card.rewards.length ? (
               <View style={{ gap: 6, marginTop: 6 }}>

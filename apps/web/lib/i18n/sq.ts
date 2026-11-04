@@ -180,6 +180,9 @@ export const sq: Dict = {
     appName: 'Takimet',
   },
   bonuses: {
+    extraTitle: 'Më shumë për vizitën',
+    extraAt: 'te {names}',
+    extraWithin: 'kur ktheheni brenda {days} ditësh',
     tab: 'Bonuset e mia',
     tier: 'Niveli juaj: {name}',
     tierNone: 'Ende nuk keni nivel',

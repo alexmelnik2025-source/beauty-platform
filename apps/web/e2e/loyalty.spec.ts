@@ -356,15 +356,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   expect(bonusSaved.rules.map((r) => [r.name, r.weekdays, r.multiplier, r.withinDays])).toEqual([
     ['Spokojne dni ×2', [1, 2, 3], 2, 21],
   ]);
-  // The visits below count stamps without bonuses.
-  expect(
-    (
-      await request.put(`${orgBase}/loyalty/bonus-rules`, {
-        headers: owner,
-        data: { rules: [] },
-      })
-    ).ok(),
-  ).toBe(true);
+  // The rule stays: the client sees it in “Moje bonusy” (no visit is paid after this).
 
   // ── Client card: exchange for a coupon, cancel it, correct by hand ────
   await page.goto('/pl/app/clients');
@@ -432,6 +424,11 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(bonus.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
   // The removed reward is not offered; the salon's reasons are never shown to the client.
   await expect(bonus).not.toContainText('Broda gratis');
+  // The salon's bonus rule (19): Monday–Wednesday ×2 when back within 21 days.
+  const extras = bonus.getByRole('list', { name: /^Więcej za wizytę/ });
+  await expect(extras).toContainText('Spokojne dni ×2');
+  await expect(extras).toContainText('gdy wracasz w ciągu 21 dni');
+  await expect(extras).toContainText('×2');
   await bonus.getByText('Historia').click();
   await expect(bonus).toContainText('Ręczna zmiana');
   await expect(bonus).not.toContainText('Pomyłka przy karcie');
@@ -496,6 +493,9 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await expect(appCard.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
     await expect(appCard.getByRole('list', { name: 'Moje kupony' })).toContainText(coupon.code);
     await expect(appCard).not.toContainText('Broda gratis');
+    await expect(appCard.getByRole('list', { name: /^Więcej za wizytę/ })).toContainText(
+      'Spokojne dni ×2',
+    );
     await shot(app, '63-client-app-bonuses');
     // History on request; the salon's reasons are never shown to the client.
     await appCard.getByRole('button', { name: 'Pokaż historię' }).click();

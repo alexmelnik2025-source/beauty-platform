@@ -338,6 +338,9 @@ export const ru: Dict = {
     appName: 'Визиты',
   },
   bonuses: {
+    extraTitle: 'Больше за визит',
+    extraAt: 'у: {names}',
+    extraWithin: 'если возвращаетесь в течение {days} дней',
     tab: 'Мои бонусы',
     tier: 'Ваш уровень: {name}',
     tierNone: 'У вас пока нет уровня',

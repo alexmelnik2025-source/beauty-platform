@@ -337,6 +337,9 @@ export const en: Dict = {
     appName: 'Visits',
   },
   bonuses: {
+    extraTitle: 'More for a visit',
+    extraAt: 'with {names}',
+    extraWithin: 'when you come back within {days} days',
     tab: 'My bonuses',
     tier: 'Your tier: {name}',
     tierNone: 'No tier yet',

@@ -180,6 +180,9 @@ export const tr: Dict = {
     appName: 'Randevular',
   },
   bonuses: {
+    extraTitle: 'Ziyarette daha fazla',
+    extraAt: '{names} ile',
+    extraWithin: '{days} gün içinde tekrar gelirseniz',
     tab: 'Bonuslarım',
     tier: 'Seviyeniz: {name}',
     tierNone: 'Henüz bir seviyeniz yok',

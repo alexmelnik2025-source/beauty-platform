@@ -84,6 +84,9 @@ export const uk: Dictionary = {
     loadingSlots: 'Шукаємо вільний час…',
   },
   bonuses: {
+    extraTitle: 'Більше за візит',
+    extraAt: 'у: {names}',
+    extraWithin: 'якщо повертаєтеся протягом {days} днів',
     tab: 'Мої бонуси',
     tier: 'Ваш рівень: {name}',
     tierNone: 'У вас ще немає рівня',

@@ -1046,5 +1046,8 @@ pnpm --filter @beauty/api-client generate
   «каждая стрижка при визитах раз в 3 недели ×2». Первый визит и неоплаченные визиты не считаются.
 - Кабинет: блок «Dodatkowe pieczątki i punkty» в «Program lojalnościowy» — название, мастера, дни, «Mnożnik (×)»,
   «Dodatkowo (+)», «Gdy wraca w ciągu (dni)»; 4 языка; скриншот 79.
+- Клиент видит правила (задача 19d): в «Moje bonusy» на сайте и в клиентском приложении — блок «Więcej za wizytę»
+  («Spokojne dni ×2 — pon., wt., śr. · u: Kasia · gdy wracasz w ciągu 21 dni»), 6 языков; API — поле `bonuses` в
+  `GET /v1/client/loyalty` (только при включённой программе; правило только для ушедших мастеров не показывается).
 - База: таблица `loyalty_bonus_rule` (CHECK: множитель 1–10, добавка 0–100 000, хоть что-то сверху, дни 1–7).
   Тесты: `apps/api/test/loyalty-bonus-rules.spec.ts`.
