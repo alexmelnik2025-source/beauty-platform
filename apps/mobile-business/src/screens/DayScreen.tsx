@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Calendar, Locale } from '../api';
 import { addDays, dayTitle, myStaffId, onlyMine, staffOfDay, todayIn, visitsOfDay } from '../day';
@@ -62,15 +62,20 @@ export function DayScreen(props: {
     };
   }, [api, salon]);
 
+  // Only the newest answer is shown: tapping through days quickly must not leave an older day.
+  const latest = useRef(0);
   const load = useCallback(async () => {
+    const request = ++latest.current;
     setLoading(true);
     try {
-      setCalendar(await api.calendar(salon.orgId, salon.locationId, date));
+      const day = await api.calendar(salon.orgId, salon.locationId, date);
+      if (request !== latest.current) return;
+      setCalendar(day);
       setError('');
     } catch (e) {
-      setError(errorText(e, t));
+      if (request === latest.current) setError(errorText(e, t));
     } finally {
-      setLoading(false);
+      if (request === latest.current) setLoading(false);
     }
   }, [api, salon, date, t]);
 
