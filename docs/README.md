@@ -771,3 +771,26 @@ pnpm --filter @beauty/api-client generate
 - «Umów się» на карточке бонусов открывает запись этого салона с выбора услуги.
 - Код: `bookingStart` в `src/booking.ts` (где начинать запись), `src/screens/OpenBooking.tsx` (загрузка салона),
   `preset` у `BookingScreen`; тесты `test/booking.test.ts`; e2e — скриншот `59f-client-app-book-again`.
+
+## Правила и политика конфиденциальности салона (задача запуска L1)
+
+- У каждого салона свои тексты: «Regulamin rezerwacji» и «Polityka prywatności» (Markdown: `#`/`##` заголовки,
+  списки `1.` и `-`, пустая строка — новый абзац). Пишутся в кабинете: «Ustawienia» → «Regulamin i prywatność».
+- **Без обоих текстов онлайн-запись нельзя включить** (ошибка `LEGAL_TEXTS_REQUIRED`, понятный текст на 4 языках),
+  и нельзя стереть текст, пока запись включена. Салоны, которые уже принимали записи до этой функции, продолжают
+  работать и сохраняют другие настройки — проверка срабатывает при включении записи или при удалении текста.
+- «Wstaw szablon» — польский шаблон из `docs/legal/` с уже вписанными данными салона: название, адрес, юр. название,
+  NIP, телефон, e-mail, срок изменений («2 godzin przed wizytą» из настройки салона), ссылка на политику. Под полями —
+  «Do uzupełnienia: {KRS}, {ADRES_FIRMY}…» — что салон вписывает сам. Шаблон не сохраняется, пока не нажать «Zapisz»;
+  в тексте есть пометка, что его надо проверить с юристом.
+- Клиент видит тексты на `/<язык>/b/<slug>/regulamin` и `/<язык>/b/<slug>/privacy`; галочка в записи теперь
+  «Akceptuję regulamin rezerwacji i politykę prywatności salonu.» со ссылками на обе страницы. В клиентском
+  приложении — две ссылки под галочкой, открывают те же страницы на сайте.
+- API: поля `bookingTerms`, `privacyPolicy` у салона (`PATCH /v1/organizations/:org/locations/:id`, до 50 000 знаков,
+  пустая строка — удалить), `GET …/locations/:id/legal-templates` (владелец и менеджер салона; ничего не
+  сохраняет), `GET /v1/public/locations/:slug/legal` (только для салона с включённой записью). Миграция
+  `20261104120000_location_legal_texts`. Шаблоны в коде (`apps/api/src/organizations/legal-templates.ts`) — копия
+  `docs/legal/*.pl.md`; тест `test/legal-texts.spec.ts` падает, если файлы разошлись.
+- Тексты показываются без HTML из текста (свой маленький разбор Markdown в `apps/web/components/Markdown.tsx`).
+- e2e — скриншоты `65-owner-legal-texts` (поля и шаблон в настройках), `66-client-booking-terms` (страница
+  правил для клиента), `64b-client-app-book-details` (ссылки в приложении).
