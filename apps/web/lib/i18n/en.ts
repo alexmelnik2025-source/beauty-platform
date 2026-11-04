@@ -489,6 +489,10 @@ export const en: Dict = {
   },
   team: {
     title: 'Team',
+    orderHint:
+      'The order clients see on the booking page and in the app — use the arrows to put someone first.',
+    moveUp: 'Move up: {name}',
+    moveDown: 'Move down: {name}',
     tabStaff: 'Specialists',
     tabAccess: 'Access and permissions',
     addStaff: 'Add a specialist',

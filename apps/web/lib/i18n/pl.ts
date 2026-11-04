@@ -489,6 +489,10 @@ export const pl = {
   },
   team: {
     title: 'Zespół',
+    orderHint:
+      'Kolejność jak na stronie rezerwacji i w aplikacji — strzałkami ustawisz, kto jest pierwszy.',
+    moveUp: 'Wyżej: {name}',
+    moveDown: 'Niżej: {name}',
     tabStaff: 'Specjaliści',
     tabAccess: 'Dostęp i uprawnienia',
     addStaff: 'Dodaj specjalistę',

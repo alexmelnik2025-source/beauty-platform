@@ -488,6 +488,9 @@ export const uk: Dict = {
   },
   team: {
     title: 'Команда',
+    orderHint: 'Порядок як на сторінці запису і в застосунку — стрілками визначте, хто перший.',
+    moveUp: 'Вище: {name}',
+    moveDown: 'Нижче: {name}',
     tabStaff: 'Майстри',
     tabAccess: 'Доступ і права',
     addStaff: 'Додати майстра',

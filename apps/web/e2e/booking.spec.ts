@@ -540,9 +540,28 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.getByRole('dialog').getByRole('button', { name: 'Tak, usuń' }).click();
   await expect(shaveRow).toHaveCount(0);
   await ownerPage.goto('/pl/app/team');
-  await expect(ownerPage.getByRole('button', { name: /Kasia/ })).toBeVisible();
+  await expect(ownerPage.getByRole('button', { name: /^Kasia/ })).toBeVisible();
   await shot(ownerPage, '16-owner-team');
-  await ownerPage.getByRole('button', { name: /Ola/ }).click();
+  // Task 13: the owner puts Ola first — the booking page shows her first; then back again.
+  const teamRows = ownerPage.locator('.list > li.orderable .list-row strong');
+  await expect(teamRows).toHaveText(['Kasia', 'Ola', 'Alex']);
+  await expect(ownerPage.getByRole('button', { name: 'Wyżej: Kasia' })).toBeDisabled();
+  await ownerPage.getByRole('button', { name: 'Wyżej: Ola' }).click();
+  await expect(teamRows).toHaveText(['Ola', 'Kasia', 'Alex']);
+  await expect(ownerPage.getByRole('button', { name: 'Niżej: Ola' })).toBeEnabled();
+  await shot(ownerPage, '73-owner-team-order');
+  const publicStaff = async () =>
+    (
+      await json<{ staff: { displayName: string }[] }>(
+        await request.get(`/v1/public/locations/${location.slug}`),
+      )
+    ).staff.map((s) => s.displayName);
+  expect(await publicStaff()).toEqual(['Ola', 'Kasia', 'Alex']);
+  await ownerPage.getByRole('button', { name: 'Niżej: Ola' }).click();
+  await expect(teamRows).toHaveText(['Kasia', 'Ola', 'Alex']);
+  await expect(ownerPage.getByRole('button', { name: 'Niżej: Ola' })).toBeEnabled();
+  expect(await publicStaff()).toEqual(['Kasia', 'Ola', 'Alex']);
+  await ownerPage.getByRole('button', { name: /^Ola/ }).click();
   await expect(ownerPage.getByRole('dialog')).toContainText('Godziny pracy');
   await expect(
     ownerPage.getByRole('dialog').getByRole('button', { name: 'PL polski' }),
@@ -562,7 +581,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(olaDialog.getByRole('button', { name: 'Usuń zdjęcie' })).toBeVisible();
   await shot(ownerPage, '33-owner-staff-photo');
   await ownerPage.keyboard.press('Escape');
-  await expect(ownerPage.getByRole('button', { name: /Ola/ }).locator('img')).toBeVisible();
+  await expect(ownerPage.getByRole('button', { name: /^Ola/ }).locator('img')).toBeVisible();
   const olaRow = (
     await json<{ id: string; photoUrl: string | null }[]>(
       await request.get(`${base}/staff`, { headers: owner }),
@@ -572,7 +591,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const olaFile = await request.get(olaRow!.photoUrl!);
   expect(olaFile.headers()['content-type']).toBe('image/jpeg');
   // Alex's specialty: one from the list and the salon's own words.
-  await ownerPage.getByRole('button', { name: /Alex/ }).click();
+  await ownerPage.getByRole('button', { name: /^Alex/ }).click();
   const alexDialog = ownerPage.getByRole('dialog');
   await alexDialog.getByRole('button', { name: 'Masaż' }).click();
   await expect(alexDialog.getByRole('button', { name: 'Masaż' })).toHaveAttribute(
@@ -584,7 +603,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(ownerPage, '38-owner-staff-specialty');
   await alexDialog.getByRole('button', { name: 'Zapisz', exact: true }).click();
   await expect(ownerPage.getByRole('dialog')).toBeHidden();
-  await expect(ownerPage.getByRole('button', { name: /Alex/ })).toContainText('Masaż, Trycholog');
+  await expect(ownerPage.getByRole('button', { name: /^Alex/ })).toContainText('Masaż, Trycholog');
   const alexRow = (
     await json<{ id: string; specialties: string[]; customSpecialty: string | null }[]>(
       await request.get(`${base}/staff`, { headers: owner }),

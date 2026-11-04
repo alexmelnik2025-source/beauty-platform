@@ -1247,6 +1247,34 @@ h3 {
   border-bottom: 1px solid var(--line);
 }
 
+/* Task 13: the staff list with "up / down" arrows in Team. */
+.list > li.orderable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-btns {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.order-btns button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.order-btns button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* "Book again" under a past visit in the client app. */
 .list > li > .btn {
   margin: 0 0 12px 4px;

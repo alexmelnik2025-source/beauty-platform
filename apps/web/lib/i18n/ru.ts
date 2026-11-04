@@ -490,6 +490,9 @@ export const ru: Dict = {
   },
   team: {
     title: 'Команда',
+    orderHint: 'Порядок как на странице записи и в приложении — стрелками задайте, кто первый.',
+    moveUp: 'Выше: {name}',
+    moveDown: 'Ниже: {name}',
     tabStaff: 'Мастера',
     tabAccess: 'Доступ и права',
     addStaff: 'Добавить мастера',

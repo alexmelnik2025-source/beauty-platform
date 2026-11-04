@@ -37,6 +37,9 @@ export default function TeamPage() {
   const [invite, setInvite] = useState<{ staffId?: string } | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [moving, setMoving] = useState(false);
+  // Task 13: the owner or a manager puts the staff in the order clients see them.
+  const canOrder = role === 'owner' || role === 'manager';
 
   const load = useCallback(async () => {
     try {
@@ -77,6 +80,30 @@ export default function TeamPage() {
       await load();
     } catch (err) {
       setError(errorText(t, err));
+    }
+  }
+
+  async function move(index: number, by: -1 | 1) {
+    if (!staff) return;
+    const next = [...staff];
+    const [row] = next.splice(index, 1);
+    if (!row) return;
+    next.splice(index + by, 0, row);
+    setStaff(next);
+    setMoving(true);
+    setError('');
+    try {
+      setStaff(
+        await api<StaffRow[]>(`${base}/staff/order`, {
+          method: 'PUT',
+          body: { staffIds: next.map((s) => s.id) },
+        }),
+      );
+    } catch (err) {
+      setError(errorText(t, err));
+      await load();
+    } finally {
+      setMoving(false);
     }
   }
 
@@ -122,34 +149,59 @@ export default function TeamPage() {
           staff.length === 0 ? (
             <p className="note">{t.team.empty}</p>
           ) : (
-            <ul className="list">
-              {staff.map((s) => (
-                <li key={s.id}>
-                  <button type="button" className="list-row" onClick={() => setOpenStaff(s)}>
-                    <span className="avatar" aria-hidden="true">
-                      {s.photoUrl ? <img src={s.photoUrl} alt="" /> : initials(s.displayName)}
-                    </span>
-                    <span className="grow">
-                      <strong>{s.displayName}</strong>
-                      {specialtyText(s.specialties, s.customSpecialty) ? (
-                        <span className="small">
-                          {specialtyText(s.specialties, s.customSpecialty)}
-                        </span>
-                      ) : null}
-                      <span className="small muted">
-                        {s.serviceIds.length} ·{' '}
-                        {s.userId
-                          ? (emailOf(s.userId) ?? '✓')
-                          : pendingFor(s.id)
-                            ? t.team.invitedShort
-                            : t.team.notLinked.split('.')[0]}
+            <>
+              {canOrder && staff.length > 1 ? (
+                <p className="small muted">{t.team.orderHint}</p>
+              ) : null}
+              <ul className="list">
+                {staff.map((s, index) => (
+                  <li key={s.id} className={canOrder && staff.length > 1 ? 'orderable' : undefined}>
+                    <button type="button" className="list-row" onClick={() => setOpenStaff(s)}>
+                      <span className="avatar" aria-hidden="true">
+                        {s.photoUrl ? <img src={s.photoUrl} alt="" /> : initials(s.displayName)}
                       </span>
-                    </span>
-                    {s.active ? null : <span className="chip">{t.services.hidden}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
+                      <span className="grow">
+                        <strong>{s.displayName}</strong>
+                        {specialtyText(s.specialties, s.customSpecialty) ? (
+                          <span className="small">
+                            {specialtyText(s.specialties, s.customSpecialty)}
+                          </span>
+                        ) : null}
+                        <span className="small muted">
+                          {s.serviceIds.length} ·{' '}
+                          {s.userId
+                            ? (emailOf(s.userId) ?? '✓')
+                            : pendingFor(s.id)
+                              ? t.team.invitedShort
+                              : t.team.notLinked.split('.')[0]}
+                        </span>
+                      </span>
+                      {s.active ? null : <span className="chip">{t.services.hidden}</span>}
+                    </button>
+                    {canOrder && staff.length > 1 ? (
+                      <span className="order-btns">
+                        <button
+                          type="button"
+                          aria-label={fill(t.team.moveUp, { name: s.displayName })}
+                          disabled={moving || index === 0}
+                          onClick={() => void move(index, -1)}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={fill(t.team.moveDown, { name: s.displayName })}
+                          disabled={moving || index === staff.length - 1}
+                          onClick={() => void move(index, 1)}
+                        >
+                          ↓
+                        </button>
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </>
           )
         ) : (
           <>
