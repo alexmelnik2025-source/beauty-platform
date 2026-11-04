@@ -200,7 +200,7 @@ describe('booking online in Turkish and Albanian', () => {
       .send({ email: 'ayse@example.com', locale: 'tr' })
       .expect(202);
     const email = ctx.mail.lastTo('ayse@example.com')!;
-    expect(email.subject).toBe('Ziyaretlerim için giriş kodu');
+    expect(email.subject).toBe('Randevularım için giriş kodu');
     const code = email.text.match(/\b(\d{6})\b/)![1];
     const signedIn = await ctx
       .http()
