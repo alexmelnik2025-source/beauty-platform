@@ -27,6 +27,8 @@ const KASIA = `kasia-${run}@example.com`;
 const CLIENT = `anna-${run}@example.com`;
 const CLIENT2 = `ola-${run}@example.com`;
 const CLIENT3 = `piotr-${run}@example.com`;
+/** Books in the client app without signing in first. */
+const CLIENT4 = `marek-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 
@@ -1068,15 +1070,53 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText('Godziny otwarcia')).toBeVisible();
     await expect(phone.getByText('Barber · Fryzjer')).toBeVisible();
     await shot(phone, '61-client-app-salon');
-    // "Book" opens the salon's booking page on the web for now.
-    const [bookingPage] = await Promise.all([
-      phone.context().waitForEvent('page'),
-      phone.getByRole('button', { name: 'Umów wizytę' }).click(),
-    ]);
-    await bookingPage.waitForURL(new RegExp(`/pl/b/${location.slug}$`));
-    await bookingPage.close();
-    // Back keeps the catalogue as it was; one more back is the sign-in screen.
-    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    // Booking in the app, without an account: service → specialist → time → details → code.
+    await phone.getByRole('button', { name: 'Umów wizytę' }).click();
+    await expect(phone.getByRole('heading', { name: 'Wybierz usługę' })).toBeVisible();
+    await shot(phone, '64-client-app-book-service');
+    await phone.getByRole('button', { name: /^Strzyżenie męskie,/ }).click();
+    await expect(phone.getByRole('heading', { name: 'Wybierz specjalistę' })).toBeVisible();
+    await expect(phone.getByRole('button', { name: /^Dowolny specjalista/ })).toBeVisible();
+    await phone.getByRole('button', { name: /^Kasia/ }).click();
+    await expect(phone.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
+    const bookTime = phone.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first();
+    await expect(bookTime).toBeVisible();
+    await shot(phone, '64a-client-app-book-time');
+    const bookedTime = (await bookTime.textContent())!.trim();
+    await bookTime.click();
+    // The time is held for 10 minutes while the client fills in the details.
+    await expect(phone.getByRole('heading', { name: 'Twoje dane' })).toBeVisible();
+    await expect(phone.getByText(/Termin czeka na Ciebie jeszcze \d+:\d{2}/)).toBeVisible();
+    await phone.getByRole('textbox', { name: 'Imię i nazwisko' }).fill('Marek Nowak');
+    await phone.getByRole('textbox', { name: 'Telefon' }).fill('600 700 800');
+    await phone.getByRole('textbox', { name: 'E-mail', exact: true }).fill(CLIENT4);
+    // Hidden screens stay mounted (going back keeps what was typed): find only what is shown.
+    // The salon's booking rules must be accepted first.
+    await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+    await expect(phone.getByText('Zaznacz akceptację zasad rezerwacji.')).toBeVisible();
+    await phone.getByRole('checkbox', { name: /Akceptuję zasady rezerwacji/ }).click();
+    await expect(
+      phone.getByRole('checkbox', { name: /Akceptuję zasady rezerwacji/ }),
+    ).toBeChecked();
+    await shot(phone, '64b-client-app-book-details');
+    await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+    await expect(phone.getByText(`Wysłaliśmy 6 cyfr na ${CLIENT4}.`)).toBeVisible();
+    const bookCodeMail = await waitForEmail(CLIENT4, /Kod potwierdzenia/);
+    await phone.getByRole('textbox', { name: 'Kod z e-maila' }).fill('000000');
+    await phone.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+    await expect(phone.getByText('Kod jest nieprawidłowy', { exact: false })).toBeVisible();
+    await phone
+      .getByRole('textbox', { name: 'Kod z e-maila' })
+      .fill(/\b(\d{6})\b/.exec(bookCodeMail.text)![1]!);
+    await phone.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+    await expect(phone.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+    await expect(phone.getByText(`${bookedTime} ·`, { exact: false })).toBeVisible();
+    await expect(phone.getByText('Strzyżenie męskie · Kasia')).toBeVisible();
+    await shot(phone, '64c-client-app-booked');
+    // Not signed in: one more code shows the new visit in "Moje wizyty"; the email is filled in.
+    await phone.getByRole('button', { name: 'Zaloguj się do „Moich wizyt”' }).click();
+    await expect(phone.getByLabel('E-mail', { exact: true })).toHaveValue(CLIENT4);
+    await phone.getByRole('button', { name: 'Znajdź salon' }).click();
     await expect(phone.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
     await expect(salonCard).toBeVisible();
     await phone.getByRole('button', { name: 'Українська' }).click();

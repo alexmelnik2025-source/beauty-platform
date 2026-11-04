@@ -18,9 +18,11 @@ export function SignInScreen(props: {
   /** Opens the catalogue of salons (no sign-in needed). */
   onFindSalon: () => void;
   onSignedIn: (person: ClientPerson) => void;
+  /** The email the client just booked with (from the booking in the app). */
+  initialEmail?: string;
 }) {
   const { api, t, locale } = props;
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(props.initialEmail ?? '');
   const [sentTo, setSentTo] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');

@@ -1,5 +1,8 @@
 import type {
   Availability,
+  BookingConfirmed,
+  CodeSent,
+  Hold,
   ClientAppointment,
   ClientAppointmentList,
   ClientCodeSent,
@@ -23,7 +26,25 @@ export type Scope = 'upcoming' | 'past';
 /** Languages a salon or specialist can speak with clients (Belarusian too). */
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
-export type { Availability, PublicLocation, PublicSalonDirectory, Slot };
+export type {
+  Availability,
+  BookingConfirmed,
+  CodeSent,
+  Hold,
+  PublicLocation,
+  PublicSalonDirectory,
+  Slot,
+};
+
+/** Contact details the booking asks for (the same form as the web booking page). */
+export interface BookingContact {
+  name: string;
+  /** E.164, e.g. +48600100200 (see normalizePhone in src/booking.ts). */
+  phone: string;
+  email: string;
+  acceptTerms: true;
+  marketingConsent: boolean;
+}
 
 /** "Change time" looks this many days ahead (the API gives at most 31 days per request). */
 export const MOVE_DAYS = 21;
@@ -221,6 +242,23 @@ export class ClientApi {
     );
   }
 
+  /** Free times of a salon for a service (`staffId` omitted = any specialist). Public. */
+  availability(
+    slug: string,
+    query: { serviceId: string; staffId?: string; from: string; to: string },
+  ): Promise<Availability> {
+    const params = new URLSearchParams({
+      serviceId: query.serviceId,
+      from: query.from,
+      to: query.to,
+    });
+    if (query.staffId) params.set('staffId', query.staffId);
+    return this.call<Availability>(
+      'GET',
+      `/v1/public/locations/${encodeURIComponent(slug)}/availability?${params.toString()}`,
+    );
+  }
+
   /**
    * Moves a visit to a free time (`start` of a slot from freeTimes), with the same specialist.
    * Until the salon's deadline — otherwise TOO_LATE_TO_CHANGE; a time taken meanwhile — SLOT_TAKEN.
@@ -240,6 +278,59 @@ export class ClientApi {
    */
   loyalty(): Promise<ClientLoyalty> {
     return this.authed<ClientLoyalty>('GET', '/v1/client/loyalty');
+  }
+
+  /**
+   * Booking, step 1: holds a free time for 10 minutes. `staffId` omitted = any specialist.
+   * A previous hold of this booking is released (`releaseHoldToken`). No sign-in needed.
+   */
+  hold(
+    slug: string,
+    input: { serviceId: string; staffId?: string; start: string; releaseHoldToken?: string },
+    key: string = newRequestKey(),
+  ): Promise<Hold> {
+    return this.call<Hold>(
+      'POST',
+      `/v1/public/locations/${encodeURIComponent(slug)}/holds`,
+      input,
+      undefined,
+      { 'idempotency-key': key },
+    );
+  }
+
+  /** Booking, step 2: contact details; a 6-digit code goes to the email (again = resend). */
+  sendBookingCode(hold: Hold, contact: BookingContact, locale: Locale): Promise<CodeSent> {
+    return this.call<CodeSent>('POST', `/v1/public/holds/${encodeURIComponent(hold.holdId)}/code`, {
+      holdToken: hold.holdToken,
+      ...contact,
+      locale,
+      codeChannel: 'email',
+    });
+  }
+
+  /**
+   * Booking, step 3: the code from the email books the visit. The same code twice (a lost
+   * answer, a second tap) books once: the key is the hold and the code, as on the web.
+   */
+  confirmBooking(hold: Hold, code: string): Promise<BookingConfirmed> {
+    return this.call<BookingConfirmed>(
+      'POST',
+      `/v1/public/holds/${encodeURIComponent(hold.holdId)}/confirm`,
+      { holdToken: hold.holdToken, code },
+      undefined,
+      { 'idempotency-key': `confirm-${hold.holdId}-${code}` },
+    );
+  }
+
+  /** Gives a held time back (the client left the booking). Errors do not matter. */
+  async releaseHold(hold: Hold): Promise<void> {
+    try {
+      await this.call<void>('POST', `/v1/public/holds/${encodeURIComponent(hold.holdId)}/release`, {
+        holdToken: hold.holdToken,
+      });
+    } catch {
+      // The hold ends by itself after 10 minutes.
+    }
   }
 
   /** Salons open for online booking; `language` — spoken by the salon or one of its staff. No sign-in. */

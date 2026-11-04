@@ -1,0 +1,185 @@
+import { describe, expect, it } from 'vitest';
+import { ApiError, ClientApi, type Hold, type PublicLocation, type Slot } from '../src/api';
+import {
+  afterBookingError,
+  checkContact,
+  countdown,
+  dayParts,
+  manageUrl,
+  normalizePhone,
+  staffFor,
+} from '../src/booking';
+import { DICTIONARIES, fill, LOCALES } from '../src/i18n';
+
+const form = {
+  name: '  Anna   Kowalska ',
+  phone: '600 100 200',
+  email: ' Anna@Example.com ',
+  acceptTerms: true,
+  marketingConsent: false,
+};
+
+const slot = (time: string): Slot =>
+  ({ start: `2026-11-10T${time}:00Z`, date: '2026-11-10', time }) as Slot;
+
+const hold: Hold = {
+  holdId: '7b0e2a8e-1f7a-4c39-9a3f-8d7e0d2b5c11',
+  holdToken: 'hold-token-0123456789abcdef',
+  expiresAt: '2026-11-10T10:10:00Z',
+  start: '2026-11-10T10:00:00Z',
+  end: '2026-11-10T10:45:00Z',
+  date: '2026-11-10',
+  time: '11:00',
+  staffId: 's1',
+  staffName: 'Kasia',
+  serviceName: 'Strzyżenie męskie',
+  priceGrosze: 9000,
+};
+
+describe('booking form', () => {
+  it('cleans up the details: a Polish number without +48, the email in small letters', () => {
+    expect(checkContact(form)).toEqual({
+      ok: true,
+      contact: {
+        name: 'Anna Kowalska',
+        phone: '+48600100200',
+        email: 'anna@example.com',
+        acceptTerms: true,
+        marketingConsent: false,
+      },
+    });
+    expect(normalizePhone('0048 600-100-200')).toBe('+48600100200');
+    expect(normalizePhone('+380 67 123 45 67')).toBe('+380671234567');
+  });
+
+  it('says what to fix first, before asking the server', () => {
+    expect(checkContact({ ...form, name: ' ' })).toEqual({ ok: false, problem: 'name' });
+    expect(checkContact({ ...form, phone: '+48 ' })).toEqual({ ok: false, problem: 'phone' });
+    expect(checkContact({ ...form, email: 'anna@' })).toEqual({ ok: false, problem: 'email' });
+    // The salon's booking rules must be accepted; news from the salon stay optional.
+    expect(checkContact({ ...form, acceptTerms: false })).toEqual({ ok: false, problem: 'terms' });
+  });
+});
+
+describe('booking steps', () => {
+  it('only specialists who do the service', () => {
+    const salon = {
+      staff: [
+        { id: 'a', serviceIds: ['cut'] },
+        { id: 'b', serviceIds: ['beard'] },
+        { id: 'c', serviceIds: ['cut', 'beard'] },
+      ],
+    } as unknown as PublicLocation;
+    expect(staffFor(salon, 'cut').map((s) => s.id)).toEqual(['a', 'c']);
+  });
+
+  it('times by part of the day, without empty parts', () => {
+    const parts = dayParts([slot('09:00'), slot('11:45'), slot('17:00'), slot('18:30')]);
+    expect(parts.map((p) => [p.part, p.slots.map((s) => s.time)])).toEqual([
+      ['morning', ['09:00', '11:45']],
+      ['evening', ['17:00', '18:30']],
+    ]);
+  });
+
+  it('after an error: back to the times, fresh times or stay', () => {
+    expect(afterBookingError(new ApiError(410, 'x', 'HOLD_EXPIRED'))).toBe('pickTimeAgain');
+    expect(afterBookingError(new ApiError(429, 'x', 'TOO_MANY_CODES'))).toBe('pickTimeAgain');
+    expect(afterBookingError(new ApiError(409, 'x', 'SLOT_TAKEN'))).toBe('reloadTimes');
+    expect(afterBookingError(new ApiError(400, 'x', 'INVALID_CODE'))).toBe('stay');
+    expect(afterBookingError(new TypeError('offline'))).toBe('stay');
+  });
+
+  it('the countdown of the held time, and the web page to change the visit', () => {
+    expect(countdown(hold.expiresAt, Date.parse('2026-11-10T10:05:01Z'))).toBe('4:59');
+    expect(countdown(hold.expiresAt, Date.parse('2026-11-10T10:11:00Z'))).toBe('0:00');
+    expect(manageUrl('https://app.test/', 'uk', 'tok')).toBe('https://app.test/uk/m/tok');
+  });
+
+  it('texts with placeholders are in every language', () => {
+    for (const locale of LOCALES) {
+      const b = DICTIONARIES[locale].book;
+      expect(fill(b.heldFor, { time: '4:59' }), locale).toContain('4:59');
+      expect(fill(b.codeLead, { email: 'anna@example.com' }), locale).toContain('anna@example.com');
+    }
+  });
+});
+
+describe('ClientApi booking', () => {
+  it('holds, sends the code and confirms without a session, once per key', async () => {
+    const calls: {
+      method?: string;
+      url: string;
+      body: unknown;
+      headers: Record<string, string>;
+    }[] = [];
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      calls.push({
+        method: init?.method,
+        url: url.replace('https://api.test', ''),
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        headers: (init?.headers ?? {}) as Record<string, string>,
+      });
+      if (url.includes('/holds/') && url.endsWith('/release')) {
+        return new Response(null, { status: 204 });
+      }
+      if (url.endsWith('/holds')) return new Response(JSON.stringify(hold), { status: 201 });
+      if (url.endsWith('/code')) {
+        return new Response(JSON.stringify({ codeExpiresAt: hold.expiresAt }), { status: 202 });
+      }
+      if (url.endsWith('/confirm')) {
+        return new Response(JSON.stringify({ manageToken: 'm', signedIn: false }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ slots: [] }));
+    };
+    const api = new ClientApi(
+      'https://api.test',
+      { get: async () => null, set: async () => {} },
+      fetchFn,
+    );
+
+    await api.availability('gestalt', {
+      serviceId: 'cut',
+      from: '2026-11-10',
+      to: '2026-11-30',
+    });
+    expect(calls[0]!.url).toBe(
+      '/v1/public/locations/gestalt/availability?serviceId=cut&from=2026-11-10&to=2026-11-30',
+    );
+
+    await api.hold('gestalt', { serviceId: 'cut', start: hold.start }, 'key-12345678');
+    expect(calls[1]).toMatchObject({
+      method: 'POST',
+      url: '/v1/public/locations/gestalt/holds',
+      body: { serviceId: 'cut', start: hold.start },
+      headers: { 'idempotency-key': 'key-12345678' },
+    });
+
+    const contact = checkContact(form);
+    if (!contact.ok) throw new Error('form');
+    await api.sendBookingCode(hold, contact.contact, 'ru');
+    expect(calls[2]).toMatchObject({
+      url: `/v1/public/holds/${hold.holdId}/code`,
+      body: {
+        holdToken: hold.holdToken,
+        email: 'anna@example.com',
+        locale: 'ru',
+        codeChannel: 'email',
+      },
+    });
+
+    await api.confirmBooking(hold, '123456');
+    expect(calls[3]).toMatchObject({
+      url: `/v1/public/holds/${hold.holdId}/confirm`,
+      body: { holdToken: hold.holdToken, code: '123456' },
+      headers: { 'idempotency-key': `confirm-${hold.holdId}-123456` },
+    });
+    // No session token is ever sent with the public booking.
+    expect(calls.every((c) => !c.headers.authorization)).toBe(true);
+
+    await api.releaseHold(hold);
+    expect(calls[4]).toMatchObject({
+      url: `/v1/public/holds/${hold.holdId}/release`,
+      body: { holdToken: hold.holdToken },
+    });
+  });
+});

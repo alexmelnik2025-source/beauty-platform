@@ -8,8 +8,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { bookingUrl, type ClientApi, type Locale, type PublicLocation } from '../api';
-import { API_URL, WEB_URL } from '../config';
+import type { ClientApi, Locale, PublicLocation } from '../api';
+import { API_URL } from '../config';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { formatPrice } from '../format';
@@ -18,7 +18,7 @@ import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
 /**
  * A salon's page: photos, address, languages, description, opening hours, price list and
- * specialists. "Book" opens the web booking page for now (booking in the app comes later).
+ * specialists. "Book" starts the booking in the app.
  */
 export function SalonScreen(props: {
   api: ClientApi;
@@ -27,6 +27,7 @@ export function SalonScreen(props: {
   slug: string;
   name: string;
   onBack: () => void;
+  onBook: (salon: PublicLocation) => void;
 }) {
   const { api, t, locale } = props;
   const [salon, setSalon] = useState<PublicLocation | null>(null);
@@ -88,10 +89,7 @@ export function SalonScreen(props: {
           ))}
         </ScrollView>
       ) : null}
-      <Button
-        label={t.salon.book}
-        onPress={() => void Linking.openURL(bookingUrl(WEB_URL, locale, salon.slug))}
-      />
+      <Button label={t.salon.book} onPress={() => props.onBook(salon)} />
       <Text style={styles.small}>{t.salon.bookHint}</Text>
       {salon.phone ? (
         <Button

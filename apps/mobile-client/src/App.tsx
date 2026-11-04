@@ -2,10 +2,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ClientApi, type ClientPerson, type Locale } from './api';
+import { ClientApi, type ClientPerson, type Locale, type PublicLocation } from './api';
 import { API_URL } from './config';
 import { errorText } from './errors';
 import { DICTIONARIES, pickLocale } from './i18n';
+import { BookingScreen } from './screens/BookingScreen';
 import { CatalogScreen } from './screens/CatalogScreen';
 import { SalonScreen } from './screens/SalonScreen';
 import { SignInScreen } from './screens/SignInScreen';
@@ -19,8 +20,12 @@ type Stage =
   | { kind: 'signIn' }
   | { kind: 'visits'; person: ClientPerson };
 
-/** The catalogue, opened over sign-in or "My visits" (no sign-in needed). */
-type Finder = null | { kind: 'catalog' } | { kind: 'salon'; slug: string; name: string };
+/** The catalogue, a salon and its booking, opened over sign-in or "My visits" (no sign-in needed). */
+type Finder =
+  | null
+  | { kind: 'catalog' }
+  | { kind: 'salon'; slug: string; name: string }
+  | { kind: 'book'; salon: PublicLocation };
 
 const deviceLocale = pickLocale(Intl.DateTimeFormat().resolvedOptions().locale);
 
@@ -33,6 +38,9 @@ export default function App() {
   const [locale, setLocale] = useState<Locale>(deviceLocale);
   const [stage, setStage] = useState<Stage>({ kind: 'loading' });
   const [finder, setFinder] = useState<Finder>(null);
+  // A new key reloads "My visits" (after booking) or prefills the sign-in email.
+  const [visitsKey, setVisitsKey] = useState(0);
+  const [signInEmail, setSignInEmail] = useState('');
   const openCatalog = useCallback(() => setFinder({ kind: 'catalog' }), []);
   const t = DICTIONARIES[locale];
   const localeRef = useRef(locale);
@@ -94,6 +102,8 @@ export default function App() {
               </View>
             ) : stage.kind === 'signIn' ? (
               <SignInScreen
+                key={signInEmail}
+                initialEmail={signInEmail}
                 api={api}
                 t={t}
                 locale={locale}
@@ -103,6 +113,7 @@ export default function App() {
               />
             ) : (
               <VisitsScreen
+                key={visitsKey}
                 api={api}
                 t={t}
                 locale={locale}
@@ -126,6 +137,25 @@ export default function App() {
               />
             </View>
           ) : null}
+          {finder?.kind === 'book' ? (
+            <BookingScreen
+              key={finder.salon.slug}
+              api={api}
+              t={t}
+              locale={locale}
+              salon={finder.salon}
+              email={stage.kind === 'visits' ? stage.person.email : undefined}
+              signedIn={stage.kind === 'visits'}
+              onBack={() =>
+                setFinder({ kind: 'salon', slug: finder.salon.slug, name: finder.salon.name })
+              }
+              onFinished={(email) => {
+                setFinder(null);
+                if (stage.kind === 'visits') setVisitsKey((k) => k + 1);
+                else setSignInEmail(email);
+              }}
+            />
+          ) : null}
           {finder?.kind === 'salon' ? (
             <SalonScreen
               key={finder.slug}
@@ -135,6 +165,7 @@ export default function App() {
               slug={finder.slug}
               name={finder.name}
               onBack={() => setFinder({ kind: 'catalog' })}
+              onBook={(salon) => setFinder({ kind: 'book', salon })}
             />
           ) : null}
         </View>
