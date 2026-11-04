@@ -30,6 +30,14 @@ const slug = z
   .toLowerCase()
   .regex(/^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$/, 'use 3–60 latin letters, digits and dashes');
 
+/** A legal text written by the salon (Markdown). Long enough for a full regulamin. */
+const legalText = z
+  .string()
+  .trim()
+  .max(50_000)
+  .transform((value) => (value === '' ? null : value))
+  .nullable();
+
 const locationFields = {
   name: z.string().trim().min(1).max(100),
   slug,
@@ -67,6 +75,10 @@ const locationFields = {
     .max(1000)
     .transform((value) => (value === '' ? null : value))
     .nullable(),
+  /** Booking terms (regulamin), Markdown; an empty text removes it. */
+  bookingTerms: legalText,
+  /** Privacy policy, Markdown; an empty text removes it. */
+  privacyPolicy: legalText,
 };
 
 export const createLocationSchema = z.object({
@@ -85,6 +97,8 @@ export const createLocationSchema = z.object({
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
   languages: locationFields.languages.default([]),
   description: locationFields.description.optional(),
+  bookingTerms: locationFields.bookingTerms.optional(),
+  privacyPolicy: locationFields.privacyPolicy.optional(),
 });
 
 export const updateLocationSchema = z

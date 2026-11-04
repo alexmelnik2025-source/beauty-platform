@@ -871,6 +871,28 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "bookingTerms": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 50000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "privacyPolicy": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 50000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -1125,6 +1147,28 @@
                       }
                     ]
                   },
+                  "bookingTerms": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 50000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "privacyPolicy": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 50000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "version": {
                     "type": "integer",
                     "minimum": 1,
@@ -1156,6 +1200,43 @@
           }
         ],
         "summary": "Update a location (owner, or its manager). Send the version you read",
+        "tags": [
+          "locations"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/legal-templates": {
+      "get": {
+        "description": "Polish templates with the salon’s name, address, contacts and company filled in. Nothing is saved.",
+        "operationId": "LocationsController_legalTemplates",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalTemplates"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Templates of the booking terms and privacy policy (owner, or its manager)",
         "tags": [
           "locations"
         ]
@@ -3366,6 +3447,38 @@
           }
         },
         "summary": "Salon page: address, description, opening hours, services with prices, staff",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/locations/{slug}/legal": {
+      "get": {
+        "description": "Linked from the consent checkbox of the booking form.",
+        "operationId": "PublicLocationsController_legal",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLegalTexts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Booking terms and privacy policy of the salon",
         "tags": [
           "public"
         ]
@@ -9535,6 +9648,33 @@
         ],
         "additionalProperties": false
       },
+      "LegalTemplates": {
+        "type": "object",
+        "properties": {
+          "bookingTerms": {
+            "type": "string",
+            "description": "Booking terms (regulamin), Markdown"
+          },
+          "privacyPolicy": {
+            "type": "string",
+            "description": "Privacy policy, Markdown"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Placeholders like {KRS} still to be filled in by the salon, in order"
+          }
+        },
+        "required": [
+          "bookingTerms",
+          "privacyPolicy",
+          "missing"
+        ],
+        "additionalProperties": false,
+        "description": "Polish templates with the salon’s own details already filled in. A starting point: the salon checks and completes them before saving"
+      },
       "Location": {
         "type": "object",
         "properties": {
@@ -9629,6 +9769,16 @@
             "nullable": true,
             "type": "string"
           },
+          "bookingTerms": {
+            "nullable": true,
+            "description": "Booking terms (regulamin), Markdown; needed to switch online booking on",
+            "type": "string"
+          },
+          "privacyPolicy": {
+            "nullable": true,
+            "description": "Privacy policy, Markdown; needed to switch online booking on",
+            "type": "string"
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -9663,6 +9813,8 @@
           "onlineBookingEnabled",
           "languages",
           "description",
+          "bookingTerms",
+          "privacyPolicy",
           "version",
           "createdAt",
           "updatedAt"
@@ -9765,6 +9917,16 @@
               "nullable": true,
               "type": "string"
             },
+            "bookingTerms": {
+              "nullable": true,
+              "description": "Booking terms (regulamin), Markdown; needed to switch online booking on",
+              "type": "string"
+            },
+            "privacyPolicy": {
+              "nullable": true,
+              "description": "Privacy policy, Markdown; needed to switch online booking on",
+              "type": "string"
+            },
             "version": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -9799,6 +9961,8 @@
             "onlineBookingEnabled",
             "languages",
             "description",
+            "bookingTerms",
+            "privacyPolicy",
             "version",
             "createdAt",
             "updatedAt"
@@ -11676,6 +11840,37 @@
         ],
         "additionalProperties": false,
         "description": "An appointment as the client sees it"
+      },
+      "PublicLegalTexts": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Salon name"
+          },
+          "bookingTerms": {
+            "nullable": true,
+            "description": "Booking terms (regulamin), Markdown; null when the salon has not written them",
+            "type": "string"
+          },
+          "privacyPolicy": {
+            "nullable": true,
+            "description": "Privacy policy, Markdown; null when the salon has not written it",
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the salon settings were last saved"
+          }
+        },
+        "required": [
+          "name",
+          "bookingTerms",
+          "privacyPolicy",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "The texts a client accepts when booking, as written by the salon"
       },
       "PublicLocation": {
         "type": "object",

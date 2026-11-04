@@ -27,6 +27,7 @@ import {
   type UpdateOrganizationInput,
 } from './organizations.schemas';
 import {
+  legalTemplatesSchema,
   locationListSchema,
   locationSchema,
   organizationListSchema,
@@ -34,6 +35,7 @@ import {
 } from './organizations.responses';
 import {
   OrganizationsService,
+  type LegalTemplatesResponse,
   type LocationResponse,
   type OrganizationResponse,
 } from './organizations.service';
@@ -136,5 +138,20 @@ export class LocationsController {
     @Body(new ZodValidationPipe(updateLocationSchema)) body: UpdateLocationInput,
   ): Promise<LocationResponse> {
     return this.organizations.updateLocation(membership, auth.userId, locationId, body);
+  }
+
+  @Get(':locationId/legal-templates')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Templates of the booking terms and privacy policy (owner, or its manager)',
+    description:
+      'Polish templates with the salon’s name, address, contacts and company filled in. Nothing is saved.',
+  })
+  @ApiZodResponse(legalTemplatesSchema)
+  legalTemplates(
+    @CurrentMembership() membership: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+  ): Promise<LegalTemplatesResponse> {
+    return this.organizations.legalTemplates(membership, locationId);
   }
 }

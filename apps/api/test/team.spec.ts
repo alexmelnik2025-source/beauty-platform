@@ -5,6 +5,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   resetState,
   signUp,
   type SignedInUser,
@@ -286,7 +287,7 @@ describe('notification feed', () => {
         .http()
         .patch(base)
         .set(owner.auth)
-        .send({ version: loc.body.version, onlineBookingEnabled: true })
+        .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
         .expect(200);
     }
     const hold = await ctx

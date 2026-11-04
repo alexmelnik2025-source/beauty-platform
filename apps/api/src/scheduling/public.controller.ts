@@ -13,9 +13,11 @@ import { AvailabilityService } from './availability.service';
 import { photoUrl } from './photos.service';
 import {
   availabilitySchema,
+  publicLegalTextsSchema,
   publicLocationSchema,
   type AvailabilityResponse,
   type OpeningDay,
+  type PublicLegalTextsResponse,
   type PublicLocationResponse,
 } from './public.responses';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
@@ -132,6 +134,26 @@ export class PublicLocationsController {
         serviceIds: s.services.map((x) => x.serviceId).sort(),
         photoUrl: s.photo ? photoUrl(s.photo.id) : null,
       })),
+    };
+  }
+
+  @Get('legal')
+  @ApiOperation({
+    summary: 'Booking terms and privacy policy of the salon',
+    description: 'Linked from the consent checkbox of the booking form.',
+  })
+  @ApiZodResponse(publicLegalTextsSchema)
+  async legal(
+    @Req() req: AppRequest,
+    @Param('slug') slug: string,
+  ): Promise<PublicLegalTextsResponse> {
+    this.limiter.hit(`public:ip:${req.ip}`, 300, 60_000);
+    const location = await this.findBookable(slug);
+    return {
+      name: location.name,
+      bookingTerms: location.bookingTerms,
+      privacyPolicy: location.privacyPolicy,
+      updatedAt: location.updatedAt.toISOString(),
     };
   }
 

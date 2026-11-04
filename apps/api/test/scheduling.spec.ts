@@ -4,6 +4,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   resetState,
   signUp,
   type SignedInUser,
@@ -296,7 +297,7 @@ describe('public booking page', () => {
       .http()
       .patch(base)
       .set(owner.auth)
-      .send({ version: current.body.version, onlineBookingEnabled: true, ...extra })
+      .send({ version: current.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS, ...extra })
       .expect(200);
   }
 
@@ -376,7 +377,11 @@ describe('spoken languages', () => {
     const { staffId } = await setupStaff([
       { weekday: 1, intervals: [{ start: '09:00', end: '17:00' }] },
     ]);
-    const loc = await enable({ onlineBookingEnabled: true, languages: ['pl', 'uk', 'ru', 'uk'] });
+    const loc = await enable({
+      onlineBookingEnabled: true,
+      ...LEGAL_TEXTS,
+      languages: ['pl', 'uk', 'ru', 'uk'],
+    });
     expect(loc.status).toBe(200);
     // Repeats are dropped, the salon's order is kept.
     expect(loc.body.languages).toEqual(['pl', 'uk', 'ru']);
@@ -480,7 +485,7 @@ describe('staff specialties (task 11a, part 3)', () => {
       .http()
       .patch(base)
       .set(owner.auth)
-      .send({ version: current.body.version, onlineBookingEnabled: true })
+      .send({ version: current.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
       .expect(200);
     const page = await ctx.http().get(`/v1/public/locations/${loc.body.slug}`).expect(200);
     expect(page.body.staff).toEqual([
@@ -557,6 +562,7 @@ describe('salon profile on the booking page', () => {
   it('keeps the description; an empty text removes it', async () => {
     const res = await patch({
       onlineBookingEnabled: true,
+      ...LEGAL_TEXTS,
       description: '  Barbershop na Mokotowie. Kawa gratis.  ',
     });
     expect(res.status).toBe(200);
@@ -640,7 +646,7 @@ describe('salon profile on the booking page', () => {
       .send({ days: [{ weekday: 7, intervals: [{ start: '10:00', end: '12:00' }] }] })
       .expect(200);
 
-    const { body: loc } = await patch({ onlineBookingEnabled: true });
+    const { body: loc } = await patch({ onlineBookingEnabled: true, ...LEGAL_TEXTS });
     const page = await ctx.http().get(`/v1/public/locations/${loc.slug}`).expect(200);
     expect(page.body.openingHours).toEqual([
       {
@@ -660,7 +666,7 @@ describe('salon profile on the booking page', () => {
   });
 
   it('a salon without a team shows every day closed', async () => {
-    const { body: loc } = await patch({ onlineBookingEnabled: true });
+    const { body: loc } = await patch({ onlineBookingEnabled: true, ...LEGAL_TEXTS });
     const page = await ctx.http().get(`/v1/public/locations/${loc.slug}`).expect(200);
     expect(page.body.openingHours).toHaveLength(7);
     expect(

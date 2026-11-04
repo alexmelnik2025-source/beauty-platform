@@ -1,7 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
+import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Location, MembershipRole, Organization } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
@@ -10,11 +11,20 @@ import type {
   UpdateLocationInput,
   UpdateOrganizationInput,
 } from './organizations.schemas';
+import { BOOKING_TERMS_TEMPLATE_PL, PRIVACY_POLICY_TEMPLATE_PL } from './legal-templates';
 import { LocationAccessService } from './location-access.service';
 import { slugify } from './slug';
-import type { LocationResponse, OrganizationResponse } from './organizations.responses';
+import type {
+  LegalTemplatesResponse,
+  LocationResponse,
+  OrganizationResponse,
+} from './organizations.responses';
 
-export type { LocationResponse, OrganizationResponse } from './organizations.responses';
+export type {
+  LegalTemplatesResponse,
+  LocationResponse,
+  OrganizationResponse,
+} from './organizations.responses';
 
 const slugTaken = (): AppException =>
   new AppException(HttpStatus.CONFLICT, 'SLUG_TAKEN', 'This booking link is already taken');
@@ -36,6 +46,38 @@ function assertCoordinatePair(fields: {
       'Latitude and longitude must be provided together',
     );
   }
+}
+
+const legalTextsRequired = (): AppException =>
+  new AppException(
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    'LEGAL_TEXTS_REQUIRED',
+    'Write the booking terms and the privacy policy before switching online booking on',
+  );
+
+/**
+ * Online booking needs the salon's booking terms and privacy policy: they cannot be missing when
+ * booking is being switched on, nor be removed while it is on. Salons that were already taking
+ * bookings before the texts existed keep working until they change either of these.
+ */
+function assertLegalTexts(
+  before: Pick<Location, 'onlineBookingEnabled'> | null,
+  after: Pick<Location, 'onlineBookingEnabled' | 'bookingTerms' | 'privacyPolicy'>,
+  fields: { bookingTerms?: string | null; privacyPolicy?: string | null },
+): void {
+  if (!after.onlineBookingEnabled || (after.bookingTerms && after.privacyPolicy)) return;
+  const switchingOn = !before?.onlineBookingEnabled;
+  const removingText = fields.bookingTerms === null || fields.privacyPolicy === null;
+  if (switchingOn || removingText) throw legalTextsRequired();
+}
+
+/** Placeholders like {KRS} that are still in a text, each once, in order. */
+export function placeholdersIn(text: string): string[] {
+  return [...new Set([...text.matchAll(/\{([A-Z_]+)\}/g)].map((m) => `{${m[1]}}`))];
+}
+
+function fillPlaceholders(text: string, values: Record<string, string | null>): string {
+  return text.replace(/\{([A-Z_]+)\}/g, (match, key: string) => values[key] ?? match);
 }
 
 function toOrganization(org: Organization, role: MembershipRole): OrganizationResponse {
@@ -63,6 +105,7 @@ export class OrganizationsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly access: LocationAccessService,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   /** The creator becomes the owner. */
@@ -151,6 +194,7 @@ export class OrganizationsService {
           const created = await tx.location.create({
             data: { ...fields, slug, organizationId: membership.organizationId },
           });
+          assertLegalTexts(null, created, fields);
           await this.audit.record(
             {
               organizationId: membership.organizationId,
@@ -200,6 +244,10 @@ export class OrganizationsService {
     assertCoordinatePair(fields);
     try {
       const location = await this.prisma.$transaction(async (tx) => {
+        const before = await tx.location.findUnique({
+          where: { id: locationId },
+          select: { onlineBookingEnabled: true },
+        });
         const result = await tx.location.updateMany({
           where: { id: locationId, organizationId: membership.organizationId, version },
           data: { ...fields, version: { increment: 1 } },
@@ -222,12 +270,45 @@ export class OrganizationsService {
           },
           tx,
         );
-        return tx.location.findUniqueOrThrow({ where: { id: locationId } });
+        const after = await tx.location.findUniqueOrThrow({ where: { id: locationId } });
+        assertLegalTexts(before, after, fields);
+        return after;
       });
       return toLocation(location);
     } catch (error) {
       if (isUniqueViolation(error)) throw slugTaken();
       throw error;
     }
+  }
+  /**
+   * The Polish templates of docs/legal with what the platform already knows about the salon
+   * filled in. Nothing is saved: the salon reads, completes and saves the texts itself.
+   */
+  async legalTemplates(
+    membership: MembershipContext,
+    locationId: string,
+  ): Promise<LegalTemplatesResponse> {
+    const location = await this.access.writable(membership, locationId);
+    const org = await this.prisma.organization.findUniqueOrThrow({
+      where: { id: membership.organizationId },
+    });
+    const deadline = location.clientCancelDeadlineMinutes;
+    const values: Record<string, string | null> = {
+      NAZWA_SALONU: location.name,
+      ADRES_SALONU: `${location.addressLine}, ${location.postalCode} ${location.city}`,
+      NAZWA_FIRMY: org.name,
+      NIP: org.nip,
+      TELEFON: location.phone,
+      EMAIL: location.email,
+      GODZINY_PRZED: deadline > 0 && deadline % 60 === 0 ? String(deadline / 60) : null,
+      LINK_POLITYKA: `${this.config.APP_WEB_URL}/pl/b/${location.slug}/privacy`,
+    };
+    const bookingTerms = fillPlaceholders(BOOKING_TERMS_TEMPLATE_PL, values);
+    const privacyPolicy = fillPlaceholders(PRIVACY_POLICY_TEMPLATE_PL, values);
+    return {
+      bookingTerms,
+      privacyPolicy,
+      missing: placeholdersIn(`${bookingTerms}\n${privacyPolicy}`),
+    };
   }
 }

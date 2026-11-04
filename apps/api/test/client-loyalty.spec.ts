@@ -5,6 +5,7 @@ import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
   createTestApp,
+  LEGAL_TEXTS,
   resetState,
   signUp,
   type SignedInUser,
@@ -88,7 +89,7 @@ async function setupSalon(ownerEmail: string, name: string, online = true): Prom
       .http()
       .patch(base)
       .set(owner.auth)
-      .send({ version: loc.body.version, onlineBookingEnabled: true })
+      .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
       .expect(200);
   }
   return { owner, orgId, base, slug, haircutId, beardId, staffId: staff.body.id };

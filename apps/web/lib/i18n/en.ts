@@ -55,6 +55,8 @@ export const en: Dict = {
     ALREADY_MEMBER: 'This person is already in the team.',
     STAFF_ALREADY_LINKED: 'This profile already has an account.',
     UNSUPPORTED_PHOTO: 'This file can’t be uploaded. Choose a JPEG, PNG or WebP photo.',
+    LEGAL_TEXTS_REQUIRED:
+      "Add the salon's booking terms and privacy policy first — online booking cannot be switched on without them.",
     PHOTO_TOO_LARGE: 'The photo is too large (3 MB max).',
     TOO_MANY_PHOTOS: 'A salon can have at most 10 photos. Remove one first.',
     CANNOT_REMOVE_OWNER: 'The owner cannot be removed.',

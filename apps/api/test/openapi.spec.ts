@@ -7,6 +7,7 @@ import {
   codeFromEmail,
   createOrgWithLocation,
   createTestApp,
+  LEGAL_TEXTS,
   PASSWORD,
   resetState,
   signUp,
@@ -118,7 +119,7 @@ describe('client-facing responses match the documented shapes exactly', () => {
       .http()
       .patch(base)
       .set(owner.auth)
-      .send({ version: loc.body.version, onlineBookingEnabled: true })
+      .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
       .expect(200);
   });
 

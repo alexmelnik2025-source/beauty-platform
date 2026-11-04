@@ -55,6 +55,8 @@ export const pl = {
     ALREADY_MEMBER: 'Ta osoba jest już w zespole.',
     STAFF_ALREADY_LINKED: 'Ten profil ma już konto.',
     UNSUPPORTED_PHOTO: 'Tego pliku nie da się wgrać. Wybierz zdjęcie JPEG, PNG lub WebP.',
+    LEGAL_TEXTS_REQUIRED:
+      'Najpierw wpisz regulamin rezerwacji i politykę prywatności salonu — bez nich rezerwacji online nie można włączyć.',
     PHOTO_TOO_LARGE: 'Zdjęcie jest za duże (maks. 3 MB).',
     TOO_MANY_PHOTOS: 'Salon może mieć najwyżej 10 zdjęć. Najpierw usuń któreś.',
     CANNOT_REMOVE_OWNER: 'Właściciela nie można usunąć.',

@@ -74,6 +74,25 @@ export const publicLocationSchema = responseSchema(
 );
 export type PublicLocationResponse = z.infer<typeof publicLocationSchema>;
 
+export const publicLegalTextsSchema = responseSchema(
+  'PublicLegalTexts',
+  z
+    .strictObject({
+      name: z.string().describe('Salon name'),
+      bookingTerms: z
+        .string()
+        .nullable()
+        .describe('Booking terms (regulamin), Markdown; null when the salon has not written them'),
+      privacyPolicy: z
+        .string()
+        .nullable()
+        .describe('Privacy policy, Markdown; null when the salon has not written it'),
+      updatedAt: z.string().describe('When the salon settings were last saved'),
+    })
+    .describe('The texts a client accepts when booking, as written by the salon'),
+);
+export type PublicLegalTextsResponse = z.infer<typeof publicLegalTextsSchema>;
+
 export const slotSchema = responseSchema(
   'Slot',
   z.strictObject({

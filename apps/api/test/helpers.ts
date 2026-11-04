@@ -115,6 +115,12 @@ export const LOCATION = {
   postalCode: '02-515',
 };
 
+/** Online booking can be switched on only with the salon's booking terms and privacy policy. */
+export const LEGAL_TEXTS = {
+  bookingTerms: '# Regulamin rezerwacji\n\nRezerwacja jest bezpłatna.',
+  privacyPolicy: '# Polityka prywatności\n\nAdministratorem danych jest Salon.',
+};
+
 export async function createOrgWithLocation(
   ctx: TestContext,
   user: SignedInUser,

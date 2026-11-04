@@ -4,6 +4,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   resetState,
   signUp,
   type SignedInUser,
@@ -63,7 +64,7 @@ async function setupSalon(ownerEmail: string, orgName: string): Promise<Salon> {
     .http()
     .patch(base)
     .set(owner.auth)
-    .send({ version: loc.body.version, onlineBookingEnabled: true })
+    .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
     .expect(200);
   return {
     owner,

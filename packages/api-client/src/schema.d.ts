@@ -309,6 +309,26 @@ export interface paths {
         patch: operations["LocationsController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/legal-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Templates of the booking terms and privacy policy (owner, or its manager)
+         * @description Polish templates with the salon’s name, address, contacts and company filled in. Nothing is saved.
+         */
+        get: operations["LocationsController_legalTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/permissions": {
         parameters: {
             query?: never;
@@ -746,6 +766,26 @@ export interface paths {
         };
         /** Salon page: address, description, opening hours, services with prices, staff */
         get: operations["PublicLocationsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/locations/{slug}/legal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Booking terms and privacy policy of the salon
+         * @description Linked from the consent checkbox of the booking form.
+         */
+        get: operations["PublicLocationsController_legal"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2375,6 +2415,15 @@ export interface components {
             status: "pending" | "accepted" | "revoked" | "expired";
             expiresAt: string;
         };
+        /** @description Polish templates with the salon’s own details already filled in. A starting point: the salon checks and completes them before saving */
+        LegalTemplates: {
+            /** @description Booking terms (regulamin), Markdown */
+            bookingTerms: string;
+            /** @description Privacy policy, Markdown */
+            privacyPolicy: string;
+            /** @description Placeholders like {KRS} still to be filled in by the salon, in order */
+            missing: string[];
+        };
         Location: {
             id: string;
             organizationId: string;
@@ -2399,6 +2448,10 @@ export interface components {
             /** @description Languages the salon speaks with clients, in the salon’s order */
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
             description: string | null;
+            /** @description Booking terms (regulamin), Markdown; needed to switch online booking on */
+            bookingTerms: string | null;
+            /** @description Privacy policy, Markdown; needed to switch online booking on */
+            privacyPolicy: string | null;
             /** @description Send it back when updating (optimistic locking) */
             version: number;
             createdAt: string;
@@ -2428,6 +2481,10 @@ export interface components {
             /** @description Languages the salon speaks with clients, in the salon’s order */
             languages: ("pl" | "uk" | "ru" | "be" | "en")[];
             description: string | null;
+            /** @description Booking terms (regulamin), Markdown; needed to switch online booking on */
+            bookingTerms: string | null;
+            /** @description Privacy policy, Markdown; needed to switch online booking on */
+            privacyPolicy: string | null;
             /** @description Send it back when updating (optimistic locking) */
             version: number;
             createdAt: string;
@@ -2916,6 +2973,17 @@ export interface components {
             /** @description Until when the client can still move or cancel online */
             changeableUntil: string;
             canChange: boolean;
+        };
+        /** @description The texts a client accepts when booking, as written by the salon */
+        PublicLegalTexts: {
+            /** @description Salon name */
+            name: string;
+            /** @description Booking terms (regulamin), Markdown; null when the salon has not written them */
+            bookingTerms: string | null;
+            /** @description Privacy policy, Markdown; null when the salon has not written it */
+            privacyPolicy: string | null;
+            /** @description When the salon settings were last saved */
+            updatedAt: string;
         };
         /** @description The public salon page: no buffers, staff accounts or organization details */
         PublicLocation: {
@@ -3746,6 +3814,8 @@ export interface operations {
                     onlineBookingEnabled?: boolean;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
                     description?: string | null;
+                    bookingTerms?: string | null;
+                    privacyPolicy?: string | null;
                 };
             };
         };
@@ -3812,6 +3882,8 @@ export interface operations {
                     onlineBookingEnabled?: boolean;
                     languages?: ("pl" | "uk" | "ru" | "be" | "en")[];
                     description?: string | null;
+                    bookingTerms?: string | null;
+                    privacyPolicy?: string | null;
                     version: number;
                 };
             };
@@ -3823,6 +3895,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Location"];
+                };
+            };
+        };
+    };
+    LocationsController_legalTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalTemplates"];
                 };
             };
         };
@@ -4799,6 +4892,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicLocation"];
+                };
+            };
+        };
+    };
+    PublicLocationsController_legal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicLegalTexts"];
                 };
             };
         };

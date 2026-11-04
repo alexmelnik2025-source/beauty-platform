@@ -45,6 +45,14 @@ export const locationSchema = responseSchema(
       .array(languageSchema)
       .describe('Languages the salon speaks with clients, in the salon’s order'),
     description: z.string().nullable(),
+    bookingTerms: z
+      .string()
+      .nullable()
+      .describe('Booking terms (regulamin), Markdown; needed to switch online booking on'),
+    privacyPolicy: z
+      .string()
+      .nullable()
+      .describe('Privacy policy, Markdown; needed to switch online booking on'),
     version: z.number().int().describe('Send it back when updating (optimistic locking)'),
     createdAt: z.string(),
     updatedAt: z.string(),
@@ -53,3 +61,19 @@ export const locationSchema = responseSchema(
 export type LocationResponse = z.infer<typeof locationSchema>;
 
 export const locationListSchema = responseSchema('LocationList', z.array(locationSchema));
+
+export const legalTemplatesSchema = responseSchema(
+  'LegalTemplates',
+  z
+    .strictObject({
+      bookingTerms: z.string().describe('Booking terms (regulamin), Markdown'),
+      privacyPolicy: z.string().describe('Privacy policy, Markdown'),
+      missing: z
+        .array(z.string())
+        .describe('Placeholders like {KRS} still to be filled in by the salon, in order'),
+    })
+    .describe(
+      'Polish templates with the salon’s own details already filled in. A starting point: the salon checks and completes them before saving',
+    ),
+);
+export type LegalTemplatesResponse = z.infer<typeof legalTemplatesSchema>;

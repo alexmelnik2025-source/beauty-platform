@@ -4,6 +4,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   resetState,
   signUp,
   type SignedInUser,
@@ -125,7 +126,7 @@ describe('service categories and colours', () => {
       .http()
       .patch(base)
       .set(owner.auth)
-      .send({ version: loc.body.version, onlineBookingEnabled: true })
+      .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
       .expect(200);
     const page = await ctx.http().get(`/v1/public/locations/${slug}`).expect(200);
     // Only categories that contain a bookable service are shown.
@@ -317,7 +318,7 @@ describe('marks on appointments', () => {
       .http()
       .patch(base)
       .set(owner.auth)
-      .send({ version: loc.body.version, onlineBookingEnabled: true })
+      .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
       .expect(200);
     const chosen = await ctx
       .http()

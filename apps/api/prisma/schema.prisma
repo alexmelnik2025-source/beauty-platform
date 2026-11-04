@@ -401,6 +401,10 @@ model Location {
   languages                   Language[] @default([])
   /// Shown on the booking page under the salon name: what the salon is about.
   description                 String?
+  /// Booking terms (regulamin) in Markdown, written by the salon. Required to switch online booking on.
+  bookingTerms                String?    @map("booking_terms")
+  /// Privacy policy in Markdown, written by the salon. Required to switch online booking on.
+  privacyPolicy               String?    @map("privacy_policy")
   /// Optimistic locking: every update must send the version it read.
   version                     Int        @default(1)
   createdAt                   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)

@@ -4,6 +4,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   LOCATION,
   resetState,
   signUp,
@@ -148,11 +149,12 @@ describe('locations', () => {
       .http()
       .patch(url)
       .set(owner.auth)
-      .send({ version: 1, onlineBookingEnabled: true, phone: '+48123456789' })
+      .send({ version: 1, onlineBookingEnabled: true, ...LEGAL_TEXTS, phone: '+48123456789' })
       .expect(200);
     expect(updated.body).toMatchObject({
       version: 2,
       onlineBookingEnabled: true,
+      ...LEGAL_TEXTS,
       phone: '+48123456789',
     });
 

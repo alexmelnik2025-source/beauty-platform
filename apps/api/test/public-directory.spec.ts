@@ -4,6 +4,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   resetState,
   signUp,
   type TestContext,
@@ -59,6 +60,7 @@ describe('public salon directory', () => {
       where: { id: polish.locationId },
       data: {
         onlineBookingEnabled: true,
+        ...LEGAL_TEXTS,
         languages: ['pl', 'en'],
         latitude: 52.2,
         longitude: 21.0,
@@ -66,7 +68,7 @@ describe('public salon directory', () => {
     });
     await ctx.prisma.location.update({
       where: { id: ukrainian.locationId },
-      data: { onlineBookingEnabled: true, languages: ['uk', 'be'] },
+      data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, languages: ['uk', 'be'] },
     });
     await ctx.prisma.location.update({
       where: { id: hidden.locationId },
@@ -75,7 +77,7 @@ describe('public salon directory', () => {
     // Online booking is on, but there is nothing to book yet: not in the catalogue.
     await ctx.prisma.location.update({
       where: { id: empty.locationId },
-      data: { onlineBookingEnabled: true, languages: ['pl'] },
+      data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, languages: ['pl'] },
     });
 
     const all = await ctx
@@ -123,7 +125,7 @@ describe('public salon directory', () => {
     await makeBookable(owner, salon, ['en', 'pl']);
     await ctx.prisma.location.update({
       where: { id: salon.locationId },
-      data: { onlineBookingEnabled: true, languages: ['pl'] },
+      data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, languages: ['pl'] },
     });
 
     const english = await ctx

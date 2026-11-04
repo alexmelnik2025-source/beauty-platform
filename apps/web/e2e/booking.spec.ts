@@ -129,6 +129,10 @@ test('a client books online; the visit is in the salon and staff calendars; emai
       data: {
         version: location.version,
         onlineBookingEnabled: true,
+        // Online booking can be switched on only with the salon's own legal texts.
+        bookingTerms:
+          '# Regulamin rezerwacji\n\nRezerwacja jest bezpłatna. Zmiany do 2 godzin przed wizytą.',
+        privacyPolicy: '# Polityka prywatności\n\nAdministratorem danych jest GESTALT.',
         // Longer than the 2-hour change deadline: the first free time can always be changed
         // online, whatever time of day the test runs.
         minLeadMinutes: 180,

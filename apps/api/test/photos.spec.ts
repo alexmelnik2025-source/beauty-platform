@@ -4,6 +4,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   resetState,
   signUp,
   type SignedInUser,
@@ -79,7 +80,7 @@ async function bookableStaff() {
     .http()
     .patch(base)
     .set(owner.auth)
-    .send({ version: current.body.version, onlineBookingEnabled: true })
+    .send({ version: current.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
     .expect(200);
   return { staffId: staff.body.id as string, slug: loc.body.slug as string };
 }
