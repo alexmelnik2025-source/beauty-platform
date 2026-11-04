@@ -22,6 +22,7 @@ import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
+import { WaitlistForm } from './WaitlistForm';
 
 type Step = 'service' | 'staff' | 'time' | 'details' | 'code' | 'done';
 /** Key of "any specialist" in the nearest-free-time map. */
@@ -488,7 +489,8 @@ export function BookingFlow({ slug }: { slug: string }) {
                       key={d}
                       type="button"
                       aria-pressed={d === day}
-                      disabled={!daysWithSlots.has(d)}
+                      // A full day can still be chosen: "tell me when a time frees up" (task 50).
+                      className={daysWithSlots.has(d) ? undefined : 'full'}
                       onClick={() => setDay(d)}
                       aria-label={formatDay(d, tag)}
                     >
@@ -499,7 +501,20 @@ export function BookingFlow({ slug }: { slug: string }) {
                 </div>
                 <p className="muted small">{day ? formatDay(day, tag) : ''}</p>
                 {groups.length === 0 ? (
-                  <p className="note">{t.booking.noSlotsDay}</p>
+                  <>
+                    <p className="note">{t.booking.noSlotsDay}</p>
+                    {day ? (
+                      <WaitlistForm
+                        key={`${day}|${staffId ?? ''}`}
+                        slug={slug}
+                        serviceId={serviceId}
+                        staffId={staffId}
+                        date={day}
+                        name={contact.name}
+                        email={contact.email}
+                      />
+                    ) : null}
+                  </>
                 ) : (
                   groups.map((g) => (
                     <div key={g.label} className="stack" style={{ gap: 8 }}>
