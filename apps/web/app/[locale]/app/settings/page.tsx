@@ -219,7 +219,13 @@ export default function SettingsPage() {
             <div className="field" key={key}>
               <label className="field">
                 <span>{key === 'bookingTerms' ? t.legal.terms : t.legal.privacy}</span>
-                <textarea rows={8} maxLength={50000} value={form[key] ?? ''} onChange={text(key)} />
+                <textarea
+                  aria-label={key === 'bookingTerms' ? t.legal.terms : t.legal.privacy}
+                  rows={8}
+                  maxLength={50000}
+                  value={form[key] ?? ''}
+                  onChange={text(key)}
+                />
               </label>
               <div className="row">
                 <button
