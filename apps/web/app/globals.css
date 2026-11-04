@@ -1949,6 +1949,15 @@ label.btn:focus-within {
   min-width: 0;
 }
 
+/* Task 62: each specialist's own price of the service, on the right of the row. */
+.choice-list button.with-avatar > .c-body {
+  flex: 1;
+}
+
+.choice-list button.with-avatar > .c-price {
+  margin-left: auto;
+}
+
 .avatar--staff {
   width: 48px;
   height: 48px;

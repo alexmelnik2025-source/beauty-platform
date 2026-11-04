@@ -30,6 +30,20 @@ export function formatPrice(hundredths: number, currency: string, locale: Locale
   );
 }
 
+/**
+ * Task 62: a service's price on the price list — "od 80 zł" when its specialists' prices
+ * differ, else the one price. `fromText` is the "od {price}" text of the language.
+ */
+export function servicePriceText(
+  service: { priceFromGrosze: number; priceToGrosze: number },
+  currency: string,
+  locale: Locale,
+  fromText: string,
+): string {
+  const from = formatPrice(service.priceFromGrosze, currency, locale);
+  return service.priceFromGrosze < service.priceToGrosze ? fromText.replace('{price}', from) : from;
+}
+
 /** "ul. Marszałkowska 1, Warszawa" — the parts the salon filled in. */
 export function salonAddress(salon: ClientAppointment['salon']): string {
   return [salon.addressLine, salon.city].filter((part) => part.trim()).join(', ');

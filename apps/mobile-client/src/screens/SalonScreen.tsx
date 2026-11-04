@@ -12,7 +12,7 @@ import type { ClientApi, Locale, PublicLocation } from '../api';
 import { API_URL } from '../config';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
-import { formatPrice } from '../format';
+import { servicePriceText } from '../format';
 import { addressText, durationText, openingRows, serviceGroups, specialtyText } from '../salon';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
@@ -180,7 +180,7 @@ export function SalonScreen(props: {
                   <Text style={styles.small}>{durationText(s.durationMinutes, t.units)}</Text>
                 </View>
                 <Text style={styles.price}>
-                  {formatPrice(s.priceGrosze, salon.currency, locale)}
+                  {servicePriceText(s, salon.currency, locale, t.book.priceFrom)}
                 </Text>
               </View>
             ))}

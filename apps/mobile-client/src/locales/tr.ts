@@ -176,6 +176,7 @@ export const tr: Dictionary = {
     signInButton: '“Randevularım”a giriş yap',
     anyStaff: 'Herhangi bir uzman',
     anyStaffHint: 'İlk boş saat',
+    priceFrom: 'başlangıç {price}',
     nearestToday: 'Bugün {time} itibarıyla boş',
     nearestTomorrow: 'Yarın {time} itibarıyla boş',
     nearestOn: 'En yakın boş saat: {day}, {time}',

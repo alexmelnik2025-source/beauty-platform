@@ -281,6 +281,7 @@ export const pl = {
     otherServices: 'Pozostałe',
     anyStaff: 'Dowolny specjalista',
     anyStaffHint: 'Pierwszy wolny termin',
+    priceFrom: 'od {price}',
     nearestToday: 'Dziś wolne od {time}',
     nearestTomorrow: 'Jutro wolne od {time}',
     nearestOn: 'Najbliższy wolny termin: {day}, {time}',

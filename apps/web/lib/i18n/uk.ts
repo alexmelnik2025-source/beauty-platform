@@ -281,6 +281,7 @@ export const uk: Dict = {
     otherServices: 'Інше',
     anyStaff: 'Будь-який майстер',
     anyStaffHint: 'Найближчий вільний час',
+    priceFrom: 'від {price}',
     nearestToday: 'Сьогодні вільно з {time}',
     nearestTomorrow: 'Завтра вільно з {time}',
     nearestOn: 'Найближчий вільний час: {day}, {time}',

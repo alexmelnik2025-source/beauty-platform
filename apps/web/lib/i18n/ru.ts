@@ -287,6 +287,7 @@ export const ru: Dict = {
     otherServices: 'Другое',
     anyStaff: 'Любой мастер',
     anyStaffHint: 'Ближайшее свободное время',
+    priceFrom: 'от {price}',
     nearestToday: 'Сегодня свободно с {time}',
     nearestTomorrow: 'Завтра свободно с {time}',
     nearestOn: 'Ближайшее свободное время: {day}, {time}',

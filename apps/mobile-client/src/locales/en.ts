@@ -170,6 +170,7 @@ export const en: Dictionary = {
     signInButton: 'Sign in to “My visits”',
     anyStaff: 'Any specialist',
     anyStaffHint: 'First free time',
+    priceFrom: 'from {price}',
     nearestToday: 'Free today from {time}',
     nearestTomorrow: 'Free tomorrow from {time}',
     nearestOn: 'Next free time: {day}, {time}',

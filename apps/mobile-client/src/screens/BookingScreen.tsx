@@ -47,6 +47,7 @@ import {
   dayChip,
   formatDay,
   formatPrice,
+  servicePriceText,
   nearestByStaff,
   nearestText,
   slotsByDay,
@@ -134,6 +135,13 @@ export function BookingScreen(props: {
   const languages = filterLanguages(staffList);
   const activeSpeaks = speaks && languages.includes(speaks) ? speaks : null;
   const shownStaff = speakingStaff(staffList, activeSpeaks);
+  /** Task 62: specialists' own prices — each one's price is shown when they differ. */
+  const pricesDiffer = !!service && service.priceFromGrosze < service.priceToGrosze;
+  const staffPrice = (id: string): number =>
+    salon.staff.find((s) => s.id === id)?.prices.find((p) => p.serviceId === serviceId)
+      ?.priceGrosze ??
+    service?.priceGrosze ??
+    0;
 
   const loadSlots = useCallback(async () => {
     setSlots(null);
@@ -353,7 +361,9 @@ export function BookingScreen(props: {
           <Text style={styles.strong}>{service.name}</Text>
           <Text style={styles.muted}>
             {durationText(service.durationMinutes, t.units)} ·{' '}
-            {formatPrice(service.priceGrosze, salon.currency, locale)}
+            {step === 'staff' || !staffId
+              ? servicePriceText(service, salon.currency, locale, b.priceFrom)
+              : formatPrice(staffPrice(staffId), salon.currency, locale)}
             {step !== 'staff'
               ? ` · ${staffList.find((s) => s.id === staffId)?.displayName ?? (hold?.staffName || b.anyStaff)}`
               : ''}
@@ -397,7 +407,7 @@ export function BookingScreen(props: {
                   key={s.id}
                   title={s.name}
                   meta={durationText(s.durationMinutes, t.units)}
-                  right={formatPrice(s.priceGrosze, salon.currency, locale)}
+                  right={servicePriceText(s, salon.currency, locale, b.priceFrom)}
                   onPress={() => pickService(s.id)}
                 />
               ))}
@@ -435,6 +445,11 @@ export function BookingScreen(props: {
               title={b.anyStaff}
               meta={b.anyStaffHint}
               free={nearestFree(ANY_STAFF)}
+              right={
+                pricesDiffer && service
+                  ? servicePriceText(service, salon.currency, locale, b.priceFrom)
+                  : undefined
+              }
               onPress={() => {
                 setStaffId(undefined);
                 setStep('time');
@@ -447,6 +462,9 @@ export function BookingScreen(props: {
               title={s.displayName}
               meta={specialtyText(s, t.specialty) || undefined}
               free={nearestFree(s.id)}
+              right={
+                pricesDiffer ? formatPrice(staffPrice(s.id), salon.currency, locale) : undefined
+              }
               onPress={() => {
                 setStaffId(s.id);
                 setStep('time');

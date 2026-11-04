@@ -176,6 +176,7 @@ export const sq: Dictionary = {
     signInButton: 'Hyr te “Takimet e mia”',
     anyStaff: 'Çdo specialist',
     anyStaffHint: 'Ora e parë e lirë',
+    priceFrom: 'nga {price}',
     nearestToday: 'Sot e lirë nga {time}',
     nearestTomorrow: 'Nesër e lirë nga {time}',
     nearestOn: 'Ora e parë e lirë: {day}, {time}',

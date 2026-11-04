@@ -410,6 +410,17 @@ export function BookingFlow({ slug }: { slug: string }) {
     return n > 0 && n < staffOfService.length;
   });
   const activeSpeaks = speaks && filterLanguages.includes(speaks) ? speaks : '';
+  /** Task 62: each specialist's price, shown when the service's prices differ by specialist. */
+  const pricesDiffer = !!service && service.priceFromGrosze < service.priceToGrosze;
+  function staffPrice(s: PublicLocation['staff'][number]): ReactNode {
+    if (!salon || !service || !pricesDiffer) return null;
+    const own = s.prices.find((p) => p.serviceId === service.id)?.priceGrosze;
+    return (
+      <span className="c-price">
+        {formatPrice(own ?? service.priceGrosze, salon.currency, tag)}
+      </span>
+    );
+  }
   const staffForService = activeSpeaks
     ? staffOfService.filter((s) => (s.languages ?? []).includes(activeSpeaks))
     : staffOfService;
@@ -522,6 +533,13 @@ export function BookingFlow({ slug }: { slug: string }) {
                       <span className="c-meta">{t.booking.anyStaffHint}</span>
                       {nearestFree(ANY_STAFF)}
                     </span>
+                    {pricesDiffer && service ? (
+                      <span className="c-price">
+                        {fill(t.booking.priceFrom, {
+                          price: formatPrice(service.priceFromGrosze, salon.currency, tag),
+                        })}
+                      </span>
+                    ) : null}
                   </button>
                 </li>
               )}
@@ -553,6 +571,7 @@ export function BookingFlow({ slug }: { slug: string }) {
                       <LanguageBadges codes={s.languages ?? []} />
                       {nearestFree(s.id)}
                     </span>
+                    {staffPrice(s)}
                   </button>
                 </li>
               ))}
@@ -884,7 +903,13 @@ function ServiceList({
                     {s.durationMinutes} {t.common.minutes}
                     {s.description ? ` · ${s.description}` : ''}
                   </span>
-                  <span className="c-price">{formatPrice(s.priceGrosze, salon.currency, tag)}</span>
+                  <span className="c-price">
+                    {s.priceFromGrosze < s.priceToGrosze
+                      ? fill(t.booking.priceFrom, {
+                          price: formatPrice(s.priceFromGrosze, salon.currency, tag),
+                        })
+                      : formatPrice(s.priceFromGrosze, salon.currency, tag)}
+                  </span>
                 </button>
               </li>
             ))}
