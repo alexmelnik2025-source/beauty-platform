@@ -185,7 +185,9 @@ function urlFor(route: Route, ids: Ids): string {
   if (path.endsWith('/availability')) {
     return `${path}?serviceId=${ids.serviceId}&from=${DATE}&to=${DATE}`;
   }
-  if (['/appointments', '/time-blocks', '/calendar'].some((end) => path.endsWith(end))) {
+  if (
+    ['/appointments', '/time-blocks', '/calendar', '/reports'].some((end) => path.endsWith(end))
+  ) {
     return `${path}?from=${DATE}&to=${DATE}`;
   }
   return path;
