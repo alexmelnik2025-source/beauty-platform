@@ -36,6 +36,8 @@ const hold: Hold = {
   staffName: 'Kasia',
   serviceName: 'Strzyżenie męskie',
   priceGrosze: 9000,
+  listPriceGrosze: null,
+  happyHourPercent: null,
   currency: 'PLN',
 };
 
