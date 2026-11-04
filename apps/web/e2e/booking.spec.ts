@@ -393,6 +393,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   });
   await expect(client.getByRole('button', { name: 'Zainstaluj aplikację' })).toBeVisible();
   await shot(client, '07f-client-install-app');
+  // "Download my data" (GDPR): a JSON file with the card, visits and bonuses in every salon.
+  const [download] = await Promise.all([
+    client.waitForEvent('download'),
+    client.getByRole('button', { name: 'Pobierz moje dane' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^my-data-\d{4}-\d{2}-\d{2}\.json$/);
+  const myData = JSON.parse(await readFile((await download.path())!, 'utf8')) as {
+    person: { email: string };
+    salons: { salon: string; visits: { service: string }[] }[];
+  };
+  expect(myData.person.email).toBe(CLIENT);
+  expect(myData.salons[0]?.visits.map((v) => v.service)).toContain('Strzyżenie męskie');
+  await shot(client, '07g-client-download-data');
 
   // The booked day, as the salon's API sees it.
   const calendar = await json<{
