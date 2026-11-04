@@ -4005,6 +4005,153 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/happy-hours": {
+      "get": {
+        "operationId": "HappyHoursController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HappyHours"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The location's happy hours",
+        "tags": [
+          "services"
+        ]
+      },
+      "put": {
+        "description": "Every new visit (online, by the staff, walk-ins) starting in a rule's weekdays and hours, with its staff member and service, gets the largest matching discount on the price. Visits already booked keep their price. Staff and services must be this location's (400 VALIDATION_ERROR).",
+        "operationId": "HappyHoursController_replace",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "weekdays": {
+                          "minItems": 1,
+                          "maxItems": 7,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 7
+                          },
+                          "description": "ISO weekdays: 1 = Monday … 7 = Sunday"
+                        },
+                        "start": {
+                          "type": "string",
+                          "description": "Local time the price starts (a visit starting at it gets it)"
+                        },
+                        "end": {
+                          "type": "string",
+                          "description": "Local time the price ends (a visit starting at it does not)"
+                        },
+                        "discountPercent": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 90
+                        },
+                        "staffIds": {
+                          "default": [],
+                          "description": "Empty = every staff member",
+                          "maxItems": 100,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "serviceIds": {
+                          "default": [],
+                          "description": "Empty = every service",
+                          "maxItems": 500,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        }
+                      },
+                      "required": [
+                        "weekdays",
+                        "start",
+                        "end",
+                        "discountPercent"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "rules"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HappyHours"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the happy hours (empty list = none)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
     "/v1/public/locations/{slug}/holds": {
       "post": {
         "description": "start = a slot \"start\" from the availability list. Omit staffId for \"any staff member\". Send releaseHoldToken to free a previous hold.",
@@ -10764,6 +10911,72 @@
           "additionalProperties": false
         }
       },
+      "HappyHours": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "weekdays": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "description": "ISO weekdays: 1 = Monday … 7 = Sunday"
+                },
+                "start": {
+                  "type": "string",
+                  "description": "HH:mm, local time of the salon"
+                },
+                "end": {
+                  "type": "string",
+                  "description": "HH:mm; a visit starting before it gets the price"
+                },
+                "discountPercent": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "staffIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Empty = every staff member"
+                },
+                "serviceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Empty = every service"
+                }
+              },
+              "required": [
+                "id",
+                "weekdays",
+                "start",
+                "end",
+                "discountPercent",
+                "staffIds",
+                "serviceIds"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "rules"
+        ],
+        "additionalProperties": false
+      },
       "Health": {
         "type": "object",
         "properties": {
@@ -10838,6 +11051,21 @@
           "priceGrosze": {
             "type": "integer",
             "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What the visit costs (after a happy-hour discount)"
+          },
+          "listPriceGrosze": {
+            "nullable": true,
+            "description": "The service price before the salon's happy-hour discount; null = no discount",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "happyHourPercent": {
+            "nullable": true,
+            "description": "Task 16: the happy-hour discount",
+            "type": "integer",
+            "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
           "currency": {
@@ -10857,6 +11085,8 @@
           "staffName",
           "serviceName",
           "priceGrosze",
+          "listPriceGrosze",
+          "happyHourPercent",
           "currency"
         ],
         "additionalProperties": false,

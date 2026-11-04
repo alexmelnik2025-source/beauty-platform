@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { AvailabilityService } from './availability.service';
 import { CatalogService } from './catalog.service';
+import { HappyHoursController } from './happy-hours.controller';
+import { HappyHoursService } from './happy-hours';
 import {
   LocationPhotosController,
   PublicPhotosController,
@@ -30,8 +32,15 @@ import {
     LocationPhotosController,
     StaffPhotoController,
     PublicPhotosController,
+    HappyHoursController,
   ],
-  providers: [CatalogService, ScheduleService, AvailabilityService, PhotosService],
-  exports: [AvailabilityService],
+  providers: [
+    CatalogService,
+    ScheduleService,
+    AvailabilityService,
+    PhotosService,
+    HappyHoursService,
+  ],
+  exports: [AvailabilityService, HappyHoursService],
 })
 export class SchedulingModule {}

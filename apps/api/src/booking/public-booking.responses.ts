@@ -18,7 +18,13 @@ export const holdSchema = responseSchema(
       staffId: z.string(),
       staffName: z.string(),
       serviceName: z.string(),
-      priceGrosze: z.number().int(),
+      priceGrosze: z.number().int().describe('What the visit costs (after a happy-hour discount)'),
+      listPriceGrosze: z
+        .number()
+        .int()
+        .nullable()
+        .describe("The service price before the salon's happy-hour discount; null = no discount"),
+      happyHourPercent: z.number().int().nullable().describe('Task 16: the happy-hour discount'),
       currency: z.string().describe('ISO 4217; prices are in hundredths of it'),
     })
     .describe('A slot kept for the client for 10 minutes'),

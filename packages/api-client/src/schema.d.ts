@@ -927,6 +927,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/happy-hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The location's happy hours */
+        get: operations["HappyHoursController_list"];
+        /**
+         * Replace the happy hours (empty list = none)
+         * @description Every new visit (online, by the staff, walk-ins) starting in a rule's weekdays and hours, with its staff member and service, gets the largest matching discount on the price. Visits already booked keep their price. Staff and services must be this location's (400 VALIDATION_ERROR).
+         */
+        put: operations["HappyHoursController_replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations/{slug}/holds": {
         parameters: {
             query?: never;
@@ -2675,6 +2696,22 @@ export interface components {
             createdAt: string;
             lastAttemptAt: string;
         }[];
+        HappyHours: {
+            rules: {
+                id: string;
+                /** @description ISO weekdays: 1 = Monday … 7 = Sunday */
+                weekdays: number[];
+                /** @description HH:mm, local time of the salon */
+                start: string;
+                /** @description HH:mm; a visit starting before it gets the price */
+                end: string;
+                discountPercent: number;
+                /** @description Empty = every staff member */
+                staffIds: string[];
+                /** @description Empty = every service */
+                serviceIds: string[];
+            }[];
+        };
         Health: {
             /** @enum {string} */
             status: "ok" | "error";
@@ -2697,7 +2734,12 @@ export interface components {
             staffId: string;
             staffName: string;
             serviceName: string;
+            /** @description What the visit costs (after a happy-hour discount) */
             priceGrosze: number;
+            /** @description The service price before the salon's happy-hour discount; null = no discount */
+            listPriceGrosze: number | null;
+            /** @description Task 16: the happy-hour discount */
+            happyHourPercent: number | null;
             /** @description ISO 4217; prices are in hundredths of it */
             currency: string;
         };
@@ -5603,6 +5645,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    HappyHoursController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HappyHours"];
+                };
+            };
+        };
+    };
+    HappyHoursController_replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rules: {
+                        /** @description ISO weekdays: 1 = Monday … 7 = Sunday */
+                        weekdays: number[];
+                        /** @description Local time the price starts (a visit starting at it gets it) */
+                        start: string;
+                        /** @description Local time the price ends (a visit starting at it does not) */
+                        end: string;
+                        discountPercent: number;
+                        /**
+                         * @description Empty = every staff member
+                         * @default []
+                         */
+                        staffIds?: string[];
+                        /**
+                         * @description Empty = every service
+                         * @default []
+                         */
+                        serviceIds?: string[];
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HappyHours"];
+                };
             };
         };
     };

@@ -6,6 +6,7 @@ import { generateToken, hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { Appointment, Locale, Location, Prisma } from '../generated/prisma/client';
 import { VisitCoupons } from '../loyalty/visit-coupons';
+import { HappyHoursService } from '../scheduling/happy-hours';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
@@ -82,6 +83,7 @@ export class PublicBookingService {
     private readonly sms: SmsService,
     private readonly limiter: RateLimiterService,
     private readonly visitCoupons: VisitCoupons,
+    private readonly happyHours: HappyHoursService,
   ) {}
 
   async findBookable(slug: string): Promise<Location> {
@@ -129,6 +131,13 @@ export class PublicBookingService {
     // "Any staff member": try the least busy one, then the next if someone was faster.
     for (const staffId of candidates) {
       try {
+        // The salon's happy hours (task 16) set the price for this staff member and time.
+        const price = await this.happyHours.priceFor(this.prisma, location, {
+          staffId,
+          serviceId: service.id,
+          start: input.start,
+          listPriceGrosze: service.priceGrosze,
+        });
         const hold = await this.writer.write(staffId, times, (tx) =>
           tx.appointment.create({
             data: {
@@ -141,7 +150,7 @@ export class PublicBookingService {
               ...times,
               holdExpiresAt: expiresAt,
               holdTokenHash: hashToken(holdToken),
-              priceGrosze: service.priceGrosze,
+              ...price,
               durationMinutes: service.durationMinutes,
               bufferMinutes: service.bufferMinutes,
             },
@@ -160,7 +169,7 @@ export class PublicBookingService {
           staffId,
           staffName: hold.staff.displayName,
           serviceName: service.name,
-          priceGrosze: service.priceGrosze,
+          ...price,
           currency: location.currency,
         };
       } catch (error) {

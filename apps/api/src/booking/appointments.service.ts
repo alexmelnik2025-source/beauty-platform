@@ -38,6 +38,7 @@ import type {
   AppointmentResponse,
   VisitCouponsResponse,
 } from './booking.responses';
+import { HappyHoursService } from '../scheduling/happy-hours';
 import { OutboxService } from './outbox.service';
 
 const MINUTE_MS = 60_000;
@@ -85,6 +86,7 @@ export class AppointmentsService {
     private readonly outbox: OutboxService,
     private readonly ledger: LoyaltyLedger,
     private readonly visitCoupons: VisitCoupons,
+    private readonly happyHours: HappyHoursService,
   ) {}
 
   async list(
@@ -181,6 +183,13 @@ export class AppointmentsService {
 
     const customer = await this.resolveCustomer(location, input);
     const times = timesFor(input.start, service);
+    // The salon's happy hours (task 16) set the price for this staff member and time.
+    const price = await this.happyHours.priceFor(this.prisma, location, {
+      staffId: staff.id,
+      serviceId: service.id,
+      start: input.start,
+      listPriceGrosze: service.priceGrosze,
+    });
     if (input.alreadyHappened) {
       const walkIn = await this.writer.write(staff.id, times, async (tx) => {
         // "Came" visits are outside the no-overlap constraint, so check them here (the staff
@@ -204,7 +213,7 @@ export class AppointmentsService {
             status: 'confirmed',
             source: 'manual',
             ...times,
-            priceGrosze: service.priceGrosze,
+            ...price,
             durationMinutes: service.durationMinutes,
             bufferMinutes: service.bufferMinutes,
             note: input.note ?? null,
@@ -256,7 +265,7 @@ export class AppointmentsService {
           status: 'confirmed',
           source: 'manual',
           ...times,
-          priceGrosze: service.priceGrosze,
+          ...price,
           durationMinutes: service.durationMinutes,
           bufferMinutes: service.bufferMinutes,
           note: input.note ?? null,

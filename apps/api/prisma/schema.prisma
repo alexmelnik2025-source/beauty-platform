@@ -430,6 +430,7 @@ model Location {
   services          Service[]
   staffMembers      StaffMember[]
   appointments      Appointment[]
+  happyHours        HappyHour[]
   timeBlocks        TimeBlock[]
   serviceCategories ServiceCategory[]
   photos            Photo[]
@@ -629,6 +630,29 @@ model TimeBlock {
   @@map("time_block")
 }
 
+/// Task 16: the salon's "happy hours" — a lower price on chosen weekdays and hours, for all or
+/// some staff members and services. The best matching rule sets the price of a new visit.
+model HappyHour {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  locationId      String   @map("location_id") @db.Uuid
+  /// ISO weekdays 1 (Monday) – 7 (Sunday).
+  weekdays        Int[]
+  /// Minutes after local midnight: a visit starting in [startMinute, endMinute) gets the price.
+  startMinute     Int      @map("start_minute")
+  endMinute       Int      @map("end_minute")
+  discountPercent Int      @map("discount_percent")
+  /// Empty = every staff member / every service of the location.
+  staffIds        String[] @map("staff_ids") @db.Uuid
+  serviceIds      String[] @map("service_ids") @db.Uuid
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@map("happy_hour")
+}
+
 /// A salon's client. Belongs to the organization; no login in the MVP (client accounts come in 2.0).
 model Customer {
   id             String   @id @default(uuid(7)) @db.Uuid
@@ -711,6 +735,10 @@ model Appointment {
   tierDiscountPercent Int?              @map("tier_discount_percent")
   durationMinutes     Int               @map("duration_minutes")
   bufferMinutes       Int               @map("buffer_minutes")
+  /// Task 16: the salon's happy-hour discount in priceGrosze (null = none): the service price
+  /// before it and the percentage, as they were at booking time.
+  listPriceGrosze     Int?              @map("list_price_grosze")
+  happyHourPercent    Int?              @map("happy_hour_percent")
   note                String?
   cancelledAt         DateTime?         @map("cancelled_at") @db.Timestamptz(3)
   cancelledBy         CancelledBy?      @map("cancelled_by")
