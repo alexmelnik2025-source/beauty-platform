@@ -7,7 +7,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { AvailabilityResponse } from './public.responses';
 import type { AvailabilityQuery } from './scheduling.schemas';
 import { mergeSlots, type InstantRange, type LocalInterval, type StaffSchedule } from './slots';
-import { addDays, instantToLocal, localToday, zonedToInstant } from './time';
+import { happyHourPercent } from './happy-hours';
+import {
+  addDays,
+  instantToLocal,
+  isoWeekday,
+  localToday,
+  parseClock,
+  zonedToInstant,
+} from './time';
 
 export type { AvailabilityResponse } from './public.responses';
 
@@ -206,11 +214,37 @@ export class AvailabilityService {
       ...window,
     });
 
+    // The salon's happy hours (task 16): what a visit at each time would get off the price.
+    const rules = await this.prisma.happyHour.findMany({ where: { locationId: location.id } });
     return {
       timezone: location.timezone,
       serviceId: service.id,
       durationMinutes: service.durationMinutes,
-      slots,
+      slots: slots.map((slot) => ({
+        ...slot,
+        discountPercent: slotDiscount(rules, service.id, slot),
+      })),
     };
   }
+}
+
+/**
+ * The happy-hour discount shown at a time: the smallest among the staff members free then, so
+ * whoever "any staff member" turns out to be, the visit gets at least it. null = none.
+ */
+function slotDiscount(
+  rules: Parameters<typeof happyHourPercent>[0],
+  serviceId: string,
+  slot: { date: string; time: string; staffIds: string[] },
+): number | null {
+  if (rules.length === 0 || slot.staffIds.length === 0) return null;
+  const weekday = isoWeekday(slot.date);
+  const minute = parseClock(slot.time) ?? 0;
+  let least: number | null = null;
+  for (const staffId of slot.staffIds) {
+    const percent = happyHourPercent(rules, { staffId, serviceId, weekday, minute });
+    if (percent === null) return null;
+    least = least === null ? percent : Math.min(least, percent);
+  }
+  return least;
 }

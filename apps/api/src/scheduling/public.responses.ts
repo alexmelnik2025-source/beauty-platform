@@ -101,6 +101,13 @@ export const slotSchema = responseSchema(
     date: z.string().describe('Local date at the location, YYYY-MM-DD'),
     time: z.string().describe('Local wall-clock time, HH:MM'),
     staffIds: z.array(z.string()).describe('Staff members free at this time'),
+    discountPercent: z
+      .number()
+      .int()
+      .nullable()
+      .describe(
+        "Task 16: the salon's happy-hour discount at this time — for the chosen staff member, or the smallest one among those free (a visit gets at least it); null = none",
+      ),
   }),
 );
 

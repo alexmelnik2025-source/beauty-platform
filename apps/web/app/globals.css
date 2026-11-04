@@ -1139,6 +1139,21 @@ h3 {
   color: var(--paper);
 }
 
+/* The salon's happy-hour discount at a time and in the held visit (task 16). */
+.time-deal {
+  display: block;
+  color: var(--signal);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.summary .time-deal {
+  display: inline;
+  margin-left: 6px;
+}
+
 .summary {
   display: grid;
   gap: 4px;

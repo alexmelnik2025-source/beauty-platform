@@ -8937,13 +8937,21 @@
                     "type": "string"
                   },
                   "description": "Staff members free at this time"
+                },
+                "discountPercent": {
+                  "nullable": true,
+                  "description": "Task 16: the salon's happy-hour discount at this time — for the chosen staff member, or the smallest one among those free (a visit gets at least it); null = none",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
                 "start",
                 "date",
                 "time",
-                "staffIds"
+                "staffIds",
+                "discountPercent"
               ],
               "additionalProperties": false
             }
@@ -14437,13 +14445,21 @@
               "type": "string"
             },
             "description": "Staff members free at this time"
+          },
+          "discountPercent": {
+            "nullable": true,
+            "description": "Task 16: the salon's happy-hour discount at this time — for the chosen staff member, or the smallest one among those free (a visit gets at least it); null = none",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           }
         },
         "required": [
           "start",
           "date",
           "time",
-          "staffIds"
+          "staffIds",
+          "discountPercent"
         ],
         "additionalProperties": false
       },

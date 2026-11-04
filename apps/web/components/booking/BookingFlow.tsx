@@ -513,6 +513,10 @@ export function BookingFlow({ slug }: { slug: string }) {
                             onClick={() => void pickTime(s)}
                           >
                             {s.time}
+                            {s.discountPercent ? (
+                              // The salon's happy hours (task 16): at least this much off.
+                              <span className="time-deal">−{s.discountPercent}%</span>
+                            ) : null}
                           </button>
                         ))}
                       </div>
@@ -813,7 +817,16 @@ function HoldSummary({
         {hold.time} · {formatDay(hold.date, tag, { short: true })}
       </span>
       <span>
-        {hold.serviceName} · {hold.staffName} · {formatPrice(hold.priceGrosze, hold.currency, tag)}
+        {hold.serviceName} · {hold.staffName} ·{' '}
+        {hold.listPriceGrosze !== null ? (
+          <>
+            <s className="muted">{formatPrice(hold.listPriceGrosze, hold.currency, tag)}</s>{' '}
+          </>
+        ) : null}
+        {formatPrice(hold.priceGrosze, hold.currency, tag)}
+        {hold.happyHourPercent ? (
+          <span className="time-deal">−{hold.happyHourPercent}%</span>
+        ) : null}
       </span>
       <span className="small muted timer" aria-live="polite">
         {fill(t.booking.heldFor, { time: clock })}

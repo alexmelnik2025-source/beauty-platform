@@ -2220,6 +2220,8 @@ export interface components {
                 time: string;
                 /** @description Staff members free at this time */
                 staffIds: string[];
+                /** @description Task 16: the salon's happy-hour discount at this time — for the chosen staff member, or the smallest one among those free (a visit gets at least it); null = none */
+                discountPercent: number | null;
             }[];
         };
         BookingConfirmed: {
@@ -3574,6 +3576,8 @@ export interface components {
             time: string;
             /** @description Staff members free at this time */
             staffIds: string[];
+            /** @description Task 16: the salon's happy-hour discount at this time — for the chosen staff member, or the smallest one among those free (a visit gets at least it); null = none */
+            discountPercent: number | null;
         };
         Staff: {
             id: string;

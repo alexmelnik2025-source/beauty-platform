@@ -280,3 +280,41 @@ describe('the price of new visits', () => {
     });
   });
 });
+
+describe('happy hours in the free times', () => {
+  const times = async (staffId?: string) =>
+    (
+      await ctx
+        .http()
+        .get(`/v1/public/locations/${slug}/availability`)
+        .query({ serviceId: haircutId, from: day, to: day, ...(staffId ? { staffId } : {}) })
+        .expect(200)
+    ).body as {
+      slots: { time: string; discountPercent: number | null }[];
+    };
+  const discountAt = (body: Awaited<ReturnType<typeof times>>, time: string) =>
+    body.slots.find((s) => s.time === time)?.discountPercent;
+
+  it('each free time says what it takes off', async () => {
+    await put([kasiaMornings()]).expect(200);
+    const atKasia = await times(kasiaId);
+    expect(registeredResponseSchema('Availability').safeParse(atKasia).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(discountAt(atKasia, '10:00')).toBe(20);
+    expect(discountAt(atKasia, '13:30')).toBe(20);
+    expect(discountAt(atKasia, '14:00')).toBeNull();
+    expect(discountAt(atKasia, '09:00')).toBeNull();
+    // "Any staff member": Ola has no happy hours, so nothing is promised.
+    expect(discountAt(await times(), '10:00')).toBeNull();
+    // Everyone −10%, Kasia −20%: "any staff member" gets at least 10%.
+    await put([
+      kasiaMornings(),
+      { weekdays: [isoWeekday(day)], start: '10:00', end: '12:00', discountPercent: 10 },
+    ]).expect(200);
+    const any = await times();
+    expect(discountAt(any, '10:00')).toBe(10);
+    expect(discountAt(any, '12:00')).toBeNull();
+    expect(discountAt(await times(olaId), '11:30')).toBe(10);
+  });
+});
