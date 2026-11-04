@@ -12,7 +12,8 @@ import { serveApp } from './mobile-app';
  * Task 80b/80f: "Pokaż, co chcesz". The owner lets clients add example photos for a service;
  * a client books with a photo (through the API, as the booking page and the app do); the
  * owner sees the photo in the visit card and in the business app; on the booking page the
- * client adds and removes a photo on the code step. Screenshots 21p–21r, 05p.
+ * client adds and removes a photo on the code step and by the visit link. Screenshots 21p–21r,
+ * 05p, 07p.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -271,5 +272,16 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   await client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' }).click();
   await expect(mine).toHaveCount(0);
   await expect(client.getByText('＋ Dodaj zdjęcie')).toBeVisible();
+
+  // ── Piotr's visit link: his photo, removable before the visit ─────────
+  const confirmation = await waitForEmail(CLIENT, /Wizyta potwierdzona/);
+  const manage = /(\/pl\/m\/\S+)/.exec(confirmation.text)![1]!;
+  await client.goto(manage);
+  await expect(client.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toBeVisible();
+  await expect(client.getByRole('img', { name: 'Twoje zdjęcie 1' })).toBeVisible();
+  await expect(client.getByText(/Zdjęcia usuniemy/)).toBeVisible();
+  await shot(client, '07p-visit-wish-photos');
+  await client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' }).click();
+  await expect(client.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toHaveCount(0);
   await phoneContext.close();
 });

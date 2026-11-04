@@ -275,6 +275,7 @@ export const pl = {
     photosRemove: 'Usuń',
     photoAlt: 'Twoje zdjęcie {n}',
     photosTooMany: 'Możesz dodać najwyżej 3 zdjęcia.',
+    photosKeptUntil: 'Zdjęcia usuniemy {date}.',
   },
   booking: {
     waitlistOpen: 'Powiadom mnie, gdy zwolni się termin',

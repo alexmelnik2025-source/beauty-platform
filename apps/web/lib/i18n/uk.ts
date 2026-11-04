@@ -275,6 +275,7 @@ export const uk: Dict = {
     photosRemove: 'Видалити',
     photoAlt: 'Ваше фото {n}',
     photosTooMany: 'Можна додати не більше 3 фото.',
+    photosKeptUntil: 'Фото видалимо {date}.',
   },
   booking: {
     waitlistOpen: 'Повідомте, коли звільниться час',

@@ -280,6 +280,7 @@ export const ru: Dict = {
     photosRemove: 'Удалить',
     photoAlt: 'Ваше фото {n}',
     photosTooMany: 'Можно добавить не больше 3 фото.',
+    photosKeptUntil: 'Фото удалим {date}.',
   },
   booking: {
     waitlistOpen: 'Сообщите, когда освободится время',

@@ -115,6 +115,7 @@ export const sq: Dict = {
     photosRemove: 'Hiq',
     photoAlt: 'Fotoja juaj {n}',
     photosTooMany: 'Mund të shtoni më së shumti 3 foto.',
+    photosKeptUntil: 'Fotot do t’i fshijmë më {date}.',
   },
   booking: {
     waitlistOpen: 'Më njoftoni kur të lirohet një orar',

@@ -275,6 +275,7 @@ export const en: Dict = {
     photosRemove: 'Remove',
     photoAlt: 'Your photo {n}',
     photosTooMany: 'You can add at most 3 photos.',
+    photosKeptUntil: 'We delete the photos on {date}.',
   },
   booking: {
     waitlistOpen: 'Tell me when a time becomes free',

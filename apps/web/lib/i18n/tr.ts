@@ -115,6 +115,7 @@ export const tr: Dict = {
     photosRemove: 'Sil',
     photoAlt: 'Fotoğrafınız {n}',
     photosTooMany: 'En fazla 3 fotoğraf ekleyebilirsiniz.',
+    photosKeptUntil: 'Fotoğrafları {date} tarihinde sileriz.',
   },
   booking: {
     waitlistOpen: 'Bir saat boşalınca bana haber verin',

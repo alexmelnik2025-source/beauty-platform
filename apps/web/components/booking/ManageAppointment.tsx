@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
-import type { PublicAppointment, Slot } from '@/lib/types';
+import type { PublicAppointment, Slot, VisitPhotoList } from '@/lib/types';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
@@ -188,6 +188,14 @@ export function AppointmentManager<T extends PublicAppointment>({
           </>
         ) : null}
 
+        {mode === 'view' ? (
+          <VisitPhotosByLink
+            key={`photos-${a.id}`}
+            endpoint={endpoint}
+            canRemove={a.canChangeWishes}
+          />
+        ) : null}
+
         {mode === 'view' && a.canChangeWishes && asksWishes(a.wishQuestions) ? (
           <WishesEditor
             key={a.id}
@@ -368,5 +376,76 @@ function WishesEditor<T extends PublicAppointment>({
         {t.wishStep.save}
       </button>
     </form>
+  );
+}
+
+/**
+ * Task 80b/80f: the example photos the client added when booking ("Pokaż, co chcesz"):
+ * seen by the visit link, removable until the visit starts; deleted 90 days after it.
+ */
+function VisitPhotosByLink({ endpoint, canRemove }: { endpoint: string; canRemove: boolean }) {
+  const { t, locale } = useI18n();
+  const w = t.wishStep;
+  const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api<VisitPhotoList>(`${endpoint}/photos`, { auth: false })
+      .then(setPhotos)
+      .catch(() => setPhotos(null));
+  }, [endpoint]);
+
+  if (!photos || photos.items.length === 0) return null;
+  const alt = (i: number) => w.photoAlt.replace('{n}', String(i + 1));
+
+  async function remove(id: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`${endpoint}/photos/${id}`, { method: 'DELETE', auth: false });
+      setPhotos((list) =>
+        list ? { ...list, items: list.items.filter((p) => p.id !== id) } : list,
+      );
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="section" aria-labelledby="visit-photos-title">
+      <h2 id="visit-photos-title">📷 {w.photosQ}</h2>
+      <ErrorBox>{error}</ErrorBox>
+      <ul className="wish-photos">
+        {photos.items.map((p, i) => (
+          <li key={p.id} className="wish-photos__item">
+            <img src={p.url} alt={alt(i)} />
+            {canRemove ? (
+              <button
+                type="button"
+                className="link-btn small"
+                disabled={busy}
+                aria-label={`${w.photosRemove}: ${alt(i)}`}
+                onClick={() => void remove(p.id)}
+              >
+                {w.photosRemove}
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {photos.deleteAfter ? (
+        <p className="small muted">
+          {w.photosKeptUntil.replace(
+            '{date}',
+            new Intl.DateTimeFormat(LOCALE_TAGS[locale], { dateStyle: 'long' }).format(
+              new Date(photos.deleteAfter),
+            ),
+          )}
+        </p>
+      ) : null}
+    </section>
   );
 }
