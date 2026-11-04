@@ -32,6 +32,8 @@ async function json<T>(res: APIResponse): Promise<T> {
 async function salonWithPriceRows(api: APIRequestContext): Promise<string> {
   await json(
     await api.post('/v1/auth/register', {
+      // An address of its own: sign-ups are limited to 10 an hour per address.
+      headers: { 'x-forwarded-for': '203.0.113.183' },
       data: { email: OWNER, password: PASSWORD, name: 'Aleksander Owner' },
     }),
   );
