@@ -328,6 +328,9 @@ export const en: Dict = {
     bookAgain: 'Book again',
     allVisits: 'All my visits',
     signedInAs: 'Signed in as {email}',
+    downloadData: 'Download my data',
+    downloadDataHint:
+      'A file with the data the salons keep about you: client card, consents, visits and bonuses (GDPR).',
     installLead:
       'Your appointments always at hand — an icon on your phone, no hunting for links in emails.',
     appName: 'Visits',

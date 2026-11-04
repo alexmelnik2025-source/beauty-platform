@@ -7112,6 +7112,34 @@
         ]
       }
     },
+    "/v1/client/export": {
+      "get": {
+        "description": "Everything the salons keep about the client, found by the confirmed email: the card in each salon, consents, visits and loyalty. Without the salon’s internal notes and tags or who on the team did what.",
+        "operationId": "ClientController_exportData",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDataExport"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download my data (GDPR access and portability)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/appointments": {
       "get": {
         "description": "Found by the confirmed email of the client. scope=upcoming (soonest first) or past (latest 50).",
@@ -9651,6 +9679,370 @@
         },
         "required": [
           "codeExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "ClientDataExport": {
+        "type": "object",
+        "properties": {
+          "exportedAt": {
+            "type": "string"
+          },
+          "person": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string",
+                "enum": [
+                  "pl",
+                  "uk",
+                  "ru",
+                  "en",
+                  "tr",
+                  "sq"
+                ]
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "locale",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          "salons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "salon": {
+                  "type": "string"
+                },
+                "company": {
+                  "type": "string",
+                  "description": "The data controller: the organization (company) name"
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "pl",
+                        "uk",
+                        "ru",
+                        "en",
+                        "tr",
+                        "sq"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "phone",
+                    "email",
+                    "locale",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                },
+                "consents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "booking_terms",
+                          "marketing"
+                        ]
+                      },
+                      "version": {
+                        "type": "string",
+                        "description": "Version of the text the client saw"
+                      },
+                      "granted": {
+                        "type": "boolean"
+                      },
+                      "ip": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "version",
+                      "granted",
+                      "ip",
+                      "at"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Oldest first"
+                },
+                "visits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "salon": {
+                        "type": "string",
+                        "description": "The salon place (location) name"
+                      },
+                      "date": {
+                        "type": "string",
+                        "description": "Local date at the salon, YYYY-MM-DD"
+                      },
+                      "time": {
+                        "type": "string",
+                        "description": "Local wall-clock time at the salon, HH:MM"
+                      },
+                      "start": {
+                        "type": "string",
+                        "description": "Instant, ISO 8601 UTC"
+                      },
+                      "durationMinutes": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "service": {
+                        "type": "string"
+                      },
+                      "staff": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "held",
+                          "confirmed",
+                          "cancelled",
+                          "expired",
+                          "completed",
+                          "no_show"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "online",
+                          "manual"
+                        ]
+                      },
+                      "priceGrosze": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Hundredths of the currency"
+                      },
+                      "discountGrosze": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "description": "ISO 4217"
+                      },
+                      "paid": {
+                        "type": "boolean"
+                      },
+                      "cancelledBy": {
+                        "nullable": true,
+                        "type": "string",
+                        "enum": [
+                          "customer",
+                          "salon"
+                        ]
+                      },
+                      "cancelReason": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "bookedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "salon",
+                      "date",
+                      "time",
+                      "start",
+                      "durationMinutes",
+                      "service",
+                      "staff",
+                      "status",
+                      "source",
+                      "priceGrosze",
+                      "discountGrosze",
+                      "currency",
+                      "paid",
+                      "cancelledBy",
+                      "cancelReason",
+                      "bookedAt"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Newest first"
+                },
+                "loyalty": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "balance": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Stamps of the current cycle or points"
+                      },
+                      "lifetimeEarned": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "history": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "earn",
+                                "reverse",
+                                "redeem",
+                                "adjust",
+                                "expire"
+                              ]
+                            },
+                            "points": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "balanceAfter": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "expiresAt": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "points",
+                            "balanceAfter",
+                            "expiresAt",
+                            "at"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "coupons": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "active",
+                                "used",
+                                "expired",
+                                "cancelled"
+                              ]
+                            },
+                            "expiresAt": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "usedAt": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "name",
+                            "status",
+                            "expiresAt",
+                            "usedAt",
+                            "createdAt"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "balance",
+                      "lifetimeEarned",
+                      "history",
+                      "coupons"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Loyalty cards in this salon (one per program)"
+                }
+              },
+              "required": [
+                "salon",
+                "company",
+                "client",
+                "consents",
+                "visits",
+                "loyalty"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "exportedAt",
+          "person",
+          "salons"
         ],
         "additionalProperties": false
       },

@@ -56,6 +56,8 @@ import {
 import { ClientService, type ClientAuth } from './client.service';
 import { clientLoyaltySchema, type ClientLoyaltyResponse } from './client-loyalty.responses';
 import { ClientLoyaltyService } from './client-loyalty.service';
+import { clientExportSchema, type ClientExportResponse } from './client-export.responses';
+import { ClientExportService } from './client-export.service';
 
 const MINUTE = 60_000;
 const idPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Appointment') });
@@ -70,6 +72,7 @@ export class ClientController {
   constructor(
     private readonly clients: ClientService,
     private readonly loyalty: ClientLoyaltyService,
+    private readonly exports: ClientExportService,
     private readonly limiter: RateLimiterService,
     @Inject(APP_CONFIG) config: AppConfig,
   ) {
@@ -164,6 +167,19 @@ export class ClientController {
   @ApiZodResponse(clientLoyaltySchema)
   loyaltyCards(@CurrentClient() client: ClientAuth): Promise<ClientLoyaltyResponse> {
     return this.loyalty.list(client);
+  }
+
+  @Get('export')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Download my data (GDPR access and portability)',
+    description:
+      'Everything the salons keep about the client, found by the confirmed email: the card in each salon, consents, visits and loyalty. Without the salon’s internal notes and tags or who on the team did what.',
+  })
+  @ApiZodResponse(clientExportSchema)
+  exportData(@CurrentClient() client: ClientAuth): Promise<ClientExportResponse> {
+    return this.exports.export(client);
   }
 
   @Get('appointments')

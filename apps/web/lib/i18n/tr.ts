@@ -175,6 +175,9 @@ export const tr: Dict = {
     bookAgain: 'Tekrar randevu al',
     allVisits: 'Tüm randevularım',
     signedInAs: '{email} olarak giriş yapıldı',
+    downloadData: 'Verilerimi indir',
+    downloadDataHint:
+      'Salonların sizinle ilgili sakladığı verileri içeren dosya: müşteri kartı, onaylar, randevular ve bonuslar (KVKK/GDPR).',
     installLead:
       'Randevularınız hep elinizin altında — telefonunuzda bir simge, e-postalarda bağlantı aramaya gerek yok.',
     appName: 'Randevular',

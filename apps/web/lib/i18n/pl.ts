@@ -328,6 +328,9 @@ export const pl = {
     bookAgain: 'Umów ponownie',
     allVisits: 'Wszystkie moje wizyty',
     signedInAs: 'Zalogowano jako {email}',
+    downloadData: 'Pobierz moje dane',
+    downloadDataHint:
+      'Plik z danymi, które salony przechowują o Tobie: karta klienta, zgody, wizyty i bonusy (RODO).',
     installLead:
       'Twoje wizyty zawsze pod ręką — z ikoną na ekranie telefonu, bez szukania linków w e-mailach.',
     appName: 'Wizyty',

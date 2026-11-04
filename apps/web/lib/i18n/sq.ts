@@ -175,6 +175,9 @@ export const sq: Dict = {
     bookAgain: 'Rezervo përsëri',
     allVisits: 'Të gjitha takimet e mia',
     signedInAs: 'Jeni identifikuar si {email}',
+    downloadData: 'Shkarko të dhënat e mia',
+    downloadDataHint:
+      'Skedar me të dhënat që sallonet ruajnë për ju: kartela e klientit, pëlqimet, vizitat dhe bonuset (GDPR).',
     installLead:
       'Takimet tuaja gjithmonë pranë — një ikonë në telefon, pa kërkuar lidhje nëpër email.',
     appName: 'Takimet',
