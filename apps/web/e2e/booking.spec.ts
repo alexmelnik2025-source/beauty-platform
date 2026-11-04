@@ -386,7 +386,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(client.getByText(`napiszemy na ${CLIENT}`)).toBeVisible();
   await client.getByLabel('Dzień').selectOption({ index: 3 });
   await client.getByRole('button', { name: 'Powiadom mnie' }).click();
-  await expect(client.getByRole('status')).toContainText('Zapisano na listę oczekujących');
+  await expect(client.getByText(/^Zapisano na listę oczekujących: /)).toBeVisible();
   await shot(client, '07g-client-waitlist');
   // The session survives a reload (httpOnly cookie).
   await client.goto('/pl/c');
@@ -1183,7 +1183,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
       .getByRole('button', { name: /^Lista oczekujących: / })
       .nth(2)
       .click();
-    await expect(phone.getByRole('status')).toContainText('Zapisano na listę oczekujących');
+    await expect(phone.getByText(/^Zapisano na listę oczekujących: /)).toBeVisible();
     await shot(phone, '81w-client-app-waitlist');
     await phone.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(phone.getByRole('heading', { name: 'Strzyżenie męskie' })).toBeVisible();
