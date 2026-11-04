@@ -12,6 +12,11 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **19. Бонусы по мастеру и дням недели** — всё готово на ветке `agent/19d-bonus-for-clients` (включает 19a–19d:
+  API, кабинет «Dodatkowe pieczątki i punkty», «если вернулся в течение N дней», показ клиенту в «Moje bonusy»);
+  check-CI зелёный, e2e не запустился из-за оплаты GitHub Actions (см. «Вопросы владельцу»). Влить после зелёного CI.
+- **50. Lista oczekujących** — ветка `agent/50b-waitlist-web` (50a API + 50b сайт записи), ждёт CI. Дальше — 50c (кабинет).
+
 - **61. Любимые салоны в клиентском приложении** — готово на ветке `agent/61-favorites`, **не влито: GitHub Actions
   остановлен (оплата)**. Сделано: API `GET/PUT/DELETE /v1/client/favorites[/:slug]` (только сессия клиента, публичные
   данные салона, до 100), «♡ Dodaj do ulubionych» на странице салона и вкладка «Ulubione» в «Moje wizyty» в
@@ -246,6 +251,12 @@
 ## Вопросы владельцу
 
 (агент пишет сюда вопросы, без ответа на которые задачу не сделать, и переходит к следующей задаче)
+
+- **СРОЧНО: GitHub Actions не запускает проверки** (с 04.11.2026 ~17:38 UTC): «recent account payments have failed or
+  your spending limit needs to be increased». Без зелёного CI агенты не вливают код в main. Варианты: (а) GitHub →
+  Settings → Billing & plans — проверить оплату / поднять spending limit для Actions; (б) сделать репозиторий
+  публичным (минуты Actions бесплатны, но код станет открытым); (в) ждать нового месяца лимита. Строка в Notion
+  «Очередь решений». — 04.11.2026
 
 - **СРОЧНО: GitHub Actions не запускает проверки (04.11.2026 ~17:45).** GitHub пишет: «recent account payments
   have failed or your spending limit needs to be increased» (Settings → Billing & plans). Без проверок агенты не
