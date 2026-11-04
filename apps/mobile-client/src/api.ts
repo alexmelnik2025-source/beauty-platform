@@ -13,6 +13,7 @@ import type {
   PublicLocation,
   PublicSalonDirectory,
   Slot,
+  VisitCoupons,
 } from '@beauty/api-client';
 
 /**
@@ -84,6 +85,7 @@ export function newRequestKey(): string {
 export type {
   ClientAppointment,
   ClientAppointmentList,
+  VisitCoupons,
   ClientCodeSent,
   ClientLoyalty,
   ClientLoyaltyCard,
@@ -191,6 +193,31 @@ export class ClientApi {
     return this.authed<ClientAppointment>(
       'GET',
       `/v1/client/appointments/${encodeURIComponent(id)}`,
+    );
+  }
+
+  /** My coupons in the visit's salon: the ones used on it, and the others with what each takes off. */
+  visitCoupons(id: string): Promise<VisitCoupons> {
+    return this.authed<VisitCoupons>(
+      'GET',
+      `/v1/client/appointments/${encodeURIComponent(id)}/coupons`,
+    );
+  }
+
+  /** Uses one of my coupons on an upcoming visit (until the salon's deadline). */
+  useCoupon(id: string, couponId: string): Promise<ClientAppointment> {
+    return this.authed<ClientAppointment>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/coupons`,
+      { couponId },
+    );
+  }
+
+  /** Takes a coupon off an upcoming visit; it can be used again. */
+  dropCoupon(id: string, couponId: string): Promise<ClientAppointment> {
+    return this.authed<ClientAppointment>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/coupons/${encodeURIComponent(couponId)}/remove`,
     );
   }
 

@@ -229,6 +229,26 @@ describe('one visit', () => {
     expect(cancel.body).toBe('{}');
   });
 
+  it('lists my coupons for a visit, uses one and takes it off (task 10d)', async () => {
+    const { fetchFn, calls } = recordingFetch((method, path) =>
+      path === '/v1/client/appointments/a1/coupons' && method === 'GET'
+        ? [200, { applied: [], available: [{ id: 'c1', problem: null }] }]
+        : path === '/v1/client/appointments/a1/coupons' && method === 'POST'
+          ? [200, { id: 'a1', discountGrosze: 2000 }]
+          : path === '/v1/client/appointments/a1/coupons/c1/remove' && method === 'POST'
+            ? [200, { id: 'a1', discountGrosze: 0 }]
+            : [404],
+    );
+    const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
+    await api.restore().catch(() => null);
+    calls.length = 0;
+    expect((await api.visitCoupons('a1')).available).toHaveLength(1);
+    expect((await api.useCoupon('a1', 'c1')).discountGrosze).toBe(2000);
+    expect(calls.at(-1)!.body).toBe('{"couponId":"c1"}');
+    expect(calls.at(-1)!.headers.authorization).toBe('Bearer session-token');
+    expect((await api.dropCoupon('a1', 'c1')).discountGrosze).toBe(0);
+  });
+
   it('too late to cancel comes back with the code the screen explains', async () => {
     const { fetchFn } = recordingFetch(() => [
       409,

@@ -8,6 +8,7 @@ import {
   type ClientAppointment,
   type Locale,
   type Slot,
+  type VisitCoupons,
 } from '../api';
 import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
@@ -25,7 +26,7 @@ import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
 /**
  * One visit: when, what, with whom, where and for how much; change the time or cancel (both
- * ask first, until the salon's deadline), call the salon, book the same service again.
+ * ask first, until the salon's deadline), pick one of my coupons, call the salon, book again.
  */
 export function VisitScreen(props: {
   api: ClientApi;
@@ -56,6 +57,8 @@ export function VisitScreen(props: {
   // One key per "Yes": a second tap or a retry after a lost answer cancels once.
   const keyRef = useRef(newRequestKey());
   const moveKeyRef = useRef(newRequestKey());
+  /** My coupons for this visit (task 10d): loaded while the visit can still be changed. */
+  const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -136,6 +139,38 @@ export function VisitScreen(props: {
     }
   }
 
+  const couponsOpen = visit.status === 'confirmed' && visit.canChange;
+  useEffect(() => {
+    if (!couponsOpen) return;
+    let live = true;
+    api
+      .visitCoupons(visitId)
+      .then((data) => {
+        if (live) setCoupons(data);
+      })
+      // Without the list the visit still works; coupons are simply not offered.
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [api, visitId, couponsOpen, visit.discountGrosze]);
+
+  async function changeCoupon(action: () => Promise<ClientAppointment>) {
+    setBusy(true);
+    setError('');
+    setDone('');
+    try {
+      setVisit(await action());
+      props.onChanged();
+    } catch (e) {
+      if (!api.signedIn) return onSessionEnded();
+      setError(errorText(e, t));
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function cancel() {
     setBusy(true);
     setError('');
@@ -198,7 +233,66 @@ export function VisitScreen(props: {
           label={v.price}
           value={formatPrice(visit.service.priceGrosze, visit.currency, locale)}
         />
+        {visit.coupons.map((c) => (
+          <Row
+            key={c.id}
+            label={`${v.couponUsed}: ${c.name}`}
+            value={`−${formatPrice(c.discountGrosze, visit.currency, locale)}`}
+          />
+        ))}
+        {visit.discountGrosze > 0 ? (
+          <Row
+            label={v.toPay}
+            value={formatPrice(
+              visit.service.priceGrosze - visit.discountGrosze,
+              visit.currency,
+              locale,
+            )}
+          />
+        ) : null}
       </Card>
+
+      {couponsOpen && coupons && (coupons.applied.length > 0 || coupons.available.length > 0) ? (
+        <View role="region" aria-label={v.coupons} style={styles.move}>
+          <Text role="heading" aria-level={2} style={styles.moveTitle}>
+            {v.coupons}
+          </Text>
+          {coupons.applied.map((c) => (
+            <View key={c.id} style={styles.couponRow}>
+              <Text style={styles.couponName}>✓ {c.name}</Text>
+              <Button
+                kind="link"
+                label={v.couponRemove}
+                disabled={busy}
+                onPress={() => void changeCoupon(() => api.dropCoupon(visit.id, c.id))}
+              />
+            </View>
+          ))}
+          {coupons.available.length > 0 ? <Text style={styles.muted}>{v.couponsHint}</Text> : null}
+          {coupons.available.map((c) => (
+            <View key={c.id} style={styles.couponRow}>
+              <Text style={styles.couponName}>
+                {c.name}
+                {c.problem ? (
+                  <Text style={styles.muted}> · {v.couponProblem[c.problem]}</Text>
+                ) : null}
+              </Text>
+              {c.problem ? null : (
+                <Button
+                  kind="secondary"
+                  label={`${v.couponUse}${
+                    c.discountGrosze !== null
+                      ? ` −${formatPrice(c.discountGrosze, visit.currency, locale)}`
+                      : ''
+                  }`}
+                  disabled={busy}
+                  onPress={() => void changeCoupon(() => api.useCoupon(visit.id, c.id))}
+                />
+              )}
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <Card>
         <Text style={styles.label}>{v.salon}</Text>
@@ -392,6 +486,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   moveTitle: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  couponRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  couponName: { fontSize: 15, color: colors.ink, flexShrink: 1 },
   days: { gap: 8, paddingVertical: 2 },
   dayChip: {
     width: 56,

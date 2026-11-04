@@ -931,3 +931,6 @@ pnpm --filter @beauty/api-client generate
 - Сайт (часть 3б): в «Moje wizyty» → визит — блок «Moje kupony»: использованный купон с суммой и «Do zapłaty»,
   «Nie używaj»; остальные купоны с «Użyj −22,50 zł» или причиной. После срока изменений — только просмотр.
   6 языков клиента (pl, uk, ru, en, tr, sq); e2e — скриншот `72b-client-visit-coupon`.
+- Клиентское приложение (часть 3в): в карточке визита — «Moje kupony» с «Użyj −22,50 zł» / «Nie używaj», в данных
+  визита — «Kupon» и «Do zapłaty»; ошибки правил салона — «Tego kuponu nie można użyć do tej wizyty». Скриншот
+  `72c-client-app-visit-coupon`.

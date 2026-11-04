@@ -19,7 +19,7 @@ import { serveApp } from './mobile-app';
  * client app for iPhone and Android (11b, part 3; its web preview).
  * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
  * The client then picks the coupon herself in "Moje wizyty" (10d, part 3).
- * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72b).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -522,5 +522,42 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   }>(await request.get(`${base}/appointments/${next.id}`, { headers: owner }));
   expect(byClient.discountGrosze).toBe(2250);
   expect(byClient.history.at(-1)).toMatchObject({ type: 'coupon_applied', actor: 'customer' });
+
+  // ── The same in the client app's visit card (10d, part 3c) ────────────
+  const couponApp = await serveApp('mobile-client');
+  const couponContext = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    isMobile: true,
+  });
+  try {
+    const app = await couponContext.newPage();
+    await app.goto(couponApp.url);
+    await app.getByLabel('E-mail', { exact: true }).fill(ANNA);
+    const codesSent = (await listTo(ANNA)).filter((m) => loginSubject.test(m.Subject)).length;
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    await expect
+      .poll(async () => (await listTo(ANNA)).filter((m) => loginSubject.test(m.Subject)).length)
+      .toBeGreaterThan(codesSent);
+    const appCode = await waitForEmail(ANNA, loginSubject);
+    await app.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(appCode.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await app
+      .getByRole('button', { name: /Strzyżenie męskie, Gestalt Barbershop/ })
+      .first()
+      .click();
+    const appCoupons = app.getByRole('region', { name: 'Moje kupony' });
+    await expect(appCoupons).toContainText('−25% na strzyżenie');
+    await expect(app.getByText('Do zapłaty')).toBeVisible();
+    await appCoupons.getByRole('button', { name: 'Nie używaj' }).click();
+    await expect(app.getByText('Do zapłaty')).toHaveCount(0);
+    await appCoupons.getByRole('button', { name: /Użyj −22,50/ }).click();
+    await expect(app.getByText('Do zapłaty')).toBeVisible();
+    await expect(app.getByText(/67,50/)).toBeVisible();
+    await shot(app, '72c-client-app-visit-coupon');
+  } finally {
+    await couponContext.close();
+    couponApp.server.close();
+  }
   await context.close();
 });
