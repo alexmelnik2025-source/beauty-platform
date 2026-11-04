@@ -9,6 +9,7 @@ import { AppointmentsController, CustomersController } from './appointments.cont
 import { AppointmentsService } from './appointments.service';
 import { CalendarController } from './calendar.controller';
 import { CalendarService } from './calendar.service';
+import { CustomersExportService } from './customers-export';
 import { CustomersService } from './customers.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
@@ -33,6 +34,7 @@ import { TimeBlocksService } from './time-blocks.service';
     AppointmentsService,
     CalendarService,
     CustomersService,
+    CustomersExportService,
     NotificationsService,
     OutboxService,
     PublicBookingService,

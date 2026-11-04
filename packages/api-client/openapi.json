@@ -5364,6 +5364,49 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/customers/export.csv": {
+      "get": {
+        "description": "Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Every export is written to the audit log.",
+        "operationId": "CustomersController_exportCsv",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "All clients as a CSV file (owners only)",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/customers/{customerId}": {
       "get": {
         "description": "Staff members: clients they have (had) an appointment with; contacts, history and notes depend on their permissions.",
