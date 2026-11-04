@@ -100,6 +100,9 @@ test('a client books in Turkish and reads the visit in Albanian', async ({ brows
     isMobile: true,
     locale: 'tr-TR',
     timezoneId: 'Europe/Istanbul',
+    // A client of its own (the API limits holds per address): the main scenario has already
+    // held five times from this computer in the last ten minutes.
+    extraHTTPHeaders: { 'x-forwarded-for': '203.0.113.71' },
   });
   const client = await phone.newPage();
   // The short link opens booking in the phone's language.
