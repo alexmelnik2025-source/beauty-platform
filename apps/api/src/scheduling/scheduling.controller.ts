@@ -418,6 +418,24 @@ export class StaffController {
   ): Promise<void> {
     return this.schedule.removeTimeOff(m, auth.userId, locationId, staffId, timeOffId);
   }
+
+  @Put('order')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Set the order of the staff on the booking page, in the apps and the calendar',
+    description:
+      'Send every staff member of the location exactly once, first to last. Replaces sortOrder.',
+  })
+  @ApiZodBody(serviceStaffSchema)
+  @ApiZodResponse(staffListSchema)
+  reorder(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(serviceStaffSchema)) body: { staffIds: string[] },
+  ): Promise<StaffResponse[]> {
+    return this.catalog.reorderStaff(m, auth.userId, locationId, body.staffIds);
+  }
 }
 
 @ApiTags('availability')

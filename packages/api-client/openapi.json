@@ -3434,6 +3434,67 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/staff/order": {
+      "put": {
+        "description": "Send every staff member of the location exactly once, first to last. Replaces sortOrder.",
+        "operationId": "StaffController_reorder",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "staffIds": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "staffIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the order of the staff on the booking page, in the apps and the calendar",
+        "tags": [
+          "staff"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/availability": {
       "get": {
         "description": "No minimum lead time or horizon; only times in the past are excluded. Max 31 days per request.",

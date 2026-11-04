@@ -458,6 +458,46 @@ export class CatalogService {
     return toStaff(staff);
   }
 
+  /**
+   * Task 13: the owner puts the staff in the order clients see them (booking page, apps,
+   * calendar). The list must name every staff member of the location exactly once.
+   */
+  async reorderStaff(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    staffIds: string[],
+  ): Promise<StaffResponse[]> {
+    await this.access.writable(m, locationId);
+    const staff = await this.prisma.staffMember.findMany({
+      where: { locationId },
+      select: { id: true, sortOrder: true },
+    });
+    const known = new Set(staff.map((s) => s.id));
+    if (
+      new Set(staffIds).size !== staffIds.length ||
+      staffIds.length !== known.size ||
+      staffIds.some((id) => !known.has(id))
+    ) {
+      throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Incomplete order', [
+        { path: 'staffIds', message: 'list every staff member of this location exactly once' },
+      ]);
+    }
+    const current = new Map(staff.map((s) => [s.id, s.sortOrder]));
+    await this.prisma.$transaction(async (tx) => {
+      for (const [index, id] of staffIds.entries()) {
+        const sortOrder = index * 10;
+        if (current.get(id) === sortOrder) continue;
+        await tx.staffMember.update({
+          where: { id },
+          data: { sortOrder, version: { increment: 1 } },
+        });
+      }
+      await this.record(tx, m, actorUserId, 'staff.reordered', 'location', locationId);
+    });
+    return this.listStaff(m, locationId);
+  }
+
   // ── Helpers (also used by the schedule service) ────────
 
   async findService(locationId: string, serviceId: string): Promise<Service> {
