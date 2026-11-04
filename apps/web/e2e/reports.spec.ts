@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
@@ -13,6 +14,7 @@ import { serveApp } from './mobile-app';
  * "Raporty" in the cabinet (task 14): the owner sees revenue, the average ticket, visits that
  * took place, no-shows, clients and the split by specialist, service and day for a period.
  * Screenshots 74 (computer) and 74b (phone) go to e2e/screenshots.
+ * "Pobierz CSV" downloads every visit of the period for the accountant (task 21).
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
  */
 
@@ -180,6 +182,18 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(byStaff.getByRole('row').nth(2)).toContainText('Marek');
   await expect(page.getByRole('heading', { name: 'Dzień po dniu' })).toBeVisible();
   await shot(page, '74-owner-reports');
+
+  // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 21).
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Pobierz CSV' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^visits-.+\.csv$/);
+  const file = readFileSync((await download.path())!, 'utf8');
+  expect(file).toContain('Data;Godzina;Specjalista;Usługa;Klient;Status');
+  expect(file).toContain(';Ilian;Strzyżenie męskie;Jan;Odbyła się;Salon;90,00;0,00;90,00;tak');
+  expect(file).toContain(';Marek;Broda;Adam;Nie przyszedł;');
+  expect(file).not.toContain('@example.com');
 
   await page.setViewportSize(PHONE);
   await page.getByRole('button', { name: 'Ten miesiąc' }).click();

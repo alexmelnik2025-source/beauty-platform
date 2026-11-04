@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, formatDay, formatPrice, todayIn } from '@/lib/time';
 import type { SalonReport } from '@/lib/types';
@@ -37,6 +37,7 @@ export default function ReportsPage() {
   const [custom, setCustom] = useState(() => rangeOf('thisMonth', today));
   const [report, setReport] = useState<SalonReport | null>(null);
   const [error, setError] = useState('');
+  const [downloading, setDownloading] = useState(false);
   const range = period === 'custom' ? custom : rangeOf(period, today);
   const invalid =
     !range.from || !range.to || range.from > range.to || daysBetween(range.from, range.to) >= 366;
@@ -55,6 +56,32 @@ export default function ReportsPage() {
     };
   }, [session.orgId, session.location.id, range.from, range.to, invalid, t]);
 
+  /** Task 21: every visit of the period as a CSV file the accountant opens in Excel. */
+  async function downloadCsv() {
+    setDownloading(true);
+    setError('');
+    try {
+      const res = await apiResponse(
+        `/v1/organizations/${session.orgId}/locations/${session.location.id}/reports/visits-csv`,
+        { query: { from: range.from, to: range.to, locale } },
+      );
+      const name =
+        /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ??
+        `visits-${range.from}-${range.to}.csv`;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(await res.blob());
+      link.download = name;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   const money = (hundredths: number) =>
     formatPrice(hundredths, report?.location.currency ?? session.location.currency, tag);
   const totals = report?.totals;
@@ -67,6 +94,14 @@ export default function ReportsPage() {
     <>
       <div className="page-head">
         <h1>{t.reports.title}</h1>
+        <button
+          type="button"
+          className="btn btn--small"
+          disabled={invalid || downloading}
+          onClick={() => void downloadCsv()}
+        >
+          {downloading ? t.reports.downloading : t.reports.csv}
+        </button>
       </div>
       <div className="page">
         <div className="tabs" role="group" aria-label={t.reports.period}>
@@ -175,6 +210,7 @@ export default function ReportsPage() {
               </div>
             </div>
             <p className="small muted">{t.reports.revenueNote}</p>
+            <p className="small muted">{t.reports.csvHint}</p>
 
             {totals.visits === 0 ? (
               <p className="note">{t.reports.empty}</p>
