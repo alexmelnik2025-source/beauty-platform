@@ -582,17 +582,24 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(ownerPage, '50-owner-service-who');
   // Task 62: Kasia's own price of this service; empty boxes keep the service price.
   await who.getByLabel('Cena u: Kasia').fill('75');
+  // Task 70: and her own duration.
+  await who.getByLabel('Czas u: Kasia (min)').fill('60');
   await shot(ownerPage, '80-owner-service-staff-price');
   await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByRole('dialog')).toBeHidden();
-  const ownPrices = await json<{ prices: { staffId: string; priceGrosze: number }[] }>(
-    await request.get(`${base}/staff-prices`, { headers: owner }),
-  );
+  const ownPrices = await json<{
+    prices: { staffId: string; priceGrosze: number }[];
+    durations: { staffId: string; durationMinutes: number }[];
+  }>(await request.get(`${base}/staff-prices`, { headers: owner }));
   expect(ownPrices.prices).toEqual([
     expect.objectContaining({ staffId: staffIds[0], priceGrosze: 7500 }),
   ]);
+  expect(ownPrices.durations).toEqual([
+    expect.objectContaining({ staffId: staffIds[0], durationMinutes: 60 }),
+  ]);
   await shaveRow.click();
   await expect(who.getByLabel('Cena u: Kasia')).toHaveValue('75.00');
+  await expect(who.getByLabel('Czas u: Kasia (min)')).toHaveValue('60');
   for (const box of await who.getByRole('checkbox').all()) await box.uncheck();
   await expect(who).toContainText('Nikt jej nie wykonuje');
   await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz' }).click();

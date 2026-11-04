@@ -635,7 +635,9 @@ export const pl = {
     whoPerforms: 'Kto wykonuje tę usługę?',
     whoPerformsHint: 'Klienci mogą zarezerwować usługę tylko u zaznaczonych specjalistów.',
     staffPrice: 'Cena u: {name}',
-    staffPriceHint: 'Pole przy specjaliście — jego cena tej usługi. Puste = cena usługi.',
+    staffPriceHint:
+      'Pola przy specjaliście — jego cena i czas (min) tej usługi. Puste = jak w usłudze.',
+    staffMinutes: 'Czas u: {name} (min)',
     noStaffYet: 'Najpierw dodaj specjalistę w „Zespół” — bez niego klienci nie zobaczą usługi.',
     noOnePerforms: 'Nikt jej nie wykonuje — klienci jej nie widzą',
   },

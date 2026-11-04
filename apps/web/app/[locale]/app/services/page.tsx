@@ -229,6 +229,9 @@ function ServiceSheet({
   /** Task 62: each specialist's own price ("" = the service's price), as typed. */
   const [ownPrices, setOwnPrices] = useState<Record<string, string>>({});
   const [hadOwnPrices, setHadOwnPrices] = useState(false);
+  /** Task 70: each specialist's own duration in minutes ("" = the service's), as typed. */
+  const [ownMinutes, setOwnMinutes] = useState<Record<string, string>>({});
+  const [hadOwnMinutes, setHadOwnMinutes] = useState(false);
   useEffect(() => {
     if (!service) return;
     api<StaffPrices>(`${base}/staff-prices`)
@@ -237,6 +240,11 @@ function ServiceSheet({
         setHadOwnPrices(mine.length > 0);
         setOwnPrices(
           Object.fromEntries(mine.map((p) => [p.staffId, (p.priceGrosze / 100).toFixed(2)])),
+        );
+        const minutes = res.durations.filter((d) => d.serviceId === service.id);
+        setHadOwnMinutes(minutes.length > 0);
+        setOwnMinutes(
+          Object.fromEntries(minutes.map((d) => [d.staffId, String(d.durationMinutes)])),
         );
       })
       .catch(() => undefined);
@@ -308,6 +316,16 @@ function ServiceSheet({
         await api(`${base}/services/${saved.id}/staff-prices`, {
           method: 'PUT',
           body: { prices },
+        });
+      }
+      // Task 70: own durations of the ticked specialists; empty = the service's duration.
+      const durations = form.staffIds
+        .filter((id) => (ownMinutes[id] ?? '').trim() !== '')
+        .map((id) => ({ staffId: id, durationMinutes: Number(ownMinutes[id]) }));
+      if (durations.length > 0 || hadOwnMinutes) {
+        await api(`${base}/services/${saved.id}/staff-durations`, {
+          method: 'PUT',
+          body: { durations },
         });
       }
       onSaved(saved);
@@ -449,6 +467,19 @@ function ServiceSheet({
                       placeholder={form.price || '0.00'}
                       value={ownPrices[m.id] ?? ''}
                       onChange={(e) => setOwnPrices({ ...ownPrices, [m.id]: e.target.value })}
+                    />
+                  ) : null}
+                  {form.staffIds.includes(m.id) ? (
+                    <input
+                      className="input staff-minutes"
+                      type="number"
+                      min={5}
+                      max={480}
+                      step={5}
+                      aria-label={fill(t.services.staffMinutes, { name: m.displayName })}
+                      placeholder={String(form.durationMinutes || 30)}
+                      value={ownMinutes[m.id] ?? ''}
+                      onChange={(e) => setOwnMinutes({ ...ownMinutes, [m.id]: e.target.value })}
                     />
                   ) : null}
                 </label>

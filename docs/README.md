@@ -1371,8 +1371,10 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
   Публичная страница: у мастера `prices[].durationMinutes`, у услуги `durationFromMinutes` / `durationToMinutes`.
 - «Dowolny» внутри группы мастеров (строка цен «ILYA, NAZAR — 162 zł»): `staffIds=a,b` в
   `GET /v1/public/locations/:slug/availability` и `staffIds: [...]` в брони — назначается свободный мастер только из
-  группы. Миграция `20261105010000_staff_service_duration`, тесты — `staff-prices.spec.ts`. Дальше: поле длительности в
-  окне услуги в кабинете (70d), строки мастеров на странице записи (70b).
+  группы. Миграция `20261105010000_staff_service_duration`, тесты — `staff-prices.spec.ts`.
+- Кабинет (70d): в окне услуги рядом с ценой мастера — поле «Czas u: Kasia (min)» (пусто = как у услуги), сохраняется
+  вместе с услугой (`PUT …/staff-durations`). e2e — `booking.spec.ts` (скриншот 80). Дальше: строки мастеров с ценой и
+  временем на странице записи (70b).
 
 ## Языки мастеров заметнее (задача 81)
 

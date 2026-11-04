@@ -208,10 +208,12 @@ h3 {
 
 /* Task 62: a specialist's own price next to their tick in the service window. */
 .check:has(.staff-price) {
-  grid-template-columns: 22px 1fr 110px;
+  grid-template-columns: 22px 1fr 90px 64px;
   align-items: center;
 }
 
+/* Task 70: and their own duration (minutes). */
+.check input.staff-minutes,
 .check input.staff-price {
   width: 100%;
   height: auto;
