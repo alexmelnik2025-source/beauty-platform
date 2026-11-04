@@ -1382,6 +1382,34 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByRole('tab', { name: 'Historia', selected: true })).toBeVisible();
     await phone.waitForLoadState('networkidle');
     await shot(phone, '58c-client-app-history');
+    // Task 61: a signed-in client saves a salon to "Favourites" on its page and books from there.
+    await phone.getByRole('button', { name: 'Znajdź salon' }).click();
+    await phone
+      .getByRole('article', { name: 'Gestalt Barbershop' })
+      .getByRole('button', { name: 'Zobacz salon' })
+      .click();
+    await expect(phone.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+    await phone.getByRole('button', { name: '♡ Dodaj do ulubionych' }).click();
+    await expect(phone.getByRole('button', { name: 'Usuń z ulubionych' })).toHaveText(
+      '♥ W ulubionych',
+    );
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await phone.getByRole('tab', { name: 'Ulubione' }).click();
+    await expect(phone.getByRole('tab', { name: 'Ulubione', selected: true })).toBeVisible();
+    await expect(phone.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+    await expect(
+      phone.getByRole('button', { name: 'Usuń z ulubionych: Gestalt Barbershop' }),
+    ).toBeVisible();
+    await shot(phone, '80f-client-app-favourites');
+    // The salon's page opens from the list; taking it off empties the list.
+    await phone.getByRole('button', { name: 'Zobacz salon: Gestalt Barbershop' }).click();
+    await expect(phone.getByRole('button', { name: 'Usuń z ulubionych' })).toBeVisible();
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await phone.getByRole('button', { name: 'Usuń z ulubionych: Gestalt Barbershop' }).click();
+    await expect(
+      phone.getByText('Nie masz jeszcze ulubionych salonów.', { exact: false }),
+    ).toBeVisible();
     // The session is kept on the phone: opening the app again needs no new code.
     await phone.reload();
     await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();

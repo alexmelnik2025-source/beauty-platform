@@ -5,6 +5,7 @@ import type {
   ClientAppointment,
   ClientLoyaltyCard,
   ClientPerson,
+  FavoriteSalon,
   Locale,
   Scope,
 } from '../api';
@@ -15,14 +16,15 @@ import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { BonusesView } from './BonusesView';
+import { FavoritesView } from './FavoritesView';
 import { VisitScreen } from './VisitScreen';
 
-/** The tabs of the screen: upcoming visits, history, bonuses. */
-type Tab = Scope | 'bonuses';
+/** The tabs of the screen: upcoming visits, history, bonuses, favourite salons. */
+type Tab = Scope | 'bonuses' | 'favorites';
 
 /**
  * "My visits": upcoming and past visits in every salon, found by the client's email, and
- * "My bonuses" — the loyalty cards of those salons.
+ * "My bonuses" — the loyalty cards of those salons — and the client's favourite salons.
  */
 export function VisitsScreen(props: {
   api: ClientApi;
@@ -34,6 +36,10 @@ export function VisitsScreen(props: {
   onFindSalon: () => void;
   /** The booking in the app: "Book again" on a visit, "Book" on a loyalty card. */
   onBook: (slug: string, name: string, preset?: BookingPreset) => void;
+  /** A salon's page (from "Favourites"). */
+  onOpenSalon: (slug: string, name: string) => void;
+  /** Grows when a salon is saved or removed elsewhere (its page): "Favourites" reloads. */
+  favoritesVersion: number;
   onSignOut: () => void;
   /** The server no longer accepts the session (signed out elsewhere, or it ended). */
   onSessionEnded: () => void;
@@ -42,6 +48,7 @@ export function VisitsScreen(props: {
   const [tab, setTab] = useState<Tab>('upcoming');
   const [items, setItems] = useState<ClientAppointment[] | null>(null);
   const [bonuses, setBonuses] = useState<ClientLoyaltyCard[] | null>(null);
+  const [favorites, setFavorites] = useState<FavoriteSalon[] | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ClientAppointment | null>(null);
@@ -51,6 +58,7 @@ export function VisitsScreen(props: {
     setLoading(true);
     try {
       if (tab === 'bonuses') setBonuses((await api.loyalty()).items);
+      else if (tab === 'favorites') setFavorites((await api.favorites()).items);
       else setItems((await api.appointments(tab)).items);
       setError('');
     } catch (e) {
@@ -64,8 +72,31 @@ export function VisitsScreen(props: {
   useEffect(() => {
     setItems(null);
     setBonuses(null);
+    setFavorites(null);
     void load();
   }, [load]);
+
+  // A salon saved or removed on its page: the list is fresh when the client comes back.
+  const { favoritesVersion } = props;
+  const seenVersion = useRef(favoritesVersion);
+  useEffect(() => {
+    if (seenVersion.current === favoritesVersion) return;
+    seenVersion.current = favoritesVersion;
+    if (tab === 'favorites') void load();
+  }, [favoritesVersion, tab, load]);
+
+  const removeFavorite = useCallback(
+    async (slug: string) => {
+      try {
+        await api.removeFavorite(slug);
+        setFavorites((list) => list?.filter((s) => s.slug !== slug) ?? null);
+      } catch (e) {
+        if (!api.signedIn) return onSessionEnded();
+        setError(errorText(e, t));
+      }
+    },
+    [api, t, onSessionEnded],
+  );
 
   const closeVisit = useCallback(() => {
     setOpen(null);
@@ -104,7 +135,7 @@ export function VisitsScreen(props: {
       </View>
 
       <View style={styles.tabs} accessibilityRole="tablist">
-        {(['upcoming', 'past', 'bonuses'] as const).map((s) => (
+        {(['upcoming', 'past', 'bonuses', 'favorites'] as const).map((s) => (
           <Pressable
             key={s}
             accessibilityRole="tab"
@@ -113,7 +144,13 @@ export function VisitsScreen(props: {
             style={[styles.tab, s === tab && styles.tabActive]}
           >
             <Text style={[styles.tabText, s === tab && styles.tabTextActive]}>
-              {s === 'upcoming' ? t.visits.upcoming : s === 'past' ? t.visits.past : t.bonuses.tab}
+              {s === 'upcoming'
+                ? t.visits.upcoming
+                : s === 'past'
+                  ? t.visits.past
+                  : s === 'bonuses'
+                    ? t.bonuses.tab
+                    : t.favorites.tab}
             </Text>
           </Pressable>
         ))}
@@ -130,13 +167,23 @@ export function VisitsScreen(props: {
         <BonusesView t={t} locale={locale} items={bonuses} onBook={props.onBook} />
       ) : null}
 
-      {tab !== 'bonuses' && items && items.length === 0 ? (
+      {tab === 'favorites' && favorites ? (
+        <FavoritesView
+          t={t}
+          items={favorites}
+          onOpen={props.onOpenSalon}
+          onBook={props.onBook}
+          onRemove={removeFavorite}
+        />
+      ) : null}
+
+      {(tab === 'upcoming' || tab === 'past') && items && items.length === 0 ? (
         <Text style={styles.empty}>
           {tab === 'upcoming' ? t.visits.emptyUpcoming : t.visits.emptyPast}
         </Text>
       ) : null}
 
-      {tab !== 'bonuses' && items
+      {(tab === 'upcoming' || tab === 'past') && items
         ? groupByDay(items).map((group) => (
             <View key={group.date} style={{ gap: 8 }}>
               <Text style={styles.day}>{formatDay(group.date, locale)}</Text>

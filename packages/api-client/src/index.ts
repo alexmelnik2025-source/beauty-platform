@@ -40,6 +40,9 @@ export type ClientAppointmentList = Schemas['ClientAppointmentList'];
 export type ClientLoyalty = Schemas['ClientLoyalty'];
 export type ClientLoyaltyCard = ClientLoyalty['items'][number];
 export type ClientDataExport = Schemas['ClientDataExport'];
+/** "Favourite salons" in the client app. */
+export type ClientFavorites = Schemas['ClientFavorites'];
+export type FavoriteSalon = ClientFavorites['items'][number];
 
 /** Salon account: sign-in, the signed-in user, devices. */
 export type User = Schemas['User'];

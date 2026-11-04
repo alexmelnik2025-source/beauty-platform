@@ -218,6 +218,17 @@ export const sq: Dictionary = {
     call: 'Telefono',
     noServices: 'Salloni nuk ka ende shërbime për rezervim online.',
   },
+  favorites: {
+    tab: 'Të preferuarat',
+    empty:
+      'Ende nuk keni sallone të preferuara. Hapni një sallon në katalog dhe prekni “♡ Shto te të preferuarat”.',
+    add: '♡ Shto te të preferuarat',
+    saved: '♥ Te të preferuarat',
+    remove: 'Hiqe nga të preferuarat',
+    open: 'Shiko sallonin',
+    notBookable: 'Salloni ka pezulluar rezervimet online.',
+    tooMany: 'Keni tashmë 100 sallone të preferuara. Hiqni një për të shtuar një të ri.',
+  },
   units: { h: 'orë', min: 'min' },
   spoken: { pl: 'Polonisht', uk: 'Ukrainisht', ru: 'Rusisht', be: 'Bjellorusisht', en: 'Anglisht' },
   specialty: {

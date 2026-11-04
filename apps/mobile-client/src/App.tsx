@@ -30,7 +30,7 @@ type Stage =
 type Finder =
   | null
   | { kind: 'catalog' }
-  | { kind: 'salon'; slug: string; name: string }
+  | { kind: 'salon'; slug: string; name: string; fromVisits?: boolean }
   | { kind: 'open'; slug: string; name: string; preset?: BookingPreset }
   | { kind: 'book'; salon: PublicLocation; preset?: BookingPreset; fromVisits?: boolean };
 
@@ -48,6 +48,13 @@ export default function App() {
   // A new key reloads "My visits" (after booking) or prefills the sign-in email.
   const [visitsKey, setVisitsKey] = useState(0);
   const [signInEmail, setSignInEmail] = useState('');
+  // Grows when a salon is saved to or removed from "Favourites" on its page.
+  const [favoritesVersion, setFavoritesVersion] = useState(0);
+  const favoriteChanged = useCallback(() => setFavoritesVersion((v) => v + 1), []);
+  const openSalonFromVisits = useCallback(
+    (slug: string, name: string) => setFinder({ kind: 'salon', slug, name, fromVisits: true }),
+    [],
+  );
   const openCatalog = useCallback(() => setFinder({ kind: 'catalog' }), []);
   const openBooking = useCallback(
     (slug: string, name: string, preset?: BookingPreset) =>
@@ -135,6 +142,8 @@ export default function App() {
                 onSessionEnded={sessionEnded}
                 onFindSalon={openCatalog}
                 onBook={openBooking}
+                onOpenSalon={openSalonFromVisits}
+                favoritesVersion={favoritesVersion}
               />
             )}
           </View>
@@ -197,8 +206,10 @@ export default function App() {
               locale={locale}
               slug={finder.slug}
               name={finder.name}
-              onBack={() => setFinder({ kind: 'catalog' })}
+              onBack={() => setFinder(finder.fromVisits ? null : { kind: 'catalog' })}
               onBook={(salon) => setFinder({ kind: 'book', salon })}
+              signedIn={stage.kind === 'visits'}
+              onFavoriteChanged={favoriteChanged}
             />
           ) : null}
         </View>

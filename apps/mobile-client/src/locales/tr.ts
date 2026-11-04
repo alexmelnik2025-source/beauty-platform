@@ -218,6 +218,16 @@ export const tr: Dictionary = {
     call: 'Ara',
     noServices: 'Salonun henüz online randevuya açık hizmeti yok.',
   },
+  favorites: {
+    tab: 'Favoriler',
+    empty: 'Henüz favori salonunuz yok. Katalogda bir salon açın ve “♡ Favorilere ekle”ye dokunun.',
+    add: '♡ Favorilere ekle',
+    saved: '♥ Favorilerde',
+    remove: 'Favorilerden çıkar',
+    open: 'Salonu gör',
+    notBookable: 'Salon online randevuyu durdurdu.',
+    tooMany: 'Zaten 100 favori salonunuz var. Yenisini eklemek için birini çıkarın.',
+  },
   units: { h: 'sa', min: 'dk' },
   spoken: { pl: 'Lehçe', uk: 'Ukraynaca', ru: 'Rusça', be: 'Belarusça', en: 'İngilizce' },
   specialty: {

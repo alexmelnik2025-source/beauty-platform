@@ -1234,3 +1234,14 @@ pnpm --filter @beauty/api-client generate
   404). Из метаданных отдаются только имена изменённых полей и дата (для графика на день).
 - Код: `apps/api/src/audit-log/`, тесты `test/audit-log.spec.ts`; страница `apps/web/app/[locale]/app/history`,
   шаг в `e2e/booking.spec.ts`, скриншот `79-owner-change-log`.
+
+## Клиентское приложение: любимые салоны (задача 61)
+
+Вошедший клиент на странице салона нажимает «♡ Dodaj do ulubionych» (ещё раз — «♥ W ulubionych», убрать). В «Moje
+wizyty» появилась вкладка «Ulubione»: салоны, новые сверху, с кнопками «Umów wizytę» (запись сразу в приложении),
+«Zobacz salon» и «Usuń z ulubionych». Если салон выключил онлайн-запись, он остаётся в списке серым с пояснением.
+API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (только для сессии клиента, повторное
+добавление ничего не меняет, не больше 100 салонов — `409 TOO_MANY_FAVORITES`). В ответе — только публичные данные
+салона; салон не видит, кто его сохранил, клиенты не видят списки друг друга. Таблица `client_favorite` удаляется
+вместе с человеком или салоном. 6 языков. Тесты: `client-favorites.spec.ts`, `apps/mobile-client/test/api.test.ts`;
+скриншот `80f-client-app-favourites`.

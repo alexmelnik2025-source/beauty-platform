@@ -1968,6 +1968,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My favourite salons
+         * @description Newest first. Only public salon data; bookable=false while the salon has online booking off.
+         */
+        get: operations["ClientFavoritesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/favorites/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add a salon to my favourites
+         * @description Idempotent. 404 when no salon with this booking link takes online bookings; 409 TOO_MANY_FAVORITES over 100.
+         */
+        put: operations["ClientFavoritesController_add"];
+        post?: never;
+        /** Remove a salon from my favourites (no error if it is not there) */
+        delete: operations["ClientFavoritesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/push-subscriptions/public-key": {
         parameters: {
             query?: never;
@@ -2782,6 +2823,18 @@ export interface components {
                         createdAt: string;
                     }[];
                 }[];
+            }[];
+        };
+        ClientFavorites: {
+            items: {
+                slug: string;
+                name: string;
+                addressLine: string;
+                city: string;
+                postalCode: string;
+                bookable: boolean;
+                /** Format: date-time */
+                addedAt: string;
             }[];
         };
         ClientLoyalty: {
@@ -7942,6 +7995,63 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CalendarLink"];
                 };
+            };
+        };
+    };
+    ClientFavoritesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientFavorites"];
+                };
+            };
+        };
+    };
+    ClientFavoritesController_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientFavoritesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
