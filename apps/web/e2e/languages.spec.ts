@@ -118,9 +118,18 @@ test('a client books in Turkish and reads the visit in Albanian', async ({ brows
   );
   await client.getByRole('button', { name: /Emre/ }).click();
   await expect(client.locator('.times button').first()).toBeVisible();
+  const errors: string[] = [];
+  client.on('pageerror', (e) => errors.push(e.message));
   await client.locator('.times button').first().click();
 
-  await expect(client.getByText(/Bu saat sizin için/)).toBeVisible();
+  try {
+    await expect(client.getByText(/Bu saat sizin için/)).toBeVisible();
+  } catch (failure) {
+    // Show what the page says instead (an error message or a crash) in the CI log.
+    await shot(client, '71-debug-after-time');
+    const text = await client.locator('body').innerText();
+    throw new Error(`${String(failure)}\nPage errors: ${errors.join(' | ')}\nPage: ${text}`);
+  }
   await expect(client.getByLabel('Ülke kodu')).toHaveValue('TR');
   await client.getByLabel('Ad soyad').fill('Ayşe Yılmaz');
   await client.getByLabel('Telefon').fill('+90 532 100 20 00');
