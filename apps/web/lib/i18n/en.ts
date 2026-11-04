@@ -17,6 +17,9 @@ export const en: Dict = {
     language: 'Language',
   },
   errors: {
+    SLOTS_AVAILABLE: 'There are free times on this day — pick one of them.',
+    WAITLIST_LIMIT: 'You can wait for at most 3 days at this salon at a time.',
+    WAITLIST_DATE: 'Choose a day from today to the last day the salon takes bookings for.',
     NOT_COMPLETED: 'First mark that the client came.',
     LOYALTY_MODE_LOCKED: "The program type can't be changed while clients have stamps or points.",
     LOYALTY_DISABLED: 'The loyalty program is switched off.',
@@ -241,7 +244,19 @@ export const en: Dict = {
   phone: {
     country: 'Country code',
   },
+  waitlist: {
+    title: 'Waiting list',
+    waiting: 'You are waiting for a free time. We will email you when one frees up.',
+    notified: 'We have emailed you about a free time.',
+    cancelled: 'You are no longer on the waiting list.',
+    leave: 'Leave the list',
+    book: 'See free times',
+  },
   booking: {
+    waitlistOpen: 'Tell me when a time becomes free',
+    waitlistHint: 'If someone cancels on this day, we send one email with the free times.',
+    waitlistSubmit: 'Put me on the list',
+    waitlistDone: 'You are on the waiting list. We will email you when a time becomes free.',
     bookVisit: 'Book a visit',
     stepService: 'Service',
     stepStaff: 'Specialist',

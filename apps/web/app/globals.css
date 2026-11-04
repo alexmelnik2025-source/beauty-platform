@@ -1113,6 +1113,12 @@ h3 {
   cursor: default;
 }
 
+/* A full day (task 50): still chosen for the waiting list, but looks empty. */
+.day-strip button.full {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
 .day-strip button[aria-pressed='true'] {
   border-color: var(--ink);
   background: var(--ink);

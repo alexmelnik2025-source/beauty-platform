@@ -24,6 +24,9 @@ export const tr: Dict = {
   },
   errors: {
     ...en.errors,
+    SLOTS_AVAILABLE: 'Bu günde boş saatler var — birini seçin.',
+    WAITLIST_LIMIT: 'Bu salonda aynı anda en fazla 3 gün bekleyebilirsiniz.',
+    WAITLIST_DATE: 'Bugünden salonun randevu aldığı son güne kadar bir gün seçin.',
     generic: 'Bir şeyler ters gitti. Tekrar deneyin.',
     network: 'Sunucuya ulaşılamıyor. Bağlantınızı kontrol edip tekrar deneyin.',
     VALIDATION_ERROR: 'Form alanlarını kontrol edin.',
@@ -80,7 +83,20 @@ export const tr: Dict = {
       expired: 'Süresi doldu',
     },
   },
+  waitlist: {
+    title: 'Bekleme listesi',
+    waiting: 'Boş bir saat bekliyorsunuz. Bir saat boşalınca size e-posta göndereceğiz.',
+    notified: 'Boş saat hakkında size e-posta gönderdik.',
+    cancelled: 'Artık bekleme listesinde değilsiniz.',
+    leave: 'Listeden çık',
+    book: 'Boş saatleri gör',
+  },
   booking: {
+    waitlistOpen: 'Bir saat boşalınca bana haber verin',
+    waitlistHint:
+      'Biri bu günkü randevusunu iptal ederse, boş saatlerle tek bir e-posta göndeririz.',
+    waitlistSubmit: 'Beni listeye ekleyin',
+    waitlistDone: 'Bekleme listesindesiniz. Bir saat boşaldığında size e-posta göndereceğiz.',
     bookVisit: 'Randevu al',
     stepService: 'Hizmet',
     stepStaff: 'Uzman',

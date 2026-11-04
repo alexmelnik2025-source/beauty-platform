@@ -16,6 +16,9 @@ export const pl = {
     language: 'Język',
   },
   errors: {
+    SLOTS_AVAILABLE: 'Tego dnia są wolne terminy — wybierz jeden z nich.',
+    WAITLIST_LIMIT: 'Możesz czekać najwyżej na 3 dni w tym salonie naraz.',
+    WAITLIST_DATE: 'Wybierz dzień od dziś do ostatniego dnia, na który salon przyjmuje rezerwacje.',
     NOT_COMPLETED: 'Najpierw oznacz, że klient przyszedł.',
     LOYALTY_MODE_LOCKED:
       'Rodzaju programu nie można zmienić, dopóki klienci mają pieczątki lub punkty.',
@@ -241,7 +244,19 @@ export const pl = {
   phone: {
     country: 'Kod kraju',
   },
+  waitlist: {
+    title: 'Lista oczekujących',
+    waiting: 'Czekasz na wolny termin. Gdy się zwolni, napiszemy na e-mail.',
+    notified: 'Wysłaliśmy Ci e-mail o wolnym terminie.',
+    cancelled: 'Nie ma Cię już na liście oczekujących.',
+    leave: 'Wypisz mnie z listy',
+    book: 'Zobacz wolne terminy',
+  },
   booking: {
+    waitlistOpen: 'Powiadom mnie, gdy zwolni się termin',
+    waitlistHint: 'Gdy ktoś odwoła wizytę tego dnia, wyślemy jeden e-mail z wolnymi godzinami.',
+    waitlistSubmit: 'Zapisz mnie na listę',
+    waitlistDone: 'Jesteś na liście oczekujących. Gdy zwolni się termin, napiszemy na e-mail.',
     bookVisit: 'Umów wizytę',
     stepService: 'Usługa',
     stepStaff: 'Specjalista',

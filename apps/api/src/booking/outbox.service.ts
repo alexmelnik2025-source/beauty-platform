@@ -4,6 +4,12 @@ import type { FailedEmail, OutboxStats } from '../common/system.responses';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Locale, Prisma } from '../generated/prisma/client';
 import { MailService, maskEmails, type MailMessage } from '../mail/mail.service';
+import { renderWaitlistFreeEmail, renderWaitlistJoinedEmail } from '../waitlist/waitlist-templates';
+import {
+  WAITLIST_FREE,
+  WAITLIST_JOINED,
+  type WaitlistNotification,
+} from '../waitlist/waitlist-outbox';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   formatPrice,
@@ -392,9 +398,60 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     ];
   }
 
+  /**
+   * Task 50: "you are on the waiting list" (with the link to leave it) and "a time has become
+   * free" (with the booking link). The leave link's token is made here: only the email has it.
+   * Nothing is sent once the client has left the list.
+   */
+  private async renderWaitlist(row: ClaimedRow): Promise<MailMessage[] | null> {
+    const payload = row.payload as unknown as WaitlistNotification;
+    const entry = await this.prisma.waitlistEntry.findUnique({
+      where: { id: payload.entryId },
+      include: { location: true, service: true, staff: true },
+    });
+    if (!entry || entry.status === 'cancelled') return null;
+    const locale = entry.locale;
+    const details = {
+      salonName: entry.location.name,
+      serviceName: entry.service.name,
+      staffName: entry.staff?.displayName ?? null,
+      date: entry.date.toISOString().slice(0, 10),
+    };
+    const web = this.config.APP_WEB_URL;
+    let mail: { subject: string; text: string };
+    if (row.type === WAITLIST_JOINED) {
+      const token = generateToken();
+      await this.prisma.waitlistEntry.update({
+        where: { id: entry.id },
+        data: { tokenHash: hashToken(token) },
+      });
+      mail = renderWaitlistJoinedEmail(locale, details, `${web}/${locale}/w/${token}`);
+    } else {
+      const query = new URLSearchParams({ service: entry.serviceId });
+      if (entry.staffId) query.set('staff', entry.staffId);
+      mail = renderWaitlistFreeEmail(
+        locale,
+        details,
+        payload.times ?? [],
+        `${web}/${locale}/b/${entry.location.slug}?${query}`,
+      );
+    }
+    return [
+      {
+        to: entry.email,
+        subject: mail.subject,
+        text: mail.text,
+        lang: locale,
+        senderName: entry.location.name,
+        ...(entry.location.email ? { replyTo: entry.location.email } : {}),
+      },
+    ];
+  }
+
   /** Builds the emails from current data; null = nothing to send any more. */
   private async render(row: ClaimedRow): Promise<MailMessage[] | null> {
     if (row.type === POINTS_EXPIRING) return this.renderPointsExpiring(row);
+    if (row.type === WAITLIST_JOINED || row.type === WAITLIST_FREE) return this.renderWaitlist(row);
     const kind = row.type as NotificationKind;
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: row.payload.appointmentId },

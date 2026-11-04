@@ -8493,6 +8493,160 @@
         ]
       }
     },
+    "/v1/public/locations/{slug}/waitlist": {
+      "post": {
+        "description": "One email when a time becomes free on that day. 409 SLOTS_AVAILABLE: the day has free times, book one; 409 WAITLIST_LIMIT: this email already waits for 3 days at the salon; 400 WAITLIST_DATE: outside today … the booking horizon.",
+        "operationId": "WaitlistController_join",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "staffId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en",
+                      "tr",
+                      "sq"
+                    ]
+                  },
+                  "acceptTerms": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                },
+                "required": [
+                  "serviceId",
+                  "date",
+                  "name",
+                  "email",
+                  "acceptTerms"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistJoined"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tell me when a time becomes free (a full day)",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/waitlist/{token}": {
+      "get": {
+        "operationId": "WaitlistController_get",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicWaitlistEntry"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The waiting-list entry behind the link in the email",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/waitlist/{token}/cancel": {
+      "post": {
+        "operationId": "WaitlistController_cancel",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicWaitlistEntry"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Leave the waiting list",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
     "/v1/admin/outbox": {
       "get": {
         "operationId": "AdminOutboxController_stats",
@@ -15758,6 +15912,63 @@
         ],
         "additionalProperties": false
       },
+      "PublicWaitlistEntry": {
+        "type": "object",
+        "properties": {
+          "salon": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "staffId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "staffName": {
+            "nullable": true,
+            "description": "null = any specialist",
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "notified",
+              "cancelled"
+            ]
+          }
+        },
+        "required": [
+          "salon",
+          "serviceId",
+          "serviceName",
+          "staffId",
+          "staffName",
+          "date",
+          "status"
+        ],
+        "additionalProperties": false
+      },
       "PushPublicKey": {
         "type": "object",
         "properties": {
@@ -17404,6 +17615,33 @@
           "tier",
           "applied",
           "available"
+        ],
+        "additionalProperties": false
+      },
+      "WaitlistJoined": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD in the salon time zone"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "notified",
+              "cancelled"
+            ]
+          },
+          "alreadyWaiting": {
+            "type": "boolean",
+            "description": "The same email was already waiting for this"
+          }
+        },
+        "required": [
+          "date",
+          "status",
+          "alreadyWaiting"
         ],
         "additionalProperties": false
       },
