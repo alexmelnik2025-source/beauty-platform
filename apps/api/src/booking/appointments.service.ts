@@ -40,7 +40,6 @@ import type {
 } from './booking.responses';
 import { OutboxService } from './outbox.service';
 
-
 export type {
   AppointmentDetailResponse,
   AppointmentResponse,
