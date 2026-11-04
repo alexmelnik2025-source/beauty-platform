@@ -25,6 +25,7 @@ import {
 } from '../organizations/membership.guard';
 import {
   loyaltyAccountSchema,
+  loyaltyBonusRulesSchema,
   loyaltyCouponSchema,
   loyaltyProgramSchema,
   loyaltyTiersSchema,
@@ -32,6 +33,7 @@ import {
   loyaltyRewardSchema,
   loyaltyTransactionListSchema,
   type LoyaltyAccountResponse,
+  type LoyaltyBonusRulesResponse,
   type LoyaltyCouponResponse,
   type LoyaltyProgramResponse,
   type LoyaltyRewardResponse,
@@ -46,6 +48,7 @@ import {
   listLoyaltyTransactionsSchema,
   redeemLoyaltyRewardSchema,
   replaceEarnRulesSchema,
+  replaceLoyaltyBonusRulesSchema,
   replaceLoyaltyTiersSchema,
   updateLoyaltyProgramSchema,
   updateLoyaltyRewardSchema,
@@ -56,6 +59,7 @@ import {
   type ListLoyaltyTransactionsQuery,
   type RedeemLoyaltyRewardInput,
   type ReplaceEarnRulesInput,
+  type ReplaceLoyaltyBonusRulesInput,
   type ReplaceLoyaltyTiersInput,
   type UpdateLoyaltyProgramInput,
   type UpdateLoyaltyRewardInput,
@@ -121,6 +125,31 @@ export class LoyaltyController {
     @Body(new ZodValidationPipe(replaceLoyaltyTiersSchema)) body: ReplaceLoyaltyTiersInput,
   ): Promise<LoyaltyTiersResponse> {
     return this.loyalty.replaceTiers(m, auth.userId, body);
+  }
+
+  @Get('loyalty/bonus-rules')
+  @ApiOperation({ summary: 'Extra stamps or points at chosen specialists and/or weekdays' })
+  @ApiZodResponse(loyaltyBonusRulesSchema)
+  getBonusRules(@CurrentMembership() m: MembershipContext): Promise<LoyaltyBonusRulesResponse> {
+    return this.loyalty.getBonusRules(m);
+  }
+
+  @Put('loyalty/bonus-rules')
+  @ApiOperation({
+    summary: 'Replace the bonus rules (e.g. ×2 on Monday–Wednesday at one specialist)',
+    description:
+      'An empty list switches them off. Rules never add up: a paid visit gets the best matching one. ' +
+      '404 when a specialist is not of this salon (or, for a manager, not of their locations).',
+  })
+  @ApiZodBody(replaceLoyaltyBonusRulesSchema)
+  @ApiZodResponse(loyaltyBonusRulesSchema)
+  replaceBonusRules(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Body(new ZodValidationPipe(replaceLoyaltyBonusRulesSchema))
+    body: ReplaceLoyaltyBonusRulesInput,
+  ): Promise<LoyaltyBonusRulesResponse> {
+    return this.loyalty.replaceBonusRules(m, auth.userId, body);
   }
 
   @Put('locations/:locationId/loyalty/earn-rules')

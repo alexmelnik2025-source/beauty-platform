@@ -968,6 +968,7 @@ model LoyaltyProgram {
   accounts     LoyaltyAccount[]
   rewards      LoyaltyReward[]
   tiers        LoyaltyTier[]
+  bonusRules   LoyaltyBonusRule[]
 
   @@map("loyalty_program")
 }
@@ -1054,6 +1055,28 @@ model LoyaltyTier {
 
   @@unique([programId, threshold])
   @@map("loyalty_tier")
+}
+
+/// Task 19: extra stamps or points the salon gives at chosen specialists and/or on chosen
+/// weekdays (e.g. ×2 on Monday–Wednesday at one barber). The paid visit earns
+/// base × multiplier + extraPoints by the best matching rule; nothing extra when the visit
+/// itself earns nothing (below the minimum, or a service rule of 0).
+model LoyaltyBonusRule {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  programId   String   @map("program_id") @db.Uuid
+  name        String
+  /// Specialists the rule is for; empty = every specialist.
+  staffIds    String[] @default([]) @map("staff_ids") @db.Uuid
+  /// ISO weekdays of the visit in the salon's time zone (1 = Monday … 7 = Sunday); empty = every day.
+  weekdays    Int[]    @default([])
+  multiplier  Int      @default(1)
+  extraPoints Int      @default(0) @map("extra_points")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@map("loyalty_bonus_rule")
 }
 
 /// The salon's catalogue of rewards: what a client can take for stamps or points.

@@ -14,6 +14,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoyaltyLedger } from './loyalty-ledger';
 import type {
   LoyaltyAccountResponse,
+  LoyaltyBonusRulesResponse,
   LoyaltyCouponResponse,
   LoyaltyRewardResponse,
   LoyaltyProgramResponse,
@@ -29,6 +30,7 @@ import type {
   ListLoyaltyTransactionsQuery,
   RedeemLoyaltyRewardInput,
   ReplaceEarnRulesInput,
+  ReplaceLoyaltyBonusRulesInput,
   ReplaceLoyaltyTiersInput,
   UpdateLoyaltyProgramInput,
   UpdateLoyaltyRewardInput,
@@ -274,6 +276,81 @@ export class LoyaltyService {
       );
     });
     return this.getTiers(m);
+  }
+
+  // ── Bonus rules by specialist and weekday (19) ─────────
+
+  async getBonusRules(m: MembershipContext): Promise<LoyaltyBonusRulesResponse> {
+    const program = await this.prisma.loyaltyProgram.findUnique({
+      where: { organizationId: m.organizationId },
+      include: { bonusRules: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] } },
+    });
+    const rules = program?.bonusRules ?? [];
+    const staffIds = [...new Set(rules.flatMap((r) => r.staffIds))];
+    const staff = staffIds.length
+      ? await this.prisma.staffMember.findMany({
+          where: { id: { in: staffIds }, location: { organizationId: m.organizationId } },
+          select: { id: true, displayName: true },
+        })
+      : [];
+    const names = new Map(staff.map((s) => [s.id, s.displayName]));
+    return {
+      rules: rules.map((r) => ({
+        id: r.id,
+        name: r.name,
+        staff: r.staffIds
+          .filter((id) => names.has(id))
+          .map((id) => ({ id, displayName: names.get(id)! })),
+        weekdays: [...r.weekdays].sort((a, b) => a - b),
+        multiplier: r.multiplier,
+        extraPoints: r.extraPoints,
+      })),
+    };
+  }
+
+  /**
+   * Replaces the salon's bonus rules (an empty list switches them off). Specialists must
+   * be of this salon; a manager may name only specialists of the locations they manage.
+   */
+  async replaceBonusRules(
+    m: MembershipContext,
+    userId: string,
+    input: ReplaceLoyaltyBonusRulesInput,
+  ): Promise<LoyaltyBonusRulesResponse> {
+    const staffIds = [...new Set(input.rules.flatMap((r) => r.staffIds))];
+    if (staffIds.length > 0) {
+      const found = await this.prisma.staffMember.count({
+        where: {
+          id: { in: staffIds },
+          location: { organizationId: m.organizationId },
+          ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+        },
+      });
+      if (found !== staffIds.length) throw notFound('Staff member');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const program = await tx.loyaltyProgram.upsert({
+        where: { organizationId: m.organizationId },
+        create: { organizationId: m.organizationId },
+        update: {},
+      });
+      await tx.loyaltyBonusRule.deleteMany({ where: { programId: program.id } });
+      await tx.loyaltyBonusRule.createMany({
+        data: input.rules.map((r) => ({ programId: program.id, ...r })),
+      });
+      await this.audit.record(
+        {
+          organizationId: m.organizationId,
+          actorUserId: userId,
+          action: 'loyalty.bonus_rules.replaced',
+          entityType: 'loyalty_program',
+          entityId: program.id,
+          metadata: { rules: input.rules },
+        },
+        tx,
+      );
+    });
+    return this.getBonusRules(m);
   }
 
   // ── Rewards catalogue (10a-2) ──────────────────────────

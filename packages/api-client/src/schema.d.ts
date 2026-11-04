@@ -1500,6 +1500,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/loyalty/bonus-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Extra stamps or points at chosen specialists and/or weekdays */
+        get: operations["LoyaltyController_getBonusRules"];
+        /**
+         * Replace the bonus rules (e.g. ×2 on Monday–Wednesday at one specialist)
+         * @description An empty list switches them off. Rules never add up: a paid visit gets the best matching one. 404 when a specialist is not of this salon (or, for a manager, not of their locations).
+         */
+        put: operations["LoyaltyController_replaceBonusRules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/loyalty/earn-rules": {
         parameters: {
             query?: never;
@@ -2953,6 +2974,22 @@ export interface components {
                     missing: number;
                 } | null;
             } | null;
+        };
+        LoyaltyBonusRules: {
+            /** @description A paid visit earns base × multiplier + extraPoints by the best matching rule (task 19) */
+            rules: {
+                id: string;
+                name: string;
+                /** @description Empty = every specialist */
+                staff: {
+                    id: string;
+                    displayName: string;
+                }[];
+                /** @description ISO weekdays in the salon time zone, 1 = Monday; empty = every day */
+                weekdays: number[];
+                multiplier: number;
+                extraPoints: number;
+            }[];
         };
         LoyaltyCoupon: {
             id: string;
@@ -6770,6 +6807,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoyaltyTiers"];
+                };
+            };
+        };
+    };
+    LoyaltyController_getBonusRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyBonusRules"];
+                };
+            };
+        };
+    };
+    LoyaltyController_replaceBonusRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rules: {
+                        name: string;
+                        /** @default [] */
+                        staffIds?: string[];
+                        /** @default [] */
+                        weekdays?: number[];
+                        /** @default 1 */
+                        multiplier?: number;
+                        /** @default 0 */
+                        extraPoints?: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoyaltyBonusRules"];
                 };
             };
         };
