@@ -10,7 +10,7 @@ export function downloadIcs(a: PublicAppointment): void {
     'VERSION:2.0',
     'PRODID:-//GESTALT//Booking//EN',
     'BEGIN:VEVENT',
-    `UID:${a.id}@gestalt-booking`,
+    `UID:${a.id}@beauty-platform`,
     `DTSTAMP:${stamp(new Date().toISOString())}`,
     `DTSTART:${stamp(a.start)}`,
     `DTEND:${stamp(a.end)}`,

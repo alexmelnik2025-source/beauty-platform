@@ -391,7 +391,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       if (!stillValid) return null;
     }
 
-    const details = (locale: Locale, manageLink?: string) => ({
+    const details = (locale: Locale, manageLink?: string, calendarLink?: string) => ({
       salonName: appointment.location.name,
       address: `${appointment.location.addressLine}, ${appointment.location.postalCode} ${appointment.location.city}`,
       serviceName: appointment.service.name,
@@ -401,6 +401,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       customerName: appointment.customer?.name ?? '',
       customerPhone: appointment.customer?.phone ?? '',
       manageLink,
+      calendarLink,
       reason: row.payload.reason ?? null,
     });
 
@@ -409,6 +410,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       if (!email) return null;
       const locale = appointment.locale;
       let manageLink: string | undefined;
+      let calendarLink: string | undefined;
       if (kind !== 'client_cancelled') {
         // Only token hashes are stored, so a fresh link is created for each email.
         const token = generateToken();
@@ -422,8 +424,14 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
           },
         });
         manageLink = `${this.config.APP_WEB_URL}/${locale}/m/${token}`;
+        // Task 20: the same link as a calendar file (the web server passes /v1 to the API).
+        calendarLink = `${this.config.APP_WEB_URL}/v1/public/appointments/${token}/calendar.ics`;
       }
-      const { subject, text } = renderAppointmentEmail(kind, locale, details(locale, manageLink));
+      const { subject, text } = renderAppointmentEmail(
+        kind,
+        locale,
+        details(locale, manageLink, calendarLink),
+      );
       // From the salon's name; a reply reaches the salon, not the platform (launch task L2).
       return [
         {

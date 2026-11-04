@@ -1458,6 +1458,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/appointments/{token}/calendar.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The appointment behind a "manage" link as a calendar file (.ics)
+         * @description For "Add to calendar". UID stays the same and SEQUENCE grows with each change, so importing it again updates the event; a cancelled visit has STATUS:CANCELLED.
+         */
+        get: operations["VisitCalendarController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/loyalty/program": {
         parameters: {
             query?: never;
@@ -6660,6 +6680,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationsMarked"];
+                };
+            };
+        };
+    };
+    VisitCalendarController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description iCalendar (RFC 5545) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
                 };
             };
         };

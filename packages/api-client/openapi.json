@@ -6256,6 +6256,38 @@
         ]
       }
     },
+    "/v1/public/appointments/{token}/calendar.ics": {
+      "get": {
+        "description": "For \"Add to calendar\". UID stays the same and SEQUENCE grows with each change, so importing it again updates the event; a cancelled visit has STATUS:CANCELLED.",
+        "operationId": "VisitCalendarController_get",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "iCalendar (RFC 5545)",
+            "content": {
+              "text/calendar": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The appointment behind a \"manage\" link as a calendar file (.ics)",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/loyalty/program": {
       "get": {
         "operationId": "LoyaltyController_getProgram",

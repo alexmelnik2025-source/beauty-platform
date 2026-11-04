@@ -17,6 +17,8 @@ export interface AppointmentDetails {
   customerName: string;
   customerPhone: string;
   manageLink?: string;
+  /** Task 20: the visit as a calendar file (.ics) to add to the phone's calendar. */
+  calendarLink?: string;
   reason?: string | null;
 }
 
@@ -39,6 +41,7 @@ interface Words {
   price: string;
   client: string;
   manage: string;
+  addToCalendar: string;
   reason: string;
   codeSubject: string;
   codeText: (code: string, salon: string) => string;
@@ -73,6 +76,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Cena',
     client: 'Klient',
     manage: 'Zmień lub odwołaj wizytę',
+    addToCalendar: 'Dodaj do kalendarza',
     reason: 'Powód',
     codeSubject: 'Kod potwierdzenia rezerwacji',
     codeText: (code, salon) =>
@@ -105,6 +109,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Ціна',
     client: 'Клієнт',
     manage: 'Змінити або скасувати візит',
+    addToCalendar: 'Додати в календар',
     reason: 'Причина',
     codeSubject: 'Код підтвердження запису',
     codeText: (code, salon) =>
@@ -137,6 +142,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Цена',
     client: 'Клиент',
     manage: 'Перенести или отменить запись',
+    addToCalendar: 'Добавить в календарь',
     reason: 'Причина',
     codeSubject: 'Код подтверждения записи',
     codeText: (code, salon) =>
@@ -169,6 +175,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Price',
     client: 'Client',
     manage: 'Change or cancel the appointment',
+    addToCalendar: 'Add to calendar',
     reason: 'Reason',
     codeSubject: 'Your booking confirmation code',
     codeText: (code, salon) =>
@@ -201,6 +208,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Fiyat',
     client: 'Müşteri',
     manage: 'Randevuyu değiştir veya iptal et',
+    addToCalendar: 'Takvime ekle',
     reason: 'Neden',
     codeSubject: 'Rezervasyon onay kodunuz',
     codeText: (code, salon) =>
@@ -233,6 +241,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Çmimi',
     client: 'Klienti',
     manage: 'Ndryshoni ose anuloni takimin',
+    addToCalendar: 'Shtoje në kalendar',
     reason: 'Arsyeja',
     codeSubject: 'Kodi i konfirmimit të rezervimit',
     codeText: (code, salon) =>
@@ -287,7 +296,19 @@ export function renderAppointmentEmail(
   ];
   if (d.reason) lines.push(`${w.reason}: ${d.reason}`);
   if (d.manageLink) lines.push('', `${w.manage}:`, d.manageLink);
+  if (d.calendarLink) lines.push('', `${w.addToCalendar}:`, d.calendarLink);
   return { subject: `${w.subjects[kind]} — ${d.salonName}`, text: lines.join('\n') };
+}
+
+/** Task 20: title and notes of the visit in the client's calendar, in the client's language. */
+export function renderCalendarEvent(
+  locale: Locale,
+  d: Pick<AppointmentDetails, 'salonName' | 'serviceName' | 'staffName' | 'manageLink'>,
+): { summary: string; description: string } {
+  const w = WORDS[locale];
+  const lines = [`${w.service}: ${d.serviceName}`, `${w.staff}: ${d.staffName}`];
+  if (d.manageLink) lines.push('', `${w.manage}:`, d.manageLink);
+  return { summary: `${d.serviceName} — ${d.salonName}`, description: lines.join('\n') };
 }
 
 export function renderCodeEmail(
