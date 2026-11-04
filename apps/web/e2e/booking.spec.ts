@@ -1139,6 +1139,20 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await ownerApp.getByRole('button', { name: 'Tak, odblokuj' }).click();
     await expect(ownerApp.getByText('Czas odblokowany.')).toBeVisible();
     await expect(ownerApp.getByText('12:00–12:30 · Cały salon')).toHaveCount(0);
+    // The bell (task 20): Anna's online booking, opening it shows the visit card.
+    await ownerApp.getByRole('button', { name: /^Powiadomienia/ }).click();
+    await expect(ownerApp.getByRole('heading', { name: 'Powiadomienia' })).toBeVisible();
+    const annaNotice = ownerApp
+      .getByRole('button', { name: /Nowa wizyta online, \d\d:\d\d Anna Kowalska/ })
+      .first();
+    await expect(annaNotice).toBeVisible();
+    await shot(ownerApp, '33f-business-app-notifications');
+    await annaNotice.click();
+    await expect(ownerApp.getByText('Usługa', { exact: true })).toBeVisible();
+    await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(ownerApp.getByRole('heading', { name: 'Powiadomienia' })).toBeVisible();
+    await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
   } finally {
     businessApp.server.close();
   }
