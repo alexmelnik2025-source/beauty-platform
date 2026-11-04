@@ -7692,6 +7692,59 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reports": {
+      "get": {
+        "description": "Owners and managers: the whole salon. A specialist: only their own visits, and only with the \"viewOwnEarnings\" permission (403 otherwise). At most 366 days.",
+        "operationId": "ReportsController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-30"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-01"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalonReport"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Salon report for a period: visits, revenue, clients, by specialist, service and day",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/v1/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -13898,6 +13951,282 @@
         },
         "required": [
           "publicKey"
+        ],
+        "additionalProperties": false
+      },
+      "SalonReport": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "currency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "timezone",
+              "currency"
+            ],
+            "additionalProperties": false
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "location",
+              "own"
+            ],
+            "description": "location = the whole salon; own = only the visits of the signed-in specialist"
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "visits": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Every booked visit in the period, cancelled ones too"
+              },
+              "upcoming": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Booked and not marked yet"
+              },
+              "completed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits that took place (\"came\")"
+              },
+              "noShow": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "\"Did not come\""
+              },
+              "revenueGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What paid visits brought (price minus discounts), in hundredths of the salon currency"
+              },
+              "paid": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits marked as paid"
+              },
+              "cancelledByClient": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "cancelledBySalon": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "online": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits the clients booked themselves (not cancelled)"
+              },
+              "discountGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Discounts on paid visits, in hundredths of the salon currency"
+              },
+              "averageTicketGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Average paid visit; 0 when none, in hundredths of the salon currency"
+              },
+              "clients": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Different clients with a visit that took place"
+              },
+              "newClients": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Clients whose first visit at this salon that took place is in the period"
+              }
+            },
+            "required": [
+              "visits",
+              "upcoming",
+              "completed",
+              "noShow",
+              "revenueGrosze",
+              "paid",
+              "cancelledByClient",
+              "cancelledBySalon",
+              "online",
+              "discountGrosze",
+              "averageTicketGrosze",
+              "clients",
+              "newClients"
+            ],
+            "additionalProperties": false
+          },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits that took place (\"came\")"
+                },
+                "noShow": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "\"Did not come\""
+                },
+                "revenueGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What paid visits brought (price minus discounts), in hundredths of the salon currency"
+                },
+                "paid": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits marked as paid"
+                }
+              },
+              "required": [
+                "id",
+                "displayName",
+                "completed",
+                "noShow",
+                "revenueGrosze",
+                "paid"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Specialists with any visit in the period, by revenue"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits that took place (\"came\")"
+                },
+                "noShow": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "\"Did not come\""
+                },
+                "revenueGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What paid visits brought (price minus discounts), in hundredths of the salon currency"
+                },
+                "paid": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits marked as paid"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "completed",
+                "noShow",
+                "revenueGrosze",
+                "paid"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Services with any visit in the period, by revenue"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "revenueGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Paid that day, in hundredths of the salon currency"
+                }
+              },
+              "required": [
+                "date",
+                "completed",
+                "revenueGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Every day of the period, in the salon time zone"
+          }
+        },
+        "required": [
+          "location",
+          "from",
+          "to",
+          "scope",
+          "totals",
+          "staff",
+          "services",
+          "days"
         ],
         "additionalProperties": false
       },
