@@ -6,6 +6,7 @@ import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+import { ScheduleScreen } from './ScheduleScreen';
 import { VisitScreen } from './VisitScreen';
 
 const REFRESH_MS = 30_000;
@@ -28,6 +29,7 @@ export function DayScreen(props: {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [canChange, setCanChange] = useState(salon.role !== 'staff');
   const [mineId, setMineId] = useState<string | null>(null);
   const [mineOnly, setMineOnly] = useState(false);
@@ -80,6 +82,20 @@ export function DayScreen(props: {
   const showMineSwitch = salon.role !== 'staff' && mineId !== null;
   const visits = all && showMineSwitch && mineOnly ? onlyMine(all, mineId) : all;
 
+  if (scheduleOpen && mineId) {
+    return (
+      <ScheduleScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        staffId={mineId}
+        today={today}
+        onBack={() => setScheduleOpen(false)}
+      />
+    );
+  }
+
   if (openId) {
     return (
       <VisitScreen
@@ -107,6 +123,9 @@ export function DayScreen(props: {
         <View style={styles.row}>
           {props.canChangeSalon ? (
             <Button kind="link" label={t.changeSalon} onPress={props.onChangeSalon} />
+          ) : null}
+          {mineId ? (
+            <Button kind="link" label={t.schedule.open} onPress={() => setScheduleOpen(true)} />
           ) : null}
           <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
         </View>

@@ -902,6 +902,17 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await shot(kasiaApp, '32a-business-app-staff-visit');
     await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // Her own schedule: weekly hours and time off, read only for a specialist.
+    await kasiaApp.getByRole('button', { name: 'Mój grafik' }).click();
+    await expect(kasiaApp.getByRole('heading', { name: 'Mój grafik' })).toBeVisible();
+    await expect(kasiaApp.getByText('poniedziałek', { exact: true })).toBeVisible();
+    await expect(
+      kasiaApp.getByText('Grafik zmienia właściciel lub menedżer salonu.'),
+    ).toBeVisible();
+    await expect(kasiaApp.getByRole('button', { name: 'Dodaj wolne' })).toHaveCount(0);
+    await shot(kasiaApp, '32b-business-app-staff-schedule');
+    await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
     // The refresh token is kept: opening the app again needs no new code.
     await kasiaApp.reload();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();

@@ -3,6 +3,9 @@ import type { Calendar } from '../src/api';
 import {
   addDays,
   dayTitle,
+  daysOff,
+  timeOffText,
+  weekRows,
   formatPrice,
   myStaffId,
   onlyMine,
@@ -175,5 +178,62 @@ describe('visit card', () => {
   it('prices in złoty', () => {
     expect(formatPrice(4500, 'pl').replace(/\s/g, ' ')).toBe('45,00 zł');
     expect(formatPrice(4500, 'en')).toContain('45.00');
+  });
+});
+
+describe('my schedule', () => {
+  it('lists Monday to Sunday with hours or a day off', () => {
+    const rows = weekRows(
+      {
+        timezone: 'Europe/Warsaw',
+        weekly: [
+          {
+            weekday: 1,
+            intervals: [
+              { start: '09:00', end: '14:00' },
+              { start: '15:00', end: '20:00' },
+            ],
+          },
+          { weekday: 6, intervals: [{ start: '10:00', end: '16:00' }] },
+        ],
+        overrides: [],
+      },
+      'pl',
+    );
+    expect(rows).toHaveLength(7);
+    expect(rows[0]).toEqual({
+      weekday: 1,
+      name: 'poniedziałek',
+      hours: '09:00–14:00, 15:00–20:00',
+    });
+    expect(rows[1]?.hours).toBeNull();
+    expect(rows[5]).toMatchObject({ name: 'sobota', hours: '10:00–16:00' });
+    expect(rows[6]?.name).toBe('niedziela');
+  });
+
+  it('whole days off: the end is the next midnight', () => {
+    expect(daysOff('2026-12-24', '2026-12-26')).toEqual({
+      start: '2026-12-24T00:00',
+      end: '2026-12-27T00:00',
+    });
+    expect(daysOff('2026-12-24', '2026-12-24')).toEqual({
+      start: '2026-12-24T00:00',
+      end: '2026-12-25T00:00',
+    });
+    expect(daysOff('2026-12-24', '2026-12-23')).toBeNull();
+  });
+
+  it('describes time off in words', () => {
+    const one = timeOffText({ start: '2026-12-24T00:00', end: '2026-12-25T00:00' }, 'en');
+    expect(one).toContain('24');
+    expect(one).not.toContain('–');
+    const days = timeOffText({ start: '2026-12-24T00:00', end: '2026-12-27T00:00' }, 'en');
+    expect(days).toMatch(/24.*–.*26/);
+    expect(timeOffText({ start: '2026-12-24T10:00', end: '2026-12-24T14:00' }, 'en')).toMatch(
+      /24.* 10:00–14:00$/,
+    );
+    expect(timeOffText({ start: '2026-12-24T10:00', end: '2026-12-25T12:00' }, 'en')).toMatch(
+      /24.* 10:00 – .*25.* 12:00$/,
+    );
   });
 });

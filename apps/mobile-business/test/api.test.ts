@@ -186,4 +186,38 @@ describe('BusinessApi', () => {
       ['GET /v1/organizations/o1/locations/l1/staff', undefined, 'Bearer a3'],
     ]);
   });
+
+  it("reads a specialist's schedule and adds / removes time off", async () => {
+    const base = '/v1/organizations/o1/locations/l1/staff/s1';
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a4', 'refresh-token-0123456789qrs')],
+      [`GET ${base}/working-hours`]: () => [200, { weekly: [], overrides: [] }],
+      [`GET ${base}/time-off`]: () => [200, []],
+      [`POST ${base}/time-off`]: () => [201, { id: 't1' }],
+      [`DELETE ${base}/time-off/t1`]: () => [204],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('refresh-token-0123456789abc'),
+      fetchFn,
+    );
+    await api.restore();
+    await api.workingHours('o1', 'l1', 's1');
+    await api.timeOff('o1', 'l1', 's1');
+    await api.addTimeOff('o1', 'l1', 's1', {
+      start: '2026-12-24T00:00',
+      end: '2026-12-27T00:00',
+      note: 'Urlop',
+    });
+    await expect(api.removeTimeOff('o1', 'l1', 's1', 't1')).resolves.toBeUndefined();
+    expect(calls.slice(1).map((c) => [c.key, c.body])).toEqual([
+      [`GET ${base}/working-hours`, undefined],
+      [`GET ${base}/time-off`, undefined],
+      [
+        `POST ${base}/time-off`,
+        { start: '2026-12-24T00:00', end: '2026-12-27T00:00', note: 'Urlop' },
+      ],
+      [`DELETE ${base}/time-off/t1`, undefined],
+    ]);
+  });
 });

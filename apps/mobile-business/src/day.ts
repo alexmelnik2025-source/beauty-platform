@@ -1,4 +1,4 @@
-import type { AppointmentDetail, Calendar, StaffList } from './api';
+import type { AppointmentDetail, Calendar, StaffList, TimeOff, WorkingHours } from './api';
 
 /** Dates of the day calendar: always the salon's local date, YYYY-MM-DD. */
 
@@ -119,4 +119,60 @@ export function formatPrice(grosze: number, locale: DayLocale): string {
   return new Intl.NumberFormat(INTL_LOCALE[locale], { style: 'currency', currency: 'PLN' }).format(
     grosze / 100,
   );
+}
+
+/** "poniedziałek" … "niedziela" for ISO weekdays 1–7. */
+export function weekdayName(weekday: number, locale: DayLocale): string {
+  // 2026-11-02 is a Monday.
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: 'UTC', weekday: 'long' }).format(
+    new Date(Date.UTC(2026, 10, 1 + weekday, 12)),
+  );
+}
+
+/** Monday to Sunday with their hours, e.g. "09:00–14:00, 15:00–20:00"; null = day off. */
+export function weekRows(
+  hours: WorkingHours,
+  locale: DayLocale,
+): { weekday: number; name: string; hours: string | null }[] {
+  return [1, 2, 3, 4, 5, 6, 7].map((weekday) => {
+    const intervals = hours.weekly.find((d) => d.weekday === weekday)?.intervals ?? [];
+    return {
+      weekday,
+      name: weekdayName(weekday, locale),
+      hours: intervals.length ? intervals.map((i) => `${i.start}–${i.end}`).join(', ') : null,
+    };
+  });
+}
+
+function shortDate(date: string, locale: DayLocale): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+}
+
+/**
+ * Time off in words: whole days "śr., 24 gru – pt., 26 gru" (the end is exclusive
+ * midnight, so the last day shown is the day before), hours "śr., 24 gru 10:00–14:00".
+ */
+export function timeOffText(off: Pick<TimeOff, 'start' | 'end'>, locale: DayLocale): string {
+  const [startDate, startTime] = off.start.split('T') as [string, string];
+  const [endDate, endTime] = off.end.split('T') as [string, string];
+  if (startTime === '00:00' && endTime === '00:00') {
+    const last = addDays(endDate, -1);
+    return last === startDate
+      ? shortDate(startDate, locale)
+      : `${shortDate(startDate, locale)} – ${shortDate(last, locale)}`;
+  }
+  if (startDate === endDate) return `${shortDate(startDate, locale)} ${startTime}–${endTime}`;
+  return `${shortDate(startDate, locale)} ${startTime} – ${shortDate(endDate, locale)} ${endTime}`;
+}
+
+/** Whole days off from `from` to `to` (both included) as the API wants them. */
+export function daysOff(from: string, to: string): { start: string; end: string } | null {
+  if (to < from) return null;
+  return { start: `${from}T00:00`, end: `${addDays(to, 1)}T00:00` };
 }

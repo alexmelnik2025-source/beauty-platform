@@ -642,3 +642,16 @@ pnpm --filter @beauty/api-client generate
 - Код: `src/screens/VisitScreen.tsx`, `visitActions` / `myStaffId` / `onlyMine` в `src/day.ts`, новые вызовы в
   `src/api.ts`; тесты `test/day.test.ts`, `test/api.test.ts`; e2e — скриншоты `32a-business-app-staff-visit`,
   `33a-business-app-owner-visit`.
+
+## Бизнес-приложение: «Mój grafik» (задача 11a, часть 6)
+
+- В календаре дня у того, кто сам работает специалистом (аккаунт привязан к мастеру), есть ссылка «Mój grafik»:
+  часы работы по дням недели (выходные — «wolne»), особые дни и список отгулов/отпусков.
+- Мастер только смотрит («Grafik zmienia właściciel lub menedżer salonu.») — сервер и так разрешает менять график
+  только владельцу и менеджеру. Владелец или менеджер, который сам стрижёт, может здесь добавить отгул на целые
+  дни («Od» / «Do» кнопками ‹ ›, причина) и удалить отгул с подтверждением; недельные часы — в кабинете («Zespół»).
+- Отгул на целые дни уходит как `YYYY-MM-DDT00:00` … следующая полночь, в поясе салона, как в кабинете.
+- Поле телефона в форме приглашения в кабинете сделано раньше (тест-фикс T8).
+- Код: `src/screens/ScheduleScreen.tsx`, `weekRows` / `timeOffText` / `daysOff` в `src/day.ts`, вызовы
+  `workingHours` / `timeOff` / `addTimeOff` / `removeTimeOff` в `src/api.ts`; тесты в `test/`; e2e — скриншот
+  `32b-business-app-staff-schedule`.

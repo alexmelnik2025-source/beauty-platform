@@ -18,6 +18,9 @@ import type {
 export type Locale = 'pl' | 'uk' | 'ru' | 'en';
 export type LocationList = components['schemas']['LocationList'];
 export type StaffList = components['schemas']['StaffList'];
+export type WorkingHours = components['schemas']['WorkingHours'];
+export type TimeOff = components['schemas']['TimeOff'];
+export type TimeOffList = components['schemas']['TimeOffList'];
 export type { AppointmentDetail, Calendar, Location, LoginCodeSent, Me, PermissionCatalog, Tokens };
 
 /** Where the refresh token lives: Keychain/Keystore on phones, browser storage in the web preview. */
@@ -134,6 +137,36 @@ export class BusinessApi {
     );
   }
 
+  /** A specialist's weekly hours and special days (location-local times). */
+  workingHours(orgId: string, locationId: string, staffId: string): Promise<WorkingHours> {
+    return this.authed<WorkingHours>(
+      'GET',
+      `${staffPath(orgId, locationId, staffId)}/working-hours`,
+    );
+  }
+
+  /** Current and future time off of a specialist. */
+  timeOff(orgId: string, locationId: string, staffId: string): Promise<TimeOffList> {
+    return this.authed<TimeOffList>('GET', `${staffPath(orgId, locationId, staffId)}/time-off`);
+  }
+
+  /** Owner or manager only (the server checks): location-local 'YYYY-MM-DDTHH:mm'. */
+  addTimeOff(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    body: { start: string; end: string; note?: string },
+  ): Promise<TimeOff> {
+    return this.authed<TimeOff>('POST', `${staffPath(orgId, locationId, staffId)}/time-off`, body);
+  }
+
+  removeTimeOff(orgId: string, locationId: string, staffId: string, id: string): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `${staffPath(orgId, locationId, staffId)}/time-off/${enc(id)}`,
+    );
+  }
+
   /** One visit with its history; client contacts only when the person may see them. */
   appointment(orgId: string, locationId: string, id: string): Promise<AppointmentDetail> {
     return this.authed<AppointmentDetail>('GET', appointmentPath(orgId, locationId, id));
@@ -233,5 +266,7 @@ export class BusinessApi {
 }
 
 const enc = encodeURIComponent;
+const staffPath = (orgId: string, locationId: string, staffId: string) =>
+  `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff/${enc(staffId)}`;
 const appointmentPath = (orgId: string, locationId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments/${enc(id)}`;
