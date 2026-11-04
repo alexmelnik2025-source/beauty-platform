@@ -1128,6 +1128,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText(/Odwołać lub zmienić online możesz do/)).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Umów ponownie' })).toBeVisible();
     await shot(phone, '59-client-app-visit');
+    // "Add to calendar" (task 22): the app gets a link to the visit's .ics file and opens it.
+    const [calendarLink] = await Promise.all([
+      phone.waitForResponse((r) => r.url().endsWith('/calendar-link')),
+      phone.getByRole('button', { name: 'Dodaj do kalendarza' }).click(),
+    ]);
+    const { url: icsUrl } = (await calendarLink.json()) as { url: string };
+    const appIcs = await phone.request.get(icsUrl);
+    expect(appIcs.headers()['content-type']).toContain('text/calendar');
+    expect(await appIcs.text()).toContain('SUMMARY:Strzyżenie męskie');
+    for (const extra of phone.context().pages()) if (extra !== phone) await extra.close();
     // Change time: the same specialist's free days and times, then a question before moving.
     await phone.getByRole('button', { name: 'Zmień termin' }).click();
     await expect(phone.getByRole('heading', { name: 'Wybierz nowy termin' })).toBeVisible();

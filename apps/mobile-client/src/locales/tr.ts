@@ -69,6 +69,7 @@ export const tr: Dictionary = {
     cancelYes: 'Evet, iptal et',
     cancelled: 'Randevu iptal edildi.',
     callSalon: 'Salonu ara',
+    addToCalendar: 'Takvime ekle',
     bookAgain: 'Tekrar randevu al',
     bookAgainHint: 'Aynı hizmet ve uzman — sadece saati seçin.',
     tooLate: 'İnternetten değiştirmek için artık çok geç. Lütfen salonu arayın.',
