@@ -107,11 +107,8 @@ async function signIn(email: string): Promise<{ Authorization: string }> {
 }
 
 async function myData(email: string): Promise<ClientExportResponse> {
-  const res = await ctx
-    .http()
-    .get('/v1/client/export')
-    .set(await signIn(email))
-    .expect(200);
+  const auth = await signIn(email);
+  const res = await ctx.http().get('/v1/client/export').set(auth).expect(200);
   expectShape('ClientDataExport', res.body);
   return res.body as ClientExportResponse;
 }
