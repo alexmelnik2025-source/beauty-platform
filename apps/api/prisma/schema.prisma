@@ -454,6 +454,10 @@ model Location {
   /// Task 164: minutes a freed time is held for the first client on the waiting list; 0 = off
   /// (everyone waiting that day gets one email with the free times, as in task 50).
   waitlistHoldMinutes         Int          @default(0) @map("waitlist_hold_minutes")
+  /// Task 165c: "time for your next visit" email this many days after the client's last visit; 0 = off.
+  rebookReminderDays          Int          @default(0) @map("rebook_reminder_days")
+  /// Task 165c: the salon's own words for that email; null = the platform's text.
+  rebookReminderText          String?      @map("rebook_reminder_text")
   onlineBookingEnabled        Boolean      @default(false) @map("online_booking_enabled")
   /// Task 80: questions on the last booking step, each switched on by the salon.
   askMood                     Boolean      @default(true) @map("ask_mood")
