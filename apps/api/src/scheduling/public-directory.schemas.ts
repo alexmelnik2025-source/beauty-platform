@@ -1,9 +1,11 @@
 import { z } from 'zod';
-import { languageSchema } from '../common/enums.schemas';
+import { languageSchema, specialtySchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
 
 export const publicDirectoryQuerySchema = z.strictObject({
   language: languageSchema.optional(),
+  /** Task 160: the kind of place — salons where an active specialist does this. */
+  specialty: specialtySchema.optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(12),
 });
@@ -28,8 +30,18 @@ export const publicDirectorySchema = responseSchema(
          * counting each specialist's own price; free services are left out. Null when every service is free.
          */
         priceFromGrosze: z.number().int().nullable(),
+        /** Task 160: how many active specialists speak the `language` asked for; null without it. */
+        staffSpeaking: z.number().int().nullable(),
+        /** Task 160: what its active specialists do (the kind of place: barber, nails…). */
+        specialties: z.array(specialtySchema),
+        /** Task 160: the salon's first photo for the map's card; null without photos. */
+        photoUrl: z.string().nullable(),
       }),
     ),
+    /** Task 160: salons per spoken language, with the other filters (the "UA (12)" chips). */
+    languageCounts: z.record(languageSchema, z.number().int()),
+    /** Task 160: salons per kind of place, with the language filter. */
+    specialtyCounts: z.record(specialtySchema, z.number().int()),
     page: z.number().int(),
     pageSize: z.number().int(),
     total: z.number().int(),

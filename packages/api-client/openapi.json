@@ -3956,6 +3956,24 @@
             }
           },
           {
+            "name": "specialty",
+            "required": false,
+            "in": "query",
+            "description": "Kind of place: one of its active staff members does it (task 160)",
+            "schema": {
+              "enum": [
+                "hairdresser",
+                "barber",
+                "nails",
+                "cosmetologist",
+                "brows_lashes",
+                "makeup",
+                "massage"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "language",
             "required": false,
             "in": "query",
@@ -18591,6 +18609,31 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "staffSpeaking": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "specialties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "hairdresser",
+                      "barber",
+                      "nails",
+                      "cosmetologist",
+                      "brows_lashes",
+                      "makeup",
+                      "massage"
+                    ]
+                  }
+                },
+                "photoUrl": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
@@ -18603,10 +18646,45 @@
                 "latitude",
                 "longitude",
                 "currency",
-                "priceFromGrosze"
+                "priceFromGrosze",
+                "staffSpeaking",
+                "specialties",
+                "photoUrl"
               ],
               "additionalProperties": false
             }
+          },
+          "languageCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "required": [
+              "pl",
+              "uk",
+              "ru",
+              "be",
+              "en"
+            ]
+          },
+          "specialtyCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "required": [
+              "hairdresser",
+              "barber",
+              "nails",
+              "cosmetologist",
+              "brows_lashes",
+              "makeup",
+              "massage"
+            ]
           },
           "page": {
             "type": "integer",
@@ -18631,6 +18709,8 @@
         },
         "required": [
           "items",
+          "languageCounts",
+          "specialtyCounts",
           "page",
           "pageSize",
           "total",

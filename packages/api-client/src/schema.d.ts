@@ -4751,7 +4751,16 @@ export interface components {
                 longitude: number | null;
                 currency: string;
                 priceFromGrosze: number | null;
+                staffSpeaking: number | null;
+                specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
+                photoUrl: string | null;
             }[];
+            languageCounts: {
+                [key: string]: number;
+            };
+            specialtyCounts: {
+                [key: string]: number;
+            };
             page: number;
             pageSize: number;
             total: number;
@@ -7021,6 +7030,8 @@ export interface operations {
             query?: {
                 pageSize?: number;
                 page?: number;
+                /** @description Kind of place: one of its active staff members does it (task 160) */
+                specialty?: "hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage";
                 /** @description Spoken by the salon or by one of its staff members */
                 language?: "pl" | "uk" | "ru" | "be" | "en";
             };

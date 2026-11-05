@@ -148,13 +148,89 @@ describe('public salon directory', () => {
       where: { locationId: salon.locationId },
       data: { active: false },
     });
-    await ctx.http().get('/v1/public/locations').query({ language: 'en' }).expect(200, {
-      items: [],
-      page: 1,
-      pageSize: 12,
-      total: 0,
-      pageCount: 0,
+    const none = await ctx.http().get('/v1/public/locations').query({ language: 'en' }).expect(200);
+    expect(none.body).toMatchObject({ items: [], page: 1, pageSize: 12, total: 0, pageCount: 0 });
+    // Nobody active is left: the salon is not bookable, so it counts nowhere.
+    expect(none.body.languageCounts).toEqual({ pl: 0, uk: 0, ru: 0, be: 0, en: 0 });
+  });
+
+  it('counts salons per language and kind of place, and specialists speaking the language (task 160)', async () => {
+    const owner = await signUp(ctx, 'map-chips@example.com');
+    const barber = await createOrgWithLocation(ctx, owner, 'Barber UA');
+    const nails = await createOrgWithLocation(ctx, owner, 'Nails PL');
+    await makeBookable(owner, barber, ['uk', 'pl']);
+    await makeBookable(owner, nails, ['pl']);
+    // A second Ukrainian-speaking barber, and the kinds of place.
+    const base = `/v1/organizations/${barber.orgId}/locations/${barber.locationId}`;
+    const serviceId = (
+      await ctx.prisma.service.findFirstOrThrow({ where: { locationId: barber.locationId } })
+    ).id;
+    await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Taras', serviceIds: [serviceId], languages: ['uk'] })
+      .expect(201);
+    await ctx.prisma.staffMember.updateMany({
+      where: { locationId: barber.locationId },
+      data: { specialties: ['barber'] },
     });
+    await ctx.prisma.staffMember.updateMany({
+      where: { locationId: nails.locationId },
+      data: { specialties: ['nails'] },
+    });
+    for (const salon of [barber, nails]) {
+      await ctx.prisma.location.update({
+        where: { id: salon.locationId },
+        data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, languages: ['pl'] },
+      });
+    }
+    const photo = await ctx.prisma.photo.create({
+      data: {
+        locationId: nails.locationId,
+        contentType: 'image/jpeg',
+        sizeBytes: 3,
+        data: Buffer.from([1, 2, 3]),
+      },
+    });
+
+    const all = await ctx.http().get('/v1/public/locations').expect(200);
+    expect(
+      registeredResponseSchema('PublicSalonDirectory').safeParse(all.body).error?.issues ?? [],
+    ).toEqual([]);
+    expect(all.body.languageCounts).toEqual({ pl: 2, uk: 1, ru: 0, be: 0, en: 0 });
+    expect(all.body.specialtyCounts).toMatchObject({ barber: 1, nails: 1, hairdresser: 0 });
+    const bySlug = (body: { items: { slug: string }[] }, slug: string) =>
+      body.items.find((s) => s.slug === slug) as Record<string, unknown>;
+    expect(bySlug(all.body, barber.slug)).toMatchObject({
+      staffSpeaking: null,
+      specialties: ['barber'],
+      photoUrl: null,
+    });
+    expect(bySlug(all.body, nails.slug)).toMatchObject({
+      specialties: ['nails'],
+      photoUrl: `/v1/public/photos/${photo.id}`,
+    });
+
+    // Ukrainian: only the barber, two of its specialists speak it.
+    const ukrainian = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ language: 'uk' })
+      .expect(200);
+    expect(ukrainian.body.items).toHaveLength(1);
+    expect(bySlug(ukrainian.body, barber.slug)).toMatchObject({ staffSpeaking: 2 });
+    expect(ukrainian.body.specialtyCounts).toMatchObject({ barber: 1, nails: 0 });
+
+    // Nails: the language chips count only nail salons.
+    const nailSalons = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ specialty: 'nails' })
+      .expect(200);
+    expect(nailSalons.body.items.map((s: { slug: string }) => s.slug)).toEqual([nails.slug]);
+    expect(nailSalons.body.languageCounts).toEqual({ pl: 1, uk: 0, ru: 0, be: 0, en: 0 });
+    await ctx.http().get('/v1/public/locations').query({ specialty: 'tattoo' }).expect(400);
   });
 
   it("shows the lowest price a client can book, counting specialists' own prices (task 91)", async () => {
