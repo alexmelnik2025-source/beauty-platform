@@ -259,7 +259,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     await expect(app.getByText('opłacone wizyty: 3')).toBeVisible();
     await expect(app.getByText(/240,00\s*zł/)).toBeVisible();
-    await expect(app.getByText('Ilian')).toBeVisible();
+    await expect(app.getByText('Ilian').first()).toBeVisible();
     await expect(app.getByText(/150,00\s*zł/)).toBeVisible();
     await shot(app, '75-business-app-reports');
     // Monday to Sunday in the app too (task 32).

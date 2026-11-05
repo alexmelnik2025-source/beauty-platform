@@ -87,7 +87,8 @@ describe('Dziennik zmian', () => {
     const updated = items.find((i) => i.action === 'service.updated')!;
     expect(updated.entityName).toBe('Strzyżenie męskie');
     expect(updated.fields).toEqual(expect.arrayContaining(['name', 'priceGrosze']));
-    expect(JSON.stringify(res.body)).not.toContain('9900');
+    // Not as a number or text of its own (a random id may contain the digits 9900).
+    expect(JSON.stringify(res.body)).not.toMatch(/(?<![\w-])9900(?![\w-])/);
     expect(res.body.next).toBeNull();
   });
 
