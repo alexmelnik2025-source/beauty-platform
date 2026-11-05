@@ -326,7 +326,7 @@ export class PublicBookingService {
     const contact = hold.holdContact as unknown as HoldContact;
     // An SMS code confirms the phone, not the email address.
     const emailConfirmed = contact.codeChannel !== 'sms';
-    await this.checkGuard(hold, contact, emailConfirmed);
+    const needsApproval = await this.checkGuard(hold, contact, emailConfirmed);
     const manageToken = generateToken();
     // Task 80: only answers to questions this salon asks.
     const wishes = acceptedWishes(hold.location, input.wishes);
@@ -383,7 +383,11 @@ export class PublicBookingService {
       });
       const appointment = await tx.appointment.update({
         where: { id: hold.id },
-        data: { customerId: customer.id, ...wishes },
+        data: {
+          customerId: customer.id,
+          ...wishes,
+          ...(needsApproval ? { approvalRequestedAt: new Date() } : {}),
+        },
         include: { location: true, service: true, staff: true },
       });
       await tx.verificationCode.delete({ where: { id: code.id } });
@@ -398,8 +402,17 @@ export class PublicBookingService {
       });
       await this.writer.event(tx, appointment.id, 'confirmed', 'customer', null, {
         source: 'online',
+        ...(needsApproval ? { awaitingApproval: true } : {}),
       });
-      await this.notifyBooked(tx, appointment, 'client_confirmation', 'salon_new_booking');
+      if (needsApproval) {
+        // Task 161b: "the salon will confirm" to the client, "please confirm" to the salon; the
+        // confirmation and the reminder follow when the salon accepts the visit.
+        const payload = { appointmentId: appointment.id, version: appointment.version };
+        await this.outbox.enqueue(tx, 'client_awaiting_approval', payload);
+        await this.outbox.enqueue(tx, 'salon_approval_needed', payload);
+      } else {
+        await this.notifyBooked(tx, appointment, 'client_confirmation', 'salon_new_booking');
+      }
       // "My visits" is keyed by email: sign in only when the code went to that email.
       const clientSession =
         input.signIn && emailConfirmed
@@ -588,12 +601,13 @@ export class PublicBookingService {
    * Task 161b: a client the salon's cancellation guard marks with "phone only" or "pay the missed
    * visits first" cannot book online: the slot is let go and the client is told why. The amount is
    * shown only when the code confirmed the email (an SMS code proves the phone, not the card).
+   * With "approval" the booking goes on and waits for the salon: returns true.
    */
   private async checkGuard(
     hold: { id: string; locationId: string; location: Location },
     contact: HoldContact,
     emailConfirmed: boolean,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const customer = await this.prisma.customer.findUnique({
       where: {
         organizationId_email: {
@@ -603,9 +617,10 @@ export class PublicBookingService {
       },
       select: { id: true, anonymizedAt: true },
     });
-    if (!customer || customer.anonymizedAt) return;
+    if (!customer || customer.anonymizedAt) return false;
     const mark = await this.guard.check(hold.locationId, customer.id);
-    if (!mark || mark.action === 'approval') return;
+    if (!mark) return false;
+    if (mark.action === 'approval') return true;
     await this.prisma.appointment.updateMany({
       where: { id: hold.id, status: 'held' },
       data: { status: 'expired' },
@@ -738,6 +753,7 @@ export class PublicBookingService {
       },
       changeableUntil: new Date(until).toISOString(),
       canChange: a.status === 'confirmed' && Date.now() < until,
+      awaitingApproval: a.status === 'confirmed' && a.approvalRequestedAt !== null,
       wishes: toWishes(a),
       wishQuestions: wishQuestions(a.location),
       canChangeWishes: a.status === 'confirmed' && Date.now() < a.startAt.getTime(),

@@ -261,6 +261,7 @@ export const ru: Dict = {
       tier_discount_applied: 'Применена скидка уровня',
       tier_discount_removed: 'Скидка уровня снята',
       wishes_changed: 'Клиент изменил пожелания к визиту',
+      approved: 'Салон подтвердил запись',
     },
   },
   phone: {

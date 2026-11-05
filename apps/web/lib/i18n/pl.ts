@@ -260,6 +260,7 @@ export const pl = {
       tier_discount_applied: 'Użyto rabatu poziomu',
       tier_discount_removed: 'Zdjęto rabat poziomu',
       wishes_changed: 'Klient zmienił życzenia do wizyty',
+      approved: 'Salon przyjął rezerwację',
     },
   },
   phone: {

@@ -81,6 +81,11 @@ export const appointmentSchema = responseSchema(
     note: z.string().nullable(),
     wishes: visitWishesSchema,
     holdExpiresAt: z.string().nullable(),
+    awaitingApproval: z
+      .boolean()
+      .describe(
+        'Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it',
+      ),
     cancelledAt: z.string().nullable(),
     cancelledBy: cancelledBySchema.nullable(),
     cancelReason: z.string().nullable(),

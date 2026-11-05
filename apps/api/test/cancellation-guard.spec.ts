@@ -4,6 +4,7 @@ import {
   evaluateGuard,
   type GuardIncident,
 } from '../src/cancellation-guard/cancellation-guard.service';
+import { OutboxService } from '../src/booking/outbox.service';
 import { registeredResponseSchema } from '../src/common/openapi';
 import {
   createOrgWithLocation,
@@ -456,6 +457,128 @@ describe('cancellation guard: online booking (161b)', () => {
     expectError(res.body, 'BOOKING_PHONE_ONLY');
     // Another client books as usual.
     expect((await bookOnline({ ...ANNA, email: 'ewa@example.com' })).res.status).toBe(200);
+  });
+
+  /** Emails to this address apart from the booking codes. */
+  const subjects = (email: string) =>
+    ctx.mail
+      .allTo(email)
+      .map((m) => m.subject)
+      .filter((subject) => !subject.startsWith('Kod'));
+
+  const reminders = (appointmentId: string) =>
+    ctx.prisma.notificationOutbox.count({
+      where: {
+        type: 'client_reminder',
+        payload: { path: ['appointmentId'], equals: appointmentId },
+      },
+    });
+
+  it('keeps the time of a client marked for approval until the salon accepts the visit', async () => {
+    const outbox = ctx.app.get(OutboxService);
+    await setGuard({ maxNoShows: 1, action: 'approval' });
+    await noShow(ANNA.email, 5);
+    await outbox.drain();
+    ctx.mail.clear();
+
+    const { res, holdId } = await bookOnline();
+    expect(res.status).toBe(200);
+    expect(res.body.appointment).toMatchObject({ status: 'confirmed', awaitingApproval: true });
+    await outbox.drain();
+    expect(subjects(ANNA.email)).toEqual([
+      'Rezerwacja czeka na potwierdzenie salonu — Barber Centrum',
+    ]);
+    expect(ctx.mail.allTo(owner.email).map((m) => m.subject)).toEqual([
+      'Rezerwacja do potwierdzenia — Barber Centrum',
+    ]);
+    // The time stays taken while the salon decides.
+    const visit = await ctx
+      .http()
+      .get(`${base}/appointments/${holdId}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(visit.body).toMatchObject({ status: 'confirmed', awaitingApproval: true });
+    expect(await reminders(holdId)).toBe(0);
+
+    // A specialist without the visit in their calendar cannot accept it; nobody else's salon can.
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const strange = await createOrgWithLocation(ctx, stranger, 'Inny');
+    await ctx
+      .http()
+      .post(
+        `/v1/organizations/${strange.orgId}/locations/${strange.locationId}/appointments/${holdId}/approve`,
+      )
+      .set(stranger.auth)
+      .send({ version: visit.body.version })
+      .expect(404);
+
+    const approved = await ctx
+      .http()
+      .post(`${base}/appointments/${holdId}/approve`)
+      .set(owner.auth)
+      .send({ version: visit.body.version })
+      .expect(200);
+    expect(approved.body).toMatchObject({
+      awaitingApproval: false,
+      version: visit.body.version + 1,
+    });
+    expect(approved.body.history.map((h: { type: string }) => h.type)).toContain('approved');
+    await outbox.drain();
+    expect(subjects(ANNA.email)).toEqual([
+      'Rezerwacja czeka na potwierdzenie salonu — Barber Centrum',
+      'Wizyta potwierdzona — Barber Centrum',
+    ]);
+    expect(await reminders(holdId)).toBe(1);
+    // Accepting twice is a conflict, not a second email.
+    const again = await ctx
+      .http()
+      .post(`${base}/appointments/${holdId}/approve`)
+      .set(owner.auth)
+      .send({ version: approved.body.version });
+    expect(again.status).toBe(409);
+    expectError(again.body, 'NOT_AWAITING_APPROVAL');
+
+    // The client's link shows the visit as accepted.
+    const manage = res.body.manageToken as string;
+    const byLink = await ctx.http().get(`/v1/public/appointments/${manage}`).expect(200);
+    expect(byLink.body.awaitingApproval).toBe(false);
+  });
+
+  it('refusing a visit that waits is cancelling it with a reason', async () => {
+    const outbox = ctx.app.get(OutboxService);
+    await setGuard({ maxNoShows: 1, action: 'approval' });
+    await noShow(ANNA.email, 5);
+    const { res, holdId } = await bookOnline();
+    expect(res.body.appointment.awaitingApproval).toBe(true);
+    const byLink = await ctx
+      .http()
+      .get(`/v1/public/appointments/${res.body.manageToken}`)
+      .expect(200);
+    expect(byLink.body.awaitingApproval).toBe(true);
+    await outbox.drain();
+    ctx.mail.clear();
+    const visit = await ctx
+      .http()
+      .get(`${base}/appointments/${holdId}`)
+      .set(owner.auth)
+      .expect(200);
+    const cancelled = await ctx
+      .http()
+      .post(`${base}/appointments/${holdId}/cancel`)
+      .set(owner.auth)
+      .send({ version: visit.body.version, reason: 'Prosimy o kontakt telefoniczny' })
+      .expect(200);
+    expect(cancelled.body).toMatchObject({ status: 'cancelled', awaitingApproval: false });
+    await outbox.drain();
+    const mail = ctx.mail.lastTo(ANNA.email);
+    expect(mail?.subject).toBe('Wizyta odwołana — Barber Centrum');
+    expect(mail?.text).toContain('Prosimy o kontakt telefoniczny');
+    await ctx
+      .http()
+      .post(`${base}/appointments/${holdId}/approve`)
+      .set(owner.auth)
+      .send({ version: cancelled.body.version })
+      .expect(409);
   });
 
   it('lets everyone book while the guard is off', async () => {

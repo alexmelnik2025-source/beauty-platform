@@ -29,7 +29,10 @@ type Kind =
   | 'client_reminder'
   | 'salon_new_booking'
   | 'salon_client_cancelled'
-  | 'salon_client_rescheduled';
+  | 'salon_client_rescheduled'
+  /** Task 161b: booked by a client the cancellation guard marks; the salon has to accept it. */
+  | 'client_awaiting_approval'
+  | 'salon_approval_needed';
 
 interface Words {
   subjects: Record<Kind, string>;
@@ -59,6 +62,8 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Nowa rezerwacja online',
       salon_client_cancelled: 'Klient odwołał wizytę',
       salon_client_rescheduled: 'Klient zmienił termin wizyty',
+      client_awaiting_approval: 'Rezerwacja czeka na potwierdzenie salonu',
+      salon_approval_needed: 'Rezerwacja do potwierdzenia',
     },
     intro: {
       client_confirmation: 'Twoja wizyta jest potwierdzona.',
@@ -68,6 +73,10 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Nowa rezerwacja przez internet.',
       salon_client_cancelled: 'Klient odwołał wizytę.',
       salon_client_rescheduled: 'Klient przeniósł wizytę na nowy termin.',
+      client_awaiting_approval:
+        'Salon potwierdzi Twoją rezerwację — termin jest dla Ciebie zarezerwowany. Napiszemy, gdy salon ją przyjmie.',
+      salon_approval_needed:
+        'Klient zarezerwował wizytę online. Według zasad „Ochrona przed odwołaniami” ta wizyta czeka na potwierdzenie — przyjmij ją lub odwołaj w kalendarzu.',
     },
     service: 'Usługa',
     staff: 'Specjalista',
@@ -92,6 +101,8 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Новий онлайн-запис',
       salon_client_cancelled: 'Клієнт скасував візит',
       salon_client_rescheduled: 'Клієнт переніс візит',
+      client_awaiting_approval: 'Запис чекає на підтвердження салону',
+      salon_approval_needed: 'Запис потрібно підтвердити',
     },
     intro: {
       client_confirmation: 'Ваш візит підтверджено.',
@@ -101,6 +112,10 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Новий запис через інтернет.',
       salon_client_cancelled: 'Клієнт скасував візит.',
       salon_client_rescheduled: 'Клієнт переніс візит на інший час.',
+      client_awaiting_approval:
+        'Салон підтвердить ваш запис — час уже заброньовано для вас. Ми напишемо, коли салон його прийме.',
+      salon_approval_needed:
+        'Клієнт записався онлайн. За правилами «Захист від скасувань» цей візит чекає на підтвердження — підтвердіть або скасуйте його в календарі.',
     },
     service: 'Послуга',
     staff: 'Майстер',
@@ -125,6 +140,8 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Новая онлайн-запись',
       salon_client_cancelled: 'Клиент отменил запись',
       salon_client_rescheduled: 'Клиент перенёс запись',
+      client_awaiting_approval: 'Запись ждёт подтверждения салона',
+      salon_approval_needed: 'Запись нужно подтвердить',
     },
     intro: {
       client_confirmation: 'Ваша запись подтверждена.',
@@ -134,6 +151,10 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Новая запись через интернет.',
       salon_client_cancelled: 'Клиент отменил запись.',
       salon_client_rescheduled: 'Клиент перенёс запись на другое время.',
+      client_awaiting_approval:
+        'Салон подтвердит вашу запись — время уже забронировано для вас. Мы напишем, когда салон её примет.',
+      salon_approval_needed:
+        'Клиент записался онлайн. По правилам «Защита от отмен» этот визит ждёт подтверждения — подтвердите или отмените его в календаре.',
     },
     service: 'Услуга',
     staff: 'Мастер',
@@ -158,6 +179,8 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'New online booking',
       salon_client_cancelled: 'Client cancelled an appointment',
       salon_client_rescheduled: 'Client moved an appointment',
+      client_awaiting_approval: 'Your booking is waiting for the salon to confirm',
+      salon_approval_needed: 'Booking to confirm',
     },
     intro: {
       client_confirmation: 'Your appointment is confirmed.',
@@ -167,6 +190,10 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'A new online booking.',
       salon_client_cancelled: 'A client cancelled their appointment.',
       salon_client_rescheduled: 'A client moved their appointment.',
+      client_awaiting_approval:
+        'The salon will confirm your booking — the time is held for you. We will write when the salon accepts it.',
+      salon_approval_needed:
+        'A client booked online. Under the cancellation protection rules this visit waits for confirmation — accept or cancel it in the calendar.',
     },
     service: 'Service',
     staff: 'Specialist',
@@ -191,6 +218,8 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Yeni online rezervasyon',
       salon_client_cancelled: 'Müşteri randevuyu iptal etti',
       salon_client_rescheduled: 'Müşteri randevuyu taşıdı',
+      client_awaiting_approval: 'Rezervasyonunuz salonun onayını bekliyor',
+      salon_approval_needed: 'Onaylanacak rezervasyon',
     },
     intro: {
       client_confirmation: 'Randevunuz onaylandı.',
@@ -200,6 +229,10 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'İnternetten yeni bir rezervasyon.',
       salon_client_cancelled: 'Bir müşteri randevusunu iptal etti.',
       salon_client_rescheduled: 'Bir müşteri randevusunu başka bir saate taşıdı.',
+      client_awaiting_approval:
+        'Salon rezervasyonunuzu onaylayacak — saat sizin için ayrıldı. Salon kabul ettiğinde size yazacağız.',
+      salon_approval_needed:
+        'Bir müşteri çevrimiçi randevu aldı. İptal koruması kurallarına göre bu randevu onay bekliyor — takvimde kabul edin veya iptal edin.',
     },
     service: 'Hizmet',
     staff: 'Uzman',
@@ -224,6 +257,8 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Rezervim i ri online',
       salon_client_cancelled: 'Klienti anuloi takimin',
       salon_client_rescheduled: 'Klienti e zhvendosi takimin',
+      client_awaiting_approval: 'Rezervimi pret konfirmimin e sallonit',
+      salon_approval_needed: "Rezervim për t'u konfirmuar",
     },
     intro: {
       client_confirmation: 'Takimi juaj është konfirmuar.',
@@ -233,6 +268,10 @@ const WORDS: Record<Locale, Words> = {
       salon_new_booking: 'Një rezervim i ri përmes internetit.',
       salon_client_cancelled: 'Një klient anuloi takimin.',
       salon_client_rescheduled: 'Një klient e zhvendosi takimin në një orë tjetër.',
+      client_awaiting_approval:
+        "Salloni do ta konfirmojë rezervimin tuaj — ora është mbajtur për ju. Do t'ju shkruajmë kur salloni ta pranojë.",
+      salon_approval_needed:
+        'Një klient rezervoi online. Sipas rregullave të mbrojtjes nga anulimet, ky takim pret konfirmim — pranojeni ose anulojeni në kalendar.',
     },
     service: 'Shërbimi',
     staff: 'Specialisti',

@@ -28,6 +28,7 @@ import { AvailabilityService } from '../scheduling/availability.service';
 import { addDays, instantToLocal, localToday, zonedToInstant } from '../scheduling/time';
 import { AppointmentWriter, slotTaken, timesFor, versionConflict } from './appointment-writer';
 import type {
+  ApproveInput,
   CancelInput,
   CreateAppointmentInput,
   ListAppointmentsQuery,
@@ -372,6 +373,48 @@ export class AppointmentsService {
           reason: input.reason,
         });
       }
+    });
+    return this.get(m, userId, locationId, appointmentId);
+  }
+
+  /**
+   * Task 161b: the salon accepts a visit booked by a client its cancellation guard marks with
+   * "approval". The client then gets the usual confirmation and the reminder. To refuse the
+   * visit, the salon cancels it with a reason (the client gets the cancellation email).
+   */
+  async approve(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    input: ApproveInput,
+  ): Promise<AppointmentDetailResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    if (appointment.status !== 'confirmed' || appointment.approvalRequestedAt === null) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        'NOT_AWAITING_APPROVAL',
+        'This visit does not wait for the salon',
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.appointment.updateMany({
+        where: {
+          id: appointment.id,
+          version: input.version,
+          status: 'confirmed',
+          approvalRequestedAt: { not: null },
+        },
+        data: { approvalRequestedAt: null, version: { increment: 1 } },
+      });
+      if (result.count !== 1) throw versionConflict();
+      await this.writer.event(tx, appointment.id, 'approved', 'staff', userId);
+      await this.notifyClient(
+        tx,
+        { ...appointment, version: input.version + 1 },
+        'client_confirmation',
+      );
     });
     return this.get(m, userId, locationId, appointmentId);
   }
@@ -862,6 +905,7 @@ export class AppointmentsService {
       note: a.note,
       wishes: toWishes(a),
       holdExpiresAt: a.holdExpiresAt?.toISOString() ?? null,
+      awaitingApproval: a.status === 'confirmed' && a.approvalRequestedAt !== null,
       cancelledAt: a.cancelledAt?.toISOString() ?? null,
       cancelledBy: a.cancelledBy,
       cancelReason: a.cancelReason,

@@ -70,6 +70,11 @@ export const publicAppointmentSchema = responseSchema(
       }),
       changeableUntil: z.string().describe('Until when the client can still move or cancel online'),
       canChange: z.boolean(),
+      awaitingApproval: z
+        .boolean()
+        .describe(
+          'Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard)',
+        ),
       wishes: visitWishesSchema,
       wishQuestions: wishQuestionsSchema,
       canChangeWishes: z
