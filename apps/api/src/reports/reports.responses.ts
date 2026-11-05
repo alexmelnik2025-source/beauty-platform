@@ -78,6 +78,30 @@ export const salonReportSchema = responseSchema(
         clients: z.number().int(),
       })
       .describe('The same number of days just before the period, to compare with'),
+    occupancy: z
+      .strictObject({
+        workMinutes: z
+          .number()
+          .int()
+          .describe('Working time by the schedule, minus vacations and blocked time'),
+        bookedMinutes: z
+          .number()
+          .int()
+          .describe('Part of the working time taken by visits that were not cancelled'),
+        percent: z.number().int().describe('bookedMinutes of workMinutes, 0–100'),
+        staff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              displayName: z.string(),
+              workMinutes: z.number().int(),
+              bookedMinutes: z.number().int(),
+              percent: z.number().int(),
+            }),
+          )
+          .describe('Specialists with working time or visits in the period, busiest first'),
+      })
+      .describe('Task 141: how busy the specialists were ("Obłożenie")'),
   }),
 );
 

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
+import { occupancy } from '../src/reports/occupancy';
 import { visitsCsv } from '../src/reports/visits-csv';
 import { addDays, isoWeekday, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
@@ -246,6 +247,105 @@ describe('salon report', () => {
     expect(own.body.scope).toBe('own');
     expect(own.body.totals).toMatchObject({ completed: 1, revenueGrosze: 8000 });
     expect(own.body.staff.map((s: { id: string }) => s.id)).toEqual([kasiaId]);
+  });
+
+  it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {
+    const d1 = addDays(today, -5);
+    const d2 = addDays(today, -2);
+    // Kasia works 10:00–18:00 every day; on d2 only 12:00–14:00 (special day).
+    await ctx.prisma.workingHours.createMany({
+      data: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+        staffId: kasiaId,
+        weekday,
+        startMinute: 10 * 60,
+        endMinute: 18 * 60,
+      })),
+    });
+    await ctx.prisma.workingHoursOverride.create({
+      data: {
+        staffId: kasiaId,
+        date: new Date(`${d2}T00:00:00Z`),
+        startMinute: 12 * 60,
+        endMinute: 14 * 60,
+      },
+    });
+    // A day of vacation and a blocked hour for the whole salon on d1, 16:00–17:00.
+    const vacation = addDays(today, -7);
+    await ctx.prisma.timeOff.create({
+      data: {
+        staffId: kasiaId,
+        startsAt: new Date(zonedToInstant(vacation, 0, TZ)),
+        endsAt: new Date(zonedToInstant(addDays(vacation, 1), 0, TZ)),
+      },
+    });
+    await ctx.prisma.timeBlock.create({
+      data: {
+        locationId,
+        startAt: new Date(zonedToInstant(d1, 16 * 60, TZ)),
+        endAt: new Date(zonedToInstant(d1, 17 * 60, TZ)),
+      },
+    });
+    // Visits at 12:00 for 30 minutes: came, did not come, cancelled (does not count).
+    await visit({ date: d1, status: 'completed', paid: true });
+    await visit({ date: d2, status: 'no_show' });
+    await visit({ date: d2, status: 'cancelled' });
+    // Ola has no schedule but a visit: she is listed with 0%.
+    await visit({ date: d1, staffId: olaId, status: 'completed' });
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    // 11 days: 10 × 8 h + 2 h (special day) − 8 h (vacation) − 1 h (blocked) = 73 h.
+    const work = (10 * 8 + 2 - 8 - 1) * 60;
+    expect(res.body.occupancy).toEqual({
+      workMinutes: work,
+      bookedMinutes: 60,
+      percent: Math.round((60 / work) * 100),
+      staff: [
+        {
+          id: kasiaId,
+          displayName: 'Kasia',
+          workMinutes: work,
+          bookedMinutes: 60,
+          percent: Math.round((60 / work) * 100),
+        },
+        { id: olaId, displayName: 'Ola', workMinutes: 0, bookedMinutes: 0, percent: 0 },
+      ],
+    });
+
+    // A specialist with their own report sees only their own line.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.occupancy.staff.map((s: { id: string }) => s.id)).toEqual([kasiaId]);
+    expect(own.body.occupancy.workMinutes).toBe(work);
+  });
+
+  it('occupancy: overlapping visits count once, visits outside hours do not count', () => {
+    const day = '2026-11-02'; // Monday
+    const at = (minute: number) => zonedToInstant(day, minute, TZ);
+    const result = occupancy(
+      {
+        weekly: new Map([[1, [{ startMinute: 9 * 60, endMinute: 17 * 60 }]]]),
+        overrides: new Map(),
+        away: [{ start: at(12 * 60), end: at(13 * 60) }],
+      },
+      [
+        { start: at(9 * 60), end: at(10 * 60) },
+        { start: at(9 * 60 + 30), end: at(10 * 60 + 30) },
+        // Over lunch (blocked) and after closing: only working minutes count.
+        { start: at(12 * 60 + 30), end: at(13 * 60 + 30) },
+        { start: at(17 * 60), end: at(18 * 60) },
+      ],
+      day,
+      '2026-11-03',
+      TZ,
+    );
+    // Monday 9–17 minus lunch; Tuesday has no hours.
+    expect(result).toEqual({ workMinutes: 7 * 60, bookedMinutes: 90 + 30 });
   });
 
   it('other salons and organizations do not exist; long or reversed periods are refused', async () => {
