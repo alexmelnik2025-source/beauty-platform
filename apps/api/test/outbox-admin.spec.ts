@@ -119,8 +119,12 @@ describe('sending one email at a time', () => {
 
 describe('failed emails: monitoring and manual retry', () => {
   async function failCompletely(): Promise<void> {
-    // Only the confirmation should take the simulated failures, not tomorrow's reminder.
-    await ctx.prisma.notificationOutbox.deleteMany({ where: { type: 'client_reminder' } });
+    // Only the confirmation should take the simulated failures, not tomorrow's reminder or any
+    // other queued email: rows made in the same millisecond are claimed in random order, and
+    // another row taking some of the failures left the confirmation "pending" (flaky in CI).
+    await ctx.prisma.notificationOutbox.deleteMany({
+      where: { type: { not: 'client_confirmation' } },
+    });
     ctx.mail.failNext(5, 'Mailbox anna@example.com rejected the message');
     for (let i = 0; i < 5; i += 1) {
       await makeQueueDue();
