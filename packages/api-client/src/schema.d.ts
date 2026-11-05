@@ -1767,6 +1767,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop the salon’s messages (withdraws the marketing consent)
+         * @description 404 NOT_FOUND for a changed or made-up link. Using the link twice is fine.
+         */
+        post: operations["RebookReminderController_unsubscribe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/loyalty/program": {
         parameters: {
             query?: never;
@@ -3994,6 +4014,10 @@ export interface components {
             clientCancelDeadlineMinutes: number;
             /** @description The reminder email goes this many hours before the visit; 0 = none */
             reminderHoursBefore: number;
+            /** @description Task 165c: "time for your next visit" email this many days after the last visit; 0 = off */
+            rebookReminderDays: number;
+            /** @description Task 165c: the salon’s own words for that email; null = the platform’s text */
+            rebookReminderText: string | null;
             onlineBookingEnabled: boolean;
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
@@ -4038,6 +4062,10 @@ export interface components {
             clientCancelDeadlineMinutes: number;
             /** @description The reminder email goes this many hours before the visit; 0 = none */
             reminderHoursBefore: number;
+            /** @description Task 165c: "time for your next visit" email this many days after the last visit; 0 = off */
+            rebookReminderDays: number;
+            /** @description Task 165c: the salon’s own words for that email; null = the platform’s text */
+            rebookReminderText: string | null;
             onlineBookingEnabled: boolean;
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
@@ -5198,6 +5226,10 @@ export interface components {
         UnreadCount: {
             unread: number;
         };
+        Unsubscribed: {
+            /** @description The salon that will no longer send such messages */
+            salonName: string;
+        };
         User: {
             id: string;
             email: string;
@@ -5795,6 +5827,9 @@ export interface operations {
                     clientCancelDeadlineMinutes?: number;
                     /** @default 24 */
                     reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
+                    /** @default 0 */
+                    rebookReminderDays?: number;
+                    rebookReminderText?: string | null;
                     /** @default false */
                     onlineBookingEnabled?: boolean;
                     /** @default true */
@@ -5874,6 +5909,8 @@ export interface operations {
                     bookingHorizonDays?: number;
                     clientCancelDeadlineMinutes?: number;
                     reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
+                    rebookReminderDays?: number;
+                    rebookReminderText?: string | null;
                     onlineBookingEnabled?: boolean;
                     askMood?: boolean;
                     askDrink?: boolean;
@@ -8580,6 +8617,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VisitPhotoList"];
+                };
+            };
+        };
+    };
+    RebookReminderController_unsubscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description From the "unsubscribe" link of the email */
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unsubscribed"];
                 };
             };
         };

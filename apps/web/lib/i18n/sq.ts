@@ -363,4 +363,10 @@ export const sq: Dict = {
     acceptPrivacy: 'politikën e privatësisë',
     acceptAfter: ' të sallonit.',
   },
+  unsubscribe: {
+    title: 'Mesazhe nga salloni',
+    lead: 'Nuk dëshironi kujtesa dhe lajme nga salloni? Një klikim dhe salloni ndalon t’i dërgojë. Konfirmimet e rezervimeve tuaja vazhdojnë të vijnë.',
+    button: 'Çregjistrohu',
+    done: 'U krye — {salon} nuk do t’ju dërgojë më mesazhe të tilla.',
+  },
 };

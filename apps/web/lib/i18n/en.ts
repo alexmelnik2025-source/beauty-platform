@@ -868,6 +868,13 @@ export const en: Dict = {
     currency: 'Price currency',
     currencyHint:
       'Service prices and loyalty program amounts are in this currency. Changing it does not convert prices — correct them in “Services”.',
+    rebookTitle: 'Time for the next visit',
+    rebookOn: 'Send clients a “Time for your next visit?” reminder',
+    rebookDays: 'Days after the last visit',
+    rebookText: 'Your own text (optional)',
+    rebookTextPlaceholder: 'E.g. It’s been a while — come in for a fresh cut!',
+    rebookHint:
+      'One email after each visit, from the salon, with a link to book the same specialist. Only to clients who agreed to the salon’s messages and have nothing booked ahead. Every email has an unsubscribe link.',
   },
   loyalty: {
     title: 'Loyalty program',
@@ -1084,5 +1091,11 @@ export const en: Dict = {
     weekdayHint: 'Weak days show at once — a promotion or a shorter schedule may help.',
     compared:
       'Change in % — compared with the same number of days before ({from} – {to}: {revenue}, completed visits: {visits}).',
+  },
+  unsubscribe: {
+    title: 'Messages from the salon',
+    lead: 'Don’t want reminders and news from the salon? One click and the salon stops sending them. Confirmations of your bookings still come.',
+    button: 'Unsubscribe',
+    done: 'Done — {salon} will no longer send you messages like this.',
   },
 };
