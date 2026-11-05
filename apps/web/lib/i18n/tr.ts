@@ -73,6 +73,14 @@ export const tr: Dict = {
   phone: {
     country: 'Ülke kodu',
   },
+  seo: {
+    catalogTitle: 'Online randevulu salonlar',
+    catalogDescription:
+      'Berber, kuaför veya güzellik salonu bulun ve online randevu alın — telefon etmeden.',
+    salonTitle: '{name} — {city} · online randevu',
+    salonDescription:
+      '{name} ({address}, {city}) için online randevu alın: hizmeti, uzmanı ve boş saati seçin.',
+  },
   appointment: {
     ...en.appointment,
     status: {

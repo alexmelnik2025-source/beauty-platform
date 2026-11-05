@@ -71,6 +71,10 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: '3000'
+      # Server-side pages (link previews, sitemap.xml) read the salon from the API directly.
+      API_URL: http://api:4000
+      APP_WEB_URL: ${APP_WEB_URL:?Set APP_WEB_URL in .env}
+      PUBLIC_INDEXING: ${PUBLIC_INDEXING:-0}
     ports:
       - '${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-3000}:3000'
     depends_on:

@@ -73,6 +73,14 @@ export const sq: Dict = {
   phone: {
     country: 'Kodi i shtetit',
   },
+  seo: {
+    catalogTitle: 'Salone me rezervim online',
+    catalogDescription:
+      'Gjeni një berber, parukeri ose sallon bukurie dhe rezervoni online — pa telefonata.',
+    salonTitle: '{name} — {city} · rezervim online',
+    salonDescription:
+      'Rezervoni një vizitë te {name} ({address}, {city}) online: zgjidhni shërbimin, specialistin dhe orarin e lirë.',
+  },
   appointment: {
     ...en.appointment,
     status: {
