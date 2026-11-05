@@ -2437,3 +2437,88 @@ ul.wish-photos {
     0 0 0 2px var(--paper),
     0 0 0 4px #1f9d55;
 }
+
+/* Task 142: "Drukuj plan dnia" — the day of every specialist on paper. */
+.day-plan {
+  display: grid;
+  gap: 16px;
+  background: var(--card, #fff);
+}
+.day-plan__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 6px;
+}
+.day-plan__head h2 {
+  margin: 0;
+  text-transform: capitalize;
+}
+.day-plan__staff {
+  break-inside: avoid;
+}
+.day-plan__staff h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+.day-plan__hours {
+  font-weight: 400;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+.day-plan__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.day-plan__table th,
+.day-plan__table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line, #ddd);
+}
+.day-plan__table td:first-child {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.day-plan__block td {
+  font-style: italic;
+  opacity: 0.75;
+}
+.day-plan__phone {
+  white-space: nowrap;
+  opacity: 0.8;
+}
+.day-plan__tag {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html.print-plan body * {
+    visibility: hidden;
+  }
+
+  html.print-plan .day-plan,
+  html.print-plan .day-plan * {
+    visibility: visible;
+  }
+
+  html.print-plan .day-plan {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    color: #000;
+    background: #fff;
+    font-size: 10.5pt;
+  }
+}

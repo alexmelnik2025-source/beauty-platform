@@ -201,6 +201,16 @@ export function Calendar() {
         >
           ›
         </button>
+        <a
+          className="btn btn--quiet btn--small hide-mobile"
+          href={`/${locale}/app/calendar/print?date=${date}`}
+          target="_blank"
+          rel="noopener"
+          title={t.dayPlan.open}
+          aria-label={t.dayPlan.open}
+        >
+          🖨
+        </a>
         <button
           type="button"
           className="btn btn--quiet btn--small hide-mobile"
