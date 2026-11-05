@@ -1,0 +1,392 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  DEFAULT_GUARD,
+  evaluateGuard,
+  type GuardIncident,
+} from '../src/cancellation-guard/cancellation-guard.service';
+import { registeredResponseSchema } from '../src/common/openapi';
+import {
+  createOrgWithLocation,
+  createTestApp,
+  expectError,
+  signUp,
+  resetState,
+  type SignedInUser,
+  type TestContext,
+} from './helpers';
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+let ctx: TestContext;
+let owner: SignedInUser;
+let staffUser: SignedInUser;
+let orgId: string;
+let base: string;
+let guardUrl: string;
+let serviceId: string;
+let staffId: string;
+let slot = 0;
+
+beforeAll(async () => {
+  ctx = await createTestApp();
+});
+
+afterAll(async () => {
+  await ctx.app.close();
+});
+
+beforeEach(async () => {
+  await resetState(ctx);
+  slot = 0;
+  owner = await signUp(ctx, 'owner@example.com');
+  let locationId: string;
+  ({ orgId, locationId } = await createOrgWithLocation(ctx, owner, 'Barber'));
+  base = `/v1/organizations/${orgId}/locations/${locationId}`;
+  guardUrl = `${base}/cancellation-guard`;
+  serviceId = (
+    await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(owner.auth)
+      .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 })
+      .expect(201)
+  ).body.id;
+  staffId = (
+    await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Kasia', serviceIds: [serviceId] })
+      .expect(201)
+  ).body.id;
+  staffUser = await signUp(ctx, 'kasia@example.com');
+  await ctx.prisma.membership.create({
+    data: {
+      userId: staffUser.userId,
+      organizationId: orgId,
+      role: 'staff',
+      locations: { create: [{ locationId }] },
+    },
+  });
+});
+
+/** A visit booked by the salon for the client with this email; returns its id and client. */
+async function book(
+  email: string,
+  name = 'Jan Nowak',
+): Promise<{ id: string; customerId: string }> {
+  slot += 1;
+  const start = new Date(Math.ceil(Date.now() / HOUR) * HOUR + 3 * DAY + slot * HOUR);
+  const res = await ctx
+    .http()
+    .post(`${base}/appointments`)
+    .set(owner.auth)
+    .send({
+      serviceId,
+      staffId,
+      start: start.toISOString(),
+      allowOutsideHours: true,
+      customer: { name, phone: `+4860000${String(1000 + slot)}`, email },
+    });
+  if (res.status !== 201) throw new Error(JSON.stringify(res.body));
+  return { id: res.body.id, customerId: res.body.customer.id };
+}
+
+/** The client cancelled (or moved) the visit at `at`; the visit was to start at `visitStart`. */
+async function clientChange(
+  email: string,
+  type: 'cancelled' | 'rescheduled',
+  at: Date,
+  visitStart = new Date(at.getTime() + 2 * DAY),
+  actor: 'customer' | 'staff' = 'customer',
+): Promise<string> {
+  const visit = await book(email);
+  await ctx.prisma.appointment.update({
+    where: { id: visit.id },
+    data: {
+      startAt: visitStart,
+      endAt: new Date(visitStart.getTime() + 30 * MINUTE),
+      blockedUntil: new Date(visitStart.getTime() + 30 * MINUTE),
+      ...(type === 'cancelled'
+        ? {
+            status: 'cancelled',
+            cancelledAt: at,
+            cancelledBy: actor === 'customer' ? 'customer' : 'salon',
+          }
+        : {}),
+    },
+  });
+  await ctx.prisma.appointmentEvent.create({
+    data: { appointmentId: visit.id, type, actor, createdAt: at },
+  });
+  return visit.customerId;
+}
+
+/** A missed visit `daysAgo` days ago. */
+async function noShow(email: string, daysAgo: number, discountGrosze = 0): Promise<string> {
+  const visit = await book(email);
+  const start = new Date(Date.now() - daysAgo * DAY);
+  await ctx.prisma.appointment.update({
+    where: { id: visit.id },
+    data: {
+      startAt: start,
+      endAt: new Date(start.getTime() + 30 * MINUTE),
+      blockedUntil: new Date(start.getTime() + 30 * MINUTE),
+      status: 'no_show',
+      discountGrosze,
+    },
+  });
+  return visit.customerId;
+}
+
+async function setGuard(settings: object, version = 0) {
+  return ctx
+    .http()
+    .put(guardUrl)
+    .set(owner.auth)
+    .send({
+      version,
+      enabled: true,
+      maxChanges: null,
+      windowHours: 720,
+      lateCancelMinutes: null,
+      maxNoShows: null,
+      action: 'phone_only',
+      ...settings,
+    })
+    .expect(200);
+}
+
+const marked = async () =>
+  (await ctx.http().get(`${guardUrl}/clients`).set(owner.auth).expect(200)).body;
+
+describe('cancellation guard: settings', () => {
+  it('is off by default, saves with versions, needs a rule and writes the change log', async () => {
+    const first = await ctx.http().get(guardUrl).set(owner.auth).expect(200);
+    expect(first.body).toEqual({
+      enabled: false,
+      maxChanges: null,
+      windowHours: 720,
+      lateCancelMinutes: null,
+      maxNoShows: null,
+      action: 'approval',
+      version: 0,
+    });
+    expect(registeredResponseSchema('CancellationGuard').safeParse(first.body).success).toBe(true);
+
+    const noRule = await ctx
+      .http()
+      .put(guardUrl)
+      .set(owner.auth)
+      .send({ ...first.body, enabled: true })
+      .expect(400);
+    expectError(noRule.body, 'VALIDATION_ERROR');
+
+    const saved = await setGuard({ maxNoShows: 2, action: 'prepay' });
+    expect(saved.body).toMatchObject({
+      enabled: true,
+      maxNoShows: 2,
+      action: 'prepay',
+      version: 1,
+    });
+
+    // Someone saved in between: the old version is refused.
+    const stale = await ctx
+      .http()
+      .put(guardUrl)
+      .set(owner.auth)
+      .send({ ...saved.body, version: 0 })
+      .expect(409);
+    expectError(stale.body, 'VERSION_CONFLICT');
+
+    const off = await ctx
+      .http()
+      .put(guardUrl)
+      .set(owner.auth)
+      .send({ ...saved.body, enabled: false })
+      .expect(200);
+    expect(off.body).toMatchObject({ enabled: false, maxNoShows: 2, version: 2 });
+
+    const log = await ctx.prisma.auditLog.findMany({
+      where: { action: 'location.cancellation_guard_set' },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(log.map((l) => l.metadata)).toEqual([
+      { fields: ['enabled', 'maxNoShows', 'action'] },
+      { fields: ['enabled'] },
+    ]);
+  });
+
+  it('is only for owners and managers', async () => {
+    await ctx.http().get(guardUrl).set(staffUser.auth).expect(403);
+    await ctx.http().get(`${guardUrl}/clients`).set(staffUser.auth).expect(403);
+    await ctx
+      .http()
+      .put(guardUrl)
+      .set(staffUser.auth)
+      .send({ ...DEFAULT_GUARD, version: 0 })
+      .expect(403);
+  });
+});
+
+describe('cancellation guard: marked clients', () => {
+  it('marks N cancellations or reschedules by the client within X hours', async () => {
+    await setGuard({ maxChanges: 2, windowHours: 24 });
+    const now = Date.now();
+    const jan = await clientChange('jan@example.com', 'cancelled', new Date(now - 2 * HOUR));
+    await clientChange('jan@example.com', 'rescheduled', new Date(now - 20 * HOUR));
+    // Ewa: one change in the window, one older, one cancelled by the salon — not marked.
+    await clientChange('ewa@example.com', 'cancelled', new Date(now - HOUR));
+    await clientChange('ewa@example.com', 'cancelled', new Date(now - 30 * HOUR));
+    await clientChange('ewa@example.com', 'cancelled', new Date(now - HOUR), undefined, 'staff');
+
+    const list = await marked();
+    expect(registeredResponseSchema('GuardedClients').safeParse(list).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(list).toMatchObject({ enabled: true, action: 'phone_only', currency: 'PLN' });
+    expect(list.items).toEqual([
+      {
+        customerId: jan,
+        name: 'Jan Nowak',
+        phone: expect.any(String),
+        email: 'jan@example.com',
+        reasons: ['changes'],
+        changes: 2,
+        lateCancellations: 0,
+        noShows: 0,
+        noShowAmountGrosze: 0,
+        releasedAt: null,
+      },
+    ]);
+  });
+
+  it('marks a cancellation later than Y minutes before the visit', async () => {
+    await setGuard({ lateCancelMinutes: 120 });
+    const now = Date.now();
+    const late = await clientChange(
+      'late@example.com',
+      'cancelled',
+      new Date(now - 3 * HOUR),
+      new Date(now - 2 * HOUR),
+    );
+    // Exactly 120 minutes before is in time.
+    await clientChange(
+      'ontime@example.com',
+      'cancelled',
+      new Date(now - 4 * HOUR),
+      new Date(now - 2 * HOUR),
+    );
+    const list = await marked();
+    expect(list.items.map((c: { customerId: string }) => c.customerId)).toEqual([late]);
+    expect(list.items[0]).toMatchObject({ reasons: ['late_cancel'], lateCancellations: 1 });
+  });
+
+  it('marks M no-shows with what the missed visits cost, and lifting starts counting again', async () => {
+    await setGuard({ maxNoShows: 2, action: 'prepay' });
+    const jan = await noShow('jan@example.com', 10);
+    await noShow('jan@example.com', 3, 1000);
+    await noShow('ewa@example.com', 3);
+    // Older than a year: not counted.
+    await noShow('ewa@example.com', 400);
+
+    const list = await marked();
+    expect(list.items).toHaveLength(1);
+    expect(list.items[0]).toMatchObject({
+      customerId: jan,
+      reasons: ['no_shows'],
+      noShows: 2,
+      noShowAmountGrosze: 8000 + 7000,
+    });
+
+    const one = await ctx.http().get(`${guardUrl}/clients/${jan}`).set(owner.auth).expect(200);
+    expect(
+      registeredResponseSchema('GuardedClient').safeParse(one.body).error?.issues ?? [],
+    ).toEqual([]);
+    expect(one.body).toMatchObject({ flagged: true, action: 'prepay', noShows: 2 });
+    expect(one.body.history.map((h: { type: string }) => h.type)).toEqual(['no_show', 'no_show']);
+
+    const lifted = await ctx
+      .http()
+      .post(`${guardUrl}/clients/${jan}/release`)
+      .set(owner.auth)
+      .send({ note: 'Zapłacił 150 zł w salonie' })
+      .expect(200);
+    expect(lifted.body).toMatchObject({
+      flagged: false,
+      reasons: [],
+      noShows: 0,
+      noShowAmountGrosze: 0,
+      releasedAt: expect.any(String),
+    });
+    expect(lifted.body.history[0]).toMatchObject({
+      type: 'released',
+      note: 'Zapłacił 150 zł w salonie',
+    });
+    expect(lifted.body.history).toHaveLength(3);
+    expect((await marked()).items).toEqual([]);
+    expect(
+      await ctx.prisma.auditLog.count({
+        where: { action: 'customer.guard_released', entityId: jan },
+      }),
+    ).toBe(1);
+  });
+
+  it('shows nobody while the guard is off, but keeps the counters on the card', async () => {
+    const saved = await setGuard({ maxNoShows: 1 });
+    const jan = await noShow('jan@example.com', 2);
+    expect((await marked()).items).toHaveLength(1);
+    await ctx
+      .http()
+      .put(guardUrl)
+      .set(owner.auth)
+      .send({ ...saved.body, enabled: false })
+      .expect(200);
+    expect(await marked()).toMatchObject({ enabled: false, items: [] });
+    const card = await ctx.http().get(`${guardUrl}/clients/${jan}`).set(owner.auth).expect(200);
+    expect(card.body).toMatchObject({ enabled: false, flagged: false, noShows: 1 });
+  });
+
+  it('never shows clients of another salon', async () => {
+    await setGuard({ maxNoShows: 1 });
+    const jan = await noShow('jan@example.com', 2);
+    const other = await signUp(ctx, 'other@example.com');
+    const { orgId: otherOrg, locationId: otherLoc } = await createOrgWithLocation(
+      ctx,
+      other,
+      'Other',
+    );
+    const otherGuard = `/v1/organizations/${otherOrg}/locations/${otherLoc}/cancellation-guard`;
+    await ctx.http().get(`${otherGuard}/clients/${jan}`).set(other.auth).expect(404);
+    await ctx
+      .http()
+      .post(`${otherGuard}/clients/${jan}/release`)
+      .set(other.auth)
+      .send({})
+      .expect(404);
+    await ctx.http().get(`${guardUrl}/clients`).set(other.auth).expect(404);
+    expect(await ctx.prisma.cancellationGuardRelease.count()).toBe(0);
+  });
+});
+
+describe('evaluateGuard', () => {
+  const now = new Date('2026-11-05T12:00:00Z');
+  const change = (hoursAgo: number): GuardIncident => ({
+    type: 'rescheduled',
+    at: new Date(now.getTime() - hoursAgo * HOUR),
+    visitStart: new Date(now.getTime() + DAY),
+    appointmentId: 'a',
+    amountGrosze: 0,
+  });
+
+  it('counts the window inclusively and ignores rules left empty', () => {
+    const settings = { ...DEFAULT_GUARD, enabled: true, maxChanges: 2, windowHours: 24 };
+    expect(evaluateGuard(settings, [change(24), change(1)], now).reasons).toEqual(['changes']);
+    expect(evaluateGuard(settings, [change(25), change(1)], now).reasons).toEqual([]);
+    expect(
+      evaluateGuard({ ...settings, maxChanges: null }, [change(2), change(1)], now),
+    ).toMatchObject({ reasons: [], changes: 2 });
+  });
+});

@@ -3,6 +3,7 @@ import { AdminModule } from './admin/admin.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { AuthModule } from './auth/auth.module';
 import { BookingModule } from './booking/booking.module';
+import { CancellationGuardModule } from './cancellation-guard/cancellation-guard.module';
 import { ClientModule } from './client/client.module';
 import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
@@ -36,6 +37,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     WaitlistModule,
     AdminModule,
     AuditLogModule,
+    CancellationGuardModule,
   ],
 })
 export class AppModule {}

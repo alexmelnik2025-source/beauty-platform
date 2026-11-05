@@ -473,6 +473,8 @@ model Location {
   photos            Photo[]
   clientFavorites   ClientFavorite[]
   waitlist          WaitlistEntry[]
+  cancellationGuard CancellationGuard?
+  guardReleases     CancellationGuardRelease[]
   visitPhotos       VisitPhoto[]
 
   @@index([organizationId])
@@ -749,6 +751,7 @@ model Customer {
   appointments    Appointment[]
   consents        ConsentRecord[]
   loyaltyAccounts LoyaltyAccount[]
+  guardReleases   CancellationGuardRelease[]
 
   @@unique([organizationId, email])
   @@index([organizationId, name])
@@ -1275,4 +1278,54 @@ model WaitlistEntry {
   @@index([status, date])
   @@index([locationId, date])
   @@map("waitlist_entry")
+}
+
+/// Task 161: what happens to a client the cancellation guard has marked.
+enum CancellationGuardAction {
+  /// Online bookings wait for the salon's confirmation.
+  approval
+  /// No online booking: the client books by phone.
+  phone_only
+  /// The client pays the missed visits in the salon (no online payments yet) before booking again.
+  prepay
+
+  @@map("cancellation_guard_action")
+}
+
+/// Task 161: "Ochrona przed odwołaniami" of a location — off unless the salon turns it on.
+/// Counted from the location's visit history; a rule left empty (null) is not used.
+model CancellationGuard {
+  locationId        String                  @id @map("location_id") @db.Uuid
+  enabled           Boolean                 @default(false)
+  /// N: this many cancellations or reschedules by the client within windowHours marks them.
+  maxChanges        Int?                    @map("max_changes")
+  windowHours       Int                     @default(720) @map("window_hours")
+  /// Y: a cancellation by the client less than this many minutes before the visit marks them.
+  lateCancelMinutes Int?                    @map("late_cancel_minutes")
+  /// M: this many no-shows marks the client.
+  maxNoShows        Int?                    @map("max_no_shows")
+  action            CancellationGuardAction @default(approval)
+  version           Int                     @default(1)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@map("cancellation_guard")
+}
+
+/// Task 161: the salon lifted the guard's mark from a client; counting starts again after it.
+model CancellationGuardRelease {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  locationId       String   @map("location_id") @db.Uuid
+  customerId       String   @map("customer_id") @db.Uuid
+  releasedByUserId String?  @map("released_by_user_id") @db.Uuid
+  note             String?
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, customerId, createdAt], map: "cancellation_guard_release_lookup_idx")
+  @@index([customerId])
+  @@map("cancellation_guard_release")
 }

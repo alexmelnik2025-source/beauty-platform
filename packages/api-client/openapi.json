@@ -10014,6 +10014,304 @@
           "organizations"
         ]
       }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard": {
+      "get": {
+        "operationId": "CancellationGuardController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationGuard"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The cancellation guard settings of the location (off until the salon saves them)",
+        "tags": [
+          "clients"
+        ]
+      },
+      "put": {
+        "description": "A client is marked when, since the salon last lifted the mark: N cancellations or reschedules by the client fall within the last X hours, any cancellation comes less than Y minutes before the visit, or M visits were missed (the last 365 days count). A rule set to null is off; turning the guard on needs at least one rule. version: 0 before the first save; 409 VERSION_CONFLICT when someone saved first.",
+        "operationId": "CancellationGuardController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0 before the first save, then the returned version"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "maxChanges": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "N cancellations or reschedules by the client within windowHours; null = rule off"
+                  },
+                  "windowHours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8760,
+                    "description": "X: the period for maxChanges, in hours (e.g. 720 = 30 days)"
+                  },
+                  "lateCancelMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10080
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Y: a cancellation less than this many minutes before the visit; null = rule off"
+                  },
+                  "maxNoShows": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "M no-shows; null = rule off"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "approval",
+                      "phone_only",
+                      "prepay"
+                    ]
+                  }
+                },
+                "required": [
+                  "version",
+                  "enabled",
+                  "maxChanges",
+                  "windowHours",
+                  "lateCancelMinutes",
+                  "maxNoShows",
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationGuard"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the cancellation guard settings",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients": {
+      "get": {
+        "description": "Empty while the guard is off. Anonymised clients are left out.",
+        "operationId": "CancellationGuardController_clients",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardedClients"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clients the guard marks now",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}": {
+      "get": {
+        "operationId": "CancellationGuardController_client",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardedClient"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One client's mark and the history of cancellations, reschedules and no-shows",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}/release": {
+      "post": {
+        "description": "Counting starts again from now. The history keeps everything.",
+        "operationId": "CancellationGuardController_release",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardedClient"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lift the mark (e.g. the client paid the missed visits in the salon)",
+        "tags": [
+          "clients"
+        ]
+      }
     }
   },
   "info": {
@@ -11996,6 +12294,61 @@
         },
         "required": [
           "url"
+        ],
+        "additionalProperties": false
+      },
+      "CancellationGuard": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "maxChanges": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "windowHours": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "lateCancelMinutes": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "maxNoShows": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "phone_only",
+              "prepay"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "0 = never saved (defaults)"
+          }
+        },
+        "required": [
+          "enabled",
+          "maxChanges",
+          "windowHours",
+          "lateCancelMinutes",
+          "maxNoShows",
+          "action",
+          "version"
         ],
         "additionalProperties": false
       },
@@ -14426,6 +14779,235 @@
           ],
           "additionalProperties": false
         }
+      },
+      "GuardedClient": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "phone_only",
+              "prepay"
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "flagged": {
+            "type": "boolean",
+            "description": "The guard is on and a rule marks the client now"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "changes",
+                "late_cancel",
+                "no_shows"
+              ]
+            }
+          },
+          "changes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cancellations and reschedules by the client within the window, since the last lift"
+          },
+          "lateCancellations": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Late cancellations by the client since the last lift"
+          },
+          "noShows": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "No-shows since the last lift"
+          },
+          "noShowAmountGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What the missed visits cost (price after discounts), in hundredths of the currency"
+          },
+          "releasedAt": {
+            "nullable": true,
+            "description": "When the salon last lifted the mark",
+            "type": "string"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "cancelled",
+                    "rescheduled",
+                    "no_show",
+                    "released"
+                  ]
+                },
+                "at": {
+                  "type": "string",
+                  "description": "When it happened (for a no-show: the visit start)"
+                },
+                "visitStart": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "late": {
+                  "type": "boolean",
+                  "description": "A cancellation later than the late-cancellation rule allows"
+                },
+                "appointmentId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "note": {
+                  "nullable": true,
+                  "description": "The salon’s note when lifting the mark",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "at",
+                "visitStart",
+                "late",
+                "appointmentId",
+                "note"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Newest first, the last 365 days, at most 50"
+          }
+        },
+        "required": [
+          "customerId",
+          "enabled",
+          "action",
+          "currency",
+          "flagged",
+          "reasons",
+          "changes",
+          "lateCancellations",
+          "noShows",
+          "noShowAmountGrosze",
+          "releasedAt",
+          "history"
+        ],
+        "additionalProperties": false
+      },
+      "GuardedClients": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "phone_only",
+              "prepay"
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "customerId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": "string"
+                },
+                "email": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "changes",
+                      "late_cancel",
+                      "no_shows"
+                    ]
+                  }
+                },
+                "changes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Cancellations and reschedules by the client within the window, since the last lift"
+                },
+                "lateCancellations": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Late cancellations by the client since the last lift"
+                },
+                "noShows": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "No-shows since the last lift"
+                },
+                "noShowAmountGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What the missed visits cost (price after discounts), in hundredths of the currency"
+                },
+                "releasedAt": {
+                  "nullable": true,
+                  "description": "When the salon last lifted the mark",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "customerId",
+                "name",
+                "phone",
+                "email",
+                "reasons",
+                "changes",
+                "lateCancellations",
+                "noShows",
+                "noShowAmountGrosze",
+                "releasedAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "enabled",
+          "action",
+          "currency",
+          "items"
+        ],
+        "additionalProperties": false
       },
       "HappyHours": {
         "type": "object",
