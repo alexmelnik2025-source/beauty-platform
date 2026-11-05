@@ -8,6 +8,7 @@ import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
+import { formatPrice } from '@/lib/time';
 import type { Customer, CustomerDetail } from '@/lib/types';
 
 type ClientRow = Customer;
@@ -325,6 +326,7 @@ function ClientSheet({
           {t.common.save}
         </button>
       </form>
+      {client ? <ClientSummary summary={client.summary} tag={tag} /> : null}
       {client ? (
         <section className="section">
           <h3>{t.clients.visits}</h3>
@@ -446,6 +448,50 @@ function ClientPrivacy({
           {t.clients.erase}
         </button>
       )}
+    </section>
+  );
+}
+
+/**
+ * Task 98: how the client comes — counted by the server over every visit the user may see; the
+ * paid sum only for owners and managers (one line per currency of the salons).
+ */
+function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; tag: string }) {
+  const { t } = useI18n();
+  const day = (iso: string | null) =>
+    iso
+      ? new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'short', year: 'numeric' }).format(
+          new Date(iso),
+        )
+      : '—';
+  const tiles: [string, string | number][] = [
+    [t.clients.summary.completed, summary.completed],
+    [t.clients.summary.noShow, summary.noShow],
+    [t.clients.summary.cancelledByClient, summary.cancelledByClient],
+    [t.clients.summary.cancelledBySalon, summary.cancelledBySalon],
+    [t.clients.summary.upcoming, summary.upcoming],
+    [t.clients.summary.firstVisit, day(summary.firstVisitAt)],
+    [t.clients.summary.lastVisit, day(summary.lastVisitAt)],
+  ];
+  if (summary.paid) {
+    tiles.push([
+      t.clients.summary.paid,
+      summary.paid.length === 0
+        ? '—'
+        : summary.paid.map((p) => formatPrice(p.amountGrosze, p.currency, tag)).join(' + '),
+    ]);
+  }
+  return (
+    <section className="section" data-testid="client-summary">
+      <h3>{t.clients.summary.title}</h3>
+      <div className="stats">
+        {tiles.map(([label, value]) => (
+          <div key={label} className="stat">
+            <span className="small muted">{label}</span>
+            <b>{value}</b>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

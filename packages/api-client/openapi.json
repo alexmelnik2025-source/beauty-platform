@@ -13896,6 +13896,86 @@
               "additionalProperties": false
             },
             "description": "Staff without viewClientHistory get only their own appointments with this client"
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "completed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits that took place"
+              },
+              "noShow": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Times the client did not come"
+              },
+              "cancelledByClient": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "cancelledBySalon": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "upcoming": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Confirmed visits still ahead"
+              },
+              "firstVisitAt": {
+                "nullable": true,
+                "description": "Start of the first visit that took place",
+                "type": "string"
+              },
+              "lastVisitAt": {
+                "nullable": true,
+                "description": "Start of the latest visit that took place",
+                "type": "string"
+              },
+              "paid": {
+                "nullable": true,
+                "description": "One row per currency of the salons; null for staff members",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string",
+                      "description": "ISO 4217 code of the salon"
+                    },
+                    "amountGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Paid visits after coupons, in hundredths of the currency"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "amountGrosze"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "completed",
+              "noShow",
+              "cancelledByClient",
+              "cancelledBySalon",
+              "upcoming",
+              "firstVisitAt",
+              "lastVisitAt",
+              "paid"
+            ],
+            "additionalProperties": false,
+            "description": "Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)"
           }
         },
         "required": [
@@ -13910,7 +13990,8 @@
           "version",
           "createdAt",
           "marketingConsent",
-          "visits"
+          "visits",
+          "summary"
         ],
         "additionalProperties": false
       },
