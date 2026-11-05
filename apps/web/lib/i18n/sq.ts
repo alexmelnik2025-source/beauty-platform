@@ -222,6 +222,8 @@ export const sq: Dict = {
     viaSms: 'SMS',
     codeTitleSms: 'Kodi nga SMS-ja',
     codeLeadSms: 'Dërguam 6 shifra në {phone}.',
+    accountReady: 'Tani keni një llogari — të gjitha takimet janë te “Takimet e mia”.',
+    signedInAs: 'Jeni identifikuar si {email} — të dhënat u plotësuan vetë.',
     rememberMe: 'Më mbaj mend në këtë pajisje',
     rememberMeHint:
       'Herën tjetër të dhënat plotësohen vetë dhe takimet tuaja janë në aplikacionin “Takimet e mia”. Mos e shënoni në pajisjen e dikujt tjetër.',

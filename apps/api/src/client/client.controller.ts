@@ -54,9 +54,11 @@ import {
   clientAppointmentListSchema,
   clientAppointmentSchema,
   clientCodeSentSchema,
+  clientContactSchema,
   clientPersonSchema,
   clientSignInSchema,
   type ClientAppointmentResponse,
+  type ClientContactResponse,
   type ClientSignInResponse,
   type PersonResponse,
 } from './client.responses';
@@ -149,6 +151,19 @@ export class ClientController {
   @ApiZodResponse(clientPersonSchema)
   me(@CurrentClient() client: ClientAuth): Promise<PersonResponse> {
     return this.clients.me(client);
+  }
+
+  @Get('me/contact')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Name and phone to fill in the booking form (task 180d)',
+    description:
+      "The signed-in client's email, and the name and phone of the salon card of that email changed last.",
+  })
+  @ApiZodResponse(clientContactSchema)
+  contact(@CurrentClient() client: ClientAuth): Promise<ClientContactResponse> {
+    return this.clients.contact(client);
   }
 
   @Patch('me')
