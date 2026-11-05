@@ -26,6 +26,10 @@ export const en: Dictionary = {
     emptyPast: 'Your past appointments will appear here.',
     refresh: 'Refresh',
     signOut: 'Sign out',
+    downloadData: 'Download my data',
+    downloadDataHint:
+      'A file with the data the salons keep about you: client card, consents, visits and bonuses (GDPR).',
+    downloadDataTitle: 'My data from the salons',
     minutes: 'min',
     with: 'with {staff}',
     status: {

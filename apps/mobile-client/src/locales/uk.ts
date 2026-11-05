@@ -26,6 +26,10 @@ export const uk: Dictionary = {
     emptyPast: 'Тут з’являться ваші попередні візити.',
     refresh: 'Оновити',
     signOut: 'Вийти',
+    downloadData: 'Завантажити мої дані',
+    downloadDataHint:
+      'Файл із даними, які салони зберігають про вас: картка клієнта, згоди, візити й бонуси (GDPR).',
+    downloadDataTitle: 'Мої дані із салонів',
     minutes: 'хв',
     with: 'майстер: {staff}',
     status: {

@@ -1388,6 +1388,25 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText('u: Kasia').first()).toBeVisible();
     await expect(phone.getByText('Potwierdzona').first()).toBeVisible();
     await shot(phone, '58b-client-app-visits');
+    // Task 97: "Download my data" (GDPR) in the app too — the web preview downloads the JSON file.
+    const appDataButton = phone.getByRole('button', { name: 'Pobierz moje dane' });
+    await appDataButton.scrollIntoViewIfNeeded();
+    await expect(phone.getByText(/Plik z danymi, które salony przechowują o Tobie/)).toBeVisible();
+    const [appDownload] = await Promise.all([
+      phone.waitForEvent('download'),
+      appDataButton.click(),
+    ]);
+    expect(appDownload.suggestedFilename()).toMatch(/^my-data-\d{4}-\d{2}-\d{2}\.json$/);
+    const appData = JSON.parse(await readFile((await appDownload.path())!, 'utf8')) as {
+      person: { email: string };
+      salons: { visits: { service: string }[] }[];
+    };
+    expect(appData.person.email).toBe(CLIENT);
+    expect(appData.salons.flatMap((x) => x.visits.map((v) => v.service))).toContain(
+      'Strzyżenie męskie',
+    );
+    await shot(phone, '58c-client-app-download-data');
+    await phone.getByRole('heading', { name: 'Moje wizyty' }).scrollIntoViewIfNeeded();
     // The visit card: details, cancel (asks first), call the salon, book the same again.
     await phone
       .getByRole('button', { name: /Strzyżenie męskie, Gestalt Barbershop/ })

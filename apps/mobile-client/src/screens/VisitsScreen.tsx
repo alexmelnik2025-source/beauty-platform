@@ -1,20 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type {
-  ClientApi,
-  ClientAppointment,
-  ClientLoyaltyCard,
-  ClientPerson,
-  ClientWaitlistEntry,
-  FavoriteSalon,
-  Locale,
-  Scope,
+import {
+  myDataFileName,
+  type ClientApi,
+  type ClientAppointment,
+  type ClientLoyaltyCard,
+  type ClientPerson,
+  type ClientWaitlistEntry,
+  type FavoriteSalon,
+  type Locale,
+  type Scope,
 } from '../api';
 import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
 import { formatDay, formatPrice, groupByDay, salonAddress } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
+import { saveMyData } from '../myData';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { BonusesView } from './BonusesView';
 import { FavoritesView } from './FavoritesView';
@@ -117,6 +119,26 @@ export function VisitsScreen(props: {
     },
     [api, t, onSessionEnded],
   );
+
+  // Task 97: "Download my data" (GDPR), as on the site.
+  const [downloading, setDownloading] = useState(false);
+  const downloadData = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const data = await api.exportData();
+      await saveMyData(
+        JSON.stringify(data, null, 2),
+        myDataFileName(data),
+        t.visits.downloadDataTitle,
+      );
+      setError('');
+    } catch (e) {
+      if (!api.signedIn) return onSessionEnded();
+      setError(errorText(e, t));
+    } finally {
+      setDownloading(false);
+    }
+  }, [api, t, onSessionEnded]);
 
   const closeVisit = useCallback(() => {
     setOpen(null);
@@ -265,6 +287,13 @@ export function VisitsScreen(props: {
         : null}
 
       <Button kind="secondary" label={t.catalog.title} onPress={props.onFindSalon} />
+      <Text style={styles.muted}>{t.visits.downloadDataHint}</Text>
+      <Button
+        kind="link"
+        label={t.visits.downloadData}
+        busy={downloading}
+        onPress={() => void downloadData()}
+      />
       <Button kind="link" label={t.visits.signOut} onPress={props.onSignOut} />
       <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
     </ScrollView>

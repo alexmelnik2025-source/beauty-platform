@@ -25,6 +25,10 @@ export const pl = {
     emptyPast: 'Tu pojawią się Twoje wcześniejsze wizyty.',
     refresh: 'Odśwież',
     signOut: 'Wyloguj się',
+    downloadData: 'Pobierz moje dane',
+    downloadDataHint:
+      'Plik z danymi, które salony przechowują o Tobie: karta klienta, zgody, wizyty i bonusy (RODO).',
+    downloadDataTitle: 'Moje dane z salonów',
     minutes: 'min',
     with: 'u: {staff}',
     status: {
