@@ -8,7 +8,14 @@ import { ErrorBox, LanguageSwitch, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
-import { SPOKEN, type PublicSalon, type PublicSalonDirectory, type Spoken } from '@/lib/types';
+import {
+  SPECIALTIES,
+  SPOKEN,
+  type PublicSalon,
+  type PublicSalonDirectory,
+  type Specialty,
+  type Spoken,
+} from '@/lib/types';
 
 const PAGE_SIZE = 12;
 /** Task 192: the languages chosen last time, remembered on this device. */
@@ -111,6 +118,10 @@ export function PublicDirectory() {
   // Task 192: several languages at once - salons speaking any of them; null until the saved choice is read.
   const [languages, setLanguages] = useState<Spoken[] | null>(null);
   const [page, setPage] = useState(1);
+  /** Task 160c: the kind of place (what its specialists do), as in the client app. */
+  const [specialty, setSpecialty] = useState<Specialty | null>(null);
+  // The last numbers stay on the chips while the next page loads.
+  const [kindCounts, setKindCounts] = useState<Partial<Record<Specialty, number>>>({});
   const [result, setResult] = useState<PublicSalonDirectory | null>(null);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
@@ -127,10 +138,12 @@ export function PublicDirectory() {
     setError('');
     const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
     if (languages.length > 0) query.set('language', languages.join(','));
+    if (specialty) query.set('specialty', specialty);
     api<PublicSalonDirectory>(`/v1/public/locations?${query.toString()}`)
       .then((value) => {
         if (!active) return;
         setResult(value);
+        setKindCounts(value.specialtyCounts);
         setSelected((current) => (value.items.some((s) => s.slug === current) ? current : null));
       })
       .catch((err) => {
@@ -139,7 +152,7 @@ export function PublicDirectory() {
     return () => {
       active = false;
     };
-  }, [languages, page, t]);
+  }, [languages, specialty, page, t]);
 
   const choose = (next: Spoken[]) => {
     setLanguages(next);
@@ -147,6 +160,11 @@ export function PublicDirectory() {
     setPage(1);
   };
   const chosen = languages ?? [];
+  const chooseKind = (next: Specialty | null) => {
+    setSpecialty(next);
+    setPage(1);
+  };
+  const kinds = SPECIALTIES.filter((kind) => (kindCounts[kind] ?? 0) > 0 || kind === specialty);
   const toggle = (code: Spoken) =>
     choose(chosen.includes(code) ? chosen.filter((c) => c !== code) : [...chosen, code]);
   const map = result ? mapLayout(result.items) : null;
@@ -184,6 +202,27 @@ export function PublicDirectory() {
               </button>
             ) : null}
           </div>
+          {kinds.length > 0 ? (
+            <div className="chips" role="group" aria-label={t.directory.filterKind}>
+              <button
+                type="button"
+                aria-pressed={specialty === null}
+                onClick={() => chooseKind(null)}
+              >
+                {t.directory.allKinds}
+              </button>
+              {kinds.map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  aria-pressed={specialty === kind}
+                  onClick={() => chooseKind(kind)}
+                >
+                  {t.specialties.names[kind]} ({kindCounts[kind] ?? 0})
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </header>
 

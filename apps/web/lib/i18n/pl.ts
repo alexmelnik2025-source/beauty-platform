@@ -130,6 +130,8 @@ export const pl = {
     filterLanguage: 'Język rozmowy',
     allLanguages: 'Wszystkie języki',
     clearLanguages: 'Wyczyść',
+    filterKind: 'Rodzaj salonu',
+    allKinds: 'Wszystkie',
     found: 'Znalezione salony: {n}',
     empty: 'Nie ma jeszcze salonów z tym językiem.',
     page: 'Strona {page} z {pages}',

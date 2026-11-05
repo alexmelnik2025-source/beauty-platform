@@ -130,6 +130,8 @@ export const ru: Dict = {
     filterLanguage: 'Язык общения',
     allLanguages: 'Все языки',
     clearLanguages: 'Очистить',
+    filterKind: 'Тип заведения',
+    allKinds: 'Все',
     found: 'Найдено салонов: {n}',
     empty: 'Пока нет салонов с этим языком.',
     page: 'Страница {page} из {pages}',

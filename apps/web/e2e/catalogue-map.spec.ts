@@ -13,7 +13,7 @@ import { serveApp } from './mobile-app';
  * Task 160: the client app's "Znajdź salon" opens on a map (OpenStreetMap tiles). Language chips
  * carry the number of places ("🇺🇦 UA (1)"), the kind of place is the second filter; a marker
  * opens a small card (how many specialists speak the language, "Umów") → the salon's page.
- * Screenshots 160–160c.
+ * Screenshots 160–160d.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -182,6 +182,23 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
       .getByRole('button', { name: 'Umów wizytę' })
       .click();
     await expect(app.getByRole('heading', { name: NAILS })).toBeVisible();
+
+    // Task 160c: the site's catalogue has the kind-of-place chips too, with their numbers.
+    const site = await phone.newPage();
+    await site.goto('/pl/salons');
+    const kinds = site.getByRole('group', { name: 'Rodzaj salonu' });
+    await kinds.getByRole('button', { name: /^Manicure i pedicure \(\d+\)$/ }).click();
+    await expect(
+      kinds.getByRole('button', { name: /^Manicure i pedicure \(\d+\)$/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(site.getByRole('article', { name: NAILS })).toBeVisible();
+    await expect(site.getByRole('article', { name: BARBER })).toHaveCount(0);
+    await shot(site, '160d-catalogue-kinds');
+    await kinds.getByRole('button', { name: 'Wszystkie', exact: true }).click();
+    await expect(kinds.getByRole('button', { name: 'Wszystkie', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   } finally {
     await phone.close();
     clientApp.server.close();

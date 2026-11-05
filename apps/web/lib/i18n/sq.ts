@@ -67,6 +67,8 @@ export const sq: Dict = {
     filterLanguage: 'Gjuha',
     allLanguages: 'Të gjitha gjuhët',
     clearLanguages: 'Pastro',
+    filterKind: 'Lloji i sallonit',
+    allKinds: 'Të gjitha',
     found: 'Sallone të gjetura: {n}',
     empty: 'Ende nuk ka sallone me këtë gjuhë.',
     page: 'Faqja {page} nga {pages}',

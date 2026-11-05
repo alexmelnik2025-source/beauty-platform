@@ -66,6 +66,8 @@ export const tr: Dict = {
     filterLanguage: 'Dil',
     allLanguages: 'Tüm diller',
     clearLanguages: 'Temizle',
+    filterKind: 'İşletme türü',
+    allKinds: 'Tümü',
     found: 'Bulunan salon: {n}',
     empty: 'Bu dilde henüz salon yok.',
     page: 'Sayfa {page} / {pages}',

@@ -130,6 +130,8 @@ export const uk: Dict = {
     filterLanguage: 'Мова спілкування',
     allLanguages: 'Усі мови',
     clearLanguages: 'Очистити',
+    filterKind: 'Тип закладу',
+    allKinds: 'Усі',
     found: 'Знайдено салонів: {n}',
     empty: 'Поки немає салонів із цією мовою.',
     page: 'Сторінка {page} з {pages}',

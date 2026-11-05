@@ -130,6 +130,8 @@ export const en: Dict = {
     filterLanguage: 'Language',
     allLanguages: 'All languages',
     clearLanguages: 'Clear',
+    filterKind: 'Kind of place',
+    allKinds: 'All',
     found: 'Salons found: {n}',
     empty: 'No salons with this language yet.',
     page: 'Page {page} of {pages}',
