@@ -327,6 +327,20 @@ export class BusinessApi {
     );
   }
 
+  /** Task 161b: accept a visit that waits for the salon (cancellation guard). */
+  approve(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/approve`,
+      { version },
+    );
+  }
+
   /** Paid (earns loyalty stamps or points) or not paid (a refund takes them back). */
   setPaid(
     orgId: string,

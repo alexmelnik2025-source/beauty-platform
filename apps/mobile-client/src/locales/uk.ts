@@ -18,6 +18,7 @@ export const uk: Dictionary = {
     otherEmail: 'Інший e-mail',
   },
   visits: {
+    waiting: 'Чекає на підтвердження',
     title: 'Мої візити',
     signedInAs: 'Ви увійшли як {email}',
     upcoming: 'Майбутні',
@@ -42,6 +43,7 @@ export const uk: Dictionary = {
     },
   },
   visit: {
+    waitingLead: 'Чекає на підтвердження салону — час заброньовано для вас.',
     back: '‹ Назад',
     coupons: 'Мої купони',
     couponsHint: 'Оберіть купон для цього візиту — салон відніме знижку від ціни.',
@@ -166,6 +168,9 @@ export const uk: Dictionary = {
     photosKeptUntil: 'Фото видалимо {date}.',
   },
   book: {
+    doneTitleWaiting: 'Запис надіслано',
+    doneLeadWaiting:
+      'Салон підтвердить візит — час уже заброньовано для вас. Ми напишемо на e-mail, коли салон його прийме.',
     title: 'Записатися',
     back: '‹ Назад',
     otherService: 'Інша послуга або майстер',

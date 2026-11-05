@@ -19,6 +19,7 @@ export const sq: Dictionary = {
     otherEmail: 'Email tjetër',
   },
   visits: {
+    waiting: 'Pret konfirmim',
     title: 'Takimet e mia',
     signedInAs: 'Jeni identifikuar si {email}',
     upcoming: 'Të ardhshme',
@@ -43,6 +44,7 @@ export const sq: Dictionary = {
     },
   },
   visit: {
+    waitingLead: 'Pret konfirmimin e sallonit — ora është mbajtur për ju.',
     back: '‹ Kthehu',
     coupons: 'Kuponat e mia',
     couponsHint: 'Zgjidhni një kupon për këtë takim — salloni e zbret uljen nga çmimi.',
@@ -172,6 +174,9 @@ export const sq: Dictionary = {
     photosKeptUntil: 'Fotot do t’i fshijmë më {date}.',
   },
   book: {
+    doneTitleWaiting: 'Rezervimi u dërgua',
+    doneLeadWaiting:
+      "Salloni do ta konfirmojë vizitën — ora është mbajtur tashmë për ju. Do t'ju shkruajmë me email kur salloni ta pranojë.",
     title: 'Rezervo një takim',
     back: '‹ Kthehu',
     otherService: 'Shërbim ose specialist tjetër',

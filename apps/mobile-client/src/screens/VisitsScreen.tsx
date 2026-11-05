@@ -331,7 +331,7 @@ function VisitCard({
               (visit.status === 'cancelled' || visit.status === 'no_show') && styles.badgeOff,
             ]}
           >
-            {t.visits.status[visit.status]}
+            {visit.awaitingApproval ? `⏳ ${t.visits.waiting}` : t.visits.status[visit.status]}
           </Text>
         </View>
         <Text style={[styles.service, faded && styles.faded]}>{visit.service.name}</Text>

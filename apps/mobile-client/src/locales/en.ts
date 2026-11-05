@@ -18,6 +18,7 @@ export const en: Dictionary = {
     otherEmail: 'Another email',
   },
   visits: {
+    waiting: 'Waiting for confirmation',
     title: 'My visits',
     signedInAs: 'Signed in as {email}',
     upcoming: 'Upcoming',
@@ -42,6 +43,7 @@ export const en: Dictionary = {
     },
   },
   visit: {
+    waitingLead: 'Waiting for the salon to confirm — the time is held for you.',
     back: '‹ Back',
     coupons: 'My coupons',
     couponsHint: 'Pick a coupon for this visit — the salon takes the discount off the price.',
@@ -166,6 +168,9 @@ export const en: Dictionary = {
     photosKeptUntil: 'We delete the photos on {date}.',
   },
   book: {
+    doneTitleWaiting: 'Booking sent',
+    doneLeadWaiting:
+      'The salon will confirm your visit — the time is already held for you. We will email you when the salon accepts it.',
     title: 'Book a visit',
     back: '‹ Back',
     otherService: 'Another service or specialist',

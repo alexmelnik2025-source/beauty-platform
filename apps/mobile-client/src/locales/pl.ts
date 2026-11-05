@@ -17,6 +17,7 @@ export const pl = {
     otherEmail: 'Inny e-mail',
   },
   visits: {
+    waiting: 'Czeka na potwierdzenie',
     title: 'Moje wizyty',
     signedInAs: 'Zalogowano jako {email}',
     upcoming: 'Nadchodzące',
@@ -41,6 +42,7 @@ export const pl = {
     },
   },
   visit: {
+    waitingLead: 'Czeka na potwierdzenie salonu — termin jest zarezerwowany dla Ciebie.',
     back: '‹ Wróć',
     coupons: 'Moje kupony',
     couponsHint: 'Wybierz kupon do tej wizyty — salon odejmie rabat od ceny.',
@@ -166,6 +168,9 @@ export const pl = {
     photosKeptUntil: 'Zdjęcia usuniemy {date}.',
   },
   book: {
+    doneTitleWaiting: 'Rezerwacja wysłana',
+    doneLeadWaiting:
+      'Salon potwierdzi wizytę — termin jest już dla Ciebie zarezerwowany. Napiszemy e-mailem, gdy salon ją przyjmie.',
     title: 'Umów wizytę',
     back: '‹ Wróć',
     otherService: 'Inna usługa lub specjalista',

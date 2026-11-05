@@ -7,12 +7,14 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 161b: "Ochrona przed odwołaniami" with "the salon confirms". A client who did not come
  * books online: the time is held, the page says the salon will confirm, the salon gets an
  * email; in the calendar the visit waits ("⏳"), the owner accepts it and the client gets the
- * usual confirmation. Screenshots 161–161b.
+ * usual confirmation. Part 4: the business app shows the same visit with "⏳" and "Przyjmij
+ * rezerwację". Screenshots 161–161d.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -184,6 +186,43 @@ test('a client marked for approval books online and waits until the salon accept
   );
   const waiting = visits.find((v) => v.awaitingApproval);
   expect(waiting, 'the visit that waits').toBeTruthy();
+
+  // ── Part 4: the business app (web preview of apps/mobile-business) ─────
+  const businessApp = await serveApp('mobile-business');
+  const pocket = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    isMobile: true,
+    timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: freshAddress(),
+  });
+  try {
+    const app = await pocket.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    const salonToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+      new Date(),
+    );
+    // The first free time can be after midnight.
+    if (waiting!.date !== salonToday) {
+      await app.getByRole('button', { name: 'Następny dzień' }).first().click();
+    }
+    const row = app.getByRole('button', { name: /⏳ Ola Nowak/ });
+    await expect(row).toBeVisible();
+    await shot(app, '161c-business-app-day-waiting');
+    await row.click();
+    await expect(app.getByText('⏳ Czeka na potwierdzenie')).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Przyjmij rezerwację' })).toBeVisible();
+    await shot(app, '161d-business-app-accept');
+  } finally {
+    businessApp.server.close();
+    await pocket.close();
+  }
 
   const desk = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
   const cabinet = await desk.newPage();

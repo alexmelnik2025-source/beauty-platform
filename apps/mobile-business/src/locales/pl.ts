@@ -51,6 +51,10 @@ export const pl = {
     online: 'Online',
     manual: 'Dodana przez salon',
     firstVisit: 'Pierwsza wizyta',
+    awaitingApproval: 'Czeka na potwierdzenie',
+    approve: 'Przyjmij rezerwację',
+    approveHint:
+      'Klient jest oznaczony w „Ochronie przed odwołaniami”. Przyjmij rezerwację albo odwołaj ją z podaniem powodu — klient dostanie e-mail.',
     client: 'Klient',
     service: 'Usługa',
     staff: 'Specjalista',

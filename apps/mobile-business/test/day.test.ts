@@ -113,10 +113,19 @@ describe('day calendar', () => {
         staffId: 's1',
         customer: 'Piotr',
         phone: '+48600500600',
+        waiting: false,
       },
       expect.objectContaining({ id: 'b', start: '14:00', end: '14:45', phone: null }),
     ]);
     expect(visitsOfDay(calendar, '2026-11-04')).toEqual([]);
+    // Task 161b: a visit the salon has yet to accept.
+    const waiting = {
+      ...calendar,
+      appointments: calendar.appointments.map((a) =>
+        a.id === 'b' ? { ...a, awaitingApproval: true } : a,
+      ),
+    };
+    expect(visitsOfDay(waiting, '2026-11-03').map((v) => v.waiting)).toEqual([false, true]);
   });
 
   it('shows who works that day', () => {

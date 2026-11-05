@@ -53,6 +53,8 @@ export type DayVisit = {
   staffId: string;
   customer: string | null;
   phone: string | null;
+  /** Task 161b: booked by a client the cancellation guard marks; the salon has to accept it. */
+  waiting: boolean;
 };
 
 /**
@@ -74,6 +76,7 @@ export function visitsOfDay(calendar: Calendar, date: string): DayVisit[] {
       staffId: a.staff.id,
       customer: a.customer?.name ?? null,
       phone: a.customer?.phone ?? null,
+      waiting: a.awaitingApproval === true,
     }));
 }
 

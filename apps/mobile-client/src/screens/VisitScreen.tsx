@@ -250,10 +250,11 @@ export function VisitScreen(props: {
             (visit.status === 'cancelled' || visit.status === 'no_show') && styles.badgeOff,
           ]}
         >
-          {t.visits.status[visit.status]}
+          {visit.awaitingApproval ? `⏳ ${t.visits.waiting}` : t.visits.status[visit.status]}
         </Text>
       </View>
 
+      {visit.awaitingApproval ? <Text style={styles.value}>{t.visit.waitingLead}</Text> : null}
       {done ? (
         <Text role="status" style={styles.done}>
           {done}

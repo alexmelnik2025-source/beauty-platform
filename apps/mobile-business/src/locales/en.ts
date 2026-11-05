@@ -53,6 +53,10 @@ export const en: Dictionary = {
     online: 'Online',
     manual: 'Added by the salon',
     firstVisit: 'First visit',
+    awaitingApproval: 'Waiting for confirmation',
+    approve: 'Accept booking',
+    approveHint:
+      'The client is marked by cancellation protection. Accept the booking or cancel it with a reason — the client gets an email.',
     client: 'Client',
     service: 'Service',
     staff: 'Specialist',

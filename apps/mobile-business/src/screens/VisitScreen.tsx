@@ -170,6 +170,9 @@ export function VisitScreen(props: {
         <Text style={[styles.chip, visit.status === 'no_show' && styles.chipBad]}>
           {v.status[visit.status]}
         </Text>
+        {visit.awaitingApproval ? (
+          <Text style={[styles.chip, styles.chipStrong]}>⏳ {v.awaitingApproval}</Text>
+        ) : null}
         {visit.paidAt ? <Text style={styles.chip}>✓ {v.paid}</Text> : null}
         <Text style={styles.chip}>{visit.source === 'online' ? v.online : v.manual}</Text>
         {visit.firstVisit ? <Text style={styles.chip}>{v.firstVisit}</Text> : null}
@@ -266,6 +269,18 @@ export function VisitScreen(props: {
         ) : null}
       </Card>
 
+      {props.canChange && visit.awaitingApproval ? (
+        <>
+          <Text style={styles.muted}>{v.approveHint}</Text>
+          <Button
+            label={v.approve}
+            busy={busy}
+            onPress={() =>
+              void run((a) => api.approve(salon.orgId, salon.locationId, a.id, a.version))
+            }
+          />
+        </>
+      ) : null}
       {actions.came ? (
         <View style={styles.row}>
           <Button label={v.markCame} busy={busy} onPress={() => void setStatus('completed')} />
@@ -466,6 +481,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   chipBad: { backgroundColor: '#f6dcd9', color: colors.danger },
+  chipStrong: { backgroundColor: colors.ink, color: '#ffffff' },
   label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   value: { fontSize: 17, color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },

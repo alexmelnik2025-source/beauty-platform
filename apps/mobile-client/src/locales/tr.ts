@@ -19,6 +19,7 @@ export const tr: Dictionary = {
     otherEmail: 'Başka bir e-posta',
   },
   visits: {
+    waiting: 'Onay bekliyor',
     title: 'Randevularım',
     signedInAs: '{email} olarak giriş yapıldı',
     upcoming: 'Yaklaşan',
@@ -43,6 +44,7 @@ export const tr: Dictionary = {
     },
   },
   visit: {
+    waitingLead: 'Salonun onayını bekliyor — saat sizin için ayrıldı.',
     back: '‹ Geri',
     coupons: 'Kuponlarım',
     couponsHint: 'Bu randevu için bir kupon seçin — salon indirimi fiyattan düşer.',
@@ -172,6 +174,9 @@ export const tr: Dictionary = {
     photosKeptUntil: 'Fotoğrafları {date} tarihinde sileriz.',
   },
   book: {
+    doneTitleWaiting: 'Rezervasyon gönderildi',
+    doneLeadWaiting:
+      'Salon randevunuzu onaylayacak — saat sizin için ayrıldı. Salon kabul ettiğinde size e-posta göndereceğiz.',
     title: 'Randevu al',
     back: '‹ Geri',
     otherService: 'Başka bir hizmet veya uzman',

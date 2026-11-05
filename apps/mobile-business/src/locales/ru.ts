@@ -51,6 +51,10 @@ export const ru: Dictionary = {
     online: 'Онлайн',
     manual: 'Добавлена салоном',
     firstVisit: 'Первый визит',
+    awaitingApproval: 'Ждёт подтверждения',
+    approve: 'Подтвердить запись',
+    approveHint:
+      'Клиент отмечен «Защитой от отмен». Подтвердите запись или отмените её с причиной — клиент получит e-mail.',
     client: 'Клиент',
     service: 'Услуга',
     staff: 'Мастер',

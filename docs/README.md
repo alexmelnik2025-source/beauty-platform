@@ -1686,4 +1686,9 @@ e2e этих экранов входят и регистрируются со с
 после кода «Rezerwacja wysłana», в ссылке визита и «Moje wizyty» — «⏳ Czeka na potwierdzenie salonu», в
 календаре кабинета — «⏳» и пунктирная рамка, в карточке визита — подсказка и «Przyjmij rezerwację». Миграция
 `20261105170000_appointment_approval`; тесты `cancellation-guard.spec.ts` (API) и e2e `cancellation-guard.spec.ts`
-(скриншоты 161–161b). Телефонные приложения — часть 4.
+(скриншоты 161–161b).
+
+**161b (часть 4) — приложения.** Бизнес-приложение: в списке дня «⏳» у имени (`DayVisit.waiting`), в карточке
+визита чип «⏳ Czeka na potwierdzenie», подсказка и «Przyjmij rezerwację» (`BusinessApi.approve`); отказ — обычное
+«Odwołaj». Клиентское приложение: после записи «Rezerwacja wysłana», в «Moje wizyty» и карточке визита «⏳ Czeka
+na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.

@@ -761,8 +761,11 @@ export function BookingScreen(props: {
           <Text style={styles.doneMark} aria-hidden>
             ✓
           </Text>
-          <Heading>{b.doneTitle}</Heading>
-          <Text style={styles.text}>{b.doneLead}</Text>
+          {/* Task 161b: the salon's cancellation guard asks it to accept this visit first. */}
+          <Heading>{done.appointment.awaitingApproval ? b.doneTitleWaiting : b.doneTitle}</Heading>
+          <Text style={styles.text}>
+            {done.appointment.awaitingApproval ? b.doneLeadWaiting : b.doneLead}
+          </Text>
           <Card>
             <Text style={styles.big}>
               {done.appointment.time} · {formatDay(done.appointment.date, locale)}
