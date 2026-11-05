@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 
 /**
@@ -29,6 +30,7 @@ async function json<T>(res: APIResponse): Promise<T> {
 async function salonWithStaffPrices(api: APIRequestContext): Promise<string> {
   await json(
     await api.post('/v1/auth/register', {
+      headers: freshAddress(),
       data: { email: OWNER, password: PASSWORD, name: 'Aleksander Owner' },
     }),
   );

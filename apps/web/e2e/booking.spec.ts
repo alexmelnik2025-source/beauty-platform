@@ -9,6 +9,7 @@ import {
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { freshAddress } from './addresses';
 import { clearMailbox, listTo, waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 import { waitForSmsCode } from './sms-log';
@@ -41,7 +42,12 @@ async function json<T>(res: APIResponse): Promise<T> {
 
 /** Registers, confirms the email from Mailpit and signs in (mobile client: token in body). */
 async function verifiedUser(api: APIRequestContext, email: string, name: string) {
-  await json(await api.post('/v1/auth/register', { data: { email, password: PASSWORD, name } }));
+  await json(
+    await api.post('/v1/auth/register', {
+      headers: freshAddress(),
+      data: { email, password: PASSWORD, name },
+    }),
+  );
   const mail = await waitForEmail(email, /Potwierdź adres/);
   const token = /token=([^\s&]+)/.exec(mail.text)?.[1];
   expect(token, 'verification link').toBeTruthy();
