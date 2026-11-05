@@ -138,6 +138,11 @@ export const en: Dict = {
     showMap: 'Show on the map',
     mapTitle: 'Map of salons',
     noCoordinates: 'This salon has not marked its place on the map yet.',
+    mapEmpty: 'No salon on this page has marked its place on the map yet — choose from the list.',
+    mapOffline:
+      'The map (OpenStreetMap) could not be loaded — check the internet. The salons are in the list.',
+    notOnMap:
+      'Your salon is not on the catalogue map yet. Paste the coordinates from Google Maps below — clients will see the salon on the map (without them it is only in the list).',
     priceFrom: 'Services from {price}',
     coordinates: 'Place on the catalogue map',
     coordinatesHint:
