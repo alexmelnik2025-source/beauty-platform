@@ -18,6 +18,11 @@ import {
   renderPointsExpiringEmail,
   type NotificationKind,
 } from './booking-templates';
+import {
+  REVIEW_REQUEST,
+  reviewRequestMail,
+  type ReviewRequestNotification,
+} from '../reviews/review-request';
 
 export interface AppointmentNotification {
   appointmentId: string;
@@ -452,6 +457,13 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   private async render(row: ClaimedRow): Promise<MailMessage[] | null> {
     if (row.type === POINTS_EXPIRING) return this.renderPointsExpiring(row);
     if (row.type === WAITLIST_JOINED || row.type === WAITLIST_FREE) return this.renderWaitlist(row);
+    if (row.type === REVIEW_REQUEST) {
+      return reviewRequestMail(
+        this.prisma,
+        this.config,
+        row.payload as unknown as ReviewRequestNotification,
+      );
+    }
     const kind = row.type as NotificationKind;
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: row.payload.appointmentId },
