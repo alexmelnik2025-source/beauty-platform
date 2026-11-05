@@ -106,6 +106,10 @@ export default function ReportsPage() {
   const maxDay = Math.max(1, ...(report?.days.map((d) => d.revenueGrosze) ?? [1]));
   const maxWeekday = Math.max(1, ...(report?.weekdays.map((d) => d.completed) ?? [1]));
   const previous = report?.previous;
+  const occupancy = report?.occupancy;
+  /** Task 141: minutes as hours, "12,5". */
+  const hours = (minutes: number) =>
+    new Intl.NumberFormat(tag, { maximumFractionDigits: 1 }).format(minutes / 60);
   const trend = (now: number, before: number | undefined) => {
     const c = before === undefined ? null : change(now, before);
     return c ? (
@@ -254,6 +258,43 @@ export default function ReportsPage() {
             ) : null}
             <p className="small muted">{t.reports.revenueNote}</p>
             <p className="small muted">{t.reports.csvHint}</p>
+
+            {occupancy && occupancy.staff.length > 0 ? (
+              <section className="section" data-testid="report-occupancy">
+                <h2>
+                  {t.reports.occupancy}: {occupancy.percent}%
+                </h2>
+                <ol className="report-days">
+                  {occupancy.staff.map((s) => (
+                    <li key={s.id}>
+                      <span className="small">{s.displayName}</span>
+                      <span
+                        className="report-bar"
+                        role="meter"
+                        aria-label={s.displayName}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={s.percent}
+                      >
+                        <span style={{ width: `${Math.min(100, s.percent)}%` }} />
+                      </span>
+                      <span className="small">
+                        {s.percent}%
+                        <span className="muted">
+                          {' '}
+                          ·{' '}
+                          {fill(t.reports.occupancyHours, {
+                            booked: hours(s.bookedMinutes),
+                            work: hours(s.workMinutes),
+                          })}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="small muted">{t.reports.occupancyHint}</p>
+              </section>
+            ) : null}
 
             {totals.visits === 0 ? (
               <p className="note">{t.reports.empty}</p>

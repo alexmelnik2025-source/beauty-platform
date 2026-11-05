@@ -4870,6 +4870,23 @@ export interface components {
                 averageTicketGrosze: number;
                 clients: number;
             };
+            /** @description Task 141: how busy the specialists were ("Obłożenie") */
+            occupancy: {
+                /** @description Working time by the schedule, minus vacations and blocked time */
+                workMinutes: number;
+                /** @description Part of the working time taken by visits that were not cancelled */
+                bookedMinutes: number;
+                /** @description bookedMinutes of workMinutes, 0–100 */
+                percent: number;
+                /** @description Specialists with working time or visits in the period, busiest first */
+                staff: {
+                    id: string;
+                    displayName: string;
+                    workMinutes: number;
+                    bookedMinutes: number;
+                    percent: number;
+                }[];
+            };
         };
         SalonWaitlist: {
             /** @description The first day listed (YYYY-MM-DD) */

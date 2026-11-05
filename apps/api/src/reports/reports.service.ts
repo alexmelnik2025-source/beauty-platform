@@ -11,6 +11,8 @@ import {
   zonedToInstant,
 } from '../scheduling/time';
 import type { Location } from '../generated/prisma/client';
+import type { InstantRange, LocalInterval } from '../scheduling/slots';
+import { occupancy, occupancyPercent } from './occupancy';
 import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
 import { visitsCsv, type CsvLocale } from './visits-csv';
@@ -194,6 +196,110 @@ export class ReportsService {
       days: [...days.values()],
       weekdays,
       previous: await this.previous(locationId, staffIds, tz, query),
+      occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
+    };
+  }
+
+  /**
+   * Task 141: "Obłożenie" — each specialist's working time in the period (weekly hours or
+   * special days, minus vacations and blocked time, the same as free times) and the part of it
+   * visits took (booked, came or did not come — the time was reserved either way).
+   */
+  private async occupancy(
+    locationId: string,
+    staffIds: string[] | null,
+    tz: string,
+    query: ReportQuery,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['occupancy']> {
+    const visits = await this.prisma.appointment.findMany({
+      where: {
+        locationId,
+        status: { in: ['confirmed', 'completed', 'no_show'] },
+        startAt: { lt: rangeEnd },
+        endAt: { gt: rangeStart },
+        ...(staffIds ? { staffId: { in: staffIds } } : {}),
+      },
+      select: { staffId: true, startAt: true, endAt: true },
+    });
+    const withVisits = [...new Set(visits.map((v) => v.staffId))];
+    const staff = await this.prisma.staffMember.findMany({
+      where: {
+        locationId,
+        ...(staffIds ? { id: { in: staffIds } } : {}),
+        OR: [{ active: true }, { id: { in: withVisits } }],
+      },
+      select: { id: true, displayName: true },
+      orderBy: [{ sortOrder: 'asc' }, { displayName: 'asc' }],
+    });
+    const ids = staff.map((s) => s.id);
+    const [weekly, overrides, timeOff, blocks] = await Promise.all([
+      this.prisma.workingHours.findMany({ where: { staffId: { in: ids } } }),
+      this.prisma.workingHoursOverride.findMany({
+        where: {
+          staffId: { in: ids },
+          date: {
+            gte: new Date(`${query.from}T00:00:00Z`),
+            lte: new Date(`${query.to}T00:00:00Z`),
+          },
+        },
+      }),
+      this.prisma.timeOff.findMany({
+        where: { staffId: { in: ids }, startsAt: { lt: rangeEnd }, endsAt: { gt: rangeStart } },
+      }),
+      this.prisma.timeBlock.findMany({
+        where: {
+          locationId,
+          deletedAt: null,
+          OR: [{ staffId: { in: ids } }, { staffId: null }],
+          startAt: { lt: rangeEnd },
+          endAt: { gt: rangeStart },
+        },
+        select: { staffId: true, startAt: true, endAt: true },
+      }),
+    ]);
+
+    const rows = staff.map((s) => {
+      const week = new Map<number, LocalInterval[]>();
+      for (const row of weekly.filter((w) => w.staffId === s.id)) {
+        week.set(row.weekday, [...(week.get(row.weekday) ?? []), row]);
+      }
+      const special = new Map<string, LocalInterval[]>();
+      for (const row of overrides.filter((o) => o.staffId === s.id)) {
+        const date = row.date.toISOString().slice(0, 10);
+        special.set(date, [...(special.get(date) ?? []), row]);
+      }
+      const away: InstantRange[] = [
+        ...timeOff
+          .filter((t) => t.staffId === s.id)
+          .map((t) => ({ start: t.startsAt.getTime(), end: t.endsAt.getTime() })),
+        ...blocks
+          .filter((b) => b.staffId === s.id || b.staffId === null)
+          .map((b) => ({ start: b.startAt.getTime(), end: b.endAt.getTime() })),
+      ];
+      const result = occupancy(
+        { weekly: week, overrides: special, away },
+        visits
+          .filter((v) => v.staffId === s.id)
+          .map((v) => ({ start: v.startAt.getTime(), end: v.endAt.getTime() })),
+        query.from,
+        query.to,
+        tz,
+      );
+      return { id: s.id, displayName: s.displayName, ...result, percent: occupancyPercent(result) };
+    });
+
+    const total = {
+      workMinutes: rows.reduce((sum, r) => sum + r.workMinutes, 0),
+      bookedMinutes: rows.reduce((sum, r) => sum + r.bookedMinutes, 0),
+    };
+    return {
+      ...total,
+      percent: occupancyPercent(total),
+      staff: rows
+        .filter((r) => r.workMinutes > 0 || withVisits.includes(r.id))
+        .sort((a, b) => b.percent - a.percent || b.bookedMinutes - a.bookedMinutes),
     };
   }
 
