@@ -22,6 +22,8 @@ import { NewVisitScreen } from './NewVisitScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ReportsScreen } from './ReportsScreen';
 import { TeamScreen } from './TeamScreen';
+import { HistoryScreen } from './HistoryScreen';
+import { mayViewHistory } from '../history';
 import { ScheduleScreen } from './ScheduleScreen';
 import { VisitScreen } from './VisitScreen';
 
@@ -48,6 +50,7 @@ export function DayScreen(props: {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -221,6 +224,19 @@ export function DayScreen(props: {
     );
   }
 
+  if (historyOpen) {
+    return (
+      <HistoryScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        onBack={() => setHistoryOpen(false)}
+      />
+    );
+  }
+
   if (teamOpen) {
     return (
       <TeamScreen
@@ -304,6 +320,9 @@ export function DayScreen(props: {
           ) : null}
           {canReport ? (
             <Button kind="link" label={t.reports.open} onPress={() => setReportsOpen(true)} />
+          ) : null}
+          {mayViewHistory(salon.role) ? (
+            <Button kind="link" label={t.history.open} onPress={() => setHistoryOpen(true)} />
           ) : null}
           <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
         </View>

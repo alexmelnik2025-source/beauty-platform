@@ -45,6 +45,8 @@ export interface NewInvitation {
   staffMemberId?: string;
   locale: Locale;
 }
+/** Task 150: who changed what in the salon (owner only). */
+export type AuditLog = components['schemas']['AuditLog'];
 export type Availability = components['schemas']['Availability'];
 /** What the salon sends to book a client (phone call, walk-in); see NewVisitScreen. */
 export interface NewAppointment {
@@ -302,6 +304,13 @@ export class BusinessApi {
 
   removeTimeBlock(orgId: string, locationId: string, id: string): Promise<void> {
     return this.authed<void>('DELETE', `${blocksPath(orgId, locationId)}/${enc(id)}`);
+  }
+
+  /** Owner only (the server checks): the change log, newest first; `before` = the page's `next`. */
+  auditLog(orgId: string, before?: string, limit = 50): Promise<AuditLog> {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (before) query.set('before', before);
+    return this.authed<AuditLog>('GET', `/v1/organizations/${enc(orgId)}/audit-log?${query}`);
   }
 
   /** Owner or manager only (the server checks): people with access and their roles. */
