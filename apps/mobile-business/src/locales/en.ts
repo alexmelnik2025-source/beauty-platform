@@ -166,6 +166,17 @@ export const en: Dictionary = {
     added: 'Time blocked — clients cannot book these hours.',
     removed: 'Time unblocked.',
   },
+  profile: {
+    open: 'My profile',
+    title: 'My profile',
+    back: '‹ Back',
+    languages: 'Languages you speak with clients',
+    languagesHint:
+      'Clients see them next to your name and can choose a specialist who speaks their language.',
+    save: 'Save languages',
+    saved: 'Languages saved. Clients see them on the booking page.',
+    none: 'No language chosen.',
+  },
   notifications: {
     open: 'Notifications',
     title: 'Notifications',

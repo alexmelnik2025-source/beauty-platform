@@ -209,6 +209,23 @@ export class BusinessApi {
     );
   }
 
+  /**
+   * Task 96: the languages a specialist speaks with clients — their own profile, or any
+   * specialist's for an owner or manager (403 otherwise; the server checks).
+   */
+  setStaffLanguages(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    languages: StaffList[number]['languages'],
+  ): Promise<StaffList[number]> {
+    return this.authed<StaffList[number]>(
+      'PUT',
+      `${staffPath(orgId, locationId, staffId)}/languages`,
+      { languages },
+    );
+  }
+
   /** A specialist's weekly hours and special days (location-local times). */
   workingHours(orgId: string, locationId: string, staffId: string): Promise<WorkingHours> {
     return this.authed<WorkingHours>(

@@ -16,6 +16,7 @@ import type { Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { BlockScreen } from './BlockScreen';
 import { NotificationsScreen } from './NotificationsScreen';
+import { ProfileScreen } from './ProfileScreen';
 import { ClientsScreen } from './ClientsScreen';
 import { mayAddVisits, type MyRights } from '../newVisit';
 import { NewVisitScreen } from './NewVisitScreen';
@@ -54,6 +55,7 @@ export function DayScreen(props: {
   const [teamOpen, setTeamOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [blocks, setBlocks] = useState<{ date: string; list: TimeBlockList } | null>(null);
   const [staffList, setStaffList] = useState<StaffList>([]);
@@ -205,6 +207,18 @@ export function DayScreen(props: {
     );
   }
 
+  if (profileOpen && mineId) {
+    return (
+      <ProfileScreen
+        api={api}
+        t={t}
+        salon={salon}
+        staffId={mineId}
+        onBack={() => setProfileOpen(false)}
+      />
+    );
+  }
+
   if (bellOpen) {
     return (
       <NotificationsScreen
@@ -348,6 +362,9 @@ export function DayScreen(props: {
           ) : null}
           {canReport ? (
             <Button kind="link" label={t.reports.open} onPress={() => setReportsOpen(true)} />
+          ) : null}
+          {mineId ? (
+            <Button kind="link" label={t.profile.open} onPress={() => setProfileOpen(true)} />
           ) : null}
           <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
         </View>
