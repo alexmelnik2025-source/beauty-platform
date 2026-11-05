@@ -243,6 +243,10 @@ export const en: Dictionary = {
     team: 'Specialists',
     call: 'Call',
     noServices: 'The salon has no services for online booking yet.',
+    share: 'Recommend to friends',
+    shareText: '{name} — book online: {url}',
+    copied: 'Link copied — paste it to your friends.',
+    shareFailed: 'Could not share. Link: {url}',
   },
   favorites: {
     tab: 'Favourites',
