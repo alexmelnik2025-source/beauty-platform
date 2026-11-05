@@ -13,7 +13,9 @@ const run = Date.now().toString(36);
 const OWNER = `seo-owner-${run}@example.com`;
 const NAME = `Seo Barber ${run}`;
 // The salon's own text, with something that must not end the JSON-LD script tag.
-const GOOGLEBOT = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
+// A crawler that gets the whole <head> at once (Next.js streams it to browsers and to Googlebot,
+// which runs scripts; link previews and Bing read it from the first HTML).
+const CRAWLER = 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)';
 const DESCRIPTION = 'Strzyżemy od 2015 roku. </script><b>Kawa gratis</b>';
 
 async function json<T>(res: APIResponse): Promise<T> {
@@ -111,9 +113,9 @@ test('salon pages are ready for search engines, the dashboard is not indexed', a
   expect(sitemapText).toContain(`http://localhost:3000/uk/b/${slug}`);
   expect(sitemapText).toContain('http://localhost:3000/en/salons');
 
-  // What a crawler receives: the metadata is in <head> of the first HTML (no streaming).
+  // What a crawler receives in <head>.
   const html = await (
-    await request.get(`/en/b/${slug}`, { headers: { 'user-agent': GOOGLEBOT } })
+    await request.get(`/en/b/${slug}`, { headers: { 'user-agent': CRAWLER } })
   ).text();
   const head = /<head>([\s\S]*?)<\/head>/.exec(html)?.[1] ?? '';
   expect(head).toContain(`<title>${NAME} — Warszawa · book online</title>`);
@@ -169,14 +171,14 @@ test('salon pages are ready for search engines, the dashboard is not indexed', a
 
   // The catalogue has its own title in each language.
   const catalogue = await (
-    await request.get('/pl/salons', { headers: { 'user-agent': GOOGLEBOT } })
+    await request.get('/pl/salons', { headers: { 'user-agent': CRAWLER } })
   ).text();
   expect(catalogue).toContain('<title>Salony z rezerwacją online · GESTALT</title>');
   expect(catalogue).toMatch(/<meta name="robots" content="index, follow"\/>/);
 
   // The dashboard's sign-in and an unknown salon are never indexed.
   for (const path of ['/pl/login', '/pl/b/no-such-salon-130']) {
-    const other = await (await request.get(path, { headers: { 'user-agent': GOOGLEBOT } })).text();
+    const other = await (await request.get(path, { headers: { 'user-agent': CRAWLER } })).text();
     expect(other, path).toMatch(/<meta name="robots" content="noindex/);
   }
 });
