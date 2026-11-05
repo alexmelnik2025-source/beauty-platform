@@ -29,7 +29,7 @@ type Kind = (typeof KINDS)[number];
  * A language matches when the salon or one of its active staff members speaks it; a kind of
  * place when one of its active staff members does it.
  */
-function catalogueWhere(language?: Language, specialty?: Kind): Prisma.LocationWhereInput {
+function catalogueWhere(languages: Language[], specialty?: Kind): Prisma.LocationWhereInput {
   const and: Prisma.LocationWhereInput[] = [
     {
       onlineBookingEnabled: true,
@@ -37,11 +37,12 @@ function catalogueWhere(language?: Language, specialty?: Kind): Prisma.LocationW
       staffMembers: { some: { active: true } },
     },
   ];
-  if (language) {
+  // Task 192: several languages - any one of them (OR).
+  if (languages.length > 0) {
     and.push({
       OR: [
-        { languages: { has: language } },
-        { staffMembers: { some: { active: true, languages: { has: language } } } },
+        { languages: { hasSome: languages } },
+        { staffMembers: { some: { active: true, languages: { hasSome: languages } } } },
       ],
     });
   }
@@ -69,8 +70,11 @@ export class PublicDirectoryController {
   @ApiQuery({
     name: 'language',
     required: false,
-    enum: SPOKEN,
-    description: 'Spoken by the salon or by one of its staff members',
+    type: String,
+    example: 'uk,ru',
+    description:
+      'Spoken by the salon or by one of its staff members; several codes comma-separated = any of them (task 192). ' +
+      `Codes: ${SPOKEN.join(', ')}`,
   })
   @ApiQuery({
     name: 'specialty',
@@ -93,7 +97,8 @@ export class PublicDirectoryController {
     @Query(new ZodValidationPipe(publicDirectoryQuerySchema)) query: PublicDirectoryQuery,
   ): Promise<PublicDirectoryResponse> {
     this.limiter.hit(`public:directory:ip:${req.ip}`, 120, 60_000);
-    const where = catalogueWhere(query.language, query.specialty);
+    const chosen = query.language ?? [];
+    const where = catalogueWhere(chosen, query.specialty);
     const [total, locations, ...rest] = await this.prisma.$transaction([
       this.prisma.location.count({ where }),
       this.prisma.location.findMany({
@@ -132,11 +137,9 @@ export class PublicDirectoryController {
       }),
       // Task 160: the numbers on the language and kind-of-place chips.
       ...SPOKEN.map((code) =>
-        this.prisma.location.count({ where: catalogueWhere(code, query.specialty) }),
+        this.prisma.location.count({ where: catalogueWhere([code], query.specialty) }),
       ),
-      ...KINDS.map((kind) =>
-        this.prisma.location.count({ where: catalogueWhere(query.language, kind) }),
-      ),
+      ...KINDS.map((kind) => this.prisma.location.count({ where: catalogueWhere(chosen, kind) })),
     ]);
     const counts = rest as number[];
     return {
@@ -150,9 +153,10 @@ export class PublicDirectoryController {
           ...salon,
           languages: SPOKEN.filter((code) => spoken.has(code)),
           priceFromGrosze: prices.length > 0 ? Math.min(...prices) : null,
-          staffSpeaking: query.language
-            ? staffMembers.filter((s) => s.languages.includes(query.language!)).length
-            : null,
+          staffSpeaking:
+            chosen.length > 0
+              ? staffMembers.filter((s) => s.languages.some((code) => chosen.includes(code))).length
+              : null,
           specialties: KINDS.filter((kind) =>
             staffMembers.some((s) => s.specialties.includes(kind)),
           ),

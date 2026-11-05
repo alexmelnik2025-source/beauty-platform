@@ -7424,8 +7424,8 @@ export interface operations {
                 page?: number;
                 /** @description Kind of place: one of its active staff members does it (task 160) */
                 specialty?: "hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage";
-                /** @description Spoken by the salon or by one of its staff members */
-                language?: "pl" | "uk" | "ru" | "be" | "en";
+                /** @description Spoken by the salon or by one of its staff members; several codes comma-separated = any of them (task 192). Codes: pl, uk, ru, be, en */
+                language?: string;
             };
             header?: never;
             path?: never;

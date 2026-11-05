@@ -4059,15 +4059,9 @@
             "name": "language",
             "required": false,
             "in": "query",
-            "description": "Spoken by the salon or by one of its staff members",
+            "description": "Spoken by the salon or by one of its staff members; several codes comma-separated = any of them (task 192). Codes: pl, uk, ru, be, en",
             "schema": {
-              "enum": [
-                "pl",
-                "uk",
-                "ru",
-                "be",
-                "en"
-              ],
+              "example": "uk,ru",
               "type": "string"
             }
           }

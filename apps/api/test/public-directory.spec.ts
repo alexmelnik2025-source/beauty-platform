@@ -233,6 +233,46 @@ describe('public salon directory', () => {
     await ctx.http().get('/v1/public/locations').query({ specialty: 'tattoo' }).expect(400);
   });
 
+  it('several languages at once find salons speaking any of them (task 192)', async () => {
+    const owner = await signUp(ctx, 'languages-or@example.com');
+    const ua = await createOrgWithLocation(ctx, owner, 'Barber UA');
+    const ru = await createOrgWithLocation(ctx, owner, 'Barber RU');
+    const en = await createOrgWithLocation(ctx, owner, 'Barber EN');
+    await makeBookable(owner, ua, ['uk']);
+    await makeBookable(owner, ru, ['ru', 'uk']);
+    await makeBookable(owner, en, ['en']);
+    for (const salon of [ua, ru, en]) {
+      await ctx.prisma.location.update({
+        where: { id: salon.locationId },
+        data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, languages: ['pl'] },
+      });
+    }
+    const slugs = (body: { items: { slug: string }[] }) => body.items.map((s) => s.slug).sort();
+
+    const either = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ language: 'ru,be,ru' })
+      .expect(200);
+    expect(slugs(either.body)).toEqual([ru.slug]);
+    const eastern = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ language: 'uk,ru,be' })
+      .expect(200);
+    expect(slugs(eastern.body)).toEqual([ua.slug, ru.slug].sort());
+    expect(eastern.body.total).toBe(2);
+    // Each chip still counts its own language.
+    expect(eastern.body.languageCounts).toEqual({ pl: 3, uk: 2, ru: 1, be: 0, en: 1 });
+    // A specialist counts once, whichever of the languages they speak.
+    const bySlug = (slug: string) =>
+      eastern.body.items.find((s: { slug: string }) => s.slug === slug);
+    expect(bySlug(ru.slug).staffSpeaking).toBe(1);
+    expect(bySlug(ua.slug).staffSpeaking).toBe(1);
+
+    await ctx.http().get('/v1/public/locations').query({ language: 'uk,fr' }).expect(400);
+  });
+
   it("shows the lowest price a client can book, counting specialists' own prices (task 91)", async () => {
     const owner = await signUp(ctx, 'price-from@example.com');
     const salon = await createOrgWithLocation(ctx, owner, 'Price from');

@@ -3,7 +3,21 @@ import { languageSchema, specialtySchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
 
 export const publicDirectoryQuerySchema = z.strictObject({
-  language: languageSchema.optional(),
+  /**
+   * Task 192: one language or several, comma-separated (`uk,ru,be`): salons where at least one of
+   * them is spoken (OR).
+   */
+  language: z
+    .string()
+    .transform((value) =>
+      value
+        .split(',')
+        .map((code) => code.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(languageSchema).max(languageSchema.options.length))
+    .transform((codes) => [...new Set(codes)])
+    .optional(),
   /** Task 160: the kind of place — salons where an active specialist does this. */
   specialty: specialtySchema.optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -30,7 +44,10 @@ export const publicDirectorySchema = responseSchema(
          * counting each specialist's own price; free services are left out. Null when every service is free.
          */
         priceFromGrosze: z.number().int().nullable(),
-        /** Task 160: how many active specialists speak the `language` asked for; null without it. */
+        /**
+         * Task 160: how many active specialists speak the `language` asked for (task 192: at least one
+         * of them); null without it.
+         */
         staffSpeaking: z.number().int().nullable(),
         /** Task 160: what its active specialists do (the kind of place: barber, nails…). */
         specialties: z.array(specialtySchema),
