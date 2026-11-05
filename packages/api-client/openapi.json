@@ -9120,6 +9120,141 @@
         ]
       }
     },
+    "/v1/client/holds/{holdId}/confirm": {
+      "post": {
+        "description": "For a client signed in to \"My visits\": the session proved the email, so no code is sent. The email comes from the session. Same rules as the code step (salon terms, cancellation guard, wishes, emails); signedIn is always true.",
+        "operationId": "ClientController_confirmHold",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "holdToken": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "locale": {
+                    "default": "pl",
+                    "type": "string",
+                    "enum": [
+                      "pl",
+                      "uk",
+                      "ru",
+                      "en",
+                      "tr",
+                      "sq"
+                    ]
+                  },
+                  "acceptTerms": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "marketingConsent": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "wishes": {
+                    "type": "object",
+                    "properties": {
+                      "mood": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "chat",
+                              "quiet",
+                              "relax"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "drink": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "coffee",
+                              "tea",
+                              "water",
+                              "none"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "note": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "holdToken",
+                  "name",
+                  "phone",
+                  "acceptTerms"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingConfirmed"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Book a held time without a code (task 180e)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/loyalty": {
       "get": {
         "description": "Stamps or points, rewards and how much is missing, coupons and history in every salon where the client has a card with the confirmed email and the program is on (or a coupon is still usable).",

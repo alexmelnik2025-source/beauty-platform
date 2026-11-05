@@ -20,6 +20,7 @@ import type {
   ConfirmInput,
   CreateHoldInput,
   SendCodeInput,
+  SignedInConfirmInput,
 } from './booking.schemas';
 import { OutboxService } from './outbox.service';
 import type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
@@ -435,6 +436,47 @@ export class PublicBookingService {
       manageToken,
       clientSession: confirmed.clientSession,
     };
+  }
+
+  /**
+   * Task 180e: a client signed in to "My visits" confirms the hold without a code: the session
+   * proved `email`. Same checks and emails as the code step (cancellation guard, wishes).
+   */
+  async confirmSignedIn(
+    holdId: string,
+    input: SignedInConfirmInput,
+    email: string,
+    ip: string | null,
+  ): Promise<{ appointment: PublicAppointmentResponse; manageToken: string }> {
+    const hold = await this.activeHold(holdId, input.holdToken);
+    const contact: HoldContact = {
+      name: input.name,
+      phone: input.phone,
+      email,
+      locale: input.locale,
+      marketingConsent: input.marketingConsent,
+      ip,
+      codeChannel: 'email',
+    };
+    const needsApproval = await this.checkGuard(hold, contact, true);
+    const manageToken = generateToken();
+    const wishes = acceptedWishes(hold.location, input.wishes);
+    const appointment = await this.prisma.$transaction(async (tx) => {
+      await tx.appointment.updateMany({
+        where: { id: hold.id, status: 'held' },
+        data: { locale: input.locale },
+      });
+      const confirmed = await this.complete(tx, hold, contact, {
+        emailConfirmed: true,
+        wishes,
+        manageToken,
+        needsApproval,
+      });
+      // A code asked for earlier (before signing in) is not needed any more.
+      await tx.verificationCode.deleteMany({ where: { appointmentId: hold.id } });
+      return confirmed;
+    });
+    return { appointment: this.toPublic(appointment), manageToken };
   }
 
   // ── 4. Manage via the link from the email ─────────────
