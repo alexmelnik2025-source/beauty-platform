@@ -139,6 +139,9 @@ export const cancelSchema = z.object({
   reason: z.string().trim().min(1).max(300),
 });
 
+/** Task 161b: the salon accepts a visit that waits for it (cancellation guard). */
+export const approveSchema = z.object({ version: z.number().int().min(1) });
+
 export const setStatusSchema = z.object({
   version: z.number().int().min(1),
   status: z.enum(['completed', 'no_show']),
@@ -190,6 +193,7 @@ export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type RescheduleInput = z.infer<typeof rescheduleSchema>;
 export type CancelInput = z.infer<typeof cancelSchema>;
 export type SetStatusInput = z.infer<typeof setStatusSchema>;
+export type ApproveInput = z.infer<typeof approveSchema>;
 export type ListCustomersQuery = z.infer<typeof listCustomersSchema>;
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;

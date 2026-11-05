@@ -260,6 +260,7 @@ export const en: Dict = {
       tier_discount_applied: 'Tier discount used',
       tier_discount_removed: 'Tier discount removed',
       wishes_changed: 'Client changed the visit wishes',
+      approved: 'Salon accepted the booking',
     },
   },
   phone: {

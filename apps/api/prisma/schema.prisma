@@ -828,6 +828,9 @@ model Appointment {
   /// "payment confirmed" that loyalty earning needs). Only on completed visits.
   paidAt              DateTime?         @map("paid_at") @db.Timestamptz(3)
   paidByUserId        String?           @map("paid_by_user_id") @db.Uuid
+  /// Task 161b: booked online by a client the cancellation guard marks with "approval": the
+  /// time is kept, but the visit waits until the salon accepts it (null = nothing to accept).
+  approvalRequestedAt DateTime?         @map("approval_requested_at") @db.Timestamptz(3)
   createdByUserId     String?           @map("created_by_user_id") @db.Uuid
   version             Int               @default(1)
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)

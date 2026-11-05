@@ -467,6 +467,8 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     if (kind === 'client_reminder') {
       const stillValid =
         appointment.status === 'confirmed' &&
+        // Task 161b: no reminder while the salon has yet to accept the visit.
+        appointment.approvalRequestedAt === null &&
         appointment.version === row.payload.version &&
         appointment.startAt.getTime() > Date.now();
       if (!stillValid) return null;

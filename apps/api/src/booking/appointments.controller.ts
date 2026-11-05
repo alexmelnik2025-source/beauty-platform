@@ -54,6 +54,7 @@ import {
   visitCouponsSchema,
 } from './booking.responses';
 import {
+  approveSchema,
   cancelSchema,
   createAppointmentSchema,
   createCustomerSchema,
@@ -62,6 +63,7 @@ import {
   rescheduleSchema,
   setStatusSchema,
   updateCustomerSchema,
+  type ApproveInput,
   type CancelInput,
   type CreateAppointmentInput,
   type CreateCustomerInput,
@@ -168,6 +170,27 @@ export class AppointmentsController {
     @Body(new ZodValidationPipe(cancelSchema)) body: CancelInput,
   ): Promise<AppointmentDetailResponse> {
     return this.appointments.cancel(m, auth.userId, locationId, appointmentId, body);
+  }
+
+  @Post(':appointmentId/approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Accept a visit that waits for the salon (task 161b); the client gets the confirmation',
+    description:
+      '409 NOT_AWAITING_APPROVAL: the visit does not wait (already accepted or cancelled). ' +
+      'To refuse it, cancel it with a reason.',
+  })
+  @ApiZodBody(approveSchema)
+  @ApiZodResponse(appointmentDetailSchema)
+  approve(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Body(new ZodValidationPipe(approveSchema)) body: ApproveInput,
+  ): Promise<AppointmentDetailResponse> {
+    return this.appointments.approve(m, auth.userId, locationId, appointmentId, body);
   }
 
   @Post(':appointmentId/status')

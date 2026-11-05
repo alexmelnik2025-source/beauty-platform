@@ -1268,6 +1268,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a visit that waits for the salon (task 161b); the client gets the confirmation
+         * @description 409 NOT_AWAITING_APPROVAL: the visit does not wait (already accepted or cancelled). To refuse it, cancel it with a reason.
+         */
+        post: operations["AppointmentsController_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/status": {
         parameters: {
             query?: never;
@@ -2812,6 +2832,8 @@ export interface components {
                 note: string | null;
             };
             holdExpiresAt: string | null;
+            /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
+            awaitingApproval: boolean;
             cancelledAt: string | null;
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
@@ -2894,6 +2916,8 @@ export interface components {
                 note: string | null;
             };
             holdExpiresAt: string | null;
+            /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
+            awaitingApproval: boolean;
             cancelledAt: string | null;
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
@@ -2982,6 +3006,8 @@ export interface components {
                 note: string | null;
             };
             holdExpiresAt: string | null;
+            /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
+            awaitingApproval: boolean;
             cancelledAt: string | null;
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
@@ -3066,6 +3092,8 @@ export interface components {
                 /** @description Until when the client can still move or cancel online */
                 changeableUntil: string;
                 canChange: boolean;
+                /** @description Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard) */
+                awaitingApproval: boolean;
                 /** @description The client's wishes for the visit (task 80); null = not answered */
                 wishes: {
                     /** @enum {string|null} */
@@ -3194,6 +3222,8 @@ export interface components {
                     note: string | null;
                 };
                 holdExpiresAt: string | null;
+                /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
+                awaitingApproval: boolean;
                 cancelledAt: string | null;
                 /** @enum {string|null} */
                 cancelledBy: "customer" | "salon" | null;
@@ -3271,6 +3301,8 @@ export interface components {
             /** @description Until when the client can still move or cancel online */
             changeableUntil: string;
             canChange: boolean;
+            /** @description Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard) */
+            awaitingApproval: boolean;
             /** @description The client's wishes for the visit (task 80); null = not answered */
             wishes: {
                 /** @enum {string|null} */
@@ -3341,6 +3373,8 @@ export interface components {
                 /** @description Until when the client can still move or cancel online */
                 changeableUntil: string;
                 canChange: boolean;
+                /** @description Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard) */
+                awaitingApproval: boolean;
                 /** @description The client's wishes for the visit (task 80); null = not answered */
                 wishes: {
                     /** @enum {string|null} */
@@ -4618,6 +4652,8 @@ export interface components {
             /** @description Until when the client can still move or cancel online */
             changeableUntil: string;
             canChange: boolean;
+            /** @description Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard) */
+            awaitingApproval: boolean;
             /** @description The client's wishes for the visit (task 80); null = not answered */
             wishes: {
                 /** @enum {string|null} */
@@ -7748,6 +7784,34 @@ export interface operations {
                 "application/json": {
                     version: number;
                     reason: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
+            };
+        };
+    };
+    AppointmentsController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
                 };
             };
         };

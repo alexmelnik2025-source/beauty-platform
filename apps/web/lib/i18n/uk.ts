@@ -260,6 +260,7 @@ export const uk: Dict = {
       tier_discount_applied: 'Застосовано знижку рівня',
       tier_discount_removed: 'Знижку рівня знято',
       wishes_changed: 'Клієнт змінив побажання до візиту',
+      approved: 'Салон підтвердив запис',
     },
   },
   phone: {

@@ -5553,6 +5553,71 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/approve": {
+      "post": {
+        "description": "409 NOT_AWAITING_APPROVAL: the visit does not wait (already accepted or cancelled). To refuse it, cancel it with a reason.",
+        "operationId": "AppointmentsController_approve",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept a visit that waits for the salon (task 161b); the client gets the confirmation",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/status": {
       "post": {
         "operationId": "AppointmentsController_setStatus",
@@ -10709,6 +10774,10 @@
             "nullable": true,
             "type": "string"
           },
+          "awaitingApproval": {
+            "type": "boolean",
+            "description": "Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it"
+          },
           "cancelledAt": {
             "nullable": true,
             "type": "string"
@@ -10763,6 +10832,7 @@
           "note",
           "wishes",
           "holdExpiresAt",
+          "awaitingApproval",
           "cancelledAt",
           "cancelledBy",
           "cancelReason",
@@ -11035,6 +11105,10 @@
             "nullable": true,
             "type": "string"
           },
+          "awaitingApproval": {
+            "type": "boolean",
+            "description": "Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it"
+          },
           "cancelledAt": {
             "nullable": true,
             "type": "string"
@@ -11114,6 +11188,7 @@
           "note",
           "wishes",
           "holdExpiresAt",
+          "awaitingApproval",
           "cancelledAt",
           "cancelledBy",
           "cancelReason",
@@ -11389,6 +11464,10 @@
               "nullable": true,
               "type": "string"
             },
+            "awaitingApproval": {
+              "type": "boolean",
+              "description": "Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it"
+            },
             "cancelledAt": {
               "nullable": true,
               "type": "string"
@@ -11443,6 +11522,7 @@
             "note",
             "wishes",
             "holdExpiresAt",
+            "awaitingApproval",
             "cancelledAt",
             "cancelledBy",
             "cancelReason",
@@ -11730,6 +11810,10 @@
               "canChange": {
                 "type": "boolean"
               },
+              "awaitingApproval": {
+                "type": "boolean",
+                "description": "Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard)"
+              },
               "wishes": {
                 "type": "object",
                 "properties": {
@@ -11816,6 +11900,7 @@
               "salon",
               "changeableUntil",
               "canChange",
+              "awaitingApproval",
               "wishes",
               "wishQuestions",
               "canChangeWishes"
@@ -12232,6 +12317,10 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "awaitingApproval": {
+                  "type": "boolean",
+                  "description": "Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it"
+                },
                 "cancelledAt": {
                   "nullable": true,
                   "type": "string"
@@ -12286,6 +12375,7 @@
                 "note",
                 "wishes",
                 "holdExpiresAt",
+                "awaitingApproval",
                 "cancelledAt",
                 "cancelledBy",
                 "cancelReason",
@@ -12566,6 +12656,10 @@
           "canChange": {
             "type": "boolean"
           },
+          "awaitingApproval": {
+            "type": "boolean",
+            "description": "Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard)"
+          },
           "wishes": {
             "type": "object",
             "properties": {
@@ -12711,6 +12805,7 @@
           "salon",
           "changeableUntil",
           "canChange",
+          "awaitingApproval",
           "wishes",
           "wishQuestions",
           "canChangeWishes",
@@ -12846,6 +12941,10 @@
                 },
                 "canChange": {
                   "type": "boolean"
+                },
+                "awaitingApproval": {
+                  "type": "boolean",
+                  "description": "Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard)"
                 },
                 "wishes": {
                   "type": "object",
@@ -12992,6 +13091,7 @@
                 "salon",
                 "changeableUntil",
                 "canChange",
+                "awaitingApproval",
                 "wishes",
                 "wishQuestions",
                 "canChangeWishes",
@@ -18038,6 +18138,10 @@
           "canChange": {
             "type": "boolean"
           },
+          "awaitingApproval": {
+            "type": "boolean",
+            "description": "Task 161b: the time is kept, but the salon has yet to accept the visit (cancellation guard)"
+          },
           "wishes": {
             "type": "object",
             "properties": {
@@ -18124,6 +18228,7 @@
           "salon",
           "changeableUntil",
           "canChange",
+          "awaitingApproval",
           "wishes",
           "wishQuestions",
           "canChangeWishes"
