@@ -27,7 +27,8 @@
   через `su postgres -c psql`; миграции — `psql -f` по порядку; `test/global-setup.ts` локально временно заменить на
   пустую функцию (не коммитить). OpenAPI: `OPENAPI_WRITE=1 … vitest run test/openapi.spec.ts` + `api-client generate`.
 - **Нестабильные тесты (известно, не из-за новых задач):** `apps/api/test/outbox-admin.spec.ts` (иногда письмо
-  остаётся «pending»), e2e `countries.spec.ts` (Стамбул) и `booking.spec.ts` (цена «90,00 €») иногда падают и на main;
+  остаётся «pending») — вероятно исправлено 05.11.2026 (сбои делило другое письмо в очереди, теперь тест его
+  убирает); e2e `countries.spec.ts` (Стамбул) и `booking.spec.ts` (цена «90,00 €») иногда падают и на main;
   при падении — повторить job. Стоит разобрать отдельной задачей.
 
 - **Не вливать (дубли уже влитых задач):** `agent/70-staff-prices` (70a — то же, что 62; из неё перенести только
