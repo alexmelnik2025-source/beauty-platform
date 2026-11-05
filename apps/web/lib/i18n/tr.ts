@@ -364,4 +364,10 @@ export const tr: Dict = {
     acceptPrivacy: 'gizlilik politikasını',
     acceptAfter: ' kabul ediyorum.',
   },
+  unsubscribe: {
+    title: 'Salondan mesajlar',
+    lead: 'Salondan hatırlatma ve haber almak istemiyor musunuz? Tek tıkla salon bunları göndermeyi bırakır. Randevu onaylarınız gelmeye devam eder.',
+    button: 'Abonelikten çık',
+    done: 'Tamam — {salon} artık size bu tür mesajlar göndermeyecek.',
+  },
 };

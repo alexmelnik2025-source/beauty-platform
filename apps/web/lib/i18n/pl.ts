@@ -882,6 +882,13 @@ export const pl = {
     currency: 'Waluta cen',
     currencyHint:
       'Ceny usług i kwoty w programie lojalnościowym są w tej walucie. Zmiana waluty nie przelicza cen — popraw je w „Usługi”.',
+    rebookTitle: 'Pora na kolejną wizytę',
+    rebookOn: 'Wysyłaj klientom przypomnienie „Pora na kolejną wizytę?”',
+    rebookDays: 'Ile dni po ostatniej wizycie',
+    rebookText: 'Własny tekst (nieobowiązkowo)',
+    rebookTextPlaceholder: 'Np. Dawno Cię nie było — wpadnij na odświeżenie fryzury!',
+    rebookHint:
+      'Jeden e-mail po każdej wizycie, od salonu, z linkiem do rezerwacji u tego samego specjalisty. Tylko klientom, którzy zgodzili się na wiadomości salonu i nie mają kolejnej rezerwacji. Każdy e-mail ma link do wypisania się.',
   },
   loyalty: {
     title: 'Program lojalnościowy',
@@ -1101,6 +1108,12 @@ export const pl = {
     occupancyHours: 'zajęte {booked} z {work} godz.',
     occupancyHint:
       'Obłożenie — jaka część godzin pracy z grafiku (bez urlopów i zablokowanego czasu) była zajęta wizytami, także tymi, na które klient nie przyszedł. Odwołane wizyty się nie liczą.',
+  },
+  unsubscribe: {
+    title: 'Wiadomości od salonu',
+    lead: 'Nie chcesz dostawać od salonu przypomnień i nowości? Jedno kliknięcie — i salon przestanie je wysyłać. Potwierdzenia Twoich rezerwacji przychodzą dalej.',
+    button: 'Wypisz się',
+    done: 'Gotowe — {salon} nie będzie już wysyłać Ci takich wiadomości.',
   },
 };
 
