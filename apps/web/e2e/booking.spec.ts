@@ -363,6 +363,10 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(client, '05w-client-wishes');
   await client.getByRole('button', { name: 'Potwierdź wizytę' }).click();
   await expect(client.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+  // Task 180d: the email code made the account and signed the client in on this phone.
+  await expect(client.getByTestId('account-ready')).toContainText(
+    'Masz teraz konto — wszystkie wizyty w „Moje wizyty”.',
+  );
   await shot(client, '06-client-done');
 
   // ── Emails ─────────────────────────────────────────────────────────────
@@ -408,6 +412,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(client.getByText('Potwierdzona')).toBeVisible();
 
   // ── "My visits": the client signs in with an emailed code, no password ──
+  // (on another device: the booking already signed this phone in — task 180d)
+  await phone.clearCookies();
   await client.goto('/pl/c');
   await client.getByLabel('E-mail').fill(CLIENT);
   await client.getByRole('button', { name: 'Wyślij kod' }).click();
@@ -1061,10 +1067,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ola.getByLabel('E-mail')).toHaveValue(CLIENT2);
   await expect(ola.getByLabel('Telefon')).toHaveValue('+48600300400');
   await expect(ola.getByLabel(/Zapamiętaj mnie/)).toBeChecked();
+  // Task 180d: signed in since the booking — the form says so.
+  await expect(ola.getByTestId('signed-in-as')).toContainText(CLIENT2);
   await shot(ola, '27-client-details-remembered');
   await ola.getByRole('button', { name: 'To nie ja — wyczyść dane' }).click();
   await expect(ola.getByLabel('Imię i nazwisko')).toHaveValue('');
   await expect(ola.getByLabel(/Zapamiętaj mnie/)).not.toBeChecked();
+  await expect(ola.getByTestId('signed-in-as')).toHaveCount(0);
 
   // ── The code by SMS instead of email (no gateway: the API logs the SMS) ──
   const piotrPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });

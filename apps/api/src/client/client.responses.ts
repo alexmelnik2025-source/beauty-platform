@@ -9,6 +9,23 @@ export const clientPersonSchema = responseSchema(
 );
 export type PersonResponse = z.infer<typeof clientPersonSchema>;
 
+/** Task 180d: what the booking form fills in for a signed-in client. */
+export const clientContactSchema = responseSchema(
+  'ClientContact',
+  z.strictObject({
+    email: z.string(),
+    name: z
+      .string()
+      .nullable()
+      .describe('From the latest salon card of this email; null when none'),
+    phone: z
+      .string()
+      .nullable()
+      .describe('From the latest salon card of this email; null when none'),
+  }),
+);
+export type ClientContactResponse = z.infer<typeof clientContactSchema>;
+
 export const clientCodeSentSchema = responseSchema(
   'ClientCodeSent',
   z.strictObject({ codeExpiresAt: z.string() }),

@@ -402,6 +402,8 @@ export const en: Dict = {
     viaSms: 'SMS',
     codeTitleSms: 'Code from the SMS',
     codeLeadSms: 'We texted 6 digits to {phone}.',
+    accountReady: 'You now have an account — all your visits are in “My visits”.',
+    signedInAs: 'Signed in as {email} — your details are filled in.',
     rememberMe: 'Remember me on this device',
     rememberMeHint:
       'Next time your details fill in by themselves, and your visits are in the “My visits” app. Do not tick this on someone else’s device.',

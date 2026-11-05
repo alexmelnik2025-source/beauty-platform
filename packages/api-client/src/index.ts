@@ -34,6 +34,7 @@ export type BookingConfirmed = Schemas['BookingConfirmed'];
 export type PublicAppointment = Schemas['PublicAppointment'];
 /** "My visits" client app. */
 export type ClientPerson = Schemas['ClientPerson'];
+export type ClientContact = Schemas['ClientContact'];
 export type ClientSignIn = Schemas['ClientSignIn'];
 export type ClientCodeSent = Schemas['ClientCodeSent'];
 export type ClientAppointment = Schemas['ClientAppointment'];
