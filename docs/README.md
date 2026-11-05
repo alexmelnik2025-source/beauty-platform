@@ -1788,3 +1788,14 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
 - Принятое предложение из листа ожидания проходит тот же `complete()`, что и запись по коду: клиенту с отметкой
   «approval» визит ждёт подтверждения салона (письма «Rezerwacja czeka…»/«…do potwierdzenia»), с «phone_only» /
   «prepay» — отказ с объяснением, время освобождается. Тест — `waitlist.spec.ts`.
+
+## Несколько языков сразу (задача 192)
+
+- `GET /v1/public/locations?language=uk,ru,be` — салоны, где салон или активный мастер говорит хотя бы на одном из
+  языков (ИЛИ, `hasSome`); повторы убираются, неизвестный код — 400. `staffSpeaking` считает мастера один раз;
+  `languageCounts` у каждого чипа — по своему языку (с фильтром типа заведения).
+- Сайт (`PublicDirectory.tsx`): чипы языков переключаются (несколько сразу), с числами «(n)», «Wyczyść»; выбор
+  хранится в `localStorage` (`beauty.catalogue.languages`). Клиентское приложение (`CatalogScreen`, `SalonMap`):
+  так же, выбор — в `catalogLanguagesStore` (web — localStorage, телефон — SecureStore).
+- «Mówi po» на странице записи (список цен и шаг мастера) и в приложении (`speakingStaff`) — мастера, говорящие
+  хотя бы на одном выбранном языке. e2e — `booking.spec.ts`, `catalogue-map.spec.ts` (скриншоты 192, 192a–c).
