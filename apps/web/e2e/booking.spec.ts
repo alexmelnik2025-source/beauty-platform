@@ -1267,6 +1267,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     });
     await expect(annaRow).toBeVisible();
     await shot(ownerApp, '33b-business-app-owner-clients');
+    // Task 140: "who hasn't been for a while" — Anna has a visit booked, so she is not listed.
+    await ownerApp.getByRole('radio', { name: '30 dni' }).click();
+    await expect(ownerApp.getByText(/Ofertę wysyłaj tylko osobom ze zgodą/)).toBeVisible();
+    await expect(annaRow).toHaveCount(0);
+    await shot(ownerApp, '33h-business-app-inactive-clients');
+    await ownerApp.getByRole('radio', { name: 'Wszyscy' }).click();
+    await expect(annaRow).toBeVisible();
     await annaRow.click();
     await expect(ownerApp.getByRole('heading', { name: 'Anna Kowalska' })).toBeVisible();
     await expect(

@@ -97,6 +97,12 @@ export const pl = {
     search: 'Szukaj: imię, telefon, e-mail lub tag',
     find: 'Szukaj',
     none: 'Nie znaleziono klientów.',
+    inactive: 'Kto dawno nie był',
+    inactiveAll: 'Wszyscy',
+    inactiveDays: '{days} dni',
+    inactiveHint:
+      'Byli już u nas, ale nie od tego czasu i nie mają wizyty. Ofertę wysyłaj tylko osobom ze zgodą marketingową.',
+    inactiveNone: 'Nikt — wszyscy wracają.',
     first: 'Pierwszych {count} klientów — wpisz imię lub telefon, aby zawęzić.',
     card: 'Karta klienta',
     contacts: 'Kontakt',

@@ -16,6 +16,8 @@ import { ClientScreen } from './ClientScreen';
 import type { SalonChoice } from './SalonsScreen';
 
 const PAGE = 50;
+/** Task 140: "who hasn't been for a while" — 0 = everyone. */
+const INACTIVE = [0, 30, 60, 90, 180] as const;
 
 /** Owner or manager: the salon's clients, search by name, phone, email or tag → the client card. */
 export function ClientsScreen(props: {
@@ -34,12 +36,13 @@ export function ClientsScreen(props: {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [inactiveDays, setInactiveDays] = useState(0);
 
   const search = useCallback(
     async (text: string) => {
       setBusy(true);
       try {
-        setList(await api.customers(salon.orgId, text, PAGE));
+        setList(await api.customers(salon.orgId, text, PAGE, inactiveDays));
         setSearched(text.trim());
         setError('');
       } catch (e) {
@@ -48,7 +51,7 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t],
+    [api, salon, t, inactiveDays],
   );
 
   useEffect(() => {
@@ -103,6 +106,26 @@ export function ClientsScreen(props: {
         />
         <Button label={c.find} busy={busy} onPress={() => void search(query)} />
       </View>
+      <Text style={styles.muted}>{c.inactive}</Text>
+      <View style={styles.row} accessibilityRole="radiogroup">
+        {INACTIVE.map((days) => (
+          <Pressable
+            key={days}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: days === inactiveDays }}
+            onPress={() => {
+              setQuery('');
+              setInactiveDays(days);
+            }}
+            style={[styles.chip, days === inactiveDays && styles.chipOn]}
+          >
+            <Text style={[styles.chipText, days === inactiveDays && styles.chipTextOn]}>
+              {days === 0 ? c.inactiveAll : fill(c.inactiveDays, { days: String(days) })}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {inactiveDays ? <Text style={styles.muted}>{c.inactiveHint}</Text> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       {list === null ? (
@@ -110,7 +133,7 @@ export function ClientsScreen(props: {
           <Text style={styles.muted}>{t.loading}</Text>
         ) : null
       ) : list.length === 0 ? (
-        <Text style={styles.muted}>{c.none}</Text>
+        <Text style={styles.muted}>{inactiveDays ? c.inactiveNone : c.none}</Text>
       ) : (
         <>
           {!searched && list.length >= PAGE ? (
@@ -161,4 +184,15 @@ const styles = StyleSheet.create({
   name: { fontSize: 17, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
   tags: { color: colors.gold, fontSize: 14, fontWeight: '600' },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.card,
+  },
+  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipText: { color: colors.ink, fontSize: 14 },
+  chipTextOn: { color: '#fff', fontWeight: '600' },
 });

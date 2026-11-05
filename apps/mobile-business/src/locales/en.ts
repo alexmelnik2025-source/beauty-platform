@@ -99,6 +99,12 @@ export const en: Dictionary = {
     search: 'Search: name, phone, email or tag',
     find: 'Search',
     none: 'No clients found.',
+    inactive: "Who hasn't been for a while",
+    inactiveAll: 'Everyone',
+    inactiveDays: '{days} days',
+    inactiveHint:
+      'They came before, but not in this time, and have nothing booked. Send offers only to people who agreed to marketing.',
+    inactiveNone: 'Nobody — everyone comes back.',
     first: 'The first {count} clients — type a name or phone to narrow down.',
     card: 'Client card',
     contacts: 'Contact',

@@ -93,6 +93,7 @@ describe('BusinessApi clients', () => {
     await api.restore();
     await api.customers('o1', ' Anna Kow ');
     await api.customers('o1', '', 20);
+    await api.customers('o1', '', 50, 90);
     await api.customer('o1', 'c1');
     await api.updateCustomerNotes('o1', 'c1', 2, 'Lubi krótko', ['vip']);
     await api.updateCustomerNotes('o1', 'c1', 3, null, []);
@@ -100,6 +101,8 @@ describe('BusinessApi clients', () => {
     expect(calls.slice(1).map((c) => [c.key, c.body, c.auth])).toEqual([
       ['GET /v1/organizations/o1/customers?limit=50&search=Anna+Kow', undefined, 'Bearer a9'],
       ['GET /v1/organizations/o1/customers?limit=20', undefined, 'Bearer a9'],
+      // Task 140: "who hasn't been for a while".
+      ['GET /v1/organizations/o1/customers?limit=50&inactiveDays=90', undefined, 'Bearer a9'],
       ['GET /v1/organizations/o1/customers/c1', undefined, 'Bearer a9'],
       [
         'PATCH /v1/organizations/o1/customers/c1',
