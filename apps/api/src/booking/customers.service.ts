@@ -67,22 +67,24 @@ export class CustomersService {
     const customer = await this.findVisible(m, userId, customerId);
     const ownOnly = m.role === 'staff' && !m.permissions.viewClientHistory;
     const ownStaff = ownOnly ? await this.ownStaffIds(m, userId) : null;
-    const [consent, visits] = await Promise.all([
+    const where: Prisma.AppointmentWhereInput = {
+      customerId,
+      status: { notIn: ['held', 'expired'] },
+      ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+      ...(ownStaff ? { staffId: { in: ownStaff } } : {}),
+    };
+    const [consent, visits, summary] = await Promise.all([
       this.prisma.consentRecord.findFirst({
         where: { customerId, type: 'marketing' },
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.appointment.findMany({
-        where: {
-          customerId,
-          status: { notIn: ['held', 'expired'] },
-          ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
-          ...(ownStaff ? { staffId: { in: ownStaff } } : {}),
-        },
+        where,
         include: { service: true, staff: true },
         orderBy: { startAt: 'desc' },
         take: 100,
       }),
+      this.summary(where, m.role !== 'staff'),
     ]);
     return {
       ...toCustomer(customer, m),
@@ -95,6 +97,68 @@ export class CustomersService {
         serviceName: a.service.name,
         staffName: a.staff.displayName,
       })),
+      summary,
+    };
+  }
+
+  /**
+   * Task 98: how the client comes — visits that took place, no-shows, cancellations, the first
+   * and latest visit and (for owners and managers) what the paid visits brought, per currency.
+   */
+  private async summary(
+    where: Prisma.AppointmentWhereInput,
+    withMoney: boolean,
+  ): Promise<CustomerDetailResponse['summary']> {
+    const [byStatus, upcoming, dates, paid] = await Promise.all([
+      this.prisma.appointment.groupBy({
+        by: ['status', 'cancelledBy'],
+        where,
+        _count: { _all: true },
+      }),
+      this.prisma.appointment.count({
+        where: { AND: [where, { status: 'confirmed', startAt: { gte: new Date() } }] },
+      }),
+      this.prisma.appointment.aggregate({
+        where: { AND: [where, { status: 'completed' }] },
+        _min: { startAt: true },
+        _max: { startAt: true },
+      }),
+      withMoney
+        ? this.prisma.appointment.groupBy({
+            by: ['locationId'],
+            where: { AND: [where, { paidAt: { not: null }, status: { not: 'cancelled' } }] },
+            _sum: { priceGrosze: true, discountGrosze: true },
+          })
+        : null,
+    ]);
+    const count = (match: (row: (typeof byStatus)[number]) => boolean): number =>
+      byStatus.filter(match).reduce((sum, row) => sum + row._count._all, 0);
+    let money: CustomerDetailResponse['summary']['paid'] = null;
+    if (paid) {
+      const locations = await this.prisma.location.findMany({
+        where: { id: { in: paid.map((p) => p.locationId) } },
+        select: { id: true, currency: true },
+      });
+      const currencyOf = new Map(locations.map((l) => [l.id, l.currency]));
+      const totals = new Map<string, number>();
+      for (const row of paid) {
+        const currency = currencyOf.get(row.locationId) ?? 'PLN';
+        const amount = (row._sum.priceGrosze ?? 0) - (row._sum.discountGrosze ?? 0);
+        totals.set(currency, (totals.get(currency) ?? 0) + amount);
+      }
+      money = [...totals]
+        .map(([currency, amountGrosze]) => ({ currency, amountGrosze }))
+        .sort((a, b) => b.amountGrosze - a.amountGrosze);
+    }
+    return {
+      completed: count((r) => r.status === 'completed'),
+      noShow: count((r) => r.status === 'no_show'),
+      cancelledByClient: count((r) => r.status === 'cancelled' && r.cancelledBy === 'customer'),
+      cancelledBySalon: count((r) => r.status === 'cancelled' && r.cancelledBy !== 'customer'),
+      upcoming,
+      firstVisitAt: dates._min.startAt?.toISOString() ?? null,
+      lastVisitAt: dates._max.startAt?.toISOString() ?? null,
+      paid: money,
     };
   }
 
@@ -136,7 +200,21 @@ export class CustomersService {
       await this.record(tx, m, actorUserId, 'customer.created', customer.id);
       return customer;
     });
-    return { ...toCustomer(created, m), marketingConsent: false, visits: [] };
+    return {
+      ...toCustomer(created, m),
+      marketingConsent: false,
+      visits: [],
+      summary: {
+        completed: 0,
+        noShow: 0,
+        cancelledByClient: 0,
+        cancelledBySalon: 0,
+        upcoming: 0,
+        firstVisitAt: null,
+        lastVisitAt: null,
+        paid: m.role === 'staff' ? null : [],
+      },
+    };
   }
 
   async update(

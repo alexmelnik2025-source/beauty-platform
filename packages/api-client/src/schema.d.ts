@@ -3555,6 +3555,28 @@ export interface components {
                 serviceName: string;
                 staffName: string;
             }[];
+            /** @description Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100) */
+            summary: {
+                /** @description Visits that took place */
+                completed: number;
+                /** @description Times the client did not come */
+                noShow: number;
+                cancelledByClient: number;
+                cancelledBySalon: number;
+                /** @description Confirmed visits still ahead */
+                upcoming: number;
+                /** @description Start of the first visit that took place */
+                firstVisitAt: string | null;
+                /** @description Start of the latest visit that took place */
+                lastVisitAt: string | null;
+                /** @description One row per currency of the salons; null for staff members */
+                paid: {
+                    /** @description ISO 4217 code of the salon */
+                    currency: string;
+                    /** @description Paid visits after coupons, in hundredths of the currency */
+                    amountGrosze: number;
+                }[] | null;
+            };
         };
         CustomerExport: {
             exportedAt: string;

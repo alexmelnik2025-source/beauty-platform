@@ -149,6 +149,31 @@ export const customerDetailSchema = responseSchema(
         }),
       )
       .describe('Staff without viewClientHistory get only their own appointments with this client'),
+    summary: z
+      .strictObject({
+        completed: z.number().int().describe('Visits that took place'),
+        noShow: z.number().int().describe('Times the client did not come'),
+        cancelledByClient: z.number().int(),
+        cancelledBySalon: z.number().int(),
+        upcoming: z.number().int().describe('Confirmed visits still ahead'),
+        firstVisitAt: z.string().nullable().describe('Start of the first visit that took place'),
+        lastVisitAt: z.string().nullable().describe('Start of the latest visit that took place'),
+        paid: z
+          .array(
+            z.strictObject({
+              currency: z.string().describe('ISO 4217 code of the salon'),
+              amountGrosze: z
+                .number()
+                .int()
+                .describe('Paid visits after coupons, in hundredths of the currency'),
+            }),
+          )
+          .nullable()
+          .describe('One row per currency of the salons; null for staff members'),
+      })
+      .describe(
+        'Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)',
+      ),
   }),
 );
 export type CustomerDetailResponse = z.infer<typeof customerDetailSchema>;

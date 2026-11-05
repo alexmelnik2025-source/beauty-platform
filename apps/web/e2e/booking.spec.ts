@@ -699,6 +699,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.getByRole('button', { name: /Anna Kowalska/ }).click();
   await expect(ownerPage.getByRole('dialog')).toContainText('Strzyżenie męskie');
   await shot(ownerPage, '19-owner-client');
+  // Task 98: the card sums up how the client comes — visits, no-shows, cancellations, paid total.
+  const summary = ownerPage.getByTestId('client-summary');
+  await summary.scrollIntoViewIfNeeded();
+  await expect(summary).toContainText('Podsumowanie');
+  await expect(summary).toContainText('Nieobecności');
+  await expect(summary).toContainText('Zaplanowane');
+  await expect(summary).toContainText('Zapłacono łącznie');
+  await shot(ownerPage, '19a-owner-client-summary');
   await ownerPage.keyboard.press('Escape');
   // Task 21: the owner downloads all clients as a CSV file for Excel.
   const [csv] = await Promise.all([
