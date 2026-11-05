@@ -138,6 +138,8 @@ export type ResponseOf<
 /** Task 50: the waiting list — joined, and the entry behind the link in the email. */
 export type WaitlistJoined = Schemas['WaitlistJoined'];
 export type PublicWaitlistEntry = Schemas['PublicWaitlistEntry'];
+/** Task 164: the freed time held for the first client in the queue (link in the offer email). */
+export type WaitlistOffer = Schemas['WaitlistOffer'];
 /** "Pokaż, co chcesz": the client's example photos for a visit (task 80b). */
 export type VisitPhoto = Schemas['VisitPhoto'];
 export type VisitPhotoList = Schemas['VisitPhotoList'];

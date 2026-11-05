@@ -4,10 +4,15 @@ import type { FailedEmail, OutboxStats } from '../common/system.responses';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Locale, Prisma } from '../generated/prisma/client';
 import { MailService, maskEmails, type MailMessage } from '../mail/mail.service';
-import { renderWaitlistFreeEmail, renderWaitlistJoinedEmail } from '../waitlist/waitlist-templates';
+import {
+  renderWaitlistFreeEmail,
+  renderWaitlistJoinedEmail,
+  renderWaitlistOfferEmail,
+} from '../waitlist/waitlist-templates';
 import {
   WAITLIST_FREE,
   WAITLIST_JOINED,
+  WAITLIST_OFFER,
   type WaitlistNotification,
 } from '../waitlist/waitlist-outbox';
 import { PrismaService } from '../prisma/prisma.service';
@@ -431,6 +436,31 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         data: { tokenHash: hashToken(token) },
       });
       mail = renderWaitlistJoinedEmail(locale, details, `${web}/${locale}/w/${token}`);
+    } else if (row.type === WAITLIST_OFFER) {
+      // Task 164: only while the time is still held for this client. The token is made here.
+      if (entry.status !== 'offered' || !entry.offerExpiresAt) return null;
+      const token = generateToken();
+      await this.prisma.waitlistEntry.update({
+        where: { id: entry.id },
+        data: { offerTokenHash: hashToken(token) },
+      });
+      const minutes = Math.max(
+        1,
+        Math.round((entry.offerExpiresAt.getTime() - Date.now()) / 60_000),
+      );
+      const held = entry.offerAppointmentId
+        ? await this.prisma.appointment.findUnique({
+            where: { id: entry.offerAppointmentId },
+            include: { staff: { select: { displayName: true } } },
+          })
+        : null;
+      mail = renderWaitlistOfferEmail(
+        locale,
+        { ...details, staffName: held?.staff.displayName ?? details.staffName },
+        payload.time ?? '',
+        minutes,
+        `${web}/${locale}/wo/${token}`,
+      );
     } else {
       const query = new URLSearchParams({ service: entry.serviceId });
       if (entry.staffId) query.set('staff', entry.staffId);
@@ -456,7 +486,9 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   /** Builds the emails from current data; null = nothing to send any more. */
   private async render(row: ClaimedRow): Promise<MailMessage[] | null> {
     if (row.type === POINTS_EXPIRING) return this.renderPointsExpiring(row);
-    if (row.type === WAITLIST_JOINED || row.type === WAITLIST_FREE) return this.renderWaitlist(row);
+    if (row.type === WAITLIST_JOINED || row.type === WAITLIST_FREE || row.type === WAITLIST_OFFER) {
+      return this.renderWaitlist(row);
+    }
     if (row.type === REVIEW_REQUEST) {
       return reviewRequestMail(
         this.prisma,

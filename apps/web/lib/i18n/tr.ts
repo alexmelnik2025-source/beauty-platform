@@ -24,6 +24,8 @@ export const tr: Dict = {
   },
   errors: {
     ...en.errors,
+    OFFER_GONE: 'Bu saat artık sizin için tutulmuyor. Salon sayfasından başka bir saat seçin.',
+    PHONE_REQUIRED: 'Telefon numaranızı girin.',
     SLOTS_AVAILABLE: 'Bu günde boş saatler var — birini seçin.',
     WAITLIST_LIMIT: 'Bu salonda aynı anda en fazla 3 gün bekleyebilirsiniz.',
     WAITLIST_DATE: 'Bugünden salonun randevu aldığı son güne kadar bir gün seçin.',
@@ -119,6 +121,17 @@ export const tr: Dict = {
     cancelled: 'Artık bekleme listesinde değilsiniz.',
     leave: 'Listeden çık',
     book: 'Boş saatleri gör',
+    offered: 'Sizin için boş bir saat tutuyoruz — onay bağlantısı e-postada.',
+    booked: 'Bekleme listesindeki saat ayrıldı.',
+    declined: 'Reddettiniz — saat listedeki bir sonraki kişiye verildi.',
+    missed: 'Yanıt süresi doldu — saat listedeki bir sonraki kişiye verildi.',
+    offerTitle: 'Bir saat boşaldı',
+    offerLead:
+      'Bu saati {time} saatine kadar sizin için tutuyoruz. Sonra listedeki bir sonraki kişiye önereceğiz.',
+    offerPhone: 'Telefon',
+    offerTake: 'Bu saati alıyorum',
+    offerDecline: 'Hayır, teşekkürler',
+    offerBooked: 'Tamam! Randevunuz alındı. Değiştirme bağlantılı onayı e-postayla gönderdik.',
   },
   wishStep: {
     title: 'İstekleriniz',
@@ -149,7 +162,7 @@ export const tr: Dict = {
   booking: {
     waitlistOpen: 'Bir saat boşalınca bana haber verin',
     waitlistHint:
-      'Biri bu günkü randevusunu iptal ederse, boş saatlerle tek bir e-posta göndeririz.',
+      'Biri bu günkü randevusunu iptal ederse, listedeki ilk kişi bir e-posta ve saati onaylamak için 15 dakika alır.',
     waitlistSubmit: 'Beni listeye ekleyin',
     waitlistDone: 'Bekleme listesindesiniz. Bir saat boşaldığında size e-posta göndereceğiz.',
     bookVisit: 'Randevu al',
