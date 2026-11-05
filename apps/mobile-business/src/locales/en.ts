@@ -510,6 +510,18 @@ export const en: Dictionary = {
       'waitlist.removed': 'Client removed from the waiting list',
     } as Record<string, string>,
   },
+  bookingLink: {
+    open: 'Booking link',
+    title: 'Booking link',
+    back: '‹ Back',
+    hint: 'Put it in your Instagram bio, on Google or send it to clients — they book themselves, no password.',
+    share: 'Share the link',
+    message: '{name} — book online: {url}',
+    copied: 'Link copied.',
+    failed: 'Could not share — copy the link above.',
+    offline:
+      'Online booking is off — clients will see the salon page but cannot book. Switch it on in the salon settings.',
+  },
   error: {
     network: 'No connection to the server. Check the internet and try again.',
     generic: 'Something went wrong. Please try again.',
