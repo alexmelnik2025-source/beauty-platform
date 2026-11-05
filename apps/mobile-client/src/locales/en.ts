@@ -88,6 +88,18 @@ export const en: Dictionary = {
     slotTaken: 'This time has just been taken. Please choose another.',
     loadingSlots: 'Looking for free times…',
   },
+  review: {
+    title: 'Your review',
+    ask: 'How was your visit with {staff}?',
+    rating: 'Rating',
+    outOf: '{n} out of 5',
+    text: 'A few words (optional)',
+    send: 'Send review',
+    thanks: 'Thank you for your review!',
+    change: 'Change review',
+    changeUntil: 'You can change your review until {date}.',
+    notPossible: 'This visit can no longer be reviewed.',
+  },
   bonuses: {
     extraTitle: 'More for a visit',
     extraAt: 'with {names}',

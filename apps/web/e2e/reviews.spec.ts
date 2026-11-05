@@ -8,13 +8,15 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 165b: reviews after the visit. The salon switches reviews on; a client whose visit took
  * place opens the visit link (the "Jak było?" email opens it at #review), gives 5 stars with a
  * few words; the salon page shows the average, the specialists' averages and the reviews —
  * without the client's name. In the cabinet, "Opinie": the settings and the reviews with the
- * client's name. Screenshots 165b-1 … 165b-4.
+ * client's name. The same review in the client app's visit card (its web preview).
+ * Screenshots 165b-1 … 165b-5.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -248,4 +250,40 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   );
   expect(saved).toMatchObject({ requestHours: 3, version: 2 });
   await desk.close();
+
+  // ── The client app: "Twoja opinia" in the visit card ──────────────────
+  const OLA = `reviews-ola-${run}@example.com`;
+  await book('Nazar', OLA, 'Ola Wiśniewska');
+  const clientApp = await serveApp('mobile-client');
+  const appContext = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  try {
+    const app = await appContext.newPage();
+    await app.goto(clientApp.url);
+    await app.getByLabel('E-mail', { exact: true }).fill(OLA);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const appMail = await waitForEmail(OLA, /Kod logowania/);
+    await app.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(appMail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByText(`Zalogowano jako ${OLA}`)).toBeVisible();
+    await app.getByRole('tab', { name: 'Historia' }).click();
+    await app
+      .getByRole('button', { name: new RegExp(`Strzyżenie fade, ${SALON}`) })
+      .first()
+      .click();
+    const card = app.getByRole('region', { name: 'Twoja opinia' });
+    await expect(card).toContainText('Jak oceniasz wizytę u Nazar?');
+    await card.getByRole('radio', { name: '4 z 5' }).click();
+    await card.getByLabel('Kilka słów (opcjonalnie)').fill('Dobra broda, polecam.');
+    await card.getByRole('button', { name: 'Wyślij opinię' }).click();
+    await expect(card.getByText('Dziękujemy za opinię!')).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Zmień opinię' })).toBeVisible();
+    await shot(app, '165b-5-app-review');
+  } finally {
+    await appContext.close();
+    clientApp.server.close();
+  }
+  const after = await json<{ count: number }>(
+    await request.get(`/v1/public/locations/${location.slug}/reviews`),
+  );
+  expect(after.count).toBe(4);
 });

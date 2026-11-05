@@ -97,6 +97,29 @@ describe('ClientApi', () => {
     ]);
   });
 
+  it('reads and writes my review of a visit (task 165b)', async () => {
+    const review = { canReview: true, reviewUntil: '2026-12-01T10:00:00.000Z', review: null };
+    const { fetchFn, calls } = fakeServer({
+      'GET /v1/client/me': () => [200, person],
+      'GET /v1/client/appointments/a%201/review': () => [200, review],
+      'PUT /v1/client/appointments/a%201/review': (body) => [
+        200,
+        { ...review, review: { ...(body as object), createdAt: 'x', updatedAt: 'x' } },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('saved-token'), fetchFn);
+    await api.restore();
+    await expect(api.visitReview('a 1')).resolves.toEqual(review);
+    await expect(api.writeReview('a 1', 5, 'Super')).resolves.toMatchObject({
+      review: { rating: 5, text: 'Super' },
+    });
+    expect(calls.at(-1)).toMatchObject({
+      key: 'PUT /v1/client/appointments/a%201/review',
+      body: { rating: 5, text: 'Super' },
+      auth: 'Bearer saved-token',
+    });
+  });
+
   it('nothing saved → the sign-in screen, without asking the server', async () => {
     const { fetchFn, calls } = fakeServer({});
     const api = new ClientApi('https://api.test', memoryStore(), fetchFn);

@@ -88,6 +88,18 @@ export const pl = {
     slotTaken: 'Ten termin właśnie się zajął. Wybierz inny.',
     loadingSlots: 'Szukamy wolnych terminów…',
   },
+  review: {
+    title: 'Twoja opinia',
+    ask: 'Jak oceniasz wizytę u {staff}?',
+    rating: 'Ocena',
+    outOf: '{n} z 5',
+    text: 'Kilka słów (opcjonalnie)',
+    send: 'Wyślij opinię',
+    thanks: 'Dziękujemy za opinię!',
+    change: 'Zmień opinię',
+    changeUntil: 'Opinię możesz zmienić do {date}.',
+    notPossible: 'Tej wizyty nie można już ocenić.',
+  },
   bonuses: {
     extraTitle: 'Więcej za wizytę',
     extraAt: 'u: {names}',
