@@ -223,6 +223,7 @@ export const en: Dictionary = {
     noMatch: 'Nothing found. Try a different search.',
     more: 'Show more',
     open: 'View salon',
+    priceFrom: 'Services from {price}',
   },
   salon: {
     back: '‹ Back',

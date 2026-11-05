@@ -68,6 +68,7 @@ export const tr: Dict = {
     showMap: 'Haritada göster',
     mapTitle: 'Salon haritası',
     noCoordinates: 'Bu salon henüz haritada yerini işaretlemedi.',
+    priceFrom: 'Hizmetler {price} itibaren',
   },
   phone: {
     country: 'Ülke kodu',

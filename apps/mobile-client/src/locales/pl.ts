@@ -223,6 +223,7 @@ export const pl = {
     noMatch: 'Nic nie znaleziono. Zmień wyszukiwanie.',
     more: 'Pokaż więcej',
     open: 'Zobacz salon',
+    priceFrom: 'Usługi od {price}',
   },
   salon: {
     back: '‹ Wróć',

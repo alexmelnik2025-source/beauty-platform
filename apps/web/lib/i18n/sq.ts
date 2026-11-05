@@ -68,6 +68,7 @@ export const sq: Dict = {
     showMap: 'Shfaq në hartë',
     mapTitle: 'Harta e salloneve',
     noCoordinates: 'Ky sallon nuk e ka shënuar ende vendin në hartë.',
+    priceFrom: 'Shërbime nga {price}',
   },
   phone: {
     country: 'Kodi i shtetit',

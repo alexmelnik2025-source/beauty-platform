@@ -229,6 +229,7 @@ export const tr: Dictionary = {
     noMatch: 'Hiçbir şey bulunamadı. Başka bir arama deneyin.',
     more: 'Daha fazla göster',
     open: 'Salonu gör',
+    priceFrom: 'Hizmetler {price} itibaren',
   },
   salon: {
     back: '‹ Geri',

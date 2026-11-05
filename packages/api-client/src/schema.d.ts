@@ -863,7 +863,7 @@ export interface paths {
         };
         /**
          * Salons open for online booking, by city: for the catalogue and its map
-         * @description Only public salon data: no organization, staff or contact details.
+         * @description Only public salon data: no organization, staff or contact details. `priceFromGrosze` is the lowest bookable price (task 91).
          */
         get: operations["PublicDirectoryController_list"];
         put?: never;
@@ -4519,6 +4519,8 @@ export interface components {
                 languages: ("pl" | "uk" | "ru" | "be" | "en")[];
                 latitude: number | null;
                 longitude: number | null;
+                currency: string;
+                priceFromGrosze: number | null;
             }[];
             page: number;
             pageSize: number;

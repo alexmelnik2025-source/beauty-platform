@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { LanguageBadges } from '@/components/Languages';
 import { ErrorBox, LanguageSwitch, Spinner, Wordmark } from '@/components/ui';
 import { api } from '@/lib/api';
-import { errorText, fill, useI18n } from '@/lib/i18n';
+import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { formatPrice } from '@/lib/time';
 import { SPOKEN, type PublicSalon, type PublicSalonDirectory, type Spoken } from '@/lib/types';
 
 const PAGE_SIZE = 12;
@@ -160,6 +161,17 @@ export function PublicDirectory() {
                       <span className="muted small">
                         {salon.addressLine}, {salon.postalCode} {salon.city}
                       </span>
+                      {salon.priceFromGrosze !== null ? (
+                        <span className="small directory-price">
+                          {fill(t.directory.priceFrom, {
+                            price: formatPrice(
+                              salon.priceFromGrosze,
+                              salon.currency,
+                              LOCALE_TAGS[locale],
+                            ),
+                          })}
+                        </span>
+                      ) : null}
                       <LanguageBadges codes={salon.languages} label={t.languages.speaks} />
                       <div className="row">
                         <Link className="btn" href={`/${locale}/b/${salon.slug}`}>
