@@ -118,6 +118,19 @@ const join = (date: string, email = ANNA, extra: object = {}) =>
       ...extra,
     });
 
+/** Task 164: the salon holds a freed time for the first client on the list (0 = off). */
+async function holdMinutes(minutes: number): Promise<void> {
+  const loc = await ctx.http().get(base).set(owner.auth).expect(200);
+  expect(loc.body.waitlistHoldMinutes).toBe(0);
+  const saved = await ctx
+    .http()
+    .patch(base)
+    .set(owner.auth)
+    .send({ version: loc.body.version, waitlistHoldMinutes: minutes })
+    .expect(200);
+  expect(saved.body.waitlistHoldMinutes).toBe(minutes);
+}
+
 async function cancelVisit(visit: { id: string; version: number }): Promise<void> {
   await ctx
     .http()
@@ -142,7 +155,56 @@ function leaveToken(email: string): string {
 }
 
 describe('waiting list', () => {
+  it('a full day: the client waits and hears once when a time becomes free', async () => {
+    const day = dayAhead(3);
+    const visit = await fillDay(day);
+
+    const joined = await join(day).expect(201);
+    expect(joined.body).toEqual({ date: day, status: 'waiting', alreadyWaiting: false });
+    await outbox.drain();
+    const welcome = ctx.mail.lastTo(ANNA)!;
+    expect(welcome.subject).toBe('Jesteś na liście oczekujących');
+    expect(welcome.text).toContain('Strzyżenie u Kasia (Barber Centrum)');
+    expect(welcome.senderName).toBe('Barber Centrum');
+    const token = leaveToken(ANNA);
+    const entry = await ctx.http().get(`/v1/public/waitlist/${token}`).expect(200);
+    expect(entry.body).toMatchObject({
+      salon: { name: 'Barber Centrum', slug },
+      serviceName: 'Strzyżenie',
+      staffName: 'Kasia',
+      date: day,
+      status: 'waiting',
+    });
+    // Asking again does not add a second entry or a second email.
+    expect((await join(day).expect(201)).body.alreadyWaiting).toBe(true);
+    await outbox.drain();
+    expect(ctx.mail.allTo(ANNA)).toHaveLength(1);
+
+    // Nothing is free yet.
+    expect(await waitlist.sweep()).toBe(0);
+
+    // The salon cancels the visit: the time is free, the client gets one email.
+    await ctx
+      .http()
+      .post(`${base}/appointments/${visit.id}/cancel`)
+      .set(owner.auth)
+      .send({ version: visit.version, reason: 'Choroba' })
+      .expect(200);
+    expect(await waitlist.sweep()).toBe(1);
+    await outbox.drain();
+    const free = ctx.mail.lastTo(ANNA)!;
+    expect(free.subject).toBe('Zwolnił się termin: Barber Centrum');
+    expect(free.text).toContain('Wolne godziny: 09:00');
+    expect(free.text).toContain(`/pl/b/${slug}?service=${serviceId}&staff=${staffId}`);
+    expect((await ctx.http().get(`/v1/public/waitlist/${token}`).expect(200)).body.status).toBe(
+      'notified',
+    );
+    // Only once.
+    expect(await waitlist.sweep()).toBe(0);
+  });
+
   it('a full day: the first client in the queue gets the freed time held and takes it (164)', async () => {
+    await holdMinutes(15);
     const day = dayAhead(3);
     const visit = await fillDay(day);
 
@@ -249,7 +311,8 @@ describe('waiting list', () => {
     await ctx.http().get('/v1/public/waitlist-offers/not-a-real-token-123456').expect(404);
   });
 
-  it('no answer in 15 minutes or "no": the next client in the queue gets the time (164)', async () => {
+  it('no answer in time or "no": the next client in the queue gets the time (164)', async () => {
+    await holdMinutes(15);
     const day = dayAhead(4);
     const visit = await fillDay(day);
     await join(day, ANNA, { phone: '+48600111222' }).expect(201);
@@ -291,6 +354,7 @@ describe('waiting list', () => {
   });
 
   it('leaving with an open offer gives the time back; the salon sees who got an offer (164)', async () => {
+    await holdMinutes(30);
     const day = dayAhead(5);
     const visit = await fillDay(day);
     await join(day, ANNA).expect(201);

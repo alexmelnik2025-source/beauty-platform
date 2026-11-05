@@ -88,6 +88,7 @@ export default function SettingsPage() {
           bookingHorizonDays: form.bookingHorizonDays,
           clientCancelDeadlineMinutes: form.clientCancelDeadlineMinutes,
           reminderHoursBefore: form.reminderHoursBefore,
+          waitlistHoldMinutes: form.waitlistHoldMinutes,
           slotStepMinutes: form.slotStepMinutes,
           languages: form.languages,
           description: form.description ?? '',
@@ -227,6 +228,16 @@ export default function SettingsPage() {
               {[2, 3, 6, 12, 24, 48, 0].map((h) => (
                 <option key={h} value={h}>
                   {h === 0 ? t.settings.reminderNone : `${h} ${t.settings.reminderHours}`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>{t.settings.waitlistHold}</span>
+            <select value={form.waitlistHoldMinutes} onChange={num('waitlistHoldMinutes')}>
+              {[0, 10, 15, 30, 60].map((m) => (
+                <option key={m} value={m}>
+                  {m === 0 ? t.settings.waitlistHoldOff : `${m} ${t.settings.waitlistHoldMinutes}`}
                 </option>
               ))}
             </select>

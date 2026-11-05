@@ -918,6 +918,31 @@
                       }
                     ]
                   },
+                  "waitlistHoldMinutes": {
+                    "default": 0,
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "const": 0
+                      },
+                      {
+                        "type": "number",
+                        "const": 10
+                      },
+                      {
+                        "type": "number",
+                        "const": 15
+                      },
+                      {
+                        "type": "number",
+                        "const": 30
+                      },
+                      {
+                        "type": "number",
+                        "const": 60
+                      }
+                    ]
+                  },
                   "onlineBookingEnabled": {
                     "default": false,
                     "type": "boolean"
@@ -1282,6 +1307,30 @@
                       {
                         "type": "number",
                         "const": 48
+                      }
+                    ]
+                  },
+                  "waitlistHoldMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "const": 0
+                      },
+                      {
+                        "type": "number",
+                        "const": 10
+                      },
+                      {
+                        "type": "number",
+                        "const": 15
+                      },
+                      {
+                        "type": "number",
+                        "const": 30
+                      },
+                      {
+                        "type": "number",
+                        "const": 60
                       }
                     ]
                   },
@@ -15709,6 +15758,12 @@
             "maximum": 9007199254740991,
             "description": "The reminder email goes this many hours before the visit; 0 = none"
           },
+          "waitlistHoldMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 164: a freed time is held this many minutes for the first client on the waiting list, then the next; 0 = everyone waiting gets one email with the free times"
+          },
           "onlineBookingEnabled": {
             "type": "boolean"
           },
@@ -15796,6 +15851,7 @@
           "bookingHorizonDays",
           "clientCancelDeadlineMinutes",
           "reminderHoursBefore",
+          "waitlistHoldMinutes",
           "onlineBookingEnabled",
           "askMood",
           "askDrink",
@@ -15898,6 +15954,12 @@
               "maximum": 9007199254740991,
               "description": "The reminder email goes this many hours before the visit; 0 = none"
             },
+            "waitlistHoldMinutes": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Task 164: a freed time is held this many minutes for the first client on the waiting list, then the next; 0 = everyone waiting gets one email with the free times"
+            },
             "onlineBookingEnabled": {
               "type": "boolean"
             },
@@ -15985,6 +16047,7 @@
             "bookingHorizonDays",
             "clientCancelDeadlineMinutes",
             "reminderHoursBefore",
+            "waitlistHoldMinutes",
             "onlineBookingEnabled",
             "askMood",
             "askDrink",

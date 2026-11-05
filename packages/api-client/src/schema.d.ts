@@ -4054,6 +4054,8 @@ export interface components {
             clientCancelDeadlineMinutes: number;
             /** @description The reminder email goes this many hours before the visit; 0 = none */
             reminderHoursBefore: number;
+            /** @description Task 164: a freed time is held this many minutes for the first client on the waiting list, then the next; 0 = everyone waiting gets one email with the free times */
+            waitlistHoldMinutes: number;
             onlineBookingEnabled: boolean;
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
@@ -4098,6 +4100,8 @@ export interface components {
             clientCancelDeadlineMinutes: number;
             /** @description The reminder email goes this many hours before the visit; 0 = none */
             reminderHoursBefore: number;
+            /** @description Task 164: a freed time is held this many minutes for the first client on the waiting list, then the next; 0 = everyone waiting gets one email with the free times */
+            waitlistHoldMinutes: number;
             onlineBookingEnabled: boolean;
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
@@ -5911,6 +5915,8 @@ export interface operations {
                     clientCancelDeadlineMinutes?: number;
                     /** @default 24 */
                     reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
+                    /** @default 0 */
+                    waitlistHoldMinutes?: 0 | 10 | 15 | 30 | 60;
                     /** @default false */
                     onlineBookingEnabled?: boolean;
                     /** @default true */
@@ -5990,6 +5996,7 @@ export interface operations {
                     bookingHorizonDays?: number;
                     clientCancelDeadlineMinutes?: number;
                     reminderHoursBefore?: 0 | 2 | 3 | 6 | 12 | 24 | 48;
+                    waitlistHoldMinutes?: 0 | 10 | 15 | 30 | 60;
                     onlineBookingEnabled?: boolean;
                     askMood?: boolean;
                     askDrink?: boolean;
