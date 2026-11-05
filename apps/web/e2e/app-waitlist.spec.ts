@@ -70,7 +70,9 @@ test('business app: the day’s waiting list — remove one client, book the oth
     await request.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
-        name: 'Gestalt Barbershop',
+        // A name of its own: this salon takes online bookings, so it is in the public catalogue
+        // (booking.spec.ts expects one "Gestalt Barbershop" there).
+        name: 'Waitlist App Barbershop',
         addressLine: 'ul. Józefa Bema 91',
         city: 'Warszawa',
         postalCode: '01-233',
