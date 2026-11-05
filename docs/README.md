@@ -1676,4 +1676,14 @@ e2e этих экранов входят и регистрируются со с
 отметку клиента в этой точке: при `phone_only` — 403 `BOOKING_PHONE_ONLY` («zadzwoń do salonu»), при `prepay` —
 403 `BOOKING_PAY_FIRST` («zapłać w salonie lub skontaktuj się z salonem»; в `details` сумма и валюта — только если
 код пришёл на e-mail). Удержанное время сразу освобождается. Тексты ошибок — на 6 языках записи и в приложении.
-Режим `approval` (визит ждёт подтверждения салона) — следующая часть.
+
+**161b (части 2–3) — «salon potwierdza».** При `approval` запись проходит, время удержано, но у визита
+`approvalRequestedAt` (в ответах — `awaitingApproval: true`, и у салона, и у клиента). Клиенту — письмо
+«Rezerwacja czeka na potwierdzenie salonu», салону — «Rezerwacja do potwierdzenia»; напоминание не ставится (и не
+уходит, пока визит ждёт). `POST …/appointments/:id/approve` (с версией; права — как у «Odwołaj») снимает отметку,
+пишет в историю «Salon przyjął rezerwację» и шлёт клиенту обычное «Wizyta potwierdzona» с напоминанием; повтор —
+409 `NOT_AWAITING_APPROVAL`. Отказ — обычное «Odwołaj wizytę» с причиной (клиенту письмо об отмене). На сайте:
+после кода «Rezerwacja wysłana», в ссылке визита и «Moje wizyty» — «⏳ Czeka na potwierdzenie salonu», в
+календаре кабинета — «⏳» и пунктирная рамка, в карточке визита — подсказка и «Przyjmij rezerwację». Миграция
+`20261105170000_appointment_approval`; тесты `cancellation-guard.spec.ts` (API) и e2e `cancellation-guard.spec.ts`
+(скриншоты 161–161b). Телефонные приложения — часть 4.
