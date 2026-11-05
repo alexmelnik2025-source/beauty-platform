@@ -1826,3 +1826,13 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
   jest potrzebny», пожелания и фото — на шаге данных, кнопка «Potwierdź wizytę»; сессия истекла (401) — обычный шаг
   кода. Приложение (`BookingScreen`, `confirmBookingSignedIn`) — так же.
 - Тесты: `apps/api/test/client-app.spec.ts`; e2e — `booking.spec.ts` (сайт), `favorite-specialist.spec.ts` (приложение).
+
+## Поиск и главная для клиента (задача 180b, части 1–2)
+
+- `GET /v1/public/locations?q=…` — все слова должны найтись в названии, городе, улице или названии активной услуги
+  салона; регистр и знаки (ą ć ę ł ń ó ś ź ż, ç ğ ı ş ö ü ë é) не важны (`plain()` в JS и `translate(lower(…))` в SQL,
+  `%` и `_` — обычные символы). Числа на чипах языков и видов — с учётом поиска. Тест — `public-directory.spec.ts`.
+- Главная `/{lang}` (`app/[locale]/page.tsx`): форма «Czego szukasz?» + «Gdzie?» (обе строки → `q`), кнопки видов
+  заведений (`?specialty=`), «Znajdź salon», «Polecane salony» (первые 6 салонов каталога), «Moje wizyty» с
+  пояснением, что аккаунт создаётся при первой записи, внизу «Dla salonów». Каталог читает `q` и `specialty` из
+  адреса и ищет по мере ввода (350 мс). e2e — `client-nav.spec.ts` (скриншоты 180b, 180b-a).
