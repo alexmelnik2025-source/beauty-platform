@@ -301,6 +301,7 @@ export const ru: Dict = {
     bookRow: 'Записаться',
     bookRowLabel: 'Записаться: {names}',
     staffTimes: '{name} — свободное время',
+    freeToday: 'Свободны сегодня: {names}',
     anyShort: 'Любой',
     hoursShort: 'ч',
     nearestToday: 'Сегодня свободно с {time}',

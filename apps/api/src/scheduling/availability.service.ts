@@ -76,6 +76,46 @@ export class AvailabilityService {
     return this.compute(location, query, this.publicWindow(location, now), options);
   }
 
+  /**
+   * Task 92: "Wolne dziś" — the active specialists who can still be booked today (salon's time
+   * zone, minimum lead time). A specialist counts when the shortest of their services fits.
+   */
+  async freeToday(
+    location: Location,
+    now = Date.now(),
+  ): Promise<{ date: string; staffIds: string[] }> {
+    const date = localToday(now, location.timezone);
+    const staff = await this.prisma.staffMember.findMany({
+      where: { locationId: location.id, active: true },
+      select: {
+        id: true,
+        services: {
+          where: { service: { active: true } },
+          select: {
+            serviceId: true,
+            durationMinutes: true,
+            service: { select: { durationMinutes: true } },
+          },
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    const staffIds: string[] = [];
+    for (const member of staff) {
+      const shortest = member.services
+        .map((x) => ({ id: x.serviceId, minutes: x.durationMinutes ?? x.service.durationMinutes }))
+        .sort((a, b) => a.minutes - b.minutes)[0];
+      if (!shortest) continue;
+      const result = await this.forPublic(
+        location,
+        { serviceId: shortest.id, staffId: member.id, from: date, to: date },
+        { now },
+      );
+      if (result.slots.length > 0) staffIds.push(member.id);
+    }
+    return { date, staffIds };
+  }
+
   staffWindow(now: number): BookingWindow {
     return { earliestStart: now, latestStart: Number.POSITIVE_INFINITY };
   }

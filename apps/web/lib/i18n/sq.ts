@@ -135,6 +135,7 @@ export const sq: Dict = {
     bookRow: 'Rezervo',
     bookRowLabel: 'Rezervo: {names}',
     staffTimes: '{name} — orare të lira',
+    freeToday: 'Të lirë sot: {names}',
     anyShort: 'Kushdo',
     hoursShort: 'orë',
     nearestToday: 'Sot e lirë nga {time}',

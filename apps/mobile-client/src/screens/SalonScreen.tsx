@@ -37,6 +37,8 @@ export function SalonScreen(props: {
 }) {
   const { api, t, locale, signedIn, onFavoriteChanged } = props;
   const [salon, setSalon] = useState<PublicLocation | null>(null);
+  // Task 92: "Wolne dziś" — who can still be booked today.
+  const [freeToday, setFreeToday] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
   // null = not known yet (or not signed in): no button.
   const [saved, setSaved] = useState<boolean | null>(null);
@@ -49,6 +51,10 @@ export function SalonScreen(props: {
     setError('');
     try {
       setSalon(await api.salon(props.slug));
+      api
+        .freeToday(props.slug)
+        .then((res) => setFreeToday(new Set(res.staffIds)))
+        .catch(() => undefined);
     } catch (e) {
       setError(errorText(e, tRef.current));
     }
@@ -225,6 +231,11 @@ export function SalonScreen(props: {
               )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.body}>{m.displayName}</Text>
+                {freeToday.has(m.id) ? (
+                  <Text role="note" style={styles.freeToday}>
+                    ● {t.salon.freeToday}
+                  </Text>
+                ) : null}
                 {specialtyText(m, t.specialty) ? (
                   <Text style={styles.small}>{specialtyText(m, t.specialty)}</Text>
                 ) : null}
@@ -258,6 +269,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', marginLeft: -8 },
   text: { color: colors.muted, fontSize: 15, lineHeight: 21 },
   small: { color: colors.muted, fontSize: 14 },
+  freeToday: { color: '#1f7a45', fontSize: 14, fontWeight: '600' },
   body: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   section: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   group: { color: colors.gold, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },

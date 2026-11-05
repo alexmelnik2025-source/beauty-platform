@@ -3897,6 +3897,38 @@
         ]
       }
     },
+    "/v1/public/locations/{slug}/free-today": {
+      "get": {
+        "description": "Today in the salon's time zone, with its minimum lead time. A specialist counts when any of their services still fits (task 92).",
+        "operationId": "PublicLocationsController_freeToday",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFreeToday"
+                }
+              }
+            }
+          }
+        },
+        "summary": "\"Wolne dziś\": specialists with a free start time left today",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/v1/public/locations": {
       "get": {
         "description": "Only public salon data: no organization, staff or contact details.",
@@ -17336,6 +17368,27 @@
         ],
         "additionalProperties": false,
         "description": "An appointment as the client sees it"
+      },
+      "PublicFreeToday": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Today in the salon's time zone, YYYY-MM-DD"
+          },
+          "staffIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Specialists with at least one free start time left today, for any of their services"
+          }
+        },
+        "required": [
+          "date",
+          "staffIds"
+        ],
+        "additionalProperties": false
       },
       "PublicLegalTexts": {
         "type": "object",

@@ -136,6 +136,7 @@ export const tr: Dict = {
     bookRow: 'Randevu al',
     bookRowLabel: 'Randevu al: {names}',
     staffTimes: '{name} — boş saatler',
+    freeToday: 'Bugün müsait: {names}',
     anyShort: 'Herhangi',
     hoursShort: 'sa',
     nearestToday: 'Bugün {time} itibarıyla boş',

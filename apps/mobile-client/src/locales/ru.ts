@@ -232,6 +232,7 @@ export const ru: Dictionary = {
     book: 'Записаться',
     bookHint: 'Без пароля и регистрации — код подтверждения придёт на e-mail.',
     speaks: 'Говорим',
+    freeToday: 'Свободен сегодня',
     about: 'О салоне',
     hours: 'Часы работы',
     closed: 'закрыто',

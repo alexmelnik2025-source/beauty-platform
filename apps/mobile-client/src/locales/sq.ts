@@ -235,6 +235,7 @@ export const sq: Dictionary = {
     book: 'Rezervo',
     bookHint: 'Pa fjalëkalim, pa llogari — kodi i konfirmimit vjen me email.',
     speaks: 'Flasim',
+    freeToday: 'I lirë sot',
     about: 'Rreth sallonit',
     hours: 'Orari',
     closed: 'mbyllur',

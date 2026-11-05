@@ -854,6 +854,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/locations/{slug}/free-today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Wolne dziś": specialists with a free start time left today
+         * @description Today in the salon's time zone, with its minimum lead time. A specialist counts when any of their services still fits (task 92).
+         */
+        get: operations["PublicLocationsController_freeToday"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations": {
         parameters: {
             query?: never;
@@ -4414,6 +4434,12 @@ export interface components {
             /** @description The wishes can still be changed (confirmed visit that has not started) */
             canChangeWishes: boolean;
         };
+        PublicFreeToday: {
+            /** @description Today in the salon's time zone, YYYY-MM-DD */
+            date: string;
+            /** @description Specialists with at least one free start time left today, for any of their services */
+            staffIds: string[];
+        };
         /** @description The texts a client accepts when booking, as written by the salon */
         PublicLegalTexts: {
             /** @description Salon name */
@@ -6759,6 +6785,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Availability"];
+                };
+            };
+        };
+    };
+    PublicLocationsController_freeToday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicFreeToday"];
                 };
             };
         };

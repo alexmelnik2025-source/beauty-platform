@@ -229,6 +229,7 @@ export const en: Dictionary = {
     book: 'Book',
     bookHint: 'No password, no account — the confirmation code comes by email.',
     speaks: 'We speak',
+    freeToday: 'Free today',
     about: 'About the salon',
     hours: 'Opening hours',
     closed: 'closed',

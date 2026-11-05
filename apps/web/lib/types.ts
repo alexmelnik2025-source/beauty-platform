@@ -82,6 +82,7 @@ export type {
   VisitPhotoList,
   SalonWaitlist,
   SalonWaitlistEntry,
+  PublicFreeToday,
   PublicLocation,
   PublicSalon,
   PublicSalonDirectory,
