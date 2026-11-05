@@ -508,6 +508,18 @@ export const pl = {
       'waitlist.removed': 'Usunięto klienta z listy oczekujących',
     } as Record<string, string>,
   },
+  bookingLink: {
+    open: 'Link do rezerwacji',
+    title: 'Link do rezerwacji',
+    back: '‹ Wróć',
+    hint: 'Wklej go w bio na Instagramie, w Google lub wyślij klientom — zapiszą się sami, bez hasła.',
+    share: 'Udostępnij link',
+    message: '{name} — umów się online: {url}',
+    copied: 'Link skopiowany.',
+    failed: 'Nie udało się udostępnić — przepisz link powyżej.',
+    offline:
+      'Rezerwacja online jest wyłączona — klienci zobaczą stronę salonu, ale nie zapiszą się. Włącz ją w ustawieniach salonu.',
+  },
   error: {
     network: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
     generic: 'Coś poszło nie tak. Spróbuj ponownie.',
