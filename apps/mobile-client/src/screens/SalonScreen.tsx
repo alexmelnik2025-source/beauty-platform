@@ -3,18 +3,21 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import type { ClientApi, Locale, PublicLocation } from '../api';
-import { API_URL } from '../config';
+import { bookingUrl, type ClientApi, type Locale, type PublicLocation } from '../api';
+import { API_URL, WEB_URL } from '../config';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { priceRows } from '../booking';
 import { formatPrice, servicePriceText } from '../format';
 import { addressText, durationText, openingRows, serviceGroups, specialtyText } from '../salon';
+import { shareMessage, shareSalon, type ShareTools } from '../share';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
 /**
@@ -44,6 +47,7 @@ export function SalonScreen(props: {
   const [saved, setSaved] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [favoriteError, setFavoriteError] = useState('');
+  const [shareInfo, setShareInfo] = useState('');
   const tRef = useRef(t);
   tRef.current = t;
 
@@ -94,6 +98,17 @@ export function SalonScreen(props: {
       setSaving(false);
     }
   }, [api, saved, props.slug, onFavoriteChanged]);
+
+  // Task 151: "Poleć salon" — the booking link in the phone's share sheet (or copied on the web).
+  const share = useCallback(async () => {
+    if (!salon) return;
+    const url = bookingUrl(WEB_URL, locale, salon.slug);
+    const content = shareMessage(t.salon.shareText, salon.name, url);
+    const result = await shareSalon(content, shareTools());
+    if (result === 'copied') setShareInfo(t.salon.copied);
+    else if (result === 'failed') setShareInfo(t.salon.shareFailed.replace('{url}', url));
+    else setShareInfo('');
+  }, [salon, locale, t]);
 
   const back = <Button kind="link" label={t.salon.back} onPress={props.onBack} />;
   if (!salon) {
@@ -147,6 +162,12 @@ export function SalonScreen(props: {
         />
       ) : null}
       {favoriteError ? <ErrorText>{favoriteError}</ErrorText> : null}
+      <Button kind="secondary" label={t.salon.share} onPress={() => void share()} />
+      {shareInfo ? (
+        <Text role="status" style={styles.small}>
+          {shareInfo}
+        </Text>
+      ) : null}
       <Text style={styles.small}>{t.salon.bookHint}</Text>
       {salon.phone ? (
         <Button
@@ -281,3 +302,16 @@ const styles = StyleSheet.create({
   initial: { alignItems: 'center', justifyContent: 'center' },
   initialText: { color: colors.ink, fontSize: 18, fontWeight: '700' },
 });
+
+/** What this platform can share with: the share sheet on phones, the browser's tools on the web. */
+function shareTools(): ShareTools {
+  if (Platform.OS !== 'web') {
+    // The link is in the message already (iOS would add `url` a second time).
+    return { native: (c) => Share.share({ message: c.message, title: c.title }) };
+  }
+  const nav = typeof navigator === 'undefined' ? undefined : navigator;
+  return {
+    webShare: nav?.share ? (data) => nav.share(data) : undefined,
+    copy: nav?.clipboard ? (text) => nav.clipboard.writeText(text) : undefined,
+  };
+}

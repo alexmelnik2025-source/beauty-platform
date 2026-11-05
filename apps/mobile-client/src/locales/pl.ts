@@ -268,6 +268,10 @@ export const pl = {
     team: 'Specjaliści',
     call: 'Zadzwoń',
     noServices: 'Salon nie ma jeszcze usług do rezerwacji online.',
+    share: 'Poleć salon znajomym',
+    shareText: '{name} — umów się online: {url}',
+    copied: 'Link skopiowany — wklej go znajomym.',
+    shareFailed: 'Nie udało się udostępnić. Link: {url}',
   },
   favorites: {
     tab: 'Ulubione',
