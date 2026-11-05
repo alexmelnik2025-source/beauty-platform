@@ -342,13 +342,11 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
     await app.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }).click();
     await app.getByRole('button', { name: 'Wyślij kod' }).click();
     await expect(app.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toBeVisible();
-    // The gallery on a phone; in the web preview the picker is a hidden file input.
+    // The gallery on a phone; in the web preview the picker opens the browser's file chooser
+    // (waited for first, so the browser does not cancel it at once).
+    const chooser = app.waitForEvent('filechooser', { timeout: 15_000 });
     await app.getByRole('button', { name: '＋ Dodaj zdjęcie' }).click();
-    await app.locator('input[data-testid="file-input"]').setInputFiles({
-      name: 'fade.jpg',
-      mimeType: 'image/jpeg',
-      buffer: photo,
-    });
+    await (await chooser).setFiles({ name: 'fade.jpg', mimeType: 'image/jpeg', buffer: photo });
     const inApp = app.getByRole('img', { name: 'Twoje zdjęcie 1' });
     await expect(inApp).toBeVisible();
     await shot(app, '05q-client-app-wish-photos');
