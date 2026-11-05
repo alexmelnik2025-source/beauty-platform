@@ -146,13 +146,19 @@ test('a client marked for approval books online and waits until the salon accept
   );
 
   // ── Ola books on her phone ─────────────────────────────────────────────
-  const phone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL' });
+  // Holds, codes and sign-ins are limited per address: each browser comes from one of its own.
+  const phone = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    extraHTTPHeaders: freshAddress(),
+  });
   const client = await phone.newPage();
   await client.goto(`/pl/b/${location.slug}`);
   await client.getByRole('button', { name: /Strzyżenie męskie/ }).click();
   await client.getByRole('button', { name: /Kasia/ }).click();
   await expect(client.locator('.times button').first()).toBeVisible();
   await client.locator('.times button').first().click();
+  await expect(client.getByText(/Termin czeka na Ciebie/)).toBeVisible();
   await client.getByLabel('Imię i nazwisko').fill('Ola Nowak');
   await client.getByLabel('Telefon').fill('600 300 400');
   await client.getByLabel('E-mail').fill(OLA);
@@ -224,7 +230,11 @@ test('a client marked for approval books online and waits until the salon accept
     await pocket.close();
   }
 
-  const desk = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
+  const desk = await browser.newContext({
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: freshAddress(),
+  });
   const cabinet = await desk.newPage();
   await cabinet.goto('/pl/login');
   await cabinet.getByLabel('E-mail').fill(OWNER);
