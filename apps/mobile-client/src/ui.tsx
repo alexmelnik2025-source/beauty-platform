@@ -49,11 +49,17 @@ export function Button(props: {
 }
 
 /** A filter button that stays pressed (language of the catalogue). */
-export function Chip(props: { label: string; pressed: boolean; onPress: () => void }) {
+export function Chip(props: {
+  label: string;
+  /** What a screen reader says when the label is a flag and a code ("🇺🇦 UA (12)"). */
+  a11yLabel?: string;
+  pressed: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={props.label}
+      accessibilityLabel={props.a11yLabel ?? props.label}
       aria-pressed={props.pressed}
       onPress={props.onPress}
       style={[styles.chip, props.pressed && styles.chipOn]}

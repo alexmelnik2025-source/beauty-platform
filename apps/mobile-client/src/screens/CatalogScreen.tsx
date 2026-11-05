@@ -1,14 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { ClientApi, DirectorySalon, Locale, SpokenLanguage } from '../api';
+import type { ClientApi, DirectorySalon, Locale, Specialty, SpokenLanguage } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
+import { LANGUAGE_CHIP } from '../map';
+import { SalonMap } from '../SalonMap';
 import { formatPrice } from '../format';
 import { addressText, filterSalons } from '../salon';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
 const SPOKEN: SpokenLanguage[] = ['pl', 'uk', 'ru', 'be', 'en'];
+const KINDS: Specialty[] = [
+  'barber',
+  'hairdresser',
+  'nails',
+  'cosmetologist',
+  'brows_lashes',
+  'makeup',
+  'massage',
+];
+/** Task 160: the map shows up to this many salons at once (the list still pages). */
+const MAP_PAGE = 50;
 
 /**
  * The catalogue: salons open for online booking, filtered by the language the client wants to
@@ -25,6 +38,11 @@ export function CatalogScreen(props: {
 }) {
   const { api, t } = props;
   const [language, setLanguage] = useState<SpokenLanguage | null>(null);
+  // Task 160: the catalogue opens on the map; the kind of place is the second filter.
+  const [view, setView] = useState<'map' | 'list'>('map');
+  const [specialty, setSpecialty] = useState<Specialty | null>(null);
+  const [languageCounts, setLanguageCounts] = useState<Partial<Record<SpokenLanguage, number>>>({});
+  const [specialtyCounts, setSpecialtyCounts] = useState<Partial<Record<Specialty, number>>>({});
   const [items, setItems] = useState<DirectorySalon[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
@@ -40,7 +58,14 @@ export function CatalogScreen(props: {
       setBusy(true);
       setError('');
       try {
-        const res = await api.directory({ page: nextPage, language: language ?? undefined });
+        const res = await api.directory({
+          page: nextPage,
+          pageSize: MAP_PAGE,
+          language: language ?? undefined,
+          specialty: specialty ?? undefined,
+        });
+        setLanguageCounts(res.languageCounts);
+        setSpecialtyCounts(res.specialtyCounts);
         setItems((old) => (append ? [...old, ...res.items] : res.items));
         setPage(res.page);
         setPageCount(res.pageCount);
@@ -52,7 +77,7 @@ export function CatalogScreen(props: {
       }
     },
     // The texts follow the app language, but switching it does not reload the list.
-    [api, language],
+    [api, language, specialty],
   );
 
   useEffect(() => {
@@ -87,12 +112,48 @@ export function CatalogScreen(props: {
         {SPOKEN.map((l) => (
           <Chip
             key={l}
-            label={t.spoken[l]}
+            label={`${LANGUAGE_CHIP[l]} (${languageCounts[l] ?? 0})`}
+            a11yLabel={`${t.spoken[l]} (${languageCounts[l] ?? 0})`}
             pressed={language === l}
             onPress={() => setLanguage(l)}
           />
         ))}
       </View>
+      {KINDS.some((k) => (specialtyCounts[k] ?? 0) > 0) ? (
+        <View style={styles.chips} accessibilityLabel={t.catalog.filterKind}>
+          <Chip
+            label={t.catalog.allKinds}
+            pressed={specialty === null}
+            onPress={() => setSpecialty(null)}
+          />
+          {KINDS.filter((k) => (specialtyCounts[k] ?? 0) > 0 || specialty === k).map((k) => (
+            <Chip
+              key={k}
+              label={`${t.specialty[k]} (${specialtyCounts[k] ?? 0})`}
+              pressed={specialty === k}
+              onPress={() => setSpecialty(k)}
+            />
+          ))}
+        </View>
+      ) : null}
+      <View style={styles.chips} accessibilityLabel={t.catalog.view}>
+        <Chip label={t.catalog.viewMap} pressed={view === 'map'} onPress={() => setView('map')} />
+        <Chip
+          label={t.catalog.viewList}
+          pressed={view === 'list'}
+          onPress={() => setView('list')}
+        />
+      </View>
+      {view === 'map' && !error ? (
+        <SalonMap
+          api={api}
+          t={t}
+          locale={props.locale}
+          salons={shown}
+          language={language}
+          onOpen={props.onOpen}
+        />
+      ) : null}
       {error ? (
         <View style={{ gap: 12 }}>
           <ErrorText>{error}</ErrorText>
@@ -115,6 +176,14 @@ export function CatalogScreen(props: {
               <Text style={styles.price}>
                 {fill(t.catalog.priceFrom, {
                   price: formatPrice(s.priceFromGrosze, s.currency, props.locale),
+                })}
+              </Text>
+            ) : null}
+            {language && s.staffSpeaking ? (
+              <Text style={styles.small}>
+                {fill(t.catalog.speakingStaff, {
+                  language: t.spoken[language],
+                  n: String(s.staffSpeaking),
                 })}
               </Text>
             ) : null}

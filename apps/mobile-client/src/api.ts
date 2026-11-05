@@ -36,6 +36,7 @@ export type Scope = 'upcoming' | 'past';
 /** Languages a salon or specialist can speak with clients (Belarusian too). */
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
+export type Specialty = DirectorySalon['specialties'][number];
 export type FavoriteSalon = ClientFavorites['items'][number];
 export type {
   ClientDataExport,
@@ -468,13 +469,20 @@ export class ClientApi {
 
   /** Salons open for online booking; `language` — spoken by the salon or one of its staff. No sign-in. */
   directory(
-    query: { page?: number; language?: SpokenLanguage } = {},
+    query: {
+      page?: number;
+      language?: SpokenLanguage;
+      /** Task 160: kind of place (what one of its specialists does). */
+      specialty?: Specialty;
+      pageSize?: number;
+    } = {},
   ): Promise<PublicSalonDirectory> {
     const params = new URLSearchParams({
       page: String(query.page ?? 1),
-      pageSize: String(PAGE_SIZE),
+      pageSize: String(query.pageSize ?? PAGE_SIZE),
     });
     if (query.language) params.set('language', query.language);
+    if (query.specialty) params.set('specialty', query.specialty);
     return this.call<PublicSalonDirectory>('GET', `/v1/public/locations?${params.toString()}`);
   }
 
