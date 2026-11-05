@@ -40,6 +40,7 @@ export function menuItems(
     manager && { href: at('waitlist'), label: t.nav.waitingList },
     manager && { href: at('team'), label: t.nav.team },
     manager && { href: at('loyalty'), label: t.nav.loyalty },
+    { href: at('reviews'), label: t.nav.reviews },
     (manager || session.permissions.viewOwnEarnings === true) && {
       href: at('reports'),
       label: t.reports.title,

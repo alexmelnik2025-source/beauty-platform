@@ -105,6 +105,7 @@ export const pl = {
     timeZone: 'Kraj i strefa czasowa',
   },
   nav: {
+    reviews: 'Opinie',
     history: 'Dziennik zmian',
     loyalty: 'Program lojalnościowy',
     calendar: 'Kalendarz',
@@ -392,6 +393,20 @@ export const pl = {
     bySpecialist: 'Opinie o specjalistach',
     everyone: 'Wszyscy',
     more: 'Pokaż więcej',
+  },
+  reviewsCabinet: {
+    title: 'Opinie klientów',
+    settings: 'Ustawienia opinii',
+    enabled: 'Zbieraj opinie po wizycie',
+    hint: 'Klient ocenia specjalistę (1–5 gwiazdek) i może dodać kilka słów — tylko po wizycie, która się odbyła, do 30 dni. Opinie widać na stronie rezerwacji, bez imion klientów. Prośbę o opinię wysyłamy e-mailem klientom, którzy zgodzili się na wiadomości od salonu.',
+    askAfter: 'Poproś o opinię po',
+    hours: '{n} godz. od końca wizyty',
+    save: 'Zapisz',
+    saved: 'Zapisano.',
+    list: 'Opinie',
+    empty: 'Jeszcze nie ma opinii.',
+    anonymous: 'Klient (dane usunięte)',
+    visit: 'wizyta {date}',
   },
   visits: {
     title: 'Moje wizyty',
