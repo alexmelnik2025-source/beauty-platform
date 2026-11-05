@@ -66,6 +66,9 @@ export function ReportsScreen(props: {
   const totals = shown?.totals;
 
   const previous = shown?.previous;
+  /** Task 141: minutes as hours, "12,5". */
+  const hours = (minutes: number) =>
+    new Intl.NumberFormat(props.locale, { maximumFractionDigits: 1 }).format(minutes / 60);
   const maxWeekday = Math.max(1, ...(shown?.weekdays.map((d) => d.completed) ?? [1]));
   const stat = (label: string, value: string, sub?: string, trend?: string | null) => (
     <View style={styles.stat} key={label}>
@@ -202,6 +205,38 @@ export function ReportsScreen(props: {
                   </Text>
                 </View>
               ))}
+            </View>
+          ) : null}
+          {shown.occupancy.staff.length > 0 ? (
+            <View style={{ gap: 6 }} testID="report-occupancy">
+              <Text style={styles.section}>
+                {fill(r.occupancy, { n: String(shown.occupancy.percent) })}
+              </Text>
+              {shown.occupancy.staff.map((s) => (
+                <View key={s.id} style={{ gap: 2 }}>
+                  <View style={styles.weekday}>
+                    <Text style={styles.weekdayName} numberOfLines={1}>
+                      {s.displayName}
+                    </Text>
+                    <View
+                      style={styles.bar}
+                      accessibilityRole="progressbar"
+                      accessibilityLabel={s.displayName}
+                      accessibilityValue={{ min: 0, max: 100, now: s.percent }}
+                    >
+                      <View style={[styles.barFill, { width: `${Math.min(100, s.percent)}%` }]} />
+                    </View>
+                    <Text style={styles.small}>{s.percent}%</Text>
+                  </View>
+                  <Text style={styles.small}>
+                    {fill(r.occupancyHours, {
+                      booked: hours(s.bookedMinutes),
+                      work: hours(s.workMinutes),
+                    })}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.small}>{r.occupancyHint}</Text>
             </View>
           ) : null}
         </>
