@@ -255,6 +255,7 @@ export const uk: Dictionary = {
     search: 'Пошук: назва, місто, вулиця',
     filterLanguage: 'Мова спілкування',
     allLanguages: 'Усі мови',
+    clearLanguages: 'Очистити',
     found: 'Знайдено салонів: {n}',
     empty: 'Поки немає салонів із цією мовою.',
     noMatch: 'Нічого не знайдено. Змініть пошук.',

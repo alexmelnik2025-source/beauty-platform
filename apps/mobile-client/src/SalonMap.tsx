@@ -24,7 +24,8 @@ export function SalonMap(props: {
   t: Dictionary;
   locale: Locale;
   salons: DirectorySalon[];
-  language: SpokenLanguage | null;
+  /** Task 192: the languages chosen in the catalogue (any of them). */
+  languages: SpokenLanguage[];
   onOpen: (salon: DirectorySalon) => void;
 }) {
   const { t } = props;
@@ -73,7 +74,7 @@ export function SalonMap(props: {
         ))}
         {layout?.markers.map(({ item, x, y }) => {
           const on = item.slug === selected;
-          const speaking = props.language ? item.staffSpeaking : null;
+          const speaking = props.languages.length > 0 ? item.staffSpeaking : null;
           return (
             <Pressable
               key={item.slug}
@@ -118,10 +119,10 @@ export function SalonMap(props: {
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.name}>{salon.name}</Text>
             <Text style={styles.small}>{addressText(salon)}</Text>
-            {props.language && salon.staffSpeaking ? (
+            {props.languages.length > 0 && salon.staffSpeaking ? (
               <Text style={styles.small}>
                 {fill(t.catalog.speakingStaff, {
-                  language: t.spoken[props.language],
+                  language: props.languages.map((l) => t.spoken[l]).join(', '),
                   n: String(salon.staffSpeaking),
                 })}
               </Text>

@@ -261,6 +261,7 @@ export const tr: Dictionary = {
     search: 'Ara: ad, şehir, sokak',
     filterLanguage: 'Dil',
     allLanguages: 'Tüm diller',
+    clearLanguages: 'Temizle',
     found: 'Bulunan salon: {n}',
     empty: 'Bu dilde henüz salon yok.',
     noMatch: 'Hiçbir şey bulunamadı. Başka bir arama deneyin.',

@@ -258,6 +258,7 @@ export const ru: Dictionary = {
     search: 'Поиск: название, город, улица',
     filterLanguage: 'Язык общения',
     allLanguages: 'Все языки',
+    clearLanguages: 'Очистить',
     found: 'Найдено салонов: {n}',
     empty: 'Пока нет салонов с этим языком.',
     noMatch: 'Ничего не найдено. Измените поиск.',

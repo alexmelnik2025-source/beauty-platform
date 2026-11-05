@@ -255,6 +255,7 @@ export const pl = {
     search: 'Szukaj: nazwa, miasto, ulica',
     filterLanguage: 'Język rozmowy',
     allLanguages: 'Wszystkie języki',
+    clearLanguages: 'Wyczyść',
     found: 'Znalezione salony: {n}',
     empty: 'Nie ma jeszcze salonów z tym językiem.',
     noMatch: 'Nic nie znaleziono. Zmień wyszukiwanie.',

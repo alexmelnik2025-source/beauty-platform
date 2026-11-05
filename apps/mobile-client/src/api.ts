@@ -490,7 +490,8 @@ export class ClientApi {
   directory(
     query: {
       page?: number;
-      language?: SpokenLanguage;
+      /** Task 192: several = salons speaking any of them. */
+      language?: SpokenLanguage[];
       /** Task 160: kind of place (what one of its specialists does). */
       specialty?: Specialty;
       pageSize?: number;
@@ -500,7 +501,7 @@ export class ClientApi {
       page: String(query.page ?? 1),
       pageSize: String(query.pageSize ?? PAGE_SIZE),
     });
-    if (query.language) params.set('language', query.language);
+    if (query.language?.length) params.set('language', query.language.join(','));
     if (query.specialty) params.set('specialty', query.specialty);
     return this.call<PublicSalonDirectory>('GET', `/v1/public/locations?${params.toString()}`);
   }

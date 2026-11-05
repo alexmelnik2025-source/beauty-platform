@@ -261,6 +261,7 @@ export const sq: Dictionary = {
     search: 'Kërko: emri, qyteti, rruga',
     filterLanguage: 'Gjuha',
     allLanguages: 'Të gjitha gjuhët',
+    clearLanguages: 'Pastro',
     found: 'Sallone të gjetura: {n}',
     empty: 'Ende nuk ka sallone me këtë gjuhë.',
     noMatch: 'Nuk u gjet asgjë. Provoni një kërkim tjetër.',

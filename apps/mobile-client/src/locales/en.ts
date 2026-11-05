@@ -255,6 +255,7 @@ export const en: Dictionary = {
     search: 'Search: name, city, street',
     filterLanguage: 'Language',
     allLanguages: 'All languages',
+    clearLanguages: 'Clear',
     found: 'Salons found: {n}',
     empty: 'No salons with this language yet.',
     noMatch: 'Nothing found. Try a different search.',

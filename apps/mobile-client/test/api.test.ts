@@ -186,11 +186,17 @@ describe('catalogue (no sign-in)', () => {
         200,
         { ...directory, page: 2 },
       ],
+      // Task 192: several languages, comma-separated.
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}&language=uk%2Cru`]: () => [
+        200,
+        { ...directory, total: 3 },
+      ],
     });
     const api = new ClientApi('https://api.test', memoryStore('session'), fetchFn);
     expect(await api.directory()).toEqual(directory);
-    expect((await api.directory({ page: 2, language: 'uk' })).page).toBe(2);
-    expect(calls.map((c) => c.auth)).toEqual([undefined, undefined]);
+    expect((await api.directory({ page: 2, language: ['uk'] })).page).toBe(2);
+    expect((await api.directory({ language: ['uk', 'ru'] })).total).toBe(3);
+    expect(calls.map((c) => c.auth)).toEqual([undefined, undefined, undefined]);
   });
 
   it('opens a salon by its link name; a missing one is a 404', async () => {

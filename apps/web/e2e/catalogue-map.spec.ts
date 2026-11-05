@@ -148,6 +148,21 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
     await expect(card).toContainText(/Dziś (są wolne terminy|brak wolnych terminów)/);
     await shot(app, '160a-client-app-map-card');
 
+    // Task 192: Ukrainian or Polish - both salons; a specialist counts once.
+    await app.getByRole('button', { name: /^polski \(\d+\)$/ }).click();
+    await expect(app.getByRole('button', { name: /^polski \(\d+\)$/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(app.getByRole('button', { name: `Salon na mapie: ${NAILS}` })).toHaveText('1');
+    await expect(app.getByRole('button', { name: `Salon na mapie: ${BARBER}` })).toHaveText('3');
+    await shot(app, '192a-client-app-languages-or');
+    await app.getByRole('button', { name: 'Wyczyść' }).click();
+    await expect(app.getByRole('button', { name: /^Wszystkie języki/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
     // The kind of place: nails only (with every language).
     await app.getByRole('button', { name: /^Wszystkie języki/ }).click();
     await app.getByRole('button', { name: /^Manicure i pedicure \(\d+\)$/ }).click();

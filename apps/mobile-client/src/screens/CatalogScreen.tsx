@@ -6,6 +6,7 @@ import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import { LANGUAGE_CHIP } from '../map';
 import { SalonMap } from '../SalonMap';
+import { catalogLanguagesStore } from '../storage';
 import { formatPrice } from '../format';
 import { addressText, filterSalons } from '../salon';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
@@ -37,7 +38,8 @@ export function CatalogScreen(props: {
   onBack: () => void;
 }) {
   const { api, t } = props;
-  const [language, setLanguage] = useState<SpokenLanguage | null>(null);
+  // Task 192: several languages at once (any of them), remembered on the device; null until read.
+  const [languages, setLanguages] = useState<SpokenLanguage[] | null>(null);
   // Task 160: the catalogue opens on the map; the kind of place is the second filter.
   const [view, setView] = useState<'map' | 'list'>('map');
   const [specialty, setSpecialty] = useState<Specialty | null>(null);
@@ -53,15 +55,33 @@ export function CatalogScreen(props: {
   const tRef = useRef(t);
   tRef.current = t;
 
+  useEffect(() => {
+    let active = true;
+    void catalogLanguagesStore.get().then((saved) => {
+      if (active) setLanguages(SPOKEN.filter((l) => saved.includes(l)));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const chosen = languages ?? [];
+  const choose = (next: SpokenLanguage[]) => {
+    setLanguages(next);
+    void catalogLanguagesStore.set(next);
+  };
+  const toggle = (l: SpokenLanguage) =>
+    choose(chosen.includes(l) ? chosen.filter((x) => x !== l) : [...chosen, l]);
+
   const load = useCallback(
     async (nextPage: number, append: boolean) => {
+      if (languages === null) return;
       setBusy(true);
       setError('');
       try {
         const res = await api.directory({
           page: nextPage,
           pageSize: MAP_PAGE,
-          language: language ?? undefined,
+          language: languages,
           specialty: specialty ?? undefined,
         });
         setLanguageCounts(res.languageCounts);
@@ -77,7 +97,7 @@ export function CatalogScreen(props: {
       }
     },
     // The texts follow the app language, but switching it does not reload the list.
-    [api, language, specialty],
+    [api, languages, specialty],
   );
 
   useEffect(() => {
@@ -106,18 +126,21 @@ export function CatalogScreen(props: {
       <View style={styles.chips} accessibilityLabel={t.catalog.filterLanguage}>
         <Chip
           label={t.catalog.allLanguages}
-          pressed={language === null}
-          onPress={() => setLanguage(null)}
+          pressed={chosen.length === 0}
+          onPress={() => choose([])}
         />
         {SPOKEN.map((l) => (
           <Chip
             key={l}
             label={`${LANGUAGE_CHIP[l]} (${languageCounts[l] ?? 0})`}
             a11yLabel={`${t.spoken[l]} (${languageCounts[l] ?? 0})`}
-            pressed={language === l}
-            onPress={() => setLanguage(l)}
+            pressed={chosen.includes(l)}
+            onPress={() => toggle(l)}
           />
         ))}
+        {chosen.length > 0 ? (
+          <Chip label={t.catalog.clearLanguages} pressed={false} onPress={() => choose([])} />
+        ) : null}
       </View>
       {KINDS.some((k) => (specialtyCounts[k] ?? 0) > 0) ? (
         <View style={styles.chips} accessibilityLabel={t.catalog.filterKind}>
@@ -150,7 +173,7 @@ export function CatalogScreen(props: {
           t={t}
           locale={props.locale}
           salons={shown}
-          language={language}
+          languages={chosen}
           onOpen={props.onOpen}
         />
       ) : null}
@@ -179,10 +202,10 @@ export function CatalogScreen(props: {
                 })}
               </Text>
             ) : null}
-            {language && s.staffSpeaking ? (
+            {chosen.length > 0 && s.staffSpeaking ? (
               <Text style={styles.small}>
                 {fill(t.catalog.speakingStaff, {
-                  language: t.spoken[language],
+                  language: chosen.map((l) => t.spoken[l]).join(', '),
                   n: String(s.staffSpeaking),
                 })}
               </Text>
