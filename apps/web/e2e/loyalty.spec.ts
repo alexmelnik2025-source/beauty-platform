@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { freshAddress } from './addresses';
 import { listTo, waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
@@ -53,7 +54,12 @@ async function json<T>(res: APIResponse): Promise<T> {
 }
 
 async function verifiedUser(api: APIRequestContext, email: string, name: string) {
-  await json(await api.post('/v1/auth/register', { data: { email, password: PASSWORD, name } }));
+  await json(
+    await api.post('/v1/auth/register', {
+      headers: freshAddress(),
+      data: { email, password: PASSWORD, name },
+    }),
+  );
   const mail = await waitForEmail(email, /Potwierdź adres/);
   const token = /token=([^\s&]+)/.exec(mail.text)?.[1];
   expect(token, 'verification link').toBeTruthy();

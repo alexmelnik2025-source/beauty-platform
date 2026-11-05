@@ -1,4 +1,5 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
+import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 
 /**
@@ -26,6 +27,7 @@ test('an owner in Istanbul creates a salon in the Turkish time zone with prices 
 }) => {
   await json(
     await request.post('/v1/auth/register', {
+      headers: freshAddress(),
       data: { email: OWNER, password: PASSWORD, name: 'Emre Kaya' },
     }),
   );
