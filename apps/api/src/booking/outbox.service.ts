@@ -18,6 +18,7 @@ import {
   renderPointsExpiringEmail,
   type NotificationKind,
 } from './booking-templates';
+import { REBOOK_REMINDER, rebookMail, type RebookReminderNotification } from './rebook-reminder';
 
 export interface AppointmentNotification {
   appointmentId: string;
@@ -451,6 +452,13 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   /** Builds the emails from current data; null = nothing to send any more. */
   private async render(row: ClaimedRow): Promise<MailMessage[] | null> {
     if (row.type === POINTS_EXPIRING) return this.renderPointsExpiring(row);
+    if (row.type === REBOOK_REMINDER) {
+      return rebookMail(
+        this.prisma,
+        this.config,
+        row.payload as unknown as RebookReminderNotification,
+      );
+    }
     if (row.type === WAITLIST_JOINED || row.type === WAITLIST_FREE) return this.renderWaitlist(row);
     const kind = row.type as NotificationKind;
     const appointment = await this.prisma.appointment.findUnique({

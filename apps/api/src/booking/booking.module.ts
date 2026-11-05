@@ -27,6 +27,8 @@ import {
   PublicVisitPhotosController,
 } from './visit-photos.controller';
 import { VisitPhotosService } from './visit-photos.service';
+import { RebookReminderController } from './rebook-reminder.controller';
+import { RebookReminderService } from './rebook-reminder.service';
 
 @Module({
   imports: [OrganizationsModule, SchedulingModule, LoyaltyModule],
@@ -41,6 +43,7 @@ import { VisitPhotosService } from './visit-photos.service';
     VisitCalendarController,
     PublicVisitPhotosController,
     AppointmentPhotosController,
+    RebookReminderController,
   ],
   providers: [
     AppointmentWriter,
@@ -55,6 +58,7 @@ import { VisitPhotosService } from './visit-photos.service';
     TimeBlocksService,
     VisitCalendarService,
     VisitPhotosService,
+    RebookReminderService,
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
   exports: [
@@ -63,6 +67,7 @@ import { VisitPhotosService } from './visit-photos.service';
     PublicBookingService,
     VisitCalendarService,
     VisitPhotosService,
+    RebookReminderService,
   ],
 })
 export class BookingModule {}
