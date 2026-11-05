@@ -94,6 +94,7 @@ export function ProfileScreen(props: {
                 accessibilityRole="checkbox"
                 accessibilityLabel={l.name}
                 accessibilityState={{ checked: on }}
+                aria-checked={on}
                 onPress={() => {
                   setInfo('');
                   setChosen(toggleLanguage(chosen, l.code));
