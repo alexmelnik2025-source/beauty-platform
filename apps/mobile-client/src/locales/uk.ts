@@ -90,6 +90,18 @@ export const uk: Dictionary = {
     slotTaken: 'Цей час щойно зайняли. Оберіть інший.',
     loadingSlots: 'Шукаємо вільний час…',
   },
+  review: {
+    title: 'Ваш відгук',
+    ask: 'Як вам візит до {staff}?',
+    rating: 'Оцінка',
+    outOf: '{n} з 5',
+    text: 'Кілька слів (необовʼязково)',
+    send: 'Надіслати відгук',
+    thanks: 'Дякуємо за відгук!',
+    change: 'Змінити відгук',
+    changeUntil: 'Відгук можна змінити до {date}.',
+    notPossible: 'Цей візит уже не можна оцінити.',
+  },
   bonuses: {
     extraTitle: 'Більше за візит',
     extraAt: 'у: {names}',

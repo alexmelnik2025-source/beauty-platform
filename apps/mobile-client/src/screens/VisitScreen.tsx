@@ -25,6 +25,7 @@ import { fill, type Dictionary } from '../i18n';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 import { WishesPicker } from '../WishesPicker';
 import { VisitPhotos } from '../WishPhotosPicker';
+import { ReviewCard } from '../ReviewCard';
 import { asksWishes, wishesToSend, type VisitWishes } from '../wishes';
 
 /**
@@ -472,6 +473,17 @@ export function VisitScreen(props: {
             </View>
           </View>
         </View>
+      ) : null}
+
+      {visit.status === 'completed' || visit.status === 'confirmed' ? (
+        <ReviewCard
+          key={`review-${visit.id}-${visit.status}`}
+          api={api}
+          t={t}
+          locale={locale}
+          visitId={visit.id}
+          staffName={visit.staff.displayName}
+        />
       ) : null}
 
       {visit.status === 'confirmed' && !moving ? (

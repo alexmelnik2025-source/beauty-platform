@@ -21,6 +21,7 @@ import type {
   VisitCoupons,
   VisitPhoto,
   VisitPhotoList,
+  VisitReview,
   WaitlistJoined,
 } from '@beauty/api-client';
 
@@ -44,6 +45,7 @@ export type {
   ClientWaitlistEntry,
   VisitPhoto,
   VisitPhotoList,
+  VisitReview,
   WaitlistJoined,
 };
 export type {
@@ -276,6 +278,23 @@ export class ClientApi {
       'PUT',
       `/v1/client/appointments/${encodeURIComponent(id)}/wishes`,
       wishes,
+    );
+  }
+
+  /** Task 165b: my review of the visit and whether I can (still) write or change it. */
+  visitReview(id: string): Promise<VisitReview> {
+    return this.authed<VisitReview>(
+      'GET',
+      `/v1/client/appointments/${encodeURIComponent(id)}/review`,
+    );
+  }
+
+  /** Task 165b: 1–5 stars and optional words (REVIEW_NOT_POSSIBLE when it is no longer possible). */
+  writeReview(id: string, rating: number, text: string): Promise<VisitReview> {
+    return this.authed<VisitReview>(
+      'PUT',
+      `/v1/client/appointments/${encodeURIComponent(id)}/review`,
+      { rating, text },
     );
   }
 

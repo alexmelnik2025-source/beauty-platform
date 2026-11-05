@@ -91,6 +91,18 @@ export const sq: Dictionary = {
     slotTaken: 'Kjo orë sapo u zu. Ju lutemi zgjidhni një tjetër.',
     loadingSlots: 'Po kërkojmë orë të lira…',
   },
+  review: {
+    title: 'Vlerësimi juaj',
+    ask: 'Si ishte vizita juaj te {staff}?',
+    rating: 'Vlerësimi',
+    outOf: '{n} nga 5',
+    text: 'Disa fjalë (opsionale)',
+    send: 'Dërgo vlerësimin',
+    thanks: 'Faleminderit për vlerësimin!',
+    change: 'Ndrysho vlerësimin',
+    changeUntil: 'Vlerësimin mund ta ndryshoni deri më {date}.',
+    notPossible: 'Kjo vizitë nuk mund të vlerësohet më.',
+  },
   bonuses: {
     extraTitle: 'Më shumë për vizitën',
     extraAt: 'te {names}',
