@@ -336,9 +336,11 @@ export class BusinessApi {
   }
 
   /** Owner or manager only (the server checks): clients by name, phone, email or tag. */
-  customers(orgId: string, search: string, limit = 50): Promise<CustomerList> {
+  /** Task 140: `inactiveDays` — only clients who came before but not in that many days. */
+  customers(orgId: string, search: string, limit = 50, inactiveDays = 0): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
     if (search.trim()) query.set('search', search.trim());
+    if (inactiveDays) query.set('inactiveDays', String(inactiveDays));
     return this.authed<CustomerList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,
