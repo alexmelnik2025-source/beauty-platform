@@ -319,6 +319,9 @@ export const sq: Dictionary = {
   language: 'Gjuha',
   retry: 'Provo përsëri',
   error: {
+    bookByPhone: 'Ky sallon ju kërkon të rezervoni me telefon. Ju lutem telefononi sallonin.',
+    payFirst:
+      'Para rezervimit të radhës online, salloni kërkon pagesën e vizitave të mëparshme të humbura. Paguani në sallon ose kontaktoni sallonin.',
     network: 'Nuk ka lidhje me serverin. Kontrolloni internetin dhe provoni përsëri.',
     generic: 'Diçka shkoi keq. Ju lutemi provoni përsëri.',
     tooMany: 'Shumë përpjekje. Ju lutemi prisni pak.',

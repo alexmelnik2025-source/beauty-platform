@@ -5,6 +5,7 @@ import { AppException, notFound } from '../common/app-exception';
 import { generateToken, hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { Appointment, Locale, Location, Prisma } from '../generated/prisma/client';
+import { CancellationGuardService } from '../cancellation-guard/cancellation-guard.service';
 import { VisitCoupons } from '../loyalty/visit-coupons';
 import { HappyHoursService } from '../scheduling/happy-hours';
 import { MailService } from '../mail/mail.service';
@@ -85,6 +86,7 @@ export class PublicBookingService {
     private readonly limiter: RateLimiterService,
     private readonly visitCoupons: VisitCoupons,
     private readonly happyHours: HappyHoursService,
+    private readonly guard: CancellationGuardService,
   ) {}
 
   async findBookable(slug: string): Promise<Location> {
@@ -324,6 +326,7 @@ export class PublicBookingService {
     const contact = hold.holdContact as unknown as HoldContact;
     // An SMS code confirms the phone, not the email address.
     const emailConfirmed = contact.codeChannel !== 'sms';
+    await this.checkGuard(hold, contact, emailConfirmed);
     const manageToken = generateToken();
     // Task 80: only answers to questions this salon asks.
     const wishes = acceptedWishes(hold.location, input.wishes);
@@ -579,6 +582,52 @@ export class PublicBookingService {
 
   private codeHash(holdId: string, code: string): string {
     return hashToken(`${holdId}:${code}`);
+  }
+
+  /**
+   * Task 161b: a client the salon's cancellation guard marks with "phone only" or "pay the missed
+   * visits first" cannot book online: the slot is let go and the client is told why. The amount is
+   * shown only when the code confirmed the email (an SMS code proves the phone, not the card).
+   */
+  private async checkGuard(
+    hold: { id: string; locationId: string; location: Location },
+    contact: HoldContact,
+    emailConfirmed: boolean,
+  ): Promise<void> {
+    const customer = await this.prisma.customer.findUnique({
+      where: {
+        organizationId_email: {
+          organizationId: hold.location.organizationId,
+          email: contact.email,
+        },
+      },
+      select: { id: true, anonymizedAt: true },
+    });
+    if (!customer || customer.anonymizedAt) return;
+    const mark = await this.guard.check(hold.locationId, customer.id);
+    if (!mark || mark.action === 'approval') return;
+    await this.prisma.appointment.updateMany({
+      where: { id: hold.id, status: 'held' },
+      data: { status: 'expired' },
+    });
+    if (mark.action === 'phone_only') {
+      throw new AppException(
+        HttpStatus.FORBIDDEN,
+        'BOOKING_PHONE_ONLY',
+        'The salon asks this client to book by phone',
+      );
+    }
+    throw new AppException(
+      HttpStatus.FORBIDDEN,
+      'BOOKING_PAY_FIRST',
+      'The salon asks this client to pay for missed visits in the salon first',
+      emailConfirmed
+        ? [
+            { path: 'amountGrosze', message: String(mark.noShowAmountGrosze) },
+            { path: 'currency', message: hold.location.currency },
+          ]
+        : [],
+    );
   }
 
   private async activeHold(holdId: string, holdToken: string) {

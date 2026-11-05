@@ -9,6 +9,7 @@ import {
   createOrgWithLocation,
   createTestApp,
   expectError,
+  LEGAL_TEXTS,
   signUp,
   resetState,
   type SignedInUser,
@@ -25,6 +26,7 @@ let staffUser: SignedInUser;
 let orgId: string;
 let base: string;
 let guardUrl: string;
+let slug: string;
 let serviceId: string;
 let staffId: string;
 let slot = 0;
@@ -42,7 +44,7 @@ beforeEach(async () => {
   slot = 0;
   owner = await signUp(ctx, 'owner@example.com');
   let locationId: string;
-  ({ orgId, locationId } = await createOrgWithLocation(ctx, owner, 'Barber'));
+  ({ orgId, locationId, slug } = await createOrgWithLocation(ctx, owner, 'Barber'));
   base = `/v1/organizations/${orgId}/locations/${locationId}`;
   guardUrl = `${base}/cancellation-guard`;
   serviceId = (
@@ -368,6 +370,104 @@ describe('cancellation guard: marked clients', () => {
       .expect(404);
     await ctx.http().get(`${guardUrl}/clients`).set(other.auth).expect(404);
     expect(await ctx.prisma.cancellationGuardRelease.count()).toBe(0);
+  });
+});
+
+describe('cancellation guard: online booking (161b)', () => {
+  const ANNA = {
+    name: 'Anna Kowalska',
+    phone: '+48 600 100 200',
+    email: 'anna@example.com',
+    locale: 'pl',
+    acceptTerms: true,
+  };
+
+  beforeEach(async () => {
+    await ctx
+      .http()
+      .put(`${base}/staff/${staffId}/working-hours`)
+      .set(owner.auth)
+      .send({
+        days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+          weekday,
+          intervals: [{ start: '00:00', end: '24:00' }],
+        })),
+      })
+      .expect(200);
+    const loc = await ctx.http().get(base).set(owner.auth).expect(200);
+    await ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({ version: loc.body.version, onlineBookingEnabled: true, ...LEGAL_TEXTS })
+      .expect(200);
+  });
+
+  /** Holds a slot two days ahead, sends the code by email and confirms it. */
+  async function bookOnline(client = ANNA) {
+    const start = new Date(Math.ceil(Date.now() / HOUR) * HOUR + 2 * DAY + (slot += 1) * HOUR);
+    const hold = await ctx
+      .http()
+      .post(`/v1/public/locations/${slug}/holds`)
+      .send({ serviceId, staffId, start: start.toISOString() })
+      .expect(201);
+    await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.body.holdId}/code`)
+      .send({ holdToken: hold.body.holdToken, ...client })
+      .expect(202);
+    const code = ctx.mail.lastTo(client.email)?.text.match(/\b(\d{6})\b/)?.[1];
+    const res = await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
+      .send({ holdToken: hold.body.holdToken, code });
+    return { res, holdId: hold.body.holdId as string };
+  }
+
+  it('asks a marked client to pay the missed visits in the salon first, and lets the slot go', async () => {
+    await setGuard({ maxNoShows: 1, action: 'prepay' });
+    const anna = await noShow(ANNA.email, 5, 500);
+    const { res, holdId } = await bookOnline();
+    expect(res.status).toBe(403);
+    expectError(res.body, 'BOOKING_PAY_FIRST');
+    expect(res.body.error.details).toEqual([
+      { path: 'amountGrosze', message: '7500' },
+      { path: 'currency', message: 'PLN' },
+    ]);
+    expect((await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: holdId } })).status).toBe(
+      'expired',
+    );
+
+    // Paid in the salon: the owner lifts the mark and the client books again.
+    await ctx
+      .http()
+      .post(`${guardUrl}/clients/${anna}/release`)
+      .set(owner.auth)
+      .send({})
+      .expect(200);
+    expect((await bookOnline()).res.status).toBe(200);
+  });
+
+  it('asks a marked client to book by phone', async () => {
+    await setGuard({ maxNoShows: 1, action: 'phone_only' });
+    await noShow(ANNA.email, 5);
+    const { res } = await bookOnline();
+    expect(res.status).toBe(403);
+    expectError(res.body, 'BOOKING_PHONE_ONLY');
+    // Another client books as usual.
+    expect((await bookOnline({ ...ANNA, email: 'ewa@example.com' })).res.status).toBe(200);
+  });
+
+  it('lets everyone book while the guard is off', async () => {
+    const saved = await setGuard({ maxNoShows: 1, action: 'phone_only' });
+    await noShow(ANNA.email, 5);
+    await ctx
+      .http()
+      .put(guardUrl)
+      .set(owner.auth)
+      .send({ ...saved.body, enabled: false })
+      .expect(200);
+    expect((await bookOnline()).res.status).toBe(200);
   });
 });
 

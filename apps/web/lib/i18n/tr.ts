@@ -36,6 +36,9 @@ export const tr: Dict = {
     HOLD_EXPIRED: 'On dakika geçti ve saat serbest bırakıldı. Yeniden bir saat seçin.',
     CODE_EXPIRED: 'Kodun süresi doldu. Yeni bir kod gönderin.',
     INVALID_CODE: 'Kod yanlış.',
+    BOOKING_PHONE_ONLY: 'Bu salon randevunuzu telefonla almanızı istiyor. Lütfen salonu arayın.',
+    BOOKING_PAY_FIRST:
+      'Bir sonraki online randevudan önce salon, gelinmeyen önceki randevuların ödenmesini istiyor. Salonda ödeyin veya salonla iletişime geçin.',
     TOO_MANY_ATTEMPTS: 'Çok fazla deneme. Yeniden bir saat seçin.',
     TOO_MANY_CODES: 'Zaten üç kod gönderildi. Yeniden bir saat seçin.',
     TOO_LATE_TO_CHANGE: 'Bunu internetten değiştirmek için artık çok geç. Salonu arayın.',

@@ -36,6 +36,10 @@ export const sq: Dict = {
     HOLD_EXPIRED: 'Kaluan dhjetë minuta dhe ora u lirua. Zgjidhni përsëri një orë.',
     CODE_EXPIRED: 'Kodi ka skaduar. Dërgoni një të ri.',
     INVALID_CODE: 'Kod i gabuar.',
+    BOOKING_PHONE_ONLY:
+      'Ky sallon ju kërkon të rezervoni me telefon. Ju lutem telefononi sallonin.',
+    BOOKING_PAY_FIRST:
+      'Para rezervimit të radhës online, salloni kërkon pagesën e vizitave të mëparshme të humbura. Paguani në sallon ose kontaktoni sallonin.',
     TOO_MANY_ATTEMPTS: 'Shumë përpjekje. Zgjidhni përsëri një orë.',
     TOO_MANY_CODES: 'Janë dërguar tashmë tre kode. Zgjidhni përsëri një orë.',
     TOO_LATE_TO_CHANGE: 'Është tepër vonë për ta ndryshuar online. Telefononi sallonin.',

@@ -313,6 +313,9 @@ export const pl = {
   language: 'Język',
   retry: 'Spróbuj ponownie',
   error: {
+    bookByPhone: 'Ten salon prosi Cię o rezerwację telefoniczną. Zadzwoń do salonu.',
+    payFirst:
+      'Przed kolejną rezerwacją online salon prosi o zapłatę za wcześniejsze nieodbyte wizyty. Zapłać w salonie lub skontaktuj się z salonem.',
     network: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
     generic: 'Coś poszło nie tak. Spróbuj ponownie.',
     tooMany: 'Za dużo prób. Odczekaj chwilę.',

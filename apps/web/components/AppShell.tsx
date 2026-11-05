@@ -38,6 +38,7 @@ export function menuItems(
     manager && { href: at('services'), label: t.nav.services },
     manager && { href: at('happy-hours'), label: t.nav.happyHours },
     manager && { href: at('waitlist'), label: t.nav.waitingList },
+    manager && { href: at('cancellation-guard'), label: t.nav.guard },
     manager && { href: at('team'), label: t.nav.team },
     manager && { href: at('loyalty'), label: t.nav.loyalty },
     (manager || session.permissions.viewOwnEarnings === true) && {
