@@ -14,6 +14,7 @@ import {
 import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
 import { formatDay, formatPrice, groupByDay, salonAddress } from '../format';
+import { favoriteSpecialists, type FavoriteSpecialist } from '../favorite';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import { saveMyData } from '../myData';
@@ -54,6 +55,8 @@ export function VisitsScreen(props: {
   const [favorites, setFavorites] = useState<FavoriteSalon[] | null>(null);
   // Task 51: the waiting lists, shown above the upcoming visits.
   const [waitlist, setWaitlist] = useState<ClientWaitlistEntry[]>([]);
+  // Task 165d: the client's specialist in each salon, booked in one tap.
+  const [mine, setMine] = useState<FavoriteSpecialist[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ClientAppointment | null>(null);
@@ -65,9 +68,14 @@ export function VisitsScreen(props: {
       if (tab === 'bonuses') setBonuses((await api.loyalty()).items);
       else if (tab === 'favorites') setFavorites((await api.favorites()).items);
       else if (tab === 'upcoming') {
-        const [visits, waiting] = await Promise.all([api.appointments(tab), api.waitlist()]);
+        const [visits, waiting, past] = await Promise.all([
+          api.appointments(tab),
+          api.waitlist(),
+          api.appointments('past'),
+        ]);
         setItems(visits.items);
         setWaitlist(waiting.items);
+        setMine(favoriteSpecialists(past.items));
       } else setItems((await api.appointments(tab)).items);
       setError('');
     } catch (e) {
@@ -217,6 +225,27 @@ export function VisitsScreen(props: {
           onBook={props.onBook}
           onRemove={removeFavorite}
         />
+      ) : null}
+
+      {tab === 'upcoming' && mine.length > 0 ? (
+        <View role="region" aria-label={t.visits.mySpecialists} style={{ gap: 8 }}>
+          <Text role="heading" aria-level={2} style={styles.day}>
+            {t.visits.mySpecialists}
+          </Text>
+          {mine.map((f) => (
+            <Card key={f.slug}>
+              <Text style={styles.service}>{f.staffName}</Text>
+              <Text style={styles.muted}>
+                {f.serviceName} · {fill(t.visits.visitsCount, { n: String(f.visits) })}
+              </Text>
+              <Text style={styles.salon}>{f.salonName}</Text>
+              <Button
+                label={fill(t.visits.bookWith, { staff: f.staffName })}
+                onPress={() => props.onBook(f.slug, f.salonName, f.preset)}
+              />
+            </Card>
+          ))}
+        </View>
       ) : null}
 
       {tab === 'upcoming' && waitlist.length > 0 ? (
