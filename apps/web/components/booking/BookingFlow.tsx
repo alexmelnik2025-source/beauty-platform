@@ -13,7 +13,14 @@ import {
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
-import type { Hold, PublicAppointment, PublicFreeToday, PublicLocation, Slot } from '@/lib/types';
+import type {
+  ClientContact,
+  Hold,
+  PublicAppointment,
+  PublicFreeToday,
+  PublicLocation,
+  Slot,
+} from '@/lib/types';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { LanguageBadges, SPOKEN, SPOKEN_SHORT, type Spoken } from '../Languages';
@@ -144,6 +151,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   // keep the client's details or the "My visits" sign-in, and links open in a new tab.
   const [embed, setEmbed] = useState(false);
   const [remember, setRemember] = useState(false);
+  /** Task 180d: the client is already signed in to "My visits" on this device. */
+  const [signedInAs, setSignedInAs] = useState<string | null>(null);
   const [remembered, setRemembered] = useState(false);
   const [code, setCode] = useState('');
   const [wishes, setWishes] = useState<VisitWishes>(NO_WISHES);
@@ -166,13 +175,36 @@ export function BookingFlow({ slug }: { slug: string }) {
       setWishesRemembered(true);
     }
     const saved = loadRemembered();
-    if (!saved) return;
-    setContact((c) => ({ ...c, ...saved, phone: saved.phone || c.phone }));
-    setRemember(true);
-    setRemembered(true);
+    if (saved) {
+      setContact((c) => ({ ...c, ...saved, phone: saved.phone || c.phone }));
+      setRemember(true);
+      setRemembered(true);
+    }
+    // Task 180d: a signed-in client finds the form filled in from their latest salon card.
+    let live = true;
+    api<ClientContact>('/v1/client/me/contact', { auth: false })
+      .then((me) => {
+        if (!live) return;
+        setSignedInAs(me.email);
+        setContact((c) => ({
+          ...c,
+          email: me.email,
+          name: me.name ?? c.name,
+          phone: me.phone ?? c.phone,
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
   }, []);
 
   function forgetMe() {
+    // "Not me" on a device where someone else is signed in to "My visits": sign them out too.
+    if (signedInAs) {
+      void api('/v1/client/auth/logout', { method: 'POST', auth: false }).catch(() => undefined);
+      setSignedInAs(null);
+    }
     saveRemembered(null);
     saveWishes(null);
     setWishes(NO_WISHES);
@@ -365,11 +397,12 @@ export function BookingFlow({ slug }: { slug: string }) {
         method: 'POST',
         auth: false,
         idempotencyKey: `confirm-${hold.holdId}-${code}`,
-        // "Remember me" also signs in to "My visits" on this device: the visit is already there.
+        // Task 180d: the email code signs the client in to "My visits" on this device — the
+        // account makes itself on the first booking. Not in a window on another site (embed).
         body: {
           holdToken: hold.holdToken,
           code,
-          signIn: remember,
+          signIn: !embed,
           ...(asksWishes(salon?.wishQuestions) ? { wishes } : {}),
         },
       });
@@ -740,7 +773,12 @@ export function BookingFlow({ slug }: { slug: string }) {
         {step === 'details' && hold ? (
           <form className="form" onSubmit={sendCode}>
             <h2>{t.booking.yourDetails}</h2>
-            {remembered ? (
+            {signedInAs ? (
+              <p className="note small" data-testid="signed-in-as">
+                {fill(t.booking.signedInAs, { email: signedInAs })}
+              </p>
+            ) : null}
+            {remembered || signedInAs ? (
               <button type="button" className="link-btn small" onClick={forgetMe}>
                 {t.booking.notMe}
               </button>
@@ -915,7 +953,11 @@ export function BookingFlow({ slug }: { slug: string }) {
               {t.booking.manage}
             </Link>
             {result.signedIn ? (
-              <section className="install-app install-app--card">
+              <section className="install-app install-app--card" data-testid="account-ready">
+                <strong>{t.booking.accountReady}</strong>
+                <Link className="btn btn--quiet btn--block" href={`/${locale}/c`}>
+                  {t.visits.allVisits}
+                </Link>
                 <strong>{t.booking.appTitle}</strong>
                 <p className="small muted">{t.booking.appLead}</p>
                 <Link className="btn btn--block" href={`/${locale}/c`}>

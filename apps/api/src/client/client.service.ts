@@ -21,7 +21,11 @@ import { PublicBookingService, tooLate } from '../booking/public-booking.service
 import type { VisitCouponsResponse } from '../booking/booking.responses';
 import { VisitCoupons } from '../loyalty/visit-coupons';
 import { createClientSession } from './client-session';
-import type { ClientAppointmentResponse, PersonResponse } from './client.responses';
+import type {
+  ClientAppointmentResponse,
+  ClientContactResponse,
+  PersonResponse,
+} from './client.responses';
 import { renderClientCodeEmail } from './client-templates';
 import type {
   ClientApplyCouponInput,
@@ -170,6 +174,16 @@ export class ClientService {
     return this.toPerson(
       await this.prisma.person.findUniqueOrThrow({ where: { id: auth.personId } }),
     );
+  }
+
+  /** Task 180d: the booking form of a signed-in client fills itself in. */
+  async contact(auth: ClientAuth): Promise<ClientContactResponse> {
+    const card = await this.prisma.customer.findFirst({
+      where: { email: auth.email, anonymizedAt: null },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      select: { name: true, phone: true },
+    });
+    return { email: auth.email, name: card?.name ?? null, phone: card?.phone ?? null };
   }
 
   async updateMe(auth: ClientAuth, locale: Locale): Promise<PersonResponse> {

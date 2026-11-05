@@ -2052,6 +2052,26 @@ export interface paths {
         patch: operations["ClientController_updateMe"];
         trace?: never;
     };
+    "/v1/client/me/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Name and phone to fill in the booking form (task 180d)
+         * @description The signed-in client's email, and the name and phone of the salon card of that email changed last.
+         */
+        get: operations["ClientController_contact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/loyalty": {
         parameters: {
             query?: never;
@@ -3379,6 +3399,13 @@ export interface components {
         };
         ClientCodeSent: {
             codeExpiresAt: string;
+        };
+        ClientContact: {
+            email: string;
+            /** @description From the latest salon card of this email; null when none */
+            name: string | null;
+            /** @description From the latest salon card of this email; null when none */
+            phone: string | null;
         };
         ClientDataExport: {
             exportedAt: string;
@@ -9160,6 +9187,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientPerson"];
+                };
+            };
+        };
+    };
+    ClientController_contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientContact"];
                 };
             };
         };

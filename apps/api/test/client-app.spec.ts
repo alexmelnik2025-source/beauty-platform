@@ -170,6 +170,32 @@ describe('client app: sign in with an email code', () => {
     expect(sessions[0]!.tokenHash).not.toBe(res.body.token);
   });
 
+  it('the booking form fills in the name and phone of the latest salon card (task 180d)', async () => {
+    const auth = await signIn(ANNA);
+    const empty = await ctx.http().get('/v1/client/me/contact').set(auth).expect(200);
+    expect(empty.body).toEqual({ email: ANNA, name: null, phone: null });
+
+    await book(first, at(day, 10));
+    // A later card in another salon wins; an anonymized card never shows.
+    await ctx.prisma.customer.updateMany({
+      where: { email: ANNA },
+      data: { name: 'Anna K.', phone: '+48600999888' },
+    });
+    const res = await ctx.http().get('/v1/client/me/contact').set(auth).expect(200);
+    expect(res.body).toEqual({ email: ANNA, name: 'Anna K.', phone: '+48600999888' });
+    await ctx.prisma.customer.updateMany({
+      where: { email: ANNA },
+      data: { anonymizedAt: new Date() },
+    });
+    const gone = await ctx.http().get('/v1/client/me/contact').set(auth).expect(200);
+    expect(gone.body).toEqual({ email: ANNA, name: null, phone: null });
+    // Bob's card is not Anna's.
+    await book(second, at(day, 11), BOB);
+    const bob = await ctx.http().get('/v1/client/me/contact').set(auth).expect(200);
+    expect(bob.body.name).toBeNull();
+    await ctx.http().get('/v1/client/me/contact').expect(401);
+  });
+
   it('answers the same for an address without visits (no account probing)', async () => {
     const res = await requestCode('nobody@example.com').expect(202);
     expect(res.body.codeExpiresAt).toEqual(expect.any(String));

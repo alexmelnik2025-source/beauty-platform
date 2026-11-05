@@ -8609,6 +8609,34 @@
         ]
       }
     },
+    "/v1/client/me/contact": {
+      "get": {
+        "description": "The signed-in client's email, and the name and phone of the salon card of that email changed last.",
+        "operationId": "ClientController_contact",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientContact"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Name and phone to fill in the booking form (task 180d)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/loyalty": {
       "get": {
         "description": "Stamps or points, rewards and how much is missing, coupons and history in every salon where the client has a card with the confirmed email and the program is on (or a coupon is still usable).",
@@ -13017,6 +13045,30 @@
         },
         "required": [
           "codeExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "ClientContact": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "description": "From the latest salon card of this email; null when none",
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "description": "From the latest salon card of this email; null when none",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "name",
+          "phone"
         ],
         "additionalProperties": false
       },

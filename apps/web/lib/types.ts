@@ -49,6 +49,7 @@ export type {
   ClientLoyalty,
   ClientDataExport,
   ClientLoyaltyCard,
+  ClientContact,
   ClientPerson,
   FailedEmail,
   HappyHours,
