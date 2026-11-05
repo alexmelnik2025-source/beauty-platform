@@ -7,6 +7,7 @@ import { ClientNav } from '@/components/client/ClientNav';
 import { ErrorBox, LanguageSwitch, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { rememberedLanguages, rememberLanguages } from '@/lib/catalogue-languages';
 import { formatPrice } from '@/lib/time';
 import {
   SPECIALTIES,
@@ -18,25 +19,6 @@ import {
 } from '@/lib/types';
 
 const PAGE_SIZE = 12;
-/** Task 192: the languages chosen last time, remembered on this device. */
-const LANGUAGES_KEY = 'beauty.catalogue.languages';
-
-function rememberedLanguages(): Spoken[] {
-  try {
-    const saved: unknown = JSON.parse(window.localStorage.getItem(LANGUAGES_KEY) ?? '[]');
-    return Array.isArray(saved) ? SPOKEN.filter((code) => saved.includes(code)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function rememberLanguages(codes: Spoken[]): void {
-  try {
-    window.localStorage.setItem(LANGUAGES_KEY, JSON.stringify(codes));
-  } catch {
-    // Private mode or blocked storage: the choice just is not remembered.
-  }
-}
 const MAP_WIDTH = 640;
 const MAP_HEIGHT = 400;
 const TILE_SIZE = 256;

@@ -58,11 +58,11 @@ async function salon(
   name: string,
   place: { latitude: number; longitude: number },
   team: { name: string; languages: string[]; specialties: string[] }[],
-): Promise<void> {
+): Promise<string> {
   const org = await json<{ id: string }>(
     await api.post('/v1/organizations', { headers: auth, data: { name } }),
   );
-  const location = await json<{ id: string }>(
+  const location = await json<{ id: string; slug: string }>(
     await api.post(`/v1/organizations/${org.id}/locations`, {
       headers: auth,
       data: {
@@ -97,6 +97,7 @@ async function salon(
       }),
     );
   }
+  return location.slug;
 }
 
 test('the client app opens the catalogue on a map with language and kind-of-place chips', async ({
@@ -104,7 +105,7 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
   request,
 }) => {
   const auth = await owner(request);
-  await salon(request, auth, BARBER, { latitude: 52.8669, longitude: 18.6958 }, [
+  const barberSlug = await salon(request, auth, BARBER, { latitude: 52.8669, longitude: 18.6958 }, [
     { name: 'Taras', languages: ['uk', 'pl'], specialties: ['barber'] },
     { name: 'Oksana', languages: ['uk'], specialties: ['barber'] },
     { name: 'Piotr', languages: ['pl'], specialties: ['barber'] },
@@ -199,6 +200,20 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
       'aria-pressed',
       'true',
     );
+
+    // Task 160c: Polish chosen in the catalogue - on the salon's page Polish speakers come first
+    // (the salon's order is Taras, Oksana, Piotr; Oksana speaks only Ukrainian).
+    await site.getByRole('button', { name: /^polski \(\d+\)$/ }).click();
+    await site.goto(`/pl/b/${barberSlug}`);
+    await site
+      .getByRole('button', { name: /Usługa/ })
+      .first()
+      .click();
+    await expect(site.getByRole('button', { name: /^Piotr/ })).toBeVisible();
+    const top = async (name: RegExp) => (await site.getByRole('button', { name }).boundingBox())!.y;
+    expect(await top(/^Piotr/)).toBeLessThan(await top(/^Oksana/));
+    expect(await top(/^Taras/)).toBeLessThan(await top(/^Piotr/));
+    await shot(site, '160e-booking-speakers-first');
   } finally {
     await phone.close();
     clientApp.server.close();

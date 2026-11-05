@@ -10,6 +10,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react';
+import { rememberedLanguages, speakersFirst } from '@/lib/catalogue-languages';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
@@ -221,7 +222,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   useEffect(() => {
     api<PublicLocation>(`/v1/public/locations/${slug}`, { auth: false })
       .then((loaded) => {
-        setSalon(loaded);
+        // Task 160c: specialists speaking a language chosen in the catalogue come first.
+        setSalon({ ...loaded, staff: speakersFirst(loaded.staff, rememberedLanguages()) });
         const own = dialForTimeZone(loaded.timezone);
         setContact((c) => (c.phone.trim() === '+48' ? { ...c, phone: `+${own} ` } : c));
         // "Book again" from the client app: ?service=…&staff=… skips straight to the times.
