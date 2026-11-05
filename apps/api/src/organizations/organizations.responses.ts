@@ -46,6 +46,13 @@ export const locationSchema = responseSchema(
       .number()
       .int()
       .describe('The reminder email goes this many hours before the visit; 0 = none'),
+    waitlistHoldMinutes: z
+      .number()
+      .int()
+      .describe(
+        'Task 164: a freed time is held this many minutes for the first client on the waiting ' +
+          'list, then the next; 0 = everyone waiting gets one email with the free times',
+      ),
     onlineBookingEnabled: z.boolean(),
     askMood: z.boolean().describe('Task 80: ask how the client wants to spend the visit'),
     askDrink: z.boolean().describe('Task 80: offer a drink (only the drinks listed)'),

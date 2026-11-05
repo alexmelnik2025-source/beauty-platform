@@ -161,8 +161,7 @@ export const tr: Dict = {
   },
   booking: {
     waitlistOpen: 'Bir saat boşalınca bana haber verin',
-    waitlistHint:
-      'Biri bu günkü randevusunu iptal ederse, listedeki ilk kişi bir e-posta ve saati onaylamak için 15 dakika alır.',
+    waitlistHint: 'Biri bu günkü randevusunu iptal ederse size e-posta göndeririz.',
     waitlistSubmit: 'Beni listeye ekleyin',
     waitlistDone: 'Bekleme listesindesiniz. Bir saat boşaldığında size e-posta göndereceğiz.',
     bookVisit: 'Randevu al',

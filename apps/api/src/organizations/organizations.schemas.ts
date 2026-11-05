@@ -42,6 +42,8 @@ const legalText = z
 
 /** The reminder times a salon can choose (task 22). */
 export const REMINDER_HOURS = [0, 2, 3, 6, 12, 24, 48] as const;
+/** Task 164: minutes a freed time is held for the first client on the waiting list; 0 = off. */
+export const WAITLIST_HOLD_MINUTES = [0, 10, 15, 30, 60] as const;
 
 const locationFields = {
   name: z.string().trim().min(1).max(100),
@@ -75,6 +77,7 @@ const locationFields = {
     .max(7 * 24 * 60),
   /** Hours before the visit the client gets a reminder email; 0 = none (task 22). */
   reminderHoursBefore: z.union(REMINDER_HOURS.map((h) => z.literal(h))),
+  waitlistHoldMinutes: z.union(WAITLIST_HOLD_MINUTES.map((m) => z.literal(m))),
   onlineBookingEnabled: z.boolean(),
   /** Task 80: questions on the last booking step. */
   askMood: z.boolean(),
@@ -113,6 +116,7 @@ export const createLocationSchema = z.object({
   bookingHorizonDays: locationFields.bookingHorizonDays.default(30),
   clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
   reminderHoursBefore: locationFields.reminderHoursBefore.default(24),
+  waitlistHoldMinutes: locationFields.waitlistHoldMinutes.default(0),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
   askMood: locationFields.askMood.default(true),
   askDrink: locationFields.askDrink.default(false),

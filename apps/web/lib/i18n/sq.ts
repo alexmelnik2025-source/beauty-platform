@@ -162,8 +162,7 @@ export const sq: Dict = {
   },
   booking: {
     waitlistOpen: 'Më njoftoni kur të lirohet një orar',
-    waitlistHint:
-      'Nëse dikush anulon atë ditë, personi i parë në listë merr një email dhe 15 minuta për ta konfirmuar orarin.',
+    waitlistHint: 'Nëse dikush anulon atë ditë, do t’ju shkruajmë me email.',
     waitlistSubmit: 'Më shtoni në listë',
     waitlistDone: 'Jeni në listën e pritjes. Kur të lirohet një orar, do t’ju shkruajmë me email.',
     bookVisit: 'Rezervo një takim',
