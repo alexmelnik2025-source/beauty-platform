@@ -1799,3 +1799,11 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
   так же, выбор — в `catalogLanguagesStore` (web — localStorage, телефон — SecureStore).
 - «Mówi po» на странице записи (список цен и шаг мастера) и в приложении (`speakingStaff`) — мастера, говорящие
   хотя бы на одном выбранном языке. e2e — `booking.spec.ts`, `catalogue-map.spec.ts` (скриншоты 192, 192a–c).
+
+## Тип заведения на сайте и «свои» мастера первыми (задача 160c)
+
+- Веб-каталог (`PublicDirectory.tsx`): второй ряд чипов «Rodzaj salonu» — только виды с салонами (по
+  `specialtyCounts`), с числами, «Wszystkie»; запрос `specialty=` как в приложении.
+- Выбранные в каталоге языки (`lib/catalogue-languages.ts` на сайте, `catalogLanguagesStore` в приложении) упорядочивают
+  мастеров на странице салона: говорящие хотя бы на одном — первыми, остальные — в порядке салона (`speakersFirst`).
+- e2e — `catalogue-map.spec.ts` (скриншоты 160d, 160e); тест `speakersFirst` — `apps/mobile-client/test/booking.test.ts`.
