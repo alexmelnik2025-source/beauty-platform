@@ -38,6 +38,7 @@ test('the owner shares the booking link from the business app (task 152)', async
   );
   const login = await json<{ accessToken: string }>(
     await request.post('/v1/auth/login', {
+      headers: freshAddress(),
       data: { email: OWNER, password: PASSWORD, clientType: 'mobile' },
     }),
   );
@@ -62,6 +63,8 @@ test('the owner shares the booking link from the business app (task 152)', async
     locale: 'pl-PL',
     isMobile: true,
     permissions: ['clipboard-read', 'clipboard-write'],
+    // The code sign-in comes from an address of its own too (sign-in limits are per address).
+    extraHTTPHeaders: freshAddress(),
   });
   // No share menu in this browser: the link goes to the clipboard.
   await context.addInitScript(() => {
