@@ -70,6 +70,19 @@ export function speakingStaff(
     : staff;
 }
 
+/**
+ * Task 160c: specialists speaking a language chosen in the catalogue come first; otherwise the
+ * salon's own order.
+ */
+export function speakersFirst<T extends { languages?: string[] }>(
+  staff: T[],
+  chosen: string[],
+): T[] {
+  if (chosen.length === 0) return staff;
+  const speaks = (s: T) => (s.languages ?? []).some((code) => chosen.includes(code));
+  return [...staff.filter(speaks), ...staff.filter((s) => !speaks(s))];
+}
+
 /** One line under a service: the specialists with the same own price and length (task 70c). */
 export interface PriceRow {
   staff: PublicLocation['staff'];

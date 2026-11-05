@@ -11,10 +11,11 @@ import {
   View,
 } from 'react-native';
 import { bookingUrl, type ClientApi, type Locale, type PublicLocation } from '../api';
+import { catalogLanguagesStore } from '../storage';
 import { API_URL, WEB_URL } from '../config';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
-import { priceRows } from '../booking';
+import { priceRows, speakersFirst } from '../booking';
 import { formatPrice, servicePriceText } from '../format';
 import { addressText, durationText, openingRows, serviceGroups, specialtyText } from '../salon';
 import { shareMessage, shareSalon, type ShareTools } from '../share';
@@ -54,7 +55,12 @@ export function SalonScreen(props: {
   const load = useCallback(async () => {
     setError('');
     try {
-      setSalon(await api.salon(props.slug));
+      const [loaded, chosen] = await Promise.all([
+        api.salon(props.slug),
+        catalogLanguagesStore.get(),
+      ]);
+      // Task 160c: specialists speaking a language chosen in the catalogue come first.
+      setSalon({ ...loaded, staff: speakersFirst(loaded.staff, chosen) });
       api
         .freeToday(props.slug)
         .then((res) => setFreeToday(new Set(res.staffIds)))

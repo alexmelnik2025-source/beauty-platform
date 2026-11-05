@@ -10,6 +10,7 @@ import {
   legalUrl,
   manageUrl,
   priceRows,
+  speakersFirst,
   speakingStaff,
   staffFor,
 } from '../src/booking';
@@ -107,6 +108,9 @@ describe('booking steps', () => {
     // Task 192: several languages - anyone speaking one of them.
     expect(speakingStaff(staff, ['en', 'uk']).map((s) => s.id)).toEqual(['kasia', 'alex']);
     expect(filterLanguages(staff.slice(1, 2))).toEqual([]);
+    // Task 160c: those speaking a language chosen in the catalogue first, otherwise as listed.
+    expect(speakersFirst(staff, ['en']).map((s) => s.id)).toEqual(['alex', 'kasia', 'ola']);
+    expect(speakersFirst(staff, []).map((s) => s.id)).toEqual(['kasia', 'ola', 'alex']);
   });
 
   it('times by part of the day, without empty parts', () => {
