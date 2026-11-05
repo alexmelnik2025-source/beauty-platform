@@ -347,7 +347,8 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
     const chooser = app.waitForEvent('filechooser', { timeout: 15_000 });
     await app.getByRole('button', { name: '＋ Dodaj zdjęcie' }).click();
     await (await chooser).setFiles({ name: 'fade.jpg', mimeType: 'image/jpeg', buffer: photo });
-    const inApp = app.getByRole('img', { name: 'Twoje zdjęcie 1' });
+    // react-native-web draws a picture as a labelled box with an <img> inside: either will do.
+    const inApp = app.getByRole('img', { name: 'Twoje zdjęcie 1' }).first();
     await expect(inApp).toBeVisible();
     await shot(app, '05q-client-app-wish-photos');
     // The photo goes with the visit once the code books it.
