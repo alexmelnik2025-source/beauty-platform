@@ -39,9 +39,12 @@ const book = (hh: number, email = 'anna@example.com') =>
     })
     .expect(201);
 
+// A second in the past: the column keeps milliseconds and Postgres rounds `now()` to them, so
+// "now" could be stored up to half a millisecond ahead and the very next drain skipped the email
+// as not yet due (the confirmation then stayed "pending" - flaky in CI).
 const makeQueueDue = () =>
   ctx.prisma
-    .$executeRaw`UPDATE notification_outbox SET next_attempt_at = now(), locked_until = NULL WHERE status = 'pending'`;
+    .$executeRaw`UPDATE notification_outbox SET next_attempt_at = now() - interval '1 second', locked_until = NULL WHERE status = 'pending'`;
 
 beforeAll(async () => {
   ctx = await createTestApp();

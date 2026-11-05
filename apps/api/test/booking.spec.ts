@@ -133,7 +133,7 @@ const publicTimes = async (staffId = staffIds[0]) =>
 /** Makes everything in the email queue due now (instead of waiting for back-off or reminders). */
 const makeQueueDue = () =>
   ctx.prisma
-    .$executeRaw`UPDATE notification_outbox SET next_attempt_at = now(), locked_until = NULL WHERE status = 'pending'`;
+    .$executeRaw`UPDATE notification_outbox SET next_attempt_at = now() - interval '1 second', locked_until = NULL WHERE status = 'pending'`;
 
 // ── Booking flow ──────────────────────────────────────
 

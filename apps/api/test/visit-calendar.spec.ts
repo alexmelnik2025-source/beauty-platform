@@ -110,7 +110,7 @@ const at = (date: string, hh: number, mm = 0): string =>
 
 const makeQueueDue = () =>
   ctx.prisma
-    .$executeRaw`UPDATE notification_outbox SET next_attempt_at = now(), locked_until = NULL WHERE status = 'pending'`;
+    .$executeRaw`UPDATE notification_outbox SET next_attempt_at = now() - interval '1 second', locked_until = NULL WHERE status = 'pending'`;
 
 async function book(start: string): Promise<{ id: string; manageToken: string }> {
   const h = await ctx
