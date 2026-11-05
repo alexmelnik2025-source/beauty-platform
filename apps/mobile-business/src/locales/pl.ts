@@ -315,6 +315,10 @@ export const pl = {
     note: 'Przychód to opłacone wizyty po rabatach z programu lojalnościowego.',
     byWeekday: 'Dni tygodnia',
     weekdayVisits: 'wizyty: {n}',
+    occupancy: 'Obłożenie: {n}%',
+    occupancyHours: 'zajęte {booked} z {work} godz.',
+    occupancyHint:
+      'Część godzin pracy z grafiku (bez urlopów i zablokowanego czasu) zajęta wizytami. Odwołane się nie liczą.',
     compared: '% — w porównaniu z: {from} – {to}',
   },
   team: {
