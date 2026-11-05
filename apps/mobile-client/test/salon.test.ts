@@ -25,6 +25,7 @@ const salon = (name: string, city: string, addressLine = 'ul. Prosta 1'): Direct
   staffSpeaking: null,
   specialties: ['barber'],
   photoUrl: null,
+  distanceKm: null,
 });
 
 const location = (patch: Partial<PublicLocation> = {}): PublicLocation => ({

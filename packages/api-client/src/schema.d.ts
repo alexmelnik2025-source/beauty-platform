@@ -5038,6 +5038,7 @@ export interface components {
                 staffSpeaking: number | null;
                 specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
                 photoUrl: string | null;
+                distanceKm: number | null;
             }[];
             languageCounts: {
                 [key: string]: number;
@@ -7422,6 +7423,12 @@ export interface operations {
             query?: {
                 pageSize?: number;
                 page?: number;
+                /** @description latitude,longitude: the nearest salons first, with distanceKm; salons without a place last (task 180b) */
+                near?: string;
+                /** @description Part of the salon's city; case and accents ignored (task 180b) */
+                city?: string;
+                /** @description Words in the salon's name or in one of its services' names; case and accents ignored (task 180b) */
+                q?: string;
                 /** @description Kind of place: one of its active staff members does it (task 160) */
                 specialty?: "hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage";
                 /** @description Spoken by the salon or by one of its staff members; several codes comma-separated = any of them (task 192). Codes: pl, uk, ru, be, en */

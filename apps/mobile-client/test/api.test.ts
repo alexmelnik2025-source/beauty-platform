@@ -191,8 +191,21 @@ describe('catalogue (no sign-in)', () => {
         200,
         { ...directory, total: 3 },
       ],
+      // Task 180b: what, where and nearest first.
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}&q=strzyzenie&city=Warszawa&near=52.2297%2C21.0122`]:
+        () => [200, { ...directory, total: 5 }],
     });
     const api = new ClientApi('https://api.test', memoryStore('session'), fetchFn);
+    expect(
+      (
+        await api.directory({
+          q: ' strzyzenie ',
+          city: 'Warszawa',
+          near: { latitude: 52.22971, longitude: 21.01219 },
+        })
+      ).total,
+    ).toBe(5);
+    calls.pop();
     expect(await api.directory()).toEqual(directory);
     expect((await api.directory({ page: 2, language: ['uk'] })).page).toBe(2);
     expect((await api.directory({ language: ['uk', 'ru'] })).total).toBe(3);

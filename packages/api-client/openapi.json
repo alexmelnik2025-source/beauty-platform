@@ -4038,6 +4038,36 @@
             }
           },
           {
+            "name": "near",
+            "required": false,
+            "in": "query",
+            "description": "latitude,longitude: the nearest salons first, with distanceKm; salons without a place last (task 180b)",
+            "schema": {
+              "example": "52.2297,21.0122",
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "description": "Part of the salon's city; case and accents ignored (task 180b)",
+            "schema": {
+              "example": "Warszawa",
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Words in the salon's name or in one of its services' names; case and accents ignored (task 180b)",
+            "schema": {
+              "example": "strzyzenie",
+              "type": "string"
+            }
+          },
+          {
             "name": "specialty",
             "required": false,
             "in": "query",
@@ -19580,6 +19610,10 @@
                 "photoUrl": {
                   "nullable": true,
                   "type": "string"
+                },
+                "distanceKm": {
+                  "nullable": true,
+                  "type": "number"
                 }
               },
               "required": [
@@ -19595,7 +19629,8 @@
                 "priceFromGrosze",
                 "staffSpeaking",
                 "specialties",
-                "photoUrl"
+                "photoUrl",
+                "distanceKm"
               ],
               "additionalProperties": false
             }

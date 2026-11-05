@@ -20,6 +20,31 @@ export const publicDirectoryQuerySchema = z.strictObject({
     .optional(),
   /** Task 160: the kind of place — salons where an active specialist does this. */
   specialty: specialtySchema.optional(),
+  /**
+   * Task 180b: "Czego szukasz?" — words found in the salon's name or in the name of one of its
+   * active services; letter case and accents do not matter ("lodz" finds "Łódź").
+   */
+  q: z.string().trim().max(80).optional(),
+  /** Task 180b: "Gdzie?" — part of the salon's city, without accents too. */
+  city: z.string().trim().max(80).optional(),
+  /**
+   * Task 180b: "W pobliżu" — `latitude,longitude` of the client (asked by the browser); the
+   * nearest salons first, with `distanceKm`. Salons without a place on the map come last.
+   */
+  near: z
+    .string()
+    .regex(/^-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/)
+    .transform((value) => {
+      const [latitude, longitude] = value.split(',').map(Number) as [number, number];
+      return { latitude, longitude };
+    })
+    .pipe(
+      z.object({
+        latitude: z.number().min(-90).max(90),
+        longitude: z.number().min(-180).max(180),
+      }),
+    )
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(12),
 });
@@ -53,6 +78,8 @@ export const publicDirectorySchema = responseSchema(
         specialties: z.array(specialtySchema),
         /** Task 160: the salon's first photo for the map's card; null without photos. */
         photoUrl: z.string().nullable(),
+        /** Task 180b: kilometres from `near` (one decimal); null without `near` or a place on the map. */
+        distanceKm: z.number().nullable(),
       }),
     ),
     /** Task 160: salons per spoken language, with the other filters (the "UA (12)" chips). */

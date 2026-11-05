@@ -494,6 +494,12 @@ export class ClientApi {
       language?: SpokenLanguage[];
       /** Task 160: kind of place (what one of its specialists does). */
       specialty?: Specialty;
+      /** Task 180b: a service or the salon's name; accents do not matter. */
+      q?: string;
+      /** Task 180b: part of the city. */
+      city?: string;
+      /** Task 180b: nearest first ("W pobliżu"). */
+      near?: { latitude: number; longitude: number };
       pageSize?: number;
     } = {},
   ): Promise<PublicSalonDirectory> {
@@ -503,6 +509,11 @@ export class ClientApi {
     });
     if (query.language?.length) params.set('language', query.language.join(','));
     if (query.specialty) params.set('specialty', query.specialty);
+    if (query.q?.trim()) params.set('q', query.q.trim());
+    if (query.city?.trim()) params.set('city', query.city.trim());
+    if (query.near) {
+      params.set('near', `${query.near.latitude.toFixed(4)},${query.near.longitude.toFixed(4)}`);
+    }
     return this.call<PublicSalonDirectory>('GET', `/v1/public/locations?${params.toString()}`);
   }
 
