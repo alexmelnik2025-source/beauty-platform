@@ -246,4 +246,13 @@ test('business app: the day’s waiting list — remove one client, book the oth
   expect(
     calendar.appointments.filter((a) => a.status === 'confirmed').map((a) => a.customer?.name),
   ).toEqual(['Anna Kowalska']);
+
+  // Online booking off again: the public catalogue in booking.spec.ts expects only its own salon.
+  const current = await json<{ version: number }>(await request.get(base, { headers: owner }));
+  await json(
+    await request.patch(base, {
+      headers: owner,
+      data: { version: current.version, onlineBookingEnabled: false },
+    }),
+  );
 });
