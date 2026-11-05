@@ -24,6 +24,8 @@ export const sq: Dict = {
   },
   errors: {
     ...en.errors,
+    OFFER_GONE: 'Ky orar nuk mbahet më për ju. Zgjidhni një tjetër në faqen e sallonit.',
+    PHONE_REQUIRED: 'Shkruani numrin e telefonit.',
     SLOTS_AVAILABLE: 'Atë ditë ka orare të lira — zgjidhni një prej tyre.',
     WAITLIST_LIMIT: 'Mund të prisni për më shumë 3 ditë në këtë sallon njëkohësisht.',
     WAITLIST_DATE: 'Zgjidhni një ditë nga sot deri në ditën e fundit që salloni pranon rezervime.',
@@ -99,6 +101,17 @@ export const sq: Dict = {
     cancelled: 'Nuk jeni më në listën e pritjes.',
     leave: 'Dil nga lista',
     book: 'Shiko oraret e lira',
+    offered: 'Po ju mbajmë një orar të lirë — lidhja për ta konfirmuar është në email.',
+    booked: 'Orari nga lista e pritjes u rezervua.',
+    declined: 'E refuzuat — orarin e mori personi tjetër në listë.',
+    missed: 'Koha për t’u përgjigjur kaloi — orarin e mori personi tjetër në listë.',
+    offerTitle: 'U lirua një orar',
+    offerLead: 'Ua mbajmë deri në {time}. Pastaj ia ofrojmë personit tjetër në listë.',
+    offerPhone: 'Telefoni',
+    offerTake: 'E marr këtë orar',
+    offerDecline: 'Jo, faleminderit',
+    offerBooked:
+      'Gati! Vizita u rezervua. Konfirmimin me lidhjen për ndryshime e dërguam me email.',
   },
   wishStep: {
     title: 'Dëshirat tuaja',
@@ -128,7 +141,8 @@ export const sq: Dict = {
   },
   booking: {
     waitlistOpen: 'Më njoftoni kur të lirohet një orar',
-    waitlistHint: 'Nëse dikush anulon atë ditë, ju dërgojmë një email me oraret e lira.',
+    waitlistHint:
+      'Nëse dikush anulon atë ditë, personi i parë në listë merr një email dhe 15 minuta për ta konfirmuar orarin.',
     waitlistSubmit: 'Më shtoni në listë',
     waitlistDone: 'Jeni në listën e pritjes. Kur të lirohet një orar, do t’ju shkruajmë me email.',
     bookVisit: 'Rezervo një takim',

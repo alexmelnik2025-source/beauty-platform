@@ -8,10 +8,17 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
   publicWaitlistEntrySchema,
   waitlistJoinedSchema,
+  waitlistOfferSchema,
   type PublicWaitlistEntryResponse,
   type WaitlistJoinedResponse,
+  type WaitlistOfferResponse,
 } from './waitlist.responses';
-import { joinWaitlistSchema, type JoinWaitlistInput } from './waitlist.schemas';
+import {
+  acceptWaitlistOfferSchema,
+  joinWaitlistSchema,
+  type AcceptWaitlistOfferInput,
+  type JoinWaitlistInput,
+} from './waitlist.schemas';
 import { WaitlistService } from './waitlist.service';
 
 const MINUTE = 60_000;
@@ -62,5 +69,46 @@ export class WaitlistController {
   ): Promise<PublicWaitlistEntryResponse> {
     this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * MINUTE);
     return this.waitlist.cancel(token);
+  }
+
+  @Get('waitlist-offers/:token')
+  @ApiOperation({
+    summary: 'The time held for a waiting client (link in the offer email, task 164)',
+  })
+  @ApiZodResponse(waitlistOfferSchema)
+  getOffer(@Req() req: AppRequest, @Param('token') token: string): Promise<WaitlistOfferResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * MINUTE);
+    return this.waitlist.getOffer(token);
+  }
+
+  @Post('waitlist-offers/:token/accept')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Take the held time: the visit is booked and the usual confirmation email follows',
+    description:
+      '410 OFFER_GONE: the 15 minutes passed, the client said no or left the list; ' +
+      '400 PHONE_REQUIRED: the list had no phone, send one. Taking it twice is fine.',
+  })
+  @ApiZodBody(acceptWaitlistOfferSchema)
+  @ApiZodResponse(waitlistOfferSchema)
+  acceptOffer(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+    @Body(new ZodValidationPipe(acceptWaitlistOfferSchema)) body: AcceptWaitlistOfferInput,
+  ): Promise<WaitlistOfferResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * MINUTE);
+    return this.waitlist.acceptOffer(token, body);
+  }
+
+  @Post('waitlist-offers/:token/decline')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Say no to the held time: the next client in the queue gets it' })
+  @ApiZodResponse(waitlistOfferSchema)
+  declineOffer(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+  ): Promise<WaitlistOfferResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * MINUTE);
+    return this.waitlist.declineOffer(token);
   }
 }

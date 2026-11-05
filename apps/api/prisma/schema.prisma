@@ -133,9 +133,18 @@ enum EmailTokenType {
 /// Task 50: a client waiting for a free time on a day.
 enum WaitlistStatus {
   waiting
-  /// A time became free and the client got an email (once).
+  /// A time became free and the client got an email (once). Task 50; since task 164 new
+  /// entries get an offer instead.
   notified
   cancelled
+  /// Task 164: a free time is held for this client for 15 minutes (first in the queue).
+  offered
+  /// Task 164: the client took the offered time: the visit is booked.
+  booked
+  /// Task 164: the client said no to the offered time; the next one in the queue gets it.
+  declined
+  /// Task 164: the 15 minutes passed without an answer; the next one in the queue gets it.
+  missed
 
   @@map("waitlist_status")
 }
@@ -1270,6 +1279,12 @@ model WaitlistEntry {
   notifiedAt  DateTime?      @map("notified_at") @db.Timestamptz(3)
   cancelledAt DateTime?      @map("cancelled_at") @db.Timestamptz(3)
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Task 164: the held visit offered to this client (an appointment in status `held`).
+  offerAppointmentId String?   @map("offer_appointment_id") @db.Uuid
+  /// Task 164: until when the offered time is held.
+  offerExpiresAt     DateTime? @map("offer_expires_at") @db.Timestamptz(3)
+  /// Task 164: SHA-256 of the token in the offer email's link (made when the email is sent).
+  offerTokenHash     String?   @unique @map("offer_token_hash")
 
   location Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   service  Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)

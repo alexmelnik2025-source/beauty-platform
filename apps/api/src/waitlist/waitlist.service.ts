@@ -16,7 +16,8 @@ import type { Location, Prisma, WaitlistEntry } from '../generated/prisma/client
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from '../scheduling/availability.service';
-import { addDays, localToday } from '../scheduling/time';
+import { PublicBookingService } from '../booking/public-booking.service';
+import { addDays, instantToLocal, localToday } from '../scheduling/time';
 import type {
   ClientWaitlistEntryResponse,
   ClientWaitlistResponse,
@@ -24,27 +25,34 @@ import type {
   SalonWaitlistEntryResponse,
   SalonWaitlistResponse,
   WaitlistJoinedResponse,
+  WaitlistOfferResponse,
 } from './waitlist.responses';
 import type {
+  AcceptWaitlistOfferInput,
   ClientJoinWaitlistInput,
   JoinWaitlistInput,
   SalonWaitlistQuery,
 } from './waitlist.schemas';
+import {
+  WAITLIST_FREE,
+  WAITLIST_JOINED,
+  WAITLIST_OFFER,
+  type WaitlistNotification,
+} from './waitlist-outbox';
 
-/** Outbox types (rendered by OutboxService.renderWaitlist). */
-export const WAITLIST_JOINED = 'waitlist_joined';
-export const WAITLIST_FREE = 'waitlist_free';
+/** Task 164: how long a freed time is held for the first client in the queue. */
+export const OFFER_MINUTES = 15;
 
-export interface WaitlistNotification {
-  entryId: string;
-  /** waitlist_free: the first free start times, "14:30" in the salon's time zone. */
-  times?: string[];
-}
+const offerGone = (): AppException =>
+  new AppException(
+    HttpStatus.GONE,
+    'OFFER_GONE',
+    'This time is no longer held for you. Choose another time on the booking page',
+  );
 
 /** One email may wait for at most this many days at one salon at the same time. */
 export const MAX_WAITING_PER_EMAIL = 3;
 const EVERY_MS = 60_000;
-const TIMES_IN_EMAIL = 6;
 
 const toDate = (date: string): Date => new Date(`${date}T00:00:00.000Z`);
 const fromDate = (date: Date): string => date.toISOString().slice(0, 10);
@@ -114,6 +122,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     private readonly limiter: RateLimiterService,
     private readonly access: LocationAccessService,
     private readonly audit: AuditService,
+    private readonly booking: PublicBookingService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -133,7 +142,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     this.running = true;
     try {
       const notified = await this.sweep();
-      if (notified > 0) this.logger.log(`Told ${notified} waiting clients about a free time`);
+      if (notified > 0) this.logger.log(`Offered a free time to ${notified} waiting clients`);
     } catch (error) {
       this.logger.error(`Sweep failed: ${error instanceof Error ? error.message : error}`);
     } finally {
@@ -237,12 +246,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
   /** The client leaves the list from the link in the email. Leaving twice is fine. */
   async cancel(token: string): Promise<PublicWaitlistEntryResponse> {
     const entry = await this.byToken(token);
-    if (entry.status === 'waiting') {
-      await this.prisma.waitlistEntry.updateMany({
-        where: { id: entry.id, status: 'waiting' },
-        data: { status: 'cancelled', cancelledAt: new Date() },
-      });
-    }
+    await this.leave(entry);
     return this.get(token);
   }
 
@@ -267,7 +271,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     const rows = await this.prisma.waitlistEntry.findMany({
       where: {
         email: email.toLowerCase(),
-        status: { in: ['waiting', 'notified'] },
+        status: { in: ['waiting', 'notified', 'offered'] },
         // Time zones differ by at most a day; the exact check is per salon below.
         date: { gte: toDate(addDays(fromDate(new Date(now)), -1)) },
       },
@@ -288,10 +292,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       where: { id: entryId, email: email.toLowerCase() },
     });
     if (!entry) throw notFound('Waiting list entry');
-    await this.prisma.waitlistEntry.updateMany({
-      where: { id: entry.id, status: 'waiting' },
-      data: { status: 'cancelled', cancelledAt: new Date() },
-    });
+    await this.leave(entry);
     const fresh = await this.prisma.waitlistEntry.findUniqueOrThrow({
       where: { id: entry.id },
       include: CLIENT_INCLUDE,
@@ -311,7 +312,11 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     const location = await this.access.writable(m, locationId);
     const from = query.from ?? localToday(Date.now(), location.timezone);
     const rows = await this.prisma.waitlistEntry.findMany({
-      where: { locationId, status: { in: ['waiting', 'notified'] }, date: { gte: toDate(from) } },
+      where: {
+        locationId,
+        status: { in: ['waiting', 'notified', 'offered'] },
+        date: { gte: toDate(from) },
+      },
       include: SALON_INCLUDE,
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
       take: 500,
@@ -331,10 +336,10 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       where: { id: entryId, locationId },
     });
     if (!entry) throw notFound('Waiting list entry');
-    if (entry.status !== 'cancelled') {
+    if (['waiting', 'notified', 'offered'].includes(entry.status)) {
       await this.prisma.$transaction(async (tx) => {
         const changed = await tx.waitlistEntry.updateMany({
-          where: { id: entry.id, status: { not: 'cancelled' } },
+          where: { id: entry.id, status: { in: ['waiting', 'notified', 'offered'] } },
           data: { status: 'cancelled', cancelledAt: new Date() },
         });
         if (changed.count === 0) return;
@@ -349,6 +354,10 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
           tx,
         );
       });
+      // An open offer's held time goes back to the booking page.
+      if (entry.status === 'offered' && entry.offerAppointmentId) {
+        await this.releaseHold(entry.offerAppointmentId);
+      }
     }
     const fresh = await this.prisma.waitlistEntry.findUniqueOrThrow({
       where: { id: entry.id },
@@ -358,12 +367,19 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Checks every waiting entry from today on: where the booking page now shows a free time,
-   * the client is told once (status → notified). Returns how many clients were told.
+   * Task 164: checks the waiting list from today on. Offers that were not answered in time are
+   * let go (status missed). Then, for each salon, service, specialist and day where the booking
+   * page shows a free time and no offer is open, the first client in the queue (who asked first)
+   * gets the earliest free time held for OFFER_MINUTES and one email to take it or say no.
+   * Returns how many clients got an offer.
    */
   async sweep(now = Date.now()): Promise<number> {
+    await this.expireOffers(now);
     const entries = await this.prisma.waitlistEntry.findMany({
-      where: { status: 'waiting', date: { gte: toDate(addDays(fromDate(new Date(now)), -1)) } },
+      where: {
+        status: { in: ['waiting', 'offered'] },
+        date: { gte: toDate(addDays(fromDate(new Date(now)), -1)) },
+      },
       include: { location: true },
       orderBy: { createdAt: 'asc' },
       take: 2000,
@@ -374,45 +390,205 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       const key = `${e.locationId}|${e.serviceId}|${e.staffId ?? ''}|${fromDate(e.date)}`;
       groups.set(key, [...(groups.get(key) ?? []), e]);
     }
-    let told = 0;
+    let offered = 0;
     for (const group of groups.values()) {
+      // One open offer at a time: the next client waits for the answer or the 15 minutes.
+      if (group.some((e) => e.status === 'offered')) continue;
       const first = group[0]!;
       const date = fromDate(first.date);
       if (!first.location.onlineBookingEnabled) continue;
       if (date < localToday(now, first.location.timezone)) continue;
-      let times: string[];
+      let slots: { start: string; time: string }[];
       try {
         const free = await this.availability.forPublic(
           first.location,
           { serviceId: first.serviceId, staffId: first.staffId ?? undefined, from: date, to: date },
           { now },
         );
-        times = free.slots.map((s) => s.time);
+        slots = free.slots;
       } catch {
         continue; // The service or specialist is gone: nothing will free up.
       }
-      if (times.length === 0) continue;
-      for (const entry of group) {
-        await this.prisma.$transaction(async (tx) => {
-          const marked = await tx.waitlistEntry.updateMany({
-            where: { id: entry.id, status: 'waiting' },
-            data: { status: 'notified', notifiedAt: new Date(now) },
-          });
-          if (marked.count !== 1) return;
-          await this.enqueue(tx, WAITLIST_FREE, {
-            entryId: entry.id,
-            times: times.slice(0, TIMES_IN_EMAIL),
-          });
-          told += 1;
+      if (slots.length === 0) continue;
+      const entry = group.find((e) => e.status === 'waiting');
+      if (entry && (await this.offer(entry, slots, now))) offered += 1;
+    }
+    return offered;
+  }
+
+  /** Holds the earliest of `slots` that is still free for `entry` and emails the offer. */
+  private async offer(
+    entry: WaitlistEntry & { location: Location },
+    slots: { start: string; time: string }[],
+    now: number,
+  ): Promise<boolean> {
+    for (const slot of slots) {
+      const hold = await this.booking.holdForWaitlist(
+        entry.location,
+        {
+          serviceId: entry.serviceId,
+          staffId: entry.staffId ?? undefined,
+          start: new Date(slot.start).getTime(),
+        },
+        { name: entry.name, email: entry.email, phone: entry.phone, locale: entry.locale },
+        OFFER_MINUTES,
+      );
+      if (!hold) continue;
+      const done = await this.prisma.$transaction(async (tx) => {
+        const marked = await tx.waitlistEntry.updateMany({
+          where: { id: entry.id, status: 'waiting' },
+          data: {
+            status: 'offered',
+            notifiedAt: new Date(now),
+            offerAppointmentId: hold.id,
+            offerExpiresAt: new Date(Date.now() + OFFER_MINUTES * 60_000),
+          },
         });
+        if (marked.count !== 1) return false;
+        await this.enqueue(tx, WAITLIST_OFFER, { entryId: entry.id, time: slot.time });
+        return true;
+      });
+      if (done) return true;
+      // The client left the list meanwhile: let the time go.
+      await this.releaseHold(hold.id);
+      return false;
+    }
+    return false;
+  }
+
+  /** Offers whose time to answer has passed: the held time goes back, the entry is missed. */
+  private async expireOffers(now: number): Promise<void> {
+    const late = await this.prisma.waitlistEntry.findMany({
+      where: { status: 'offered', offerExpiresAt: { lte: new Date(now) } },
+      select: { id: true, offerAppointmentId: true },
+      take: 500,
+    });
+    for (const e of late) {
+      const changed = await this.prisma.waitlistEntry.updateMany({
+        where: { id: e.id, status: 'offered' },
+        data: { status: 'missed' },
+      });
+      if (changed.count === 1 && e.offerAppointmentId) await this.releaseHold(e.offerAppointmentId);
+    }
+  }
+
+  /** The client leaves: a waiting entry or an open offer (its held time goes back). */
+  private async leave(entry: Pick<WaitlistEntry, 'id' | 'status' | 'offerAppointmentId'>) {
+    if (entry.status !== 'waiting' && entry.status !== 'offered') return;
+    const changed = await this.prisma.waitlistEntry.updateMany({
+      where: { id: entry.id, status: entry.status },
+      data: { status: 'cancelled', cancelledAt: new Date() },
+    });
+    if (changed.count === 1 && entry.status === 'offered' && entry.offerAppointmentId) {
+      await this.releaseHold(entry.offerAppointmentId);
+    }
+  }
+
+  private async releaseHold(appointmentId: string): Promise<void> {
+    await this.prisma.appointment.updateMany({
+      where: { id: appointmentId, status: 'held' },
+      data: { status: 'expired' },
+    });
+  }
+
+  /** Task 164: the offer behind the link in the email (no other clients, no salon notes). */
+  async getOffer(token: string, now = Date.now()): Promise<WaitlistOfferResponse> {
+    const entry = await this.byOfferToken(token);
+    // Not answered in time: show it as missed straight away, the sweep lets the time go.
+    if (
+      entry.status === 'offered' &&
+      entry.offerExpiresAt &&
+      entry.offerExpiresAt.getTime() <= now
+    ) {
+      await this.expireOffers(now);
+      return this.toOffer(await this.byOfferToken(token));
+    }
+    return this.toOffer(entry);
+  }
+
+  /**
+   * Task 164: "Biorę ten termin". The visit is booked like after the email code (the link went to
+   * the client's email) and the usual confirmation email with the manage link follows.
+   */
+  async acceptOffer(
+    token: string,
+    input: AcceptWaitlistOfferInput,
+  ): Promise<WaitlistOfferResponse> {
+    const entry = await this.byOfferToken(token);
+    if (entry.status === 'booked') return this.toOffer(entry);
+    if (entry.status !== 'offered' || !entry.offerAppointmentId) throw offerGone();
+    try {
+      await this.booking.confirmWaitlistHold(entry.offerAppointmentId, input.phone, async (tx) => {
+        const marked = await tx.waitlistEntry.updateMany({
+          where: { id: entry.id, status: 'offered' },
+          data: { status: 'booked', ...(input.phone ? { phone: input.phone } : {}) },
+        });
+        if (marked.count !== 1) throw offerGone();
+      });
+    } catch (error) {
+      if (error instanceof AppException && error.code === 'HOLD_EXPIRED') throw offerGone();
+      throw error;
+    }
+    return this.toOffer(await this.byOfferToken(token));
+  }
+
+  /** Task 164: "Nie, dziękuję" — the time goes to the next client in the queue. Twice is fine. */
+  async declineOffer(token: string): Promise<WaitlistOfferResponse> {
+    const entry = await this.byOfferToken(token);
+    if (entry.status === 'offered') {
+      const changed = await this.prisma.waitlistEntry.updateMany({
+        where: { id: entry.id, status: 'offered' },
+        data: { status: 'declined', cancelledAt: new Date() },
+      });
+      if (changed.count === 1 && entry.offerAppointmentId) {
+        await this.releaseHold(entry.offerAppointmentId);
       }
     }
-    return told;
+    return this.toOffer(await this.byOfferToken(token));
+  }
+
+  private async byOfferToken(token: string) {
+    const entry = await this.prisma.waitlistEntry.findUnique({
+      where: { offerTokenHash: hashToken(token) },
+      include: {
+        location: { select: { name: true, slug: true, timezone: true, currency: true } },
+        service: { select: { name: true } },
+        staff: { select: { displayName: true } },
+      },
+    });
+    if (!entry) throw notFound('Offer');
+    return entry;
+  }
+
+  private async toOffer(
+    entry: Awaited<ReturnType<WaitlistService['byOfferToken']>>,
+  ): Promise<WaitlistOfferResponse> {
+    const visit = entry.offerAppointmentId
+      ? await this.prisma.appointment.findUnique({
+          where: { id: entry.offerAppointmentId },
+          include: { staff: { select: { displayName: true } } },
+        })
+      : null;
+    const local = visit ? instantToLocal(visit.startAt.getTime(), entry.location.timezone) : null;
+    return {
+      salon: { name: entry.location.name, slug: entry.location.slug },
+      serviceId: entry.serviceId,
+      serviceName: entry.service.name,
+      staffName: visit?.staff.displayName ?? entry.staff?.displayName ?? null,
+      date: local?.date ?? fromDate(entry.date),
+      time: local?.time ?? null,
+      durationMinutes: visit?.durationMinutes ?? null,
+      priceGrosze: visit?.priceGrosze ?? null,
+      currency: entry.location.currency,
+      status: entry.status,
+      expiresAt: entry.offerExpiresAt?.toISOString() ?? null,
+      needsPhone: !entry.phone,
+    };
   }
 
   private async enqueue(
     tx: Prisma.TransactionClient,
-    type: typeof WAITLIST_JOINED | typeof WAITLIST_FREE,
+    type: typeof WAITLIST_JOINED | typeof WAITLIST_FREE | typeof WAITLIST_OFFER,
     payload: WaitlistNotification,
   ): Promise<void> {
     await tx.notificationOutbox.createMany({

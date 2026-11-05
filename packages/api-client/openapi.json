@@ -9575,6 +9575,116 @@
         ]
       }
     },
+    "/v1/public/waitlist-offers/{token}": {
+      "get": {
+        "operationId": "WaitlistController_getOffer",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistOffer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The time held for a waiting client (link in the offer email, task 164)",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/waitlist-offers/{token}/accept": {
+      "post": {
+        "description": "410 OFFER_GONE: the 15 minutes passed, the client said no or left the list; 400 PHONE_REQUIRED: the list had no phone, send one. Taking it twice is fine.",
+        "operationId": "WaitlistController_acceptOffer",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistOffer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Take the held time: the visit is booked and the usual confirmation email follows",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
+    "/v1/public/waitlist-offers/{token}/decline": {
+      "post": {
+        "operationId": "WaitlistController_declineOffer",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistOffer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Say no to the held time: the next client in the queue gets it",
+        "tags": [
+          "public booking"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/waitlist": {
       "get": {
         "description": "Waiting and already told clients from `from` (default: today in the salon time zone) on, with names and contacts. Clients who left the list or were removed are not listed.",
@@ -14046,8 +14156,13 @@
                   "enum": [
                     "waiting",
                     "notified",
-                    "cancelled"
-                  ]
+                    "cancelled",
+                    "offered",
+                    "booked",
+                    "declined",
+                    "missed"
+                  ],
+                  "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
                 },
                 "notifiedAt": {
                   "nullable": true,
@@ -14129,8 +14244,13 @@
             "enum": [
               "waiting",
               "notified",
-              "cancelled"
-            ]
+              "cancelled",
+              "offered",
+              "booked",
+              "declined",
+              "missed"
+            ],
+            "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
           },
           "notifiedAt": {
             "nullable": true,
@@ -18760,8 +18880,13 @@
             "enum": [
               "waiting",
               "notified",
-              "cancelled"
-            ]
+              "cancelled",
+              "offered",
+              "booked",
+              "declined",
+              "missed"
+            ],
+            "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
           }
         },
         "required": [
@@ -19279,8 +19404,13 @@
                   "enum": [
                     "waiting",
                     "notified",
-                    "cancelled"
-                  ]
+                    "cancelled",
+                    "offered",
+                    "booked",
+                    "declined",
+                    "missed"
+                  ],
+                  "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
                 },
                 "createdAt": {
                   "type": "string"
@@ -19355,8 +19485,13 @@
             "enum": [
               "waiting",
               "notified",
-              "cancelled"
-            ]
+              "cancelled",
+              "offered",
+              "booked",
+              "declined",
+              "missed"
+            ],
+            "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
           },
           "createdAt": {
             "type": "string"
@@ -20811,8 +20946,13 @@
             "enum": [
               "waiting",
               "notified",
-              "cancelled"
-            ]
+              "cancelled",
+              "offered",
+              "booked",
+              "declined",
+              "missed"
+            ],
+            "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
           },
           "alreadyWaiting": {
             "type": "boolean",
@@ -20823,6 +20963,100 @@
           "date",
           "status",
           "alreadyWaiting"
+        ],
+        "additionalProperties": false
+      },
+      "WaitlistOffer": {
+        "type": "object",
+        "properties": {
+          "salon": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "staffName": {
+            "nullable": true,
+            "description": "The specialist of the held time",
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD in the salon time zone"
+          },
+          "time": {
+            "nullable": true,
+            "description": "HH:MM in the salon time zone",
+            "type": "string"
+          },
+          "durationMinutes": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "priceGrosze": {
+            "nullable": true,
+            "description": "Price in hundredths of the salon currency",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "notified",
+              "cancelled",
+              "offered",
+              "booked",
+              "declined",
+              "missed"
+            ],
+            "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
+          },
+          "expiresAt": {
+            "nullable": true,
+            "description": "Until when the time is held",
+            "type": "string"
+          },
+          "needsPhone": {
+            "type": "boolean",
+            "description": "The list has no phone: give one to take the time"
+          }
+        },
+        "required": [
+          "salon",
+          "serviceId",
+          "serviceName",
+          "staffName",
+          "date",
+          "time",
+          "durationMinutes",
+          "priceGrosze",
+          "currency",
+          "status",
+          "expiresAt",
+          "needsPhone"
         ],
         "additionalProperties": false
       },

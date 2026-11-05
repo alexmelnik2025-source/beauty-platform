@@ -4,7 +4,7 @@ import { createClientSession, type NewClientSession } from '../client/client-ses
 import { AppException, notFound } from '../common/app-exception';
 import { generateToken, hashToken } from '../common/crypto';
 import { RateLimiterService } from '../common/rate-limiter.service';
-import type { Appointment, Locale, Location, Prisma } from '../generated/prisma/client';
+import type { Appointment, Locale, Location, Prisma, Service } from '../generated/prisma/client';
 import { VisitCoupons } from '../loyalty/visit-coupons';
 import { HappyHoursService } from '../scheduling/happy-hours';
 import { MailService } from '../mail/mail.service';
@@ -132,34 +132,16 @@ export class PublicBookingService {
     // "Any staff member": try the least busy one, then the next if someone was faster.
     for (const staffId of candidates) {
       try {
-        // The specialist's own price and duration of the service, if any (tasks 62, 70).
-        const offer = await offerFor(this.prisma, staffId, service);
-        const times = timesFor(input.start, { ...service, durationMinutes: offer.durationMinutes });
-        // The salon's happy hours (task 16) set the price for this staff member and time.
-        const price = await this.happyHours.priceFor(this.prisma, location, {
+        const { hold, times, price } = await this.placeHold(
+          location,
+          service,
           staffId,
-          serviceId: service.id,
-          start: input.start,
-          listPriceGrosze: offer.priceGrosze,
-        });
-        const hold = await this.writer.write(staffId, times, (tx) =>
-          tx.appointment.create({
-            data: {
-              locationId: location.id,
-              staffId,
-              serviceId: service.id,
-              status: 'held',
-              source: 'online',
-              staffChosenByClient: input.staffId !== undefined,
-              ...times,
-              holdExpiresAt: expiresAt,
-              holdTokenHash: hashToken(holdToken),
-              ...price,
-              durationMinutes: offer.durationMinutes,
-              bufferMinutes: service.bufferMinutes,
-            },
-            include: { staff: true },
-          }),
+          input.start,
+          {
+            expiresAt,
+            holdTokenHash: hashToken(holdToken),
+            staffChosenByClient: input.staffId !== undefined,
+          },
         );
         const local = instantToLocal(input.start, location.timezone);
         return {
@@ -182,6 +164,99 @@ export class PublicBookingService {
       }
     }
     throw slotTaken();
+  }
+
+  /**
+   * Task 164: holds `start` for a client from the waiting list (no browser, no code): the hold
+   * carries the client's contact and lives `minutes`. Returns null when nobody is free any more.
+   */
+  async holdForWaitlist(
+    location: Location,
+    input: { serviceId: string; staffId?: string; start: number },
+    contact: { name: string; email: string; phone: string | null; locale: Locale },
+    minutes: number,
+  ): Promise<{ id: string } | null> {
+    const service = await this.prisma.service.findFirst({
+      where: { id: input.serviceId, locationId: location.id, active: true },
+    });
+    if (!service) return null;
+    const window = this.availability.publicWindow(location, Date.now());
+    const free = await this.availability.staffFreeAt(
+      location,
+      service.id,
+      input.staffId,
+      input.start,
+      window,
+    );
+    const holdContact: HoldContact = {
+      name: contact.name,
+      email: contact.email,
+      phone: contact.phone ?? '',
+      locale: contact.locale,
+      marketingConsent: false,
+      ip: null,
+      codeChannel: 'email',
+    };
+    for (const staffId of await this.leastBusyFirst(free, location, input.start)) {
+      try {
+        const { hold } = await this.placeHold(location, service, staffId, input.start, {
+          expiresAt: new Date(Date.now() + minutes * MINUTE_MS),
+          // Nobody has this token: the offer is taken through the waiting list's link.
+          holdTokenHash: hashToken(generateToken()),
+          staffChosenByClient: input.staffId !== undefined,
+          holdContact,
+          locale: contact.locale,
+        });
+        return { id: hold.id };
+      } catch (error) {
+        if (error instanceof AppException && error.code === 'SLOT_TAKEN') continue;
+        throw error;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Task 164: the waiting client takes the held time from the offer email (the link went to the
+   * client's email, so it confirms it like a code). `phone` is needed when the list had none.
+   * `inTx` runs in the same transaction (the waiting list marks the entry booked).
+   */
+  async confirmWaitlistHold(
+    holdId: string,
+    phone: string | undefined,
+    inTx: (tx: Prisma.TransactionClient) => Promise<void>,
+  ): Promise<{ appointment: PublicAppointmentResponse; manageToken: string }> {
+    const hold = await this.prisma.appointment.findUnique({
+      where: { id: holdId },
+      include: { location: true },
+    });
+    if (
+      !hold ||
+      hold.status !== 'held' ||
+      !hold.holdContact ||
+      !hold.holdExpiresAt ||
+      hold.holdExpiresAt.getTime() <= Date.now()
+    ) {
+      throw holdExpired();
+    }
+    const contact = { ...(hold.holdContact as unknown as HoldContact) };
+    if (phone) contact.phone = phone;
+    if (!contact.phone) {
+      throw new AppException(HttpStatus.BAD_REQUEST, 'PHONE_REQUIRED', 'Give a phone number', [
+        { path: 'phone', message: 'required' },
+      ]);
+    }
+    const manageToken = generateToken();
+    const appointment = await this.prisma.$transaction(async (tx) => {
+      const confirmed = await this.complete(tx, hold, contact, {
+        emailConfirmed: true,
+        wishes: {},
+        manageToken,
+      });
+      await inTx(tx);
+      return confirmed;
+    });
+    return { appointment: this.toPublic(appointment), manageToken };
   }
 
   /** Releases a hold the client no longer wants (e.g. closed the form). */
@@ -329,74 +404,12 @@ export class PublicBookingService {
     const wishes = acceptedWishes(hold.location, input.wishes);
 
     const confirmed = await this.prisma.$transaction(async (tx) => {
-      // Compared with the database clock: a hold that expired a millisecond ago is gone.
-      const updated = await tx.$executeRaw`
-        UPDATE appointment SET status = 'confirmed', hold_expires_at = NULL, hold_token_hash = NULL,
-          hold_contact = NULL, updated_at = now()
-        WHERE id = ${hold.id}::uuid AND status = 'held' AND hold_expires_at > now()`;
-      if (updated !== 1) throw holdExpired();
-
-      const customer = await tx.customer.upsert({
-        where: {
-          organizationId_email: {
-            organizationId: hold.location.organizationId,
-            email: contact.email,
-          },
-        },
-        create: {
-          organizationId: hold.location.organizationId,
-          name: contact.name,
-          phone: contact.phone,
-          email: contact.email,
-          locale: contact.locale,
-          ...wishes,
-        },
-        // An email that was not confirmed must not rewrite the salon's card of that address.
-        update: emailConfirmed
-          ? { name: contact.name, phone: contact.phone, locale: contact.locale, ...wishes }
-          : {},
-      });
-      await tx.consentRecord.createMany({
-        data: [
-          {
-            customerId: customer.id,
-            type: 'booking_terms',
-            version: BOOKING_TERMS_VERSION,
-            granted: true,
-            ip: contact.ip,
-          },
-          ...(contact.marketingConsent
-            ? [
-                {
-                  customerId: customer.id,
-                  type: 'marketing' as const,
-                  version: BOOKING_TERMS_VERSION,
-                  granted: true,
-                  ip: contact.ip,
-                },
-              ]
-            : []),
-        ],
-      });
-      const appointment = await tx.appointment.update({
-        where: { id: hold.id },
-        data: { customerId: customer.id, ...wishes },
-        include: { location: true, service: true, staff: true },
+      const appointment = await this.complete(tx, hold, contact, {
+        emailConfirmed,
+        wishes,
+        manageToken,
       });
       await tx.verificationCode.delete({ where: { id: code.id } });
-      await tx.appointmentAccessToken.create({
-        data: {
-          appointmentId: appointment.id,
-          tokenHash: hashToken(manageToken),
-          expiresAt: new Date(
-            appointment.startAt.getTime() + MANAGE_LINK_DAYS_AFTER_VISIT * DAY_MS,
-          ),
-        },
-      });
-      await this.writer.event(tx, appointment.id, 'confirmed', 'customer', null, {
-        source: 'online',
-      });
-      await this.notifyBooked(tx, appointment, 'client_confirmation', 'salon_new_booking');
       // "My visits" is keyed by email: sign in only when the code went to that email.
       const clientSession =
         input.signIn && emailConfirmed
@@ -576,6 +589,140 @@ export class PublicBookingService {
   }
 
   // ── Helpers ───────────────────────────────────────────
+
+  /**
+   * Turns a live hold into a confirmed visit for `contact`: the client's card, consents, the
+   * manage link, history and the booking emails. Throws HOLD_EXPIRED when the hold is gone
+   * (checked with the database clock). Used by the code step and by waiting-list offers (164).
+   */
+  private async complete(
+    tx: Prisma.TransactionClient,
+    hold: { id: string; location: Location },
+    contact: HoldContact,
+    opts: {
+      emailConfirmed: boolean;
+      wishes: ReturnType<typeof acceptedWishes>;
+      manageToken: string;
+    },
+  ): Promise<ClientAppointment> {
+    const { emailConfirmed, wishes, manageToken } = opts;
+    // Compared with the database clock: a hold that expired a millisecond ago is gone.
+    const updated = await tx.$executeRaw`
+      UPDATE appointment SET status = 'confirmed', hold_expires_at = NULL, hold_token_hash = NULL,
+        hold_contact = NULL, updated_at = now()
+      WHERE id = ${hold.id}::uuid AND status = 'held' AND hold_expires_at > now()`;
+    if (updated !== 1) throw holdExpired();
+
+    const customer = await tx.customer.upsert({
+      where: {
+        organizationId_email: {
+          organizationId: hold.location.organizationId,
+          email: contact.email,
+        },
+      },
+      create: {
+        organizationId: hold.location.organizationId,
+        name: contact.name,
+        phone: contact.phone,
+        email: contact.email,
+        locale: contact.locale,
+        ...wishes,
+      },
+      // An email that was not confirmed must not rewrite the salon's card of that address.
+      update: emailConfirmed
+        ? { name: contact.name, phone: contact.phone, locale: contact.locale, ...wishes }
+        : {},
+    });
+    await tx.consentRecord.createMany({
+      data: [
+        {
+          customerId: customer.id,
+          type: 'booking_terms',
+          version: BOOKING_TERMS_VERSION,
+          granted: true,
+          ip: contact.ip,
+        },
+        ...(contact.marketingConsent
+          ? [
+              {
+                customerId: customer.id,
+                type: 'marketing' as const,
+                version: BOOKING_TERMS_VERSION,
+                granted: true,
+                ip: contact.ip,
+              },
+            ]
+          : []),
+      ],
+    });
+    const appointment = await tx.appointment.update({
+      where: { id: hold.id },
+      data: { customerId: customer.id, ...wishes },
+      include: { location: true, service: true, staff: true },
+    });
+    await tx.appointmentAccessToken.create({
+      data: {
+        appointmentId: appointment.id,
+        tokenHash: hashToken(manageToken),
+        expiresAt: new Date(appointment.startAt.getTime() + MANAGE_LINK_DAYS_AFTER_VISIT * DAY_MS),
+      },
+    });
+    await this.writer.event(tx, appointment.id, 'confirmed', 'customer', null, {
+      source: 'online',
+    });
+    await this.notifyBooked(tx, appointment, 'client_confirmation', 'salon_new_booking');
+    return appointment;
+  }
+
+  /** Writes one hold for `staffId` at `start` at that specialist's price; SLOT_TAKEN if not free. */
+  private async placeHold(
+    location: Location,
+    service: Service,
+    staffId: string,
+    start: number,
+    hold: {
+      expiresAt: Date;
+      holdTokenHash: string;
+      staffChosenByClient: boolean;
+      holdContact?: HoldContact;
+      locale?: Locale;
+    },
+  ) {
+    // The specialist's own price and duration of the service, if any (tasks 62, 70).
+    const offer = await offerFor(this.prisma, staffId, service);
+    const times = timesFor(start, { ...service, durationMinutes: offer.durationMinutes });
+    // The salon's happy hours (task 16) set the price for this staff member and time.
+    const price = await this.happyHours.priceFor(this.prisma, location, {
+      staffId,
+      serviceId: service.id,
+      start,
+      listPriceGrosze: offer.priceGrosze,
+    });
+    const created = await this.writer.write(staffId, times, (tx) =>
+      tx.appointment.create({
+        data: {
+          locationId: location.id,
+          staffId,
+          serviceId: service.id,
+          status: 'held',
+          source: 'online',
+          staffChosenByClient: hold.staffChosenByClient,
+          ...times,
+          holdExpiresAt: hold.expiresAt,
+          holdTokenHash: hold.holdTokenHash,
+          ...(hold.holdContact
+            ? { holdContact: hold.holdContact as unknown as Prisma.InputJsonValue }
+            : {}),
+          ...(hold.locale ? { locale: hold.locale } : {}),
+          ...price,
+          durationMinutes: offer.durationMinutes,
+          bufferMinutes: service.bufferMinutes,
+        },
+        include: { staff: true },
+      }),
+    );
+    return { hold: created, times, price };
+  }
 
   private codeHash(holdId: string, code: string): string {
     return hashToken(`${holdId}:${code}`);

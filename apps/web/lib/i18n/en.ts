@@ -17,6 +17,8 @@ export const en: Dict = {
     language: 'Language',
   },
   errors: {
+    OFFER_GONE: 'This time is no longer held for you. Choose another one on the salon page.',
+    PHONE_REQUIRED: 'Enter a phone number.',
     SLOTS_AVAILABLE: 'There are free times on this day — pick one of them.',
     WAITLIST_LIMIT: 'You can wait for at most 3 days at this salon at a time.',
     WAITLIST_DATE: 'Choose a day from today to the last day the salon takes bookings for.',
@@ -277,6 +279,18 @@ export const en: Dict = {
     cancelled: 'You are no longer on the waiting list.',
     leave: 'Leave the list',
     book: 'See free times',
+    offered: 'We are holding a free time for you — the link to take it is in the email.',
+    booked: 'The time from the waiting list is booked.',
+    declined: 'You said no — the next person on the list got the time.',
+    missed: 'The time to answer has passed — the next person on the list got the time.',
+    offerTitle: 'A time has become free',
+    offerLead:
+      'We are holding it for you until {time}. Then we offer it to the next person on the list.',
+    offerPhone: 'Phone',
+    offerTake: 'I’ll take this time',
+    offerDecline: 'No, thank you',
+    offerBooked:
+      'Done! Your visit is booked. We have emailed the confirmation with a link to change it.',
   },
   wishStep: {
     title: 'Your wishes',
@@ -302,7 +316,8 @@ export const en: Dict = {
   },
   booking: {
     waitlistOpen: 'Tell me when a time becomes free',
-    waitlistHint: 'If someone cancels on this day, we send one email with the free times.',
+    waitlistHint:
+      'If someone cancels on this day, the first person on the list gets an email and 15 minutes to take the time.',
     waitlistSubmit: 'Put me on the list',
     waitlistDone: 'You are on the waiting list. We will email you when a time becomes free.',
     bookVisit: 'Book a visit',
@@ -613,6 +628,7 @@ export const en: Dict = {
     anyStaff: 'any specialist',
     waiting: 'Waiting',
     notified: 'Told {time}',
+    offered: 'Time held for the client since {time} (15 min to answer)',
     askedAt: 'Joined {time}',
     remove: 'Remove from the list',
     removeOne: 'Remove from the list: {name}',

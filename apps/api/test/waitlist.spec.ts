@@ -118,6 +118,22 @@ const join = (date: string, email = ANNA, extra: object = {}) =>
       ...extra,
     });
 
+async function cancelVisit(visit: { id: string; version: number }): Promise<void> {
+  await ctx
+    .http()
+    .post(`${base}/appointments/${visit.id}/cancel`)
+    .set(owner.auth)
+    .send({ version: visit.version, reason: 'Choroba' })
+    .expect(200);
+}
+
+/** Task 164: the token of the offer link in the last email to `email`. */
+function offerTokenOf(email: string): string {
+  const match = ctx.mail.lastTo(email)?.text.match(/\/pl\/wo\/([\w-]+)/);
+  if (!match?.[1]) throw new Error(`no offer link sent to ${email}`);
+  return match[1];
+}
+
 /** The token of the "leave the list" link in the last email to `email`. */
 function leaveToken(email: string): string {
   const match = ctx.mail.lastTo(email)?.text.match(/\/pl\/w\/([\w-]+)/);
@@ -126,7 +142,7 @@ function leaveToken(email: string): string {
 }
 
 describe('waiting list', () => {
-  it('a full day: the client waits and hears once when a time becomes free', async () => {
+  it('a full day: the first client in the queue gets the freed time held and takes it (164)', async () => {
     const day = dayAhead(3);
     const visit = await fillDay(day);
 
@@ -154,24 +170,148 @@ describe('waiting list', () => {
     // Nothing is free yet.
     expect(await waitlist.sweep()).toBe(0);
 
-    // The salon cancels the visit: the time is free, the client gets one email.
-    await ctx
-      .http()
-      .post(`${base}/appointments/${visit.id}/cancel`)
-      .set(owner.auth)
-      .send({ version: visit.version, reason: 'Choroba' })
-      .expect(200);
+    // Bob asks later: he is second in the queue.
+    await join(day, BOB, { phone: '+48600222333' }).expect(201);
+    await outbox.drain();
+
+    // The salon cancels the visit: the time is held for Anna (first) for 15 minutes.
+    await cancelVisit(visit);
     expect(await waitlist.sweep()).toBe(1);
     await outbox.drain();
-    const free = ctx.mail.lastTo(ANNA)!;
-    expect(free.subject).toBe('Zwolnił się termin: Barber Centrum');
-    expect(free.text).toContain('Wolne godziny: 09:00');
-    expect(free.text).toContain(`/pl/b/${slug}?service=${serviceId}&staff=${staffId}`);
-    expect((await ctx.http().get(`/v1/public/waitlist/${token}`).expect(200)).body.status).toBe(
-      'notified',
-    );
-    // Only once.
+    const offer = ctx.mail.lastTo(ANNA)!;
+    expect(offer.subject).toBe('Termin czeka na Ciebie: Barber Centrum');
+    expect(offer.text).toContain('Strzyżenie u Kasia (Barber Centrum)');
+    expect(offer.text).toContain('godz. 09:00');
+    expect(offer.text).toContain('przez 15 minut');
+    expect(offer.text).toContain('zaproponujemy go następnej osobie');
+    expect(ctx.mail.allTo(BOB)).toHaveLength(1);
+    const offerToken = offerTokenOf(ANNA);
+    // Held: nobody else can book it, so a new client may still wait for that day.
+    await join(day, 'carol@example.com').expect(201);
+    // One open offer at a time.
     expect(await waitlist.sweep()).toBe(0);
+
+    const shown = await ctx.http().get(`/v1/public/waitlist-offers/${offerToken}`).expect(200);
+    expect(shown.body).toMatchObject({
+      salon: { name: 'Barber Centrum', slug },
+      serviceName: 'Strzyżenie',
+      staffName: 'Kasia',
+      date: day,
+      time: '09:00',
+      durationMinutes: 45,
+      priceGrosze: 8000,
+      status: 'offered',
+      needsPhone: true,
+    });
+    expect(Date.parse(shown.body.expiresAt) - Date.now()).toBeGreaterThan(14 * 60_000);
+    expect((await ctx.http().get(`/v1/public/waitlist/${token}`).expect(200)).body.status).toBe(
+      'offered',
+    );
+
+    // The list had no phone: one is needed to book.
+    expectError(
+      (
+        await ctx
+          .http()
+          .post(`/v1/public/waitlist-offers/${offerToken}/accept`)
+          .send({})
+          .expect(400)
+      ).body,
+      'PHONE_REQUIRED',
+    );
+    const taken = await ctx
+      .http()
+      .post(`/v1/public/waitlist-offers/${offerToken}/accept`)
+      .send({ phone: '+48 600 111 222' })
+      .expect(200);
+    expect(taken.body.status).toBe('booked');
+    // Twice is fine; "no" after "yes" changes nothing.
+    await ctx.http().post(`/v1/public/waitlist-offers/${offerToken}/accept`).send({}).expect(200);
+    const after = await ctx
+      .http()
+      .post(`/v1/public/waitlist-offers/${offerToken}/decline`)
+      .expect(200);
+    expect(after.body.status).toBe('booked');
+
+    // A real visit for Anna, with the usual confirmation email (and its manage link).
+    const booked = await ctx.prisma.appointment.findMany({
+      where: { locationId, status: 'confirmed' },
+      include: { customer: true },
+    });
+    expect(booked).toHaveLength(1);
+    expect(booked[0]!.customer).toMatchObject({ email: ANNA, phone: '+48600111222' });
+    await outbox.drain();
+    expect(ctx.mail.lastTo(ANNA)!.subject).not.toContain('Termin czeka');
+    expect(ctx.mail.lastTo(ANNA)!.text).toContain('/pl/m/');
+    // Bob was never offered anything; the day is full again.
+    expect(await waitlist.sweep()).toBe(0);
+    expect(ctx.mail.allTo(BOB)).toHaveLength(1);
+    await ctx.http().get('/v1/public/waitlist-offers/not-a-real-token-123456').expect(404);
+  });
+
+  it('no answer in 15 minutes or "no": the next client in the queue gets the time (164)', async () => {
+    const day = dayAhead(4);
+    const visit = await fillDay(day);
+    await join(day, ANNA, { phone: '+48600111222' }).expect(201);
+    await join(day, BOB, { phone: '+48600222333' }).expect(201);
+    await cancelVisit(visit);
+    expect(await waitlist.sweep()).toBe(1);
+    await outbox.drain();
+    const annaOffer = offerTokenOf(ANNA);
+    expect(
+      (await ctx.http().get(`/v1/public/waitlist-offers/${annaOffer}`).expect(200)).body,
+    ).toMatchObject({ status: 'offered', needsPhone: false });
+
+    // 16 minutes later Anna has not answered: the time goes to Bob.
+    expect(await waitlist.sweep(Date.now() + 16 * 60_000)).toBe(1);
+    await outbox.drain();
+    expect(ctx.mail.lastTo(BOB)!.subject).toBe('Termin czeka na Ciebie: Barber Centrum');
+    expect(
+      (await ctx.http().get(`/v1/public/waitlist-offers/${annaOffer}`).expect(200)).body.status,
+    ).toBe('missed');
+    expectError(
+      (await ctx.http().post(`/v1/public/waitlist-offers/${annaOffer}/accept`).send({}).expect(410))
+        .body,
+      'OFFER_GONE',
+    );
+
+    // Bob says no: the time is free on the booking page for everyone.
+    const bobOffer = offerTokenOf(BOB);
+    const no = await ctx.http().post(`/v1/public/waitlist-offers/${bobOffer}/decline`).expect(200);
+    expect(no.body.status).toBe('declined');
+    await ctx.http().post(`/v1/public/waitlist-offers/${bobOffer}/decline`).expect(200);
+    expectError(
+      (await ctx.http().post(`/v1/public/waitlist-offers/${bobOffer}/accept`).send({}).expect(410))
+        .body,
+      'OFFER_GONE',
+    );
+    expect(await waitlist.sweep()).toBe(0);
+    expectError((await join(day, 'carol@example.com').expect(409)).body, 'SLOTS_AVAILABLE');
+    expect(await ctx.prisma.appointment.count({ where: { locationId, status: 'held' } })).toBe(0);
+  });
+
+  it('leaving with an open offer gives the time back; the salon sees who got an offer (164)', async () => {
+    const day = dayAhead(5);
+    const visit = await fillDay(day);
+    await join(day, ANNA).expect(201);
+    await outbox.drain();
+    await cancelVisit(visit);
+    expect(await waitlist.sweep()).toBe(1);
+    const list = await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200);
+    expect(list.body.items[0]).toMatchObject({ email: ANNA, status: 'offered' });
+    expect(list.body.items[0].notifiedAt).not.toBeNull();
+
+    const left = await ctx
+      .http()
+      .post(`/v1/public/waitlist/${leaveToken(ANNA)}/cancel`)
+      .expect(200);
+    expect(left.body.status).toBe('cancelled');
+    expect(await ctx.prisma.appointment.count({ where: { locationId, status: 'held' } })).toBe(0);
+    // The offer email (sent after leaving) is not sent any more.
+    const before = ctx.mail.allTo(ANNA).length;
+    await outbox.drain();
+    expect(ctx.mail.allTo(ANNA)).toHaveLength(before);
+    expectError((await join(day, BOB).expect(409)).body, 'SLOTS_AVAILABLE');
   });
 
   it('the client can leave the list; then nothing is sent', async () => {

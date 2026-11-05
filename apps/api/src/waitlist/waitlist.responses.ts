@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { responseSchema } from '../common/openapi';
 
-export const waitlistStatusSchema = z.enum(['waiting', 'notified', 'cancelled']);
+export const waitlistStatusSchema = z
+  .enum(['waiting', 'notified', 'cancelled', 'offered', 'booked', 'declined', 'missed'])
+  .describe(
+    'notified: told about free times (before task 164); offered: a time is held for the client ' +
+      'for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time',
+  );
 
 export const waitlistJoinedSchema = responseSchema(
   'WaitlistJoined',
@@ -80,3 +85,23 @@ export const clientWaitlistSchema = responseSchema(
   z.strictObject({ items: z.array(clientWaitlistEntrySchema) }),
 );
 export type ClientWaitlistResponse = z.infer<typeof clientWaitlistSchema>;
+
+/** Task 164: the offer behind the link in the email — the held time, until when, the answer. */
+export const waitlistOfferSchema = responseSchema(
+  'WaitlistOffer',
+  z.strictObject({
+    salon: z.strictObject({ name: z.string(), slug: z.string() }),
+    serviceId: z.string(),
+    serviceName: z.string(),
+    staffName: z.string().nullable().describe('The specialist of the held time'),
+    date: z.string().describe('YYYY-MM-DD in the salon time zone'),
+    time: z.string().nullable().describe('HH:MM in the salon time zone'),
+    durationMinutes: z.number().int().nullable(),
+    priceGrosze: z.number().int().nullable().describe('Price in hundredths of the salon currency'),
+    currency: z.string(),
+    status: waitlistStatusSchema,
+    expiresAt: z.string().nullable().describe('Until when the time is held'),
+    needsPhone: z.boolean().describe('The list has no phone: give one to take the time'),
+  }),
+);
+export type WaitlistOfferResponse = z.infer<typeof waitlistOfferSchema>;

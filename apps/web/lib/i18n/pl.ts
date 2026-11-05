@@ -16,6 +16,8 @@ export const pl = {
     language: 'Język',
   },
   errors: {
+    OFFER_GONE: 'Ten termin nie jest już dla Ciebie zarezerwowany. Wybierz inny na stronie salonu.',
+    PHONE_REQUIRED: 'Podaj numer telefonu.',
     SLOTS_AVAILABLE: 'Tego dnia są wolne terminy — wybierz jeden z nich.',
     WAITLIST_LIMIT: 'Możesz czekać najwyżej na 3 dni w tym salonie naraz.',
     WAITLIST_DATE: 'Wybierz dzień od dziś do ostatniego dnia, na który salon przyjmuje rezerwacje.',
@@ -277,6 +279,17 @@ export const pl = {
     cancelled: 'Nie ma Cię już na liście oczekujących.',
     leave: 'Wypisz mnie z listy',
     book: 'Zobacz wolne terminy',
+    offered: 'Trzymamy dla Ciebie wolny termin — link do potwierdzenia jest w e-mailu.',
+    booked: 'Zarezerwowano termin z listy oczekujących.',
+    declined: 'Odmówiono — termin dostała następna osoba z listy.',
+    missed: 'Czas na odpowiedź minął — termin dostała następna osoba z listy.',
+    offerTitle: 'Zwolnił się termin',
+    offerLead: 'Trzymamy go dla Ciebie do {time}. Potem zaproponujemy go następnej osobie z listy.',
+    offerPhone: 'Telefon',
+    offerTake: 'Biorę ten termin',
+    offerDecline: 'Nie, dziękuję',
+    offerBooked:
+      'Gotowe! Wizyta zarezerwowana. Potwierdzenie z linkiem do zmiany wysłaliśmy na e-mail.',
   },
   wishStep: {
     title: 'Twoje życzenia',
@@ -302,7 +315,8 @@ export const pl = {
   },
   booking: {
     waitlistOpen: 'Powiadom mnie, gdy zwolni się termin',
-    waitlistHint: 'Gdy ktoś odwoła wizytę tego dnia, wyślemy jeden e-mail z wolnymi godzinami.',
+    waitlistHint:
+      'Gdy ktoś odwoła wizytę tego dnia, pierwsza osoba z listy dostanie e-mail i 15 minut na potwierdzenie terminu.',
     waitlistSubmit: 'Zapisz mnie na listę',
     waitlistDone: 'Jesteś na liście oczekujących. Gdy zwolni się termin, napiszemy na e-mail.',
     bookVisit: 'Umów wizytę',
@@ -613,6 +627,7 @@ export const pl = {
     anyStaff: 'dowolny specjalista',
     waiting: 'Czeka',
     notified: 'Powiadomiony(-a) {time}',
+    offered: 'Termin trzymany dla klienta od {time} (15 min na odpowiedź)',
     askedAt: 'Zapisał(a) się {time}',
     remove: 'Usuń z listy',
     removeOne: 'Usuń z listy: {name}',
