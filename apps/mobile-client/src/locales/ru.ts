@@ -26,6 +26,10 @@ export const ru: Dictionary = {
     emptyPast: 'Здесь появятся ваши прошлые визиты.',
     refresh: 'Обновить',
     signOut: 'Выйти',
+    downloadData: 'Скачать мои данные',
+    downloadDataHint:
+      'Файл с данными, которые салоны хранят о вас: карточка клиента, согласия, визиты и бонусы (GDPR).',
+    downloadDataTitle: 'Мои данные из салонов',
     minutes: 'мин',
     with: 'мастер: {staff}',
     status: {

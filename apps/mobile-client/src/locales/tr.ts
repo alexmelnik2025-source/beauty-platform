@@ -27,6 +27,10 @@ export const tr: Dictionary = {
     emptyPast: 'Geçmiş randevularınız burada görünecek.',
     refresh: 'Yenile',
     signOut: 'Çıkış yap',
+    downloadData: 'Verilerimi indir',
+    downloadDataHint:
+      'Salonların sizinle ilgili sakladığı verileri içeren dosya: müşteri kartı, onaylar, randevular ve bonuslar (KVKK/GDPR).',
+    downloadDataTitle: 'Salonlardaki verilerim',
     minutes: 'dk',
     with: 'uzman: {staff}',
     status: {

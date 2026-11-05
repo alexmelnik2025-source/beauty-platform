@@ -27,6 +27,10 @@ export const sq: Dictionary = {
     emptyPast: 'Takimet tuaja të kaluara do të shfaqen këtu.',
     refresh: 'Rifresko',
     signOut: 'Dil',
+    downloadData: 'Shkarko të dhënat e mia',
+    downloadDataHint:
+      'Skedar me të dhënat që sallonet ruajnë për ju: kartela e klientit, pëlqimet, vizitat dhe bonuset (GDPR).',
+    downloadDataTitle: 'Të dhënat e mia nga sallonet',
     minutes: 'min',
     with: 'me {staff}',
     status: {

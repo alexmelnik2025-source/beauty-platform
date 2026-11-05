@@ -5,6 +5,7 @@ import {
   bookingUrl,
   ClientApi,
   type ClientAppointment,
+  myDataFileName,
   newRequestKey,
   PAGE_SIZE,
   parseEmail,
@@ -219,7 +220,7 @@ describe('one visit', () => {
           : [404],
     );
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore().catch(() => null);
+    await api.restore();
     calls.length = 0;
     expect((await api.appointment('a1')).status).toBe('confirmed');
     expect((await api.cancel('a1', 'key-12345678')).status).toBe('cancelled');
@@ -240,7 +241,7 @@ describe('one visit', () => {
             : [404],
     );
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore().catch(() => null);
+    await api.restore();
     calls.length = 0;
     expect((await api.visitCoupons('a1')).available).toHaveLength(1);
     expect((await api.useCoupon('a1', 'c1')).discountGrosze).toBe(2000);
@@ -255,7 +256,7 @@ describe('one visit', () => {
       { error: { code: 'TOO_LATE_TO_CHANGE', message: 'Too late' } },
     ]);
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore().catch(() => null);
+    await api.restore();
     const error = await api.cancel('a1').catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).code).toBe('TOO_LATE_TO_CHANGE');
@@ -325,7 +326,7 @@ describe('change time', () => {
       return new Response(JSON.stringify({ id: 'a1', time: '17:30' }), { status: 200 });
     };
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore().catch(() => null);
+    await api.restore();
     const moved = await api.reschedule('a1', '2026-11-10T16:30:00.000Z', 'key-12345678');
     expect(moved.time).toBe('17:30');
     const call = calls.at(-1)!;
@@ -434,5 +435,29 @@ describe('ClientApi: waiting list (task 51)', () => {
     expect(
       calls.filter((c) => c.key.includes('/waitlist')).every((c) => c.auth === 'Bearer tok'),
     ).toBe(true);
+  });
+});
+
+describe('"Download my data" (task 97)', () => {
+  it('asks for the export with the session token; the file is named by the export date', async () => {
+    const data = { exportedAt: '2026-11-05T09:30:00.000Z', email: 'anna@example.com', salons: [] };
+    const { fetchFn, calls } = fakeServer({
+      'GET /v1/client/me': () => [200, person],
+      'GET /v1/client/export': (_b, auth) =>
+        auth === 'Bearer saved-token-0123456789' ? [200, data] : [401],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('saved-token-0123456789'), fetchFn);
+    await api.restore();
+    const exported = await api.exportData();
+    expect(exported).toEqual(data);
+    expect(calls.at(-1)?.key).toBe('GET /v1/client/export');
+    expect(myDataFileName(exported)).toBe('my-data-2026-11-05.json');
+  });
+
+  it('without a session there is no request', async () => {
+    const { fetchFn, calls } = fakeServer({});
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    await expect(api.exportData()).rejects.toMatchObject({ status: 401 });
+    expect(calls).toHaveLength(0);
   });
 });

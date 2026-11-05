@@ -6,6 +6,7 @@ import type {
   ClientAppointment,
   ClientAppointmentList,
   ClientCodeSent,
+  ClientDataExport,
   ClientFavorites,
   ClientLoyalty,
   ClientLoyaltyCard,
@@ -33,7 +34,7 @@ export type Scope = 'upcoming' | 'past';
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
 export type FavoriteSalon = ClientFavorites['items'][number];
-export type { ClientWaitlist, ClientWaitlistEntry, WaitlistJoined };
+export type { ClientDataExport, ClientWaitlist, ClientWaitlistEntry, WaitlistJoined };
 export type {
   Availability,
   BookingConfirmed,
@@ -80,6 +81,11 @@ export function todayIn(timeZone: string, now: Date = new Date()): string {
     month: '2-digit',
     day: '2-digit',
   }).format(now);
+}
+
+/** The name of the "Download my data" file, as on the site: my-data-YYYY-MM-DD.json. */
+export function myDataFileName(data: Pick<ClientDataExport, 'exportedAt'>): string {
+  return `my-data-${data.exportedAt.slice(0, 10)}.json`;
 }
 
 /** A fresh Idempotency-Key: a second tap (or a retry after a lost answer) does the change once. */
@@ -188,6 +194,14 @@ export class ClientApi {
   /** The language of the app is also the language of the salon's emails to this client. */
   setLocale(locale: Locale): Promise<ClientPerson> {
     return this.authed<ClientPerson>('PATCH', '/v1/client/me', { locale });
+  }
+
+  /**
+   * Task 97 — "Download my data" (GDPR access and portability, as on the site): everything the
+   * salons keep about the signed-in client, found by the confirmed email.
+   */
+  exportData(): Promise<ClientDataExport> {
+    return this.authed<ClientDataExport>('GET', '/v1/client/export');
   }
 
   /** Visits in all salons: upcoming (soonest first) or past (latest 50). */
