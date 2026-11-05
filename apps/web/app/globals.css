@@ -2667,3 +2667,64 @@ ul.wish-photos {
   padding-top: 16px;
   border-top: 1px solid var(--line);
 }
+
+/* Task 180b: the client home page - search, kinds of place, recommended salons. */
+.home-search {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-m);
+}
+
+.home-search input {
+  font-size: 1.05rem;
+}
+
+.home-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.home-categories a {
+  padding: 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.home-categories a:hover {
+  border-color: var(--ink);
+}
+
+.home-featured {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.home-featured a {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  text-decoration: none;
+}
+
+.home-featured img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-s);
+}
+
+.directory-search {
+  width: 100%;
+  font-size: 1rem;
+}

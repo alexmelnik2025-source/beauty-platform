@@ -112,6 +112,34 @@ test('a client finds a salon and "Moje wizyty" from every client page (task 180)
   );
   await page.screenshot({ path: 'e2e/screenshots/180-client-home.png' });
 
+  // ── Task 180b: "Czego szukasz?" + "Gdzie?", kinds of place ──────────────
+  const searchForm = page.getByRole('search');
+  await expect(page.getByRole('link', { name: 'Barber', exact: true })).toHaveAttribute(
+    'href',
+    '/pl/salons?specialty=barber',
+  );
+  await searchForm.getByLabel('Czego szukasz?').fill(`nav barber ${run}`);
+  await searchForm.getByLabel('Gdzie?').fill('warszawa');
+  await page.screenshot({ path: 'e2e/screenshots/180b-client-home-search.png' });
+  await searchForm.getByRole('button', { name: 'Szukaj' }).click();
+  await expect(page).toHaveURL(/\/pl\/salons\?q=nav/);
+  await expect(page.getByRole('article', { name: `Nav Barber ${run}` })).toBeVisible();
+  await expect(page.getByText('Znalezione salony: 1')).toBeVisible();
+  await expect(page.getByLabel('Szukaj: nazwa, miasto, ulica lub usługa')).toHaveValue(
+    `nav barber ${run} warszawa`,
+  );
+  await page.screenshot({ path: 'e2e/screenshots/180b-a-catalogue-search.png' });
+  // Without Polish letters, with the service: "strzyzenie meskie" is "Strzyżenie męskie".
+  await page
+    .getByLabel('Szukaj: nazwa, miasto, ulica lub usługa')
+    .fill(`strzyzenie meskie barber ${run}`);
+  await expect(page).toHaveURL(/\/pl\/salons/);
+  await expect(page.getByText('Znalezione salony: 1')).toBeVisible();
+  await page.getByLabel('Szukaj: nazwa, miasto, ulica lub usługa').fill(`golenie ${run}`);
+  await expect(page.getByText('Znalezione salony: 0')).toBeVisible();
+  await page.getByLabel('Szukaj: nazwa, miasto, ulica lub usługa').fill('');
+  await page.goto('/pl');
+
   // ── The catalogue: the hint that no account is needed ──────────────────
   await page
     .getByRole('main')

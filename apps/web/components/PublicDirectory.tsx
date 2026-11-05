@@ -109,19 +109,41 @@ export function PublicDirectory() {
   const [selected, setSelected] = useState<string | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
 
+  // Task 180b: the words searched for; `query` follows the typing after a short pause.
+  const [typed, setTyped] = useState('');
+  const [query, setQuery] = useState('');
+
   useEffect(() => {
+    // The home page's search and kinds of place come in the address (?q=…&specialty=…).
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q')?.trim() ?? '';
+    setTyped(q);
+    setQuery(q);
+    const kind = SPECIALTIES.find((k) => k === params.get('specialty'));
+    if (kind) setSpecialty(kind);
     setLanguages(rememberedLanguages());
   }, []);
+
+  useEffect(() => {
+    const next = typed.trim();
+    if (next === query) return;
+    const timer = setTimeout(() => {
+      setQuery(next);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [typed, query]);
 
   useEffect(() => {
     if (languages === null) return;
     let active = true;
     setResult(null);
     setError('');
-    const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
-    if (languages.length > 0) query.set('language', languages.join(','));
-    if (specialty) query.set('specialty', specialty);
-    api<PublicSalonDirectory>(`/v1/public/locations?${query.toString()}`)
+    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
+    if (languages.length > 0) params.set('language', languages.join(','));
+    if (specialty) params.set('specialty', specialty);
+    if (query) params.set('q', query);
+    api<PublicSalonDirectory>(`/v1/public/locations?${params.toString()}`)
       .then((value) => {
         if (!active) return;
         setResult(value);
@@ -134,7 +156,7 @@ export function PublicDirectory() {
     return () => {
       active = false;
     };
-  }, [languages, specialty, page, t]);
+  }, [languages, specialty, query, page, t]);
 
   const choose = (next: Spoken[]) => {
     setLanguages(next);
@@ -163,6 +185,14 @@ export function PublicDirectory() {
           <h1 className="salon-name">{t.directory.title}</h1>
           <p className="muted small">{t.directory.lead}</p>
           <p className="small">{t.clientNav.directoryHint}</p>
+          <input
+            type="search"
+            className="directory-search"
+            aria-label={t.directory.search}
+            placeholder={t.directory.search}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+          />
           <div className="chips" role="group" aria-label={t.directory.filterLanguage}>
             <button type="button" aria-pressed={chosen.length === 0} onClick={() => choose([])}>
               {t.directory.allLanguages}
