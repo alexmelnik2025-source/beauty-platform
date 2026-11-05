@@ -311,6 +311,66 @@ describe('waiting list', () => {
     await ctx.http().get('/v1/public/waitlist-offers/not-a-real-token-123456').expect(404);
   });
 
+  it("a client the salon's cancellation guard marks waits for the salon to accept the offer (164 + 161b)", async () => {
+    await holdMinutes(15);
+    // Anna missed a visit; the salon accepts her online bookings itself.
+    const missed = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId,
+        staffId,
+        start: new Date(zonedToInstant(dayAhead(10), 15 * 60, TZ)).toISOString(),
+        allowOutsideHours: true,
+        customer: { name: 'Anna Kowalska', phone: '+48600111222', email: ANNA },
+      })
+      .expect(201);
+    const past = new Date(Date.now() - 5 * 24 * 3_600_000);
+    await ctx.prisma.appointment.update({
+      where: { id: missed.body.id },
+      data: {
+        startAt: past,
+        endAt: new Date(past.getTime() + 45 * 60_000),
+        blockedUntil: new Date(past.getTime() + 45 * 60_000),
+        status: 'no_show',
+      },
+    });
+    await ctx
+      .http()
+      .put(`${base}/cancellation-guard`)
+      .set(owner.auth)
+      .send({
+        version: 0,
+        enabled: true,
+        maxChanges: null,
+        windowHours: 720,
+        lateCancelMinutes: null,
+        maxNoShows: 1,
+        action: 'approval',
+      })
+      .expect(200);
+
+    const day = dayAhead(3);
+    const visit = await fillDay(day);
+    await join(day, ANNA, { phone: '+48600111222' }).expect(201);
+    await cancelVisit(visit);
+    expect(await waitlist.sweep()).toBe(1);
+    await outbox.drain();
+    await ctx
+      .http()
+      .post(`/v1/public/waitlist-offers/${offerTokenOf(ANNA)}/accept`)
+      .send({})
+      .expect(200);
+    const booked = await ctx.prisma.appointment.findFirstOrThrow({
+      where: { locationId, status: 'confirmed', customer: { email: ANNA } },
+    });
+    // The time is Anna's, but the salon accepts the visit first.
+    expect(booked.approvalRequestedAt).not.toBeNull();
+    await outbox.drain();
+    expect(ctx.mail.lastTo(ANNA)!.subject).toContain('Rezerwacja czeka na potwierdzenie salonu');
+  });
+
   it('no answer in time or "no": the next client in the queue gets the time (164)', async () => {
     await holdMinutes(15);
     const day = dayAhead(4);
