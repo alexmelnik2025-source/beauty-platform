@@ -102,7 +102,7 @@ test('a client finds a salon and "Moje wizyty" from every client page (task 180)
   // ── Home page: two big choices, the salon dashboard at the bottom ───────
   await page.goto('/pl');
   const menu = page.getByRole('navigation', { name: 'Menu klienta' });
-  await expect(page.getByRole('heading', { name: 'Umów wizytę w salonie' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Czego szukasz?' })).toBeVisible();
   await expect(
     menu.getByRole('link', { name: /Zaloguj się.*bez hasła — kod na e-mail/ }),
   ).toBeVisible();
@@ -113,10 +113,7 @@ test('a client finds a salon and "Moje wizyty" from every client page (task 180)
   await page.screenshot({ path: 'e2e/screenshots/180-client-home.png' });
 
   // ── The catalogue: the hint that no account is needed ──────────────────
-  await page
-    .getByRole('main')
-    .getByRole('link', { name: /Znajdź salon/ })
-    .click();
+  await menu.getByRole('link', { name: 'Znajdź salon' }).click();
   await expect(page.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
   await expect(
     page.getByText('Wybierz salon i kliknij „Umów wizytę” — konto nie jest potrzebne.'),

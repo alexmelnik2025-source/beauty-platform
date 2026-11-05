@@ -1,13 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { LanguageBadges } from '@/components/Languages';
 import { ClientNav } from '@/components/client/ClientNav';
+import { SearchForm } from '@/components/client/SearchForm';
 import { ErrorBox, LanguageSwitch, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { rememberedLanguages, rememberLanguages } from '@/lib/catalogue-languages';
+import { catalogueHref, readSearch, searchParams } from '@/lib/catalogue-search';
 import { formatPrice } from '@/lib/time';
 import {
   SPECIALTIES,
@@ -97,11 +100,16 @@ function mapLayout(salons: PublicSalon[]) {
 /** Public catalogue: salons open for online booking, filter by spoken language, map. */
 export function PublicDirectory() {
   const { t, locale } = useI18n();
+  // Task 180b: what, where and "W pobliżu" from the home page, kept in the address.
+  const params = useSearchParams();
+  const queryString = params.toString();
+  const search = useMemo(() => readSearch(new URLSearchParams(queryString)), [queryString]);
+  const searching = search.q !== '' || search.city !== '' || search.near !== null;
   // Task 192: several languages at once - salons speaking any of them; null until the saved choice is read.
   const [languages, setLanguages] = useState<Spoken[] | null>(null);
   const [page, setPage] = useState(1);
   /** Task 160c: the kind of place (what its specialists do), as in the client app. */
-  const [specialty, setSpecialty] = useState<Specialty | null>(null);
+  const [specialty, setSpecialty] = useState<Specialty | null>(search.specialty);
   // The last numbers stay on the chips while the next page loads.
   const [kindCounts, setKindCounts] = useState<Partial<Record<Specialty, number>>>({});
   const [result, setResult] = useState<PublicSalonDirectory | null>(null);
@@ -113,12 +121,20 @@ export function PublicDirectory() {
     setLanguages(rememberedLanguages());
   }, []);
 
+  // A new search (or a category from the home page) starts from the first page.
+  useEffect(() => {
+    setSpecialty(search.specialty);
+    setPage(1);
+  }, [search]);
+
   useEffect(() => {
     if (languages === null) return;
     let active = true;
     setResult(null);
     setError('');
-    const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
+    const query = searchParams({ ...search, specialty: null });
+    query.set('page', String(page));
+    query.set('pageSize', String(PAGE_SIZE));
     if (languages.length > 0) query.set('language', languages.join(','));
     if (specialty) query.set('specialty', specialty);
     api<PublicSalonDirectory>(`/v1/public/locations?${query.toString()}`)
@@ -134,7 +150,7 @@ export function PublicDirectory() {
     return () => {
       active = false;
     };
-  }, [languages, specialty, page, t]);
+  }, [languages, specialty, page, search, t]);
 
   const choose = (next: Spoken[]) => {
     setLanguages(next);
@@ -163,6 +179,28 @@ export function PublicDirectory() {
           <h1 className="salon-name">{t.directory.title}</h1>
           <p className="muted small">{t.directory.lead}</p>
           <p className="small">{t.clientNav.directoryHint}</p>
+          <SearchForm key={queryString} initial={search} />
+          {searching ? (
+            <p className="small row directory-searching">
+              <span>
+                {fill(t.clientNav.searchFor, {
+                  what: [search.q, search.city || (search.near ? t.clientNav.nearby : '')]
+                    .filter(Boolean)
+                    .join(', '),
+                })}
+              </span>
+              <Link
+                href={catalogueHref(locale, {
+                  q: '',
+                  city: '',
+                  near: null,
+                  specialty,
+                })}
+              >
+                {t.clientNav.clearSearch}
+              </Link>
+            </p>
+          ) : null}
           <div className="chips" role="group" aria-label={t.directory.filterLanguage}>
             <button type="button" aria-pressed={chosen.length === 0} onClick={() => choose([])}>
               {t.directory.allLanguages}
@@ -218,7 +256,11 @@ export function PublicDirectory() {
             </p>
             <div className="directory-grid">
               <ul className="list directory-list">
-                {result.items.length === 0 ? <li className="muted">{t.directory.empty}</li> : null}
+                {result.items.length === 0 ? (
+                  <li className="muted">
+                    {searching ? t.clientNav.emptySearch : t.directory.empty}
+                  </li>
+                ) : null}
                 {result.items.map((salon) => (
                   <li key={salon.slug} data-selected={salon.slug === selected || undefined}>
                     <article className="stack directory-salon" aria-label={salon.name}>
@@ -228,6 +270,13 @@ export function PublicDirectory() {
                       <span className="muted small">
                         {salon.addressLine}, {salon.postalCode} {salon.city}
                       </span>
+                      {salon.distanceKm !== null ? (
+                        <span className="small directory-distance">
+                          {fill(t.clientNav.distance, {
+                            km: salon.distanceKm.toLocaleString(LOCALE_TAGS[locale]),
+                          })}
+                        </span>
+                      ) : null}
                       {salon.priceFromGrosze !== null ? (
                         <span className="small directory-price">
                           {fill(t.directory.priceFrom, {

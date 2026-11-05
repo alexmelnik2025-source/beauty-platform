@@ -2667,3 +2667,107 @@ ul.wish-photos {
   padding-top: 16px;
   border-top: 1px solid var(--line);
 }
+
+/* Task 180b: search on the home page and above the catalogue, categories, salons. */
+.client-search {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.client-search--large {
+  padding: 20px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-m);
+}
+
+.client-search-field {
+  display: grid;
+  gap: 4px;
+}
+
+.client-search-field input {
+  width: 100%;
+}
+
+.client-search--large .client-search-field input {
+  font-size: 1.125rem;
+  padding: 12px;
+}
+
+.client-search-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.client-search [role='alert'] {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .client-search {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.client-categories a {
+  padding: 8px 14px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.client-categories a:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.client-featured {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.client-featured-card {
+  display: grid;
+  gap: 4px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.client-featured-card img,
+.client-featured-initial {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-m);
+  background: var(--fog);
+}
+
+.client-featured-initial {
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.directory-searching {
+  justify-content: space-between;
+}
+
+.directory-distance {
+  font-weight: 600;
+}
