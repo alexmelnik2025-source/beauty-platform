@@ -1056,5 +1056,9 @@ export const en: Dict = {
     weekdayHint: 'Weak days show at once — a promotion or a shorter schedule may help.',
     compared:
       'Change in % — compared with the same number of days before ({from} – {to}: {revenue}, completed visits: {visits}).',
+    occupancy: 'Occupancy',
+    occupancyHours: '{booked} of {work} h booked',
+    occupancyHint:
+      'Occupancy is the share of scheduled working hours (without time off and blocked time) taken by visits, including ones the client did not come to. Cancelled visits do not count.',
   },
 };
