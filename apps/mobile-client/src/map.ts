@@ -5,6 +5,10 @@
 
 export const TILE_SIZE = 256;
 
+/** The middle of Poland and a zoom that shows the whole country — the map when no salon is on it. */
+export const FALLBACK_CENTER: MapPoint = { latitude: 52.07, longitude: 19.48 };
+export const FALLBACK_ZOOM = 6;
+
 export interface MapPoint {
   latitude: number;
   longitude: number;
@@ -35,17 +39,24 @@ export function project(point: MapPoint, zoom: number): { x: number; y: number }
 
 /**
  * The closest zoom (at most street level, 16) that shows every point inside `width` × `height`
- * with `margin` pixels free at the edges; its tiles and where each point lands. Null without points.
+ * with `margin` pixels free at the edges; its tiles and where each point lands. Without points —
+ * the whole country (Poland) and no markers; null before the map has a size.
  */
 export function mapLayout<T extends MapPoint>(
   points: T[],
   width: number,
   height: number,
   margin = 32,
+  fixedZoom?: number,
 ): { zoom: number; tiles: MapTile[]; markers: MapMarker<T>[] } | null {
-  if (points.length === 0 || width <= 0 || height <= 0) return null;
-  let zoom = 0;
-  for (let candidate = 16; candidate >= 0; candidate -= 1) {
+  if (width <= 0 || height <= 0) return null;
+  if (points.length === 0) {
+    // Task 191: no salon has marked its place — the map still shows the country, without markers.
+    const empty = mapLayout([FALLBACK_CENTER], width, height, margin, FALLBACK_ZOOM);
+    return empty && { ...empty, markers: [] };
+  }
+  let zoom = fixedZoom ?? 0;
+  for (let candidate = 16; fixedZoom === undefined && candidate >= 0; candidate -= 1) {
     const projected = points.map((p) => project(p, candidate));
     const xs = projected.map((p) => p.x);
     const ys = projected.map((p) => p.y);

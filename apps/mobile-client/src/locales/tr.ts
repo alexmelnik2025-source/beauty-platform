@@ -250,6 +250,8 @@ export const tr: Dictionary = {
     mapTitle: 'Salon haritası',
     marker: 'Haritadaki salon: {name}',
     mapEmpty: 'Bu salonlar henüz haritada yerlerini işaretlemedi.',
+    mapOffline:
+      'Harita (OpenStreetMap) yüklenemedi — internetinizi kontrol edin. Salonlar aşağıdaki listede.',
     mapHint: 'Salonu görmek için haritadaki noktaya dokunun.',
     speakingStaff: '{language} konuşan uzman: {n}',
     freeToday: 'Bugün boş saatler var',

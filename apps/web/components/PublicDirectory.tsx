@@ -21,6 +21,10 @@ type Located = PublicSalon & { latitude: number; longitude: number };
 const located = (salon: PublicSalon): salon is Located =>
   salon.latitude !== null && salon.longitude !== null;
 
+/** The middle of Poland, shown when no salon of the page has marked its place yet. */
+const FALLBACK_CENTER = { latitude: 52.07, longitude: 19.48 } as Located;
+const FALLBACK_ZOOM = 6;
+
 /** Web Mercator, the projection of OpenStreetMap tiles, in pixels at `zoom`. */
 function project(salon: Located, zoom: number): { x: number; y: number } {
   const scale = TILE_SIZE * 2 ** zoom;
@@ -33,10 +37,11 @@ function project(salon: Located, zoom: number): { x: number; y: number } {
 
 /** The closest zoom (at most street level) that shows every salon of the page, and its tiles. */
 function mapLayout(salons: PublicSalon[]) {
-  const points = salons.filter(located);
-  if (points.length === 0) return null;
-  let zoom = 0;
-  for (let candidate = 16; candidate >= 0; candidate -= 1) {
+  const onMap = salons.filter(located);
+  // Task 191: without a single salon on the map, the map still shows the country (Poland), not nothing.
+  const points: Located[] = onMap.length > 0 ? onMap : [FALLBACK_CENTER];
+  let zoom = onMap.length > 0 ? 0 : FALLBACK_ZOOM;
+  for (let candidate = 16; onMap.length > 0 && candidate >= 0; candidate -= 1) {
     const projected = points.map((salon) => project(salon, candidate));
     const xs = projected.map((p) => p.x);
     const ys = projected.map((p) => p.y);
@@ -73,7 +78,10 @@ function mapLayout(salons: PublicSalon[]) {
   }
   return {
     tiles,
-    markers: projected.map(({ salon, x, y }) => ({ salon, x: x - left, y: y - top })),
+    markers:
+      onMap.length > 0
+        ? projected.map(({ salon, x, y }) => ({ salon, x: x - left, y: y - top }))
+        : [],
   };
 }
 
@@ -85,6 +93,7 @@ export function PublicDirectory() {
   const [result, setResult] = useState<PublicSalonDirectory | null>(null);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  const [tilesFailed, setTilesFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -210,6 +219,7 @@ export function PublicDirectory() {
                         y={tile.y}
                         width={TILE_SIZE}
                         height={TILE_SIZE}
+                        onError={() => setTilesFailed(true)}
                       />
                     ))}
                     {map.markers.map(({ salon, x, y }) => {
@@ -231,6 +241,8 @@ export function PublicDirectory() {
                     })}
                   </svg>
                   <figcaption className="small muted">
+                    {tilesFailed ? <span role="alert">{t.directory.mapOffline} </span> : null}
+                    {map.markers.length === 0 ? <span>{t.directory.mapEmpty} </span> : null}
                     <a
                       href="https://www.openstreetmap.org/copyright"
                       target="_blank"

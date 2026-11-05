@@ -244,6 +244,8 @@ export const pl = {
     mapTitle: 'Mapa salonów',
     marker: 'Salon na mapie: {name}',
     mapEmpty: 'Te salony nie zaznaczyły jeszcze miejsca na mapie.',
+    mapOffline:
+      'Nie udało się wczytać mapy (OpenStreetMap) — sprawdź internet. Salony są na liście poniżej.',
     mapHint: 'Dotknij punktu na mapie, aby zobaczyć salon.',
     speakingStaff: 'Specjaliści mówiący — {language}: {n}',
     freeToday: 'Dziś są wolne terminy',

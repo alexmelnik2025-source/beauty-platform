@@ -31,6 +31,7 @@ export function SalonMap(props: {
   const [width, setWidth] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [freeToday, setFreeToday] = useState<boolean | null>(null);
+  const [tilesFailed, setTilesFailed] = useState(false);
   const points = props.salons.filter(located);
   const layout = mapLayout(points, width, HEIGHT);
   const salon = points.find((s) => s.slug === selected) ?? null;
@@ -67,6 +68,7 @@ export function SalonMap(props: {
             key={tile.key}
             source={{ uri: tile.url }}
             style={[styles.tile, { left: tile.x, top: tile.y }]}
+            onError={() => setTilesFailed(true)}
           />
         ))}
         {layout?.markers.map(({ item, x, y }) => {
@@ -89,9 +91,11 @@ export function SalonMap(props: {
             </Pressable>
           );
         })}
-        {width > 0 && points.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.small}>{t.catalog.mapEmpty}</Text>
+        {width > 0 && (points.length === 0 || tilesFailed) ? (
+          <View style={styles.empty} pointerEvents="none">
+            <Text role={tilesFailed ? 'alert' : undefined} style={styles.emptyText}>
+              {tilesFailed ? t.catalog.mapOffline : t.catalog.mapEmpty}
+            </Text>
           </View>
         ) : null}
         <Pressable
@@ -176,6 +180,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emptyText: {
+    color: colors.ink,
+    fontSize: 14,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    textAlign: 'center',
+    maxWidth: '85%',
   },
   credit: {
     position: 'absolute',
