@@ -546,7 +546,17 @@ export function BookingScreen(props: {
             <Choice
               key={s.id}
               title={s.displayName}
-              meta={specialtyText(s, t.specialty) || undefined}
+              // Task 163: the specialist's languages at the choice, as on the site.
+              meta={
+                [
+                  specialtyText(s, t.specialty),
+                  (s.languages ?? []).length > 0
+                    ? `${b.speaksFilter}: ${(s.languages ?? []).map((l) => t.spoken[l]).join(', ')}`
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || undefined
+              }
               free={nearestFree(s.id)}
               right={
                 pricesDiffer ? formatPrice(staffPrice(s.id), salon.currency, locale) : undefined
