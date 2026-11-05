@@ -109,6 +109,7 @@ export const en: Dict = {
     timeZone: 'Country and time zone',
   },
   nav: {
+    reviews: 'Reviews',
     history: 'Change log',
     loyalty: 'Loyalty program',
     calendar: 'Calendar',
@@ -420,6 +421,20 @@ export const en: Dict = {
     bySpecialist: 'Reviews of specialists',
     everyone: 'Everyone',
     more: 'Show more',
+  },
+  reviewsCabinet: {
+    title: 'Client reviews',
+    settings: 'Review settings',
+    enabled: 'Collect reviews after the visit',
+    hint: 'The client rates the specialist (1–5 stars) and may add a few words — only after a visit that took place, within 30 days. Reviews are shown on the booking page without client names. The review request goes by email to clients who agreed to messages from the salon.',
+    askAfter: 'Ask for a review',
+    hours: '{n} h after the visit ends',
+    save: 'Save',
+    saved: 'Saved.',
+    list: 'Reviews',
+    empty: 'No reviews yet.',
+    anonymous: 'Client (data erased)',
+    visit: 'visit {date}',
   },
   visits: {
     title: 'My visits',
