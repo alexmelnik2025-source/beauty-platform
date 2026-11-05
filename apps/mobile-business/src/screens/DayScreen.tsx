@@ -22,6 +22,7 @@ import { mayAddVisits, type MyRights } from '../newVisit';
 import { NewVisitScreen } from './NewVisitScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ReportsScreen } from './ReportsScreen';
+import { ServicesScreen } from './ServicesScreen';
 import { TeamScreen } from './TeamScreen';
 import { ScheduleScreen } from './ScheduleScreen';
 import { SalonScreen } from './SalonScreen';
@@ -55,6 +56,7 @@ export function DayScreen(props: {
   const [teamHoursOpen, setTeamHoursOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -279,6 +281,18 @@ export function DayScreen(props: {
     );
   }
 
+  if (servicesOpen) {
+    return (
+      <ServicesScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        onBack={() => setServicesOpen(false)}
+      />
+    );
+  }
+
   if (teamOpen) {
     return (
       <TeamScreen
@@ -353,6 +367,9 @@ export function DayScreen(props: {
           />
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.clients.open} onPress={() => setClientsOpen(true)} />
+          ) : null}
+          {salon.role !== 'staff' ? (
+            <Button kind="link" label={t.services.open} onPress={() => setServicesOpen(true)} />
           ) : null}
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.team.open} onPress={() => setTeamOpen(true)} />
