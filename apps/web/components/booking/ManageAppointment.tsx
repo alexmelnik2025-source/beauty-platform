@@ -148,6 +148,11 @@ export function AppointmentManager<T extends PublicAppointment>({
           </span>
           <span className="small">{t.appointment.status[a.status]}</span>
         </div>
+        {a.awaitingApproval ? (
+          <p className="small">
+            <strong>⏳ {t.manage.awaitingApproval}</strong>
+          </p>
+        ) : null}
 
         {a.status === 'confirmed' && mode === 'view' ? (
           <>

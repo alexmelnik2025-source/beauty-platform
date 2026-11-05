@@ -101,6 +101,7 @@ export const tr: Dict = {
   },
   appointment: {
     ...en.appointment,
+    awaitingApproval: 'Onay bekliyor',
     status: {
       held: 'Rezervasyon sürüyor',
       confirmed: 'Onaylandı',
@@ -189,6 +190,9 @@ export const tr: Dict = {
     resend: 'Kodu tekrar gönder',
     doneTitle: 'Görüşmek üzere!',
     doneLead: 'Randevunuz onaylandı. Ayrıntıları e-postayla gönderdik.',
+    doneTitleApproval: 'Rezervasyon gönderildi',
+    doneLeadApproval:
+      'Salon randevunuzu onaylayacak — saat sizin için ayrıldı. Salon kabul ettiğinde size e-posta göndereceğiz.',
     addToCalendar: 'Takvime ekle',
     manage: 'Değiştir veya iptal et',
     salonClosed: 'Bu salon şu anda online randevu almıyor.',
@@ -211,6 +215,7 @@ export const tr: Dict = {
     title: 'Randevunuz',
     changeUntil: '{time} saatine kadar internetten değiştirebilirsiniz.',
     tooLate: 'İnternetten değiştirmek için artık çok geç — salonu arayın.',
+    awaitingApproval: 'Salonun onayını bekliyor — saat sizin için ayrıldı.',
     cancel: 'Randevuyu iptal et',
     cancelReason: 'Neden (isteğe bağlı)',
     confirmCancel: 'Evet, iptal et',

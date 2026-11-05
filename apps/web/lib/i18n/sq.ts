@@ -102,6 +102,7 @@ export const sq: Dict = {
   },
   appointment: {
     ...en.appointment,
+    awaitingApproval: 'Pret konfirmim',
     status: {
       held: 'Rezervim në proces',
       confirmed: 'Konfirmuar',
@@ -189,6 +190,9 @@ export const sq: Dict = {
     resend: 'Dërgo kodin përsëri',
     doneTitle: 'Shihemi së shpejti!',
     doneLead: 'Rezervimi juaj është konfirmuar. Ju dërguam detajet me email.',
+    doneTitleApproval: 'Rezervimi u dërgua',
+    doneLeadApproval:
+      "Salloni do ta konfirmojë vizitën — ora është mbajtur tashmë për ju. Do t'ju shkruajmë me email kur salloni ta pranojë.",
     addToCalendar: 'Shto në kalendar',
     manage: 'Ndrysho ose anulo',
     salonClosed: 'Ky sallon nuk pranon rezervime online tani.',
@@ -211,6 +215,7 @@ export const sq: Dict = {
     title: 'Takimi juaj',
     changeUntil: 'Mund ta ndryshoni online deri më {time}.',
     tooLate: 'Është tepër vonë për ta ndryshuar online — telefononi sallonin.',
+    awaitingApproval: 'Pret konfirmimin e sallonit — ora është mbajtur për ju.',
     cancel: 'Anulo takimin',
     cancelReason: 'Arsyeja (opsionale)',
     confirmCancel: 'Po, anuloje',

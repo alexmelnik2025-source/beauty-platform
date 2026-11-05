@@ -48,6 +48,7 @@ export const pl = {
     CODE_EXPIRED: 'Kod wygasł. Wyślij nowy.',
     INVALID_CODE: 'Nieprawidłowy kod.',
     BOOKING_PHONE_ONLY: 'Ten salon prosi Cię o rezerwację telefoniczną. Zadzwoń do salonu.',
+    NOT_AWAITING_APPROVAL: 'Ta rezerwacja nie czeka już na potwierdzenie.',
     BOOKING_PAY_FIRST:
       'Przed kolejną rezerwacją online salon prosi o zapłatę za wcześniejsze nieodbyte wizyty. Zapłać w salonie lub skontaktuj się z salonem.',
     TOO_MANY_ATTEMPTS: 'Zbyt wiele prób. Wybierz termin jeszcze raz.',
@@ -181,6 +182,10 @@ export const pl = {
     online: 'Online',
     manual: 'Dodana przez salon',
     firstVisit: 'Pierwsza wizyta',
+    awaitingApproval: 'Czeka na potwierdzenie',
+    approve: 'Przyjmij rezerwację',
+    approveHint:
+      'Klient jest oznaczony w „Ochronie przed odwołaniami”. Przyjmij rezerwację albo odwołaj ją z podaniem powodu — klient dostanie e-mail.',
     chosenByClient: 'Klient wybrał specjalistę',
     client: 'Klient',
     service: 'Usługa',
@@ -363,6 +368,9 @@ export const pl = {
     resend: 'Wyślij kod ponownie',
     doneTitle: 'Do zobaczenia!',
     doneLead: 'Wizyta jest potwierdzona. Szczegóły wysłaliśmy e-mailem.',
+    doneTitleApproval: 'Rezerwacja wysłana',
+    doneLeadApproval:
+      'Salon potwierdzi wizytę — termin jest już dla Ciebie zarezerwowany. Napiszemy e-mailem, gdy salon ją przyjmie.',
     addToCalendar: 'Dodaj do kalendarza',
     manage: 'Zmień lub odwołaj wizytę',
     salonClosed: 'Ten salon nie przyjmuje teraz rezerwacji online.',
@@ -385,6 +393,7 @@ export const pl = {
     title: 'Twoja wizyta',
     changeUntil: 'Zmiany online możliwe do {time}.',
     tooLate: 'Na zmiany online jest już za późno — zadzwoń do salonu.',
+    awaitingApproval: 'Czeka na potwierdzenie salonu — termin jest zarezerwowany dla Ciebie.',
     cancel: 'Odwołaj wizytę',
     cancelReason: 'Powód (opcjonalnie)',
     confirmCancel: 'Tak, odwołaj',

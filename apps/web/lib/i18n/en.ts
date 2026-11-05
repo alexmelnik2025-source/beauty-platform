@@ -48,6 +48,7 @@ export const en: Dict = {
     CODE_EXPIRED: 'The code has expired. Send a new one.',
     INVALID_CODE: 'Wrong code.',
     BOOKING_PHONE_ONLY: 'This salon asks you to book by phone. Please call the salon.',
+    NOT_AWAITING_APPROVAL: 'This booking no longer waits for confirmation.',
     BOOKING_PAY_FIRST:
       'Before your next online booking the salon asks you to pay for earlier missed visits. Pay in the salon or contact the salon.',
     TOO_MANY_ATTEMPTS: 'Too many attempts. Choose a time again.',
@@ -181,6 +182,10 @@ export const en: Dict = {
     online: 'Online',
     manual: 'Added by the salon',
     firstVisit: 'First visit',
+    awaitingApproval: 'Waiting for confirmation',
+    approve: 'Accept booking',
+    approveHint:
+      'The client is marked by cancellation protection. Accept the booking or cancel it with a reason — the client gets an email.',
     chosenByClient: 'Client chose the specialist',
     client: 'Client',
     service: 'Service',
@@ -363,6 +368,9 @@ export const en: Dict = {
     resend: 'Send the code again',
     doneTitle: 'See you soon!',
     doneLead: 'Your booking is confirmed. We emailed you the details.',
+    doneTitleApproval: 'Booking sent',
+    doneLeadApproval:
+      'The salon will confirm your visit — the time is already held for you. We will email you when the salon accepts it.',
     addToCalendar: 'Add to calendar',
     manage: 'Change or cancel',
     salonClosed: 'This salon is not taking online bookings right now.',
@@ -385,6 +393,7 @@ export const en: Dict = {
     title: 'Your appointment',
     changeUntil: 'You can change it online until {time}.',
     tooLate: 'It is too late to change it online — call the salon.',
+    awaitingApproval: 'Waiting for the salon to confirm — the time is held for you.',
     cancel: 'Cancel appointment',
     cancelReason: 'Reason (optional)',
     confirmCancel: 'Yes, cancel',

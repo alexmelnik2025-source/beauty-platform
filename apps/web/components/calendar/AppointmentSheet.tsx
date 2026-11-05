@@ -96,6 +96,23 @@ export function AppointmentSheet({
   const footer =
     mode === 'view' && canChange && live ? (
       <>
+        {a.awaitingApproval ? (
+          <button
+            type="button"
+            className="btn"
+            disabled={busy}
+            onClick={() =>
+              void run(() =>
+                api(`${base}/appointments/${a.id}/approve`, {
+                  method: 'POST',
+                  body: { version: a.version },
+                }),
+              )
+            }
+          >
+            {t.appointment.approve}
+          </button>
+        ) : null}
         {started ? (
           <>
             <button
@@ -160,6 +177,9 @@ export function AppointmentSheet({
     <Sheet title={t.appointment.title} onClose={onClose} footer={footer}>
       <div className="chips">
         <span className="chip">{t.appointment.status[a.status]}</span>
+        {a.awaitingApproval ? (
+          <span className="chip chip--ready">⏳ {t.appointment.awaitingApproval}</span>
+        ) : null}
         {a.paidAt ? <span className="chip">✓ {t.appointment.paid}</span> : null}
         <span className="chip">
           {a.source === 'online' ? t.appointment.online : t.appointment.manual}
@@ -178,6 +198,9 @@ export function AppointmentSheet({
       </div>
 
       <ErrorBox>{error}</ErrorBox>
+      {mode === 'view' && canChange && a.awaitingApproval ? (
+        <p className="small muted">{t.appointment.approveHint}</p>
+      ) : null}
       {mode === 'view' && canChange && a.status === 'completed' && !a.paidAt ? (
         <p className="small muted">{t.appointment.paidHint}</p>
       ) : null}

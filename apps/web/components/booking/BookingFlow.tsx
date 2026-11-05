@@ -889,8 +889,17 @@ export function BookingFlow({ slug }: { slug: string }) {
             <div className="done-mark" aria-hidden="true">
               ✓
             </div>
-            <h1>{t.booking.doneTitle}</h1>
-            <p>{t.booking.doneLead}</p>
+            {/* Task 161b: the salon's cancellation guard asks it to accept this client's visit. */}
+            <h1>
+              {result.appointment.awaitingApproval
+                ? t.booking.doneTitleApproval
+                : t.booking.doneTitle}
+            </h1>
+            <p>
+              {result.appointment.awaitingApproval
+                ? t.booking.doneLeadApproval
+                : t.booking.doneLead}
+            </p>
             <div className="summary">
               <span className="big">
                 {result.appointment.time} ·{' '}

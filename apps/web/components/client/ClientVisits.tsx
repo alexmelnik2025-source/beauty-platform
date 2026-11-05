@@ -278,6 +278,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
                     <span className="small muted">
                       {a.salon.name}
                       {a.status === 'confirmed' ? '' : ` · ${t.appointment.status[a.status]}`}
+                      {a.awaitingApproval ? ` · ⏳ ${t.appointment.awaitingApproval}` : ''}
                     </span>
                   </span>
                 </Link>

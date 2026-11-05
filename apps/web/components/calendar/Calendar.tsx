@@ -456,7 +456,7 @@ function AppointmentBlock({
   const { t } = useI18n();
   const end = minutesToClock(clockToMinutes(a.time) + a.durationMinutes);
   const classes = ['event'];
-  if (a.status === 'held') classes.push('is-held');
+  if (a.status === 'held' || a.awaitingApproval) classes.push('is-held');
   if (a.status === 'completed') classes.push('is-done');
   if (a.status === 'no_show') classes.push('is-noshow');
   if (a.status === 'cancelled') classes.push('is-cancelled');
@@ -470,7 +470,11 @@ function AppointmentBlock({
       <span className="t">
         {a.time}–{end}
       </span>
-      <span className="n">{a.status === 'held' ? t.calendar.held : (a.customer?.name ?? '—')}</span>
+      <span className="n">
+        {a.status === 'held'
+          ? t.calendar.held
+          : `${a.awaitingApproval ? '⏳ ' : ''}${a.customer?.name ?? '—'}`}
+      </span>
       <span className="s">{a.service.name}</span>
     </button>
   );
