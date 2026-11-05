@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DICTIONARIES, fill, LOCALES, pickLocale } from '../src/i18n';
 
-/** Every key path of a dictionary, e.g. "signIn.title". */
+/** Every key path of a dictionary, e.g. "signIn›title" (keys may have dots: "service.updated"). */
+const SEP = '›';
 function keys(value: unknown, prefix = ''): string[] {
   if (typeof value !== 'object' || value === null) return [prefix];
-  return Object.entries(value).flatMap(([k, v]) => keys(v, prefix ? `${prefix}.${k}` : k));
+  return Object.entries(value).flatMap(([k, v]) => keys(v, prefix ? `${prefix}${SEP}${k}` : k));
 }
 
 describe('translations', () => {
@@ -14,7 +15,7 @@ describe('translations', () => {
       expect(keys(DICTIONARIES[locale]).sort(), locale).toEqual(base);
       for (const key of base) {
         const text = key
-          .split('.')
+          .split(SEP)
           .reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], DICTIONARIES[locale]);
         expect(String(text).trim(), `${locale}.${key}`).not.toBe('');
       }
