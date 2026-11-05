@@ -226,6 +226,7 @@ export const tr: Dict = {
     codeLeadSms: '{phone} numarasına 6 haneli bir kod gönderdik.',
     accountReady: 'Artık bir hesabınız var — tüm randevularınız “Randevularım” bölümünde.',
     signedInAs: '{email} olarak giriş yaptınız — bilgileriniz dolduruldu.',
+    noCodeNeeded: 'Kod gerekmez — hemen rezervasyon yaparsınız.',
     rememberMe: 'Beni bu cihazda hatırla',
     rememberMeHint:
       'Bir dahaki sefere bilgileriniz kendiliğinden dolar, randevularınız da “Randevularım” uygulamasında olur. Başkasının cihazında işaretlemeyin.',

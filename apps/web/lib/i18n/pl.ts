@@ -406,6 +406,7 @@ export const pl = {
     codeLeadSms: 'Wysłaliśmy SMS z 6 cyframi na {phone}.',
     accountReady: 'Masz teraz konto — wszystkie wizyty w „Moje wizyty”.',
     signedInAs: 'Jesteś zalogowany(-a) jako {email} — dane wpisały się same.',
+    noCodeNeeded: 'Kod nie jest potrzebny — rezerwujesz od razu.',
     rememberMe: 'Zapamiętaj mnie na tym urządzeniu',
     rememberMeHint:
       'Następnym razem dane wpiszą się same, a wizyty zobaczysz w aplikacji „Moje wizyty”. Nie zaznaczaj na cudzym urządzeniu.',
