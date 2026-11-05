@@ -474,6 +474,18 @@ export const uk: Dictionary = {
   changeSalon: 'Змінити салон',
   signOut: 'Вийти',
   language: 'Мова',
+  reviews: {
+    open: 'Відгуки',
+    back: '‹ Назад',
+    title: 'Відгуки',
+    hint: 'Що клієнти написали після візиту. Майстер бачить відгуки про свої візити.',
+    none: 'Відгуків немає.',
+    summary: '★ {average} · відгуків: {count}',
+    service: '{service} у {staff}',
+    removedClient: 'Клієнта видалено',
+    more: 'Показати старіші',
+    off: 'Салон не збирає відгуки. Власник або менеджер вмикає їх у панелі салону: «Opinie».',
+  },
   history: {
     open: 'Журнал змін',
     back: '‹ Назад',

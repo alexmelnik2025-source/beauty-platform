@@ -477,6 +477,18 @@ export const en: Dictionary = {
   changeSalon: 'Change salon',
   signOut: 'Sign out',
   language: 'Language',
+  reviews: {
+    open: 'Reviews',
+    back: '‹ Back',
+    title: 'Reviews',
+    hint: 'What clients wrote after their visits. A specialist sees reviews of their own visits.',
+    none: 'No reviews yet.',
+    summary: '★ {average} · reviews: {count}',
+    service: '{service} with {staff}',
+    removedClient: 'Client removed',
+    more: 'Show older',
+    off: 'The salon does not collect reviews. The owner or a manager switches them on in the salon dashboard: “Opinie”.',
+  },
   history: {
     open: 'Change log',
     back: '‹ Back',

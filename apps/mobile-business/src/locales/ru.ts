@@ -474,6 +474,18 @@ export const ru: Dictionary = {
   changeSalon: 'Сменить салон',
   signOut: 'Выйти',
   language: 'Язык',
+  reviews: {
+    open: 'Отзывы',
+    back: '‹ Назад',
+    title: 'Отзывы',
+    hint: 'Что клиенты написали после визита. Мастер видит отзывы о своих визитах.',
+    none: 'Отзывов нет.',
+    summary: '★ {average} · отзывов: {count}',
+    service: '{service} у {staff}',
+    removedClient: 'Клиент удалён',
+    more: 'Показать старые',
+    off: 'Салон не собирает отзывы. Владелец или менеджер включает их в панели салона: «Opinie».',
+  },
   history: {
     open: 'Журнал изменений',
     back: '‹ Назад',

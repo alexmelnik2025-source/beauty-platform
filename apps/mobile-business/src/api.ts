@@ -69,6 +69,8 @@ export interface NewInvitation {
 }
 /** Task 150: who changed what in the salon (owner only). */
 export type AuditLog = components['schemas']['AuditLog'];
+/** Task 201: the salon's reviews (task 165b) in the app. */
+export type SalonReviews = components['schemas']['SalonReviews'];
 export type Availability = components['schemas']['Availability'];
 /** Task 94: clients waiting for a free time (owner and manager only). */
 export type SalonWaitlist = components['schemas']['SalonWaitlist'];
@@ -402,6 +404,18 @@ export class BusinessApi {
     const query = new URLSearchParams({ limit: String(limit) });
     if (before) query.set('before', before);
     return this.authed<AuditLog>('GET', `/v1/organizations/${enc(orgId)}/audit-log?${query}`);
+  }
+
+  /**
+   * Task 201: reviews of the salon, newest first, 20 at a time; `before` = the last one shown.
+   * A specialist without "all appointments" gets only reviews of their own visits (the server checks).
+   */
+  reviews(orgId: string, locationId: string, before?: string): Promise<SalonReviews> {
+    const query = before ? `?${new URLSearchParams({ before })}` : '';
+    return this.authed<SalonReviews>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews${query}`,
+    );
   }
 
   /** Owner or manager only (the server checks): people with access and their roles. */

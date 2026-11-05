@@ -475,6 +475,18 @@ export const pl = {
   changeSalon: 'Zmień salon',
   signOut: 'Wyloguj się',
   language: 'Język',
+  reviews: {
+    open: 'Opinie',
+    back: '‹ Wróć',
+    title: 'Opinie',
+    hint: 'Co klienci napisali po wizycie. Specjalista widzi opinie o swoich wizytach.',
+    none: 'Brak opinii.',
+    summary: '★ {average} · opinie: {count}',
+    service: '{service} u {staff}',
+    removedClient: 'Klient usunięty',
+    more: 'Pokaż starsze',
+    off: 'Salon nie zbiera opinii. Właściciel lub menedżer włącza je w panelu salonu: „Opinie”.',
+  },
   history: {
     open: 'Dziennik zmian',
     back: '‹ Wróć',

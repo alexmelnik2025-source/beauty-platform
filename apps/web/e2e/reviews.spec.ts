@@ -15,7 +15,8 @@ import { serveApp } from './mobile-app';
  * place opens the visit link (the "Jak było?" email opens it at #review), gives 5 stars with a
  * few words; the salon page shows the average, the specialists' averages and the reviews —
  * without the client's name. In the cabinet, "Opinie": the settings and the reviews with the
- * client's name. The same review in the client app's visit card (its web preview).
+ * client's name. The same review in the client app's visit card (its web preview). Task 201:
+ * the owner reads the reviews in the business app ("Opinie"), screenshot 201.
  * Screenshots 165b-1 … 165b-5.
  */
 
@@ -286,4 +287,33 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await request.get(`/v1/public/locations/${location.slug}/reviews`),
   );
   expect(after.count).toBe(4);
+
+  // ── Task 201: "Opinie" in the business app — the owner reads them on the phone ──
+  const businessApp = await serveApp('mobile-business');
+  const ownerPhone = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    isMobile: true,
+  });
+  try {
+    const app = await ownerPhone.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const code = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Opinie' }).click();
+    await expect(app.getByRole('heading', { name: 'Opinie', exact: true })).toBeVisible();
+    await expect(app.getByText('★ 4,5 · opinie: 4')).toBeVisible();
+    await expect(app.getByText('Dobra broda, polecam.')).toBeVisible();
+    await expect(app.getByText(/^Ola Wiśniewska · Strzyżenie fade u Nazar · /)).toBeVisible();
+    await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toBeVisible();
+    await shot(app, '201-app-reviews');
+  } finally {
+    await ownerPhone.close();
+    businessApp.server.close();
+  }
 });

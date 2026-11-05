@@ -26,6 +26,7 @@ import { HappyHoursScreen } from './HappyHoursScreen';
 import { ServicesScreen } from './ServicesScreen';
 import { TeamScreen } from './TeamScreen';
 import { HistoryScreen } from './HistoryScreen';
+import { ReviewsScreen } from './ReviewsScreen';
 import { BookingLinkScreen } from './BookingLinkScreen';
 import { mayViewHistory } from '../history';
 import { ScheduleScreen } from './ScheduleScreen';
@@ -61,6 +62,7 @@ export function DayScreen(props: {
   const [clientsOpen, setClientsOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [happyOpen, setHappyOpen] = useState(false);
@@ -316,6 +318,19 @@ export function DayScreen(props: {
     return <BookingLinkScreen api={api} t={t} salon={salon} onBack={() => setLinkOpen(false)} />;
   }
 
+  if (reviewsOpen) {
+    return (
+      <ReviewsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        onBack={() => setReviewsOpen(false)}
+      />
+    );
+  }
+
   if (historyOpen) {
     return (
       <HistoryScreen
@@ -435,6 +450,7 @@ export function DayScreen(props: {
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.bookingLink.open} onPress={() => setLinkOpen(true)} />
           ) : null}
+          <Button kind="link" label={t.reviews.open} onPress={() => setReviewsOpen(true)} />
           {mayViewHistory(salon.role) ? (
             <Button kind="link" label={t.history.open} onPress={() => setHistoryOpen(true)} />
           ) : null}
