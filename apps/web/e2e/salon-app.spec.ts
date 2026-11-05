@@ -41,6 +41,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
   );
   const login = await json<{ accessToken: string }>(
     await request.post('/v1/auth/login', {
+      headers: ADDRESS,
       data: { email: OWNER, password: PASSWORD, clientType: 'mobile' },
     }),
   );
@@ -63,7 +64,13 @@ test('the owner changes the salon from the business app (task 131)', async ({
 
   const businessApp = await serveApp('mobile-business');
   try {
-    const context = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+    // The app's sign-in from the same address of its own: sign-in codes are limited per address too.
+    const context = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      isMobile: true,
+      extraHTTPHeaders: ADDRESS,
+    });
     const app = await context.newPage();
     await app.goto(businessApp.url);
     await app.getByLabel('E-mail lub telefon').fill(OWNER);
