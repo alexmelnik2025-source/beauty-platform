@@ -1455,3 +1455,11 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
 - e2e `apps/web/e2e/price-rows.spec.ts`: 4 мастера (Kasia 75 zł, Marek и Tomek 90 zł, Ola 90 zł · 1g), «Dowolny» в
   строке назначает Marek/Tomek, а не Kasia; скриншоты 83–83e. Регистрация владельца в этих тестах — со своего адреса
   (`x-forwarded-for`), т.к. регистраций не больше 10 в час с одного адреса.
+
+## «Usługi od … zł» в каталоге (задача 91)
+
+`GET /v1/public/locations` отдаёт у каждого салона `currency` и `priceFromGrosze` — самую низкую цену, по которой
+клиент может записаться: цена мастера, если она своя, иначе цена услуги; бесплатные (0) и скрытые услуги, услуги без
+мастеров и неактивные мастера не считаются; `null`, если платных услуг нет. Карточка в каталоге на сайте
+(`PublicDirectory`) и в клиентском приложении (`CatalogScreen`) показывает «Usługi od 60,00 zł». Тест —
+`apps/api/test/public-directory.spec.ts`, e2e — `price-rows.spec.ts` (скриншоты 91–91a).
