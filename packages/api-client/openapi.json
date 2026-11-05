@@ -8391,6 +8391,304 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard": {
+      "get": {
+        "operationId": "CancellationGuardController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationGuard"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The cancellation guard settings of the location (off until the salon saves them)",
+        "tags": [
+          "clients"
+        ]
+      },
+      "put": {
+        "description": "A client is marked when, since the salon last lifted the mark: N cancellations or reschedules by the client fall within the last X hours, any cancellation comes less than Y minutes before the visit, or M visits were missed (the last 365 days count). A rule set to null is off; turning the guard on needs at least one rule. version: 0 before the first save; 409 VERSION_CONFLICT when someone saved first.",
+        "operationId": "CancellationGuardController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0 before the first save, then the returned version"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "maxChanges": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "N cancellations or reschedules by the client within windowHours; null = rule off"
+                  },
+                  "windowHours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8760,
+                    "description": "X: the period for maxChanges, in hours (e.g. 720 = 30 days)"
+                  },
+                  "lateCancelMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10080
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Y: a cancellation less than this many minutes before the visit; null = rule off"
+                  },
+                  "maxNoShows": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "M no-shows; null = rule off"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "approval",
+                      "phone_only",
+                      "prepay"
+                    ]
+                  }
+                },
+                "required": [
+                  "version",
+                  "enabled",
+                  "maxChanges",
+                  "windowHours",
+                  "lateCancelMinutes",
+                  "maxNoShows",
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationGuard"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the cancellation guard settings",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients": {
+      "get": {
+        "description": "Empty while the guard is off. Anonymised clients are left out.",
+        "operationId": "CancellationGuardController_clients",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardedClients"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clients the guard marks now",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}": {
+      "get": {
+        "operationId": "CancellationGuardController_client",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardedClient"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One client's mark and the history of cancellations, reschedules and no-shows",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}/release": {
+      "post": {
+        "description": "Counting starts again from now. The history keeps everything.",
+        "operationId": "CancellationGuardController_release",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardedClient"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lift the mark (e.g. the client paid the missed visits in the salon)",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
     "/v1/client/auth/code": {
       "post": {
         "description": "Always 202, whether or not the address has visits. A new code replaces the previous one.",
@@ -10104,304 +10402,6 @@
         "summary": "Who changed what in the salon, newest first (owner only)",
         "tags": [
           "organizations"
-        ]
-      }
-    },
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard": {
-      "get": {
-        "operationId": "CancellationGuardController_get",
-        "parameters": [
-          {
-            "name": "locationId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CancellationGuard"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The cancellation guard settings of the location (off until the salon saves them)",
-        "tags": [
-          "clients"
-        ]
-      },
-      "put": {
-        "description": "A client is marked when, since the salon last lifted the mark: N cancellations or reschedules by the client fall within the last X hours, any cancellation comes less than Y minutes before the visit, or M visits were missed (the last 365 days count). A rule set to null is off; turning the guard on needs at least one rule. version: 0 before the first save; 409 VERSION_CONFLICT when someone saved first.",
-        "operationId": "CancellationGuardController_update",
-        "parameters": [
-          {
-            "name": "locationId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "version": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991,
-                    "description": "0 before the first save, then the returned version"
-                  },
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "maxChanges": {
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 50
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "N cancellations or reschedules by the client within windowHours; null = rule off"
-                  },
-                  "windowHours": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 8760,
-                    "description": "X: the period for maxChanges, in hours (e.g. 720 = 30 days)"
-                  },
-                  "lateCancelMinutes": {
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 10080
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Y: a cancellation less than this many minutes before the visit; null = rule off"
-                  },
-                  "maxNoShows": {
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 20
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "M no-shows; null = rule off"
-                  },
-                  "action": {
-                    "type": "string",
-                    "enum": [
-                      "approval",
-                      "phone_only",
-                      "prepay"
-                    ]
-                  }
-                },
-                "required": [
-                  "version",
-                  "enabled",
-                  "maxChanges",
-                  "windowHours",
-                  "lateCancelMinutes",
-                  "maxNoShows",
-                  "action"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CancellationGuard"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Save the cancellation guard settings",
-        "tags": [
-          "clients"
-        ]
-      }
-    },
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients": {
-      "get": {
-        "description": "Empty while the guard is off. Anonymised clients are left out.",
-        "operationId": "CancellationGuardController_clients",
-        "parameters": [
-          {
-            "name": "locationId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GuardedClients"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Clients the guard marks now",
-        "tags": [
-          "clients"
-        ]
-      }
-    },
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}": {
-      "get": {
-        "operationId": "CancellationGuardController_client",
-        "parameters": [
-          {
-            "name": "locationId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "customerId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GuardedClient"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "One client's mark and the history of cancellations, reschedules and no-shows",
-        "tags": [
-          "clients"
-        ]
-      }
-    },
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}/release": {
-      "post": {
-        "description": "Counting starts again from now. The history keeps everything.",
-        "operationId": "CancellationGuardController_release",
-        "parameters": [
-          {
-            "name": "locationId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "customerId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "note": {
-                    "type": "string",
-                    "maxLength": 500
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GuardedClient"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Lift the mark (e.g. the client paid the missed visits in the salon)",
-        "tags": [
-          "clients"
         ]
       }
     }
