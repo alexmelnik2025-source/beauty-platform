@@ -1814,3 +1814,15 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
   `background` #f4f4f2, `card` #fff, `ink` и `accent` #111, `muted` #666, `line` #e2e2e2, `placeholder` #9a9a9a,
   `soft` #ececec, `danger`. Экраны берут цвета только отсюда (бывший `gold` → `accent`). Зелёный и красный остаются
   только для смысла (свободно / ошибка). На сайте — `:root` в `apps/web/app/globals.css` (`--ink` #111).
+
+## Запись без кода для вошедшего клиента (задача 180e)
+
+- `POST /v1/client/holds/:holdId/confirm` (сессия клиента: cookie на сайте, Bearer в приложении) — тело как у шага
+  кода без e-mail и кода: `holdToken`, `name`, `phone`, `locale`, `acceptTerms`, `marketingConsent`, `wishes`.
+  E-mail берётся из сессии (сессия уже подтвердила адрес). Дальше — общий `complete()`: карточка клиента, согласия,
+  ссылка управления, письма; «Ochrona przed odwołaniami» действует так же (approval / phone_only / prepay).
+  `signedIn: true` всегда. Повтор с тем же `Idempotency-Key` — тот же ответ; использованное удержание — 404.
+- Сайт (`BookingFlow.tsx`): если `GET /v1/client/me/contact` ответил — e-mail только для чтения, подсказка «Kod nie
+  jest potrzebny», пожелания и фото — на шаге данных, кнопка «Potwierdź wizytę»; сессия истекла (401) — обычный шаг
+  кода. Приложение (`BookingScreen`, `confirmBookingSignedIn`) — так же.
+- Тесты: `apps/api/test/client-app.spec.ts`; e2e — `booking.spec.ts` (сайт), `favorite-specialist.spec.ts` (приложение).
