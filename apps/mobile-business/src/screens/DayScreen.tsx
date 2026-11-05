@@ -24,6 +24,8 @@ import { ReportsScreen } from './ReportsScreen';
 import { TeamScreen } from './TeamScreen';
 import { ScheduleScreen } from './ScheduleScreen';
 import { VisitScreen } from './VisitScreen';
+import { WaitlistSection } from './WaitlistSection';
+import { presetFromEntry, type NewVisitPreset } from '../waitlist';
 
 const REFRESH_MS = 30_000;
 
@@ -63,6 +65,8 @@ export function DayScreen(props: {
   const [adding, setAdding] = useState(false);
   const [canReport, setCanReport] = useState(salon.role !== 'staff');
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [preset, setPreset] = useState<NewVisitPreset | null>(null);
+  const [reloads, setReloads] = useState(0);
 
   // Once per salon: may this person mark visits, and are they one of the specialists?
   useEffect(() => {
@@ -107,6 +111,7 @@ export function DayScreen(props: {
       if (bell) setUnread(bell.unread);
       setCalendar(day);
       setBlocks(dayBlocks ? { date, list: dayBlocks } : null);
+      setReloads((n) => n + 1);
       setError('');
     } catch (e) {
       if (request === latest.current) setError(errorText(e, t));
@@ -169,12 +174,17 @@ export function DayScreen(props: {
         date={date}
         me={rights}
         mineId={mineId}
-        onBack={() => setAdding(false)}
+        preset={preset ?? undefined}
+        onBack={() => {
+          setAdding(false);
+          setPreset(null);
+        }}
         onCreated={(visit) => {
           // The new visit's card, and its day behind it.
           // Another day loads by itself; the same day is read again (an older answer for the
           // previous day must not arrive after the new one).
           setAdding(false);
+          setPreset(null);
           setOpenId(visit.id);
           if (visit.date === date) void load();
           else setDate(visit.date);
@@ -430,6 +440,22 @@ export function DayScreen(props: {
               </Card>
             </Pressable>
           ))}
+
+          {salon.role !== 'staff' && rights ? (
+            <WaitlistSection
+              api={api}
+              t={t}
+              salon={salon}
+              date={date}
+              today={today}
+              timeZone={props.timeZone}
+              reload={reloads}
+              onBook={(entry) => {
+                setPreset(presetFromEntry(entry));
+                setAdding(true);
+              }}
+            />
+          ) : null}
         </>
       ) : !error ? (
         <Text style={styles.muted}>{t.loading}</Text>

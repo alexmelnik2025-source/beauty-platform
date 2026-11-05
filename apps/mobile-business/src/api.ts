@@ -46,6 +46,8 @@ export interface NewInvitation {
   locale: Locale;
 }
 export type Availability = components['schemas']['Availability'];
+/** Task 94: clients waiting for a free time (owner and manager only). */
+export type SalonWaitlist = components['schemas']['SalonWaitlist'];
 /** What the salon sends to book a client (phone call, walk-in); see NewVisitScreen. */
 export interface NewAppointment {
   serviceId: string;
@@ -369,6 +371,20 @@ export class BusinessApi {
     );
   }
 
+  /** Owner or manager only (the server checks): who waits for a free time, from a day on. */
+  waitlist(orgId: string, locationId: string, from: string): Promise<SalonWaitlist> {
+    const query = new URLSearchParams({ from }).toString();
+    return this.authed<SalonWaitlist>('GET', `${waitlistPath(orgId, locationId)}?${query}`);
+  }
+
+  /** "Usuń z listy": the client gets no message; removing twice is fine. */
+  removeFromWaitlist(orgId: string, locationId: string, entryId: string): Promise<unknown> {
+    return this.authed<unknown>(
+      'POST',
+      `${waitlistPath(orgId, locationId)}/${enc(entryId)}/remove`,
+    );
+  }
+
   /** The salon's services (with who performs each); inactive ones are left out on the screen. */
   services(orgId: string, locationId: string): Promise<ServiceList> {
     return this.authed<ServiceList>(
@@ -516,3 +532,5 @@ const customerPath = (orgId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/customers/${enc(id)}`;
 const blocksPath = (orgId: string, locationId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/time-blocks`;
+const waitlistPath = (orgId: string, locationId: string) =>
+  `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/waitlist`;

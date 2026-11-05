@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Pressable,
@@ -36,6 +36,7 @@ import {
 } from '../newVisit';
 import { dialForTimeZone } from '../phone';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { presetChoice, type NewVisitPreset } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
 
 type Client = { id: string; name: string; phone: string | null } | null;
@@ -56,6 +57,8 @@ export function NewVisitScreen(props: {
   date: string;
   me: MyRights;
   mineId: string | null;
+  /** Task 94: a client from the waiting list — service, specialist, day and contacts filled in. */
+  preset?: NewVisitPreset;
   onBack: () => void;
   onCreated: (visit: AppointmentDetail) => void;
 }) {
@@ -65,7 +68,8 @@ export function NewVisitScreen(props: {
   const [staff, setStaff] = useState<StaffList>([]);
   const [serviceId, setServiceId] = useState('');
   const [staffId, setStaffId] = useState('');
-  const [date, setDate] = useState(props.date < props.today ? props.today : props.date);
+  const firstDay = props.preset?.date ?? props.date;
+  const [date, setDate] = useState(firstDay < props.today ? props.today : firstDay);
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [start, setStart] = useState('');
   const [walkIn, setWalkIn] = useState(false);
@@ -75,7 +79,9 @@ export function NewVisitScreen(props: {
   const [search, setSearch] = useState('');
   const [found, setFound] = useState<CustomerList | null>(null);
   const [client, setClient] = useState<Client>(null);
-  const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const [form, setForm] = useState(props.preset?.client ?? { name: '', phone: '', email: '' });
+  // Applied once, when the services and specialists have loaded.
+  const preset = useRef(props.preset);
   const [note, setNote] = useState('');
   const [problem, setProblem] = useState<ClientProblem | 'time' | 'client' | null>(null);
   const [error, setError] = useState('');
@@ -95,8 +101,17 @@ export function NewVisitScreen(props: {
           api.staff(salon.orgId, salon.locationId),
         ]);
         if (!alive) return;
-        setServices(activeServices(list));
+        const offered = activeServices(list);
+        setServices(offered);
         setStaff(team);
+        if (preset.current) {
+          const choice = presetChoice(preset.current, offered, (id) =>
+            staffForService(team, id, me, mineId),
+          );
+          preset.current = undefined;
+          setServiceId(choice.serviceId);
+          setStaffId(choice.staffId);
+        }
       } catch (e) {
         if (alive) setError(errorText(e, t));
       }
@@ -104,7 +119,7 @@ export function NewVisitScreen(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, t]);
+  }, [api, salon, t, me, mineId]);
 
   // Android "back" closes the form instead of the app.
   useEffect(() => {
