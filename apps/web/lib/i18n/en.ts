@@ -749,6 +749,13 @@ export const en: Dict = {
     tagsHint: 'E.g. regular, beard, interested in products',
     visits: 'Visits',
     noVisits: 'No visits yet.',
+    inactive: {
+      label: "Who hasn't been for a while",
+      all: 'All clients',
+      days: 'Not in the last {days} days',
+      hint: 'Clients who came before but not in this time and have nothing booked. Send offers only to people who agreed to marketing messages.',
+      none: 'Nobody — everyone comes back.',
+    },
     summary: {
       completed: 'Visits that took place',
       noShow: 'No-shows',

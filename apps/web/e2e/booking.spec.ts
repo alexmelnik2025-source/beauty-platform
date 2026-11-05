@@ -724,6 +724,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   expect(csvText.startsWith('\uFEFF"Imię i nazwisko";"Telefon"')).toBe(true);
   expect(csvText).toContain('"Anna Kowalska"');
   await shot(ownerPage, '75-owner-clients-export');
+  // Task 140: "who hasn't been for a while" — Anna has a visit booked, so she is not on the list.
+  await ownerPage.getByLabel('Kto dawno nie był').selectOption({ label: 'Nie byli od 30 dni' });
+  await expect(ownerPage.getByText(/Ofertę wysyłaj tylko osobom ze zgodą/)).toBeVisible();
+  await expect(ownerPage.getByRole('button', { name: /Anna Kowalska/ })).toHaveCount(0);
+  await shot(ownerPage, '75a-owner-clients-inactive');
+  await ownerPage.getByLabel('Kto dawno nie był').selectOption({ label: 'Wszyscy klienci' });
+  await expect(ownerPage.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
   // GDPR (task 21): the owner downloads a client's data and erases them on request.
   await json(
     await request.post(`/v1/organizations/${org.id}/customers`, {

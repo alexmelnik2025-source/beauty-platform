@@ -6000,6 +6000,13 @@
         "operationId": "CustomersController_list",
         "parameters": [
           {
+            "name": "inactiveDays",
+            "required": false,
+            "in": "query",
+            "description": "Task 140: only clients who came before but not in the last N days (14–730) and have nothing booked ahead",
+            "schema": {}
+          },
+          {
             "name": "limit",
             "required": false,
             "in": "query",

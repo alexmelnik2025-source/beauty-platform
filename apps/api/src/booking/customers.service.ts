@@ -52,7 +52,14 @@ export class CustomersService {
       : {};
     const rows = await this.prisma.customer.findMany({
       // Erased clients (task 21) are not listed; their visits still show in the calendar.
-      where: { AND: [await this.visibleTo(m, null), search, { anonymizedAt: null }] },
+      where: {
+        AND: [
+          await this.visibleTo(m, null),
+          search,
+          { anonymizedAt: null },
+          query.inactiveDays ? this.inactiveSince(m, query.inactiveDays) : {},
+        ],
+      },
       orderBy: { name: 'asc' },
       take: query.limit,
     });
@@ -159,6 +166,32 @@ export class CustomersService {
       firstVisitAt: dates._min.startAt?.toISOString() ?? null,
       lastVisitAt: dates._max.startAt?.toISOString() ?? null,
       paid: money,
+    };
+  }
+
+  /**
+   * Task 140: clients who came before (a visit took place) but not in the last `days` days and
+   * have nothing booked ahead — in the salons the user works in (owners: the whole network).
+   */
+  private inactiveSince(m: MembershipContext, days: number): Prisma.CustomerWhereInput {
+    const now = new Date();
+    const since = new Date(now.getTime() - days * 24 * 60 * 60_000);
+    const here = m.role === 'owner' ? {} : { locationId: { in: m.locationIds } };
+    return {
+      AND: [
+        { appointments: { some: { ...here, status: 'completed' } } },
+        {
+          appointments: {
+            none: {
+              ...here,
+              OR: [
+                { status: 'completed', startAt: { gte: since } },
+                { status: 'confirmed', startAt: { gte: since } },
+              ],
+            },
+          },
+        },
+      ],
     };
   }
 

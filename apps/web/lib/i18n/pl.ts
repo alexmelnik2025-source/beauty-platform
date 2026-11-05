@@ -749,6 +749,13 @@ export const pl = {
     tagsHint: 'Np. stały klient, broda, interesują go kosmetyki',
     visits: 'Wizyty',
     noVisits: 'Jeszcze bez wizyt.',
+    inactive: {
+      label: 'Kto dawno nie był',
+      all: 'Wszyscy klienci',
+      days: 'Nie byli od {days} dni',
+      hint: 'Klienci, którzy już byli, ale nie od tego czasu i nie mają zaplanowanej wizyty. Ofertę wysyłaj tylko osobom ze zgodą na wiadomości marketingowe.',
+      none: 'Nikt — wszyscy wracają.',
+    },
     summary: {
       completed: 'Odbyte wizyty',
       noShow: 'Nieobecności',

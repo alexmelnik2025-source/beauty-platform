@@ -314,6 +314,12 @@ export class CustomersController {
   @ApiOperation({ summary: 'Clients (search by name, phone or email)' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({
+    name: 'inactiveDays',
+    required: false,
+    description:
+      'Task 140: only clients who came before but not in the last N days (14–730) and have nothing booked ahead',
+  })
   @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,

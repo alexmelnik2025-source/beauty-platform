@@ -272,3 +272,44 @@ describe('client summary on the card (task 98)', () => {
     expect(body.summary.completed).toBe(2);
   });
 });
+
+describe('"Haven\'t been for a while" (task 140)', () => {
+  const list = (query: string, auth = owner.auth) =>
+    ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200);
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  it('lists clients who came before but not in the last N days and have nothing booked', async () => {
+    // Jan: last came 70 days ago → inactive for 60 days, not for 90.
+    await pastVisit(kasiaId, 70);
+    const ewa = await client('Ewa Dawna', '+48600000003');
+    const olek = await client('Olek Wraca', '+48600000004');
+    await client('Nowy Bez Wizyt', '+48600000005');
+    // Ewa came 100 days ago.
+    customerId = ewa;
+    await pastVisit(kasiaId, 100);
+    // Olek came 100 days ago but has booked again.
+    customerId = olek;
+    await pastVisit(tomekId, 100);
+    await futureVisit(tomekId, 2);
+
+    const names = async (q: string) => (await list(q)).body.map((c: { name: string }) => c.name);
+    expect(await names('inactiveDays=60')).toEqual(['Ewa Dawna', 'Jan Nowak']);
+    expect(await names('inactiveDays=90')).toEqual(['Ewa Dawna']);
+    expect(await names('inactiveDays=60&search=ewa')).toEqual(['Ewa Dawna']);
+    // Without the filter everyone is listed.
+    expect(await names('limit=100')).toHaveLength(4);
+    // The manager sees the same in the salon.
+    expect(
+      (await list('inactiveDays=60', manager.auth)).body.map((c: { name: string }) => c.name),
+    ).toEqual(['Ewa Dawna', 'Jan Nowak']);
+  });
+
+  it('too short or too long periods are refused', async () => {
+    await ctx.http().get(`${customersBase}?inactiveDays=7`).set(owner.auth).expect(400);
+    await ctx.http().get(`${customersBase}?inactiveDays=1000`).set(owner.auth).expect(400);
+  });
+});
