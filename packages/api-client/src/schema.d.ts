@@ -1977,6 +1977,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The cancellation guard settings of the location (off until the salon saves them) */
+        get: operations["CancellationGuardController_get"];
+        /**
+         * Save the cancellation guard settings
+         * @description A client is marked when, since the salon last lifted the mark: N cancellations or reschedules by the client fall within the last X hours, any cancellation comes less than Y minutes before the visit, or M visits were missed (the last 365 days count). A rule set to null is off; turning the guard on needs at least one rule. version: 0 before the first save; 409 VERSION_CONFLICT when someone saved first.
+         */
+        put: operations["CancellationGuardController_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clients the guard marks now
+         * @description Empty while the guard is off. Anonymised clients are left out.
+         */
+        get: operations["CancellationGuardController_clients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One client's mark and the history of cancellations, reschedules and no-shows */
+        get: operations["CancellationGuardController_client"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lift the mark (e.g. the client paid the missed visits in the salon)
+         * @description Counting starts again from now. The history keeps everything.
+         */
+        post: operations["CancellationGuardController_release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/auth/code": {
         parameters: {
             query?: never;
@@ -2645,84 +2723,6 @@ export interface paths {
         get: operations["AuditLogController_list"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The cancellation guard settings of the location (off until the salon saves them) */
-        get: operations["CancellationGuardController_get"];
-        /**
-         * Save the cancellation guard settings
-         * @description A client is marked when, since the salon last lifted the mark: N cancellations or reschedules by the client fall within the last X hours, any cancellation comes less than Y minutes before the visit, or M visits were missed (the last 365 days count). A rule set to null is off; turning the guard on needs at least one rule. version: 0 before the first save; 409 VERSION_CONFLICT when someone saved first.
-         */
-        put: operations["CancellationGuardController_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Clients the guard marks now
-         * @description Empty while the guard is off. Anonymised clients are left out.
-         */
-        get: operations["CancellationGuardController_clients"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One client's mark and the history of cancellations, reschedules and no-shows */
-        get: operations["CancellationGuardController_client"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}/release": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Lift the mark (e.g. the client paid the missed visits in the salon)
-         * @description Counting starts again from now. The history keeps everything.
-         */
-        post: operations["CancellationGuardController_release"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9039,6 +9039,137 @@ export interface operations {
             };
         };
     };
+    CancellationGuardController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancellationGuard"];
+                };
+            };
+        };
+    };
+    CancellationGuardController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 0 before the first save, then the returned version */
+                    version: number;
+                    enabled: boolean;
+                    /** @description N cancellations or reschedules by the client within windowHours; null = rule off */
+                    maxChanges: number | null;
+                    /** @description X: the period for maxChanges, in hours (e.g. 720 = 30 days) */
+                    windowHours: number;
+                    /** @description Y: a cancellation less than this many minutes before the visit; null = rule off */
+                    lateCancelMinutes: number | null;
+                    /** @description M no-shows; null = rule off */
+                    maxNoShows: number | null;
+                    /** @enum {string} */
+                    action: "approval" | "phone_only" | "prepay";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancellationGuard"];
+                };
+            };
+        };
+    };
+    CancellationGuardController_clients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardedClients"];
+                };
+            };
+        };
+    };
+    CancellationGuardController_client: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardedClient"];
+                };
+            };
+        };
+    };
+    CancellationGuardController_release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardedClient"];
+                };
+            };
+        };
+    };
     ClientController_requestCode: {
         parameters: {
             query?: never;
@@ -9952,137 +10083,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLog"];
-                };
-            };
-        };
-    };
-    CancellationGuardController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CancellationGuard"];
-                };
-            };
-        };
-    };
-    CancellationGuardController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @description 0 before the first save, then the returned version */
-                    version: number;
-                    enabled: boolean;
-                    /** @description N cancellations or reschedules by the client within windowHours; null = rule off */
-                    maxChanges: number | null;
-                    /** @description X: the period for maxChanges, in hours (e.g. 720 = 30 days) */
-                    windowHours: number;
-                    /** @description Y: a cancellation less than this many minutes before the visit; null = rule off */
-                    lateCancelMinutes: number | null;
-                    /** @description M no-shows; null = rule off */
-                    maxNoShows: number | null;
-                    /** @enum {string} */
-                    action: "approval" | "phone_only" | "prepay";
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CancellationGuard"];
-                };
-            };
-        };
-    };
-    CancellationGuardController_clients: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GuardedClients"];
-                };
-            };
-        };
-    };
-    CancellationGuardController_client: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                customerId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GuardedClient"];
-                };
-            };
-        };
-    };
-    CancellationGuardController_release: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                customerId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    note?: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GuardedClient"];
                 };
             };
         };
