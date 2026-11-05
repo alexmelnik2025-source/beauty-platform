@@ -25,13 +25,13 @@ export interface TestContext {
 }
 
 export async function createTestApp(
-  options: { timing?: (timing: RequestTiming) => void } = {},
+  options: { timing?: (timing: RequestTiming) => void; cors?: 'any' | string[] } = {},
 ): Promise<TestContext> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule, DiscoveryModule],
   }).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
-  configureApp(app, { docs: true, timing: options.timing });
+  configureApp(app, { docs: true, timing: options.timing, cors: options.cors });
   await app.init();
   const mail = app.get(MailService);
   if (!(mail instanceof MemoryMailService)) {

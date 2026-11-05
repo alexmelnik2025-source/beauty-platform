@@ -65,6 +65,21 @@ const configSchema = z
      * A real (paid) Polish SMS gateway is connected only after the owner decides.
      */
     SMS_TRANSPORT: z.enum(['none', 'log', 'memory']).default('none'),
+    /**
+     * Other sites (origins) whose pages may call the API from the browser, comma-separated,
+     * e.g. https://app.example.com. Empty = only the platform's own web app (same address, no
+     * CORS). In development any origin is allowed (phone apps in the browser, a Mac's LAN IP).
+     */
+    CORS_ORIGINS: z
+      .string()
+      .default('')
+      .transform((value) =>
+        value
+          .split(',')
+          .map((origin) => origin.trim().replace(/\/+$/, ''))
+          .filter(Boolean),
+      )
+      .pipe(z.array(z.url({ protocol: /^https?$/ }))),
   })
   .superRefine((config, ctx) => {
     if (config.NODE_ENV === 'production' && config.MAIL_TRANSPORT === 'memory') {

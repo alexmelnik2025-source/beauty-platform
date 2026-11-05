@@ -16,6 +16,9 @@ async function bootstrap(): Promise<void> {
   const http = new Logger('HTTP');
   configureApp(app, {
     docs: config.NODE_ENV !== 'production',
+    // The phone apps' web preview (pnpm mobile:client --web) runs on another port or the Mac's
+    // LAN address; owner's test 05.11.2026: "no connection to the server" without CORS.
+    cors: config.NODE_ENV === 'development' ? 'any' : config.CORS_ORIGINS,
     // Local development: one line per request with its time and database share.
     timing:
       config.NODE_ENV === 'development'
