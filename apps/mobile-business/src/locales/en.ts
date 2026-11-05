@@ -282,6 +282,10 @@ export const en: Dictionary = {
     note: 'Revenue is paid visits after loyalty discounts.',
     byWeekday: 'Days of the week',
     weekdayVisits: 'visits: {n}',
+    occupancy: 'Occupancy: {n}%',
+    occupancyHours: '{booked} of {work} h booked',
+    occupancyHint:
+      'The share of scheduled working hours (without time off and blocked time) taken by visits. Cancelled visits do not count.',
     compared: '% — compared with {from} – {to}',
   },
   team: {
