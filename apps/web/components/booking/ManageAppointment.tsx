@@ -7,6 +7,7 @@ import { addDays, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/ti
 import type { PublicAppointment, Slot, VisitPhotoList } from '@/lib/types';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
+import { VisitReviewForm } from '../reviews/VisitReviewForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import type { VisitWishes } from '../wishes/wishes';
 
@@ -205,6 +206,14 @@ export function AppointmentManager<T extends PublicAppointment>({
               setA(changed);
               setMessage(t.wishStep.saved);
             }}
+          />
+        ) : null}
+
+        {mode === 'view' && a.status !== 'cancelled' ? (
+          <VisitReviewForm
+            key={`review-${a.id}`}
+            endpoint={`${endpoint}/review`}
+            staffName={a.staff.displayName}
           />
         ) : null}
 

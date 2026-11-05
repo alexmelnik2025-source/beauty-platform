@@ -22,6 +22,7 @@ import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
+import { SalonReviews } from '../reviews/SalonReviews';
 import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import { WishPhotos } from '../wishes/WishPhotos';
@@ -469,6 +470,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           <LanguageBadges codes={salon.languages ?? []} label={t.languages.speaks} />
           <SalonProfile salon={salon} />
           <SalonGallery photos={salon.photos ?? []} />
+          <SalonReviews slug={salon.slug} />
         </div>
       </header>
 
