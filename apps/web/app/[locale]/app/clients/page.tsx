@@ -19,6 +19,8 @@ export default function ClientsPage() {
   const { t, locale } = useI18n();
   const { orgId, role } = useSession();
   const [search, setSearch] = useState('');
+  // Task 140: "haven't been for a while" — 0 = everyone.
+  const [inactiveDays, setInactiveDays] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
@@ -28,13 +30,17 @@ export default function ClientsPage() {
     try {
       setRows(
         await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
-          query: { search: search.trim() || undefined, limit: 100 },
+          query: {
+            search: search.trim() || undefined,
+            limit: 100,
+            inactiveDays: inactiveDays || undefined,
+          },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, search, t]);
+  }, [orgId, search, inactiveDays, t]);
 
   /** Task 21: the owner downloads all clients as a CSV file (column names in the cabinet language). */
   async function exportCsv(): Promise<void> {
@@ -96,11 +102,29 @@ export default function ClientsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <label className="field">
+          <span>{t.clients.inactive.label}</span>
+          <select
+            className="input"
+            value={inactiveDays}
+            onChange={(e) => setInactiveDays(Number(e.target.value))}
+          >
+            <option value={0}>{t.clients.inactive.all}</option>
+            {[30, 60, 90, 180].map((days) => (
+              <option key={days} value={days}>
+                {fill(t.clients.inactive.days, { days: String(days) })}
+              </option>
+            ))}
+          </select>
+        </label>
+        {inactiveDays ? <p className="small muted">{t.clients.inactive.hint}</p> : null}
         <ErrorBox>{error}</ErrorBox>
         {rows === null ? (
           <Spinner />
         ) : rows.length === 0 ? (
-          <p className="note">{search ? t.clients.notFound : t.clients.empty}</p>
+          <p className="note">
+            {inactiveDays ? t.clients.inactive.none : search ? t.clients.notFound : t.clients.empty}
+          </p>
         ) : (
           <ul className="list">
             {rows.map((c) => (

@@ -7752,6 +7752,8 @@ export interface operations {
     CustomersController_list: {
         parameters: {
             query?: {
+                /** @description Task 140: only clients who came before but not in the last N days (14–730) and have nothing booked ahead */
+                inactiveDays?: unknown;
                 limit?: unknown;
                 search?: unknown;
             };
