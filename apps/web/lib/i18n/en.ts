@@ -47,6 +47,9 @@ export const en: Dict = {
     HOLD_EXPIRED: 'Ten minutes have passed and the time was released. Choose a time again.',
     CODE_EXPIRED: 'The code has expired. Send a new one.',
     INVALID_CODE: 'Wrong code.',
+    BOOKING_PHONE_ONLY: 'This salon asks you to book by phone. Please call the salon.',
+    BOOKING_PAY_FIRST:
+      'Before your next online booking the salon asks you to pay for earlier missed visits. Pay in the salon or contact the salon.',
     TOO_MANY_ATTEMPTS: 'Too many attempts. Choose a time again.',
     TOO_MANY_CODES: 'Three codes have been sent already. Choose a time again.',
     TOO_LATE_TO_CHANGE: 'It is too late to change this online. Call the salon.',

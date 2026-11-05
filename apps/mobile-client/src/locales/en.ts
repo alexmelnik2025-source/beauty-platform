@@ -315,6 +315,9 @@ export const en: Dictionary = {
   language: 'Language',
   retry: 'Try again',
   error: {
+    bookByPhone: 'This salon asks you to book by phone. Please call the salon.',
+    payFirst:
+      'Before your next online booking the salon asks you to pay for earlier missed visits. Pay in the salon or contact the salon.',
     network: 'No connection to the server. Check the internet and try again.',
     generic: 'Something went wrong. Please try again.',
     tooMany: 'Too many attempts. Please wait a moment.',

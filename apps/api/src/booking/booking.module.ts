@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { CancellationGuardModule } from '../cancellation-guard/cancellation-guard.module';
 import { IdempotencyInterceptor } from '../common/idempotency.interceptor';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
@@ -29,7 +30,7 @@ import {
 import { VisitPhotosService } from './visit-photos.service';
 
 @Module({
-  imports: [OrganizationsModule, SchedulingModule, LoyaltyModule],
+  imports: [OrganizationsModule, SchedulingModule, LoyaltyModule, CancellationGuardModule],
   controllers: [
     PublicBookingController,
     AppointmentsController,

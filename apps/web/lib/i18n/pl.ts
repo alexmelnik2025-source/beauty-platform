@@ -47,6 +47,9 @@ export const pl = {
     HOLD_EXPIRED: 'Minęło 10 minut i termin został zwolniony. Wybierz godzinę jeszcze raz.',
     CODE_EXPIRED: 'Kod wygasł. Wyślij nowy.',
     INVALID_CODE: 'Nieprawidłowy kod.',
+    BOOKING_PHONE_ONLY: 'Ten salon prosi Cię o rezerwację telefoniczną. Zadzwoń do salonu.',
+    BOOKING_PAY_FIRST:
+      'Przed kolejną rezerwacją online salon prosi o zapłatę za wcześniejsze nieodbyte wizyty. Zapłać w salonie lub skontaktuj się z salonem.',
     TOO_MANY_ATTEMPTS: 'Zbyt wiele prób. Wybierz termin jeszcze raz.',
     TOO_MANY_CODES: 'Wysłano już 3 kody. Wybierz termin jeszcze raz.',
     TOO_LATE_TO_CHANGE: 'Na zmiany online jest już za późno. Zadzwoń do salonu.',
