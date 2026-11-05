@@ -129,6 +129,7 @@ export const en: Dict = {
     showMap: 'Show on the map',
     mapTitle: 'Map of salons',
     noCoordinates: 'This salon has not marked its place on the map yet.',
+    priceFrom: 'Services from {price}',
     coordinates: 'Place on the catalogue map',
     coordinatesHint:
       'Optional. In Google Maps, right-click the salon and copy the first line (e.g. 52.23251, 20.95634).',

@@ -223,6 +223,7 @@ export const uk: Dictionary = {
     noMatch: 'Нічого не знайдено. Змініть пошук.',
     more: 'Показати ще',
     open: 'Переглянути салон',
+    priceFrom: 'Послуги від {price}',
   },
   salon: {
     back: '‹ Назад',

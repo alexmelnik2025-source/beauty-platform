@@ -4,6 +4,7 @@ import type { ClientApi, DirectorySalon, Locale, SpokenLanguage } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
+import { formatPrice } from '../format';
 import { addressText, filterSalons } from '../salon';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
@@ -110,6 +111,13 @@ export function CatalogScreen(props: {
           <Card>
             <Text style={styles.name}>{s.name}</Text>
             <Text style={styles.text}>{addressText(s)}</Text>
+            {s.priceFromGrosze !== null ? (
+              <Text style={styles.price}>
+                {fill(t.catalog.priceFrom, {
+                  price: formatPrice(s.priceFromGrosze, s.currency, props.locale),
+                })}
+              </Text>
+            ) : null}
             {s.languages.length > 0 ? (
               <Text
                 role="note"
@@ -139,6 +147,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', marginLeft: -8 },
   text: { color: colors.muted, fontSize: 15, lineHeight: 21 },
   small: { color: colors.muted, fontSize: 14 },
+  price: { color: colors.ink, fontSize: 15, fontWeight: '600' },
   name: { fontSize: 18, fontWeight: '700', color: colors.ink },
   input: {
     backgroundColor: colors.card,

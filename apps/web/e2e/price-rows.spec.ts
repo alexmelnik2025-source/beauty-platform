@@ -16,7 +16,8 @@ import { serveApp } from './mobile-app';
  * ("Dowolny" in the circles over the calendar), and the visit goes to one of them, never to
  * Kasia; a circle there or under the service gives one specialist's times. "Mówi po" keeps the
  * lines of the specialists who speak the language. Screenshots 83–83c; the same in the client
- * app (task 70c), screenshots 83d–83e.
+ * app (task 70c), screenshots 83d–83e. The catalogue card's "Usługi od 60,00 zł" (task 91),
+ * screenshots 91–91a.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -202,6 +203,13 @@ test('the price list shows a line per price and books the specialists of that li
   await client.locator('.times button').first().click();
   await expect(client.locator('.summary')).toContainText('Kasia');
   await expect(client.locator('.summary')).toContainText('75,00');
+
+  // Task 91: the catalogue card says what the salon costs at least (Broda, 60 zł).
+  await client.goto('/pl/salons');
+  const card = client.getByRole('article', { name: salonName('web') });
+  await expect(card).toContainText(/Usługi od 60,00\s*zł/);
+  await card.scrollIntoViewIfNeeded();
+  await shot(client, '91-catalogue-price-from');
   await phone.close();
 });
 
@@ -225,6 +233,11 @@ test('the client app shows the price lines and books the specialists of a line',
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
     await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
     await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(salonName('app'));
+    // Task 91: the card says what the salon costs at least (Broda, 60 zł).
+    await expect(app.getByRole('article', { name: salonName('app') })).toContainText(
+      /Usługi od 60,00\s*zł/,
+    );
+    await shot(app, '91a-client-app-catalogue-price-from');
     await app
       .getByRole('article', { name: salonName('app') })
       .getByRole('button', { name: 'Zobacz salon' })

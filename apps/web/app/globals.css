@@ -2136,6 +2136,10 @@ label.btn:focus-within {
   font-size: 1.15rem;
 }
 
+.directory-price {
+  font-weight: 600;
+}
+
 .directory-list > li[data-selected] {
   box-shadow: inset 3px 0 0 var(--ink);
   padding-left: 12px;

@@ -229,6 +229,7 @@ export const sq: Dictionary = {
     noMatch: 'Nuk u gjet asgjë. Provoni një kërkim tjetër.',
     more: 'Shfaq më shumë',
     open: 'Shiko sallonin',
+    priceFrom: 'Shërbime nga {price}',
   },
   salon: {
     back: '‹ Kthehu',
