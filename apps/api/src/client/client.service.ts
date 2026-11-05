@@ -15,6 +15,8 @@ import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ClientRescheduleInput } from '../booking/booking.schemas';
 import { AppointmentWriter } from '../booking/appointment-writer';
+import { VisitPhotosService } from '../booking/visit-photos.service';
+import type { VisitPhotoListResponse } from '../booking/visit-photos.responses';
 import { PublicBookingService, tooLate } from '../booking/public-booking.service';
 import type { VisitCouponsResponse } from '../booking/booking.responses';
 import { VisitCoupons } from '../loyalty/visit-coupons';
@@ -71,6 +73,7 @@ export class ClientService {
     private readonly booking: PublicBookingService,
     private readonly visitCoupons: VisitCoupons,
     private readonly writer: AppointmentWriter,
+    private readonly visitPhotos: VisitPhotosService,
   ) {}
 
   // ── Sign-in ───────────────────────────────────────────
@@ -292,6 +295,16 @@ export class ClientService {
   // ── Helpers ───────────────────────────────────────────
 
   /** Appointments of salon customer cards with the person's confirmed email. */
+  /** Task 96: the example photos of one of my visits ("Pokaż, co chcesz"). */
+  async photos(auth: ClientAuth, id: string): Promise<VisitPhotoListResponse> {
+    return this.visitPhotos.listForVisit(await this.mine(auth, id));
+  }
+
+  /** Task 96: removes one of my photos from my visit, until the visit starts. */
+  async removePhoto(auth: ClientAuth, id: string, photoId: string): Promise<void> {
+    await this.visitPhotos.removeFromVisit(await this.mine(auth, id), photoId);
+  }
+
   private async mineWhere(auth: ClientAuth): Promise<Prisma.AppointmentWhereInput> {
     const customers = await this.prisma.customer.findMany({
       where: { email: auth.email },

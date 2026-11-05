@@ -141,7 +141,21 @@ export class VisitPhotosService implements OnModuleInit, OnModuleDestroy {
 
   /** Until the visit starts; after that the specialist may still need them. */
   async removeByManageToken(token: string, photoId: string): Promise<void> {
-    const visit = await this.byManageToken(token);
+    await this.removeFromVisit(await this.byManageToken(token), photoId);
+  }
+
+  // ── The signed-in client ("My visits" in the app) ─────
+
+  /** Task 96: the photos of one of the client's visits (the caller checks it is theirs). */
+  async listForVisit(visit: Pick<Appointment, 'id' | 'endAt'>): Promise<VisitPhotoListResponse> {
+    return { items: await this.list(visit.id), deleteAfter: this.deleteAfter(visit) };
+  }
+
+  /** Removes a photo of the client's own visit, until the visit starts (409 TOO_LATE_TO_CHANGE). */
+  async removeFromVisit(
+    visit: Pick<Appointment, 'id' | 'status' | 'startAt'>,
+    photoId: string,
+  ): Promise<void> {
     if (visit.status !== 'confirmed' || Date.now() >= visit.startAt.getTime()) throw tooLate();
     const removed = await this.prisma.visitPhoto.deleteMany({
       where: { id: photoId, appointmentId: visit.id },

@@ -8877,6 +8877,80 @@
         ]
       }
     },
+    "/v1/client/appointments/{id}/photos": {
+      "get": {
+        "operationId": "ClientController_photos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitPhotoList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My example photos for the visit (task 96, \"Pokaż, co chcesz\")",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments/{id}/photos/{photoId}": {
+      "delete": {
+        "description": "409 TOO_LATE_TO_CHANGE once the visit has started.",
+        "operationId": "ClientController_removePhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "photoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove one of my example photos before the visit (task 96)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/appointments/{id}/coupons": {
       "get": {
         "operationId": "ClientController_coupons",
