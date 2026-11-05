@@ -2521,6 +2521,66 @@ ul.wish-photos {
     background: #fff;
     font-size: 10.5pt;
   }
+
+/* Task 165b: reviews after the visit. */
+.stars {
+  color: var(--gold, #c9a227);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.stars-off {
+  color: var(--line);
+}
+
+.star-picker {
+  display: flex;
+  gap: 4px;
+}
+
+.star {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1.8rem;
+  line-height: 1;
+  border: 0;
+  background: none;
+  color: var(--line);
+  cursor: pointer;
+}
+
+.star--on {
+  color: var(--gold, #c9a227);
+}
+
+.salon-reviews summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.salon-reviews > .stack {
+  margin-top: 8px;
+}
+
+.review-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+
+.review-text {
+  margin: 2px 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* ── Client navigation (task 180): find a salon, my visits ─────────────────── */
