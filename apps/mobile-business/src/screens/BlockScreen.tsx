@@ -134,7 +134,7 @@ export function BlockScreen(props: {
       <TextInput
         accessibilityLabel={b.reason}
         placeholder={b.reason}
-        placeholderTextColor="#a39e95"
+        placeholderTextColor={colors.placeholder}
         value={reason}
         onChangeText={setReason}
         maxLength={200}

@@ -261,7 +261,7 @@ export function ClientScreen(props: {
             <TextInput
               accessibilityLabel={c.tags}
               placeholder={c.tagsHint}
-              placeholderTextColor="#a39e95"
+              placeholderTextColor={colors.placeholder}
               value={tags}
               onChangeText={setTags}
               autoCapitalize="none"
@@ -419,13 +419,13 @@ const styles = StyleSheet.create({
   chip: {
     fontSize: 12,
     color: colors.ink,
-    backgroundColor: '#efe7d8',
+    backgroundColor: colors.soft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     overflow: 'hidden',
   },
-  tag: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.gold },
+  tag: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.accent },
   chipBad: { backgroundColor: '#f6dcd9', color: colors.danger },
   label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },

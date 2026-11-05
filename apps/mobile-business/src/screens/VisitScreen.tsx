@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   chip: {
     fontSize: 12,
     color: colors.ink,
-    backgroundColor: '#efe7d8',
+    backgroundColor: colors.soft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,

@@ -139,7 +139,7 @@ export function SalonScreen(props: {
                 accessibilityLabel={s.online}
                 value={form.onlineBookingEnabled}
                 onValueChange={(onlineBookingEnabled) => setForm({ ...form, onlineBookingEnabled })}
-                trackColor={{ true: colors.gold, false: colors.line }}
+                trackColor={{ true: colors.accent, false: colors.line }}
               />
             </View>
           </Card>

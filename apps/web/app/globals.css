@@ -5,7 +5,7 @@
  * (service colours, the red "now" line, destructive actions).
  */
 :root {
-  --ink: #000000;
+  --ink: #111111;
   --paper: #ffffff;
   --steel: #d0d0d0;
   --fog: #f4f4f4;
@@ -2525,7 +2525,7 @@ ul.wish-photos {
 
 /* Task 165b: reviews after the visit. */
 .stars {
-  color: var(--gold, #c9a227);
+  color: var(--ink);
   letter-spacing: 1px;
   white-space: nowrap;
 }
@@ -2551,7 +2551,7 @@ ul.wish-photos {
 }
 
 .star--on {
-  color: var(--gold, #c9a227);
+  color: var(--ink);
 }
 
 .salon-reviews summary {

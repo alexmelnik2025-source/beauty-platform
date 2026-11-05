@@ -116,7 +116,7 @@ export function CatalogScreen(props: {
       <TextInput
         accessibilityLabel={t.catalog.search}
         placeholder={t.catalog.search}
-        placeholderTextColor="#a39e95"
+        placeholderTextColor={colors.placeholder}
         value={query}
         onChangeText={setQuery}
         autoCorrect={false}

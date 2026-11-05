@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderColor: colors.gold,
+    borderColor: colors.accent,
   },
   optionText: { fontSize: 16, fontWeight: '600', color: colors.ink },
   times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

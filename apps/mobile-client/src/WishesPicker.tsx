@@ -65,7 +65,7 @@ export function WishesPicker(props: {
           <TextInput
             accessibilityLabel={w.noteQ}
             placeholder={w.notePlaceholder}
-            placeholderTextColor="#9b9488"
+            placeholderTextColor={colors.placeholder}
             value={value.note ?? ''}
             onChangeText={(text) => onChange({ ...value, note: text || null })}
             maxLength={NOTE_MAX}

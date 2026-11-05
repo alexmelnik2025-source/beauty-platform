@@ -183,7 +183,7 @@ export function TeamScreen(props: {
           <TextInput
             accessibilityLabel={z.email}
             placeholder={z.email}
-            placeholderTextColor="#a39e95"
+            placeholderTextColor={colors.placeholder}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -194,7 +194,7 @@ export function TeamScreen(props: {
           <TextInput
             accessibilityLabel={z.phone}
             placeholder={`${z.phone} (+${dialForTimeZone(props.timeZone)})`}
-            placeholderTextColor="#a39e95"
+            placeholderTextColor={colors.placeholder}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   text: { fontSize: 15, color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
   ok: { color: '#2e7d32', fontSize: 15 },
-  waiting: { color: colors.gold, fontSize: 15, fontWeight: '600' },
+  waiting: { color: colors.accent, fontSize: 15, fontWeight: '600' },
   info: { color: '#2e7d32', fontSize: 15 },
   chip: {
     borderWidth: 1,

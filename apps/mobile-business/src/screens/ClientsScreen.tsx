@@ -95,7 +95,7 @@ export function ClientsScreen(props: {
         <TextInput
           accessibilityLabel={c.search}
           placeholder={c.search}
-          placeholderTextColor="#a39e95"
+          placeholderTextColor={colors.placeholder}
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => void search(query)}
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 17, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
-  tags: { color: colors.gold, fontSize: 14, fontWeight: '600' },
+  tags: { color: colors.accent, fontSize: 14, fontWeight: '600' },
   chip: {
     borderWidth: 1,
     borderColor: colors.line,

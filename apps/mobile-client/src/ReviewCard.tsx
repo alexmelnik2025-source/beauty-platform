@@ -104,7 +104,7 @@ export function ReviewCard(props: {
           <TextInput
             accessibilityLabel={r.text}
             placeholder={r.text}
-            placeholderTextColor="#9b9488"
+            placeholderTextColor={colors.placeholder}
             value={text}
             onChangeText={setText}
             maxLength={TEXT_MAX}
@@ -150,8 +150,8 @@ const styles = StyleSheet.create({
   stars: { flexDirection: 'row', gap: 4 },
   starButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   star: { fontSize: 32, color: colors.line },
-  starOn: { color: colors.gold },
-  given: { fontSize: 22, color: colors.gold, letterSpacing: 2 },
+  starOn: { color: colors.accent },
+  given: { fontSize: 22, color: colors.accent, letterSpacing: 2 },
   off: { color: colors.line },
   text: { fontSize: 15, color: colors.ink, lineHeight: 21 },
   muted: { color: colors.muted, fontSize: 13 },

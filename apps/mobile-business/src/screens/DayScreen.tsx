@@ -593,7 +593,7 @@ export function DayScreen(props: {
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  salon: { color: colors.gold, fontWeight: '700', fontSize: 15, flexShrink: 1 },
+  salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   sectionRow: { justifyContent: 'space-between', marginTop: 8 },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
   badge: {
     fontSize: 12,
     color: colors.ink,
-    backgroundColor: '#efe7d8',
+    backgroundColor: colors.soft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
   customer: { fontSize: 17, fontWeight: '600', color: colors.ink },
   info: { color: '#2e7d32', fontSize: 15 },
   block: {
-    backgroundColor: '#ece9e3',
+    backgroundColor: colors.soft,
     borderRadius: 12,
     padding: 12,
     gap: 4,

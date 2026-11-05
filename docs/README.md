@@ -1807,3 +1807,10 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
 - Выбранные в каталоге языки (`lib/catalogue-languages.ts` на сайте, `catalogLanguagesStore` в приложении) упорядочивают
   мастеров на странице салона: говорящие хотя бы на одном — первыми, остальные — в порядке салона (`speakersFirst`).
 - e2e — `catalogue-map.spec.ts` (скриншоты 160d, 160e); тест `speakersFirst` — `apps/mobile-client/test/booking.test.ts`.
+
+## Чёрно-белый стиль GESTALT (задача 190, часть 1)
+
+- Цвета приложений — только в `apps/mobile-client/src/ui.tsx` и `apps/mobile-business/src/ui.tsx` (`colors`):
+  `background` #f4f4f2, `card` #fff, `ink` и `accent` #111, `muted` #666, `line` #e2e2e2, `placeholder` #9a9a9a,
+  `soft` #ececec, `danger`. Экраны берут цвета только отсюда (бывший `gold` → `accent`). Зелёный и красный остаются
+  только для смысла (свободно / ошибка). На сайте — `:root` в `apps/web/app/globals.css` (`--ink` #111).

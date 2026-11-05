@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     paddingHorizontal: 16,
   },
-  optionOn: { borderColor: colors.gold, borderWidth: 2 },
+  optionOn: { borderColor: colors.accent, borderWidth: 2 },
   flag: { fontSize: 20 },
   optionText: { fontSize: 16, fontWeight: '600', color: colors.ink, flex: 1 },
   tick: { fontSize: 18, fontWeight: '700', color: colors.ink, width: 20, textAlign: 'center' },

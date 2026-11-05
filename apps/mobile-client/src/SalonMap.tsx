@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     height: HEIGHT,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#e8e4dc',
+    backgroundColor: colors.soft,
     position: 'relative',
   },
   tile: { position: 'absolute', width: 256, height: 256 },

@@ -287,11 +287,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stampReward: { borderColor: colors.gold },
+  stampReward: { borderColor: colors.accent },
   stampOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   stampText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   bar: { height: 10, borderRadius: 5, backgroundColor: colors.line, overflow: 'hidden' },
-  barFill: { height: 10, backgroundColor: colors.gold },
+  barFill: { height: 10, backgroundColor: colors.accent },
   row: {
     flexDirection: 'row',
     gap: 10,

@@ -3,13 +3,19 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 /** Small shared building blocks and colours of the business app. */
 export const colors = {
-  background: '#f6f4f0',
+  /**
+   * Task 190: strict black and white (GESTALT): light grey page, white cards, black text and
+   * buttons, thin grey lines; no beige or brown. `accent` is the salon's accent colour (black
+   * for now); `placeholder` and `soft` are the greys of hints and quiet backgrounds.
+   */
+  background: '#f4f4f2',
   card: '#ffffff',
-  ink: '#1d1d1b',
-  muted: '#6b6760',
-  line: '#e4dfd6',
-  accent: '#1d1d1b',
-  gold: '#c8a46a',
+  ink: '#111111',
+  muted: '#666666',
+  line: '#e2e2e2',
+  accent: '#111111',
+  placeholder: '#9a9a9a',
+  soft: '#ececec',
   danger: '#b3261e',
 };
 

@@ -141,7 +141,7 @@ export function HappyHoursScreen(props: {
             <TextInput
               accessibilityLabel={h.start}
               placeholder={h.start}
-              placeholderTextColor="#a39e95"
+              placeholderTextColor={colors.placeholder}
               value={form.start}
               onChangeText={(start) => setForm({ ...form, start })}
               keyboardType="numbers-and-punctuation"
@@ -150,7 +150,7 @@ export function HappyHoursScreen(props: {
             <TextInput
               accessibilityLabel={h.end}
               placeholder={h.end}
-              placeholderTextColor="#a39e95"
+              placeholderTextColor={colors.placeholder}
               value={form.end}
               onChangeText={(end) => setForm({ ...form, end })}
               keyboardType="numbers-and-punctuation"
@@ -160,7 +160,7 @@ export function HappyHoursScreen(props: {
           <TextInput
             accessibilityLabel={h.percent}
             placeholder={h.percent}
-            placeholderTextColor="#a39e95"
+            placeholderTextColor={colors.placeholder}
             value={form.percent}
             onChangeText={(percent) => setForm({ ...form, percent })}
             keyboardType="number-pad"
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   name: { fontSize: 17, fontWeight: '600', color: colors.ink },
-  discount: { fontSize: 22, fontWeight: '700', color: colors.gold },
+  discount: { fontSize: 22, fontWeight: '700', color: colors.accent },
   text: { fontSize: 15, color: colors.ink },
   label: { fontSize: 13, fontWeight: '700', color: colors.muted },
   muted: { color: colors.muted, fontSize: 15 },

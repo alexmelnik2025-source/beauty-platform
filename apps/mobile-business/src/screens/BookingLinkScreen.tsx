@@ -106,6 +106,6 @@ const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   link: { fontSize: 16, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
-  warn: { color: colors.gold, fontSize: 15, fontWeight: '600' },
+  warn: { color: colors.accent, fontSize: 15, fontWeight: '600' },
   info: { color: '#2e7d32', fontSize: 15 },
 });

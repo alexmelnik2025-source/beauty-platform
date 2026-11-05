@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   freeToday: { color: '#1f7a45', fontSize: 14, fontWeight: '600' },
   body: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   section: { color: colors.ink, fontSize: 17, fontWeight: '700' },
-  group: { color: colors.gold, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },
+  group: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   price: { color: colors.ink, fontSize: 15, fontWeight: '600' },
   photo: { width: 220, height: 150, borderRadius: 12, backgroundColor: colors.line },

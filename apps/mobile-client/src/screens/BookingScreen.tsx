@@ -732,7 +732,7 @@ export function BookingScreen(props: {
           <TextInput
             accessibilityLabel={b.codeTitle}
             placeholder="000000"
-            placeholderTextColor="#c9c3b8"
+            placeholderTextColor={colors.line}
             value={code}
             onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
             onSubmitEditing={() => void confirm()}
@@ -864,10 +864,10 @@ function Check(props: { label: string; checked: boolean; onChange: (v: boolean) 
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 14 },
   top: { flexDirection: 'row', marginLeft: -8 },
-  brand: { color: colors.gold, fontSize: 13, fontWeight: '700', letterSpacing: 2 },
+  brand: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 2 },
   section: { color: colors.ink, fontSize: 18, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  group: { color: colors.gold, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },
+  group: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },
   text: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   strong: { color: colors.ink, fontSize: 16, fontWeight: '600' },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 20 },
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderBottomColor: colors.line,
   },
-  progressDone: { color: colors.ink, borderBottomColor: colors.gold },
+  progressDone: { color: colors.ink, borderBottomColor: colors.accent },
   progressNow: { color: colors.ink, borderBottomColor: colors.ink },
   choice: {
     flexDirection: 'row',

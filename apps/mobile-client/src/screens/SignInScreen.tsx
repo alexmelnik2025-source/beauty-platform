@@ -65,7 +65,7 @@ export function SignInScreen(props: {
           <TextInput
             accessibilityLabel={t.signIn.email}
             placeholder={t.signIn.email}
-            placeholderTextColor="#a39e95"
+            placeholderTextColor={colors.placeholder}
             value={input}
             onChangeText={setInput}
             onSubmitEditing={() => void send()}
@@ -89,7 +89,7 @@ export function SignInScreen(props: {
           <TextInput
             accessibilityLabel={t.signIn.code}
             placeholder="000000"
-            placeholderTextColor="#c9c3b8"
+            placeholderTextColor={colors.line}
             value={code}
             onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
             onSubmitEditing={confirm}
@@ -133,7 +133,7 @@ export function SignInScreen(props: {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
-  brand: { color: colors.gold, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
+  brand: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   text: { color: colors.muted, fontSize: 16, lineHeight: 22 },
   input: {
     backgroundColor: colors.card,
