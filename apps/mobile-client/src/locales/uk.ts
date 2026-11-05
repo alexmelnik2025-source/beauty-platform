@@ -230,6 +230,7 @@ export const uk: Dictionary = {
     book: 'Записатися',
     bookHint: 'Без пароля і реєстрації — код підтвердження прийде на e-mail.',
     speaks: 'Говоримо',
+    freeToday: 'Вільний сьогодні',
     about: 'Про салон',
     hours: 'Години роботи',
     closed: 'зачинено',

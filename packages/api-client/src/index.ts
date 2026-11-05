@@ -20,6 +20,7 @@ export type Currency = NonNullable<
 
 /** The salon page for clients (`GET /v1/public/locations/{slug}`). */
 export type PublicLocation = Schemas['PublicLocation'];
+export type PublicFreeToday = Schemas['PublicFreeToday'];
 /** Booking terms and privacy policy of a salon (`GET …/legal`). */
 export type PublicLegalTexts = Schemas['PublicLegalTexts'];
 /** Free start times (`GET …/availability`). */

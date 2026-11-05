@@ -149,3 +149,17 @@ export const availabilitySchema = responseSchema(
   }),
 );
 export type AvailabilityResponse = z.infer<typeof availabilitySchema>;
+
+/** Task 120: "Wolne dziś" — the specialists a client can still book today. */
+export const publicFreeTodaySchema = responseSchema(
+  'PublicFreeToday',
+  z.strictObject({
+    date: z.string().describe("Today in the salon's time zone, YYYY-MM-DD"),
+    staffIds: z
+      .array(z.string())
+      .describe(
+        'Specialists with at least one free start time left today, for any of their services',
+      ),
+  }),
+);
+export type PublicFreeTodayResponse = z.infer<typeof publicFreeTodaySchema>;

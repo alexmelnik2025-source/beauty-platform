@@ -15,10 +15,12 @@ import { AvailabilityService } from './availability.service';
 import { photoUrl } from './photos.service';
 import {
   availabilitySchema,
+  publicFreeTodaySchema,
   publicLegalTextsSchema,
   publicLocationSchema,
   type AvailabilityResponse,
   type OpeningDay,
+  type PublicFreeTodayResponse,
   type PublicLegalTextsResponse,
   type PublicLocationResponse,
 } from './public.responses';
@@ -213,6 +215,21 @@ export class PublicLocationsController {
   ): Promise<AvailabilityResponse> {
     this.limiter.hit(`public:ip:${req.ip}`, 300, 60_000);
     return this.availability.forPublic(await this.findBookable(slug), query);
+  }
+
+  @Get('free-today')
+  @ApiOperation({
+    summary: '"Wolne dziś": specialists with a free start time left today',
+    description:
+      "Today in the salon's time zone, with its minimum lead time. A specialist counts when any of their services still fits (task 120).",
+  })
+  @ApiZodResponse(publicFreeTodaySchema)
+  async freeToday(
+    @Req() req: AppRequest,
+    @Param('slug') slug: string,
+  ): Promise<PublicFreeTodayResponse> {
+    this.limiter.hit(`public:ip:${req.ip}`, 300, 60_000);
+    return this.availability.freeToday(await this.findBookable(slug));
   }
 
   private async findBookable(slug: string): Promise<Location> {
