@@ -184,6 +184,22 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     await mine.getByRole('button', { name: 'Umów u: Kasia' }).click();
     await expect(app.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
     await shot(app, '165d-a-client-app-book-my-specialist');
+    // Task 180e: signed in - the visit is booked without a code, with the account's email.
+    await app
+      .getByRole('button', { name: /^\d{2}:\d{2}$/ })
+      .first()
+      .click();
+    await expect(app.getByRole('heading', { name: 'Twoje dane' })).toBeVisible();
+    await expect(app.getByText('Jesteś zalogowany(-a) — kod nie jest potrzebny.')).toBeVisible();
+    await expect(app.getByRole('textbox', { name: 'E-mail', exact: true })).toHaveValue(CLIENT);
+    await expect(app.getByRole('button', { name: 'Wyślij kod' })).toHaveCount(0);
+    await app.getByRole('textbox', { name: 'Imię i nazwisko' }).fill('Piotr Zieliński');
+    await app.getByRole('textbox', { name: 'Telefon' }).fill('600 300 200');
+    await app.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }).click();
+    await shot(app, '180e-b-client-app-signed-in-details');
+    await app.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+    await expect(app.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+    await shot(app, '180e-c-client-app-signed-in-booked');
   } finally {
     await phone.close();
     clientApp.server.close();

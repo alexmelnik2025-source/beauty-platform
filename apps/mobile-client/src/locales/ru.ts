@@ -205,6 +205,7 @@ export const ru: Dictionary = {
     badEmail: 'Введите адрес e-mail, например anna@example.com.',
     termsNeeded: 'Отметьте согласие с правилами записи.',
     inVisits: 'Визит уже в «Моих визитах».',
+    noCodeNeeded: 'Вы вошли — код не нужен.',
     toVisits: 'Мои визиты',
     signInLead: 'Войдите кодом из письма — увидите все визиты и сможете менять их в приложении.',
     signInButton: 'Войти в «Мои визиты»',
