@@ -1045,7 +1045,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(kasiaPage, '23-staff-schedule-phone');
 
   // ── "Remember me": a second client books; the visit is already in "My visits" ──
-  const olaPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+  // An address of her own: her bookings do not use up the holds of the other browsers (5 per address).
+  const olaPhone = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    isMobile: true,
+    extraHTTPHeaders: freshAddress(),
+  });
   const ola = await olaPhone.newPage();
   await ola.goto(`/pl/b/${location.slug}`);
   // The salon's photo under its name; a tap opens it full size, Escape closes it.
