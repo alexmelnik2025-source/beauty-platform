@@ -261,6 +261,8 @@ export const en: Dictionary = {
     mapTitle: 'Map of salons',
     marker: 'Salon on the map: {name}',
     mapEmpty: 'These salons have not marked their place on the map yet.',
+    mapOffline:
+      'The map (OpenStreetMap) could not be loaded — check the internet. The salons are in the list below.',
     mapHint: 'Tap a point on the map to see the salon.',
     speakingStaff: 'Specialists speaking {language}: {n}',
     freeToday: 'Free times today',

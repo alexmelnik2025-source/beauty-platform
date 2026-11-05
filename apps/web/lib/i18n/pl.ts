@@ -137,6 +137,11 @@ export const pl = {
     showMap: 'Pokaż na mapie',
     mapTitle: 'Mapa salonów',
     noCoordinates: 'Ten salon nie zaznaczył jeszcze miejsca na mapie.',
+    mapEmpty: 'Żaden salon z tej strony nie zaznaczył jeszcze miejsca na mapie — wybierz z listy.',
+    mapOffline:
+      'Nie udało się wczytać mapy (OpenStreetMap) — sprawdź internet. Salony są na liście.',
+    notOnMap:
+      'Twojego salonu nie ma jeszcze na mapie katalogu. Wklej poniżej współrzędne z Map Google — klienci zobaczą salon na mapie (bez nich salon jest tylko na liście).',
     priceFrom: 'Usługi od {price}',
     coordinates: 'Miejsce na mapie katalogu',
     coordinatesHint:

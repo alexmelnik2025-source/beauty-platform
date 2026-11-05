@@ -267,6 +267,8 @@ export const sq: Dictionary = {
     mapTitle: 'Harta e salloneve',
     marker: 'Salloni në hartë: {name}',
     mapEmpty: 'Këto sallone nuk e kanë shënuar ende vendin në hartë.',
+    mapOffline:
+      'Harta (OpenStreetMap) nuk u ngarkua — kontrolloni internetin. Sallonet janë në listën më poshtë.',
     mapHint: 'Prekni një pikë në hartë për të parë sallonin.',
     speakingStaff: 'Specialistë që flasin {language}: {n}',
     freeToday: 'Sot ka orare të lira',

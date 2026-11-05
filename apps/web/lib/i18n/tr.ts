@@ -74,6 +74,12 @@ export const tr: Dict = {
     showMap: 'Haritada göster',
     mapTitle: 'Salon haritası',
     noCoordinates: 'Bu salon henüz haritada yerini işaretlemedi.',
+    mapEmpty:
+      'Bu sayfadaki salonların hiçbiri henüz haritada yerini işaretlemedi — listeden seçin.',
+    mapOffline:
+      'Harita (OpenStreetMap) yüklenemedi — internetinizi kontrol edin. Salonlar listede.',
+    notOnMap:
+      'Salonunuz henüz katalog haritasında yok. Google Haritalar’dan koordinatları aşağıya yapıştırın.',
     priceFrom: 'Hizmetler {price} itibaren',
   },
   phone: {

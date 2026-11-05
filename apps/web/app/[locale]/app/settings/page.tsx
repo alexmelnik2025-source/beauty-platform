@@ -48,6 +48,8 @@ export default function SettingsPage() {
   }, [url, t]);
 
   if (!form || !loc) return error ? <ErrorBox>{error}</ErrorBox> : <Spinner />;
+  // Task 191: a salon without a place is only in the catalogue's list, not on its map.
+  const loadedWithoutPlace = loc.latitude === null || loc.longitude === null;
   const link = `${window.location.origin}/${locale}/b/${loc.slug}`;
   const num = (key: keyof LocationSettings) => (e: { target: { value: string } }) =>
     setForm({ ...form, [key]: Number(e.target.value) });
@@ -190,6 +192,11 @@ export default function SettingsPage() {
               />
             </label>
           </div>
+          {loadedWithoutPlace ? (
+            <p className="note" role="note">
+              {t.directory.notOnMap}
+            </p>
+          ) : null}
           <label className="field">
             <span>{t.directory.coordinates}</span>
             <input

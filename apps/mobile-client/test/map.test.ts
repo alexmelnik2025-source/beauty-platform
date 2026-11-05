@@ -32,6 +32,11 @@ describe('catalogue map (task 160)', () => {
     const layout = mapLayout([{ latitude: 50.06, longitude: 19.94 }], 300, 200)!;
     expect(layout.zoom).toBe(16);
     expect(layout.markers[0]).toMatchObject({ x: 150, y: 100 });
-    expect(mapLayout([], 300, 200)).toBeNull();
+    expect(mapLayout([{ latitude: 50, longitude: 19 }], 0, 200)).toBeNull();
+    // Task 191: no salon on the map — the country is still shown, without markers.
+    const empty = mapLayout([], 300, 200)!;
+    expect(empty.zoom).toBe(6);
+    expect(empty.markers).toEqual([]);
+    expect(empty.tiles.length).toBeGreaterThan(0);
   });
 });
