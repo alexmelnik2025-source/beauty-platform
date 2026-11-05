@@ -60,12 +60,14 @@ export function filterLanguages(staff: PublicLocation['staff']): SpokenLanguage[
   });
 }
 
-/** The specialists who speak the language; null = no filter. */
+/** The specialists who speak any of the languages (task 192); none chosen = no filter. */
 export function speakingStaff(
   staff: PublicLocation['staff'],
-  language: SpokenLanguage | null,
+  languages: SpokenLanguage[],
 ): PublicLocation['staff'] {
-  return language ? staff.filter((s) => (s.languages ?? []).includes(language)) : staff;
+  return languages.length > 0
+    ? staff.filter((s) => (s.languages ?? []).some((code) => languages.includes(code)))
+    : staff;
 }
 
 /** One line under a service: the specialists with the same own price and length (task 70c). */

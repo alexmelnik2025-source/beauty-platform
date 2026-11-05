@@ -102,8 +102,10 @@ describe('booking steps', () => {
       { id: 'alex', languages: ['en', 'pl'] },
     ] as unknown as PublicLocation['staff'];
     expect(filterLanguages(staff)).toEqual(['uk', 'en']);
-    expect(speakingStaff(staff, 'en').map((s) => s.id)).toEqual(['alex']);
-    expect(speakingStaff(staff, null)).toHaveLength(3);
+    expect(speakingStaff(staff, ['en']).map((s) => s.id)).toEqual(['alex']);
+    expect(speakingStaff(staff, [])).toHaveLength(3);
+    // Task 192: several languages - anyone speaking one of them.
+    expect(speakingStaff(staff, ['en', 'uk']).map((s) => s.id)).toEqual(['kasia', 'alex']);
     expect(filterLanguages(staff.slice(1, 2))).toEqual([]);
   });
 

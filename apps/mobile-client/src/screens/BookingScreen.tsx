@@ -113,7 +113,8 @@ export function BookingScreen(props: {
   /** Task 80: the client's wishes, asked on the code step when the salon asks anything. */
   const [wishes, setWishes] = useState<VisitWishes>(NO_WISHES);
   /** Task 81: "Speaks EN" — only the specialists who speak the chosen language. */
-  const [speaks, setSpeaks] = useState<SpokenLanguage | null>(null);
+  // Task 192: several languages at once (anyone speaking one of them).
+  const [speaks, setSpeaks] = useState<SpokenLanguage[]>([]);
   // Shown until the client picks something: the service or specialist is no longer online.
   const [gone, setGone] = useState(start.gone);
   const presetStep = props.preset && start.step !== 'service' ? start.step : null;
@@ -140,7 +141,7 @@ export function BookingScreen(props: {
   const service = salon.services.find((s) => s.id === serviceId);
   const staffList = staffFor(salon, serviceId);
   const languages = filterLanguages(staffList);
-  const activeSpeaks = speaks && languages.includes(speaks) ? speaks : null;
+  const activeSpeaks = speaks.filter((l) => languages.includes(l));
   const shownStaff = speakingStaff(staffList, activeSpeaks);
   /** Task 62: specialists' own prices — each one's price is shown when they differ. */
   const pricesDiffer = !!service && service.priceFromGrosze < service.priceToGrosze;
@@ -478,21 +479,27 @@ export function BookingScreen(props: {
               <Text style={styles.muted}>{b.speaksFilter}</Text>
               <Chip
                 label={b.speaksAll}
-                pressed={activeSpeaks === null}
-                onPress={() => setSpeaks(null)}
+                pressed={activeSpeaks.length === 0}
+                onPress={() => setSpeaks([])}
               />
               {languages.map((l) => (
                 <Chip
                   key={l}
                   label={t.spoken[l]}
-                  pressed={activeSpeaks === l}
-                  onPress={() => setSpeaks(l)}
+                  pressed={activeSpeaks.includes(l)}
+                  onPress={() =>
+                    setSpeaks(
+                      activeSpeaks.includes(l)
+                        ? activeSpeaks.filter((x) => x !== l)
+                        : [...activeSpeaks, l],
+                    )
+                  }
                 />
               ))}
             </View>
           ) : null}
           {/* "Any specialist" could pick someone without the language: hidden while filtering. */}
-          {activeSpeaks ? null : (
+          {activeSpeaks.length > 0 ? null : (
             <Choice
               title={b.anyStaff}
               meta={b.anyStaffHint}

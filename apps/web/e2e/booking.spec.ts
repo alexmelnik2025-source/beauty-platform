@@ -327,6 +327,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(client.getByRole('button', { name: /Kasia/ })).toHaveCount(0);
   await expect(client.getByRole('button', { name: /Dowolny specjalista/ })).toHaveCount(0);
   await shot(client, '02l-client-staff-speaks-en');
+  // Task 192: Ukrainian or English - everyone speaking either of them (Alex stays).
+  await speaks.getByRole('button', { name: 'Mówi po: ukraiński' }).click();
+  await expect(speaks.getByRole('button', { name: 'Mówi po: ukraiński' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(speaks.getByRole('button', { name: 'Mówi po: angielski' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(client.getByRole('button', { name: /Alex/ })).toBeVisible();
+  await shot(client, '192b-client-staff-speaks-or');
   await speaks.getByRole('button', { name: 'Wszyscy' }).click();
   await expect(client.getByRole('button', { name: /Kasia/ })).toBeVisible();
   await client.getByRole('button', { name: /Kasia/ }).click();
@@ -1630,6 +1642,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByRole('button', { name: /^Kasia/ })).toHaveCount(0);
     await expect(phone.getByRole('button', { name: /^Dowolny specjalista/ })).toHaveCount(0);
     await shot(phone, '64e-client-app-book-speaks');
+    // Task 192: Ukrainian too - anyone speaking either language.
+    await phone.getByRole('button', { name: 'ukraiński', exact: true }).click();
+    await expect(phone.getByRole('button', { name: 'ukraiński', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(phone.getByRole('button', { name: /^Alex/ })).toBeVisible();
+    await shot(phone, '192c-client-app-speaks-or');
     await phone.getByRole('button', { name: 'Wszyscy', exact: true }).click();
     await phone.getByRole('button', { name: /^Kasia/ }).click();
     await expect(phone.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();

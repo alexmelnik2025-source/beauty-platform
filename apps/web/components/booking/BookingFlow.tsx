@@ -136,8 +136,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   const [rowStaff, setRowStaff] = useState<string[]>([]);
   /** The client came from the price list straight to the times: "Back" returns there. */
   const [fromList, setFromList] = useState(false);
-  /** Task 81: "Speaks EN" — only specialists who speak the chosen language. */
-  const [speaks, setSpeaks] = useState<Spoken | ''>('');
+  /** Task 81: "Speaks EN" — only specialists who speak the chosen language (task 192: any of several). */
+  const [speaks, setSpeaks] = useState<Spoken[]>([]);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [day, setDay] = useState('');
   const [hold, setHold] = useState<Hold | null>(null);
@@ -460,7 +460,7 @@ export function BookingFlow({ slug }: { slug: string }) {
     const n = staffOfService.filter((s) => (s.languages ?? []).includes(code)).length;
     return n > 0 && n < staffOfService.length;
   });
-  const activeSpeaks = speaks && filterLanguages.includes(speaks) ? speaks : '';
+  const activeSpeaks = speaks.filter((code) => filterLanguages.includes(code));
   /** Task 62: each specialist's price, shown when the service's prices differ by specialist. */
   const pricesDiffer = !!service && service.priceFromGrosze < service.priceToGrosze;
   function staffPrice(s: PublicLocation['staff'][number]): ReactNode {
@@ -472,9 +472,10 @@ export function BookingFlow({ slug }: { slug: string }) {
       </span>
     );
   }
-  const staffForService = activeSpeaks
-    ? staffOfService.filter((s) => (s.languages ?? []).includes(activeSpeaks))
-    : staffOfService;
+  const staffForService =
+    activeSpeaks.length > 0
+      ? staffOfService.filter((s) => speaksAny(s.languages, activeSpeaks))
+      : staffOfService;
   const daySlots = (slots ?? []).filter((s) => s.date === day);
   const daysWithSlots = new Set((slots ?? []).map((s) => s.date));
   const groups = [
@@ -560,8 +561,8 @@ export function BookingFlow({ slug }: { slug: string }) {
                 <span className="chips" role="group" aria-labelledby="speaks-filter">
                   <button
                     type="button"
-                    aria-pressed={activeSpeaks === ''}
-                    onClick={() => setSpeaks('')}
+                    aria-pressed={activeSpeaks.length === 0}
+                    onClick={() => setSpeaks([])}
                   >
                     {t.languages.filterAll}
                   </button>
@@ -569,9 +570,9 @@ export function BookingFlow({ slug }: { slug: string }) {
                     <button
                       key={code}
                       type="button"
-                      aria-pressed={activeSpeaks === code}
+                      aria-pressed={activeSpeaks.includes(code)}
                       aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
-                      onClick={() => setSpeaks(code)}
+                      onClick={() => setSpeaks(toggled(activeSpeaks, code))}
                     >
                       <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
                     </button>
@@ -581,7 +582,7 @@ export function BookingFlow({ slug }: { slug: string }) {
             ) : null}
             <ul className="choice-list">
               {/* "Any specialist" could pick someone without the language: hidden while filtering. */}
-              {activeSpeaks ? null : (
+              {activeSpeaks.length > 0 ? null : (
                 <li>
                   <button
                     type="button"
@@ -990,6 +991,16 @@ export function BookingFlow({ slug }: { slug: string }) {
   );
 }
 
+/** Task 192: a specialist speaking any of the chosen languages. */
+function speaksAny(languages: Spoken[] | undefined, chosen: Spoken[]): boolean {
+  return (languages ?? []).some((code) => chosen.includes(code));
+}
+
+/** Task 192: the chip adds its language to the choice, or takes it away. */
+function toggled(chosen: Spoken[], code: Spoken): Spoken[] {
+  return chosen.includes(code) ? chosen.filter((c) => c !== code) : [...chosen, code];
+}
+
 function ServiceList({
   salon,
   speaks,
@@ -997,8 +1008,8 @@ function ServiceList({
   onPick,
 }: {
   salon: PublicLocation;
-  speaks: Spoken | '';
-  onSpeaks: (code: Spoken | '') => void;
+  speaks: Spoken[];
+  onSpeaks: (codes: Spoken[]) => void;
   /** Without a row: the specialist step; with one: straight to the times of these specialists. */
   onPick: (serviceId: string, row?: string[]) => void;
 }) {
@@ -1023,10 +1034,9 @@ function ServiceList({
     const n = salon.staff.filter((s) => (s.languages ?? []).includes(code)).length;
     return n > 0 && n < salon.staff.length;
   });
-  const active = speaks && filterLanguages.includes(speaks) ? speaks : '';
-  const team = active
-    ? salon.staff.filter((s) => (s.languages ?? []).includes(active))
-    : salon.staff;
+  const active = speaks.filter((code) => filterLanguages.includes(code));
+  const team =
+    active.length > 0 ? salon.staff.filter((s) => speaksAny(s.languages, active)) : salon.staff;
   const length = (minutes: number) => formatLength(minutes, t.booking.hoursShort, t.common.minutes);
 
   const groups = [
@@ -1049,7 +1059,7 @@ function ServiceList({
           return { service, doing, rows: priceRows(service, team) };
         })
         // While filtering by language, a service nobody speaking it does is hidden.
-        .filter((x) => !active || x.rows.length > 0),
+        .filter((x) => active.length === 0 || x.rows.length > 0),
     }))
     .filter((g) => g.services.length > 0);
 
@@ -1065,16 +1075,16 @@ function ServiceList({
         <div className="field">
           <span id="speaks-list-filter">{t.languages.filterLabel}</span>
           <span className="chips" role="group" aria-labelledby="speaks-list-filter">
-            <button type="button" aria-pressed={active === ''} onClick={() => onSpeaks('')}>
+            <button type="button" aria-pressed={active.length === 0} onClick={() => onSpeaks([])}>
               {t.languages.filterAll}
             </button>
             {filterLanguages.map((code) => (
               <button
                 key={code}
                 type="button"
-                aria-pressed={active === code}
+                aria-pressed={active.includes(code)}
                 aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
-                onClick={() => onSpeaks(code)}
+                onClick={() => onSpeaks(toggled(active, code))}
               >
                 <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
               </button>
@@ -1089,7 +1099,7 @@ function ServiceList({
             {g.services.map(({ service: s, doing, rows }) => {
               // Everyone doing the service at one price: one "All specialists" row.
               const allOneRow =
-                !active &&
+                active.length === 0 &&
                 rows.length === 1 &&
                 doing.length > 1 &&
                 rows[0]?.staff.length === doing.length;
