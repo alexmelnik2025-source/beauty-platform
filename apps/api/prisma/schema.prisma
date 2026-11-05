@@ -476,6 +476,8 @@ model Location {
   cancellationGuard CancellationGuard?
   guardReleases     CancellationGuardRelease[]
   visitPhotos       VisitPhoto[]
+  reviewSettings    ReviewSettings?
+  reviews           VisitReview[]
 
   @@index([organizationId])
   @@map("location")
@@ -562,6 +564,7 @@ model StaffMember {
   timeBlocks   TimeBlock[]
   waitlist     WaitlistEntry[]
   photo        Photo?
+  reviews      VisitReview[]
 
   @@unique([locationId, userId])
   @@index([locationId])
@@ -845,6 +848,7 @@ model Appointment {
   accessTokens     AppointmentAccessToken[]
   loyaltyEntries   LoyaltyTransaction[]
   wishPhotos       VisitPhoto[]
+  review           VisitReview?
 
   @@index([locationId, startAt])
   @@index([staffId, startAt])
@@ -1331,4 +1335,39 @@ model CancellationGuardRelease {
   @@index([locationId, customerId, createdAt], map: "cancellation_guard_release_lookup_idx")
   @@index([customerId])
   @@map("cancellation_guard_release")
+}
+
+/// Task 165b: reviews after the visit. Off until the salon switches them on in its settings.
+model ReviewSettings {
+  locationId   String   @id @map("location_id") @db.Uuid
+  enabled      Boolean  @default(false)
+  /// The client is asked for a review this many hours after the visit ends.
+  requestHours Int      @default(2) @map("request_hours")
+  version      Int      @default(1)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@map("review_settings")
+}
+
+/// Task 165b: the client's rating (1–5) of the specialist and an optional text — one per
+/// visit that took place. Shown on the salon page without the client's name.
+model VisitReview {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  appointmentId String   @unique @map("appointment_id") @db.Uuid
+  locationId    String   @map("location_id") @db.Uuid
+  staffId       String   @map("staff_id") @db.Uuid
+  rating        Int
+  text          String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  location    Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff       StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, createdAt])
+  @@index([staffId])
+  @@map("visit_review")
 }
