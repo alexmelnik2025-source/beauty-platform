@@ -489,6 +489,7 @@ export const en: Dict = {
       'location.created': 'Salon added',
       'location.updated': 'Salon settings changed',
       'location.cancellation_guard_set': 'Cancellation protection changed',
+      'location.review_settings_set': 'Review settings changed',
       'service.created': 'Service added',
       'service.updated': 'Service changed',
       'service.deleted': 'Service deleted',

@@ -489,6 +489,7 @@ export const uk: Dict = {
       'location.created': 'Додано салон',
       'location.updated': 'Змінено налаштування салону',
       'location.cancellation_guard_set': 'Змінено захист від скасувань',
+      'location.review_settings_set': 'Змінено налаштування відгуків',
       'service.created': 'Додано послугу',
       'service.updated': 'Змінено послугу',
       'service.deleted': 'Видалено послугу',
