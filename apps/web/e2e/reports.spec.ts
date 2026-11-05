@@ -17,7 +17,7 @@ import { serveApp } from './mobile-app';
  * Screenshots 74 (computer) and 74b (phone) go to e2e/screenshots.
  * "Pobierz CSV" downloads every visit of the period for the accountant (task 30).
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
- * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d.
+ * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d, app 75c.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -266,6 +266,10 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
     await expect(app.getByText('poniedziałek', { exact: true })).toBeVisible();
     await shot(app, '75b-business-app-reports-weekdays');
+    // "Obłożenie" in the app too (task 141).
+    await app.getByText(/^Obłożenie: \d+%$/).scrollIntoViewIfNeeded();
+    await expect(app.getByText('zajęte 1,5 z 360 godz.').first()).toBeVisible();
+    await shot(app, '75c-business-app-reports-occupancy');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
   } finally {
