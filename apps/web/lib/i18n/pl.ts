@@ -446,6 +446,7 @@ export const pl = {
       'location.created': 'Dodano salon',
       'location.updated': 'Zmieniono ustawienia salonu',
       'location.cancellation_guard_set': 'Zmieniono ochronę przed odwołaniami',
+      'location.review_settings_set': 'Zmieniono ustawienia opinii',
       'service.created': 'Dodano usługę',
       'service.updated': 'Zmieniono usługę',
       'service.deleted': 'Usunięto usługę',
