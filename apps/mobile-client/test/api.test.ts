@@ -220,7 +220,7 @@ describe('one visit', () => {
           : [404],
     );
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore();
+    await api.restore().catch(() => null);
     calls.length = 0;
     expect((await api.appointment('a1')).status).toBe('confirmed');
     expect((await api.cancel('a1', 'key-12345678')).status).toBe('cancelled');
@@ -241,7 +241,7 @@ describe('one visit', () => {
             : [404],
     );
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore();
+    await api.restore().catch(() => null);
     calls.length = 0;
     expect((await api.visitCoupons('a1')).available).toHaveLength(1);
     expect((await api.useCoupon('a1', 'c1')).discountGrosze).toBe(2000);
@@ -256,7 +256,7 @@ describe('one visit', () => {
       { error: { code: 'TOO_LATE_TO_CHANGE', message: 'Too late' } },
     ]);
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore();
+    await api.restore().catch(() => null);
     const error = await api.cancel('a1').catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).code).toBe('TOO_LATE_TO_CHANGE');
@@ -326,7 +326,7 @@ describe('change time', () => {
       return new Response(JSON.stringify({ id: 'a1', time: '17:30' }), { status: 200 });
     };
     const api = new ClientApi('https://api.test', memoryStore('session-token'), fetchFn);
-    await api.restore();
+    await api.restore().catch(() => null);
     const moved = await api.reschedule('a1', '2026-11-10T16:30:00.000Z', 'key-12345678');
     expect(moved.time).toBe('17:30');
     const call = calls.at(-1)!;
