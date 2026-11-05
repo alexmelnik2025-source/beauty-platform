@@ -15,6 +15,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PushModule } from './push/push.module';
 import { ReportsModule } from './reports/reports.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
 
@@ -33,6 +34,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     ClientModule,
     PushModule,
     ReportsModule,
+    ReviewsModule,
     HealthModule,
     WaitlistModule,
     AdminModule,

@@ -466,6 +466,7 @@ export const ru: Dict = {
       'location.created': 'Добавлен салон',
       'location.updated': 'Изменены настройки салона',
       'location.cancellation_guard_set': 'Изменена защита от отмен',
+      'location.review_settings_set': 'Изменены настройки отзывов',
       'service.created': 'Добавлена услуга',
       'service.updated': 'Изменена услуга',
       'service.deleted': 'Удалена услуга',

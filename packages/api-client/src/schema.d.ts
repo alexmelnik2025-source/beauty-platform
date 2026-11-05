@@ -2376,6 +2376,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My review of this visit and whether I can (still) write it */
+        get: operations["ClientReviewsController_get"];
+        /**
+         * Write or change my review of this visit (1–5 stars, optional words)
+         * @description 409 REVIEW_NOT_POSSIBLE when the salon does not collect reviews, the visit has not taken place, or it ended more than 30 days ago.
+         */
+        put: operations["ClientReviewsController_write"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations/{slug}/waitlist": {
         parameters: {
             query?: never;
@@ -2464,6 +2485,88 @@ export interface paths {
          * @description No email is sent; removing twice is fine. The entry is kept as cancelled.
          */
         post: operations["WaitlistSalonController_remove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/review-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review settings of the location (off until the salon saves them) */
+        get: operations["ReviewsController_getSettings"];
+        /**
+         * Switch reviews on or off and set when the client is asked
+         * @description version: 0 before the first save; 409 VERSION_CONFLICT when someone saved first. Switching off hides the reviews from the salon page (they are kept).
+         */
+        put: operations["ReviewsController_updateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reviews of the location, newest first (20 per page)
+         * @description With the client’s name. Staff without “all appointments” see only reviews of their own visits.
+         */
+        get: operations["ReviewsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/locations/{slug}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reviews on the salon page, newest first (20 per page), without client data
+         * @description enabled=false and nothing else while the salon does not collect reviews.
+         */
+        get: operations["PublicReviewsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The client’s review of the visit behind a "manage" link */
+        get: operations["PublicReviewsController_get"];
+        /**
+         * Write or change the review of the visit (1–5 stars, optional words)
+         * @description 409 REVIEW_NOT_POSSIBLE when the salon does not collect reviews, the visit has not taken place, or it ended more than 30 days ago.
+         */
+        put: operations["PublicReviewsController_write"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4739,6 +4842,32 @@ export interface components {
                 photoUrl: string | null;
             }[];
         };
+        PublicReviews: {
+            /** @description false: the salon does not collect reviews (nothing to show) */
+            enabled: boolean;
+            count: number;
+            /** @description Average stars, one decimal; null without reviews */
+            average: number | null;
+            /** @description Active specialists with at least one review, salon order */
+            staff: {
+                staffId: string;
+                displayName: string;
+                count: number;
+                /** @description Average stars, one decimal; null without reviews */
+                average: number | null;
+            }[];
+            items: {
+                id: string;
+                rating: number;
+                text: string | null;
+                staffId: string;
+                staffName: string;
+                serviceName: string;
+                createdAt: string;
+            }[];
+            /** @description Pass as `before` for the next page */
+            nextBefore: string | null;
+        };
         PublicSalonDirectory: {
             items: {
                 slug: string;
@@ -4783,6 +4912,12 @@ export interface components {
         PushPublicKey: {
             /** @description null: push messages are off on this server */
             publicKey: string | null;
+        };
+        ReviewSettings: {
+            enabled: boolean;
+            requestHours: number;
+            /** @description 0 = never saved (defaults: off) */
+            version: number;
         };
         SalonReport: {
             location: {
@@ -4896,6 +5031,28 @@ export interface components {
                     percent: number;
                 }[];
             };
+        };
+        SalonReviews: {
+            enabled: boolean;
+            count: number;
+            /** @description Average stars, one decimal; null without reviews */
+            average: number | null;
+            items: {
+                id: string;
+                rating: number;
+                text: string | null;
+                staffId: string;
+                staffName: string;
+                serviceName: string;
+                appointmentId: string;
+                visitStartAt: string;
+                customerId: string | null;
+                /** @description null after the client was anonymised */
+                customerName: string | null;
+                createdAt: string;
+                updatedAt: string;
+            }[];
+            nextBefore: string | null;
         };
         SalonWaitlist: {
             /** @description The first day listed (YYYY-MM-DD) */
@@ -5287,6 +5444,18 @@ export interface components {
             }[];
             /** @description When the photos are deleted (90 days after the visit); null for a hold */
             deleteAfter: string | null;
+        };
+        VisitReview: {
+            /** @description The salon collects reviews, the visit took place and it ended less than 30 days ago */
+            canReview: boolean;
+            /** @description Until when the review can be written or changed */
+            reviewUntil: string | null;
+            review: {
+                rating: number;
+                text: string | null;
+                createdAt: string;
+                updatedAt: string;
+            } | null;
         };
         WaitlistJoined: {
             /** @description YYYY-MM-DD in the salon time zone */
@@ -9598,6 +9767,57 @@ export interface operations {
             };
         };
     };
+    ClientReviewsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReview"];
+                };
+            };
+        };
+    };
+    ClientReviewsController_write: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 1–5 stars for the specialist */
+                    rating: number;
+                    /** @description Optional words; an empty text removes them */
+                    text?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReview"];
+                };
+            };
+        };
+    };
     WaitlistController_join: {
         parameters: {
             query?: never;
@@ -9723,6 +9943,162 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalonWaitlistEntry"];
+                };
+            };
+        };
+    };
+    ReviewsController_getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewSettings"];
+                };
+            };
+        };
+    };
+    ReviewsController_updateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 0 before the first save, then the returned version */
+                    version: number;
+                    /** @description Clients may review visits that took place; reviews are public */
+                    enabled: boolean;
+                    /** @description The client is asked for a review this many hours after the visit ends */
+                    requestHours: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewSettings"];
+                };
+            };
+        };
+    };
+    ReviewsController_list: {
+        parameters: {
+            query?: {
+                /** @description Only reviews of this specialist */
+                staffId?: unknown;
+                /** @description Next page: nextBefore of the previous page */
+                before?: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonReviews"];
+                };
+            };
+        };
+    };
+    PublicReviewsController_list: {
+        parameters: {
+            query?: {
+                /** @description Only reviews of this specialist */
+                staffId?: unknown;
+                /** @description Next page: nextBefore of the previous page */
+                before?: unknown;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicReviews"];
+                };
+            };
+        };
+    };
+    PublicReviewsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReview"];
+                };
+            };
+        };
+    };
+    PublicReviewsController_write: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 1–5 stars for the specialist */
+                    rating: number;
+                    /** @description Optional words; an empty text removes them */
+                    text?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReview"];
                 };
             };
         };
