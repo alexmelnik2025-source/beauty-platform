@@ -387,6 +387,54 @@ export function BookingFlow({ slug }: { slug: string }) {
     }
   }
 
+  /** Task 180e: signed in to "My visits" - the session proved the email, no code is needed. */
+  async function confirmSignedIn(e: FormEvent) {
+    e.preventDefault();
+    if (!hold) return;
+    setBusy(true);
+    setError('');
+    try {
+      const done = await api<{
+        appointment: PublicAppointment;
+        manageToken: string;
+        signedIn: boolean;
+      }>(`/v1/client/holds/${hold.holdId}/confirm`, {
+        method: 'POST',
+        auth: false,
+        idempotencyKey: `confirm-signed-in-${hold.holdId}`,
+        body: {
+          holdToken: hold.holdToken,
+          name: contact.name,
+          phone: normalizePhone(contact.phone, dial),
+          locale,
+          acceptTerms: contact.acceptTerms,
+          marketingConsent: contact.marketingConsent,
+          ...(asksWishes(salon?.wishQuestions) ? { wishes } : {}),
+        },
+      });
+      if (asksWishes(salon?.wishQuestions)) saveWishes(remember ? wishes : null);
+      saveRemembered(
+        remember
+          ? { name: contact.name, phone: normalizePhone(contact.phone, dial), email: contact.email }
+          : null,
+      );
+      setResult(done);
+      setStep('done');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        // The session ended meanwhile: the usual code step.
+        setSignedInAs(null);
+        setError(errorText(t, err));
+      } else if (err instanceof ApiError && ['HOLD_EXPIRED', 'NOT_FOUND'].includes(err.code)) {
+        backToTime(err);
+      } else {
+        setError(errorText(t, err));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirm(e: FormEvent) {
     e.preventDefault();
     if (!hold) return;
@@ -779,11 +827,11 @@ export function BookingFlow({ slug }: { slug: string }) {
         ) : null}
 
         {step === 'details' && hold ? (
-          <form className="form" onSubmit={sendCode}>
+          <form className="form" onSubmit={signedInAs ? confirmSignedIn : sendCode}>
             <h2>{t.booking.yourDetails}</h2>
             {signedInAs ? (
               <p className="note small" data-testid="signed-in-as">
-                {fill(t.booking.signedInAs, { email: signedInAs })}
+                {fill(t.booking.signedInAs, { email: signedInAs })} {t.booking.noCodeNeeded}
               </p>
             ) : null}
             {remembered || signedInAs ? (
@@ -813,6 +861,8 @@ export function BookingFlow({ slug }: { slug: string }) {
                 type="email"
                 autoComplete="email"
                 required
+                // Task 180e: the email of the session; another one - "To nie ja".
+                readOnly={!!signedInAs}
                 value={contact.email}
                 onChange={(e) => setContact({ ...contact, email: e.target.value })}
               />
@@ -858,7 +908,16 @@ export function BookingFlow({ slug }: { slug: string }) {
                 </span>
               </label>
             )}
-            {salon.codeChannels?.includes('sms') ? (
+            {signedInAs && wishQuestions ? (
+              <section className="wishes-step" aria-labelledby="wishes-step-title">
+                <h3 id="wishes-step-title">{t.wishStep.title}</h3>
+                <p className="muted small">{t.wishStep.lead}</p>
+                {wishesRemembered ? <p className="note small">{t.wishStep.remembered}</p> : null}
+                <WishesPicker questions={wishQuestions} value={wishes} onChange={setWishes} />
+              </section>
+            ) : null}
+            {signedInAs && service?.wishPhotos ? <WishPhotos hold={hold} /> : null}
+            {!signedInAs && salon.codeChannels?.includes('sms') ? (
               <div className="field">
                 <span id="code-via">{t.booking.codeVia}</span>
                 <span className="seg seg--wide" role="group" aria-labelledby="code-via">
@@ -880,7 +939,7 @@ export function BookingFlow({ slug }: { slug: string }) {
               </div>
             ) : null}
             <button className="btn btn--block" disabled={busy}>
-              {t.booking.sendCode}
+              {signedInAs ? t.booking.confirm : t.booking.sendCode}
             </button>
           </form>
         ) : null}

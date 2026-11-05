@@ -1105,6 +1105,23 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // Task 180d: signed in since the booking — the form says so.
   await expect(ola.getByTestId('signed-in-as')).toContainText(CLIENT2);
   await shot(ola, '27-client-details-remembered');
+  // Task 180e: signed in - no code, the visit is booked straight away (the email is the session's).
+  await expect(ola.getByTestId('signed-in-as')).toContainText('Kod nie jest potrzebny');
+  await expect(ola.getByLabel('E-mail')).not.toBeEditable();
+  await expect(ola.getByRole('button', { name: 'Wyślij kod' })).toHaveCount(0);
+  await ola.getByLabel(/Akceptuję regulamin rezerwacji/).check();
+  await shot(ola, '180e-booking-signed-in-no-code');
+  await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(ola.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+  await shot(ola, '180e-a-booking-signed-in-done');
+  await ola.goto(`/pl/c`);
+  await expect(ola.getByRole('link', { name: /Strzyżenie męskie/ })).toHaveCount(2);
+  // "Not me" on the details step: signed out, the form is empty again.
+  await ola.goto(`/pl/b/${location.slug}`);
+  await ola.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+  await ola.getByRole('button', { name: /Kasia/ }).click();
+  await ola.locator('.times button').last().click();
+  await expect(ola.getByTestId('signed-in-as')).toContainText(CLIENT2);
   await ola.getByRole('button', { name: 'To nie ja — wyczyść dane' }).click();
   await expect(ola.getByLabel('Imię i nazwisko')).toHaveValue('');
   await expect(ola.getByLabel(/Zapamiętaj mnie/)).not.toBeChecked();
