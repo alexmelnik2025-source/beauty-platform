@@ -8,7 +8,8 @@ import { formatDay, formatPrice } from '@/lib/time';
 import type { ClientAppointment, ClientDataExport, ClientPerson } from '@/lib/types';
 import { InstallApp } from '../InstallApp';
 import { ClientBonuses } from './ClientBonuses';
-import { ErrorBox, LanguageSwitch, Spinner, Wordmark } from '../ui';
+import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
+import { ClientNav } from './ClientNav';
 
 type Scope = 'upcoming' | 'past' | 'bonuses';
 
@@ -25,15 +26,17 @@ export function bookAgainHref(locale: string, a: ClientAppointment): string | nu
 
 export function ClientHeader({ children }: { children?: ReactNode }) {
   return (
-    <header className="salon-head">
-      <div className="salon-head-inner">
-        <div className="top">
-          <Wordmark />
-          <LanguageSwitch />
+    <>
+      <ClientNav current="visits" />
+      <header className="salon-head">
+        <div className="salon-head-inner">
+          <div className="top" style={{ justifyContent: 'flex-end' }}>
+            <LanguageSwitch />
+          </div>
+          {children}
         </div>
-        {children}
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 

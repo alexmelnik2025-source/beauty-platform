@@ -19,6 +19,7 @@ import { PhoneField } from '../PhoneField';
 import { LanguageBadges, SPOKEN, SPOKEN_SHORT, type Spoken } from '../Languages';
 import { useSpecialtyText } from '../Specialties';
 import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
+import { ClientNav } from '../client/ClientNav';
 import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
 import { SalonProfile } from './SalonProfile';
@@ -456,6 +457,8 @@ export function BookingFlow({ slug }: { slug: string }) {
 
   return (
     <div className={embed ? 'booking booking--embed' : 'booking'}>
+      {/* In a window on the salon's own site the client stays with this salon. */}
+      {embed ? null : <ClientNav />}
       <header className="salon-head">
         <div className="salon-head-inner">
           <div className="top">

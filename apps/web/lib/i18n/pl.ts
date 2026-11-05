@@ -270,6 +270,21 @@ export const pl = {
     salonDescription:
       'Umów wizytę w {name} ({address}, {city}) online: wybierz usługę, specjalistę i wolny termin.',
   },
+  clientNav: {
+    label: 'Menu klienta',
+    findSalon: 'Znajdź salon',
+    myVisits: 'Moje wizyty',
+    signIn: 'Zaloguj się',
+    signInHint: 'bez hasła — kod na e-mail',
+    homeTitle: 'Umów wizytę w salonie',
+    homeLead:
+      'Barber, fryzjer, kosmetyczka — znajdź salon, wybierz godzinę i potwierdź kodem z e-maila. Konto nie jest potrzebne.',
+    findSalonHint: 'Salony z rezerwacją online, ceny i wolne terminy',
+    myVisitsHint: 'Przenieś lub odwołaj wizytę, Twoje bonusy — logowanie kodem, bez hasła',
+    forSalons: 'Dla salonów',
+    forSalonsHint: 'Panel salonu: kalendarz, klienci, rezerwacje online',
+    directoryHint: 'Wybierz salon i kliknij „Umów wizytę” — konto nie jest potrzebne.',
+  },
   waitlist: {
     title: 'Lista oczekujących',
     waiting: 'Czekasz na wolny termin. Gdy się zwolni, napiszemy na e-mail.',

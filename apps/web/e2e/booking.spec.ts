@@ -217,7 +217,11 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const finder = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
   const visitor = await finder.newPage();
   await visitor.goto('/pl');
-  await visitor.getByRole('link', { name: 'Znajdź salon' }).click();
+  // The big "Znajdź salon" of the home page (the same link is in the menu above it, task 180).
+  await visitor
+    .getByRole('main')
+    .getByRole('link', { name: /Znajdź salon/ })
+    .click();
   await expect(visitor.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
   const card = visitor.getByRole('article', { name: 'Gestalt Barbershop' });
   await expect(card).toBeVisible();

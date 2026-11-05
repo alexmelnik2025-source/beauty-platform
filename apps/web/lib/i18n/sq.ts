@@ -81,6 +81,21 @@ export const sq: Dict = {
     salonDescription:
       'Rezervoni një vizitë te {name} ({address}, {city}) online: zgjidhni shërbimin, specialistin dhe orarin e lirë.',
   },
+  clientNav: {
+    label: 'Menuja e klientit',
+    findSalon: 'Gjej një sallon',
+    myVisits: 'Takimet e mia',
+    signIn: 'Hyr',
+    signInHint: 'pa fjalëkalim — kod në e-mail',
+    homeTitle: 'Rezervo një vizitë në sallon',
+    homeLead:
+      'Berber, parukier, estetiste — gjeni sallonin, zgjidhni orën dhe konfirmoni me kodin nga e-maili. Nuk nevojitet llogari.',
+    findSalonHint: 'Salone me rezervim online, çmime dhe orare të lira',
+    myVisitsHint: 'Zhvendosni ose anuloni vizitën, bonuset tuaja — hyrje me kod, pa fjalëkalim',
+    forSalons: 'Për sallonet',
+    forSalonsHint: 'Paneli i sallonit: kalendari, klientët, rezervimet online',
+    directoryHint: 'Zgjidhni një sallon dhe prekni «Rezervo» — nuk nevojitet llogari.',
+  },
   appointment: {
     ...en.appointment,
     status: {

@@ -81,6 +81,21 @@ export const tr: Dict = {
     salonDescription:
       '{name} ({address}, {city}) için online randevu alın: hizmeti, uzmanı ve boş saati seçin.',
   },
+  clientNav: {
+    label: 'Müşteri menüsü',
+    findSalon: 'Salon bul',
+    myVisits: 'Randevularım',
+    signIn: 'Giriş yap',
+    signInHint: 'şifre yok — e-postaya kod',
+    homeTitle: 'Salonda randevu alın',
+    homeLead:
+      'Berber, kuaför, güzellik uzmanı — salonu bulun, saati seçin ve e-postadaki kodla onaylayın. Hesap gerekmez.',
+    findSalonHint: 'Online randevulu salonlar, fiyatlar ve boş saatler',
+    myVisitsHint: 'Randevunuzu taşıyın veya iptal edin, bonuslarınız — kodla giriş, şifresiz',
+    forSalons: 'Salonlar için',
+    forSalonsHint: 'Salon paneli: takvim, müşteriler, online randevu',
+    directoryHint: 'Bir salon seçin ve «Randevu al» düğmesine dokunun — hesap gerekmez.',
+  },
   appointment: {
     ...en.appointment,
     status: {
