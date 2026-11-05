@@ -18,6 +18,11 @@ export const publicDirectoryQuerySchema = z.strictObject({
     .pipe(z.array(languageSchema).max(languageSchema.options.length))
     .transform((codes) => [...new Set(codes)])
     .optional(),
+  /**
+   * Task 180b: "Czego szukasz?" - words in the salon's name, city, street or a service it books
+   * online; letters with or without Polish (and Turkish, Albanian) marks match alike.
+   */
+  q: z.string().trim().max(100).optional(),
   /** Task 160: the kind of place — salons where an active specialist does this. */
   specialty: specialtySchema.optional(),
   page: z.coerce.number().int().min(1).default(1),

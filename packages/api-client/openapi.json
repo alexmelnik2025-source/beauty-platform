@@ -4056,6 +4056,16 @@
             }
           },
           {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Task 180b: words in the name, city, street or an online service; Polish letters optional",
+            "schema": {
+              "example": "strzyzenie torun",
+              "type": "string"
+            }
+          },
+          {
             "name": "language",
             "required": false,
             "in": "query",

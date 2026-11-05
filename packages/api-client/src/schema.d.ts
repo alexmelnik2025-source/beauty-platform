@@ -7444,6 +7444,8 @@ export interface operations {
                 page?: number;
                 /** @description Kind of place: one of its active staff members does it (task 160) */
                 specialty?: "hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage";
+                /** @description Task 180b: words in the name, city, street or an online service; Polish letters optional */
+                q?: string;
                 /** @description Spoken by the salon or by one of its staff members; several codes comma-separated = any of them (task 192). Codes: pl, uk, ru, be, en */
                 language?: string;
             };

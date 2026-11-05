@@ -273,6 +273,59 @@ describe('public salon directory', () => {
     await ctx.http().get('/v1/public/locations').query({ language: 'uk,fr' }).expect(400);
   });
 
+  it('finds salons by words in the name, city, street or a service, with or without Polish letters (task 180b)', async () => {
+    const owner = await signUp(ctx, 'search@example.com');
+    const torun = await createOrgWithLocation(ctx, owner, 'Fryzjer Żaneta');
+    const gdansk = await createOrgWithLocation(ctx, owner, 'Barber Gdańsk');
+    await makeBookable(owner, torun);
+    await makeBookable(owner, gdansk);
+    await ctx.prisma.location.update({
+      where: { id: torun.locationId },
+      data: {
+        onlineBookingEnabled: true,
+        ...LEGAL_TEXTS,
+        city: 'Toruń',
+        addressLine: 'ul. Łąkowa 5',
+      },
+    });
+    await ctx.prisma.location.update({
+      where: { id: gdansk.locationId },
+      data: {
+        onlineBookingEnabled: true,
+        ...LEGAL_TEXTS,
+        city: 'Gdańsk',
+        addressLine: 'ul. Długa 1',
+      },
+    });
+    await ctx.prisma.service.updateMany({
+      where: { locationId: gdansk.locationId },
+      data: { name: 'Golenie brzytwą' },
+    });
+    const find = async (q: string) =>
+      (await ctx.http().get('/v1/public/locations').query({ q }).expect(200)).body.items.map(
+        (s: { slug: string }) => s.slug,
+      );
+
+    expect(await find('torun')).toEqual([torun.slug]);
+    expect(await find('ŁĄKOWA')).toEqual([torun.slug]);
+    expect(await find('lakowa 5 zaneta')).toEqual([torun.slug]);
+    expect(await find('brzytwa')).toEqual([gdansk.slug]);
+    // Both do haircuts ("Strzyżenie" at Toruń only now) - every word must match.
+    expect(await find('strzyzenie')).toEqual([torun.slug]);
+    expect(await find('barber torun')).toEqual([]);
+    expect(await find('%')).toEqual([]);
+    // The language chips count only what was found.
+    await ctx.prisma.location.updateMany({ data: { languages: ['pl'] } });
+    const res = await ctx.http().get('/v1/public/locations').query({ q: 'gdansk' }).expect(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.languageCounts.pl).toBe(1);
+    await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ q: 'x'.repeat(101) })
+      .expect(400);
+  });
+
   it("shows the lowest price a client can book, counting specialists' own prices (task 91)", async () => {
     const owner = await signUp(ctx, 'price-from@example.com');
     const salon = await createOrgWithLocation(ctx, owner, 'Price from');

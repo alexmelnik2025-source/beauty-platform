@@ -2,7 +2,7 @@ import { Controller, Get, Query, Req } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators';
 import { languageSchema, specialtySchema } from '../common/enums.schemas';
-import type { Prisma } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { photoUrl } from './photos.service';
 import { ApiZodResponse } from '../common/openapi';
 import type { AppRequest } from '../common/request-context';
@@ -29,7 +29,25 @@ type Kind = (typeof KINDS)[number];
  * A language matches when the salon or one of its active staff members speaks it; a kind of
  * place when one of its active staff members does it.
  */
-function catalogueWhere(languages: Language[], specialty?: Kind): Prisma.LocationWhereInput {
+/** Letters with marks the search ignores, and what they become (the same as `plain`). */
+const MARKED = 'ąćęłńóśźżçğışöüëé';
+const PLAIN = 'acelnoszzcgisouee';
+
+/** Task 180b: lower case without the marks, as the database compares it. */
+export function plain(text: string): string {
+  return [...text.toLowerCase()]
+    .map((ch) => {
+      const at = MARKED.indexOf(ch);
+      return at >= 0 ? PLAIN[at] : ch;
+    })
+    .join('');
+}
+
+function catalogueWhere(
+  languages: Language[],
+  specialty?: Kind,
+  ids?: string[],
+): Prisma.LocationWhereInput {
   const and: Prisma.LocationWhereInput[] = [
     {
       onlineBookingEnabled: true,
@@ -49,6 +67,7 @@ function catalogueWhere(languages: Language[], specialty?: Kind): Prisma.Locatio
   if (specialty) {
     and.push({ staffMembers: { some: { active: true, specialties: { has: specialty } } } });
   }
+  if (ids) and.push({ id: { in: ids } });
   return { AND: and };
 }
 
@@ -77,6 +96,14 @@ export class PublicDirectoryController {
       `Codes: ${SPOKEN.join(', ')}`,
   })
   @ApiQuery({
+    name: 'q',
+    required: false,
+    type: String,
+    example: 'strzyzenie torun',
+    description:
+      'Task 180b: words in the name, city, street or an online service; Polish letters optional',
+  })
+  @ApiQuery({
     name: 'specialty',
     required: false,
     enum: KINDS,
@@ -98,7 +125,8 @@ export class PublicDirectoryController {
   ): Promise<PublicDirectoryResponse> {
     this.limiter.hit(`public:directory:ip:${req.ip}`, 120, 60_000);
     const chosen = query.language ?? [];
-    const where = catalogueWhere(chosen, query.specialty);
+    const ids = query.q ? await this.matching(query.q) : undefined;
+    const where = catalogueWhere(chosen, query.specialty, ids);
     const [total, locations, ...rest] = await this.prisma.$transaction([
       this.prisma.location.count({ where }),
       this.prisma.location.findMany({
@@ -137,9 +165,11 @@ export class PublicDirectoryController {
       }),
       // Task 160: the numbers on the language and kind-of-place chips.
       ...SPOKEN.map((code) =>
-        this.prisma.location.count({ where: catalogueWhere([code], query.specialty) }),
+        this.prisma.location.count({ where: catalogueWhere([code], query.specialty, ids) }),
       ),
-      ...KINDS.map((kind) => this.prisma.location.count({ where: catalogueWhere(chosen, kind) })),
+      ...KINDS.map((kind) =>
+        this.prisma.location.count({ where: catalogueWhere(chosen, kind, ids) }),
+      ),
     ]);
     const counts = rest as number[];
     return {
@@ -175,5 +205,30 @@ export class PublicDirectoryController {
       total,
       pageCount: Math.ceil(total / query.pageSize),
     };
+  }
+
+  /**
+   * Task 180b: salons whose name, city, street or an active service has every word of `q`
+   * (without letter marks, in any order). Only ids: the other filters are applied as usual.
+   */
+  private async matching(q: string): Promise<string[]> {
+    const words = plain(q)
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 5)
+      // LIKE wildcards typed by the client are plain characters.
+      .map((word) => `%${word.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`);
+    if (words.length === 0) return [];
+    const text = Prisma.sql`translate(lower(
+      l.name || ' ' || l.city || ' ' || l.address_line || ' ' || coalesce((
+        SELECT string_agg(s.name, ' ') FROM service s WHERE s.location_id = l.id AND s.active
+      ), '')), ${MARKED}, ${PLAIN})`;
+    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT l.id::text AS id FROM location l
+      WHERE ${Prisma.join(
+        words.map((word) => Prisma.sql`${text} LIKE ${word}`),
+        ' AND ',
+      )}`;
+    return rows.map((row) => row.id);
   }
 }
