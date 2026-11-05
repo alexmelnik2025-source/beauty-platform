@@ -13,7 +13,7 @@ import {
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
-import type { Hold, PublicAppointment, PublicLocation, Slot } from '@/lib/types';
+import type { Hold, PublicAppointment, PublicFreeToday, PublicLocation, Slot } from '@/lib/types';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { LanguageBadges, SPOKEN, SPOKEN_SHORT, type Spoken } from '../Languages';
@@ -948,6 +948,20 @@ function ServiceList({
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
+  // Task 95: "Wolne dziś" — who can still be booked today (any of their services).
+  const [freeToday, setFreeToday] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let live = true;
+    api<PublicFreeToday>(`/v1/public/locations/${salon.slug}/free-today`, { auth: false })
+      .then((res) => {
+        if (live) setFreeToday(new Set(res.staffIds));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [salon.slug]);
+  const freeNames = salon.staff.filter((s) => freeToday.has(s.id)).map((s) => s.displayName);
   // Task 81 on the price list: languages spoken by some, not all, of the salon's specialists.
   const filterLanguages = SPOKEN.filter((code) => {
     const n = salon.staff.filter((s) => (s.languages ?? []).includes(code)).length;
@@ -985,6 +999,12 @@ function ServiceList({
 
   return (
     <section className="stack">
+      {freeNames.length > 0 ? (
+        <p className="free-today small" role="status">
+          <span className="free-dot" aria-hidden="true" />
+          {fill(t.booking.freeToday, { names: freeNames.join(', ') })}
+        </p>
+      ) : null}
       {filterLanguages.length > 0 ? (
         <div className="field">
           <span id="speaks-list-filter">{t.languages.filterLabel}</span>
@@ -1047,6 +1067,7 @@ function ServiceList({
                               key={x.id}
                               type="button"
                               className="avatar avatar--staff"
+                              data-free-today={freeToday.has(x.id) || undefined}
                               title={x.displayName}
                               aria-label={fill(t.booking.staffTimes, { name: x.displayName })}
                               onClick={() => onPick(s.id, [x.id])}

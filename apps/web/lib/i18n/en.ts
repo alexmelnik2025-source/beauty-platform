@@ -296,6 +296,7 @@ export const en: Dict = {
     bookRow: 'Book',
     bookRowLabel: 'Book: {names}',
     staffTimes: '{name} — free times',
+    freeToday: 'Free today: {names}',
     anyShort: 'Any',
     hoursShort: 'h',
     nearestToday: 'Free today from {time}',

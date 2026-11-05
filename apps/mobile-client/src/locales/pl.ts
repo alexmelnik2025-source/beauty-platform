@@ -230,6 +230,7 @@ export const pl = {
     book: 'Umów wizytę',
     bookHint: 'Bez hasła i zakładania konta — kod potwierdzenia przyjdzie na e-mail.',
     speaks: 'Mówimy po',
+    freeToday: 'Wolne dziś',
     about: 'O salonie',
     hours: 'Godziny otwarcia',
     closed: 'nieczynne',

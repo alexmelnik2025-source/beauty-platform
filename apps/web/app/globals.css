@@ -2415,3 +2415,25 @@ ul.wish-photos {
 .wishes-step h3 {
   margin: 0 0 4px;
 }
+
+/* Task 92: "Wolne dziś" over the price list and a green dot on those specialists' circles. */
+.free-today {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.free-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1f9d55;
+  flex: none;
+}
+
+.avatar[data-free-today] {
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 4px #1f9d55;
+}

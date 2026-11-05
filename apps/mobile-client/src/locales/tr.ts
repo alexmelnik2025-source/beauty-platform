@@ -236,6 +236,7 @@ export const tr: Dictionary = {
     book: 'Randevu al',
     bookHint: 'Şifre yok, hesap yok — onay kodu e-postayla gelir.',
     speaks: 'Konuştuğumuz diller',
+    freeToday: 'Bugün müsait',
     about: 'Salon hakkında',
     hours: 'Çalışma saatleri',
     closed: 'kapalı',

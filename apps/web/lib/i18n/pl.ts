@@ -296,6 +296,7 @@ export const pl = {
     bookRow: 'Umów',
     bookRowLabel: 'Umów: {names}',
     staffTimes: '{name} — wolne terminy',
+    freeToday: 'Wolne dziś: {names}',
     anyShort: 'Dowolny',
     hoursShort: 'g',
     nearestToday: 'Dziś wolne od {time}',

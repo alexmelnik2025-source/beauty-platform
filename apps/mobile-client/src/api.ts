@@ -13,6 +13,7 @@ import type {
   ClientSignIn,
   ClientWaitlist,
   ClientWaitlistEntry,
+  PublicFreeToday,
   PublicLocation,
   PublicSalonDirectory,
   Slot,
@@ -40,6 +41,7 @@ export type {
   ClientFavorites,
   CodeSent,
   Hold,
+  PublicFreeToday,
   PublicLocation,
   PublicSalonDirectory,
   Slot,
@@ -405,6 +407,14 @@ export class ClientApi {
   /** A salon's page: address, description, hours, price list, specialists. No sign-in. */
   salon(slug: string): Promise<PublicLocation> {
     return this.call<PublicLocation>('GET', `/v1/public/locations/${encodeURIComponent(slug)}`);
+  }
+
+  /** Task 95: "Wolne dziś" — the specialists who can still be booked today. No sign-in. */
+  freeToday(slug: string): Promise<PublicFreeToday> {
+    return this.call<PublicFreeToday>(
+      'GET',
+      `/v1/public/locations/${encodeURIComponent(slug)}/free-today`,
+    );
   }
 
   /** "Favourite salons" of the signed-in client, newest first (public salon data only). */
