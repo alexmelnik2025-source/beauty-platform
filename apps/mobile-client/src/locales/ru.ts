@@ -90,6 +90,18 @@ export const ru: Dictionary = {
     slotTaken: 'Это время только что заняли. Выберите другое.',
     loadingSlots: 'Ищем свободное время…',
   },
+  review: {
+    title: 'Ваш отзыв',
+    ask: 'Как вам визит к {staff}?',
+    rating: 'Оценка',
+    outOf: '{n} из 5',
+    text: 'Пара слов (необязательно)',
+    send: 'Отправить отзыв',
+    thanks: 'Спасибо за отзыв!',
+    change: 'Изменить отзыв',
+    changeUntil: 'Отзыв можно изменить до {date}.',
+    notPossible: 'Этот визит уже нельзя оценить.',
+  },
   bonuses: {
     extraTitle: 'Больше за визит',
     extraAt: 'у: {names}',

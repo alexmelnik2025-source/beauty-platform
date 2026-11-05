@@ -91,6 +91,18 @@ export const tr: Dictionary = {
     slotTaken: 'Bu saat az önce alındı. Lütfen başka bir saat seçin.',
     loadingSlots: 'Boş saatler aranıyor…',
   },
+  review: {
+    title: 'Yorumunuz',
+    ask: '{staff} ile ziyaretiniz nasıldı?',
+    rating: 'Puan',
+    outOf: '5 üzerinden {n}',
+    text: 'Birkaç kelime (isteğe bağlı)',
+    send: 'Yorumu gönder',
+    thanks: 'Yorumunuz için teşekkürler!',
+    change: 'Yorumu değiştir',
+    changeUntil: 'Yorumunuzu {date} tarihine kadar değiştirebilirsiniz.',
+    notPossible: 'Bu ziyaret artık değerlendirilemez.',
+  },
   bonuses: {
     extraTitle: 'Ziyarette daha fazla',
     extraAt: '{names} ile',
