@@ -109,10 +109,13 @@ export default function WaitingListPage() {
                         ) : null}
                       </span>
                       <span className="small muted">
-                        {e.status === 'notified' && e.notifiedAt
-                          ? fill(t.waitingList.notified, {
-                              time: when(e.notifiedAt, tag, location.timezone),
-                            })
+                        {(e.status === 'notified' || e.status === 'offered') && e.notifiedAt
+                          ? fill(
+                              e.status === 'offered'
+                                ? t.waitingList.offered
+                                : t.waitingList.notified,
+                              { time: when(e.notifiedAt, tag, location.timezone) },
+                            )
                           : t.waitingList.waiting}
                         {' · '}
                         {fill(t.waitingList.askedAt, {

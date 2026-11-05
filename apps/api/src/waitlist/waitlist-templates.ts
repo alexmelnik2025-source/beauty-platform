@@ -21,6 +21,11 @@ interface Words {
   leave: string;
   /** Said once, at the end of every waiting-list email. */
   once: string;
+  /** Task 164: a time is held for the client for `minutes`. */
+  offerSubject: string;
+  offer: (what: string, day: string, time: string, minutes: number) => string;
+  answer: string;
+  next: string;
 }
 
 const WORDS: Record<Locale, Words> = {
@@ -35,6 +40,11 @@ const WORDS: Record<Locale, Words> = {
     book: 'Zarezerwuj',
     leave: 'Nie chcesz już czekać? Wypisz się z listy',
     once: 'Napiszemy tylko raz.',
+    offerSubject: 'Termin czeka na Ciebie',
+    offer: (what, day, time, minutes) =>
+      `Zwolnił się termin: ${what}, ${day}, godz. ${time}. Trzymamy go dla Ciebie przez ${minutes} minut.`,
+    answer: 'Potwierdź lub odmów',
+    next: 'Jeśli nie odpowiesz, zaproponujemy go następnej osobie z listy.',
   },
   uk: {
     joinedSubject: 'Ви в листі очікування',
@@ -47,6 +57,11 @@ const WORDS: Record<Locale, Words> = {
     book: 'Записатися',
     leave: 'Більше не хочете чекати? Вийти зі списку',
     once: 'Ми напишемо лише один раз.',
+    offerSubject: 'Час чекає на вас',
+    offer: (what, day, time, minutes) =>
+      `Звільнився час: ${what}, ${day}, о ${time}. Ми тримаємо його для вас ${minutes} хвилин.`,
+    answer: 'Підтвердіть або відмовтеся',
+    next: 'Якщо ви не відповісте, ми запропонуємо його наступній людині зі списку.',
   },
   ru: {
     joinedSubject: 'Вы в листе ожидания',
@@ -59,6 +74,11 @@ const WORDS: Record<Locale, Words> = {
     book: 'Записаться',
     leave: 'Больше не хотите ждать? Выйти из списка',
     once: 'Мы напишем только один раз.',
+    offerSubject: 'Время ждёт вас',
+    offer: (what, day, time, minutes) =>
+      `Освободилось время: ${what}, ${day}, в ${time}. Мы держим его для вас ${minutes} минут.`,
+    answer: 'Подтвердите или откажитесь',
+    next: 'Если вы не ответите, мы предложим его следующему человеку из списка.',
   },
   en: {
     joinedSubject: 'You are on the waiting list',
@@ -71,6 +91,11 @@ const WORDS: Record<Locale, Words> = {
     book: 'Book',
     leave: 'No longer want to wait? Leave the list',
     once: 'We write only once.',
+    offerSubject: 'A time is waiting for you',
+    offer: (what, day, time, minutes) =>
+      `A time has become free: ${what}, ${day}, at ${time}. We are holding it for you for ${minutes} minutes.`,
+    answer: 'Take it or say no',
+    next: 'If you do not answer, we will offer it to the next person on the list.',
   },
   tr: {
     joinedSubject: 'Bekleme listesindesiniz',
@@ -83,6 +108,11 @@ const WORDS: Record<Locale, Words> = {
     book: 'Randevu al',
     leave: 'Artık beklemek istemiyor musunuz? Listeden çıkın',
     once: 'Yalnızca bir kez yazarız.',
+    offerSubject: 'Bir saat sizi bekliyor',
+    offer: (what, day, time, minutes) =>
+      `Bir saat boşaldı: ${what}, ${day}, saat ${time}. Bu saati ${minutes} dakika boyunca sizin için tutuyoruz.`,
+    answer: 'Onaylayın veya reddedin',
+    next: 'Yanıt vermezseniz listedeki bir sonraki kişiye önereceğiz.',
   },
   sq: {
     joinedSubject: 'Jeni në listën e pritjes',
@@ -95,6 +125,11 @@ const WORDS: Record<Locale, Words> = {
     book: 'Rezervo',
     leave: 'Nuk doni më të prisni? Dilni nga lista',
     once: 'Shkruajmë vetëm një herë.',
+    offerSubject: 'Një orar ju pret',
+    offer: (what, day, time, minutes) =>
+      `U lirua një orar: ${what}, ${day}, në orën ${time}. Ua mbajmë për ${minutes} minuta.`,
+    answer: 'Konfirmoni ose refuzoni',
+    next: 'Nëse nuk përgjigjeni, do t’ia ofrojmë personit tjetër në listë.',
   },
 };
 
@@ -137,5 +172,22 @@ export function renderWaitlistFreeEmail(
     text:
       `${words.free(what(words, d), dayText(d.date, locale), times.join(', '))}\n\n` +
       `${words.book}: ${bookLink}\n\n${words.once}`,
+  };
+}
+
+/** Task 164: the earliest freed time is held for the client; the link takes it or says no. */
+export function renderWaitlistOfferEmail(
+  locale: Locale,
+  d: WaitlistDetails,
+  time: string,
+  minutes: number,
+  offerLink: string,
+): { subject: string; text: string } {
+  const words = WORDS[locale];
+  return {
+    subject: `${words.offerSubject}: ${d.salonName}`,
+    text:
+      `${words.offer(what(words, d), dayText(d.date, locale), time, minutes)}\n\n` +
+      `${words.answer}: ${offerLink}\n\n${words.next}`,
   };
 }

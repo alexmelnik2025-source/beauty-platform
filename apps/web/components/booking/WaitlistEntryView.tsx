@@ -70,13 +70,19 @@ export function WaitlistEntryView({ token }: { token: string }) {
           </p>
           <p className="muted">{formatDay(entry.date, tag)}</p>
           <p className="note" role="status">
-            {entry.status === 'waiting'
-              ? t.waitlist.waiting
-              : entry.status === 'notified'
-                ? t.waitlist.notified
-                : t.waitlist.cancelled}
+            {
+              {
+                waiting: t.waitlist.waiting,
+                notified: t.waitlist.notified,
+                cancelled: t.waitlist.cancelled,
+                offered: t.waitlist.offered,
+                booked: t.waitlist.booked,
+                declined: t.waitlist.declined,
+                missed: t.waitlist.missed,
+              }[entry.status]
+            }
           </p>
-          {entry.status === 'waiting' ? (
+          {entry.status === 'waiting' || entry.status === 'offered' ? (
             <button type="button" className="btn btn--quiet" disabled={busy} onClick={leave}>
               {t.waitlist.leave}
             </button>

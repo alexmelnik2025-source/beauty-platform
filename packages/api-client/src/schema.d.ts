@@ -2549,6 +2549,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/waitlist-offers/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The time held for a waiting client (link in the offer email, task 164) */
+        get: operations["WaitlistController_getOffer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/waitlist-offers/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take the held time: the visit is booked and the usual confirmation email follows
+         * @description 410 OFFER_GONE: the 15 minutes passed, the client said no or left the list; 400 PHONE_REQUIRED: the list had no phone, send one. Taking it twice is fine.
+         */
+        post: operations["WaitlistController_acceptOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/waitlist-offers/{token}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say no to the held time: the next client in the queue gets it */
+        post: operations["WaitlistController_declineOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/waitlist": {
         parameters: {
             query?: never;
@@ -3761,8 +3815,11 @@ export interface components {
                 staffName: string | null;
                 /** @description YYYY-MM-DD in the salon time zone */
                 date: string;
-                /** @enum {string} */
-                status: "waiting" | "notified" | "cancelled";
+                /**
+                 * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+                 * @enum {string}
+                 */
+                status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
                 /** @description When the client was told a time became free */
                 notifiedAt: string | null;
                 createdAt: string;
@@ -3782,8 +3839,11 @@ export interface components {
             staffName: string | null;
             /** @description YYYY-MM-DD in the salon time zone */
             date: string;
-            /** @enum {string} */
-            status: "waiting" | "notified" | "cancelled";
+            /**
+             * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+             * @enum {string}
+             */
+            status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
             /** @description When the client was told a time became free */
             notifiedAt: string | null;
             createdAt: string;
@@ -4942,8 +5002,11 @@ export interface components {
             /** @description null = any specialist */
             staffName: string | null;
             date: string;
-            /** @enum {string} */
-            status: "waiting" | "notified" | "cancelled";
+            /**
+             * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+             * @enum {string}
+             */
+            status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
         };
         PushPublicKey: {
             /** @description null: push messages are off on this server */
@@ -5105,8 +5168,11 @@ export interface components {
                 name: string;
                 email: string;
                 phone: string | null;
-                /** @enum {string} */
-                status: "waiting" | "notified" | "cancelled";
+                /**
+                 * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+                 * @enum {string}
+                 */
+                status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
                 createdAt: string;
                 /** @description When the client was told a time became free */
                 notifiedAt: string | null;
@@ -5124,8 +5190,11 @@ export interface components {
             name: string;
             email: string;
             phone: string | null;
-            /** @enum {string} */
-            status: "waiting" | "notified" | "cancelled";
+            /**
+             * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+             * @enum {string}
+             */
+            status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
             createdAt: string;
             /** @description When the client was told a time became free */
             notifiedAt: string | null;
@@ -5496,10 +5565,40 @@ export interface components {
         WaitlistJoined: {
             /** @description YYYY-MM-DD in the salon time zone */
             date: string;
-            /** @enum {string} */
-            status: "waiting" | "notified" | "cancelled";
+            /**
+             * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+             * @enum {string}
+             */
+            status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
             /** @description The same email was already waiting for this */
             alreadyWaiting: boolean;
+        };
+        WaitlistOffer: {
+            salon: {
+                name: string;
+                slug: string;
+            };
+            serviceId: string;
+            serviceName: string;
+            /** @description The specialist of the held time */
+            staffName: string | null;
+            /** @description YYYY-MM-DD in the salon time zone */
+            date: string;
+            /** @description HH:MM in the salon time zone */
+            time: string | null;
+            durationMinutes: number | null;
+            /** @description Price in hundredths of the salon currency */
+            priceGrosze: number | null;
+            currency: string;
+            /**
+             * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+             * @enum {string}
+             */
+            status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
+            /** @description Until when the time is held */
+            expiresAt: string | null;
+            /** @description The list has no phone: give one to take the time */
+            needsPhone: boolean;
         };
         WorkingHours: {
             timezone: string;
@@ -10092,6 +10191,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicWaitlistEntry"];
+                };
+            };
+        };
+    };
+    WaitlistController_getOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistOffer"];
+                };
+            };
+        };
+    };
+    WaitlistController_acceptOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    phone?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistOffer"];
+                };
+            };
+        };
+    };
+    WaitlistController_declineOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistOffer"];
                 };
             };
         };
