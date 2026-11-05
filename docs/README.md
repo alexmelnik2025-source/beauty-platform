@@ -1543,3 +1543,13 @@ API пускает не больше 10 регистраций в час с од
 переноса от клиента, визиты «nie przyszedł» за последние 365 дней после последнего снятия). Для записи —
 `CancellationGuardService.check(locationId, customerId)` (часть 161b). Онлайн-оплаты нет: при `prepay` клиент
 платит в салоне, салон снимает блок вручную.
+
+## CORS: приложения в браузере (задача 170)
+
+- Ручной тест владельца 05.11.2026: `pnpm mobile:client --web` (страница на http://localhost:8081, API на
+  http://<IP Мака>:4000) показывал «нет связи с сервером» — браузер блокировал запросы к API без заголовков CORS.
+- Теперь при `NODE_ENV=development` API разрешает запросы со страниц с любого адреса (заголовки `Authorization`,
+  `Idempotency-Key` и др.; без cookies — приложения ходят с токеном). На сервере — только адреса из `CORS_ORIGINS`
+  в `.env` через запятую; по умолчанию пусто — CORS выключен, веб работает с того же адреса.
+- Код: `apps/api/src/app.setup.ts` (`cors`), `CORS_ORIGINS` в `config.ts`, `.env.example`, `compose.production.yml`;
+  тест `apps/api/test/cors.spec.ts`. В `README.md` — как открыть приложения в браузере.
