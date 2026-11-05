@@ -66,6 +66,10 @@ export type Service = Schemas['Service'];
 /** Task 16: the salon's happy hours (a lower price on chosen weekdays and hours). */
 export type HappyHours = Schemas['HappyHours'];
 export type Staff = Schemas['Staff'];
+/** Task 161: "Ochrona przed odwołaniami" — settings, marked clients and one client's history. */
+export type CancellationGuard = Schemas['CancellationGuard'];
+export type GuardedClients = Schemas['GuardedClients'];
+export type GuardedClient = Schemas['GuardedClient'];
 /** Task 62: specialists' own prices of services (`GET …/staff-prices`). */
 export type StaffPrices = Schemas['StaffPrices'];
 /** What a specialist does: hairdresser, barber, nails… (the salon's own words are separate). */
