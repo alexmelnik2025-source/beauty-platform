@@ -194,6 +194,20 @@ export class BusinessApi {
     );
   }
 
+  /** Task 95, owner or manager only (the server checks): replaces the weekly hours. */
+  setWorkingHours(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    days: { weekday: number; intervals: { start: string; end: string }[] }[],
+  ): Promise<WorkingHours> {
+    return this.authed<WorkingHours>(
+      'PUT',
+      `${staffPath(orgId, locationId, staffId)}/working-hours`,
+      { days },
+    );
+  }
+
   /** Current and future time off of a specialist. */
   timeOff(orgId: string, locationId: string, staffId: string): Promise<TimeOffList> {
     return this.authed<TimeOffList>('GET', `${staffPath(orgId, locationId, staffId)}/time-off`);

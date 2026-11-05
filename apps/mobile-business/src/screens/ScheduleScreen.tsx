@@ -3,14 +3,15 @@ import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'reac
 import type { BusinessApi, Locale, TimeOffList, WorkingHours } from '../api';
 import { addDays, dayTitle, daysOff, timeOffText, weekRows } from '../day';
 import { errorText } from '../errors';
-import type { Dictionary } from '../i18n';
+import { fill, type Dictionary } from '../i18n';
+import { weeklyBody, weekInputs } from '../hours';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
- * The signed-in specialist's own schedule: weekly hours, special days and time off.
- * A specialist only reads it (the owner or a manager changes it — the server checks);
- * an owner or manager who also works as a specialist can add and remove their time off here.
+ * A specialist's schedule: weekly hours, special days and time off — the signed-in person's own,
+ * or (task 95) anyone's from "Grafik zespołu". The owner or a manager changes the weekly hours
+ * and time off here; a specialist only reads them (the server checks).
  */
 export function ScheduleScreen(props: {
   api: BusinessApi;
@@ -18,6 +19,8 @@ export function ScheduleScreen(props: {
   locale: Locale;
   salon: SalonChoice;
   staffId: string;
+  /** Task 95: someone else's schedule, opened from "Grafik zespołu" (owner or manager). */
+  staffName?: string;
   today: string;
   onBack: () => void;
 }) {
@@ -31,6 +34,8 @@ export function ScheduleScreen(props: {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<{ from: string; to: string; note: string } | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [week, setWeek] = useState<Record<number, string> | null>(null);
+  const [badDay, setBadDay] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -94,6 +99,18 @@ export function ScheduleScreen(props: {
     if (ok) setForm(null);
   }
 
+  async function saveWeek() {
+    if (!week) return;
+    const body = weeklyBody(week);
+    if (!body.ok) return setBadDay(body.weekday);
+    setBadDay(null);
+    const ok = await run(
+      () => api.setWorkingHours(salon.orgId, salon.locationId, staffId, body.days),
+      s.weekSaved,
+    );
+    if (ok) setWeek(null);
+  }
+
   const shift = (key: 'from' | 'to', days: number) => {
     if (!form) return;
     const next = { ...form, [key]: addDays(form[key], days) };
@@ -108,7 +125,7 @@ export function ScheduleScreen(props: {
       <View style={styles.row}>
         <Button kind="link" label={s.back} onPress={onBack} />
       </View>
-      <Heading>{s.title}</Heading>
+      <Heading>{props.staffName ? fill(s.staffTitle, { name: props.staffName }) : s.title}</Heading>
       <Text style={styles.muted}>{salon.locationName}</Text>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
@@ -116,15 +133,59 @@ export function ScheduleScreen(props: {
       {hours ? (
         <>
           <Text style={styles.section}>{s.week}</Text>
-          <Card>
-            {weekRows(hours, props.locale).map((d) => (
-              <View key={d.weekday} style={styles.dayRow}>
-                <Text style={styles.dayName}>{d.name}</Text>
-                <Text style={d.hours ? styles.value : styles.muted}>{d.hours ?? s.dayOff}</Text>
+          {week ? (
+            <Card>
+              <Text style={styles.small}>{s.weekHint}</Text>
+              {weekRows(hours, props.locale).map((d) => (
+                <View key={d.weekday} style={styles.dateRow}>
+                  <Text style={styles.dayName}>{d.name}</Text>
+                  <TextInput
+                    accessibilityLabel={d.name}
+                    placeholder={s.dayOff}
+                    value={week[d.weekday] ?? ''}
+                    maxLength={80}
+                    onChangeText={(text) => setWeek({ ...week, [d.weekday]: text })}
+                    style={styles.input}
+                  />
+                  {badDay === d.weekday ? (
+                    <ErrorText>{fill(s.badHours, { day: d.name })}</ErrorText>
+                  ) : null}
+                </View>
+              ))}
+              <View style={styles.row}>
+                <Button label={s.saveWeek} busy={busy} onPress={() => void saveWeek()} />
+                <Button
+                  kind="link"
+                  label={s.cancel}
+                  onPress={() => {
+                    setWeek(null);
+                    setBadDay(null);
+                  }}
+                />
               </View>
-            ))}
-          </Card>
-          <Text style={styles.small}>{canEdit ? s.weekInCabinet : s.readOnly}</Text>
+            </Card>
+          ) : (
+            <Card>
+              {weekRows(hours, props.locale).map((d) => (
+                <View key={d.weekday} style={styles.dayRow}>
+                  <Text style={styles.dayName}>{d.name}</Text>
+                  <Text style={d.hours ? styles.value : styles.muted}>{d.hours ?? s.dayOff}</Text>
+                </View>
+              ))}
+            </Card>
+          )}
+          {!canEdit ? (
+            <Text style={styles.small}>{s.readOnly}</Text>
+          ) : !week ? (
+            <Button
+              kind="secondary"
+              label={s.editWeek}
+              onPress={() => {
+                setInfo('');
+                setWeek(weekInputs(hours));
+              }}
+            />
+          ) : null}
 
           {hours.overrides.length > 0 ? (
             <>
