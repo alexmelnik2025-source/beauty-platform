@@ -9,6 +9,16 @@
     "ios": { "bundleIdentifier": "dev.beautyplatform.client", "supportsTablet": true },
     "android": { "package": "dev.beautyplatform.client" },
     "web": { "output": "single", "bundler": "metro" },
-    "plugins": ["expo-secure-store"]
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app lets you add example photos (the look you want) to your booking.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

@@ -2,6 +2,7 @@ import { visitWishesInputSchema, type VisitWishesInput } from '../booking/visit-
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -34,6 +35,10 @@ import { APP_CONFIG, type AppConfig } from '../config/config';
 import { clearClientCookie, ClientGuard, CurrentClient, setClientCookie } from './client-auth';
 import { visitCouponsSchema, type VisitCouponsResponse } from '../booking/booking.responses';
 import {
+  visitPhotoListSchema,
+  type VisitPhotoListResponse,
+} from '../booking/visit-photos.responses';
+import {
   clientApplyCouponSchema,
   listClientAppointmentsSchema,
   requestClientCodeSchema,
@@ -63,6 +68,7 @@ import { ClientExportService } from './client-export.service';
 
 const MINUTE = 60_000;
 const idPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Appointment') });
+const photoPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Photo') });
 
 /** "My visits" — the client app. Separate sign-in from salon accounts. */
 @ApiTags('client app')
@@ -262,6 +268,34 @@ export class ClientController {
     @Body(new ZodValidationPipe(visitWishesInputSchema)) body: VisitWishesInput,
   ): Promise<ClientAppointmentResponse> {
     return this.clients.updateWishes(client, id, body);
+  }
+
+  @Get('appointments/:id/photos')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'My example photos for the visit (task 80j, "Pokaż, co chcesz")' })
+  @ApiZodResponse(visitPhotoListSchema)
+  photos(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+  ): Promise<VisitPhotoListResponse> {
+    return this.clients.photos(client, id);
+  }
+
+  @Delete('appointments/:id/photos/:photoId')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Remove one of my example photos before the visit (task 80j)',
+    description: '409 TOO_LATE_TO_CHANGE once the visit has started.',
+  })
+  removePhoto(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+    @Param('photoId', photoPipe) photoId: string,
+  ): Promise<void> {
+    return this.clients.removePhoto(client, id, photoId);
   }
 
   @Get('appointments/:id/coupons')

@@ -4,6 +4,7 @@ import {
   ANY_STAFF,
   dayChip,
   formatDay,
+  formatDate,
   formatMoment,
   formatPrice,
   groupByDay,
@@ -148,5 +149,13 @@ describe('nearest free time of each specialist (task 12)', () => {
     expect(nearestText(at('2026-11-04', '14:30', []), days, DICTIONARIES.en.book, 'en')).toBe(
       'Free today from 14:30',
     );
+  });
+});
+
+describe('formatDate (task 80j)', () => {
+  it("shows the date in the salon's time zone, with the year", () => {
+    // 23:30 UTC is already the next day in Warsaw.
+    expect(formatDate('2027-02-08T23:30:00.000Z', 'Europe/Warsaw', 'pl')).toBe('9 lutego 2027');
+    expect(formatDate('2027-02-08T23:30:00.000Z', 'Europe/Warsaw', 'en')).toBe('9 February 2027');
   });
 });

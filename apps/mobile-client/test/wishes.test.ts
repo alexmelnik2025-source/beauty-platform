@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { asksWishes, drinkChoices, NO_WISHES, wishesToSend } from '../src/wishes';
+import { asksWishes, drinkChoices, NO_WISHES, photoType, wishesToSend } from '../src/wishes';
 
 /** Task 80e: the client's wishes in the app. */
 describe('visit wishes', () => {
@@ -30,5 +30,16 @@ describe('visit wishes', () => {
     expect(wishesToSend(wishes, { mood: false, drinks: [], note: false })).toEqual(NO_WISHES);
     expect(wishesToSend({ ...NO_WISHES, note: '   ' }, all).note).toBeNull();
     expect(wishesToSend({ ...NO_WISHES, note: 'x'.repeat(250) }, all).note).toHaveLength(200);
+  });
+});
+
+/** Task 80f: example photos from the phone's gallery. */
+describe('photoType', () => {
+  it('keeps the types the API takes and sends anything else as JPEG', () => {
+    expect(photoType('image/png', '')).toBe('image/png');
+    expect(photoType(undefined, 'image/webp')).toBe('image/webp');
+    expect(photoType('IMAGE/JPEG', '')).toBe('image/jpeg');
+    expect(photoType('image/heic', 'image/heic')).toBe('image/jpeg');
+    expect(photoType(null, '')).toBe('image/jpeg');
   });
 });

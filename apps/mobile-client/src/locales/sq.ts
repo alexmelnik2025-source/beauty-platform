@@ -157,6 +157,19 @@ export const sq: Dictionary = {
     remembered: 'Shënuam zgjedhjet nga vizita juaj e kaluar — mund t’i ndryshoni.',
     save: 'Ruaj dëshirat',
     saved: 'Dëshirat u ruajtën.',
+    photosQ: 'Tregoni çfarë dëshironi',
+    photosLead:
+      'Deri në 3 foto — p.sh. prerja që dëshironi. Specialisti do t’i shohë; fotot i fshijmë 90 ditë pas vizitës.',
+    photosAdd: '＋ Shto foto',
+    photosUploading: 'Po dërgohet…',
+    photosRemove: 'Hiq',
+    photoAlt: 'Fotoja juaj {n}',
+    photosTooMany: 'Mund të shtoni më së shumti 3 foto.',
+    photosTooLarge: 'Fotoja është shumë e madhe (maks. 3 MB).',
+    photosBadType: 'Ky skedar nuk mund të ngarkohet. Zgjidhni një foto JPEG, PNG ose WebP.',
+    photosNoAccess:
+      'Galeria nuk u hap dot. Lejojeni aplikacionin të përdorë fotot te cilësimet e telefonit.',
+    photosKeptUntil: 'Fotot do t’i fshijmë më {date}.',
   },
   book: {
     title: 'Rezervo një takim',

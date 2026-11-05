@@ -157,6 +157,19 @@ export const tr: Dictionary = {
     remembered: 'Önceki ziyaretinizdeki seçimlerinizi işaretledik — değiştirebilirsiniz.',
     save: 'İstekleri kaydet',
     saved: 'İstekler kaydedildi.',
+    photosQ: 'Ne istediğinizi gösterin',
+    photosLead:
+      'En fazla 3 fotoğraf — örneğin istediğiniz saç kesimi. Uzman görecek; fotoğrafları randevudan 90 gün sonra sileriz.',
+    photosAdd: '＋ Fotoğraf ekle',
+    photosUploading: 'Gönderiliyor…',
+    photosRemove: 'Sil',
+    photoAlt: 'Fotoğrafınız {n}',
+    photosTooMany: 'En fazla 3 fotoğraf ekleyebilirsiniz.',
+    photosTooLarge: 'Fotoğraf çok büyük (en fazla 3 MB).',
+    photosBadType: 'Bu dosya yüklenemiyor. JPEG, PNG veya WebP bir fotoğraf seçin.',
+    photosNoAccess:
+      'Galeri açılamadı. Telefon ayarlarından uygulamanın fotoğraflara erişmesine izin verin.',
+    photosKeptUntil: 'Fotoğrafları {date} tarihinde sileriz.',
   },
   book: {
     title: 'Randevu al',

@@ -151,6 +151,19 @@ export const pl = {
     remembered: 'Zaznaczyliśmy wybory z Twojej poprzedniej wizyty — możesz je zmienić.',
     save: 'Zapisz życzenia',
     saved: 'Zapisano życzenia.',
+    photosQ: 'Pokaż, co chcesz',
+    photosLead:
+      'Do 3 zdjęć — np. fryzura, którą chcesz. Zobaczy je specjalista; zdjęcia usuniemy 90 dni po wizycie.',
+    photosAdd: '＋ Dodaj zdjęcie',
+    photosUploading: 'Wysyłamy…',
+    photosRemove: 'Usuń',
+    photoAlt: 'Twoje zdjęcie {n}',
+    photosTooMany: 'Możesz dodać najwyżej 3 zdjęcia.',
+    photosTooLarge: 'Zdjęcie jest za duże (maks. 3 MB).',
+    photosBadType: 'Tego pliku nie da się wgrać. Wybierz zdjęcie JPEG, PNG lub WebP.',
+    photosNoAccess:
+      'Nie udało się otworzyć galerii. Zezwól aplikacji na dostęp do zdjęć w ustawieniach telefonu.',
+    photosKeptUntil: 'Zdjęcia usuniemy {date}.',
   },
   book: {
     title: 'Umów wizytę',

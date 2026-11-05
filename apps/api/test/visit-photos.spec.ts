@@ -187,7 +187,11 @@ describe('visit photos', () => {
     const picture = await ctx.http().get(first.body.url).expect(200);
     expect(picture.headers['content-type']).toBe('image/png');
     expect(Buffer.from(picture.body as Buffer)).toEqual(PNG);
-    await ctx.http().get(first.body.url.replace(/sig=./, 'sig=0')).expect(404);
+    // Change the first character of the signature (to another one: it may start with 0).
+    const changed = first.body.url.replace(/sig=(.)/, (_: string, c: string) =>
+      c === '0' ? 'sig=1' : 'sig=0',
+    );
+    await ctx.http().get(changed).expect(404);
     const expired = photos.signedUrl(first.body.id, Date.now() - 2 * 60 * 60_000);
     await ctx.http().get(expired).expect(404);
     await ctx.http().get(`/v1/public/visit-photos/${first.body.id}`).expect(404);
@@ -275,5 +279,66 @@ describe('visit photos', () => {
       (await ctx.http().get(`/v1/public/appointments/${booked.manageToken}/photos`).expect(200))
         .body.items,
     ).toEqual([]);
+  });
+});
+
+/** Task 80j: the signed-in client sees and removes their photos in "My visits" (the app). */
+describe('visit photos in "My visits"', () => {
+  async function signInClient(email: string): Promise<{ Authorization: string }> {
+    await ctx.http().post('/v1/client/auth/code').send({ email, locale: 'pl' }).expect(202);
+    const code = ctx.mail.lastTo(email)?.text.match(/\b(\d{6})\b/)?.[1];
+    const res = await ctx
+      .http()
+      .post('/v1/client/auth/verify')
+      .send({ email, code, clientType: 'mobile' })
+      .expect(200);
+    return { Authorization: `Bearer ${res.body.token}` };
+  }
+
+  it('lists and removes my photos until the visit starts; nobody else sees them', async () => {
+    await askPhotos(true);
+    const h = await hold(11);
+    await upload(h, PNG).expect(201);
+    await upload(h, JPEG, 'image/jpeg').expect(201);
+    const booked = await confirm(h);
+    const url = `/v1/client/appointments/${booked.appointment.id}/photos`;
+
+    await ctx.http().get(url).expect(401);
+    const anna = await signInClient(CLIENT.email);
+    const mine = await ctx.http().get(url).set(anna).expect(200);
+    expect(mine.body.items).toHaveLength(2);
+    expect(mine.body.items[0].contentType).toBe('image/png');
+    const end = new Date(zonedToInstant(day, 11 * 60 + 30, TZ)).getTime();
+    expect(mine.body.deleteAfter).toBe(new Date(end + 90 * DAY_MS).toISOString());
+    await ctx.http().get(mine.body.items[0].url).expect(200);
+
+    // Someone else's visit looks exactly like a missing one.
+    const ola = await signInClient('ola@example.com');
+    expectError((await ctx.http().get(url).set(ola).expect(404)).body, 'NOT_FOUND');
+    await ctx.http().delete(`${url}/${mine.body.items[0].id}`).set(ola).expect(404);
+
+    // A photo that is not on this visit; a malformed id.
+    await ctx.http().delete(`${url}/00000000-0000-4000-8000-000000000000`).set(anna).expect(404);
+    await ctx.http().delete(`${url}/nope`).set(anna).expect(404);
+
+    await ctx.http().delete(`${url}/${mine.body.items[0].id}`).set(anna).expect(204);
+    await ctx.http().delete(`${url}/${mine.body.items[0].id}`).set(anna).expect(404);
+    const left = await ctx.http().get(url).set(anna).expect(200);
+    expect(left.body.items.map((p: { id: string }) => p.id)).toEqual([mine.body.items[1].id]);
+
+    // Once the visit has started the specialist may still need them.
+    await ctx.prisma.appointment.update({
+      where: { id: booked.appointment.id },
+      data: {
+        startAt: new Date(Date.now() - 60_000),
+        endAt: new Date(Date.now() + 29 * 60_000),
+        blockedUntil: new Date(Date.now() + 29 * 60_000),
+      },
+    });
+    expectError(
+      (await ctx.http().delete(`${url}/${mine.body.items[1].id}`).set(anna).expect(409)).body,
+      'TOO_LATE_TO_CHANGE',
+    );
+    expect((await ctx.http().get(url).set(anna).expect(200)).body.items).toHaveLength(1);
   });
 });

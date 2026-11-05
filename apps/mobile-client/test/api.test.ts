@@ -6,6 +6,7 @@ import {
   ClientApi,
   type ClientAppointment,
   myDataFileName,
+  type Hold,
   newRequestKey,
   PAGE_SIZE,
   parseEmail,
@@ -459,5 +460,88 @@ describe('"Download my data" (task 97)', () => {
     const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
     await expect(api.exportData()).rejects.toMatchObject({ status: 401 });
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('ClientApi example photos (task 80f)', () => {
+  const hold = {
+    holdId: 'h1',
+    holdToken: 'hold-token-0123456789',
+  } as Hold;
+
+  it('sends the picture itself with its type and the hold token, without a session', async () => {
+    const seen: { url: string; init?: RequestInit }[] = [];
+    const api = new ClientApi('https://api.test', memoryStore(), async (url, init) => {
+      seen.push({ url, init });
+      return new Response(
+        JSON.stringify({
+          id: 'ph1',
+          url: '/v1/public/visit-photos/ph1?sig=x',
+          contentType: 'image/jpeg',
+          sizeBytes: 3,
+          createdAt: '2026-11-05T10:00:00Z',
+        }),
+        { status: 201 },
+      );
+    });
+    const photo = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' });
+    const saved = await api.addHoldPhoto(hold, photo, 'image/jpeg');
+    expect(saved.id).toBe('ph1');
+    expect(seen[0]!.url).toBe('https://api.test/v1/public/holds/h1/photos');
+    const headers = seen[0]!.init!.headers as Record<string, string>;
+    expect(headers['content-type']).toBe('image/jpeg');
+    expect(headers['x-hold-token']).toBe('hold-token-0123456789');
+    expect(headers.authorization).toBeUndefined();
+    expect(seen[0]!.init!.body).toBe(photo);
+  });
+
+  it('turns "too many photos" into an error with its code', async () => {
+    const api = new ClientApi('https://api.test', memoryStore(), async () =>
+      Response.json({ error: { code: 'TOO_MANY_PHOTOS', message: 'At most 3' } }, { status: 409 }),
+    );
+    await expect(
+      api.addHoldPhoto(hold, new Blob([new Uint8Array([1])]), 'image/png'),
+    ).rejects.toMatchObject({ status: 409, code: 'TOO_MANY_PHOTOS' });
+  });
+
+  it('removes a photo with the hold token', async () => {
+    const seen: { url: string; init?: RequestInit }[] = [];
+    const api = new ClientApi('https://api.test', memoryStore(), async (url, init) => {
+      seen.push({ url, init });
+      return new Response(null, { status: 204 });
+    });
+    await api.removeHoldPhoto(hold, 'ph1');
+    expect(seen[0]!.init!.method).toBe('DELETE');
+    expect(seen[0]!.url).toBe('https://api.test/v1/public/holds/h1/photos/ph1');
+    expect((seen[0]!.init!.headers as Record<string, string>)['x-hold-token']).toBe(
+      'hold-token-0123456789',
+    );
+  });
+});
+
+describe('ClientApi photos in "My visits" (task 80j)', () => {
+  it('lists and removes the photos of my visit with my session', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/client/auth/verify': () => [
+        200,
+        { person, expiresAt: '2027-02-02T10:00:00Z', token: 'session-token-0123456789' },
+      ],
+      'GET /v1/client/appointments/a1/photos': () => [
+        200,
+        { items: [{ id: 'ph1' }], deleteAfter: '2027-02-09T10:00:00Z' },
+      ],
+      'DELETE /v1/client/appointments/a1/photos/ph1': () => [204],
+    });
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    await api.verifyCode('anna@example.com', '123456', 'pl');
+    const list = await api.visitPhotos('a1');
+    expect(list.items).toHaveLength(1);
+    expect(list.deleteAfter).toBe('2027-02-09T10:00:00Z');
+    await api.removeVisitPhoto('a1', 'ph1');
+    expect(calls.slice(1).map((c) => c.key)).toEqual([
+      'GET /v1/client/appointments/a1/photos',
+      'DELETE /v1/client/appointments/a1/photos/ph1',
+    ]);
+    expect(calls[2]!.auth).toBe('Bearer session-token-0123456789');
   });
 });

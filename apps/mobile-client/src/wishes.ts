@@ -40,3 +40,15 @@ export function wishesToSend(w: VisitWishes, q: WishQuestions): VisitWishes {
     note: q.note && note ? note : null,
   };
 }
+
+/** Task 80f: the picture types the API takes for example photos. */
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/**
+ * The type a picked photo is sent as: its own when the API takes it, otherwise JPEG (the
+ * phone's picker converts other formats, such as HEIC from an iPhone, to JPEG).
+ */
+export function photoType(mimeType: string | null | undefined, blobType: string): string {
+  const type = (mimeType || blobType || '').toLowerCase();
+  return PHOTO_TYPES.includes(type) ? type : 'image/jpeg';
+}

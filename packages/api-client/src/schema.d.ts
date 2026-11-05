@@ -2186,6 +2186,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My example photos for the visit (task 80j, "Pokaż, co chcesz") */
+        get: operations["ClientController_photos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/appointments/{id}/photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove one of my example photos before the visit (task 80j)
+         * @description 409 TOO_LATE_TO_CHANGE once the visit has started.
+         */
+        delete: operations["ClientController_removePhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/appointments/{id}/coupons": {
         parameters: {
             query?: never;
@@ -9260,6 +9297,47 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClientAppointment"];
                 };
+            };
+        };
+    };
+    ClientController_photos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitPhotoList"];
+                };
+            };
+        };
+    };
+    ClientController_removePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

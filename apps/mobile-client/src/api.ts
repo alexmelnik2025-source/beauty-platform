@@ -19,6 +19,8 @@ import type {
   PublicSalonDirectory,
   Slot,
   VisitCoupons,
+  VisitPhoto,
+  VisitPhotoList,
   WaitlistJoined,
 } from '@beauty/api-client';
 
@@ -35,7 +37,14 @@ export type Scope = 'upcoming' | 'past';
 export type SpokenLanguage = PublicSalonDirectory['items'][number]['languages'][number];
 export type DirectorySalon = PublicSalonDirectory['items'][number];
 export type FavoriteSalon = ClientFavorites['items'][number];
-export type { ClientDataExport, ClientWaitlist, ClientWaitlistEntry, WaitlistJoined };
+export type {
+  ClientDataExport,
+  ClientWaitlist,
+  ClientWaitlistEntry,
+  VisitPhoto,
+  VisitPhotoList,
+  WaitlistJoined,
+};
 export type {
   Availability,
   BookingConfirmed,
@@ -60,6 +69,9 @@ export interface BookingContact {
 
 /** "Change time" looks this many days ahead (the API gives at most 31 days per request). */
 export const MOVE_DAYS = 21;
+
+/** Task 80f: at most this many example photos per visit (the API checks it too). */
+export const MAX_WISH_PHOTOS = 3;
 
 /** The catalogue shows this many salons at a time (the API allows up to 50). */
 export const PAGE_SIZE = 20;
@@ -266,6 +278,22 @@ export class ClientApi {
     );
   }
 
+  /** Task 80j: my example photos for the visit and when they are deleted. */
+  visitPhotos(id: string): Promise<VisitPhotoList> {
+    return this.authed<VisitPhotoList>(
+      'GET',
+      `/v1/client/appointments/${encodeURIComponent(id)}/photos`,
+    );
+  }
+
+  /** Task 80j: removes one of my photos, until the visit starts (TOO_LATE_TO_CHANGE after). */
+  removeVisitPhoto(id: string, photoId: string): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `/v1/client/appointments/${encodeURIComponent(id)}/photos/${encodeURIComponent(photoId)}`,
+    );
+  }
+
   cancel(id: string, key: string = newRequestKey()): Promise<ClientAppointment> {
     return this.authed<ClientAppointment>(
       'POST',
@@ -395,6 +423,38 @@ export class ClientApi {
     );
   }
 
+  /**
+   * Task 80f: "Pokaż, co chcesz" — one example photo added to the held time (JPEG, PNG or
+   * WebP, at most 3 MB); it stays with the visit once it is booked. Only for services where
+   * the salon asks for photos (PHOTOS_NOT_ASKED otherwise), at most 3 (TOO_MANY_PHOTOS).
+   */
+  async addHoldPhoto(hold: Hold, photo: Blob, contentType: string): Promise<VisitPhoto> {
+    const res = await this.fetchFn(
+      `${this.baseUrl}/v1/public/holds/${encodeURIComponent(hold.holdId)}/photos`,
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': contentType,
+          'x-hold-token': hold.holdToken,
+        },
+        body: photo,
+      },
+    );
+    return this.answer<VisitPhoto>(res);
+  }
+
+  /** Takes an example photo off the held time. */
+  removeHoldPhoto(hold: Hold, photoId: string): Promise<void> {
+    return this.call<void>(
+      'DELETE',
+      `/v1/public/holds/${encodeURIComponent(hold.holdId)}/photos/${encodeURIComponent(photoId)}`,
+      undefined,
+      undefined,
+      { 'x-hold-token': hold.holdToken },
+    );
+  }
+
   /** Gives a held time back (the client left the booking). Errors do not matter. */
   async releaseHold(hold: Hold): Promise<void> {
     try {
@@ -510,6 +570,10 @@ export class ClientApi {
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+    return this.answer<T>(res);
+  }
+
+  private async answer<T>(res: Response): Promise<T> {
     if (res.status === 204) return undefined as T;
     const data: unknown = await res.json().catch(() => null);
     if (!res.ok) {

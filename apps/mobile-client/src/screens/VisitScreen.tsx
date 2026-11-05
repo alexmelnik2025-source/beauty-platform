@@ -24,6 +24,7 @@ import {
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 import { WishesPicker } from '../WishesPicker';
+import { VisitPhotos } from '../WishPhotosPicker';
 import { asksWishes, wishesToSend, type VisitWishes } from '../wishes';
 
 /**
@@ -302,6 +303,8 @@ export function VisitScreen(props: {
           />
         </View>
       ) : null}
+
+      <VisitPhotos t={t} api={api} locale={locale} visit={visit} />
 
       {couponsOpen && coupons && (coupons.applied.length > 0 || coupons.available.length > 0) ? (
         <View role="region" aria-label={v.coupons} style={styles.move}>

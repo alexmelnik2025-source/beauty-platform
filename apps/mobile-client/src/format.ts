@@ -76,6 +76,16 @@ export function formatMoment(iso: string, timeZone: string, locale: Locale): str
   }).format(new Date(iso));
 }
 
+/** "10 lutego 2027" — the date of a moment (ISO) in the salon's time zone. */
+export function formatDate(iso: string, timeZone: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+    timeZone,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(iso));
+}
+
 /** "wt" + "10" for the day strip of "Change time" (salon-local date, no time zone shift). */
 export function dayChip(date: string, locale: Locale): { weekday: string; day: string } {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];

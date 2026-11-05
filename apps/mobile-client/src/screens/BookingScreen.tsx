@@ -41,6 +41,7 @@ import {
 } from '../booking';
 import { WEB_URL } from '../config';
 import { WishesPicker } from '../WishesPicker';
+import { WishPhotosPicker } from '../WishPhotosPicker';
 import { asksWishes, NO_WISHES, wishesToSend, type VisitWishes } from '../wishes';
 import { errorText } from '../errors';
 import {
@@ -741,6 +742,9 @@ export function BookingScreen(props: {
               value={wishes}
               onChange={setWishes}
             />
+          ) : null}
+          {service?.wishPhotos ? (
+            <WishPhotosPicker key={hold.holdId} t={t} api={api} hold={hold} />
           ) : null}
           <Button
             label={b.confirm}

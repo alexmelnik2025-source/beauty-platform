@@ -1383,8 +1383,18 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
   (браузер уменьшает до 1600 px JPEG), миниатюры с «Usuń», строка «zdjęcia usuniemy 90 dni po wizycie»; 6 языков
   (`wishStep.photos*`), компонент `components/wishes/WishPhotos.tsx`. e2e — скриншот 05p.
 - Страница визита по ссылке: блок «📷 Pokaż, co chcesz» с фото клиента, «Usuń» до начала визита и «Zdjęcia usuniemy
-  …» (скриншот 07p). Дальше: фото в клиентском приложении (нужен `expo-image-picker` — новая зависимость, отдельной
-  задачей).
+  …» (скриншот 07p).
+- Клиентское приложение (05.11.2026): на шаге кода записи — тот же блок «📷 Pokaż, co chcesz»: «＋ Dodaj zdjęcie»
+  открывает галерею телефона (`expo-image-picker`, бесплатная библиотека Expo; только галерея, без камеры; качество
+  0,6 — чтобы фото было меньше 3 МБ), до 3 фото, миниатюры с «Usuń», понятные сообщения «za duże», «nie ten format»,
+  «нет доступа к галерее»; 6 языков. Компонент `apps/mobile-client/src/WishPhotosPicker.tsx`, запросы
+  `ClientApi.addHoldPhoto / removeHoldPhoto`. В веб-превью приложения галерея — скрытое поле файла; e2e записывает
+  визит в приложении с фото (скриншот 05q).
+- «Moje wizyty» (задача 80j, 05.11.2026): `GET /v1/client/appointments/:id/photos` — фото своего визита и дата удаления,
+  `DELETE …/photos/:photoId` — удалить до начала визита (после — 409 `TOO_LATE_TO_CHANGE`); чужой визит выглядит как
+  несуществующий (404). В карточке визита приложения — блок «📷 Pokaż, co chcesz» с миниатюрами, «Usuń» до начала
+  визита и «Zdjęcia usuniemy 9 lutego 2027.» (дата в поясе салона); без фото блока нет. Тест API —
+  `apps/api/test/visit-photos.spec.ts`, e2e — скриншот 07q.
 
 ## Цена услуги у каждого мастера (задача 62, часть 1 — API)
 
