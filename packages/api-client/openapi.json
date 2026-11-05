@@ -943,6 +943,23 @@
                       }
                     ]
                   },
+                  "rebookReminderDays": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 365
+                  },
+                  "rebookReminderText": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "onlineBookingEnabled": {
                     "default": false,
                     "type": "boolean"
@@ -1331,6 +1348,22 @@
                       {
                         "type": "number",
                         "const": 60
+                      }
+                    ]
+                  },
+                  "rebookReminderDays": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 365
+                  },
+                  "rebookReminderText": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
                       }
                     ]
                   },
@@ -7486,6 +7519,50 @@
         "summary": "The client's example photos for the visit",
         "tags": [
           "appointments"
+        ]
+      }
+    },
+    "/v1/public/unsubscribe": {
+      "post": {
+        "description": "404 NOT_FOUND for a changed or made-up link. Using the link twice is fine.",
+        "operationId": "RebookReminderController_unsubscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "From the \"unsubscribe\" link of the email"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unsubscribed"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stop the salon’s messages (withdraws the marketing consent)",
+        "tags": [
+          "public booking"
         ]
       }
     },
@@ -16318,6 +16395,17 @@
             "maximum": 9007199254740991,
             "description": "Task 164: a freed time is held this many minutes for the first client on the waiting list, then the next; 0 = everyone waiting gets one email with the free times"
           },
+          "rebookReminderDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 165c: \"time for your next visit\" email this many days after the last visit; 0 = off"
+          },
+          "rebookReminderText": {
+            "nullable": true,
+            "description": "Task 165c: the salon’s own words for that email; null = the platform’s text",
+            "type": "string"
+          },
           "onlineBookingEnabled": {
             "type": "boolean"
           },
@@ -16406,6 +16494,8 @@
           "clientCancelDeadlineMinutes",
           "reminderHoursBefore",
           "waitlistHoldMinutes",
+          "rebookReminderDays",
+          "rebookReminderText",
           "onlineBookingEnabled",
           "askMood",
           "askDrink",
@@ -16514,6 +16604,17 @@
               "maximum": 9007199254740991,
               "description": "Task 164: a freed time is held this many minutes for the first client on the waiting list, then the next; 0 = everyone waiting gets one email with the free times"
             },
+            "rebookReminderDays": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Task 165c: \"time for your next visit\" email this many days after the last visit; 0 = off"
+            },
+            "rebookReminderText": {
+              "nullable": true,
+              "description": "Task 165c: the salon’s own words for that email; null = the platform’s text",
+              "type": "string"
+            },
             "onlineBookingEnabled": {
               "type": "boolean"
             },
@@ -16602,6 +16703,8 @@
             "clientCancelDeadlineMinutes",
             "reminderHoursBefore",
             "waitlistHoldMinutes",
+            "rebookReminderDays",
+            "rebookReminderText",
             "onlineBookingEnabled",
             "askMood",
             "askDrink",
@@ -21488,6 +21591,19 @@
         },
         "required": [
           "unread"
+        ],
+        "additionalProperties": false
+      },
+      "Unsubscribed": {
+        "type": "object",
+        "properties": {
+          "salonName": {
+            "type": "string",
+            "description": "The salon that will no longer send such messages"
+          }
+        },
+        "required": [
+          "salonName"
         ],
         "additionalProperties": false
       },
