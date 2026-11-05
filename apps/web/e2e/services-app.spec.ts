@@ -18,7 +18,7 @@ const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `services-app-owner-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
-// A sign-up address of its own (reserved for tests, RFC 2544): the API allows 10 sign-ups an hour from one.
+// An address of its own for sign-up and sign-in (reserved for tests, RFC 2544): the API allows 10 sign-ups an hour from one.
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.19.${n >> 8}.${n & 255}` };
 
@@ -40,10 +40,16 @@ async function verifiedUser(api: APIRequestContext, email: string, name: string)
   const token = /token=([^\s&]+)/.exec(mail.text)?.[1];
   expect(token, 'verification link').toBeTruthy();
   await json(
-    await api.post('/v1/auth/verify-email', { data: { token: decodeURIComponent(token!) } }),
+    await api.post('/v1/auth/verify-email', {
+      headers: ADDRESS,
+      data: { token: decodeURIComponent(token!) },
+    }),
   );
   const login = await json<{ accessToken: string }>(
-    await api.post('/v1/auth/login', { data: { email, password: PASSWORD, clientType: 'mobile' } }),
+    await api.post('/v1/auth/login', {
+      headers: ADDRESS,
+      data: { email, password: PASSWORD, clientType: 'mobile' },
+    }),
   );
   return { Authorization: `Bearer ${login.accessToken}` };
 }
@@ -106,7 +112,13 @@ test('the owner changes prices, durations and online booking in the business app
 
   const businessApp = await serveApp('mobile-business');
   try {
-    const context = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+    const context = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      isMobile: true,
+      // Sign-ins from this test's own address too, so other tests keep their login limit.
+      extraHTTPHeaders: ADDRESS,
+    });
     const app = await context.newPage();
     await app.goto(businessApp.url);
     await app.getByLabel('E-mail lub telefon').fill(OWNER);
