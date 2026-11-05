@@ -23,6 +23,8 @@ import type { SalonChoice } from './SalonsScreen';
 import { ReportsScreen } from './ReportsScreen';
 import { TeamScreen } from './TeamScreen';
 import { ScheduleScreen } from './ScheduleScreen';
+import { SalonScreen } from './SalonScreen';
+import { maySeeSalon } from '../salon';
 import { VisitScreen } from './VisitScreen';
 
 const REFRESH_MS = 30_000;
@@ -63,6 +65,8 @@ export function DayScreen(props: {
   const [adding, setAdding] = useState(false);
   const [canReport, setCanReport] = useState(salon.role !== 'staff');
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [salonOpen, setSalonOpen] = useState(false);
+  const [salonName, setSalonName] = useState(salon.locationName);
 
   // Once per salon: may this person mark visits, and are they one of the specialists?
   useEffect(() => {
@@ -221,6 +225,18 @@ export function DayScreen(props: {
     );
   }
 
+  if (salonOpen) {
+    return (
+      <SalonScreen
+        api={api}
+        t={t}
+        salon={salon}
+        onBack={() => setSalonOpen(false)}
+        onRenamed={setSalonName}
+      />
+    );
+  }
+
   if (teamOpen) {
     return (
       <TeamScreen
@@ -283,7 +299,7 @@ export function DayScreen(props: {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
       <View style={styles.top}>
-        <Text style={styles.salon}>{salon.locationName}</Text>
+        <Text style={styles.salon}>{salonName}</Text>
         <View style={styles.row}>
           {props.canChangeSalon ? (
             <Button kind="link" label={t.changeSalon} onPress={props.onChangeSalon} />
@@ -298,6 +314,9 @@ export function DayScreen(props: {
           ) : null}
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.team.open} onPress={() => setTeamOpen(true)} />
+          ) : null}
+          {maySeeSalon(salon.role) ? (
+            <Button kind="link" label={t.salon.open} onPress={() => setSalonOpen(true)} />
           ) : null}
           {mineId ? (
             <Button kind="link" label={t.schedule.open} onPress={() => setScheduleOpen(true)} />

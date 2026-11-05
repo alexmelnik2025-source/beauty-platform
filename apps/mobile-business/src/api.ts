@@ -10,6 +10,7 @@ import type {
   Tokens,
   components,
 } from '@beauty/api-client';
+import type { SalonChanges } from './salon';
 
 /**
  * The business app's connection to the API: sign-in with a code (no password),
@@ -162,6 +163,28 @@ export class BusinessApi {
   /** Salons (locations) of the organization the person may open. */
   locations(orgId: string): Promise<LocationList> {
     return this.authed<LocationList>('GET', `/v1/organizations/${enc(orgId)}/locations`);
+  }
+
+  /** Task 131: one salon with everything the owner or a manager may change. */
+  location(orgId: string, locationId: string): Promise<Location> {
+    return this.authed<Location>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}`,
+    );
+  }
+
+  /** Task 131: saves the salon's changes; `version` is the one read (someone else may have saved). */
+  updateLocation(
+    orgId: string,
+    locationId: string,
+    version: number,
+    changes: SalonChanges,
+  ): Promise<Location> {
+    return this.authed<Location>(
+      'PATCH',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}`,
+      { ...changes, version },
+    );
   }
 
   /** One day of the calendar; a specialist sees only what the server lets them see. */
