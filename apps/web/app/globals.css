@@ -2522,3 +2522,87 @@ ul.wish-photos {
     font-size: 10.5pt;
   }
 }
+
+/* ── Client navigation (task 180): find a salon, my visits ─────────────────── */
+
+.client-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.client-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.client-nav-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 44px;
+  padding: 4px 10px;
+  border-radius: var(--radius-m);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.client-nav-link:hover,
+.client-nav-link[aria-current='page'] {
+  background: var(--fog);
+}
+
+.client-nav-hint {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--graphite);
+}
+
+/* Home page for clients: two large choices, the salon dashboard below. */
+.client-home {
+  display: grid;
+  gap: 16px;
+  padding-top: 40px;
+}
+
+.client-home h1 {
+  margin: 0;
+}
+
+.client-home-choice {
+  display: grid;
+  gap: 4px;
+  padding: 20px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-m);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.client-home-choice strong {
+  font-size: 1.25rem;
+}
+
+.client-home-choice--main {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.client-home-choice--main .muted {
+  color: var(--steel);
+}
+
+.client-home-salons {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}

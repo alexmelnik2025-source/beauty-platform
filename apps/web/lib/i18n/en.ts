@@ -270,6 +270,21 @@ export const en: Dict = {
     salonDescription:
       'Book a visit at {name} ({address}, {city}) online: choose a service, a specialist and a free time.',
   },
+  clientNav: {
+    label: 'Client menu',
+    findSalon: 'Find a salon',
+    myVisits: 'My visits',
+    signIn: 'Sign in',
+    signInHint: 'no password — code by e-mail',
+    homeTitle: 'Book a salon visit',
+    homeLead:
+      'Barber, hairdresser, beautician — find a salon, pick a time and confirm with a code from your e-mail. No account needed.',
+    findSalonHint: 'Salons with online booking, prices and free times',
+    myVisitsHint: 'Move or cancel a visit, your bonuses — sign in with a code, no password',
+    forSalons: 'For salons',
+    forSalonsHint: 'Salon dashboard: calendar, clients, online booking',
+    directoryHint: 'Choose a salon and tap “Book” — no account needed.',
+  },
   waitlist: {
     title: 'Waiting list',
     waiting: 'You are waiting for a free time. We will email you when one frees up.',

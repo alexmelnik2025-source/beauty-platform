@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { LanguageBadges } from '@/components/Languages';
-import { ErrorBox, LanguageSwitch, Spinner, Wordmark } from '@/components/ui';
+import { ClientNav } from '@/components/client/ClientNav';
+import { ErrorBox, LanguageSwitch, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
@@ -115,14 +116,15 @@ export function PublicDirectory() {
 
   return (
     <div className="booking directory">
+      <ClientNav current="salons" />
       <header className="salon-head">
         <div className="salon-head-inner directory-inner">
-          <div className="top">
-            <Wordmark />
+          <div className="top" style={{ justifyContent: 'flex-end' }}>
             <LanguageSwitch />
           </div>
           <h1 className="salon-name">{t.directory.title}</h1>
           <p className="muted small">{t.directory.lead}</p>
+          <p className="small">{t.clientNav.directoryHint}</p>
           <div className="chips" role="group" aria-label={t.directory.filterLanguage}>
             <button type="button" aria-pressed={language === null} onClick={() => choose(null)}>
               {t.directory.allLanguages}
