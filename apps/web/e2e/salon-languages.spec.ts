@@ -169,9 +169,13 @@ test('the salon page needs no sign-in and shows the specialists’ languages eve
       app
         .getByText('Mówimy po: ukraiński, polski')
         .or(app.getByText('Mówimy po: polski, ukraiński'))
+        // Screens left behind (the catalogue) stay mounted but hidden.
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
-    await expect(app.getByText('Mówimy po: ukraiński', { exact: true })).toBeVisible();
+    await expect(
+      app.getByText('Mówimy po: ukraiński', { exact: true }).filter({ visible: true }),
+    ).toBeVisible();
     await shot(app, '163b-client-app-team-languages');
     await app.getByRole('button', { name: 'Umów wizytę' }).click();
     await app.getByRole('button', { name: /^Strzyżenie,/ }).click();
