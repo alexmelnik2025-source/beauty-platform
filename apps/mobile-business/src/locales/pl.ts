@@ -155,6 +155,17 @@ export const pl = {
     added: 'Czas zablokowany — klienci nie zapiszą się w tych godzinach.',
     removed: 'Czas odblokowany.',
   },
+  profile: {
+    open: 'Mój profil',
+    title: 'Mój profil',
+    back: '‹ Wróć',
+    languages: 'Języki, w których rozmawiasz z klientami',
+    languagesHint:
+      'Klienci widzą je przy Twoim imieniu i mogą wybrać specjalistę, który mówi w ich języku.',
+    save: 'Zapisz języki',
+    saved: 'Języki zapisane. Klienci widzą je na stronie rezerwacji.',
+    none: 'Nie wybrano języka.',
+  },
   notifications: {
     open: 'Powiadomienia',
     title: 'Powiadomienia',
