@@ -5,6 +5,7 @@ import {
   bookingUrl,
   ClientApi,
   type ClientAppointment,
+  type Hold,
   newRequestKey,
   PAGE_SIZE,
   parseEmail,
@@ -434,5 +435,61 @@ describe('ClientApi: waiting list (task 51)', () => {
     expect(
       calls.filter((c) => c.key.includes('/waitlist')).every((c) => c.auth === 'Bearer tok'),
     ).toBe(true);
+  });
+});
+
+describe('ClientApi example photos (task 80f)', () => {
+  const hold = {
+    holdId: 'h1',
+    holdToken: 'hold-token-0123456789',
+  } as Hold;
+
+  it('sends the picture itself with its type and the hold token, without a session', async () => {
+    const seen: { url: string; init?: RequestInit }[] = [];
+    const api = new ClientApi('https://api.test', memoryStore(), async (url, init) => {
+      seen.push({ url, init });
+      return new Response(
+        JSON.stringify({
+          id: 'ph1',
+          url: '/v1/public/visit-photos/ph1?sig=x',
+          contentType: 'image/jpeg',
+          sizeBytes: 3,
+          createdAt: '2026-11-05T10:00:00Z',
+        }),
+        { status: 201 },
+      );
+    });
+    const photo = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' });
+    const saved = await api.addHoldPhoto(hold, photo, 'image/jpeg');
+    expect(saved.id).toBe('ph1');
+    expect(seen[0]!.url).toBe('https://api.test/v1/public/holds/h1/photos');
+    const headers = seen[0]!.init!.headers as Record<string, string>;
+    expect(headers['content-type']).toBe('image/jpeg');
+    expect(headers['x-hold-token']).toBe('hold-token-0123456789');
+    expect(headers.authorization).toBeUndefined();
+    expect(seen[0]!.init!.body).toBe(photo);
+  });
+
+  it('turns "too many photos" into an error with its code', async () => {
+    const api = new ClientApi('https://api.test', memoryStore(), async () =>
+      Response.json({ error: { code: 'TOO_MANY_PHOTOS', message: 'At most 3' } }, { status: 409 }),
+    );
+    await expect(
+      api.addHoldPhoto(hold, new Blob([new Uint8Array([1])]), 'image/png'),
+    ).rejects.toMatchObject({ status: 409, code: 'TOO_MANY_PHOTOS' });
+  });
+
+  it('removes a photo with the hold token', async () => {
+    const seen: { url: string; init?: RequestInit }[] = [];
+    const api = new ClientApi('https://api.test', memoryStore(), async (url, init) => {
+      seen.push({ url, init });
+      return new Response(null, { status: 204 });
+    });
+    await api.removeHoldPhoto(hold, 'ph1');
+    expect(seen[0]!.init!.method).toBe('DELETE');
+    expect(seen[0]!.url).toBe('https://api.test/v1/public/holds/h1/photos/ph1');
+    expect((seen[0]!.init!.headers as Record<string, string>)['x-hold-token']).toBe(
+      'hold-token-0123456789',
+    );
   });
 });

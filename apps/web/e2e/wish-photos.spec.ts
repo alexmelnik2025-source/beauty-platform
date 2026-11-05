@@ -12,8 +12,8 @@ import { serveApp } from './mobile-app';
  * Task 80b/80f: "Pokaż, co chcesz". The owner lets clients add example photos for a service;
  * a client books with a photo (through the API, as the booking page and the app do); the
  * owner sees the photo in the visit card and in the business app; on the booking page the
- * client adds and removes a photo on the code step and by the visit link. Screenshots 21p–21r,
- * 05p, 07p.
+ * client adds and removes a photo on the code step and by the visit link; in the client app
+ * the client adds a photo from the gallery while booking. Screenshots 21p–21r, 05p, 07p, 05q.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -21,6 +21,9 @@ const run = Date.now().toString(36);
 const OWNER = `photos-owner-${run}@example.com`;
 const CLIENT = `photos-client-${run}@example.com`;
 const CLIENT2 = `photos-client2-${run}@example.com`;
+const CLIENT3 = `photos-client3-${run}@example.com`;
+/** Unique, so the app's catalogue search finds this salon only. */
+const SALON = `Gestalt Foto ${run}`;
 const DESKTOP = { width: 1280, height: 900 };
 const PHONE = { width: 390, height: 844 };
 /** The salon's own address: the API limits sign-ups, sign-ins and codes per address. */
@@ -92,7 +95,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
     await request.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
-        name: 'Gestalt Barbershop',
+        name: SALON,
         addressLine: 'ul. Józefa Bema 91',
         city: 'Warszawa',
         postalCode: '01-233',
@@ -302,5 +305,68 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   await shot(client, '07p-visit-wish-photos');
   await client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' }).click();
   await expect(client.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toHaveCount(0);
+  const photo = await drawnPhoto(client);
   await phoneContext.close();
+
+  // ── The client app (web preview of apps/mobile-client): a photo from the gallery ──
+  const clientApp = await serveApp('mobile-client');
+  const appContext = await browser.newContext({
+    viewport: PHONE,
+    isMobile: true,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: { 'x-forwarded-for': '203.0.113.86' },
+  });
+  try {
+    const app = await appContext.newPage();
+    await app.goto(clientApp.url);
+    await app.getByRole('button', { name: 'Znajdź salon' }).click();
+    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(SALON);
+    await app
+      .getByRole('article', { name: SALON })
+      .getByRole('button', { name: 'Zobacz salon' })
+      .click();
+    await app.getByRole('button', { name: 'Umów wizytę' }).click();
+    await expect(app.getByRole('heading', { name: 'Wybierz usługę' })).toBeVisible();
+    await app
+      .getByRole('button', { name: /^Umów: / })
+      .first()
+      .click();
+    const time = app.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first();
+    await expect(time).toBeVisible();
+    await time.click();
+    await expect(app.getByRole('heading', { name: 'Twoje dane' })).toBeVisible();
+    await app.getByRole('textbox', { name: 'Imię i nazwisko' }).fill('Ewa Kowalska');
+    await app.getByRole('textbox', { name: 'Telefon' }).fill('600 300 200');
+    await app.getByRole('textbox', { name: 'E-mail', exact: true }).fill(CLIENT3);
+    await app.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }).click();
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    await expect(app.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toBeVisible();
+    // The gallery on a phone; in the web preview the picker is a hidden file input.
+    await app.getByRole('button', { name: '＋ Dodaj zdjęcie' }).click();
+    await app.locator('input[data-testid="file-input"]').setInputFiles({
+      name: 'fade.jpg',
+      mimeType: 'image/jpeg',
+      buffer: photo,
+    });
+    const inApp = app.getByRole('img', { name: 'Twoje zdjęcie 1' });
+    await expect(inApp).toBeVisible();
+    await shot(app, '05q-client-app-wish-photos');
+    // The photo goes with the visit once the code books it.
+    const codeMail = await waitForEmail(CLIENT3, /Kod potwierdzenia/);
+    await app
+      .getByRole('textbox', { name: 'Kod z e-maila' })
+      .fill(/\b(\d{6})\b/.exec(codeMail.text)![1]!);
+    await app.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+    await expect(app.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+    const ewaMail = await waitForEmail(CLIENT3, /Wizyta potwierdzona/);
+    const ewaToken = /\/pl\/m\/(\S+)/.exec(ewaMail.text)![1]!;
+    const ewaPhotos = await json<{ items: unknown[] }>(
+      await request.get(`/v1/public/appointments/${ewaToken}/photos`),
+    );
+    expect(ewaPhotos.items).toHaveLength(1);
+  } finally {
+    await appContext.close();
+    clientApp.server.close();
+  }
 });
