@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
@@ -18,9 +19,6 @@ const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `history-app-owner-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
-// A sign-up address of its own (reserved for tests, RFC 2544): the API allows 10 sign-ups an hour from one.
-const n = Math.floor(Math.random() * 65_536);
-const ADDRESS = { 'x-forwarded-for': `198.18.${n >> 8}.${n & 255}` };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -32,7 +30,7 @@ async function json<T>(res: APIResponse): Promise<T> {
 async function verifiedUser(api: APIRequestContext, email: string, name: string) {
   await json(
     await api.post('/v1/auth/register', {
-      headers: ADDRESS,
+      headers: freshAddress(),
       data: { email, password: PASSWORD, name },
     }),
   );
@@ -43,7 +41,10 @@ async function verifiedUser(api: APIRequestContext, email: string, name: string)
     await api.post('/v1/auth/verify-email', { data: { token: decodeURIComponent(token!) } }),
   );
   const login = await json<{ accessToken: string }>(
-    await api.post('/v1/auth/login', { data: { email, password: PASSWORD, clientType: 'mobile' } }),
+    await api.post('/v1/auth/login', {
+      headers: freshAddress(),
+      data: { email, password: PASSWORD, clientType: 'mobile' },
+    }),
   );
   return { Authorization: `Bearer ${login.accessToken}` };
 }
@@ -105,7 +106,13 @@ test('the owner reads the change log in the business app (task 150)', async ({
 
   const businessApp = await serveApp('mobile-business');
   try {
-    const context = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+    const context = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      isMobile: true,
+      // The code sign-in comes from an address of its own too (sign-in limits are per address).
+      extraHTTPHeaders: freshAddress(),
+    });
     const app = await context.newPage();
     await signInToApp(app, businessApp.url, OWNER);
     await app.getByRole('button', { name: 'Dziennik zmian' }).click();
