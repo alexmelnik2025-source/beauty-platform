@@ -7,12 +7,13 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 161c: "Ochrona przed odwołaniami" in the cabinet. Jan missed two visits (entered by the
  * salon via the API); the owner turns the protection on with "2 no-shows → pay first", sees Jan
  * with the cost of the missed visits and lifts the block; the client card keeps the history
- * (part 2). Screenshots 161e–161g.
+ * (part 2) and so does the business app (part 3). Screenshots 161e–161h.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -164,4 +165,32 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
   await expect(card).toContainText('Zdjęto blokadę · Zapłacił 180 zł');
   await shot(owner, '161g-owner-client-card-guard');
   await desk.close();
+
+  // Part 3: the client card of the business app (web preview of apps/mobile-business).
+  const businessApp = await serveApp('mobile-business');
+  const pocket = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: 'pl-PL',
+    isMobile: true,
+    extraHTTPHeaders: freshAddress(),
+  });
+  try {
+    const app = await pocket.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByRole('button', { name: 'Karta klienta: Jan Nowak', exact: true }).click();
+    await expect(app.getByRole('heading', { name: 'Jan Nowak' })).toBeVisible();
+    await expect(app.getByText('Ochrona przed odwołaniami')).toBeVisible();
+    await expect(app.getByText('Klient nie jest teraz oznaczony.')).toBeVisible();
+    await expect(app.getByText(/Zdjęto blokadę · Zapłacił 180 zł/)).toBeVisible();
+    await shot(app, '161h-business-app-client-guard');
+  } finally {
+    businessApp.server.close();
+    await pocket.close();
+  }
 });

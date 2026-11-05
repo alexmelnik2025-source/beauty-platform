@@ -1565,7 +1565,8 @@ API пускает не больше 10 регистраций в час с од
 `cancellation-guard-cabinet.spec.ts`, скриншоты 161e–161f. В карточке клиента (владелец и менеджер) — блок
 «Ochrona przed odwołaniami» (`components/guard/ClientGuard.tsx`, `GET …/cancellation-guard/clients/:id`): отмечен ли
 клиент и почему, сумма неявок, «Zdejmij blokadę» с заметкой и история за год; при выключенной защите и пустой
-истории блока нет. Скриншот 161g.
+истории блока нет. Скриншот 161g. То же в карточке клиента бизнес-приложения (`ClientScreen`,
+`BusinessApi.guardClient` / `releaseGuard`; 5 последних событий), скриншот 161h.
 
 ## CORS: приложения в браузере (задача 170)
 

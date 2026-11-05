@@ -26,6 +26,7 @@ export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
 export type CustomerList = components['schemas']['CustomerList'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
+export type GuardedClient = components['schemas']['GuardedClient'];
 export type TimeBlock = components['schemas']['TimeBlock'];
 export type TimeBlockList = components['schemas']['TimeBlockList'];
 export type NotificationList = components['schemas']['NotificationList'];
@@ -470,6 +471,25 @@ export class BusinessApi {
     );
   }
 
+  /** Task 161c, owner or manager only (the server checks): the client's cancellation-protection mark. */
+  guardClient(orgId: string, locationId: string, customerId: string): Promise<GuardedClient> {
+    return this.authed<GuardedClient>('GET', guardClientPath(orgId, locationId, customerId));
+  }
+
+  /** "Zdejmij blokadę": counting starts again, the history stays. */
+  releaseGuard(
+    orgId: string,
+    locationId: string,
+    customerId: string,
+    note: string,
+  ): Promise<GuardedClient> {
+    return this.authed<GuardedClient>(
+      'POST',
+      `${guardClientPath(orgId, locationId, customerId)}/release`,
+      note.trim() ? { note: note.trim() } : {},
+    );
+  }
+
   /** Owner or manager only (the server checks): who waits for a free time, from a day on. */
   waitlist(orgId: string, locationId: string, from: string): Promise<SalonWaitlist> {
     const query = new URLSearchParams({ from }).toString();
@@ -666,6 +686,8 @@ const staffPath = (orgId: string, locationId: string, staffId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff/${enc(staffId)}`;
 const appointmentPath = (orgId: string, locationId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments/${enc(id)}`;
+const guardClientPath = (orgId: string, locationId: string, customerId: string) =>
+  `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/cancellation-guard/clients/${enc(customerId)}`;
 const customerPath = (orgId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/customers/${enc(id)}`;
 const blocksPath = (orgId: string, locationId: string) =>

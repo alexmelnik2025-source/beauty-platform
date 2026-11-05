@@ -4,6 +4,7 @@ import {
   ApiError,
   type BusinessApi,
   type CustomerDetail,
+  type GuardedClient,
   type Locale,
   type LoyaltyAccount,
 } from '../api';
@@ -49,6 +50,10 @@ export function ClientScreen(props: {
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [account, setAccount] = useState<LoyaltyAccount | null>(null);
+  /** Task 161c: the cancellation-protection mark (owners and managers). */
+  const [guard, setGuard] = useState<GuardedClient | null>(null);
+  const [releasing, setReleasing] = useState(false);
+  const [releaseNote, setReleaseNote] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -65,6 +70,10 @@ export function ClientScreen(props: {
     if (salon.role !== 'staff') {
       void api.loyaltyAccount(salon.orgId, id).then(
         (a) => alive && setAccount(a),
+        () => undefined,
+      );
+      void api.guardClient(salon.orgId, salon.locationId, id).then(
+        (g) => alive && setGuard(g),
         () => undefined,
       );
     }
@@ -128,6 +137,21 @@ export function ClientScreen(props: {
   }
 
   const back = <Button kind="link" label={c.back} onPress={onBack} />;
+  async function releaseGuard() {
+    setBusy(true);
+    setError('');
+    try {
+      setGuard(await api.releaseGuard(salon.orgId, salon.locationId, id, releaseNote));
+      setReleasing(false);
+      setReleaseNote('');
+      setInfo(c.guard.released);
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!client) {
     return (
       <View style={styles.screen}>
@@ -293,6 +317,81 @@ export function ClientScreen(props: {
               ))}
             </>
           ) : null}
+        </Card>
+      ) : null}
+
+      {guard && (guard.enabled || guard.history.length > 0) ? (
+        <Card>
+          <Text style={styles.label}>{c.guard.title}</Text>
+          {guard.flagged ? (
+            <>
+              <Text style={styles.value}>{c.guard.marked}</Text>
+              <Text style={styles.small}>
+                {[
+                  guard.reasons.includes('changes') &&
+                    fill(c.guard.reasonChanges, { n: String(guard.changes) }),
+                  guard.reasons.includes('late_cancel') &&
+                    fill(c.guard.reasonLate, { n: String(guard.lateCancellations) }),
+                  guard.reasons.includes('no_shows') &&
+                    fill(c.guard.reasonNoShows, { n: String(guard.noShows) }),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+              {guard.noShowAmountGrosze > 0 ? (
+                <Text style={styles.value}>
+                  {fill(c.guard.owes, {
+                    sum: formatPrice(guard.noShowAmountGrosze, guard.currency, props.locale),
+                  })}
+                </Text>
+              ) : null}
+              {releasing ? (
+                <View style={styles.form}>
+                  <Text style={styles.muted}>{c.guard.releaseAsk}</Text>
+                  <TextInput
+                    accessibilityLabel={c.guard.note}
+                    placeholder={c.guard.note}
+                    value={releaseNote}
+                    maxLength={300}
+                    onChangeText={setReleaseNote}
+                    style={styles.input}
+                  />
+                  <View style={styles.row}>
+                    <Button
+                      label={c.guard.releaseYes}
+                      busy={busy}
+                      onPress={() => void releaseGuard()}
+                    />
+                    <Button
+                      kind="secondary"
+                      label={c.guard.no}
+                      onPress={() => setReleasing(false)}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.row}>
+                  <Button
+                    kind="secondary"
+                    label={c.guard.release}
+                    onPress={() => {
+                      setInfo('');
+                      setReleasing(true);
+                    }}
+                  />
+                </View>
+              )}
+            </>
+          ) : (
+            <Text style={styles.muted}>{guard.enabled ? c.guard.notMarked : c.guard.off}</Text>
+          )}
+          {guard.history.slice(0, 5).map((h, i) => (
+            <Text key={i} style={styles.small}>
+              {dateIn(h.at, props.timeZone, props.locale)} · {c.guard.history[h.type]}
+              {h.late ? ` · ${c.guard.late}` : ''}
+              {h.note ? ` · ${h.note}` : ''}
+            </Text>
+          ))}
         </Card>
       ) : null}
 
