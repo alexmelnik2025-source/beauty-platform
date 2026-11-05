@@ -13,7 +13,8 @@ import { waitForEmail } from './mailpit';
  * Task 165b: reviews after the visit. The salon switches reviews on; a client whose visit took
  * place opens the visit link (the "Jak było?" email opens it at #review), gives 5 stars with a
  * few words; the salon page shows the average, the specialists' averages and the reviews —
- * without the client's name. Screenshots 165b-1 … 165b-3.
+ * without the client's name. In the cabinet, "Opinie": the settings and the reviews with the
+ * client's name. Screenshots 165b-1 … 165b-4.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -216,4 +217,35 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await reviews.getByRole('button', { name: /Nazar/ }).click();
   await expect(reviews.locator('.review-list > li')).toHaveCount(1);
   await phone.close();
+
+  // ── The cabinet: "Opinie" with the settings and the client names ──────
+  const desk = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: OWNER_IP,
+  });
+  const cabinet = await desk.newPage();
+  await cabinet.goto('/pl/login');
+  await cabinet.getByLabel('E-mail').fill(OWNER);
+  await cabinet.getByLabel('Hasło').fill(PASSWORD);
+  await cabinet.getByRole('button', { name: 'Zaloguj się' }).click();
+  await cabinet.waitForURL(/\/pl\/app\/calendar/);
+  await cabinet.getByRole('link', { name: 'Opinie' }).first().click();
+  await cabinet.waitForURL(/\/pl\/app\/reviews$/);
+  const settingsForm = cabinet.getByRole('form', { name: 'Ustawienia opinii' });
+  await expect(settingsForm.getByLabel('Zbieraj opinie po wizycie')).toBeChecked();
+  await settingsForm.getByLabel('Poproś o opinię po').selectOption('3');
+  await settingsForm.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(settingsForm.getByRole('status')).toHaveText('Zapisano.');
+  const list = cabinet.getByRole('region', { name: 'Opinie' });
+  await expect(list).toContainText('4,7 · opinie: 3');
+  await expect(list.locator('.list-row').first()).toContainText('Piotr Zieliński');
+  await expect(list).toContainText('Marta Nowak');
+  await shot(cabinet, '165b-4-cabinet-reviews');
+  const saved = await json<{ requestHours: number; version: number }>(
+    await request.get(`${base}/review-settings`, { headers: owner }),
+  );
+  expect(saved).toMatchObject({ requestHours: 3, version: 2 });
+  await desk.close();
 });
