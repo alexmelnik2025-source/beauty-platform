@@ -248,6 +248,14 @@ export const pl = {
   phone: {
     country: 'Kod kraju',
   },
+  seo: {
+    catalogTitle: 'Salony z rezerwacją online',
+    catalogDescription:
+      'Znajdź barbershop, fryzjera lub salon kosmetyczny i umów wizytę online — bez dzwonienia.',
+    salonTitle: '{name} — {city} · rezerwacja online',
+    salonDescription:
+      'Umów wizytę w {name} ({address}, {city}) online: wybierz usługę, specjalistę i wolny termin.',
+  },
   waitlist: {
     title: 'Lista oczekujących',
     waiting: 'Czekasz na wolny termin. Gdy się zwolni, napiszemy na e-mail.',

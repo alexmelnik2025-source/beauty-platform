@@ -248,6 +248,14 @@ export const en: Dict = {
   phone: {
     country: 'Country code',
   },
+  seo: {
+    catalogTitle: 'Salons with online booking',
+    catalogDescription:
+      'Find a barbershop, hairdresser or beauty salon and book online — no phone calls.',
+    salonTitle: '{name} — {city} · book online',
+    salonDescription:
+      'Book a visit at {name} ({address}, {city}) online: choose a service, a specialist and a free time.',
+  },
   waitlist: {
     title: 'Waiting list',
     waiting: 'You are waiting for a free time. We will email you when one frees up.',

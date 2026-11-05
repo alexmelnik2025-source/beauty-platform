@@ -135,6 +135,8 @@ jobs:
       # SMS codes go to api.log; the browser test reads them from there.
       SMS_TRANSPORT: log
       API_URL: http://localhost:4000
+      # Task 130: the e2e checks robots.txt, sitemap.xml and the salon page with indexing on.
+      PUBLIC_INDEXING: '1'
 
     steps:
       - uses: actions/checkout@v5
