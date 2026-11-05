@@ -91,6 +91,8 @@ export default function SettingsPage() {
           clientCancelDeadlineMinutes: form.clientCancelDeadlineMinutes,
           reminderHoursBefore: form.reminderHoursBefore,
           waitlistHoldMinutes: form.waitlistHoldMinutes,
+          rebookReminderDays: form.rebookReminderDays,
+          rebookReminderText: form.rebookReminderText ?? '',
           slotStepMinutes: form.slotStepMinutes,
           languages: form.languages,
           description: form.description ?? '',
@@ -249,6 +251,42 @@ export default function SettingsPage() {
               ))}
             </select>
           </label>
+        </section>
+        <section className="section" aria-labelledby="rebook-title">
+          <h2 id="rebook-title">{t.settings.rebookTitle}</h2>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={form.rebookReminderDays > 0}
+              onChange={(e) => setForm({ ...form, rebookReminderDays: e.target.checked ? 28 : 0 })}
+            />
+            <span>{t.settings.rebookOn}</span>
+          </label>
+          {form.rebookReminderDays > 0 ? (
+            <>
+              <label className="field">
+                <span>{t.settings.rebookDays}</span>
+                <input
+                  type="number"
+                  min={7}
+                  max={365}
+                  value={form.rebookReminderDays}
+                  onChange={num('rebookReminderDays')}
+                />
+              </label>
+              <label className="field">
+                <span>{t.settings.rebookText}</span>
+                <textarea
+                  rows={3}
+                  maxLength={500}
+                  placeholder={t.settings.rebookTextPlaceholder}
+                  value={form.rebookReminderText ?? ''}
+                  onChange={text('rebookReminderText')}
+                />
+              </label>
+            </>
+          ) : null}
+          <p className="small muted">{t.settings.rebookHint}</p>
         </section>
         <section className="section" aria-labelledby="wishes-title">
           <h2 id="wishes-title">{t.wishes.settingsTitle}</h2>

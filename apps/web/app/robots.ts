@@ -15,7 +15,17 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: ['/*/salons', '/*/b/'],
-      disallow: ['/v1/', '/*/app', '/*/c', '/*/m/', '/*/w/', '/*/invite/', '/*/login', '/s/'],
+      disallow: [
+        '/v1/',
+        '/*/app',
+        '/*/c',
+        '/*/m/',
+        '/*/w/',
+        '/*/u/',
+        '/*/invite/',
+        '/*/login',
+        '/s/',
+      ],
     },
     sitemap: `${siteUrl()}/sitemap.xml`,
   };

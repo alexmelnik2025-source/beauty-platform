@@ -28,6 +28,7 @@ import {
   reviewRequestMail,
   type ReviewRequestNotification,
 } from '../reviews/review-request';
+import { REBOOK_REMINDER, rebookMail, type RebookReminderNotification } from './rebook-reminder';
 
 export interface AppointmentNotification {
   appointmentId: string;
@@ -494,6 +495,13 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         this.prisma,
         this.config,
         row.payload as unknown as ReviewRequestNotification,
+      );
+    }
+    if (row.type === REBOOK_REMINDER) {
+      return rebookMail(
+        this.prisma,
+        this.config,
+        row.payload as unknown as RebookReminderNotification,
       );
     }
     const kind = row.type as NotificationKind;

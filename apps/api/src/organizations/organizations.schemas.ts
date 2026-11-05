@@ -78,6 +78,20 @@ const locationFields = {
   /** Hours before the visit the client gets a reminder email; 0 = none (task 22). */
   reminderHoursBefore: z.union(REMINDER_HOURS.map((h) => z.literal(h))),
   waitlistHoldMinutes: z.union(WAITLIST_HOLD_MINUTES.map((m) => z.literal(m))),
+  /** Task 165c: "time for your next visit" this many days after the last visit; 0 = off. */
+  rebookReminderDays: z
+    .number()
+    .int()
+    .min(0)
+    .max(365)
+    .refine((days) => days === 0 || days >= 7, 'at least 7 days, or 0 to switch it off'),
+  /** Task 165c: the salon's own words for that email; an empty text = the platform's text. */
+  rebookReminderText: z
+    .string()
+    .trim()
+    .max(500)
+    .transform((value) => (value === '' ? null : value))
+    .nullable(),
   onlineBookingEnabled: z.boolean(),
   /** Task 80: questions on the last booking step. */
   askMood: z.boolean(),
@@ -117,6 +131,8 @@ export const createLocationSchema = z.object({
   clientCancelDeadlineMinutes: locationFields.clientCancelDeadlineMinutes.default(120),
   reminderHoursBefore: locationFields.reminderHoursBefore.default(24),
   waitlistHoldMinutes: locationFields.waitlistHoldMinutes.default(0),
+  rebookReminderDays: locationFields.rebookReminderDays.default(0),
+  rebookReminderText: locationFields.rebookReminderText.optional(),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
   askMood: locationFields.askMood.default(true),
   askDrink: locationFields.askDrink.default(false),

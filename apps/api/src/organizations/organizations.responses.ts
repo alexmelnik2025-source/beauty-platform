@@ -53,6 +53,16 @@ export const locationSchema = responseSchema(
         'Task 164: a freed time is held this many minutes for the first client on the waiting ' +
           'list, then the next; 0 = everyone waiting gets one email with the free times',
       ),
+    rebookReminderDays: z
+      .number()
+      .int()
+      .describe(
+        'Task 165c: "time for your next visit" email this many days after the last visit; 0 = off',
+      ),
+    rebookReminderText: z
+      .string()
+      .nullable()
+      .describe('Task 165c: the salon’s own words for that email; null = the platform’s text'),
     onlineBookingEnabled: z.boolean(),
     askMood: z.boolean().describe('Task 80: ask how the client wants to spend the visit'),
     askDrink: z.boolean().describe('Task 80: offer a drink (only the drinks listed)'),
