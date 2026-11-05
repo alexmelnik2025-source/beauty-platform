@@ -17,6 +17,7 @@ import {
   visitWhen,
   type ClientVisit,
 } from '../clients';
+import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
@@ -163,6 +164,26 @@ export function ClientScreen(props: {
             count: String(completedCount(client.visits, salon.locationId)),
           })}
         </Text>
+        {/* Task 98: the server's summary over every visit the user may see. */}
+        {client.summary.noShow > 0 ? (
+          <Text style={[styles.chip, styles.chipBad]}>
+            {fill(c.noShows, { count: String(client.summary.noShow) })}
+          </Text>
+        ) : null}
+        {client.summary.cancelledByClient > 0 ? (
+          <Text style={styles.chip}>
+            {fill(c.cancelledByClient, { count: String(client.summary.cancelledByClient) })}
+          </Text>
+        ) : null}
+        {client.summary.paid && client.summary.paid.length > 0 ? (
+          <Text style={styles.chip}>
+            {fill(c.paid, {
+              amount: client.summary.paid
+                .map((p) => formatPrice(p.amountGrosze, p.currency, props.locale))
+                .join(' + '),
+            })}
+          </Text>
+        ) : null}
         {(client.tags ?? []).map((tag) => (
           <Text key={tag} style={[styles.chip, styles.tag]}>
             {tag}
