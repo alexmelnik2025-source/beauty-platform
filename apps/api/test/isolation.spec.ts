@@ -123,6 +123,7 @@ function validBody(route: Route): object {
   }
   if (p.endsWith('/appointments/:appointmentId/cancel')) return { version: 1, reason: 'Hacked' };
   if (p.endsWith('/appointments/:appointmentId/status')) return { version: 1, status: 'no_show' };
+  if (p.endsWith('/appointments/:appointmentId/approve')) return { version: 1 };
   if (p.endsWith('/appointments/:appointmentId/payment')) return { version: 1, paid: true };
   if (p.endsWith('/loyalty/program')) {
     return {
