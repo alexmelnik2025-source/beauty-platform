@@ -32,6 +32,17 @@ export type NotificationList = components['schemas']['NotificationList'];
 /** Task 80b: the client's example photos for a visit (signed links, valid for an hour). */
 export type VisitPhotoList = components['schemas']['VisitPhotoList'];
 export type ServiceList = components['schemas']['ServiceList'];
+/** Task 99: cheaper hours of the salon (happy hours). */
+export type HappyHours = components['schemas']['HappyHours'];
+/** One rule as the server takes it (the whole list is saved at once). */
+export interface HappyHourRule {
+  weekdays: number[];
+  start: string;
+  end: string;
+  discountPercent: number;
+  staffIds: string[];
+  serviceIds: string[];
+}
 /** Task 93: the salon's service categories (the order of the price list). */
 export type ServiceCategoryList = components['schemas']['ServiceCategoryList'];
 /** What the owner or a manager changes in a service from the app. */
@@ -455,6 +466,23 @@ export class BusinessApi {
     return this.authed<ServiceList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services`,
+    );
+  }
+
+  /** Task 99: the salon's happy hours (everyone who works there may read them). */
+  happyHours(orgId: string, locationId: string): Promise<HappyHours> {
+    return this.authed<HappyHours>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/happy-hours`,
+    );
+  }
+
+  /** Owner or manager only: replaces the whole list; visits already booked keep their price. */
+  saveHappyHours(orgId: string, locationId: string, rules: HappyHourRule[]): Promise<HappyHours> {
+    return this.authed<HappyHours>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/happy-hours`,
+      { rules },
     );
   }
 
