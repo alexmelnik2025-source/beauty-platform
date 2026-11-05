@@ -274,6 +274,10 @@ export const tr: Dictionary = {
     team: 'Uzmanlar',
     call: 'Ara',
     noServices: 'Salonun henüz online randevuya açık hizmeti yok.',
+    share: 'Arkadaşlarına öner',
+    shareText: '{name} — online randevu al: {url}',
+    copied: 'Bağlantı kopyalandı — arkadaşlarına yapıştır.',
+    shareFailed: 'Paylaşılamadı. Bağlantı: {url}',
   },
   favorites: {
     tab: 'Favoriler',

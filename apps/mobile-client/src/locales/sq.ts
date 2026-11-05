@@ -274,6 +274,10 @@ export const sq: Dictionary = {
     team: 'Specialistët',
     call: 'Telefono',
     noServices: 'Salloni nuk ka ende shërbime për rezervim online.',
+    share: 'Rekomandoje te miqtë',
+    shareText: '{name} — rezervo online: {url}',
+    copied: 'Lidhja u kopjua — ngjite për miqtë.',
+    shareFailed: 'Ndarja nuk u krye. Lidhja: {url}',
   },
   favorites: {
     tab: 'Të preferuarat',
