@@ -141,6 +141,11 @@ export type PublicWaitlistEntry = Schemas['PublicWaitlistEntry'];
 /** "Pokaż, co chcesz": the client's example photos for a visit (task 80b). */
 export type VisitPhoto = Schemas['VisitPhoto'];
 export type VisitPhotoList = Schemas['VisitPhotoList'];
+/** Task 165b: reviews after the visit. */
+export type ReviewSettings = Schemas['ReviewSettings'];
+export type VisitReview = Schemas['VisitReview'];
+export type PublicReviews = Schemas['PublicReviews'];
+export type SalonReviews = Schemas['SalonReviews'];
 /** Task 50c: the salon's waiting list in the cabinet. */
 export type SalonWaitlist = Schemas['SalonWaitlist'];
 export type SalonWaitlistEntry = Schemas['SalonWaitlistEntry'];
