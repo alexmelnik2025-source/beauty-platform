@@ -40,9 +40,6 @@ import {
   type WaitlistNotification,
 } from './waitlist-outbox';
 
-/** Task 164: how long a freed time is held for the first client in the queue. */
-export const OFFER_MINUTES = 15;
-
 const offerGone = (): AppException =>
   new AppException(
     HttpStatus.GONE,
@@ -53,6 +50,7 @@ const offerGone = (): AppException =>
 /** One email may wait for at most this many days at one salon at the same time. */
 export const MAX_WAITING_PER_EMAIL = 3;
 const EVERY_MS = 60_000;
+const TIMES_IN_EMAIL = 6;
 
 const toDate = (date: string): Date => new Date(`${date}T00:00:00.000Z`);
 const fromDate = (date: Date): string => date.toISOString().slice(0, 10);
@@ -367,11 +365,12 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Task 164: checks the waiting list from today on. Offers that were not answered in time are
+   * Checks the waiting list from today on. Task 164: offers that were not answered in time are
    * let go (status missed). Then, for each salon, service, specialist and day where the booking
-   * page shows a free time and no offer is open, the first client in the queue (who asked first)
-   * gets the earliest free time held for OFFER_MINUTES and one email to take it or say no.
-   * Returns how many clients got an offer.
+   * page shows a free time and no offer is open: when the salon holds times
+   * (`waitlistHoldMinutes` > 0), the first client in the queue (who asked first) gets the earliest
+   * free time held for those minutes and one email to take it or say no; otherwise (task 50)
+   * everyone waiting gets one email with the free times. Returns how many clients were emailed.
    */
   async sweep(now = Date.now()): Promise<number> {
     await this.expireOffers(now);
@@ -410,16 +409,44 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
         continue; // The service or specialist is gone: nothing will free up.
       }
       if (slots.length === 0) continue;
-      const entry = group.find((e) => e.status === 'waiting');
-      if (entry && (await this.offer(entry, slots, now))) offered += 1;
+      const minutes = first.location.waitlistHoldMinutes;
+      if (minutes > 0) {
+        const entry = group.find((e) => e.status === 'waiting');
+        if (entry && (await this.offer(entry, slots, minutes, now))) offered += 1;
+      } else {
+        offered += await this.tellAll(
+          group,
+          slots.map((s) => s.time).slice(0, TIMES_IN_EMAIL),
+          now,
+        );
+      }
     }
     return offered;
+  }
+
+  /** Task 50 (the salon holds nothing): everyone waiting gets one email with the free times. */
+  private async tellAll(group: WaitlistEntry[], times: string[], now: number): Promise<number> {
+    let told = 0;
+    for (const entry of group) {
+      if (entry.status !== 'waiting') continue;
+      await this.prisma.$transaction(async (tx) => {
+        const marked = await tx.waitlistEntry.updateMany({
+          where: { id: entry.id, status: 'waiting' },
+          data: { status: 'notified', notifiedAt: new Date(now) },
+        });
+        if (marked.count !== 1) return;
+        await this.enqueue(tx, WAITLIST_FREE, { entryId: entry.id, times });
+        told += 1;
+      });
+    }
+    return told;
   }
 
   /** Holds the earliest of `slots` that is still free for `entry` and emails the offer. */
   private async offer(
     entry: WaitlistEntry & { location: Location },
     slots: { start: string; time: string }[],
+    minutes: number,
     now: number,
   ): Promise<boolean> {
     for (const slot of slots) {
@@ -431,7 +458,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
           start: new Date(slot.start).getTime(),
         },
         { name: entry.name, email: entry.email, phone: entry.phone, locale: entry.locale },
-        OFFER_MINUTES,
+        minutes,
       );
       if (!hold) continue;
       const done = await this.prisma.$transaction(async (tx) => {
@@ -441,7 +468,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
             status: 'offered',
             notifiedAt: new Date(now),
             offerAppointmentId: hold.id,
-            offerExpiresAt: new Date(Date.now() + OFFER_MINUTES * 60_000),
+            offerExpiresAt: new Date(Date.now() + minutes * 60_000),
           },
         });
         if (marked.count !== 1) return false;

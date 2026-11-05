@@ -343,8 +343,7 @@ export const en: Dict = {
   },
   booking: {
     waitlistOpen: 'Tell me when a time becomes free',
-    waitlistHint:
-      'If someone cancels on this day, the first person on the list gets an email and 15 minutes to take the time.',
+    waitlistHint: 'If someone cancels on this day, we will email you.',
     waitlistSubmit: 'Put me on the list',
     waitlistDone: 'You are on the waiting list. We will email you when a time becomes free.',
     bookVisit: 'Book a visit',
@@ -689,7 +688,7 @@ export const en: Dict = {
     anyStaff: 'any specialist',
     waiting: 'Waiting',
     notified: 'Told {time}',
-    offered: 'Time held for the client since {time} (15 min to answer)',
+    offered: 'Time held for the client since {time}',
     askedAt: 'Joined {time}',
     remove: 'Remove from the list',
     removeOne: 'Remove from the list: {name}',
@@ -1000,6 +999,9 @@ export const en: Dict = {
     deadline: 'Clients can change until: minutes before',
     step: 'Times every (min)',
     reminder: 'Reminder email before the visit',
+    waitlistHold: 'Waiting list: time for the first person',
+    waitlistHoldOff: 'Do not hold — email everyone the free times',
+    waitlistHoldMinutes: 'min — then the next person',
     reminderNone: 'Do not send',
     reminderHours: 'h before',
     timeZone: 'Country and time zone',

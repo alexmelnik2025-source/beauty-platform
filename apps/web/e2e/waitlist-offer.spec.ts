@@ -79,6 +79,8 @@ test('a freed time is held for the first client on the list, who takes it from t
       data: {
         version: location.version,
         onlineBookingEnabled: true,
+        // Task 164: the salon holds a freed time 15 minutes for the first client on the list.
+        waitlistHoldMinutes: 15,
         bookingTerms: '# Regulamin rezerwacji\n\nRezerwacja jest bezpłatna.',
         privacyPolicy: '# Polityka prywatności\n\nAdministratorem danych jest GESTALT.',
       },

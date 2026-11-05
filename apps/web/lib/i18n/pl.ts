@@ -342,8 +342,7 @@ export const pl = {
   },
   booking: {
     waitlistOpen: 'Powiadom mnie, gdy zwolni się termin',
-    waitlistHint:
-      'Gdy ktoś odwoła wizytę tego dnia, pierwsza osoba z listy dostanie e-mail i 15 minut na potwierdzenie terminu.',
+    waitlistHint: 'Gdy ktoś odwoła wizytę tego dnia, napiszemy do Ciebie e-mail.',
     waitlistSubmit: 'Zapisz mnie na listę',
     waitlistDone: 'Jesteś na liście oczekujących. Gdy zwolni się termin, napiszemy na e-mail.',
     bookVisit: 'Umów wizytę',
@@ -688,7 +687,7 @@ export const pl = {
     anyStaff: 'dowolny specjalista',
     waiting: 'Czeka',
     notified: 'Powiadomiony(-a) {time}',
-    offered: 'Termin trzymany dla klienta od {time} (15 min na odpowiedź)',
+    offered: 'Termin trzymany dla klienta od {time}',
     askedAt: 'Zapisał(a) się {time}',
     remove: 'Usuń z listy',
     removeOne: 'Usuń z listy: {name}',
@@ -998,6 +997,9 @@ export const pl = {
     deadline: 'Klient może zmienić wizytę do: minut przed',
     step: 'Godziny co (min)',
     reminder: 'Przypomnienie e-mail przed wizytą',
+    waitlistHold: 'Lista oczekujących: termin dla pierwszej osoby',
+    waitlistHoldOff: 'Nie trzymaj — e-mail do wszystkich z wolnymi godzinami',
+    waitlistHoldMinutes: 'min — potem następna osoba',
     reminderNone: 'Nie wysyłaj',
     reminderHours: 'godz. przed',
     timeZone: 'Kraj i strefa czasowa',
