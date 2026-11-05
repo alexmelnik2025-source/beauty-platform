@@ -31,6 +31,20 @@ export type NotificationList = components['schemas']['NotificationList'];
 /** Task 80b: the client's example photos for a visit (signed links, valid for an hour). */
 export type VisitPhotoList = components['schemas']['VisitPhotoList'];
 export type ServiceList = components['schemas']['ServiceList'];
+/** Task 92: the team — people with access and the invitations of the last 30 days. */
+export type MemberList = components['schemas']['MemberList'];
+export type Invitation = components['schemas']['Invitation'];
+export type InvitationList = components['schemas']['InvitationList'];
+/** What the owner (or a manager, for specialists) sends to give someone access. */
+export interface NewInvitation {
+  email: string;
+  phone?: string;
+  role: 'manager' | 'staff';
+  locationIds: string[];
+  /** A specialist's calendar profile without an account: the new account takes it over. */
+  staffMemberId?: string;
+  locale: Locale;
+}
 export type Availability = components['schemas']['Availability'];
 /** What the salon sends to book a client (phone call, walk-in); see NewVisitScreen. */
 export interface NewAppointment {
@@ -288,6 +302,37 @@ export class BusinessApi {
 
   removeTimeBlock(orgId: string, locationId: string, id: string): Promise<void> {
     return this.authed<void>('DELETE', `${blocksPath(orgId, locationId)}/${enc(id)}`);
+  }
+
+  /** Owner or manager only (the server checks): people with access and their roles. */
+  members(orgId: string): Promise<MemberList> {
+    return this.authed<MemberList>('GET', `/v1/organizations/${enc(orgId)}/members`);
+  }
+
+  /** Owner or manager only: invitations of the last 30 days (pending ones can be cancelled). */
+  invitations(orgId: string): Promise<InvitationList> {
+    return this.authed<InvitationList>('GET', `/v1/organizations/${enc(orgId)}/invitations`);
+  }
+
+  /**
+   * Gives access by email (and phone): the person signs in with a code, no password.
+   * 409 ALREADY_MEMBER / STAFF_ALREADY_LINKED; a manager may invite only specialists (403).
+   */
+  invite(orgId: string, body: NewInvitation): Promise<Invitation> {
+    return this.authed<Invitation>('POST', `/v1/organizations/${enc(orgId)}/invitations`, body);
+  }
+
+  /** The invitation link stops working. */
+  cancelInvitation(orgId: string, id: string): Promise<void> {
+    return this.authed<void>('DELETE', `/v1/organizations/${enc(orgId)}/invitations/${enc(id)}`);
+  }
+
+  /** Owner only: access ends at once; the profile and visits stay in the calendar. */
+  removeMember(orgId: string, membershipId: string): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/members/${enc(membershipId)}`,
+    );
   }
 
   /** Owner or manager only (the server checks): clients by name, phone, email or tag. */
