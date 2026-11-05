@@ -322,6 +322,9 @@ export const tr: Dictionary = {
   language: 'Dil',
   retry: 'Tekrar dene',
   error: {
+    bookByPhone: 'Bu salon randevunuzu telefonla almanızı istiyor. Lütfen salonu arayın.',
+    payFirst:
+      'Bir sonraki online randevudan önce salon, gelinmeyen önceki randevuların ödenmesini istiyor. Salonda ödeyin veya salonla iletişime geçin.',
     network: 'Sunucuya bağlantı yok. İnterneti kontrol edip tekrar deneyin.',
     generic: 'Bir şeyler ters gitti. Lütfen tekrar deneyin.',
     tooMany: 'Çok fazla deneme. Lütfen biraz bekleyin.',
