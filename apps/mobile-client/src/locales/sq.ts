@@ -32,6 +32,9 @@ export const sq: Dictionary = {
     downloadDataHint:
       'Skedar me të dhënat që sallonet ruajnë për ju: kartela e klientit, pëlqimet, vizitat dhe bonuset (GDPR).',
     downloadDataTitle: 'Të dhënat e mia nga sallonet',
+    mySpecialists: 'Specialistët tuaj',
+    bookWith: 'Rezervo te {staff}',
+    visitsCount: 'vizita: {n}',
     minutes: 'min',
     with: 'me {staff}',
     status: {
