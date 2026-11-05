@@ -129,6 +129,7 @@ export const uk: Dict = {
     lead: 'Салони з онлайн-записом. Оберіть мову, якою хочете спілкуватися.',
     filterLanguage: 'Мова спілкування',
     allLanguages: 'Усі мови',
+    clearLanguages: 'Очистити',
     found: 'Знайдено салонів: {n}',
     empty: 'Поки немає салонів із цією мовою.',
     page: 'Сторінка {page} з {pages}',

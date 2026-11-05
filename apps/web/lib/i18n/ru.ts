@@ -129,6 +129,7 @@ export const ru: Dict = {
     lead: 'Салоны с онлайн-записью. Выберите язык, на котором хотите общаться.',
     filterLanguage: 'Язык общения',
     allLanguages: 'Все языки',
+    clearLanguages: 'Очистить',
     found: 'Найдено салонов: {n}',
     empty: 'Пока нет салонов с этим языком.',
     page: 'Страница {page} из {pages}',

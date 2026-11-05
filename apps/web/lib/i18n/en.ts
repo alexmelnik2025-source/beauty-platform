@@ -129,6 +129,7 @@ export const en: Dict = {
     lead: 'Salons you can book online. Choose the language you want to be served in.',
     filterLanguage: 'Language',
     allLanguages: 'All languages',
+    clearLanguages: 'Clear',
     found: 'Salons found: {n}',
     empty: 'No salons with this language yet.',
     page: 'Page {page} of {pages}',

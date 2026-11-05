@@ -65,6 +65,7 @@ export const tr: Dict = {
     lead: 'Online randevu alabileceğiniz salonlar. Hangi dilde hizmet almak istediğinizi seçin.',
     filterLanguage: 'Dil',
     allLanguages: 'Tüm diller',
+    clearLanguages: 'Temizle',
     found: 'Bulunan salon: {n}',
     empty: 'Bu dilde henüz salon yok.',
     page: 'Sayfa {page} / {pages}',

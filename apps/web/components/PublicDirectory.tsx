@@ -11,6 +11,25 @@ import { formatPrice } from '@/lib/time';
 import { SPOKEN, type PublicSalon, type PublicSalonDirectory, type Spoken } from '@/lib/types';
 
 const PAGE_SIZE = 12;
+/** Task 192: the languages chosen last time, remembered on this device. */
+const LANGUAGES_KEY = 'beauty.catalogue.languages';
+
+function rememberedLanguages(): Spoken[] {
+  try {
+    const saved: unknown = JSON.parse(window.localStorage.getItem(LANGUAGES_KEY) ?? '[]');
+    return Array.isArray(saved) ? SPOKEN.filter((code) => saved.includes(code)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberLanguages(codes: Spoken[]): void {
+  try {
+    window.localStorage.setItem(LANGUAGES_KEY, JSON.stringify(codes));
+  } catch {
+    // Private mode or blocked storage: the choice just is not remembered.
+  }
+}
 const MAP_WIDTH = 640;
 const MAP_HEIGHT = 400;
 const TILE_SIZE = 256;
@@ -89,7 +108,8 @@ function mapLayout(salons: PublicSalon[]) {
 /** Public catalogue: salons open for online booking, filter by spoken language, map. */
 export function PublicDirectory() {
   const { t, locale } = useI18n();
-  const [language, setLanguage] = useState<Spoken | null>(null);
+  // Task 192: several languages at once - salons speaking any of them; null until the saved choice is read.
+  const [languages, setLanguages] = useState<Spoken[] | null>(null);
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<PublicSalonDirectory | null>(null);
   const [error, setError] = useState('');
@@ -97,11 +117,16 @@ export function PublicDirectory() {
   const [tilesFailed, setTilesFailed] = useState(false);
 
   useEffect(() => {
+    setLanguages(rememberedLanguages());
+  }, []);
+
+  useEffect(() => {
+    if (languages === null) return;
     let active = true;
     setResult(null);
     setError('');
     const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
-    if (language) query.set('language', language);
+    if (languages.length > 0) query.set('language', languages.join(','));
     api<PublicSalonDirectory>(`/v1/public/locations?${query.toString()}`)
       .then((value) => {
         if (!active) return;
@@ -114,12 +139,16 @@ export function PublicDirectory() {
     return () => {
       active = false;
     };
-  }, [language, page, t]);
+  }, [languages, page, t]);
 
-  const choose = (next: Spoken | null) => {
-    setLanguage(next);
+  const choose = (next: Spoken[]) => {
+    setLanguages(next);
+    rememberLanguages(next);
     setPage(1);
   };
+  const chosen = languages ?? [];
+  const toggle = (code: Spoken) =>
+    choose(chosen.includes(code) ? chosen.filter((c) => c !== code) : [...chosen, code]);
   const map = result ? mapLayout(result.items) : null;
   const pages = Math.max(1, result?.pageCount ?? 1);
 
@@ -135,19 +164,25 @@ export function PublicDirectory() {
           <p className="muted small">{t.directory.lead}</p>
           <p className="small">{t.clientNav.directoryHint}</p>
           <div className="chips" role="group" aria-label={t.directory.filterLanguage}>
-            <button type="button" aria-pressed={language === null} onClick={() => choose(null)}>
+            <button type="button" aria-pressed={chosen.length === 0} onClick={() => choose([])}>
               {t.directory.allLanguages}
             </button>
             {SPOKEN.map((code) => (
               <button
                 key={code}
                 type="button"
-                aria-pressed={language === code}
-                onClick={() => choose(code)}
+                aria-pressed={chosen.includes(code)}
+                onClick={() => toggle(code)}
               >
                 {t.languages.names[code]}
+                {result ? ` (${result.languageCounts[code] ?? 0})` : ''}
               </button>
             ))}
+            {chosen.length > 0 ? (
+              <button className="btn--quiet" type="button" onClick={() => choose([])}>
+                {t.directory.clearLanguages}
+              </button>
+            ) : null}
           </div>
         </div>
       </header>

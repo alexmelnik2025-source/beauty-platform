@@ -129,6 +129,7 @@ export const pl = {
     lead: 'Salony, w których umówisz się online. Wybierz język, w którym chcesz rozmawiać.',
     filterLanguage: 'Język rozmowy',
     allLanguages: 'Wszystkie języki',
+    clearLanguages: 'Wyczyść',
     found: 'Znalezione salony: {n}',
     empty: 'Nie ma jeszcze salonów z tym językiem.',
     page: 'Strona {page} z {pages}',

@@ -242,10 +242,33 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   await card.getByRole('button', { name: 'Pokaż na mapie' }).click();
   await shot(visitor, '00a-catalogue');
-  // Nobody speaks Belarusian there (yet).
+  // Task 192: several languages at once - Belarusian or English finds the salon (Alex speaks English).
   await visitor.getByRole('button', { name: 'białoruski' }).click();
+  await expect(visitor.getByRole('button', { name: /^białoruski \(\d+\)$/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(visitor.getByRole('button', { name: /^angielski \(\d+\)$/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(card).toBeVisible();
+  await shot(visitor, '192-catalogue-languages-or');
+  // The choice stays on this device.
+  await visitor.reload();
+  await expect(visitor.getByRole('button', { name: /^białoruski/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(card).toBeVisible();
+  // Nobody speaks Belarusian there (yet).
+  await visitor.getByRole('button', { name: /^angielski/ }).click();
   await expect(visitor.getByText('Nie ma jeszcze salonów z tym językiem.')).toBeVisible();
-  await visitor.getByRole('button', { name: 'Wszystkie języki' }).click();
+  await visitor.getByRole('button', { name: 'Wyczyść' }).click();
+  await expect(visitor.getByRole('button', { name: 'Wszystkie języki' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await card.getByRole('link', { name: 'Umów wizytę' }).click();
   await expect(visitor).toHaveURL(new RegExp(`/pl/b/${location.slug}$`));
   await expect(visitor.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();

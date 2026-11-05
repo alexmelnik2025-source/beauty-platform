@@ -66,6 +66,7 @@ export const sq: Dict = {
     lead: 'Sallone ku mund të rezervoni online. Zgjidhni gjuhën në të cilën doni të shërbeheni.',
     filterLanguage: 'Gjuha',
     allLanguages: 'Të gjitha gjuhët',
+    clearLanguages: 'Pastro',
     found: 'Sallone të gjetura: {n}',
     empty: 'Ende nuk ka sallone me këtë gjuhë.',
     page: 'Faqja {page} nga {pages}',
