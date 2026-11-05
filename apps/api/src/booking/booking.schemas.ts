@@ -64,6 +64,20 @@ export const confirmSchema = z.object({
   wishes: visitWishesInputSchema.optional(),
 });
 
+/**
+ * Task 180e: a client signed in to "My visits" books without a code - the session already
+ * proved the email, which comes from the session (not from the body).
+ */
+export const signedInConfirmSchema = z.object({
+  holdToken: token,
+  name,
+  phone,
+  locale: z.enum(LOCALES).default('pl'),
+  acceptTerms: z.literal(true, { message: 'the booking terms must be accepted' }),
+  marketingConsent: z.boolean().default(false),
+  wishes: visitWishesInputSchema.optional(),
+});
+
 export const releaseHoldSchema = z.object({ holdToken: token });
 
 export const clientRescheduleSchema = z.object({
@@ -187,6 +201,7 @@ export const listCustomersSchema = z.object({
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;
 export type SendCodeInput = z.infer<typeof sendCodeSchema>;
 export type ConfirmInput = z.infer<typeof confirmSchema>;
+export type SignedInConfirmInput = z.infer<typeof signedInConfirmSchema>;
 export type ClientRescheduleInput = z.infer<typeof clientRescheduleSchema>;
 export type ListAppointmentsQuery = z.infer<typeof listAppointmentsSchema>;
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;

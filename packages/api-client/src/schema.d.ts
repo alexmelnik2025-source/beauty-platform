@@ -2190,6 +2190,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/holds/{holdId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Book a held time without a code (task 180e)
+         * @description For a client signed in to "My visits": the session proved the email, so no code is sent. The email comes from the session. Same rules as the code step (salon terms, cancellation guard, wishes, emails); signedIn is always true.
+         */
+        post: operations["ClientController_confirmHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/loyalty": {
         parameters: {
             query?: never;
@@ -9739,6 +9759,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientContact"];
+                };
+            };
+        };
+    };
+    ClientController_confirmHold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holdId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    holdToken: string;
+                    name: string;
+                    phone: string;
+                    /**
+                     * @default pl
+                     * @enum {string}
+                     */
+                    locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                    /** @constant */
+                    acceptTerms: true;
+                    /** @default false */
+                    marketingConsent?: boolean;
+                    wishes?: {
+                        mood?: ("chat" | "quiet" | "relax") | null;
+                        drink?: ("coffee" | "tea" | "water" | "none") | null;
+                        note?: string | null;
+                    };
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingConfirmed"];
                 };
             };
         };

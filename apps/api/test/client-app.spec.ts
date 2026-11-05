@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { OutboxService } from '../src/booking/outbox.service';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
@@ -558,5 +559,94 @@ describe('client app: signed in right after booking online', () => {
     expectError(res.body, 'INVALID_CODE');
     expect(res.headers['set-cookie']).toBeUndefined();
     expect(await ctx.prisma.clientSession.count()).toBe(0);
+  });
+});
+
+describe('client app: a signed-in client books without a code (task 180e)', () => {
+  const hold = async (salon: Salon, start: string) =>
+    (
+      await ctx
+        .http()
+        .post(`/v1/public/locations/${salon.slug}/holds`)
+        .send({ serviceId: salon.serviceId, staffId: salon.staffId, start })
+        .expect(201)
+    ).body as { holdId: string; holdToken: string };
+  const details = {
+    name: 'Anna Kowalska',
+    phone: '+48600100200',
+    locale: 'pl',
+    acceptTerms: true,
+  };
+
+  it('books with the email of the session, sends no code and the usual emails', async () => {
+    const auth = await signIn(ANNA);
+    ctx.mail.clear();
+    const held = await hold(first, at(day, 10));
+    const res = await ctx
+      .http()
+      .post(`/v1/client/holds/${held.holdId}/confirm`)
+      .set(auth)
+      // An email in the body is not accepted: it always comes from the session.
+      .send({ holdToken: held.holdToken, ...details, wishes: { note: 'Krótko po bokach' } })
+      .expect(200);
+    expect(res.body).toMatchObject({
+      appointment: { status: 'confirmed', time: '10:00' },
+      signedIn: true,
+    });
+    expect(res.body.manageToken).toEqual(expect.any(String));
+    const visit = await ctx.prisma.appointment.findUniqueOrThrow({
+      where: { id: held.holdId },
+      include: { customer: true },
+    });
+    expect(visit.customer).toMatchObject({ email: ANNA, name: 'Anna Kowalska' });
+    expect(await ctx.prisma.consentRecord.count({ where: { customerId: visit.customerId! } })).toBe(
+      1,
+    );
+    // Already in "My visits".
+    const mine = await ctx.http().get('/v1/client/appointments').set(auth).expect(200);
+    expect(mine.body.items.map((a: { id: string }) => a.id)).toEqual([held.holdId]);
+    await ctx.app.get(OutboxService).drain();
+    const subjects = ctx.mail.allTo(ANNA).map((m) => m.subject);
+    expect(subjects.some((s) => /kod/i.test(s))).toBe(false);
+    expect(subjects.length).toBeGreaterThan(0);
+
+    // The hold is used up: a second confirm is refused.
+    await ctx
+      .http()
+      .post(`/v1/client/holds/${held.holdId}/confirm`)
+      .set(auth)
+      .send({ holdToken: held.holdToken, ...details })
+      .expect(404);
+  });
+
+  it('needs a session, the hold token and the accepted terms', async () => {
+    const held = await hold(first, at(day, 11));
+    await ctx
+      .http()
+      .post(`/v1/client/holds/${held.holdId}/confirm`)
+      .send({ holdToken: held.holdToken, ...details })
+      .expect(401);
+    const auth = await signIn(ANNA);
+    await ctx
+      .http()
+      .post(`/v1/client/holds/${held.holdId}/confirm`)
+      .set(auth)
+      .send({ holdToken: 'x'.repeat(43), ...details })
+      .expect(404);
+    await ctx
+      .http()
+      .post(`/v1/client/holds/${held.holdId}/confirm`)
+      .set(auth)
+      .send({ holdToken: held.holdToken, ...details, acceptTerms: false })
+      .expect(400);
+    await ctx
+      .http()
+      .post(`/v1/client/holds/not-a-uuid/confirm`)
+      .set(auth)
+      .send({ holdToken: held.holdToken, ...details })
+      .expect(404);
+    expect(
+      (await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: held.holdId } })).status,
+    ).toBe('held');
   });
 });

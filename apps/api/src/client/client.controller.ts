@@ -34,6 +34,12 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import { clearClientCookie, ClientGuard, CurrentClient, setClientCookie } from './client-auth';
 import { visitCouponsSchema, type VisitCouponsResponse } from '../booking/booking.responses';
+import { signedInConfirmSchema, type SignedInConfirmInput } from '../booking/booking.schemas';
+import {
+  bookingConfirmedSchema,
+  type BookingConfirmedResponse,
+} from '../booking/public-booking.responses';
+import { PublicBookingService } from '../booking/public-booking.service';
 import {
   visitPhotoListSchema,
   type VisitPhotoListResponse,
@@ -70,6 +76,7 @@ import { ClientExportService } from './client-export.service';
 
 const MINUTE = 60_000;
 const idPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Appointment') });
+const holdIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Hold') });
 const photoPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Photo') });
 
 /** "My visits" — the client app. Separate sign-in from salon accounts. */
@@ -84,6 +91,7 @@ export class ClientController {
     private readonly loyalty: ClientLoyaltyService,
     private readonly exports: ClientExportService,
     private readonly limiter: RateLimiterService,
+    private readonly booking: PublicBookingService,
     @Inject(APP_CONFIG) config: AppConfig,
   ) {
     this.secureCookies = config.NODE_ENV === 'production';
@@ -177,6 +185,36 @@ export class ClientController {
     @Body(new ZodValidationPipe(updatePersonSchema)) body: UpdatePersonInput,
   ): Promise<PersonResponse> {
     return this.clients.updateMe(client, body.locale);
+  }
+
+  @Post('holds/:holdId/confirm')
+  @HttpCode(HttpStatus.OK)
+  @Idempotent()
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Book a held time without a code (task 180e)',
+    description:
+      'For a client signed in to "My visits": the session proved the email, so no code is sent. ' +
+      'The email comes from the session. Same rules as the code step (salon terms, cancellation ' +
+      'guard, wishes, emails); signedIn is always true.',
+  })
+  @ApiZodBody(signedInConfirmSchema)
+  @ApiZodResponse(bookingConfirmedSchema)
+  async confirmHold(
+    @Req() req: AppRequest,
+    @CurrentClient() client: ClientAuth,
+    @Param('holdId', holdIdPipe) holdId: string,
+    @Body(new ZodValidationPipe(signedInConfirmSchema)) body: SignedInConfirmInput,
+  ): Promise<BookingConfirmedResponse> {
+    this.limiter.hit(`confirm:ip:${req.ip}`, 30, 10 * MINUTE);
+    const { appointment, manageToken } = await this.booking.confirmSignedIn(
+      holdId,
+      body,
+      client.email,
+      req.ip ?? null,
+    );
+    return { appointment, manageToken, signedIn: true };
   }
 
   @Get('loyalty')
