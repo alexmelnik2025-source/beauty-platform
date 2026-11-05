@@ -20,6 +20,8 @@ const salon = (name: string, city: string, addressLine = 'ul. Prosta 1'): Direct
   languages: ['pl'],
   latitude: null,
   longitude: null,
+  currency: 'PLN',
+  priceFromGrosze: 5000,
 });
 
 const location = (patch: Partial<PublicLocation> = {}): PublicLocation => ({

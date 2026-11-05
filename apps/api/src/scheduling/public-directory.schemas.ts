@@ -21,6 +21,13 @@ export const publicDirectorySchema = responseSchema(
         languages: z.array(languageSchema),
         latitude: z.number().nullable(),
         longitude: z.number().nullable(),
+        /** ISO 4217 code of the salon's prices. */
+        currency: z.string(),
+        /**
+         * Task 91: the lowest price a client can book there ("od 50 zł"), in hundredths of `currency`,
+         * counting each specialist's own price; free services are left out. Null when every service is free.
+         */
+        priceFromGrosze: z.number().int().nullable(),
       }),
     ),
     page: z.number().int(),

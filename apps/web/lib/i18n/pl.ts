@@ -129,6 +129,7 @@ export const pl = {
     showMap: 'Pokaż na mapie',
     mapTitle: 'Mapa salonów',
     noCoordinates: 'Ten salon nie zaznaczył jeszcze miejsca na mapie.',
+    priceFrom: 'Usługi od {price}',
     coordinates: 'Miejsce na mapie katalogu',
     coordinatesHint:
       'Nieobowiązkowe. W Mapach Google kliknij prawym przyciskiem w salon i skopiuj pierwszą linię (np. 52.23251, 20.95634).',

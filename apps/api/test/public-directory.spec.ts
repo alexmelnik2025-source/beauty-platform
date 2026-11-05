@@ -157,6 +157,74 @@ describe('public salon directory', () => {
     });
   });
 
+  it("shows the lowest price a client can book, counting specialists' own prices (task 91)", async () => {
+    const owner = await signUp(ctx, 'price-from@example.com');
+    const salon = await createOrgWithLocation(ctx, owner, 'Price from');
+    await makeBookable(owner, salon); // Strzyżenie 80 zł with Kasia
+    await ctx.prisma.location.update({
+      where: { id: salon.locationId },
+      data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, currency: 'EUR' },
+    });
+    const base = `/v1/organizations/${salon.orgId}/locations/${salon.locationId}`;
+    const add = async (name: string, priceGrosze: number) =>
+      (
+        await ctx
+          .http()
+          .post(`${base}/services`)
+          .set(owner.auth)
+          .send({ name, durationMinutes: 30, priceGrosze })
+          .expect(201)
+      ).body.id as string;
+    const beard = await add('Broda', 6000);
+    const consult = await add('Konsultacja', 0);
+    const hidden = await add('Stara usługa', 1000);
+    const nobody = await add('Nikt nie robi', 2000);
+
+    const staff = async (displayName: string, serviceIds: string[]) =>
+      (
+        await ctx
+          .http()
+          .post(`${base}/staff`)
+          .set(owner.auth)
+          .send({ displayName, serviceIds })
+          .expect(201)
+      ).body.id as string;
+    const tomek = await staff('Tomek', [beard, consult, hidden]);
+    const left = await staff('Ola', [beard]);
+    expect(nobody).toBeTruthy();
+    await ctx.prisma.service.update({ where: { id: hidden }, data: { active: false } });
+
+    const fetchSalon = async () => {
+      const response = await ctx.http().get('/v1/public/locations').expect(200);
+      expect(
+        registeredResponseSchema('PublicSalonDirectory').safeParse(response.body).success,
+      ).toBe(true);
+      return response.body.items.find((s: { slug: string }) => s.slug === salon.slug);
+    };
+
+    // Free and hidden services and services nobody performs do not count.
+    expect(await fetchSalon()).toMatchObject({ currency: 'EUR', priceFromGrosze: 6000 });
+
+    // A specialist's own price counts; one of a specialist who left does not.
+    await ctx.prisma.staffService.update({
+      where: { staffId_serviceId: { staffId: tomek, serviceId: beard } },
+      data: { priceGrosze: 4500 },
+    });
+    await ctx.prisma.staffService.update({
+      where: { staffId_serviceId: { staffId: left, serviceId: beard } },
+      data: { priceGrosze: 3000 },
+    });
+    await ctx.prisma.staffMember.update({ where: { id: left }, data: { active: false } });
+    expect((await fetchSalon()).priceFromGrosze).toBe(4500);
+
+    // Only free services left: no price to show.
+    await ctx.prisma.service.updateMany({
+      where: { id: { not: consult }, locationId: salon.locationId },
+      data: { active: false },
+    });
+    expect((await fetchSalon()).priceFromGrosze).toBeNull();
+  });
+
   it('rejects unsupported language filters and out-of-range pagination', async () => {
     await ctx.http().get('/v1/public/locations').query({ language: 'fr' }).expect(400);
     await ctx.http().get('/v1/public/locations').query({ page: 0 }).expect(400);

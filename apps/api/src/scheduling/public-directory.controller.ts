@@ -29,7 +29,8 @@ export class PublicDirectoryController {
   @Get()
   @ApiOperation({
     summary: 'Salons open for online booking, by city: for the catalogue and its map',
-    description: 'Only public salon data: no organization, staff or contact details.',
+    description:
+      'Only public salon data: no organization, staff or contact details. `priceFromGrosze` is the lowest bookable price (task 91).',
   })
   @ApiQuery({
     name: 'language',
@@ -81,7 +82,17 @@ export class PublicDirectoryController {
           languages: true,
           latitude: true,
           longitude: true,
-          staffMembers: { where: { active: true }, select: { languages: true } },
+          currency: true,
+          staffMembers: {
+            where: { active: true },
+            select: {
+              languages: true,
+              services: {
+                where: { service: { active: true } },
+                select: { priceGrosze: true, service: { select: { priceGrosze: true } } },
+              },
+            },
+          },
         },
         orderBy: [{ city: 'asc' }, { name: 'asc' }, { id: 'asc' }],
         skip: (query.page - 1) * query.pageSize,
@@ -91,7 +102,15 @@ export class PublicDirectoryController {
     return {
       items: locations.map(({ staffMembers, languages, ...salon }) => {
         const spoken = new Set([...languages, ...staffMembers.flatMap((s) => s.languages)]);
-        return { ...salon, languages: SPOKEN.filter((code) => spoken.has(code)) };
+        // Task 91: what a client pays at least - a specialist's own price, else the service's.
+        const prices = staffMembers
+          .flatMap((s) => s.services.map((x) => x.priceGrosze ?? x.service.priceGrosze))
+          .filter((price) => price > 0);
+        return {
+          ...salon,
+          languages: SPOKEN.filter((code) => spoken.has(code)),
+          priceFromGrosze: prices.length > 0 ? Math.min(...prices) : null,
+        };
       }),
       page: query.page,
       pageSize: query.pageSize,

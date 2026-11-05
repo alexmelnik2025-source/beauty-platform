@@ -3899,7 +3899,7 @@
     },
     "/v1/public/locations": {
       "get": {
-        "description": "Only public salon data: no organization, staff or contact details.",
+        "description": "Only public salon data: no organization, staff or contact details. `priceFromGrosze` is the lowest bookable price (task 91).",
         "operationId": "PublicDirectoryController_list",
         "parameters": [
           {
@@ -17785,6 +17785,15 @@
                 "longitude": {
                   "nullable": true,
                   "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "priceFromGrosze": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
@@ -17795,7 +17804,9 @@
                 "postalCode",
                 "languages",
                 "latitude",
-                "longitude"
+                "longitude",
+                "currency",
+                "priceFromGrosze"
               ],
               "additionalProperties": false
             }

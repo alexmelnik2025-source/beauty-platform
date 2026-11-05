@@ -226,6 +226,7 @@ export const ru: Dictionary = {
     noMatch: 'Ничего не найдено. Измените поиск.',
     more: 'Показать ещё',
     open: 'Открыть салон',
+    priceFrom: 'Услуги от {price}',
   },
   salon: {
     back: '‹ Назад',
