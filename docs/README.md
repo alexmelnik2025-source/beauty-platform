@@ -1807,3 +1807,21 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
 - Выбранные в каталоге языки (`lib/catalogue-languages.ts` на сайте, `catalogLanguagesStore` в приложении) упорядочивают
   мастеров на странице салона: говорящие хотя бы на одном — первыми, остальные — в порядке салона (`speakersFirst`).
 - e2e — `catalogue-map.spec.ts` (скриншоты 160d, 160e); тест `speakersFirst` — `apps/mobile-client/test/booking.test.ts`.
+
+## Главная для клиента: поиск «как во Fresha» (задача 180b)
+
+- `/pl` (и другие языки) — «Czego szukasz?»: поле «Usługa lub nazwa salonu», поле «Gdzie?» (город), кнопки
+  «Szukaj» и «⌖ W pobliżu» (браузер спрашивает разрешение на место; без разрешения — подсказка вписать город);
+  категории Barber, Fryzjer, Manicure i pedicure, Brwi i rzęsy, Kosmetolog, Masaż; до 6 салонов с онлайн-записью
+  карточками (фото, город, «Usługi od …»); «Moje wizyty» с подсказкой «Konto założy się samo przy pierwszej
+  rezerwacji»; внизу «Dla salonów». Входить не нужно.
+- Поиск открывает каталог `/pl/salons?q=…&city=…&near=…&specialty=…` — адрес можно переслать, «Назад» работает.
+  Над каталогом та же форма, строка «Wyniki dla: …» и «Wyczyść wyszukiwanie»; при «W pobliżu» у салона —
+  «1,2 km od Ciebie».
+- API `GET /v1/public/locations`: новые параметры `q` (слова в названии салона или активной услуги), `city`
+  (часть города) — без учёта регистра и польских букв («lodz» находит «Łódź»), и `near=широта,долгота` — ближайшие
+  первыми, в ответе `distanceKm` (салоны без места на карте — в конце). Поиск делается в коде API, не в базе
+  (одинаково с приложениями, без расширений PostgreSQL); в каталоге только салоны с онлайн-записью, их немного.
+  Счётчики на чипах языков и типов считают только найденное. Клиентское приложение (`api.directory`) умеет те же
+  параметры — экран поиска в приложении следующей частью.
+- Тесты: `apps/api/test/public-directory-search.spec.ts`, e2e `home-search.spec.ts`, скриншоты 180c–180f.
