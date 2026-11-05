@@ -7,6 +7,7 @@ import {
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
+import { freshAddress } from './addresses';
 
 /**
  * Task 92: "Zespół" in the business app (web preview of apps/mobile-business). The owner gives
@@ -46,7 +47,10 @@ async function verifiedUser(api: APIRequestContext, email: string, name: string)
     await api.post('/v1/auth/verify-email', { data: { token: decodeURIComponent(token!) } }),
   );
   const login = await json<{ accessToken: string }>(
-    await api.post('/v1/auth/login', { data: { email, password: PASSWORD, clientType: 'mobile' } }),
+    await api.post('/v1/auth/login', {
+      headers: freshAddress(),
+      data: { email, password: PASSWORD, clientType: 'mobile' },
+    }),
   );
   return { Authorization: `Bearer ${login.accessToken}` };
 }

@@ -42,6 +42,7 @@ async function istanbulSalon(api: APIRequestContext): Promise<string> {
   );
   const login = await json<{ accessToken: string }>(
     await api.post('/v1/auth/login', {
+      headers: freshAddress(),
       data: { email: OWNER, password: PASSWORD, clientType: 'mobile' },
     }),
   );

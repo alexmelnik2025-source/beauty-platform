@@ -7,6 +7,7 @@ import {
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
+import { freshAddress } from './addresses';
 
 /**
  * Task 70b: the price list as the client sees it (as on Booksy). Under "Strzyżenie męskie" one
@@ -49,6 +50,7 @@ async function salonWithPriceRows(api: APIRequestContext, who: string): Promise<
   );
   const login = await json<{ accessToken: string }>(
     await api.post('/v1/auth/login', {
+      headers: freshAddress(),
       data: { email: OWNER, password: PASSWORD, clientType: 'mobile' },
     }),
   );
