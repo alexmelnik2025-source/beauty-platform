@@ -16,6 +16,7 @@ import { serveApp } from './mobile-app';
  * Screenshots 74 (computer) and 74b (phone) go to e2e/screenshots.
  * "Pobierz CSV" downloads every visit of the period for the accountant (task 30).
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
+ * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -114,6 +115,20 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
       ).id,
     );
   }
+  // Both work 08:00–20:00 every day, so "Obłożenie" has working hours to compare with (task 141).
+  for (const id of staff) {
+    await json(
+      await request.put(`${base}/staff/${id}/working-hours`, {
+        headers: owner,
+        data: {
+          days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+            weekday,
+            intervals: [{ start: '08:00', end: '20:00' }],
+          })),
+        },
+      }),
+    );
+  }
 
   // Yesterday: Ilian — haircut (paid) and beard (paid), Marek — haircut (paid), one no-show.
   const tomorrow = new Date(Date.now() + 86_400_000);
@@ -187,6 +202,17 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await shot(page, '74-owner-reports');
   await page.getByRole('heading', { name: 'Dni tygodnia' }).scrollIntoViewIfNeeded();
   await shot(page, '74c-owner-reports-weekdays');
+  // "Obłożenie": 1.5 h of visits out of 30 days × 12 h for each specialist (task 141).
+  const occupancy = page.getByTestId('report-occupancy');
+  await occupancy.scrollIntoViewIfNeeded();
+  await expect(occupancy.getByRole('heading', { name: /^Obłożenie: \d+%$/ })).toBeVisible();
+  await expect(occupancy.getByRole('listitem').filter({ hasText: 'Ilian' })).toContainText(
+    'zajęte 1,5 z 360 godz.',
+  );
+  await expect(occupancy.getByRole('listitem').filter({ hasText: 'Marek' })).toContainText(
+    'zajęte 1,5 z 360 godz.',
+  );
+  await shot(page, '74d-owner-reports-occupancy');
 
   // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([

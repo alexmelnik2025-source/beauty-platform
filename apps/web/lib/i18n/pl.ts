@@ -1053,6 +1053,10 @@ export const pl = {
     weekdayHint: 'Słabsze dni widać od razu — można na nie dać promocję albo krótszy grafik.',
     compared:
       'Zmiana w % — w porównaniu z tyloma samymi dniami wcześniej ({from} – {to}: {revenue}, odbyte wizyty: {visits}).',
+    occupancy: 'Obłożenie',
+    occupancyHours: 'zajęte {booked} z {work} godz.',
+    occupancyHint:
+      'Obłożenie — jaka część godzin pracy z grafiku (bez urlopów i zablokowanego czasu) była zajęta wizytami, także tymi, na które klient nie przyszedł. Odwołane wizyty się nie liczą.',
   },
 };
 

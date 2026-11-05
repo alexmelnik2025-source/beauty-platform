@@ -18256,6 +18256,75 @@
             ],
             "additionalProperties": false,
             "description": "The same number of days just before the period, to compare with"
+          },
+          "occupancy": {
+            "type": "object",
+            "properties": {
+              "workMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Working time by the schedule, minus vacations and blocked time"
+              },
+              "bookedMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Part of the working time taken by visits that were not cancelled"
+              },
+              "percent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "bookedMinutes of workMinutes, 0–100"
+              },
+              "staff": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "workMinutes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "bookedMinutes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "percent": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "workMinutes",
+                    "bookedMinutes",
+                    "percent"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Specialists with working time or visits in the period, busiest first"
+              }
+            },
+            "required": [
+              "workMinutes",
+              "bookedMinutes",
+              "percent",
+              "staff"
+            ],
+            "additionalProperties": false,
+            "description": "Task 141: how busy the specialists were (\"Obłożenie\")"
           }
         },
         "required": [
@@ -18268,7 +18337,8 @@
           "services",
           "days",
           "weekdays",
-          "previous"
+          "previous",
+          "occupancy"
         ],
         "additionalProperties": false
       },
