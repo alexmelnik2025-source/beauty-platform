@@ -651,6 +651,16 @@ export const en: Dict = {
     removed: '{name} removed from the waiting list.',
   },
   guard: {
+    cardMarked: 'The client is marked',
+    cardNotMarked: 'The client is not marked now.',
+    historyTitle: 'History of the last year',
+    historyLate: 'late',
+    historyType: {
+      cancelled: 'Cancelled',
+      rescheduled: 'Moved',
+      no_show: 'Did not come',
+      released: 'Block lifted',
+    },
     title: 'Cancellation protection',
     hint: 'Clients who often cancel, move or miss visits can only book on your terms. Off by default. The visit history at this salon from the last year counts.',
     enabled: 'Turn protection on',

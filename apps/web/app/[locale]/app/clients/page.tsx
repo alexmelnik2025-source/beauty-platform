@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { ClientGuard } from '@/components/guard/ClientGuard';
 import { ClientLoyalty } from '@/components/loyalty/ClientLoyalty';
 import { useSession } from '@/components/Session';
 import { PhoneField } from '@/components/PhoneField';
@@ -378,6 +379,9 @@ function ClientSheet({
         </section>
       ) : null}
       {client ? <ClientLoyalty orgId={orgId} customerId={client.id} /> : null}
+      {client && session.role !== 'staff' ? (
+        <ClientGuard orgId={orgId} customerId={client.id} />
+      ) : null}
       {client && !erasedOn && session.role === 'owner' ? (
         <ClientPrivacy orgId={orgId} client={client} onErased={onSaved} />
       ) : null}

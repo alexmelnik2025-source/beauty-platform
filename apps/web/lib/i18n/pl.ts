@@ -651,6 +651,16 @@ export const pl = {
     removed: 'Usunięto {name} z listy oczekujących.',
   },
   guard: {
+    cardMarked: 'Klient jest oznaczony',
+    cardNotMarked: 'Klient nie jest teraz oznaczony.',
+    historyTitle: 'Historia z ostatniego roku',
+    historyLate: 'późno',
+    historyType: {
+      cancelled: 'Odwołał(a)',
+      rescheduled: 'Przeniósł(a)',
+      no_show: 'Nie przyszedł(a)',
+      released: 'Zdjęto blokadę',
+    },
     title: 'Ochrona przed odwołaniami',
     hint: 'Klienci, którzy często odwołują, przenoszą lub nie przychodzą, mogą umawiać się tylko na Twoich zasadach. Domyślnie wyłączone. Liczy się historia wizyt w tym salonie z ostatniego roku.',
     enabled: 'Włącz ochronę',

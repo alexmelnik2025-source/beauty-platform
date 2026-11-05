@@ -11,7 +11,8 @@ import { waitForEmail } from './mailpit';
 /**
  * Task 161c: "Ochrona przed odwołaniami" in the cabinet. Jan missed two visits (entered by the
  * salon via the API); the owner turns the protection on with "2 no-shows → pay first", sees Jan
- * with the cost of the missed visits and lifts the block. Screenshots 161e, 161f.
+ * with the cost of the missed visits and lifts the block; the client card keeps the history
+ * (part 2). Screenshots 161e–161g.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -152,5 +153,15 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
   await sheet.getByRole('button', { name: 'Tak, zdejmij' }).click();
   await expect(owner.getByText('Zdjęto blokadę.')).toBeVisible();
   await expect(owner.getByText('Nikt nie jest teraz oznaczony.')).toBeVisible();
+
+  // Part 2: the same in the client card — not marked any more, the history kept with the note.
+  await owner.goto('/pl/app/clients');
+  await owner.getByRole('button', { name: /Jan Nowak/ }).click();
+  const card = owner.getByRole('region', { name: 'Ochrona przed odwołaniami' });
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toContainText('Klient nie jest teraz oznaczony.');
+  await expect(card.getByText('Nie przyszedł(a)')).toHaveCount(2);
+  await expect(card).toContainText('Zdjęto blokadę · Zapłacił 180 zł');
+  await shot(owner, '161g-owner-client-card-guard');
   await desk.close();
 });
