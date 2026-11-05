@@ -159,6 +159,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/coupons/:couponId/remove')) return { version: 1 };
   if (p.endsWith('/tier-discount') || p.endsWith('/tier-discount/remove')) return { version: 1 };
   if (p.endsWith('/waitlist/:entryId/remove')) return {};
+  if (p.endsWith('/review-settings')) return { version: 0, enabled: true, requestHours: 2 };
   if (p.endsWith('/cancellation-guard/clients/:customerId/release')) return { note: 'Hacked' };
   if (p.endsWith('/cancellation-guard')) {
     return {
