@@ -120,6 +120,31 @@ describe('ClientApi', () => {
     });
   });
 
+  it('a signed-in client books a held time without a code (task 180e)', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'GET /v1/client/me': () => [200, person],
+      'POST /v1/client/holds/h%201/confirm': () => [200, { manageToken: 'm', signedIn: true }],
+    });
+    const api = new ClientApi('https://api.test', memoryStore('saved-token'), fetchFn);
+    await api.restore();
+    const hold = { holdId: 'h 1', holdToken: 'tok' } as Parameters<
+      ClientApi['confirmBookingSignedIn']
+    >[0];
+    await expect(
+      api.confirmBookingSignedIn(
+        hold,
+        { name: 'Anna', phone: '+48600100200', acceptTerms: true, marketingConsent: false },
+        'pl',
+      ),
+    ).resolves.toMatchObject({ signedIn: true });
+    expect(calls.at(-1)).toMatchObject({
+      key: 'POST /v1/client/holds/h%201/confirm',
+      body: { holdToken: 'tok', name: 'Anna', locale: 'pl', acceptTerms: true },
+      auth: 'Bearer saved-token',
+    });
+    expect(calls.at(-1)!.body).not.toHaveProperty('email');
+  });
+
   it('nothing saved → the sign-in screen, without asking the server', async () => {
     const { fetchFn, calls } = fakeServer({});
     const api = new ClientApi('https://api.test', memoryStore(), fetchFn);

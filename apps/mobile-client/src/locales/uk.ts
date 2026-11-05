@@ -201,6 +201,7 @@ export const uk: Dictionary = {
     badEmail: 'Введіть адресу e-mail, напр. anna@example.com.',
     termsNeeded: 'Позначте згоду з правилами запису.',
     inVisits: 'Візит уже в «Моїх візитах».',
+    noCodeNeeded: 'Ви увійшли — код не потрібен.',
     toVisits: 'Мої візити',
     signInLead:
       'Увійдіть кодом із листа — побачите всі візити й зможете змінювати їх у застосунку.',

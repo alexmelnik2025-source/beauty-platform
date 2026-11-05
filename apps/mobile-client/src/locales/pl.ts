@@ -201,6 +201,7 @@ export const pl = {
     badEmail: 'Wpisz adres e-mail, np. anna@example.com.',
     termsNeeded: 'Zaznacz akceptację zasad rezerwacji.',
     inVisits: 'Wizyta jest już w „Moich wizytach”.',
+    noCodeNeeded: 'Jesteś zalogowany(-a) — kod nie jest potrzebny.',
     toVisits: 'Moje wizyty',
     signInLead:
       'Zaloguj się kodem z e-maila — zobaczysz wszystkie wizyty i zmienisz je w aplikacji.',

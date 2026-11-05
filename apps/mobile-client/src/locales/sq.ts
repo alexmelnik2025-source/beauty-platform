@@ -207,6 +207,7 @@ export const sq: Dictionary = {
     badEmail: 'Shkruani një adresë emaili, p.sh. arta@example.com.',
     termsNeeded: 'Shënoni që pranoni kushtet e rezervimit.',
     inVisits: 'Takimi është tashmë te “Takimet e mia”.',
+    noCodeNeeded: 'Jeni identifikuar — nuk nevojitet kod.',
     toVisits: 'Takimet e mia',
     signInLead:
       'Hyni me një kod nga emaili për të parë të gjitha takimet tuaja dhe për t’i ndryshuar në aplikacion.',

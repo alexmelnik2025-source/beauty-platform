@@ -444,6 +444,24 @@ export class ClientApi {
   }
 
   /**
+   * Task 180e: signed in - the held time is booked without a code; the email is the session's.
+   * Once per hold (a lost answer, a second tap), like the code step.
+   */
+  confirmBookingSignedIn(
+    hold: Hold,
+    contact: Omit<BookingContact, 'email'>,
+    locale: Locale,
+    wishes?: ClientAppointment['wishes'],
+  ): Promise<BookingConfirmed> {
+    return this.authed<BookingConfirmed>(
+      'POST',
+      `/v1/client/holds/${encodeURIComponent(hold.holdId)}/confirm`,
+      { holdToken: hold.holdToken, ...contact, locale, ...(wishes ? { wishes } : {}) },
+      { 'idempotency-key': `confirm-signed-in-${hold.holdId}` },
+    );
+  }
+
+  /**
    * Task 80f: "Pokaż, co chcesz" — one example photo added to the held time (JPEG, PNG or
    * WebP, at most 3 MB); it stays with the visit once it is booked. Only for services where
    * the salon asks for photos (PHOTOS_NOT_ASKED otherwise), at most 3 (TOO_MANY_PHOTOS).

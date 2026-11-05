@@ -207,6 +207,7 @@ export const tr: Dictionary = {
     badEmail: 'Bir e-posta adresi girin, ör. ayse@example.com.',
     termsNeeded: 'Rezervasyon koşullarını kabul ettiğinizi işaretleyin.',
     inVisits: 'Randevu zaten “Randevularım”da.',
+    noCodeNeeded: 'Giriş yaptınız — kod gerekmez.',
     toVisits: 'Randevularım',
     signInLead:
       'Tüm randevularınızı görmek ve uygulamada değiştirmek için e-postanıza gelen kodla giriş yapın.',

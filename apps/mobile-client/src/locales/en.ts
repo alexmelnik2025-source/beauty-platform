@@ -201,6 +201,7 @@ export const en: Dictionary = {
     badEmail: 'Enter an email address, e.g. anna@example.com.',
     termsNeeded: 'Tick that you accept the booking rules.',
     inVisits: 'The visit is already in “My visits”.',
+    noCodeNeeded: 'You are signed in — no code needed.',
     toVisits: 'My visits',
     signInLead:
       'Sign in with a code from your email to see all your visits and change them in the app.',

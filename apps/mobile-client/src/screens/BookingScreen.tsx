@@ -321,6 +321,33 @@ export function BookingScreen(props: {
     }
   }
 
+  /** Task 180e: signed in - no code; the visit is booked with the session's email. */
+  async function confirmSignedIn() {
+    if (!hold) return;
+    const checked = checkContact(form, dialForTimeZone(salon.timezone));
+    if (!checked.ok) return setError(PROBLEM_TEXT[checked.problem](t));
+    setBusy(true);
+    setError('');
+    try {
+      const { email: _email, ...contact } = checked.contact;
+      const questions = salon.wishQuestions;
+      setDone(
+        await api.confirmBookingSignedIn(
+          hold,
+          contact,
+          locale,
+          asksWishes(questions) ? wishesToSend(wishes, questions) : undefined,
+        ),
+      );
+      setStep('done');
+    } catch (e) {
+      if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
+      else setError(bookingErrorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirm() {
     if (!hold || code.length !== 6) return;
     setBusy(true);
@@ -685,9 +712,11 @@ export function BookingScreen(props: {
               style={styles.input}
             />
           </Field>
-          <Field label={b.email} hint={b.emailHint}>
+          <Field label={b.email} hint={props.signedIn ? b.noCodeNeeded : b.emailHint}>
             <TextInput
               accessibilityLabel={b.email}
+              // Task 180e: the email of the signed-in client - the visit goes to their account.
+              editable={!props.signedIn}
               value={form.email}
               onChangeText={(email) => setForm({ ...form, email })}
               autoCapitalize="none"
@@ -719,7 +748,22 @@ export function BookingScreen(props: {
             checked={form.marketingConsent}
             onChange={(marketingConsent) => setForm({ ...form, marketingConsent })}
           />
-          <Button label={b.sendCode} onPress={() => void sendCode()} busy={busy} />
+          {props.signedIn && asksWishes(salon.wishQuestions) ? (
+            <WishesPicker
+              t={t}
+              questions={salon.wishQuestions}
+              value={wishes}
+              onChange={setWishes}
+            />
+          ) : null}
+          {props.signedIn && service?.wishPhotos ? (
+            <WishPhotosPicker key={hold.holdId} t={t} api={api} hold={hold} />
+          ) : null}
+          {props.signedIn ? (
+            <Button label={b.confirm} onPress={() => void confirmSignedIn()} busy={busy} />
+          ) : (
+            <Button label={b.sendCode} onPress={() => void sendCode()} busy={busy} />
+          )}
         </View>
       ) : null}
 
