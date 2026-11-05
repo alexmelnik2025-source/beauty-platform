@@ -31,6 +31,9 @@ export const tr: Dictionary = {
     downloadDataHint:
       'Salonların sizinle ilgili sakladığı verileri içeren dosya: müşteri kartı, onaylar, randevular ve bonuslar (KVKK/GDPR).',
     downloadDataTitle: 'Salonlardaki verilerim',
+    mySpecialists: 'Uzmanlarınız',
+    bookWith: '{staff} ile randevu al',
+    visitsCount: 'ziyaret: {n}',
     minutes: 'dk',
     with: 'uzman: {staff}',
     status: {

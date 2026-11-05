@@ -30,6 +30,9 @@ export const en: Dictionary = {
     downloadDataHint:
       'A file with the data the salons keep about you: client card, consents, visits and bonuses (GDPR).',
     downloadDataTitle: 'My data from the salons',
+    mySpecialists: 'Your specialists',
+    bookWith: 'Book with {staff}',
+    visitsCount: 'visits: {n}',
     minutes: 'min',
     with: 'with {staff}',
     status: {

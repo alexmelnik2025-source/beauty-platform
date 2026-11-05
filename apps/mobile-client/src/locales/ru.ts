@@ -30,6 +30,9 @@ export const ru: Dictionary = {
     downloadDataHint:
       'Файл с данными, которые салоны хранят о вас: карточка клиента, согласия, визиты и бонусы (GDPR).',
     downloadDataTitle: 'Мои данные из салонов',
+    mySpecialists: 'Ваши мастера',
+    bookWith: 'Записаться к: {staff}',
+    visitsCount: 'визитов: {n}',
     minutes: 'мин',
     with: 'мастер: {staff}',
     status: {

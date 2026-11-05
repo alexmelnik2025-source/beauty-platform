@@ -29,6 +29,9 @@ export const pl = {
     downloadDataHint:
       'Plik z danymi, które salony przechowują o Tobie: karta klienta, zgody, wizyty i bonusy (RODO).',
     downloadDataTitle: 'Moje dane z salonów',
+    mySpecialists: 'Twoi specjaliści',
+    bookWith: 'Umów u: {staff}',
+    visitsCount: 'wizyty: {n}',
     minutes: 'min',
     with: 'u: {staff}',
     status: {
