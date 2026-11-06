@@ -104,7 +104,9 @@ test('the owner prints the day plan: specialists, visits, clients and blocked ti
 
   // Tomorrow: two visits for Ilian, a training block for Marek.
   const tomorrow = new Date(Date.now() + 86_400_000);
-  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(tomorrow);
+  // Task 209: the visits are on tomorrow's UTC date (08:00 UTC and later is the same day in
+  // Warsaw); the Warsaw date of "now + 1 day" is a day later between 23:00 and 24:00 UTC.
+  const day = tomorrow.toISOString().slice(0, 10);
   const at = (utcHour: number) =>
     new Date(
       Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), utcHour),
