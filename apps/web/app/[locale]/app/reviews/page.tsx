@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from '@/components/Session';
+import { SalonReply } from '@/components/reviews/SalonReply';
 import { Stars } from '@/components/reviews/Stars';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -9,12 +10,15 @@ import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import type { ReviewSettings, SalonReviews } from '@/lib/types';
 
+type Review = SalonReviews['items'][number];
+
 const HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
 
 /**
  * Task 165b: "Opinie" — the owner and managers switch reviews on and choose when the client is
  * asked ("Jak było?" email); everyone sees the reviews with the client's name (staff only those
- * of their own visits — the server decides).
+ * of their own visits — the server decides). Task 209: the owner and managers answer a review
+ * publicly, change or remove the answer.
  */
 export default function ReviewsPage() {
   const { t, locale } = useI18n();
@@ -98,6 +102,21 @@ export default function ReviewsPage() {
                         {fill(t.reviewsCabinet.visit, { date: day(r.visitStartAt) })}
                       </span>
                       {r.text ? <span className="review-text">{r.text}</span> : null}
+                      <ReviewReply
+                        base={base}
+                        review={r}
+                        manager={manager}
+                        onSaved={(saved) =>
+                          setList((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  items: current.items.map((i) => (i.id === saved.id ? saved : i)),
+                                }
+                              : current,
+                          )
+                        }
+                      />
                     </span>
                   </li>
                 ))}
@@ -111,6 +130,102 @@ export default function ReviewsPage() {
           </section>
         )}
       </div>
+    </>
+  );
+}
+
+function ReviewReply({
+  base,
+  review,
+  manager,
+  onSaved,
+}: {
+  base: string;
+  review: Review;
+  manager: boolean;
+  onSaved: (review: Review) => void;
+}) {
+  const { t } = useI18n();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(review.reply ?? '');
+  const [error, setError] = useState('');
+  const { busy, lock, unlock } = useSubmitLock();
+
+  async function send(method: 'PUT' | 'DELETE') {
+    if (!lock()) return;
+    setError('');
+    try {
+      const saved = await api<Review>(`${base}/reviews/${review.id}/reply`, {
+        method,
+        ...(method === 'PUT' ? { body: { text } } : {}),
+      });
+      setEditing(false);
+      setText(saved.reply ?? '');
+      onSaved(saved);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      unlock();
+    }
+  }
+
+  if (editing) {
+    return (
+      <form
+        className="review-reply-form"
+        aria-label={t.reviewsCabinet.replyLabel}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (text.trim()) void send('PUT');
+        }}
+      >
+        <label className="field">
+          <span>{t.reviewsCabinet.replyLabel}</span>
+          <textarea value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} />
+        </label>
+        <p className="small muted">{t.reviewsCabinet.replyHint}</p>
+        <ErrorBox>{error}</ErrorBox>
+        <div className="review-reply-actions">
+          <button className="btn btn--primary" disabled={busy || !text.trim()}>
+            {t.reviewsCabinet.replySave}
+          </button>
+          <button
+            type="button"
+            className="btn btn--quiet"
+            onClick={() => {
+              setEditing(false);
+              setText(review.reply ?? '');
+              setError('');
+            }}
+          >
+            {t.reviewsCabinet.replyCancel}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <>
+      <SalonReply text={review.reply} />
+      {manager ? (
+        <div className="review-reply-actions">
+          <button type="button" className="btn btn--quiet" onClick={() => setEditing(true)}>
+            {review.reply ? t.reviewsCabinet.replyChange : t.reviewsCabinet.reply}
+          </button>
+          {review.reply ? (
+            <button
+              type="button"
+              className="btn btn--quiet"
+              disabled={busy}
+              onClick={() => void send('DELETE')}
+            >
+              {t.reviewsCabinet.replyRemove}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <ErrorBox>{error}</ErrorBox>
     </>
   );
 }

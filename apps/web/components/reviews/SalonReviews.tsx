@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { PublicReviews } from '@/lib/types';
+import { SalonReply } from './SalonReply';
 import { Stars } from './Stars';
 
 /**
@@ -85,6 +86,7 @@ export function SalonReviews({ slug }: { slug: string }) {
                 </span>
               </div>
               {r.text ? <p className="review-text">{r.text}</p> : null}
+              <SalonReply text={r.reply} />
             </li>
           ))}
         </ul>

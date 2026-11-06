@@ -17,7 +17,8 @@ import { serveApp } from './mobile-app';
  * without the client's name. In the cabinet, "Opinie": the settings and the reviews with the
  * client's name. The same review in the client app's visit card (its web preview). Task 201:
  * the owner reads the reviews in the business app ("Opinie"), screenshot 201.
- * Screenshots 165b-1 … 165b-5.
+ * Screenshots 165b-1 … 165b-5. Task 209: the owner answers a review in the cabinet; the answer
+ * shows on the salon page and under the client's own review (screenshots 209, 209-a, 209-b).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -250,7 +251,40 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await request.get(`${base}/review-settings`, { headers: owner }),
   );
   expect(saved).toMatchObject({ requestHours: 3, version: 2 });
+
+  // ── Task 209: the owner answers Marta's review; the salon page and Marta see it ──
+  const martaRow = list.locator('.list-row').filter({ hasText: 'Marta Nowak' });
+  await martaRow.getByRole('button', { name: 'Odpowiedz' }).click();
+  const replyForm = martaRow.getByRole('form', { name: 'Odpowiedź salonu' });
+  await replyForm.getByLabel('Odpowiedź salonu').fill('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
+  await shot(cabinet, '209-cabinet-reply-form');
+  await replyForm.getByRole('button', { name: 'Opublikuj odpowiedź' }).click();
+  const answer = martaRow.locator('.review-reply');
+  await expect(answer).toContainText('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
+  await expect(martaRow.getByRole('button', { name: 'Zmień odpowiedź' })).toBeVisible();
+  await expect(martaRow.getByRole('button', { name: 'Usuń odpowiedź' })).toBeVisible();
+  await shot(cabinet, '209-cabinet-reply');
+
+  await cabinet.goto(`/pl/b/${location.slug}`);
+  const publicReviews = cabinet.locator('details.salon-reviews');
+  await publicReviews.locator('summary').click();
+  await expect(publicReviews.locator('.review-reply')).toContainText('Odpowiedź salonu');
+  await expect(publicReviews.locator('.review-reply')).toContainText(
+    'Dziękujemy, Marta! Do zobaczenia u Ilyi.',
+  );
+  await shot(cabinet, '209-a-salon-page-reply');
   await desk.close();
+
+  const martaPhone = await browser.newContext({ viewport: PHONE, locale: 'pl-PL' });
+  const martaPage = await martaPhone.newPage();
+  await martaPage.goto(`/pl/m/${marta}#review`);
+  const martaReview = martaPage.getByRole('region', { name: 'Twoja opinia' });
+  await expect(martaReview).toContainText('Najlepszy fade w Warszawie. Polecam!');
+  await expect(martaReview.locator('.review-reply')).toContainText(
+    'Dziękujemy, Marta! Do zobaczenia u Ilyi.',
+  );
+  await shot(martaPage, '209-b-client-sees-reply');
+  await martaPhone.close();
 
   // ── The client app: "Twoja opinia" in the visit card ──────────────────
   const OLA = `reviews-ola-${run}@example.com`;
