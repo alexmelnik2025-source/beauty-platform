@@ -104,6 +104,7 @@ export const pl = {
     change: 'Zmień opinię',
     changeUntil: 'Opinię możesz zmienić do {date}.',
     notPossible: 'Tej wizyty nie można już ocenić.',
+    salonReply: 'Odpowiedź salonu',
   },
   bonuses: {
     extraTitle: 'Więcej za wizytę',

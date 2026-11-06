@@ -104,6 +104,7 @@ export const en: Dictionary = {
     change: 'Change review',
     changeUntil: 'You can change your review until {date}.',
     notPossible: 'This visit can no longer be reviewed.',
+    salonReply: 'Reply from the salon',
   },
   bonuses: {
     extraTitle: 'More for a visit',

@@ -592,6 +592,14 @@ export const en: Dictionary = {
     removedClient: 'Client removed',
     more: 'Show older',
     off: 'The salon does not collect reviews. The owner or a manager switches them on in the salon dashboard: “Opinie”.',
+    reply: 'Reply',
+    replyChange: 'Change reply',
+    replyRemove: 'Remove reply',
+    replyLabel: 'Reply from the salon',
+    replyHint:
+      'Everyone sees the reply on the booking page, and the client sees it under their review.',
+    replySave: 'Publish reply',
+    replyCancel: 'Cancel',
   },
   history: {
     open: 'Change log',

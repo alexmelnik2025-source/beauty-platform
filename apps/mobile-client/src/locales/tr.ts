@@ -105,6 +105,7 @@ export const tr: Dictionary = {
     change: 'Yorumu değiştir',
     changeUntil: 'Yorumunuzu {date} tarihine kadar değiştirebilirsiniz.',
     notPossible: 'Bu ziyaret artık değerlendirilemez.',
+    salonReply: 'Salonun yanıtı',
   },
   bonuses: {
     extraTitle: 'Ziyarette daha fazla',

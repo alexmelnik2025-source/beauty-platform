@@ -105,6 +105,7 @@ export const sq: Dictionary = {
     change: 'Ndrysho vlerësimin',
     changeUntil: 'Vlerësimin mund ta ndryshoni deri më {date}.',
     notPossible: 'Kjo vizitë nuk mund të vlerësohet më.',
+    salonReply: 'Përgjigjja e sallonit',
   },
   bonuses: {
     extraTitle: 'Më shumë për vizitën',

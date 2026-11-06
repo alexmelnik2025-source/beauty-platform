@@ -104,6 +104,7 @@ export const uk: Dictionary = {
     change: 'Змінити відгук',
     changeUntil: 'Відгук можна змінити до {date}.',
     notPossible: 'Цей візит уже не можна оцінити.',
+    salonReply: 'Відповідь салону',
   },
   bonuses: {
     extraTitle: 'Більше за візит',

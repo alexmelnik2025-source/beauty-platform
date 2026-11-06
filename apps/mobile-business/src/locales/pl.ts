@@ -590,6 +590,13 @@ export const pl = {
     removedClient: 'Klient usunięty',
     more: 'Pokaż starsze',
     off: 'Salon nie zbiera opinii. Właściciel lub menedżer włącza je w panelu salonu: „Opinie”.',
+    reply: 'Odpowiedz',
+    replyChange: 'Zmień odpowiedź',
+    replyRemove: 'Usuń odpowiedź',
+    replyLabel: 'Odpowiedź salonu',
+    replyHint: 'Odpowiedź zobaczą wszyscy na stronie rezerwacji i klient przy swojej opinii.',
+    replySave: 'Opublikuj odpowiedź',
+    replyCancel: 'Anuluj',
   },
   history: {
     open: 'Dziennik zmian',

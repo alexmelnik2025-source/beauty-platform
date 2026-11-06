@@ -104,6 +104,7 @@ export const ru: Dictionary = {
     change: 'Изменить отзыв',
     changeUntil: 'Отзыв можно изменить до {date}.',
     notPossible: 'Этот визит уже нельзя оценить.',
+    salonReply: 'Ответ салона',
   },
   bonuses: {
     extraTitle: 'Больше за визит',

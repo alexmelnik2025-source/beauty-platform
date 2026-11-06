@@ -436,6 +436,31 @@ export class BusinessApi {
     );
   }
 
+  /** Task 209: the salon's public answer under a review (owner or manager — the server checks). */
+  replyToReview(
+    orgId: string,
+    locationId: string,
+    reviewId: string,
+    text: string,
+  ): Promise<SalonReviews['items'][number]> {
+    return this.authed<SalonReviews['items'][number]>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews/${enc(reviewId)}/reply`,
+      { text },
+    );
+  }
+
+  removeReviewReply(
+    orgId: string,
+    locationId: string,
+    reviewId: string,
+  ): Promise<SalonReviews['items'][number]> {
+    return this.authed<SalonReviews['items'][number]>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews/${enc(reviewId)}/reply`,
+    );
+  }
+
   /** Owner or manager only (the server checks): people with access and their roles. */
   members(orgId: string): Promise<MemberList> {
     return this.authed<MemberList>('GET', `/v1/organizations/${enc(orgId)}/members`);
