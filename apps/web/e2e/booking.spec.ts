@@ -612,7 +612,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.goto(`/pl/app/calendar?date=${weekLater(visit!.date, 2)}`);
   await expect(ownerPage.getByRole('button', { name: 'Booksy' })).toHaveCount(0);
 
-  // The other sections of the cabinet.
+  // The other sections of the cabinet (task 204: after the session has loaded).
+  await ownerPage.waitForLoadState('networkidle');
   await ownerPage.goto('/pl/app/services');
   await expect(ownerPage.getByText('Strzyżenie + broda').first()).toBeVisible();
   await shot(ownerPage, '15-owner-services');

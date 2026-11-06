@@ -43,6 +43,9 @@ export function refreshSession(): Promise<boolean> {
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
         credentials: 'same-origin',
+        // Task 204: a page load in the middle must not drop the answer - the server has already
+        // rotated the cookie, and the old one would then count as stolen (the session ends).
+        keepalive: true,
       });
       if (!res.ok) {
         setAccessToken(null);
