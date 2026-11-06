@@ -104,6 +104,7 @@ export const pl = {
     change: 'Zmień opinię',
     changeUntil: 'Opinię możesz zmienić do {date}.',
     notPossible: 'Tej wizyty nie można już ocenić.',
+    salonReply: 'Odpowiedź salonu',
   },
   bonuses: {
     extraTitle: 'Więcej za wizytę',
@@ -305,6 +306,14 @@ export const pl = {
     shareText: '{name} — umów się online: {url}',
     copied: 'Link skopiowany — wklej go znajomym.',
     shareFailed: 'Nie udało się udostępnić. Link: {url}',
+  },
+  salonReviews: {
+    title: 'Opinie',
+    summary: '★ {average} · opinie: {count}',
+    bySpecialist: 'Opinie o specjalistach',
+    everyone: 'Wszyscy',
+    more: 'Pokaż więcej',
+    salonReply: 'Odpowiedź salonu',
   },
   favorites: {
     tab: 'Ulubione',

@@ -104,6 +104,7 @@ export const ru: Dictionary = {
     change: 'Изменить отзыв',
     changeUntil: 'Отзыв можно изменить до {date}.',
     notPossible: 'Этот визит уже нельзя оценить.',
+    salonReply: 'Ответ салона',
   },
   bonuses: {
     extraTitle: 'Больше за визит',
@@ -308,6 +309,14 @@ export const ru: Dictionary = {
     shareText: '{name} — запишитесь онлайн: {url}',
     copied: 'Ссылка скопирована — отправьте её друзьям.',
     shareFailed: 'Не удалось поделиться. Ссылка: {url}',
+  },
+  salonReviews: {
+    title: 'Отзывы',
+    summary: '★ {average} · отзывов: {count}',
+    bySpecialist: 'Отзывы о мастерах',
+    everyone: 'Все',
+    more: 'Показать ещё',
+    salonReply: 'Ответ салона',
   },
   favorites: {
     tab: 'Избранное',

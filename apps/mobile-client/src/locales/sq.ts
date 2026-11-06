@@ -105,6 +105,7 @@ export const sq: Dictionary = {
     change: 'Ndrysho vlerësimin',
     changeUntil: 'Vlerësimin mund ta ndryshoni deri më {date}.',
     notPossible: 'Kjo vizitë nuk mund të vlerësohet më.',
+    salonReply: 'Përgjigjja e sallonit',
   },
   bonuses: {
     extraTitle: 'Më shumë për vizitën',
@@ -310,6 +311,14 @@ export const sq: Dictionary = {
     shareText: '{name} — rezervo online: {url}',
     copied: 'Lidhja u kopjua — ngjite për miqtë.',
     shareFailed: 'Ndarja nuk u krye. Lidhja: {url}',
+  },
+  salonReviews: {
+    title: 'Vlerësimet',
+    summary: '★ {average} · vlerësime: {count}',
+    bySpecialist: 'Vlerësimet e specialistëve',
+    everyone: 'Të gjithë',
+    more: 'Shfaq më shumë',
+    salonReply: 'Përgjigjja e sallonit',
   },
   favorites: {
     tab: 'Të preferuarat',

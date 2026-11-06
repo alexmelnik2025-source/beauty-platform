@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { VisitReview } from '@/lib/types';
 import { ErrorBox } from '../ui';
+import { SalonReply } from './SalonReply';
 import { StarPicker, Stars } from './Stars';
 
 /**
@@ -97,6 +98,7 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
         <>
           <Stars value={state.review.rating} />
           {state.review.text ? <p className="review-text">{state.review.text}</p> : null}
+          <SalonReply text={state.review.reply} />
           {state.canReview ? (
             <>
               {until ? (

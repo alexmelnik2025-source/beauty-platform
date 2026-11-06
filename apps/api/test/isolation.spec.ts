@@ -42,7 +42,8 @@ type Ids = Record<
   | 'photoId'
   | 'rewardId'
   | 'couponId'
-  | 'entryId',
+  | 'entryId'
+  | 'reviewId',
   string
 >;
 
@@ -160,6 +161,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/tier-discount') || p.endsWith('/tier-discount/remove')) return { version: 1 };
   if (p.endsWith('/waitlist/:entryId/remove')) return {};
   if (p.endsWith('/review-settings')) return { version: 0, enabled: true, requestHours: 2 };
+  if (p.endsWith('/reviews/:reviewId/reply')) return { text: 'Hacked' };
   if (p.endsWith('/cancellation-guard/clients/:customerId/release')) return { note: 'Hacked' };
   if (p.endsWith('/cancellation-guard')) {
     return {
@@ -434,6 +436,16 @@ async function seedLocation(
       tokenHash: `isolation-${org.orgId}`,
     },
   });
+  // A client's review of the visit (task 165b), for the salon's answer (task 211).
+  const review = await ctx.prisma.visitReview.create({
+    data: {
+      appointmentId: appointment.body.id,
+      locationId: org.locationId,
+      staffId: staff.body.id,
+      rating: 5,
+      text: 'Super',
+    },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -453,6 +465,7 @@ async function seedLocation(
     rewardId: reward.body.id,
     couponId: coupon.body.id,
     entryId: entry.id,
+    reviewId: review.id,
   };
 }
 
@@ -494,6 +507,7 @@ async function snapshotOf(ids: Ids) {
       orderBy: { id: 'asc' },
     }),
     waitlist: await ctx.prisma.waitlistEntry.findMany({ where: { locationId: ids.locationId } }),
+    reviews: await ctx.prisma.visitReview.findMany({ where: { locationId: ids.locationId } }),
   };
 }
 

@@ -104,6 +104,7 @@ export const uk: Dictionary = {
     change: 'Змінити відгук',
     changeUntil: 'Відгук можна змінити до {date}.',
     notPossible: 'Цей візит уже не можна оцінити.',
+    salonReply: 'Відповідь салону',
   },
   bonuses: {
     extraTitle: 'Більше за візит',
@@ -305,6 +306,14 @@ export const uk: Dictionary = {
     shareText: '{name} — запишіться онлайн: {url}',
     copied: 'Посилання скопійовано — надішліть його друзям.',
     shareFailed: 'Не вдалося поділитися. Посилання: {url}',
+  },
+  salonReviews: {
+    title: 'Відгуки',
+    summary: '★ {average} · відгуків: {count}',
+    bySpecialist: 'Відгуки про майстрів',
+    everyone: 'Усі',
+    more: 'Показати ще',
+    salonReply: 'Відповідь салону',
   },
   favorites: {
     tab: 'Улюблені',

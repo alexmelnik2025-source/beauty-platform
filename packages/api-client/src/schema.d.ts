@@ -2744,6 +2744,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reviews/{reviewId}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Answer a review publicly (or change the answer)
+         * @description Task 211. Shown under the review on the salon page and to the client. Owners and managers only.
+         */
+        put: operations["ReviewsController_reply"];
+        post?: never;
+        /** Remove the salon’s answer under a review */
+        delete: operations["ReviewsController_removeReply"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations/{slug}/reviews": {
         parameters: {
             query?: never;
@@ -5038,6 +5059,9 @@ export interface components {
                 staffId: string;
                 staffName: string;
                 serviceName: string;
+                /** @description The salon’s public answer; null without one */
+                reply: string | null;
+                repliedAt: string | null;
                 createdAt: string;
             }[];
             /** @description Pass as `before` for the next page */
@@ -5213,6 +5237,24 @@ export interface components {
                 }[];
             };
         };
+        SalonReview: {
+            id: string;
+            rating: number;
+            text: string | null;
+            staffId: string;
+            staffName: string;
+            serviceName: string;
+            appointmentId: string;
+            visitStartAt: string;
+            customerId: string | null;
+            /** @description null after the client was anonymised */
+            customerName: string | null;
+            /** @description The salon’s public answer; null without one */
+            reply: string | null;
+            repliedAt: string | null;
+            createdAt: string;
+            updatedAt: string;
+        };
         SalonReviews: {
             enabled: boolean;
             count: number;
@@ -5230,6 +5272,9 @@ export interface components {
                 customerId: string | null;
                 /** @description null after the client was anonymised */
                 customerName: string | null;
+                /** @description The salon’s public answer; null without one */
+                reply: string | null;
+                repliedAt: string | null;
                 createdAt: string;
                 updatedAt: string;
             }[];
@@ -5644,6 +5689,9 @@ export interface components {
             review: {
                 rating: number;
                 text: string | null;
+                /** @description The salon’s public answer; null without one */
+                reply: string | null;
+                repliedAt: string | null;
                 createdAt: string;
                 updatedAt: string;
             } | null;
@@ -10571,6 +10619,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalonReviews"];
+                };
+            };
+        };
+    };
+    ReviewsController_reply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                reviewId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Shown under the review on the salon page and to the client */
+                    text: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonReview"];
+                };
+            };
+        };
+    };
+    ReviewsController_removeReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                reviewId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalonReview"];
                 };
             };
         };

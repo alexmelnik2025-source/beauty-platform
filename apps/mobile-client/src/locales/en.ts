@@ -104,6 +104,7 @@ export const en: Dictionary = {
     change: 'Change review',
     changeUntil: 'You can change your review until {date}.',
     notPossible: 'This visit can no longer be reviewed.',
+    salonReply: 'Reply from the salon',
   },
   bonuses: {
     extraTitle: 'More for a visit',
@@ -305,6 +306,14 @@ export const en: Dictionary = {
     shareText: '{name} — book online: {url}',
     copied: 'Link copied — paste it to your friends.',
     shareFailed: 'Could not share. Link: {url}',
+  },
+  salonReviews: {
+    title: 'Reviews',
+    summary: '★ {average} · reviews: {count}',
+    bySpecialist: 'Reviews of the specialists',
+    everyone: 'Everyone',
+    more: 'Show more',
+    salonReply: 'Reply from the salon',
   },
   favorites: {
     tab: 'Favourites',

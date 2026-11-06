@@ -2,6 +2,7 @@ import {
   applyDecorators,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -25,18 +26,22 @@ import {
 import {
   publicReviewsSchema,
   reviewSettingsSchema,
+  salonReviewSchema,
   salonReviewsSchema,
   visitReviewSchema,
   type PublicReviewsResponse,
   type ReviewSettingsResponse,
+  type SalonReviewResponse,
   type SalonReviewsResponse,
   type VisitReviewResponse,
 } from './reviews.responses';
 import {
   listReviewsQuerySchema,
+  replyReviewSchema,
   updateReviewSettingsSchema,
   writeReviewSchema,
   type ListReviewsQuery,
+  type ReplyReviewInput,
   type UpdateReviewSettingsInput,
   type WriteReviewInput,
 } from './reviews.schemas';
@@ -107,6 +112,38 @@ export class ReviewsController {
     @Query(new ZodValidationPipe(listReviewsQuerySchema)) query: ListReviewsQuery,
   ): Promise<SalonReviewsResponse> {
     return this.reviews.listForSalon(m, auth.userId, locationId, query);
+  }
+
+  @Put('reviews/:reviewId/reply')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Answer a review publicly (or change the answer)',
+    description:
+      'Task 211. Shown under the review on the salon page and to the client. Owners and managers only.',
+  })
+  @ApiZodBody(replyReviewSchema)
+  @ApiZodResponse(salonReviewSchema)
+  reply(
+    @CurrentMembership() m: MembershipContext,
+    @CurrentAuth() auth: AuthContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('reviewId', uuid('Review')) reviewId: string,
+    @Body(new ZodValidationPipe(replyReviewSchema)) body: ReplyReviewInput,
+  ): Promise<SalonReviewResponse> {
+    return this.reviews.reply(m, auth.userId, locationId, reviewId, body);
+  }
+
+  @Delete('reviews/:reviewId/reply')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({ summary: 'Remove the salon’s answer under a review' })
+  @ApiZodResponse(salonReviewSchema)
+  removeReply(
+    @CurrentMembership() m: MembershipContext,
+    @CurrentAuth() auth: AuthContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('reviewId', uuid('Review')) reviewId: string,
+  ): Promise<SalonReviewResponse> {
+    return this.reviews.removeReply(m, auth.userId, locationId, reviewId);
   }
 }
 

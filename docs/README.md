@@ -1919,3 +1919,28 @@ trzymaj» или 10/15/30/60 min; «Pora na kolejną wizytę» — перекл�
 Запрос обновления сессии идёт с `keepalive`, чтобы ответ (новый cookie) не терялся при переходе на другую страницу.
 Если выходы всё же будут — можно дать серверу несколько секунд «льготы» на старый cookie (сейчас сознательно
 строго: повтор = кража, это проверяют тесты `auth.spec.ts`).
+
+## Ответ салона на отзыв (задача 211)
+
+Владелец или менеджер отвечает на отзыв клиента публично: в кабинете «Opinie» под отзывом — «Odpowiedz» (поле
+«Odpowiedź salonu», до 1000 знаков, «Opublikuj odpowiedź»), потом «Zmień odpowiedź» / «Usuń odpowiedź»; то же в
+бизнес-приложении на экране «Opinie». Ответ виден под отзывом на странице салона, клиенту под его отзывом (страница
+визита по ссылке, «Moje wizyty», карточка визита в клиентском приложении) и в кабинете. Мастер ответить не может
+(сервер — 403). Если клиент потом меняет отзыв, ответ остаётся; время «изменён» у отзыва остаётся клиентским. В
+«Dziennik zmian» — «Odpowiedziano na opinię» / «Usunięto odpowiedź na opinię» без текста ответа. Удалять или скрывать
+сами отзывы нельзя — это правило модерации, решение владельца.
+
+API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply` (`{ text }`) и `DELETE …/reply`,
+поля `reply` и `repliedAt` в отзывах кабинета, страницы салона и у клиента (миграция `20261106230000_review_reply`).
+Тест — `apps/api/test/reviews.spec.ts`; e2e — `reviews.spec.ts` (скриншоты 211-cabinet-reply-form, 211-cabinet-reply,
+211-a, 211-b, 211c, 211c-a). Код: `apps/web/components/reviews/SalonReply.tsx`, `app/[locale]/app/reviews/page.tsx`,
+`apps/mobile-business/src/screens/ReviewsScreen.tsx`, `apps/mobile-client/src/ReviewCard.tsx`.
+
+## Клиентское приложение: отзывы на странице салона (задача 212)
+
+Внизу страницы салона в клиентском приложении — блок «Opinie» (как на сайте салона): «★ 4,5 · opinie: 4», кружки
+мастеров «Nazar ★ 4,0 (2)» (тап — только его отзывы, «Wszyscy» — все), затем отзывы — звёзды, слова, «мастер · услуга ·
+день», ответ салона (задача 211) и «Pokaż więcej» по 20. Вход не нужен, данных клиентов нет. Если салон отзывы не
+собирает или их ещё нет — блока нет. API — `GET /v1/public/locations/:slug/reviews` (165b). Код:
+`apps/mobile-client/src/salonReviews.ts`, `screens/SalonReviews.tsx`; тест `test/salonReviews.test.ts`; e2e —
+`reviews.spec.ts` (скриншоты 212, 212-a).

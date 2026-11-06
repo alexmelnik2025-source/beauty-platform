@@ -461,6 +461,7 @@ export const en: Dict = {
     bySpecialist: 'Reviews of specialists',
     everyone: 'Everyone',
     more: 'Show more',
+    salonReply: 'Reply from the salon',
   },
   reviewsCabinet: {
     title: 'Client reviews',
@@ -475,6 +476,15 @@ export const en: Dict = {
     empty: 'No reviews yet.',
     anonymous: 'Client (data erased)',
     visit: 'visit {date}',
+    reply: 'Reply',
+    replyChange: 'Change reply',
+    replyRemove: 'Remove reply',
+    replyLabel: 'Reply from the salon',
+    replyHint:
+      'Everyone sees the reply on the booking page, and the client sees it under their review.',
+    replySave: 'Publish reply',
+    replyCancel: 'Cancel',
+    replyOnlyManagers: 'The owner or a manager replies to reviews.',
   },
   visits: {
     title: 'My visits',
@@ -563,6 +573,8 @@ export const en: Dict = {
       'location.updated': 'Salon settings changed',
       'location.cancellation_guard_set': 'Cancellation protection changed',
       'location.review_settings_set': 'Review settings changed',
+      'review.reply_set': 'Replied to a review',
+      'review.reply_removed': 'Removed a reply to a review',
       'service.created': 'Service added',
       'service.updated': 'Service changed',
       'service.deleted': 'Service deleted',

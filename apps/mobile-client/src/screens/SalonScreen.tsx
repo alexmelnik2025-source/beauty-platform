@@ -19,12 +19,13 @@ import { priceRows, speakersFirst } from '../booking';
 import { formatPrice, servicePriceText } from '../format';
 import { addressText, durationText, openingRows, serviceGroups, specialtyText } from '../salon';
 import { shareMessage, shareSalon, type ShareTools } from '../share';
+import { SalonReviews } from './SalonReviews';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
 /**
  * A salon's page: photos, address, languages, description, opening hours, price list and
  * specialists. "Book" starts the booking in the app. A signed-in client can save the salon to
- * "Favourites" (and take it off).
+ * "Favourites" (and take it off). Task 212: the salon's reviews at the bottom.
  */
 export function SalonScreen(props: {
   api: ClientApi;
@@ -276,6 +277,8 @@ export function SalonScreen(props: {
           ))}
         </Section>
       ) : null}
+
+      <SalonReviews api={api} t={t} locale={locale} slug={salon.slug} />
     </ScrollView>
   );
 }

@@ -281,6 +281,7 @@ export const sq: Dict = {
     bySpecialist: 'Vlerësimet e specialistëve',
     everyone: 'Të gjithë',
     more: 'Shfaq më shumë',
+    salonReply: 'Përgjigjja e sallonit',
   },
   visits: {
     title: 'Takimet e mia',

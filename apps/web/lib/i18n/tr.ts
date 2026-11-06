@@ -280,6 +280,7 @@ export const tr: Dict = {
     bySpecialist: 'Uzman yorumları',
     everyone: 'Herkes',
     more: 'Daha fazla göster',
+    salonReply: 'Salonun yanıtı',
   },
   visits: {
     title: 'Randevularım',

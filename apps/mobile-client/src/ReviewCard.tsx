@@ -121,6 +121,16 @@ export function ReviewCard(props: {
             <Text style={styles.off}>{'★'.repeat(5 - state.review.rating)}</Text>
           </Text>
           {state.review.text ? <Text style={styles.text}>{state.review.text}</Text> : null}
+          {state.review.reply ? (
+            <View
+              style={styles.reply}
+              accessible
+              accessibilityLabel={`${r.salonReply}: ${state.review.reply}`}
+            >
+              <Text style={styles.replyTitle}>{r.salonReply}</Text>
+              <Text style={styles.text}>{state.review.reply}</Text>
+            </View>
+          ) : null}
           {state.canReview ? (
             <>
               {until ? (
@@ -155,6 +165,15 @@ const styles = StyleSheet.create({
   off: { color: colors.line },
   text: { fontSize: 15, color: colors.ink, lineHeight: 21 },
   muted: { color: colors.muted, fontSize: 13 },
+  // Task 211: the salon's public answer under the client's review.
+  reply: {
+    gap: 2,
+    paddingLeft: 12,
+    paddingVertical: 4,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.ink,
+  },
+  replyTitle: { fontSize: 13, fontWeight: '700', color: colors.ink },
   input: {
     minHeight: 80,
     borderWidth: 1,

@@ -2732,3 +2732,26 @@ ul.wish-photos {
   width: 100%;
   font-size: 1rem;
 }
+
+/* ── The salon's answer under a review (task 211) ──────────────────────────── */
+
+.review-reply {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid var(--ink);
+}
+
+.review-reply-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.review-reply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}

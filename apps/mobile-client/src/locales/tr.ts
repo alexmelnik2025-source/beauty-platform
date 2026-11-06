@@ -105,6 +105,7 @@ export const tr: Dictionary = {
     change: 'Yorumu değiştir',
     changeUntil: 'Yorumunuzu {date} tarihine kadar değiştirebilirsiniz.',
     notPossible: 'Bu ziyaret artık değerlendirilemez.',
+    salonReply: 'Salonun yanıtı',
   },
   bonuses: {
     extraTitle: 'Ziyarette daha fazla',
@@ -310,6 +311,14 @@ export const tr: Dictionary = {
     shareText: '{name} — online randevu al: {url}',
     copied: 'Bağlantı kopyalandı — arkadaşlarına yapıştır.',
     shareFailed: 'Paylaşılamadı. Bağlantı: {url}',
+  },
+  salonReviews: {
+    title: 'Yorumlar',
+    summary: '★ {average} · yorum: {count}',
+    bySpecialist: 'Uzman yorumları',
+    everyone: 'Herkes',
+    more: 'Daha fazla göster',
+    salonReply: 'Salonun yanıtı',
   },
   favorites: {
     tab: 'Favoriler',
