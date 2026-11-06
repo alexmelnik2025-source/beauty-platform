@@ -99,7 +99,7 @@ test('the client recommends a salon: its booking link is copied (task 151)', asy
     const app = await phone.newPage();
     await app.goto(clientApp.url);
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
-    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(NAME);
+    await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(NAME);
     await app
       .getByRole('article', { name: NAME })
       .getByRole('button', { name: 'Zobacz salon' })

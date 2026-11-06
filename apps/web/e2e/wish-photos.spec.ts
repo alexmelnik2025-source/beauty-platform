@@ -322,7 +322,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
     const app = await appContext.newPage();
     await app.goto(clientApp.url);
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
-    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(SALON);
+    await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(SALON);
     await app
       .getByRole('article', { name: SALON })
       .getByRole('button', { name: 'Zobacz salon' })

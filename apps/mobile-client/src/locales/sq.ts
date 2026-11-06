@@ -259,7 +259,7 @@ export const sq: Dictionary = {
   catalog: {
     title: 'Gjeni një sallon',
     lead: 'Sallone ku mund të rezervoni online. Zgjidhni gjuhën në të cilën doni të shërbeheni.',
-    search: 'Kërko: emri, qyteti, rruga',
+    search: 'Çfarë kërkoni? Shërbim, sallon, qytet ose rrugë',
     filterLanguage: 'Gjuha',
     allLanguages: 'Të gjitha gjuhët',
     clearLanguages: 'Pastro',
@@ -283,6 +283,14 @@ export const sq: Dictionary = {
     view: 'Pamja',
     viewMap: 'Harta',
     viewList: 'Lista',
+    startSearch: 'Çfarë kërkoni?',
+    searchGo: 'Kërko',
+    near: 'Pranë meje',
+    locating: 'Po gjejmë vendndodhjen tuaj…',
+    locationFailed: 'Nuk e gjetëm vendndodhjen tuaj. Lejojeni te cilësimet ose shkruani një qytet.',
+    distance: '{km} km nga ju',
+    rating: '★ {rating} · vlerësime: {n}',
+    startLead: 'Kërkoni një sallon pa hyrë — llogaria krijohet vetë me rezervimin e parë.',
   },
   salon: {
     back: '‹ Kthehu',

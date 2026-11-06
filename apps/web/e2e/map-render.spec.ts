@@ -146,14 +146,14 @@ test('the catalogue map draws tiles and markers; salons without a place stay in 
     const appTiles = countTiles(app);
     await app.goto(clientApp.url);
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
-    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(ON_MAP);
+    await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(ON_MAP);
     await expect(app.getByRole('img', { name: 'Mapa salonów' })).toBeVisible();
     await expect(app.getByRole('button', { name: `Salon na mapie: ${ON_MAP}` })).toBeVisible();
     await expect.poll(appTiles, { timeout: 15_000 }).toBeGreaterThan(0);
     await shot(app, '191a-client-app-map');
 
     // A salon without a place: in the list, the map shows the country and says why.
-    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(NO_PLACE);
+    await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(NO_PLACE);
     await expect(app.getByRole('article', { name: NO_PLACE })).toBeVisible();
     await expect(app.getByRole('img', { name: 'Mapa salonów' })).toBeVisible();
     await expect(app.getByText('Te salony nie zaznaczyły jeszcze miejsca na mapie.')).toBeVisible();

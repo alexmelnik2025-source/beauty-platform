@@ -169,3 +169,28 @@ export function visitActions(visit: ClientAppointment): {
     tooLate: confirmed && !visit.canChange && Date.parse(visit.end) > Date.now(),
   };
 }
+
+/** Task 180b: "1,2" — kilometres from the client, one decimal, as the language writes numbers. */
+export function formatKm(km: number, locale: Locale): string {
+  return new Intl.NumberFormat(LOCALE_TAGS[locale], {
+    minimumFractionDigits: km < 10 ? 1 : 0,
+    maximumFractionDigits: km < 10 ? 1 : 0,
+  }).format(km);
+}
+
+/**
+ * Task 180b: the stars on a salon's card — "★ 4,5 · opinie: 2"; null without reviews.
+ * `text` is the language's "★ {rating} · …: {n}".
+ */
+export function ratingText(
+  salon: { rating: number | null; reviewCount: number },
+  text: string,
+  locale: Locale,
+): string | null {
+  if (salon.rating === null || salon.reviewCount === 0) return null;
+  const rating = new Intl.NumberFormat(LOCALE_TAGS[locale], {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(salon.rating);
+  return fill(text, { rating, n: String(salon.reviewCount) });
+}

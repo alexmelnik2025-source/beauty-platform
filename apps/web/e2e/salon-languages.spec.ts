@@ -158,7 +158,7 @@ test('the salon page needs no sign-in and shows the specialists’ languages eve
     const app = await phone.newPage();
     await app.goto(clientApp.url);
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
-    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(SALON);
+    await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(SALON);
     await app
       .getByRole('article', { name: SALON })
       .getByRole('button', { name: 'Zobacz salon' })

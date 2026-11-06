@@ -253,7 +253,7 @@ export const en: Dictionary = {
   catalog: {
     title: 'Find a salon',
     lead: 'Salons you can book online. Choose the language you want to be served in.',
-    search: 'Search: name, city, street',
+    search: 'What are you looking for? Service, salon, city or street',
     filterLanguage: 'Language',
     allLanguages: 'All languages',
     clearLanguages: 'Clear',
@@ -277,6 +277,15 @@ export const en: Dictionary = {
     view: 'View',
     viewMap: 'Map',
     viewList: 'List',
+    startSearch: 'What are you looking for?',
+    searchGo: 'Search',
+    near: 'Near me',
+    locating: 'Finding your location…',
+    locationFailed: 'Could not find your location. Allow it in the settings or type a city.',
+    distance: '{km} km from you',
+    rating: '★ {rating} · reviews: {n}',
+    startLead:
+      'Look for a salon without signing in — your account is created by itself with your first booking.',
   },
   salon: {
     back: '‹ Back',

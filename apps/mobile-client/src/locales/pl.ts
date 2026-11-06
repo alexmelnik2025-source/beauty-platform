@@ -253,7 +253,7 @@ export const pl = {
   catalog: {
     title: 'Znajdź salon',
     lead: 'Salony, w których umówisz się online. Wybierz język, w którym chcesz rozmawiać.',
-    search: 'Szukaj: nazwa, miasto, ulica',
+    search: 'Czego szukasz? Usługa, salon, miasto lub ulica',
     filterLanguage: 'Język rozmowy',
     allLanguages: 'Wszystkie języki',
     clearLanguages: 'Wyczyść',
@@ -277,6 +277,15 @@ export const pl = {
     view: 'Widok',
     viewMap: 'Mapa',
     viewList: 'Lista',
+    startSearch: 'Czego szukasz?',
+    searchGo: 'Szukaj',
+    near: 'W pobliżu',
+    locating: 'Szukam Twojej lokalizacji…',
+    locationFailed:
+      'Nie udało się ustalić Twojej lokalizacji. Zezwól na nią w ustawieniach albo wpisz miasto.',
+    distance: '{km} km od Ciebie',
+    rating: '★ {rating} · opinie: {n}',
+    startLead: 'Szukaj salonu bez logowania — konto założy się samo przy pierwszej rezerwacji.',
   },
   salon: {
     back: '‹ Wróć',

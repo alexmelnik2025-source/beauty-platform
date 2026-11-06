@@ -315,7 +315,7 @@ export function VisitsScreen(props: {
           ))
         : null}
 
-      <Button kind="secondary" label={t.catalog.title} onPress={props.onFindSalon} />
+      <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
       <Text style={styles.muted}>{t.visits.downloadDataHint}</Text>
       <Button
         kind="link"

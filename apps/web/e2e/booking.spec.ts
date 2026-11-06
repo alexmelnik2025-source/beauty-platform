@@ -1631,7 +1631,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await shot(phone, '60-client-app-catalogue');
     await phone.getByRole('button', { name: 'Wszystkie języki' }).click();
     // Search by street, without Polish letters; a wrong city finds nothing.
-    const search = phone.getByLabel('Szukaj: nazwa, miasto, ulica');
+    const search = phone.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica');
     await search.fill('jozefa bema');
     await expect(salonCard).toBeVisible();
     await search.fill('Gdańsk');

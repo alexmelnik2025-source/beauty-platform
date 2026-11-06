@@ -234,7 +234,7 @@ test('the client app shows the price lines and books the specialists of a line',
     // The app opens on "My visits" sign-in; the catalogue needs no account.
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
     await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
-    await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(salonName('app'));
+    await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(salonName('app'));
     // Task 91: the card says what the salon costs at least (Broda, 60 zł).
     await expect(app.getByRole('article', { name: salonName('app') })).toContainText(
       /Usługi od 60,00\s*zł/,

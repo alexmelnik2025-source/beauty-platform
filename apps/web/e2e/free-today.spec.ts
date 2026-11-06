@@ -134,7 +134,7 @@ test('"Wolne dziś" over the price list and in the client app', async ({ browser
       await app.goto(clientApp.url);
       await app.getByRole('button', { name: 'Znajdź salon' }).click();
       await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
-      await app.getByLabel('Szukaj: nazwa, miasto, ulica').fill(NAME);
+      await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(NAME);
       await app
         .getByRole('article', { name: NAME })
         .getByRole('button', { name: 'Zobacz salon' })

@@ -259,7 +259,7 @@ export const tr: Dictionary = {
   catalog: {
     title: 'Salon bul',
     lead: 'Online randevu alabileceğiniz salonlar. Hangi dilde hizmet almak istediğinizi seçin.',
-    search: 'Ara: ad, şehir, sokak',
+    search: 'Ne arıyorsunuz? Hizmet, salon, şehir veya sokak',
     filterLanguage: 'Dil',
     allLanguages: 'Tüm diller',
     clearLanguages: 'Temizle',
@@ -283,6 +283,14 @@ export const tr: Dictionary = {
     view: 'Görünüm',
     viewMap: 'Harita',
     viewList: 'Liste',
+    startSearch: 'Ne arıyorsunuz?',
+    searchGo: 'Ara',
+    near: 'Yakınımda',
+    locating: 'Konumunuz bulunuyor…',
+    locationFailed: 'Konumunuz bulunamadı. Ayarlardan izin verin veya bir şehir yazın.',
+    distance: 'Size {km} km',
+    rating: '★ {rating} · yorumlar: {n}',
+    startLead: 'Giriş yapmadan salon arayın — hesabınız ilk randevunuzda kendiliğinden oluşur.',
   },
   salon: {
     back: '‹ Geri',

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, DirectorySalon, Locale, SpokenLanguage } from './api';
 import { API_URL } from './config';
-import { formatPrice } from './format';
+import { formatPrice, ratingText } from './format';
 import { fill, type Dictionary } from './i18n';
 import { mapLayout } from './map';
 import { addressText } from './salon';
@@ -119,6 +119,9 @@ export function SalonMap(props: {
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.name}>{salon.name}</Text>
             <Text style={styles.small}>{addressText(salon)}</Text>
+            {ratingText(salon, t.catalog.rating, props.locale) ? (
+              <Text style={styles.small}>{ratingText(salon, t.catalog.rating, props.locale)}</Text>
+            ) : null}
             {props.languages.length > 0 && salon.staffSpeaking ? (
               <Text style={styles.small}>
                 {fill(t.catalog.speakingStaff, {

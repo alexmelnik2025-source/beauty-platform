@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { ClientApi, DirectorySalon, Locale, Specialty, SpokenLanguage } from '../api';
 import { errorText } from '../errors';
@@ -7,8 +7,9 @@ import { LanguageRow } from '../LanguageRow';
 import { LANGUAGE_CHIP } from '../map';
 import { SalonMap } from '../SalonMap';
 import { catalogLanguagesStore } from '../storage';
-import { formatPrice } from '../format';
-import { addressText, filterSalons } from '../salon';
+import { formatKm, formatPrice, ratingText } from '../format';
+import { locate, type Place } from '../location';
+import { addressText } from '../salon';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
 const SPOKEN: SpokenLanguage[] = ['pl', 'uk', 'ru', 'be', 'en'];
@@ -23,10 +24,14 @@ const KINDS: Specialty[] = [
 ];
 /** Task 160: the map shows up to this many salons at once (the list still pages). */
 const MAP_PAGE = 50;
+/** Task 180b: the search asks the server once the client stops typing for this long. */
+const TYPING_MS = 350;
 
 /**
  * The catalogue: salons open for online booking, filtered by the language the client wants to
- * be served in (salon or one of its specialists speaks it) and by name / city / street.
+ * be served in (salon or one of its specialists speaks it). Task 180b: "Czego szukasz?" asks the
+ * server (a service, the salon's name, a city or street, without Polish letters) and "W pobliżu"
+ * puts the nearest salons first, with the distance; the cards show the salon's stars.
  */
 export function CatalogScreen(props: {
   api: ClientApi;
@@ -36,6 +41,8 @@ export function CatalogScreen(props: {
   onOpen: (salon: DirectorySalon) => void;
   /** Back to sign-in or "My visits", where the catalogue was opened from. */
   onBack: () => void;
+  /** Task 180b: what the client typed on the start screen. */
+  initialQuery?: string;
 }) {
   const { api, t } = props;
   // Task 192: several languages at once (any of them), remembered on the device; null until read.
@@ -49,7 +56,12 @@ export function CatalogScreen(props: {
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
   const [total, setTotal] = useState(0);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(props.initialQuery ?? '');
+  // What the server is asked for: the query once typing stops.
+  const [search, setSearch] = useState((props.initialQuery ?? '').trim());
+  const [near, setNear] = useState<Place | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationFailed, setLocationFailed] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   const tRef = useRef(t);
@@ -83,6 +95,8 @@ export function CatalogScreen(props: {
           pageSize: MAP_PAGE,
           language: languages,
           specialty: specialty ?? undefined,
+          q: search || undefined,
+          near: near ?? undefined,
         });
         setLanguageCounts(res.languageCounts);
         setSpecialtyCounts(res.specialtyCounts);
@@ -97,14 +111,36 @@ export function CatalogScreen(props: {
       }
     },
     // The texts follow the app language, but switching it does not reload the list.
-    [api, languages, specialty],
+    [api, languages, specialty, search, near],
   );
 
   useEffect(() => {
     void load(1, false);
   }, [load]);
 
-  const shown = useMemo(() => filterSalons(items, query), [items, query]);
+  useEffect(() => {
+    const next = query.trim();
+    if (next === search) return;
+    const timer = setTimeout(() => setSearch(next), TYPING_MS);
+    return () => clearTimeout(timer);
+  }, [query, search]);
+
+  const toggleNear = async () => {
+    setLocationFailed(false);
+    if (near) {
+      setNear(null);
+      return;
+    }
+    setLocating(true);
+    const place = await locate();
+    setLocating(false);
+    if (place) {
+      setNear(place);
+      setView('list');
+    } else setLocationFailed(true);
+  };
+
+  const shown = items;
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -121,8 +157,17 @@ export function CatalogScreen(props: {
         onChangeText={setQuery}
         autoCorrect={false}
         inputMode="search"
+        onSubmitEditing={() => setSearch(query.trim())}
         style={styles.input}
       />
+      <View style={styles.chips}>
+        <Chip
+          label={locating ? t.catalog.locating : `⌖ ${t.catalog.near}`}
+          pressed={near !== null}
+          onPress={() => void toggleNear()}
+        />
+      </View>
+      {locationFailed ? <Text style={styles.small}>{t.catalog.locationFailed}</Text> : null}
       <View style={styles.chips} accessibilityLabel={t.catalog.filterLanguage}>
         <Chip
           label={t.catalog.allLanguages}
@@ -186,15 +231,22 @@ export function CatalogScreen(props: {
       {!error && !busy ? (
         <Text style={styles.text}>{fill(t.catalog.found, { n: String(total) })}</Text>
       ) : null}
-      {!error && !busy && total === 0 ? <Text style={styles.text}>{t.catalog.empty}</Text> : null}
-      {!error && !busy && total > 0 && shown.length === 0 ? (
-        <Text style={styles.text}>{t.catalog.noMatch}</Text>
+      {!error && !busy && total === 0 ? (
+        <Text style={styles.text}>{search ? t.catalog.noMatch : t.catalog.empty}</Text>
       ) : null}
       {shown.map((s) => (
         <View key={s.slug} role="article" aria-label={s.name}>
           <Card>
             <Text style={styles.name}>{s.name}</Text>
             <Text style={styles.text}>{addressText(s)}</Text>
+            {s.distanceKm !== null ? (
+              <Text style={styles.small}>
+                {fill(t.catalog.distance, { km: formatKm(s.distanceKm, props.locale) })}
+              </Text>
+            ) : null}
+            {ratingText(s, t.catalog.rating, props.locale) ? (
+              <Text style={styles.price}>{ratingText(s, t.catalog.rating, props.locale)}</Text>
+            ) : null}
             {s.priceFromGrosze !== null ? (
               <Text style={styles.price}>
                 {fill(t.catalog.priceFrom, {

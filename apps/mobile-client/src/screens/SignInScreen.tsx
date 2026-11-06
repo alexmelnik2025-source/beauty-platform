@@ -16,7 +16,8 @@ export function SignInScreen(props: {
   locale: Locale;
   onLocale: (locale: Locale) => void;
   /** Opens the catalogue of salons (no sign-in needed). */
-  onFindSalon: () => void;
+  /** Task 180b: opens the catalogue, with what the client typed in "Czego szukasz?". */
+  onFindSalon: (query?: string) => void;
   onSignedIn: (person: ClientPerson) => void;
   /** The email the client just booked with (from the booking in the app). */
   initialEmail?: string;
@@ -27,6 +28,7 @@ export function SignInScreen(props: {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [what, setWhat] = useState('');
 
   async function send(email = parseEmail(input)) {
     if (!email) return setError(t.signIn.badEmail);
@@ -58,6 +60,22 @@ export function SignInScreen(props: {
   return (
     <View style={styles.screen}>
       <Text style={styles.brand}>{t.appTitle.toUpperCase()}</Text>
+      {/* Task 180b: the client looks for a salon first; signing in is only needed for "Moje wizyty". */}
+      <View role="group" aria-label={t.catalog.searchGo} style={styles.search}>
+        <Text style={styles.text}>{t.catalog.startLead}</Text>
+        <TextInput
+          accessibilityLabel={t.catalog.startSearch}
+          placeholder={t.catalog.search}
+          placeholderTextColor={colors.placeholder}
+          value={what}
+          onChangeText={setWhat}
+          onSubmitEditing={() => props.onFindSalon(what.trim())}
+          autoCorrect={false}
+          inputMode="search"
+          style={styles.input}
+        />
+        <Button label={t.catalog.searchGo} onPress={() => props.onFindSalon(what.trim())} />
+      </View>
       <Heading>{t.signIn.title}</Heading>
       {!sentTo ? (
         <>
@@ -125,13 +143,19 @@ export function SignInScreen(props: {
           </View>
         </>
       )}
-      <Button kind="secondary" label={t.catalog.title} onPress={props.onFindSalon} />
+      <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
       <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  search: {
+    gap: 10,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
   screen: { flex: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
   brand: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   text: { color: colors.muted, fontSize: 16, lineHeight: 22 },

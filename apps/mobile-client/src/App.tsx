@@ -29,7 +29,7 @@ type Stage =
  */
 type Finder =
   | null
-  | { kind: 'catalog' }
+  | { kind: 'catalog'; query?: string }
   | { kind: 'salon'; slug: string; name: string; fromVisits?: boolean }
   | { kind: 'open'; slug: string; name: string; preset?: BookingPreset }
   | { kind: 'book'; salon: PublicLocation; preset?: BookingPreset; fromVisits?: boolean };
@@ -55,7 +55,11 @@ export default function App() {
     (slug: string, name: string) => setFinder({ kind: 'salon', slug, name, fromVisits: true }),
     [],
   );
-  const openCatalog = useCallback(() => setFinder({ kind: 'catalog' }), []);
+  // Task 180b: "Czego szukasz?" on the start screen opens the catalogue with that search.
+  const openCatalog = useCallback(
+    (query?: string) => setFinder({ kind: 'catalog', ...(query && { query }) }),
+    [],
+  );
   const openBooking = useCallback(
     (slug: string, name: string, preset?: BookingPreset) =>
       setFinder({ kind: 'open', slug, name, ...(preset && { preset }) }),
@@ -154,6 +158,7 @@ export default function App() {
                 t={t}
                 locale={locale}
                 onLocale={changeLocale}
+                initialQuery={finder.kind === 'catalog' ? finder.query : undefined}
                 onOpen={(s) => setFinder({ kind: 'salon', slug: s.slug, name: s.name })}
                 onBack={() => setFinder(null)}
               />
