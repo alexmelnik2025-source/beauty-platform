@@ -1908,3 +1908,19 @@ trzymaj» или 10/15/30/60 min; «Pora na kolejną wizytę» — перекл�
 изменённое (`PATCH …/locations/:id` с версией; одновременная правка — «Ktoś inny właśnie zmienił…»). Те же поля, что в
 «Ustawienia» кабинета (задачи 22, 164, 165c). Код: `apps/mobile-business/src/messages.ts`,
 `screens/MessagesScreen.tsx`; тест `test/messages.test.ts`; e2e `messages-app.spec.ts` (скриншоты 208–208a).
+
+## Ответ салона на отзыв (задача 209)
+
+Владелец или менеджер отвечает на отзыв клиента публично: в кабинете «Opinie» под отзывом — «Odpowiedz» (поле
+«Odpowiedź salonu», до 1000 знаков, «Opublikuj odpowiedź»), потом «Zmień odpowiedź» / «Usuń odpowiedź»; то же в
+бизнес-приложении на экране «Opinie». Ответ виден под отзывом на странице салона, клиенту под его отзывом (страница
+визита по ссылке, «Moje wizyty», карточка визита в клиентском приложении) и в кабинете. Мастер ответить не может
+(сервер — 403). Если клиент потом меняет отзыв, ответ остаётся; время «изменён» у отзыва остаётся клиентским. В
+«Dziennik zmian» — «Odpowiedziano na opinię» / «Usunięto odpowiedź na opinię» без текста ответа. Удалять или скрывать
+сами отзывы нельзя — это правило модерации, решение владельца.
+
+API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply` (`{ text }`) и `DELETE …/reply`,
+поля `reply` и `repliedAt` в отзывах кабинета, страницы салона и у клиента (миграция `20261106230000_review_reply`).
+Тест — `apps/api/test/reviews.spec.ts`; e2e — `reviews.spec.ts` (скриншоты 209-cabinet-reply-form, 209-cabinet-reply,
+209-a, 209-b, 209c, 209c-a). Код: `apps/web/components/reviews/SalonReply.tsx`, `app/[locale]/app/reviews/page.tsx`,
+`apps/mobile-business/src/screens/ReviewsScreen.tsx`, `apps/mobile-client/src/ReviewCard.tsx`.
