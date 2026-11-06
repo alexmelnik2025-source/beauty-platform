@@ -307,6 +307,14 @@ export const uk: Dictionary = {
     copied: 'Посилання скопійовано — надішліть його друзям.',
     shareFailed: 'Не вдалося поділитися. Посилання: {url}',
   },
+  salonReviews: {
+    title: 'Відгуки',
+    summary: '★ {average} · відгуків: {count}',
+    bySpecialist: 'Відгуки про майстрів',
+    everyone: 'Усі',
+    more: 'Показати ще',
+    salonReply: 'Відповідь салону',
+  },
   favorites: {
     tab: 'Улюблені',
     empty:

@@ -1924,3 +1924,12 @@ API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply
 Тест — `apps/api/test/reviews.spec.ts`; e2e — `reviews.spec.ts` (скриншоты 209-cabinet-reply-form, 209-cabinet-reply,
 209-a, 209-b, 209c, 209c-a). Код: `apps/web/components/reviews/SalonReply.tsx`, `app/[locale]/app/reviews/page.tsx`,
 `apps/mobile-business/src/screens/ReviewsScreen.tsx`, `apps/mobile-client/src/ReviewCard.tsx`.
+
+## Клиентское приложение: отзывы на странице салона (задача 210)
+
+Внизу страницы салона в клиентском приложении — блок «Opinie» (как на сайте салона): «★ 4,5 · opinie: 4», кружки
+мастеров «Nazar ★ 4,0 (2)» (тап — только его отзывы, «Wszyscy» — все), затем отзывы — звёзды, слова, «мастер · услуга ·
+день», ответ салона (задача 209) и «Pokaż więcej» по 20. Вход не нужен, данных клиентов нет. Если салон отзывы не
+собирает или их ещё нет — блока нет. API — `GET /v1/public/locations/:slug/reviews` (165b). Код:
+`apps/mobile-client/src/salonReviews.ts`, `screens/SalonReviews.tsx`; тест `test/salonReviews.test.ts`; e2e —
+`reviews.spec.ts` (скриншоты 210, 210-a).

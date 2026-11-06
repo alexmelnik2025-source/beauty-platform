@@ -307,6 +307,14 @@ export const pl = {
     copied: 'Link skopiowany — wklej go znajomym.',
     shareFailed: 'Nie udało się udostępnić. Link: {url}',
   },
+  salonReviews: {
+    title: 'Opinie',
+    summary: '★ {average} · opinie: {count}',
+    bySpecialist: 'Opinie o specjalistach',
+    everyone: 'Wszyscy',
+    more: 'Pokaż więcej',
+    salonReply: 'Odpowiedź salonu',
+  },
   favorites: {
     tab: 'Ulubione',
     empty:

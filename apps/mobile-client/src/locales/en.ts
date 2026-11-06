@@ -307,6 +307,14 @@ export const en: Dictionary = {
     copied: 'Link copied — paste it to your friends.',
     shareFailed: 'Could not share. Link: {url}',
   },
+  salonReviews: {
+    title: 'Reviews',
+    summary: '★ {average} · reviews: {count}',
+    bySpecialist: 'Reviews of the specialists',
+    everyone: 'Everyone',
+    more: 'Show more',
+    salonReply: 'Reply from the salon',
+  },
   favorites: {
     tab: 'Favourites',
     empty: 'No favourite salons yet. Open a salon in the catalogue and tap “♡ Add to favourites”.',

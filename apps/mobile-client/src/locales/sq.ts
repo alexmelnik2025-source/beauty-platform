@@ -312,6 +312,14 @@ export const sq: Dictionary = {
     copied: 'Lidhja u kopjua — ngjite për miqtë.',
     shareFailed: 'Ndarja nuk u krye. Lidhja: {url}',
   },
+  salonReviews: {
+    title: 'Vlerësimet',
+    summary: '★ {average} · vlerësime: {count}',
+    bySpecialist: 'Vlerësimet e specialistëve',
+    everyone: 'Të gjithë',
+    more: 'Shfaq më shumë',
+    salonReply: 'Përgjigjja e sallonit',
+  },
   favorites: {
     tab: 'Të preferuarat',
     empty:

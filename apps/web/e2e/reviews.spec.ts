@@ -20,6 +20,7 @@ import { serveApp } from './mobile-app';
  * Screenshots 165b-1 … 165b-5. Task 209: the owner answers a review in the cabinet; the answer
  * shows on the salon page and under the client's own review (screenshots 209, 209-a, 209-b);
  * the client app shows it in the visit card (209c-a), the owner answers in the business app (209c).
+ * Task 210: the salon page in the client app shows the reviews and answers (210, 210-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -336,6 +337,33 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await expect(answered.getByText('Dziękujemy, Ola! Broda to nasza specjalność.')).toBeVisible();
     await expect(answered.getByText('Odpowiedź salonu', { exact: true })).toBeVisible();
     await shot(app, '209c-a-app-client-reply');
+
+    // Task 210: the salon page in the client app — the average, specialists' chips, the
+    // reviews with the salon's answers; no sign-in.
+    const guest = await browser.newContext({ viewport: PHONE, locale: 'pl-PL', isMobile: true });
+    try {
+      const look = await guest.newPage();
+      await look.goto(clientApp.url);
+      await look.getByRole('button', { name: 'Znajdź salon' }).click();
+      await look.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(SALON);
+      await look
+        .getByRole('article', { name: SALON })
+        .getByRole('button', { name: 'Zobacz salon' })
+        .click();
+      const opinions = look.getByRole('region', { name: 'Opinie' });
+      await expect(opinions).toContainText('★ 4,5 · opinie: 4');
+      await expect(opinions).toContainText('Najlepszy fade w Warszawie. Polecam!');
+      await expect(opinions).toContainText('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
+      await expect(opinions).not.toContainText('Marta Nowak');
+      await opinions.scrollIntoViewIfNeeded();
+      await shot(look, '210-app-salon-reviews');
+      await opinions.getByRole('radio', { name: /^Nazar ★ 4,0 \(2\)$/ }).click();
+      await expect(opinions.getByText('Dobra broda, polecam.')).toBeVisible();
+      await expect(opinions.getByText('Najlepszy fade w Warszawie. Polecam!')).toHaveCount(0);
+      await shot(look, '210-a-app-salon-reviews-nazar');
+    } finally {
+      await guest.close();
+    }
   } finally {
     await appContext.close();
     clientApp.server.close();

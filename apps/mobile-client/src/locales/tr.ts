@@ -312,6 +312,14 @@ export const tr: Dictionary = {
     copied: 'Bağlantı kopyalandı — arkadaşlarına yapıştır.',
     shareFailed: 'Paylaşılamadı. Bağlantı: {url}',
   },
+  salonReviews: {
+    title: 'Yorumlar',
+    summary: '★ {average} · yorum: {count}',
+    bySpecialist: 'Uzman yorumları',
+    everyone: 'Herkes',
+    more: 'Daha fazla göster',
+    salonReply: 'Salonun yanıtı',
+  },
   favorites: {
     tab: 'Favoriler',
     empty: 'Henüz favori salonunuz yok. Katalogda bir salon açın ve “♡ Favorilere ekle”ye dokunun.',

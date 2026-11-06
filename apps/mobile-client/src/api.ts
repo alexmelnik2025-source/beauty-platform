@@ -16,6 +16,7 @@ import type {
   ClientWaitlistEntry,
   PublicFreeToday,
   PublicLocation,
+  PublicReviews,
   PublicSalonDirectory,
   Slot,
   VisitCoupons,
@@ -56,6 +57,7 @@ export type {
   Hold,
   PublicFreeToday,
   PublicLocation,
+  PublicReviews,
   PublicSalonDirectory,
   Slot,
 };
@@ -536,6 +538,24 @@ export class ClientApi {
   /** A salon's page: address, description, hours, price list, specialists. No sign-in. */
   salon(slug: string): Promise<PublicLocation> {
     return this.call<PublicLocation>('GET', `/v1/public/locations/${encodeURIComponent(slug)}`);
+  }
+
+  /**
+   * Task 210: reviews on the salon page, newest first, 20 at a time (165b; the salon's answers —
+   * 209). No sign-in and no client data. `enabled: false` while the salon does not collect them.
+   */
+  salonReviews(
+    slug: string,
+    query: { staffId?: string; before?: string } = {},
+  ): Promise<PublicReviews> {
+    const params = new URLSearchParams();
+    if (query.staffId) params.set('staffId', query.staffId);
+    if (query.before) params.set('before', query.before);
+    const q = params.toString();
+    return this.call<PublicReviews>(
+      'GET',
+      `/v1/public/locations/${encodeURIComponent(slug)}/reviews${q ? `?${q}` : ''}`,
+    );
   }
 
   /** Task 120: "Wolne dziś" — the specialists who can still be booked today. No sign-in. */

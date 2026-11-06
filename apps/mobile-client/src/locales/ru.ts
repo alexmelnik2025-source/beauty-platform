@@ -310,6 +310,14 @@ export const ru: Dictionary = {
     copied: 'Ссылка скопирована — отправьте её друзьям.',
     shareFailed: 'Не удалось поделиться. Ссылка: {url}',
   },
+  salonReviews: {
+    title: 'Отзывы',
+    summary: '★ {average} · отзывов: {count}',
+    bySpecialist: 'Отзывы о мастерах',
+    everyone: 'Все',
+    more: 'Показать ещё',
+    salonReply: 'Ответ салона',
+  },
   favorites: {
     tab: 'Избранное',
     empty: 'У вас пока нет избранных салонов. Откройте салон в каталоге и нажмите «♡ В избранное».',
