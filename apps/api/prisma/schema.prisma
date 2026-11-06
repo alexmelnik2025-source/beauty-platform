@@ -1382,6 +1382,9 @@ model VisitReview {
   staffId       String   @map("staff_id") @db.Uuid
   rating        Int
   text          String?
+  /// Task 209: the salon's public answer under the review (owners and managers).
+  reply         String?
+  repliedAt     DateTime? @map("replied_at") @db.Timestamptz(3)
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

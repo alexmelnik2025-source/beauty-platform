@@ -329,6 +329,8 @@ describe('showing reviews', () => {
       'createdAt',
       'id',
       'rating',
+      'repliedAt',
+      'reply',
       'serviceName',
       'staffId',
       'staffName',
@@ -447,5 +449,136 @@ describe('showing reviews', () => {
     });
     const after = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
     expect(after.body.items[1]).toMatchObject({ customerId: null, customerName: null });
+  });
+});
+
+describe('the salon answers a review (task 209)', () => {
+  async function reviewed() {
+    await switchOn();
+    const visit = await book(10, kasiaId);
+    await tookPlace(visit.id, 1);
+    await review(visit.token, { rating: 4, text: 'Dobrze' });
+    const list = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    return { visit, reviewId: list.body.items[0].id as string };
+  }
+
+  it('the answer is shown on the salon page and to the client; changed or removed; logged', async () => {
+    const { visit, reviewId } = await reviewed();
+    const before = await ctx.prisma.visitReview.findUniqueOrThrow({ where: { id: reviewId } });
+
+    const answered = await ctx
+      .http()
+      .put(`${base}/reviews/${reviewId}/reply`)
+      .set(owner.auth)
+      .send({ text: '  Dziękujemy, do zobaczenia!  ' })
+      .expect(200);
+    expect(answered.body).toMatchObject({
+      id: reviewId,
+      rating: 4,
+      customerName: 'Anna Kowalska',
+      reply: 'Dziękujemy, do zobaczenia!',
+    });
+    expect(answered.body.repliedAt).toEqual(expect.any(String));
+    // The review's "changed" time stays the client's.
+    expect(answered.body.updatedAt).toBe(before.updatedAt.toISOString());
+
+    const page = await ctx.http().get(`/v1/public/locations/${slug}/reviews`).expect(200);
+    expect(page.body.items[0]).toMatchObject({ reply: 'Dziękujemy, do zobaczenia!' });
+    const mine = await ctx.http().get(`/v1/public/appointments/${visit.token}/review`).expect(200);
+    expect(mine.body.review).toMatchObject({ rating: 4, reply: 'Dziękujemy, do zobaczenia!' });
+
+    // Writing again changes it; the client changing the review keeps it.
+    await ctx
+      .http()
+      .put(`${base}/reviews/${reviewId}/reply`)
+      .set(owner.auth)
+      .send({ text: 'Dziękujemy!' })
+      .expect(200);
+    const changed = await review(visit.token, { rating: 5, text: 'Jednak super' });
+    expect(changed.body.review).toMatchObject({ rating: 5, reply: 'Dziękujemy!' });
+
+    expectError(
+      (
+        await ctx
+          .http()
+          .put(`${base}/reviews/${reviewId}/reply`)
+          .set(owner.auth)
+          .send({ text: '   ' })
+          .expect(400)
+      ).body,
+      'VALIDATION_ERROR',
+    );
+    await ctx
+      .http()
+      .put(`${base}/reviews/${reviewId}/reply`)
+      .set(owner.auth)
+      .send({ text: 'x'.repeat(1001) })
+      .expect(400);
+
+    const removed = await ctx
+      .http()
+      .delete(`${base}/reviews/${reviewId}/reply`)
+      .set(owner.auth)
+      .expect(200);
+    expect(removed.body).toMatchObject({ reply: null, repliedAt: null, rating: 5 });
+    const gone = await ctx.http().get(`/v1/public/locations/${slug}/reviews`).expect(200);
+    expect(gone.body.items[0]).toMatchObject({ reply: null, repliedAt: null });
+
+    const log = await ctx.prisma.auditLog.findMany({
+      where: { entityType: 'review', entityId: reviewId },
+      orderBy: { id: 'asc' },
+    });
+    expect(log.map((l) => l.action)).toEqual([
+      'review.reply_set',
+      'review.reply_set',
+      'review.reply_removed',
+    ]);
+    // The answer's words are not kept in the log.
+    expect(JSON.stringify(log)).not.toContain('Dziękujemy');
+  });
+
+  it('only owners and managers of the salon; another salon’s review is 404', async () => {
+    const { reviewId } = await reviewed();
+    const kasia = await signUp(ctx, 'kasia@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: kasia.userId,
+        organizationId: orgId,
+        role: 'staff',
+        permissionOverrides: { viewAllAppointments: true },
+        locations: { create: [{ locationId }] },
+      },
+    });
+    await ctx
+      .http()
+      .put(`${base}/reviews/${reviewId}/reply`)
+      .set(kasia.auth)
+      .send({ text: 'Dzięki' })
+      .expect(403);
+    await ctx.http().delete(`${base}/reviews/${reviewId}/reply`).set(kasia.auth).expect(403);
+
+    const other = await signUp(ctx, 'other@example.com');
+    const theirs = await createOrgWithLocation(ctx, other, 'Other');
+    const theirBase = `/v1/organizations/${theirs.orgId}/locations/${theirs.locationId}`;
+    await ctx
+      .http()
+      .put(`${theirBase}/reviews/${reviewId}/reply`)
+      .set(other.auth)
+      .send({ text: 'Hack' })
+      .expect(404);
+    await ctx
+      .http()
+      .put(`${base}/reviews/00000000-0000-7000-8000-000000000000/reply`)
+      .set(owner.auth)
+      .send({ text: 'Nic' })
+      .expect(404);
+    await ctx
+      .http()
+      .put(`${base}/reviews/not-a-uuid/reply`)
+      .set(owner.auth)
+      .send({ text: 'Nic' })
+      .expect(404);
+    const kept = await ctx.prisma.visitReview.findUniqueOrThrow({ where: { id: reviewId } });
+    expect(kept.reply).toBeNull();
   });
 });

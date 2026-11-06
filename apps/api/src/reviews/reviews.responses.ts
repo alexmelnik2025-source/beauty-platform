@@ -11,6 +11,12 @@ export const reviewSettingsSchema = responseSchema(
 );
 export type ReviewSettingsResponse = z.infer<typeof reviewSettingsSchema>;
 
+/** Task 209: the salon's answer under the review. */
+const replyFields = {
+  reply: z.string().nullable().describe('The salon’s public answer; null without one'),
+  repliedAt: z.string().nullable(),
+};
+
 const ratingSummary = {
   count: z.number().int(),
   average: z.number().nullable().describe('Average stars, one decimal; null without reviews'),
@@ -39,6 +45,7 @@ export const publicReviewsSchema = responseSchema(
         staffId: z.string(),
         staffName: z.string(),
         serviceName: z.string(),
+        ...replyFields,
         createdAt: z.string(),
       }),
     ),
@@ -65,6 +72,7 @@ export const salonReviewsSchema = responseSchema(
         visitStartAt: z.string(),
         customerId: z.string().nullable(),
         customerName: z.string().nullable().describe('null after the client was anonymised'),
+        ...replyFields,
         createdAt: z.string(),
         updatedAt: z.string(),
       }),
@@ -88,6 +96,7 @@ export const visitReviewSchema = responseSchema(
       .strictObject({
         rating: z.number().int(),
         text: z.string().nullable(),
+        ...replyFields,
         createdAt: z.string(),
         updatedAt: z.string(),
       })
@@ -95,3 +104,10 @@ export const visitReviewSchema = responseSchema(
   }),
 );
 export type VisitReviewResponse = z.infer<typeof visitReviewSchema>;
+
+/** Task 209: one review in the cabinet after the salon answered (or removed the answer). */
+export const salonReviewSchema = responseSchema(
+  'SalonReview',
+  salonReviewsSchema.shape.items.element,
+);
+export type SalonReviewResponse = z.infer<typeof salonReviewSchema>;

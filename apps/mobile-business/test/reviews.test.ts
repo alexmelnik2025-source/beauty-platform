@@ -14,6 +14,8 @@ const review = (id: string, patch: Partial<Review> = {}): Review => ({
   visitStartAt: '2026-11-04T23:30:00.000Z',
   customerId: 'c-1',
   customerName: 'Anna Nowak',
+  reply: null,
+  repliedAt: null,
   createdAt: '2026-11-05T10:00:00.000Z',
   updatedAt: '2026-11-05T10:00:00.000Z',
   ...patch,

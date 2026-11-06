@@ -9,11 +9,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import type {
   PublicReviewsResponse,
   ReviewSettingsResponse,
+  SalonReviewResponse,
   SalonReviewsResponse,
   VisitReviewResponse,
 } from './reviews.responses';
 import type {
   ListReviewsQuery,
+  ReplyReviewInput,
   UpdateReviewSettingsInput,
   WriteReviewInput,
 } from './reviews.schemas';
@@ -22,6 +24,18 @@ const DAY_MS = 86_400_000;
 /** A visit can be reviewed (and the review changed) until this many days after it ends. */
 export const REVIEW_DAYS = 30;
 const PAGE = 20;
+
+const salonReviewInclude = {
+  staff: { select: { displayName: true } },
+  appointment: {
+    select: {
+      startAt: true,
+      service: { select: { name: true } },
+      customer: { select: { id: true, name: true, anonymizedAt: true } },
+    },
+  },
+} satisfies Prisma.VisitReviewInclude;
+type SalonReviewRow = Prisma.VisitReviewGetPayload<{ include: typeof salonReviewInclude }>;
 
 /** Off until the salon saves its own settings. */
 export const DEFAULT_REVIEW_SETTINGS: Pick<ReviewSettings, 'enabled' | 'requestHours'> = {
@@ -120,16 +134,7 @@ export class ReviewsService {
       this.prisma.visitReview.aggregate({ where, _count: true, _avg: { rating: true } }),
       this.prisma.visitReview.findMany({
         where: { ...where, ...(query.before ? { id: { lt: query.before } } : {}) },
-        include: {
-          staff: { select: { displayName: true } },
-          appointment: {
-            select: {
-              startAt: true,
-              service: { select: { name: true } },
-              customer: { select: { id: true, name: true, anonymizedAt: true } },
-            },
-          },
-        },
+        include: salonReviewInclude,
         orderBy: { id: 'desc' },
         take: PAGE + 1,
       }),
@@ -139,26 +144,70 @@ export class ReviewsService {
       enabled: settings.enabled,
       count: summary._count,
       average: average(summary._avg.rating),
-      items: page.map((r) => {
-        const customer = r.appointment.customer;
-        const named = customer && !customer.anonymizedAt ? customer : null;
-        return {
-          id: r.id,
-          rating: r.rating,
-          text: r.text,
-          staffId: r.staffId,
-          staffName: r.staff.displayName,
-          serviceName: r.appointment.service.name,
-          appointmentId: r.appointmentId,
-          visitStartAt: r.appointment.startAt.toISOString(),
-          customerId: named?.id ?? null,
-          customerName: named?.name ?? null,
-          createdAt: r.createdAt.toISOString(),
-          updatedAt: r.updatedAt.toISOString(),
-        };
-      }),
+      items: page.map(toSalonReview),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };
+  }
+
+  /**
+   * Task 209: the salon answers a review publicly (owners and managers of the location). The
+   * answer is shown under the review on the salon page and to the client; writing it again
+   * changes it. The review's own "changed" time stays the client's.
+   */
+  async reply(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    reviewId: string,
+    input: ReplyReviewInput,
+  ): Promise<SalonReviewResponse> {
+    return this.setReply(m, actorUserId, locationId, reviewId, input.text);
+  }
+
+  async removeReply(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    reviewId: string,
+  ): Promise<SalonReviewResponse> {
+    return this.setReply(m, actorUserId, locationId, reviewId, null);
+  }
+
+  private async setReply(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    reviewId: string,
+    text: string | null,
+  ): Promise<SalonReviewResponse> {
+    await this.access.writable(m, locationId);
+    const saved = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.visitReview.findFirst({ where: { id: reviewId, locationId } });
+      if (!current) throw notFound('Review');
+      const row = await tx.visitReview.update({
+        where: { id: reviewId },
+        data: {
+          reply: text,
+          repliedAt: text === null ? null : new Date(),
+          // The review's "changed" time is the client's, not the salon's answer.
+          updatedAt: current.updatedAt,
+        },
+        include: salonReviewInclude,
+      });
+      await this.audit.record(
+        {
+          organizationId: m.organizationId,
+          actorUserId,
+          action: text === null ? 'review.reply_removed' : 'review.reply_set',
+          entityType: 'review',
+          entityId: reviewId,
+          metadata: { locationId, appointmentId: current.appointmentId },
+        },
+        tx,
+      );
+      return row;
+    });
+    return toSalonReview(saved);
   }
 
   // ── The salon page ───────────────────────────────────
@@ -223,6 +272,8 @@ export class ReviewsService {
         staffId: r.staffId,
         staffName: r.staff.displayName,
         serviceName: r.appointment.service.name,
+        reply: r.reply,
+        repliedAt: r.repliedAt?.toISOString() ?? null,
         createdAt: r.createdAt.toISOString(),
       })),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
@@ -349,10 +400,33 @@ function toVisitReview(until: Date | null, review: VisitReview | null): VisitRev
       ? {
           rating: review.rating,
           text: review.text,
+          reply: review.reply,
+          repliedAt: review.repliedAt?.toISOString() ?? null,
           createdAt: review.createdAt.toISOString(),
           updatedAt: review.updatedAt.toISOString(),
         }
       : null,
+  };
+}
+
+function toSalonReview(r: SalonReviewRow): SalonReviewResponse {
+  const customer = r.appointment.customer;
+  const named = customer && !customer.anonymizedAt ? customer : null;
+  return {
+    id: r.id,
+    rating: r.rating,
+    text: r.text,
+    staffId: r.staffId,
+    staffName: r.staff.displayName,
+    serviceName: r.appointment.service.name,
+    appointmentId: r.appointmentId,
+    visitStartAt: r.appointment.startAt.toISOString(),
+    customerId: named?.id ?? null,
+    customerName: named?.name ?? null,
+    reply: r.reply,
+    repliedAt: r.repliedAt?.toISOString() ?? null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
   };
 }
 

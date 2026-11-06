@@ -31,6 +31,19 @@ export const writeReviewSchema = z
   .strict();
 export type WriteReviewInput = z.infer<typeof writeReviewSchema>;
 
+/** Task 209: the salon's public answer under a review. */
+export const replyReviewSchema = z
+  .object({
+    text: z
+      .string()
+      .trim()
+      .min(1)
+      .max(1000)
+      .describe('Shown under the review on the salon page and to the client'),
+  })
+  .strict();
+export type ReplyReviewInput = z.infer<typeof replyReviewSchema>;
+
 export const listReviewsQuerySchema = z.object({
   staffId: z.uuid().optional().describe('Only reviews of this specialist'),
   before: z

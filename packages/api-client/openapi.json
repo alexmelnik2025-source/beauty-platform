@@ -10701,6 +10701,115 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reviews/{reviewId}/reply": {
+      "put": {
+        "description": "Task 209. Shown under the review on the salon page and to the client. Owners and managers only.",
+        "operationId": "ReviewsController_reply",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Shown under the review on the salon page and to the client"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalonReview"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Answer a review publicly (or change the answer)",
+        "tags": [
+          "reviews"
+        ]
+      },
+      "delete": {
+        "operationId": "ReviewsController_removeReply",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalonReview"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove the salon’s answer under a review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/v1/public/locations/{slug}/reviews": {
       "get": {
         "description": "enabled=false and nothing else while the salon does not collect reviews.",
@@ -19626,6 +19735,15 @@
                 "serviceName": {
                   "type": "string"
                 },
+                "reply": {
+                  "nullable": true,
+                  "description": "The salon’s public answer; null without one",
+                  "type": "string"
+                },
+                "repliedAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "createdAt": {
                   "type": "string"
                 }
@@ -19637,6 +19755,8 @@
                 "staffId",
                 "staffName",
                 "serviceName",
+                "reply",
+                "repliedAt",
                 "createdAt"
               ],
               "additionalProperties": false
@@ -20377,6 +20497,79 @@
         ],
         "additionalProperties": false
       },
+      "SalonReview": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "text": {
+            "nullable": true,
+            "type": "string"
+          },
+          "staffId": {
+            "type": "string"
+          },
+          "staffName": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "appointmentId": {
+            "type": "string"
+          },
+          "visitStartAt": {
+            "type": "string"
+          },
+          "customerId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "customerName": {
+            "nullable": true,
+            "description": "null after the client was anonymised",
+            "type": "string"
+          },
+          "reply": {
+            "nullable": true,
+            "description": "The salon’s public answer; null without one",
+            "type": "string"
+          },
+          "repliedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "rating",
+          "text",
+          "staffId",
+          "staffName",
+          "serviceName",
+          "appointmentId",
+          "visitStartAt",
+          "customerId",
+          "customerName",
+          "reply",
+          "repliedAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "SalonReviews": {
         "type": "object",
         "properties": {
@@ -20434,6 +20627,15 @@
                   "description": "null after the client was anonymised",
                   "type": "string"
                 },
+                "reply": {
+                  "nullable": true,
+                  "description": "The salon’s public answer; null without one",
+                  "type": "string"
+                },
+                "repliedAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "createdAt": {
                   "type": "string"
                 },
@@ -20452,6 +20654,8 @@
                 "visitStartAt",
                 "customerId",
                 "customerName",
+                "reply",
+                "repliedAt",
                 "createdAt",
                 "updatedAt"
               ],
@@ -22089,6 +22293,15 @@
                 "nullable": true,
                 "type": "string"
               },
+              "reply": {
+                "nullable": true,
+                "description": "The salon’s public answer; null without one",
+                "type": "string"
+              },
+              "repliedAt": {
+                "nullable": true,
+                "type": "string"
+              },
               "createdAt": {
                 "type": "string"
               },
@@ -22099,6 +22312,8 @@
             "required": [
               "rating",
               "text",
+              "reply",
+              "repliedAt",
               "createdAt",
               "updatedAt"
             ],
