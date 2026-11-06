@@ -29,6 +29,8 @@ import { TeamScreen } from './TeamScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { ReviewsScreen } from './ReviewsScreen';
 import { BookingLinkScreen } from './BookingLinkScreen';
+import { GuardScreen } from './GuardScreen';
+import { mayManageGuard } from '../guard';
 import { mayViewHistory } from '../history';
 import { mayManageLoyalty } from '../loyalty';
 import { ScheduleScreen } from './ScheduleScreen';
@@ -65,6 +67,7 @@ export function DayScreen(props: {
   const [teamOpen, setTeamOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(false);
+  const [guardOpen, setGuardOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [happyOpen, setHappyOpen] = useState(false);
@@ -330,6 +333,18 @@ export function DayScreen(props: {
     );
   }
 
+  if (guardOpen) {
+    return (
+      <GuardScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        onBack={() => setGuardOpen(false)}
+      />
+    );
+  }
+
   if (linkOpen) {
     return <BookingLinkScreen api={api} t={t} salon={salon} onBack={() => setLinkOpen(false)} />;
   }
@@ -446,6 +461,9 @@ export function DayScreen(props: {
           ) : null}
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.team.open} onPress={() => setTeamOpen(true)} />
+          ) : null}
+          {mayManageGuard(salon.role) ? (
+            <Button kind="link" label={t.guard.open} onPress={() => setGuardOpen(true)} />
           ) : null}
           {maySeeSalon(salon.role) ? (
             <Button kind="link" label={t.salon.open} onPress={() => setSalonOpen(true)} />

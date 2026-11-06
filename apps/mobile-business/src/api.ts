@@ -41,6 +41,9 @@ export interface NewLoyaltyReward {
   cost: number;
 }
 export type GuardedClient = components['schemas']['GuardedClient'];
+/** Task 207: the salon's cancellation protection and the clients it marks now. */
+export type CancellationGuard = components['schemas']['CancellationGuard'];
+export type GuardedClients = components['schemas']['GuardedClients'];
 export type TimeBlock = components['schemas']['TimeBlock'];
 export type TimeBlockList = components['schemas']['TimeBlockList'];
 export type NotificationList = components['schemas']['NotificationList'];
@@ -531,6 +534,25 @@ export class BusinessApi {
     );
   }
 
+  /** Task 207, owner or manager only (the server checks): the settings (version 0 = never saved). */
+  guardSettings(orgId: string, locationId: string): Promise<CancellationGuard> {
+    return this.authed<CancellationGuard>('GET', guardPath(orgId, locationId));
+  }
+
+  /** Saves the whole settings with the version read; 409 VERSION_CONFLICT when changed meanwhile. */
+  saveGuardSettings(
+    orgId: string,
+    locationId: string,
+    body: CancellationGuard,
+  ): Promise<CancellationGuard> {
+    return this.authed<CancellationGuard>('PUT', guardPath(orgId, locationId), body);
+  }
+
+  /** The clients the protection marks now (empty while it is off). */
+  guardedClients(orgId: string, locationId: string): Promise<GuardedClients> {
+    return this.authed<GuardedClients>('GET', `${guardPath(orgId, locationId)}/clients`);
+  }
+
   /** Task 161c, owner or manager only (the server checks): the client's cancellation-protection mark. */
   guardClient(orgId: string, locationId: string, customerId: string): Promise<GuardedClient> {
     return this.authed<GuardedClient>('GET', guardClientPath(orgId, locationId, customerId));
@@ -746,6 +768,8 @@ const staffPath = (orgId: string, locationId: string, staffId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff/${enc(staffId)}`;
 const appointmentPath = (orgId: string, locationId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments/${enc(id)}`;
+const guardPath = (orgId: string, locationId: string) =>
+  `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/cancellation-guard`;
 const guardClientPath = (orgId: string, locationId: string, customerId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/cancellation-guard/clients/${enc(customerId)}`;
 const customerPath = (orgId: string, id: string) =>
