@@ -12,7 +12,8 @@ import { serveApp } from './mobile-app';
 /**
  * Task 180b, part 3: the client app's start screen searches before signing in ("Czego szukasz?"),
  * the catalogue asks the server for it, and "W pobliżu" puts the nearest salons first with the
- * distance. Screenshots 180b-b … 180b-d.
+ * distance. Screenshots 180b-b … 180b-d. Named to run after booking.spec.ts, which counts the salons of
+ * a fresh catalogue.
  */
 
 const PASSWORD = 'e2e-password-123';
