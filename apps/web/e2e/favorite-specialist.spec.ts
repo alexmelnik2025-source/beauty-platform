@@ -204,4 +204,39 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     await phone.close();
     clientApp.server.close();
   }
+
+  // ── Task 203: the same "Twoi specjaliści" on the site's "Moje wizyty" ────
+  const site = await browser.newContext({
+    viewport: PHONE,
+    isMobile: true,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: clientIp,
+  });
+  try {
+    const page = await site.newPage();
+    await page.goto('/pl/c');
+    const loginCode = /Kod logowania do Twoich wizyt/;
+    const codesBefore = (await listTo(CLIENT)).filter((m) => loginCode.test(m.Subject)).length;
+    await page.getByLabel('E-mail').fill(CLIENT);
+    await page.getByRole('button', { name: 'Wyślij kod' }).click();
+    await expect
+      .poll(async () => (await listTo(CLIENT)).filter((m) => loginCode.test(m.Subject)).length)
+      .toBeGreaterThan(codesBefore);
+    const mail = await waitForEmail(CLIENT, loginCode);
+    await page.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await page.getByRole('button', { name: 'Zaloguj się' }).click();
+    const mine = page.getByRole('region', { name: 'Twoi specjaliści' });
+    await expect(mine.getByText('Kasia', { exact: true })).toBeVisible();
+    await expect(mine.getByText('Strzyżenie fade · wizyty: 2')).toBeVisible();
+    await expect(mine.getByText('Marek', { exact: true })).toHaveCount(0);
+    await shot(page, '203-site-my-specialists');
+    await mine.getByRole('link', { name: 'Umów u: Kasia' }).click();
+    // The booking page starts on Kasia's free times for the same service.
+    await expect(page).toHaveURL(/\/pl\/b\/.+\?service=.+&staff=.+/);
+    await expect(page.locator('.times button').first()).toBeVisible();
+    await shot(page, '203-a-site-book-my-specialist');
+  } finally {
+    await site.close();
+  }
 });

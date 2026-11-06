@@ -1866,3 +1866,11 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
   180b-b … 180b-d). Сайт `/pl/salons` — та же кнопка «⌖ W pobliżu» (геолокация браузера), «0,1 km od Ciebie» и
   звёзды на карточках (скриншот 180b-e, `apps/web/lib/location.ts`). Для настоящих iPhone/Android позже понадобится `expo-location` (бесплатный модуль Expo) —
   добавить вместе со сборкой в сторы.
+
+## «Twoi specjaliści» на сайте (задача 203)
+
+В «Moje wizyty» на сайте (`/pl/c`, вкладка «Nadchodzące») — тот же блок, что в клиентском приложении (165d): по
+каждому салону (до 3) мастер, у которого клиент был чаще всего, его последняя услуга и «wizyty: N»; «Umów u: Kasia»
+открывает страницу записи сразу на время этого мастера (`?service=…&staff=…`). Считается в браузере из истории
+визитов клиента (`apps/web/lib/favorite.ts`, та же логика, что `apps/mobile-client/src/favorite.ts`). e2e —
+`favorite-specialist.spec.ts` (скриншоты 203, 203-a).

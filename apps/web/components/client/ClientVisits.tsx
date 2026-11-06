@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, ApiError } from '@/lib/api';
+import { bookWithHref, favoriteSpecialists, type FavoriteSpecialist } from '@/lib/favorite';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
 import type { ClientAppointment, ClientDataExport, ClientPerson } from '@/lib/types';
@@ -188,18 +189,27 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   const tag = LOCALE_TAGS[locale];
   const [scope, setScope] = useState<Scope>('upcoming');
   const [items, setItems] = useState<ClientAppointment[] | null>(null);
+  // Task 203: "Twoi specjaliści" above the coming visits, from the client's own history.
+  const [mine, setMine] = useState<FavoriteSpecialist[]>([]);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setItems(null);
+    setMine([]);
     setError('');
     if (scope === 'bonuses') return;
     try {
-      const res = await api<{ items: ClientAppointment[] }>('/v1/client/appointments', {
-        auth: false,
-        query: { scope },
-      });
+      const list = (which: 'upcoming' | 'past') =>
+        api<{ items: ClientAppointment[] }>('/v1/client/appointments', {
+          auth: false,
+          query: { scope: which },
+        });
+      const [res, past] = await Promise.all([
+        list(scope),
+        scope === 'upcoming' ? list('past') : Promise.resolve(null),
+      ]);
       setItems(res.items);
+      if (past) setMine(favoriteSpecialists(past.items));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onSignedOut();
       else setError(errorText(t, err));
@@ -254,6 +264,27 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
         ))}
       </div>
       <ErrorBox>{error}</ErrorBox>
+      {scope === 'upcoming' && mine.length > 0 ? (
+        <section className="stack" aria-label={t.visits.mySpecialists}>
+          <h2>{t.visits.mySpecialists}</h2>
+          <ul className="list">
+            {mine.map((f) => (
+              <li key={f.slug}>
+                <span className="grow">
+                  <strong>{f.staffName}</strong>
+                  <span className="small">
+                    {f.serviceName} · {fill(t.visits.visitsCount, { n: String(f.visits) })}
+                  </span>
+                  <span className="small muted">{f.salonName}</span>
+                </span>
+                <Link className="btn btn--small" href={bookWithHref(locale, f)}>
+                  {fill(t.visits.bookWith, { staff: f.staffName })}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {scope === 'bonuses' ? (
         <ClientBonuses onSignedOut={onSignedOut} />
       ) : items === null ? (
