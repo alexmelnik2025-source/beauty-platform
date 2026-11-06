@@ -1898,3 +1898,13 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
 с заметкой («Zapłacił 180 zł»). Сами правила меняются в кабинете. API задачи 161 (`…/cancellation-guard`,
 `…/clients`, `…/clients/:id/release`). Код: `apps/mobile-business/src/guard.ts`, `screens/GuardScreen.tsx`; тест
 `test/guard.test.ts`; e2e `guard-app.spec.ts` (скриншоты 207–207b).
+
+## Бизнес-приложение: «Wiadomości do klientów» (задача 208)
+
+Кнопка «Wiadomości do klientów» на экране дня (владелец и менеджер, как «Salon»). Экран: «Przypomnienie e-mail przed
+wizytą» — «Nie wysyłaj» или 2/3/6/12/24/48 godz. przed; «Lista oczekujących: termin dla pierwszej osoby» — «Nie
+trzymaj» или 10/15/30/60 min; «Pora na kolejną wizytę» — переключатель, «Ile dni po ostatniej wizycie (7–365)» и
+свой текст (пустой — текст платформы; при выключении уходит 0 дней, текст сохраняется). Сохраняется только
+изменённое (`PATCH …/locations/:id` с версией; одновременная правка — «Ktoś inny właśnie zmienił…»). Те же поля, что в
+«Ustawienia» кабинета (задачи 22, 164, 165c). Код: `apps/mobile-business/src/messages.ts`,
+`screens/MessagesScreen.tsx`; тест `test/messages.test.ts`; e2e `messages-app.spec.ts` (скриншоты 208–208a).
