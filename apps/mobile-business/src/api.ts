@@ -26,6 +26,20 @@ export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
 export type CustomerList = components['schemas']['CustomerList'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
+/** Task 206: the salon's loyalty program, its rewards and operations. */
+export type LoyaltyProgram = components['schemas']['LoyaltyProgram'];
+export type LoyaltyReward = components['schemas']['LoyaltyReward'];
+export type LoyaltyTransaction = components['schemas']['LoyaltyTransaction'];
+/** What PUT …/loyalty/program takes: every setting plus the version read. */
+export type LoyaltyProgramSave = Omit<LoyaltyProgram, 'earnRules'>;
+/** A new reward as the server takes it: a discount in % or a free service, for stamps or points. */
+export interface NewLoyaltyReward {
+  name: string;
+  kind: 'discount_percent' | 'free_service';
+  discountPercent: number | null;
+  freeServiceId: string | null;
+  cost: number;
+}
 export type GuardedClient = components['schemas']['GuardedClient'];
 export type TimeBlock = components['schemas']['TimeBlock'];
 export type TimeBlockList = components['schemas']['TimeBlockList'];
@@ -485,6 +499,38 @@ export class BusinessApi {
     );
   }
 
+  /** Task 206, owner or manager only (the server checks): the program settings (version 0 = never saved). */
+  loyaltyProgram(orgId: string): Promise<LoyaltyProgram> {
+    return this.authed<LoyaltyProgram>('GET', `${loyaltyPath(orgId)}/program`);
+  }
+
+  /** Saves the whole settings with the version read; 409 VERSION_CONFLICT when changed meanwhile. */
+  saveLoyaltyProgram(orgId: string, body: LoyaltyProgramSave): Promise<LoyaltyProgram> {
+    return this.authed<LoyaltyProgram>('PUT', `${loyaltyPath(orgId)}/program`, body);
+  }
+
+  /** The reward catalogue (removed rewards left out). */
+  loyaltyRewards(orgId: string): Promise<LoyaltyReward[]> {
+    return this.authed<LoyaltyReward[]>('GET', `${loyaltyPath(orgId)}/rewards`);
+  }
+
+  addLoyaltyReward(orgId: string, reward: NewLoyaltyReward): Promise<LoyaltyReward> {
+    return this.authed<LoyaltyReward>('POST', `${loyaltyPath(orgId)}/rewards`, reward);
+  }
+
+  /** "Usuń z katalogu": coupons clients already took stay valid. */
+  removeLoyaltyReward(orgId: string, rewardId: string): Promise<void> {
+    return this.authed<void>('DELETE', `${loyaltyPath(orgId)}/rewards/${enc(rewardId)}`);
+  }
+
+  /** The salon's latest stamps and points operations, newest first. */
+  loyaltyTransactions(orgId: string, limit = 20): Promise<LoyaltyTransaction[]> {
+    return this.authed<LoyaltyTransaction[]>(
+      'GET',
+      `${loyaltyPath(orgId)}/transactions?${new URLSearchParams({ limit: String(limit) }).toString()}`,
+    );
+  }
+
   /** Task 161c, owner or manager only (the server checks): the client's cancellation-protection mark. */
   guardClient(orgId: string, locationId: string, customerId: string): Promise<GuardedClient> {
     return this.authed<GuardedClient>('GET', guardClientPath(orgId, locationId, customerId));
@@ -706,5 +752,6 @@ const customerPath = (orgId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/customers/${enc(id)}`;
 const blocksPath = (orgId: string, locationId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/time-blocks`;
+const loyaltyPath = (orgId: string) => `/v1/organizations/${enc(orgId)}/loyalty`;
 const waitlistPath = (orgId: string, locationId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/waitlist`;

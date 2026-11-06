@@ -23,12 +23,14 @@ import { NewVisitScreen } from './NewVisitScreen';
 import type { SalonChoice } from './SalonsScreen';
 import { ReportsScreen } from './ReportsScreen';
 import { HappyHoursScreen } from './HappyHoursScreen';
+import { LoyaltyScreen } from './LoyaltyScreen';
 import { ServicesScreen } from './ServicesScreen';
 import { TeamScreen } from './TeamScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { ReviewsScreen } from './ReviewsScreen';
 import { BookingLinkScreen } from './BookingLinkScreen';
 import { mayViewHistory } from '../history';
+import { mayManageLoyalty } from '../loyalty';
 import { ScheduleScreen } from './ScheduleScreen';
 import { SalonScreen } from './SalonScreen';
 import { maySeeSalon } from '../salon';
@@ -66,6 +68,7 @@ export function DayScreen(props: {
   const [linkOpen, setLinkOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [happyOpen, setHappyOpen] = useState(false);
+  const [loyaltyOpen, setLoyaltyOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -302,6 +305,19 @@ export function DayScreen(props: {
     );
   }
 
+  if (loyaltyOpen) {
+    return (
+      <LoyaltyScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        onBack={() => setLoyaltyOpen(false)}
+      />
+    );
+  }
+
   if (servicesOpen) {
     return (
       <ServicesScreen
@@ -424,6 +440,9 @@ export function DayScreen(props: {
           ) : null}
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.happyHours.open} onPress={() => setHappyOpen(true)} />
+          ) : null}
+          {mayManageLoyalty(salon.role) ? (
+            <Button kind="link" label={t.loyalty.open} onPress={() => setLoyaltyOpen(true)} />
           ) : null}
           {salon.role !== 'staff' ? (
             <Button kind="link" label={t.team.open} onPress={() => setTeamOpen(true)} />
