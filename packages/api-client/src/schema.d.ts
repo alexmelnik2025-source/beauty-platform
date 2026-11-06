@@ -5058,6 +5058,9 @@ export interface components {
                 staffSpeaking: number | null;
                 specialties: ("hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage")[];
                 photoUrl: string | null;
+                distanceKm: number | null;
+                rating: number | null;
+                reviewCount: number;
             }[];
             languageCounts: {
                 [key: string]: number;
@@ -7442,6 +7445,8 @@ export interface operations {
             query?: {
                 pageSize?: number;
                 page?: number;
+                /** @description Task 180b: latitude,longitude - the nearest salons first, with distanceKm; salons without a place last */
+                near?: string;
                 /** @description Kind of place: one of its active staff members does it (task 160) */
                 specialty?: "hairdresser" | "barber" | "nails" | "cosmetologist" | "brows_lashes" | "makeup" | "massage";
                 /** @description Task 180b: words in the name, city, street or an online service; Polish letters optional */

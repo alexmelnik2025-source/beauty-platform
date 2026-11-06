@@ -25,6 +25,24 @@ export const publicDirectoryQuerySchema = z.strictObject({
   q: z.string().trim().max(100).optional(),
   /** Task 160: the kind of place — salons where an active specialist does this. */
   specialty: specialtySchema.optional(),
+  /**
+   * Task 180b: "W pobliżu" — `latitude,longitude` of the client (the phone or browser asks first);
+   * the nearest salons first, with `distanceKm`. Salons without a place on the map come last.
+   */
+  near: z
+    .string()
+    .regex(/^-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/)
+    .transform((value) => {
+      const [latitude, longitude] = value.split(',').map(Number) as [number, number];
+      return { latitude, longitude };
+    })
+    .pipe(
+      z.object({
+        latitude: z.number().min(-90).max(90),
+        longitude: z.number().min(-180).max(180),
+      }),
+    )
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(12),
 });
@@ -58,6 +76,14 @@ export const publicDirectorySchema = responseSchema(
         specialties: z.array(specialtySchema),
         /** Task 160: the salon's first photo for the map's card; null without photos. */
         photoUrl: z.string().nullable(),
+        /** Task 180b: kilometres from `near` (one decimal); null without `near` or a place on the map. */
+        distanceKm: z.number().nullable(),
+        /**
+         * Task 180b: the stars on the card — average of the salon's reviews (one decimal) and their
+         * number; null and 0 while the salon does not collect reviews (165b) or has none yet.
+         */
+        rating: z.number().nullable(),
+        reviewCount: z.number().int(),
       }),
     ),
     /** Task 160: salons per spoken language, with the other filters (the "UA (12)" chips). */

@@ -224,6 +224,26 @@ describe('catalogue (no sign-in)', () => {
     expect(calls.map((c) => c.auth)).toEqual([undefined, undefined, undefined]);
   });
 
+  it('searches by words and asks for the nearest salons (task 180b)', async () => {
+    const { fetchFn } = fakeServer({
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}`]: () => [200, directory],
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}&q=strzyzenie+torun`]: () => [
+        200,
+        { ...directory, total: 1 },
+      ],
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}&near=52.2297%2C21.0122`]: () => [
+        200,
+        { ...directory, total: 2 },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    expect((await api.directory({ q: '  strzyzenie torun ' })).total).toBe(1);
+    expect((await api.directory({ q: '   ' })).total).toBe(0);
+    expect(
+      (await api.directory({ near: { latitude: 52.229676, longitude: 21.012229 } })).total,
+    ).toBe(2);
+  });
+
   it('opens a salon by its link name; a missing one is a 404', async () => {
     const { fetchFn } = fakeServer({
       'GET /v1/public/locations/gestalt%20bema': () => [200, { slug: 'gestalt bema' }],

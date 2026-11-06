@@ -71,6 +71,20 @@ function catalogueWhere(
   return { AND: and };
 }
 
+/** Great-circle distance in kilometres, rounded to one decimal (task 180b). */
+export function distanceKm(
+  from: { latitude: number; longitude: number },
+  to: { latitude: number; longitude: number },
+): number {
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = rad(to.latitude - from.latitude);
+  const dLon = rad(to.longitude - from.longitude);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(from.latitude)) * Math.cos(rad(to.latitude)) * Math.sin(dLon / 2) ** 2;
+  return Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+}
+
 @ApiTags('public')
 @Public()
 @Controller('public/locations')
@@ -109,6 +123,14 @@ export class PublicDirectoryController {
     enum: KINDS,
     description: 'Kind of place: one of its active staff members does it (task 160)',
   })
+  @ApiQuery({
+    name: 'near',
+    required: false,
+    type: String,
+    example: '52.2297,21.0122',
+    description:
+      'Task 180b: latitude,longitude - the nearest salons first, with distanceKm; salons without a place last',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, minimum: 1 })
   @ApiQuery({
     name: 'pageSize',
@@ -127,11 +149,15 @@ export class PublicDirectoryController {
     const chosen = query.language ?? [];
     const ids = query.q ? await this.matching(query.q) : undefined;
     const where = catalogueWhere(chosen, query.specialty, ids);
+    // Task 180b: "W pobliżu" - the page is cut from all the salons found, nearest first.
+    const near = query.near;
+    const pageIds = near ? await this.nearestPage(where, near, query.page, query.pageSize) : null;
     const [total, locations, ...rest] = await this.prisma.$transaction([
       this.prisma.location.count({ where }),
       this.prisma.location.findMany({
-        where,
+        where: pageIds ? { id: { in: pageIds } } : where,
         select: {
+          id: true,
           slug: true,
           name: true,
           addressLine: true,
@@ -158,10 +184,10 @@ export class PublicDirectoryController {
               },
             },
           },
+          reviewSettings: { select: { enabled: true } },
         },
         orderBy: [{ city: 'asc' }, { name: 'asc' }, { id: 'asc' }],
-        skip: (query.page - 1) * query.pageSize,
-        take: query.pageSize,
+        ...(pageIds ? {} : { skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
       }),
       // Task 160: the numbers on the language and kind-of-place chips.
       ...SPOKEN.map((code) =>
@@ -172,27 +198,43 @@ export class PublicDirectoryController {
       ),
     ]);
     const counts = rest as number[];
+    if (pageIds) {
+      const order = new Map(pageIds.map((id, index) => [id, index]));
+      locations.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    }
+    const ratings = await this.ratings(
+      locations.filter((salon) => salon.reviewSettings?.enabled).map((salon) => salon.id),
+    );
     return {
-      items: locations.map(({ staffMembers, languages, photos, ...salon }) => {
-        const spoken = new Set([...languages, ...staffMembers.flatMap((s) => s.languages)]);
-        // Task 91: what a client pays at least - a specialist's own price, else the service's.
-        const prices = staffMembers
-          .flatMap((s) => s.services.map((x) => x.priceGrosze ?? x.service.priceGrosze))
-          .filter((price) => price > 0);
-        return {
-          ...salon,
-          languages: SPOKEN.filter((code) => spoken.has(code)),
-          priceFromGrosze: prices.length > 0 ? Math.min(...prices) : null,
-          staffSpeaking:
-            chosen.length > 0
-              ? staffMembers.filter((s) => s.languages.some((code) => chosen.includes(code))).length
-              : null,
-          specialties: KINDS.filter((kind) =>
-            staffMembers.some((s) => s.specialties.includes(kind)),
-          ),
-          photoUrl: photos[0] ? photoUrl(photos[0].id) : null,
-        };
-      }),
+      items: locations.map(
+        ({ id, staffMembers, languages, photos, reviewSettings: _r, ...salon }) => {
+          const spoken = new Set([...languages, ...staffMembers.flatMap((s) => s.languages)]);
+          // Task 91: what a client pays at least - a specialist's own price, else the service's.
+          const prices = staffMembers
+            .flatMap((s) => s.services.map((x) => x.priceGrosze ?? x.service.priceGrosze))
+            .filter((price) => price > 0);
+          return {
+            ...salon,
+            languages: SPOKEN.filter((code) => spoken.has(code)),
+            priceFromGrosze: prices.length > 0 ? Math.min(...prices) : null,
+            staffSpeaking:
+              chosen.length > 0
+                ? staffMembers.filter((s) => s.languages.some((code) => chosen.includes(code)))
+                    .length
+                : null,
+            specialties: KINDS.filter((kind) =>
+              staffMembers.some((s) => s.specialties.includes(kind)),
+            ),
+            photoUrl: photos[0] ? photoUrl(photos[0].id) : null,
+            distanceKm:
+              near && salon.latitude !== null && salon.longitude !== null
+                ? distanceKm(near, { latitude: salon.latitude, longitude: salon.longitude })
+                : null,
+            rating: ratings.get(id)?.average ?? null,
+            reviewCount: ratings.get(id)?.count ?? 0,
+          };
+        },
+      ),
       languageCounts: Object.fromEntries(SPOKEN.map((code, i) => [code, counts[i] ?? 0])) as Record<
         Language,
         number
@@ -230,5 +272,50 @@ export class PublicDirectoryController {
         ' AND ',
       )}`;
     return rows.map((row) => row.id);
+  }
+
+  /** Task 180b: the ids of one page of the salons found, nearest first; unplaced ones last. */
+  private async nearestPage(
+    where: Prisma.LocationWhereInput,
+    near: { latitude: number; longitude: number },
+    page: number,
+    pageSize: number,
+  ): Promise<string[]> {
+    const all = await this.prisma.location.findMany({
+      where,
+      select: { id: true, latitude: true, longitude: true },
+      orderBy: [{ city: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+    });
+    return all
+      .map((salon, index) => ({
+        id: salon.id,
+        index,
+        km:
+          salon.latitude !== null && salon.longitude !== null
+            ? distanceKm(near, { latitude: salon.latitude, longitude: salon.longitude })
+            : Number.POSITIVE_INFINITY,
+      }))
+      .sort((a, b) => a.km - b.km || a.index - b.index)
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map((salon) => salon.id);
+  }
+
+  /** Task 180b: average stars and number of reviews of the salons that collect them. */
+  private async ratings(ids: string[]): Promise<Map<string, { average: number; count: number }>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.prisma.visitReview.groupBy({
+      by: ['locationId'],
+      where: { locationId: { in: ids } },
+      _count: { _all: true },
+      _avg: { rating: true },
+    });
+    return new Map(
+      rows
+        .filter((row) => row._avg.rating !== null)
+        .map((row) => [
+          row.locationId,
+          { average: Math.round(row._avg.rating! * 10) / 10, count: row._count._all },
+        ]),
+    );
   }
 }

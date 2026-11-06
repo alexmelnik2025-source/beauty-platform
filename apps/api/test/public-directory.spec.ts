@@ -326,6 +326,112 @@ describe('public salon directory', () => {
       .expect(400);
   });
 
+  it('lists the nearest salons first with the distance, and the stars of salons collecting reviews (task 180b)', async () => {
+    const owner = await signUp(ctx, 'near@example.com');
+    const krakow = await createOrgWithLocation(ctx, owner, 'Krakow salon');
+    const center = await createOrgWithLocation(ctx, owner, 'Center salon');
+    const praga = await createOrgWithLocation(ctx, owner, 'Praga salon');
+    const nowhere = await createOrgWithLocation(ctx, owner, 'Somewhere salon');
+    for (const salon of [krakow, center, praga, nowhere]) await makeBookable(owner, salon);
+    const place = async (
+      salon: { locationId: string },
+      latitude: number | null,
+      longitude: number | null,
+    ) =>
+      ctx.prisma.location.update({
+        where: { id: salon.locationId },
+        data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, latitude, longitude },
+      });
+    await place(krakow, 50.0614, 19.9366);
+    await place(center, 52.2297, 21.0122);
+    await place(praga, 52.2508, 21.0353);
+    await place(nowhere, null, null);
+
+    // Reviews: two for the center salon, which collects them; one for Praga, which does not.
+    const review = async (
+      salon: { orgId: string; locationId: string },
+      rating: number,
+      at: number,
+    ) => {
+      const staff = await ctx.prisma.staffMember.findFirstOrThrow({
+        where: { locationId: salon.locationId },
+      });
+      const service = await ctx.prisma.service.findFirstOrThrow({
+        where: { locationId: salon.locationId },
+      });
+      const customer = await ctx.prisma.customer.create({
+        data: { organizationId: salon.orgId, name: `Client ${at}`, phone: `+4850000000${at}` },
+      });
+      const startAt = new Date(Date.now() - (at + 1) * 86_400_000);
+      const endAt = new Date(startAt.getTime() + 30 * 60_000);
+      const visit = await ctx.prisma.appointment.create({
+        data: {
+          locationId: salon.locationId,
+          staffId: staff.id,
+          serviceId: service.id,
+          customerId: customer.id,
+          status: 'completed',
+          source: 'online',
+          startAt,
+          endAt,
+          blockedUntil: endAt,
+          priceGrosze: 8000,
+          durationMinutes: 30,
+          bufferMinutes: 0,
+        },
+      });
+      await ctx.prisma.visitReview.create({
+        data: { appointmentId: visit.id, locationId: salon.locationId, staffId: staff.id, rating },
+      });
+    };
+    await ctx.prisma.reviewSettings.create({
+      data: { locationId: center.locationId, enabled: true },
+    });
+    await review(center, 5, 1);
+    await review(center, 4, 2);
+    await review(praga, 1, 3);
+
+    const near = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ near: '52.2297,21.0122', pageSize: 2 })
+      .expect(200);
+    expect(near.body.total).toBe(4);
+    expect(near.body.items.map((s: { slug: string }) => s.slug)).toEqual([center.slug, praga.slug]);
+    expect(near.body.items[0]).toMatchObject({ distanceKm: 0, rating: 4.5, reviewCount: 2 });
+    expect(near.body.items[1].distanceKm).toBeCloseTo(3, 0);
+    // Praga does not collect reviews: no stars, even with a review stored.
+    expect(near.body.items[1]).toMatchObject({ rating: null, reviewCount: 0 });
+    const shape = registeredResponseSchema('PublicSalonDirectory').safeParse(near.body);
+    expect(shape.error?.issues ?? []).toEqual([]);
+
+    const second = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ near: '52.2297,21.0122', pageSize: 2, page: 2 })
+      .expect(200);
+    expect(
+      second.body.items.map((s: { slug: string; distanceKm: number | null }) => [
+        s.slug,
+        s.distanceKm !== null,
+      ]),
+    ).toEqual([
+      [krakow.slug, true],
+      [nowhere.slug, false],
+    ]);
+    expect(second.body.items[0].distanceKm).toBeGreaterThan(200);
+
+    // Without `near`: the usual order (city, name) and no distance.
+    const plainList = await ctx.http().get('/v1/public/locations').expect(200);
+    expect(plainList.body.items.every((s: { distanceKm: unknown }) => s.distanceKm === null)).toBe(
+      true,
+    );
+
+    for (const bad of ['52.2', 'abc,def', '91,0', '0,181', '52.2,21.0,1']) {
+      await ctx.http().get('/v1/public/locations').query({ near: bad }).expect(400);
+    }
+  });
+
   it("shows the lowest price a client can book, counting specialists' own prices (task 91)", async () => {
     const owner = await signUp(ctx, 'price-from@example.com');
     const salon = await createOrgWithLocation(ctx, owner, 'Price from');

@@ -4038,6 +4038,16 @@
             }
           },
           {
+            "name": "near",
+            "required": false,
+            "in": "query",
+            "description": "Task 180b: latitude,longitude - the nearest salons first, with distanceKm; salons without a place last",
+            "schema": {
+              "example": "52.2297,21.0122",
+              "type": "string"
+            }
+          },
+          {
             "name": "specialty",
             "required": false,
             "in": "query",
@@ -19725,6 +19735,19 @@
                 "photoUrl": {
                   "nullable": true,
                   "type": "string"
+                },
+                "distanceKm": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "rating": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "reviewCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
@@ -19740,7 +19763,10 @@
                 "priceFromGrosze",
                 "staffSpeaking",
                 "specialties",
-                "photoUrl"
+                "photoUrl",
+                "distanceKm",
+                "rating",
+                "reviewCount"
               ],
               "additionalProperties": false
             }
