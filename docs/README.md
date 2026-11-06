@@ -1875,3 +1875,26 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
 открывает страницу записи сразу на время этого мастера (`?service=…&staff=…`). Считается в браузере из истории
 визитов клиента (`apps/web/lib/favorite.ts`, та же логика, что `apps/mobile-client/src/favorite.ts`). e2e —
 `favorite-specialist.spec.ts` (скриншоты 203, 203-a).
+
+## Бизнес-приложение: «Program lojalnościowy» (задача 206)
+
+Кнопка «Program lojalnościowy» на экране дня (владелец и менеджер; мастерам API программу не отдаёт). Экран:
+«Program włączony / wyłączony» и правило («Karta pieczątek: 1 za opłaconą wizytę» или «Punkty: 10 za każde
+50,00 zł» в валюте салона), «Włącz program» / «Wyłącz program» (выключение — с вопросом; сохраняются все настройки
+как есть, с версией — при одновременной правке «Ktoś właśnie zmienił program»). «Nagrody»: «+ Dodaj nagrodę» — название,
+«Zniżka w %» или «Darmowa usługa» (выбор услуги), цена в pieczątkach или punktach; «Usuń z katalogu» с вопросом
+(купоны, которые клиенты уже взяли, работают). «Ostatnie operacje» — 20 последних (тип, клиент, +/−, saldo, время в
+поясе салона, заметка ручной правки). Тип программы, punkty za kwotę, сроки, уровни и dodatkowe zasady — в кабинете
+(подсказка на экране). API тот же, что у кабинета (`…/loyalty/program`, `…/rewards`, `…/transactions`). Код:
+`apps/mobile-business/src/loyalty.ts`, `screens/LoyaltyScreen.tsx`; тест `test/loyalty.test.ts`; e2e
+`loyalty-app.spec.ts` (скриншоты 206–206b).
+
+## Бизнес-приложение: «Ochrona przed odwołaniami» (задача 207)
+
+Кнопка «Ochrona przed odwołaniami» на экране дня (владелец и менеджер). Экран: «Ochrona włączona / wyłączona», правила
+салона по строке («Odwołania lub przeniesienia: 3 w ciągu 30 dni», «Odwołanie później niż 120 min przed wizytą»,
+«Nieobecności: 2»), «Co wtedy: …»; «Włącz ochronę» (без единого правила — подсказка задать их в кабинете) и
+«Wyłącz ochronę» с вопросом. «Oznaczeni klienci» — имя, причины и «Nieodbyte wizyty: 180,00 zł»; «Zdejmij blokadę»
+с заметкой («Zapłacił 180 zł»). Сами правила меняются в кабинете. API задачи 161 (`…/cancellation-guard`,
+`…/clients`, `…/clients/:id/release`). Код: `apps/mobile-business/src/guard.ts`, `screens/GuardScreen.tsx`; тест
+`test/guard.test.ts`; e2e `guard-app.spec.ts` (скриншоты 207–207b).
