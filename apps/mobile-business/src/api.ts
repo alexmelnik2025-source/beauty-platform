@@ -10,6 +10,7 @@ import type {
   Tokens,
   components,
 } from '@beauty/api-client';
+import type { MessagesChanges } from './messages';
 import type { SalonChanges } from './salon';
 
 /**
@@ -222,7 +223,7 @@ export class BusinessApi {
     orgId: string,
     locationId: string,
     version: number,
-    changes: SalonChanges,
+    changes: SalonChanges | MessagesChanges,
   ): Promise<Location> {
     return this.authed<Location>(
       'PATCH',

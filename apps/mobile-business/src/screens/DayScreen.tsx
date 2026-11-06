@@ -35,6 +35,7 @@ import { mayViewHistory } from '../history';
 import { mayManageLoyalty } from '../loyalty';
 import { ScheduleScreen } from './ScheduleScreen';
 import { SalonScreen } from './SalonScreen';
+import { MessagesScreen } from './MessagesScreen';
 import { maySeeSalon } from '../salon';
 import { TeamHoursScreen } from './TeamHoursScreen';
 import { VisitScreen } from './VisitScreen';
@@ -89,6 +90,7 @@ export function DayScreen(props: {
   const [canReport, setCanReport] = useState(salon.role !== 'staff');
   const [reportsOpen, setReportsOpen] = useState(false);
   const [salonOpen, setSalonOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
   const [salonName, setSalonName] = useState(salon.locationName);
   const [preset, setPreset] = useState<NewVisitPreset | null>(null);
   const [reloads, setReloads] = useState(0);
@@ -296,6 +298,10 @@ export function DayScreen(props: {
     );
   }
 
+  if (messagesOpen) {
+    return <MessagesScreen api={api} t={t} salon={salon} onBack={() => setMessagesOpen(false)} />;
+  }
+
   if (happyOpen) {
     return (
       <HappyHoursScreen
@@ -467,6 +473,9 @@ export function DayScreen(props: {
           ) : null}
           {maySeeSalon(salon.role) ? (
             <Button kind="link" label={t.salon.open} onPress={() => setSalonOpen(true)} />
+          ) : null}
+          {maySeeSalon(salon.role) ? (
+            <Button kind="link" label={t.messages.open} onPress={() => setMessagesOpen(true)} />
           ) : null}
           {mineId ? (
             <Button kind="link" label={t.schedule.open} onPress={() => setScheduleOpen(true)} />
