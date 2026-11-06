@@ -29,6 +29,11 @@ export function onAuthChange(listener: (signedIn: boolean) => void): () => void 
   return () => authListeners.delete(listener);
 }
 
+/** True while an access token is in memory (it is renewed on 401 anyway). */
+export function hasAccessToken(): boolean {
+  return accessToken !== null;
+}
+
 /** Gets a new access token from the refresh cookie. One request at a time. */
 export function refreshSession(): Promise<boolean> {
   refreshing ??= (async () => {

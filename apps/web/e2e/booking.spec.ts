@@ -979,6 +979,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
   await currency.scrollIntoViewIfNeeded();
   await shot(ownerPage, '67-owner-currency');
+  // Task 204: saving reloads the session; let it finish before loading another page.
+  await ownerPage.waitForLoadState('networkidle');
   await ownerPage.goto('/pl/app/services');
   await expect(ownerPage.getByText(/^90,00\s€$/).first()).toBeVisible();
   await ownerPage
@@ -993,6 +995,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(euroPage, '67c-booking-prices-euro');
   await euroPage.close();
   // Back to złoty for the rest of the scenario.
+  await ownerPage.waitForLoadState('networkidle');
   await ownerPage.goto('/pl/app/settings');
   await ownerPage.getByLabel('Waluta cen').selectOption('PLN');
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();

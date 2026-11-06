@@ -55,6 +55,9 @@ test('an owner in Istanbul creates a salon in the Turkish time zone with prices 
   await shot(page, '69-onboarding-istanbul');
   await page.getByRole('button', { name: 'Utwórz salon' }).click();
   await page.waitForURL(/\/pl\/app\/calendar/);
+  // Task 204: a new salon makes the cabinet renew the session; a page load in the middle of it
+  // would send the already-renewed refresh cookie, which the server treats as stolen.
+  await page.waitForLoadState('networkidle');
 
   await page.goto('/pl/app/settings');
   await expect(page.getByLabel('Kraj i strefa czasowa')).toHaveValue('Europe/Istanbul');
@@ -66,6 +69,7 @@ test('an owner in Istanbul creates a salon in the Turkish time zone with prices 
   await expect(page.getByLabel('Waluta cen')).toHaveValue('TRY');
   await page.getByLabel('Kraj i strefa czasowa').scrollIntoViewIfNeeded();
   await shot(page, '69b-settings-time-zone');
+  await page.waitForLoadState('networkidle');
   await page.reload();
   await expect(page.getByLabel('Kraj i strefa czasowa')).toHaveValue('Europe/Tirane');
 });

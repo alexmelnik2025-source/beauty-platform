@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, refreshSession, setAccessToken } from '@/lib/api';
+import { api, hasAccessToken, refreshSession, setAccessToken } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import type { Location, Me, PermissionCatalog, Role } from '@/lib/types';
 import { Spinner } from './ui';
@@ -57,7 +57,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [needsOrg, setNeedsOrg] = useState(false);
 
   const load = useCallback(async () => {
-    if (!(await refreshSession())) {
+    // Task 204: "reload" after saving settings or creating the salon keeps the access token it has
+    // (it holds only the user and the session; a stale one is renewed on 401). Renewing it here
+    // rotated the refresh cookie for nothing, and a page load at that moment signed the user out.
+    if (!hasAccessToken() && !(await refreshSession())) {
       router.replace(`/${locale}/login`);
       return;
     }
