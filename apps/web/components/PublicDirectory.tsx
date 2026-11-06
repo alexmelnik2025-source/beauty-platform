@@ -127,6 +127,8 @@ export function PublicDirectory() {
     const kind = SPECIALTIES.find((k) => k === params.get('specialty'));
     if (kind) setSpecialty(kind);
     setLanguages(rememberedLanguages());
+    // Task 205: "W pobliżu" on the home page - ask for the location straight away.
+    if (params.get('near') === '1') void findNear();
   }, []);
 
   useEffect(() => {
@@ -165,12 +167,17 @@ export function PublicDirectory() {
   }, [languages, specialty, query, near, page, t]);
 
   const toggleNear = async () => {
-    setLocationFailed(false);
     if (near) {
+      setLocationFailed(false);
       setNear(null);
       setPage(1);
       return;
     }
+    await findNear();
+  };
+
+  async function findNear() {
+    setLocationFailed(false);
     setLocating(true);
     const place = await locate();
     setLocating(false);
@@ -178,7 +185,7 @@ export function PublicDirectory() {
       setNear(place);
       setPage(1);
     } else setLocationFailed(true);
-  };
+  }
 
   const choose = (next: Spoken[]) => {
     setLanguages(next);

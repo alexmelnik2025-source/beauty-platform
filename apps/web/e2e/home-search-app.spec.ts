@@ -211,3 +211,35 @@ test('the site catalogue lists the nearest salons first with the distance (task 
     await site.close();
   }
 });
+
+test('"W pobliżu" on the home page opens the catalogue with the nearest salons (task 205)', async ({
+  browser,
+  request,
+}) => {
+  const auth = await owner(request, 'home');
+  await salon(request, auth, `${CLOSE} home`, { latitude: 52.2299, longitude: 21.0122 }, [
+    { name: 'Nazar', languages: ['pl'], specialties: ['barber'] },
+  ]);
+  const site = await browser.newContext({
+    viewport: PHONE,
+    isMobile: true,
+    locale: 'pl-PL',
+    geolocation: { latitude: 52.2297, longitude: 21.0122 },
+    permissions: ['geolocation'],
+  });
+  try {
+    const page = await site.newPage();
+    await page.goto('/pl');
+    await page.getByRole('link', { name: '⌖ W pobliżu' }).click();
+    await expect(page).toHaveURL(/\/pl\/salons\?near=1/);
+    await expect(page.getByRole('button', { name: /W pobliżu/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const close = page.getByRole('article', { name: `${CLOSE} home` });
+    await expect(close.getByText('0,0 km od Ciebie')).toBeVisible();
+    await shot(page, '205-home-near-me');
+  } finally {
+    await site.close();
+  }
+});

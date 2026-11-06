@@ -7,6 +7,7 @@ import { ClientNav } from '@/components/client/ClientNav';
 import { LanguageSwitch } from '@/components/ui';
 import { api } from '@/lib/api';
 import { fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { formatRating } from '@/lib/location';
 import { formatPrice } from '@/lib/time';
 import type { PublicSalonDirectory, Specialty } from '@/lib/types';
 
@@ -80,6 +81,10 @@ export default function Home() {
           </label>
           <button className="btn btn--block">{n.searchButton}</button>
         </form>
+        {/* Task 205: the catalogue opens with the nearest salons (it asks for the location). */}
+        <Link className="btn btn--quiet btn--block" href={`/${locale}/salons?near=1`}>
+          ⌖ {t.directory.near}
+        </Link>
         <section className="stack" aria-labelledby="home-categories">
           <h2 id="home-categories" className="small muted">
             {n.categories}
@@ -108,6 +113,14 @@ export default function Home() {
                     <span className="small muted">
                       {salon.addressLine}, {salon.city}
                     </span>
+                    {formatRating(salon, LOCALE_TAGS[locale]) ? (
+                      <span className="small directory-rating">
+                        {fill(t.directory.rating, {
+                          rating: formatRating(salon, LOCALE_TAGS[locale])!,
+                          n: String(salon.reviewCount),
+                        })}
+                      </span>
+                    ) : null}
                     {salon.priceFromGrosze !== null ? (
                       <span className="small">
                         {fill(t.directory.priceFrom, {

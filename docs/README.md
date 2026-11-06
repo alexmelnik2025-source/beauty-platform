@@ -1864,7 +1864,8 @@ na potwierdzenie (salonu)». Скриншоты 161c–161d в том же e2e.
   телефоне без неё — подсказка «wpisz miasto»), включает список «ближайшие первыми» и «0,1 km od Ciebie». На
   карточках и в карточке карты — «★ 4,5 · opinie: 2». 6 языков. e2e — `home-search-app.spec.ts` (скриншоты
   180b-b … 180b-d). Сайт `/pl/salons` — та же кнопка «⌖ W pobliżu» (геолокация браузера), «0,1 km od Ciebie» и
-  звёзды на карточках (скриншот 180b-e, `apps/web/lib/location.ts`). Для настоящих iPhone/Android позже понадобится `expo-location` (бесплатный модуль Expo) —
+  звёзды на карточках (скриншот 180b-e, `apps/web/lib/location.ts`). На главной `/pl` (задача 205) — кнопка «⌖ W pobliżu» →
+  `/pl/salons?near=1` (каталог сразу спрашивает местоположение) и звёзды в «Polecane salony» (скриншот 205). Для настоящих iPhone/Android позже понадобится `expo-location` (бесплатный модуль Expo) —
   добавить вместе со сборкой в сторы.
 
 ## «Twoi specjaliści» на сайте (задача 203)
