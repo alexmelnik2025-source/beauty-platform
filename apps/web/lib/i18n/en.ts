@@ -142,6 +142,11 @@ export const en: Dict = {
     showMap: 'Show on the map',
     mapTitle: 'Map of salons',
     noCoordinates: 'This salon has not marked its place on the map yet.',
+    near: 'Near me',
+    locating: 'Finding your location…',
+    locationFailed: 'Could not find your location. Allow it in the browser or type a city.',
+    distance: '{km} km from you',
+    rating: '★ {rating} · reviews: {n}',
     mapEmpty: 'No salon on this page has marked its place on the map yet — choose from the list.',
     mapOffline:
       'The map (OpenStreetMap) could not be loaded — check the internet. The salons are in the list.',

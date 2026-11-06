@@ -79,6 +79,11 @@ export const sq: Dict = {
     showMap: 'Shfaq në hartë',
     mapTitle: 'Harta e salloneve',
     noCoordinates: 'Ky sallon nuk e ka shënuar ende vendin në hartë.',
+    near: 'Pranë meje',
+    locating: 'Po gjejmë vendndodhjen tuaj…',
+    locationFailed: 'Nuk e gjetëm vendndodhjen tuaj. Lejojeni në shfletues ose shkruani një qytet.',
+    distance: '{km} km nga ju',
+    rating: '★ {rating} · vlerësime: {n}',
     mapEmpty:
       'Asnjë sallon në këtë faqe nuk e ka shënuar ende vendin në hartë — zgjidhni nga lista.',
     mapOffline:

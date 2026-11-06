@@ -142,6 +142,12 @@ export const pl = {
     showMap: 'Pokaż na mapie',
     mapTitle: 'Mapa salonów',
     noCoordinates: 'Ten salon nie zaznaczył jeszcze miejsca na mapie.',
+    near: 'W pobliżu',
+    locating: 'Szukam Twojej lokalizacji…',
+    locationFailed:
+      'Nie udało się ustalić Twojej lokalizacji. Zezwól na nią w przeglądarce albo wpisz miasto.',
+    distance: '{km} km od Ciebie',
+    rating: '★ {rating} · opinie: {n}',
     mapEmpty: 'Żaden salon z tej strony nie zaznaczył jeszcze miejsca na mapie — wybierz z listy.',
     mapOffline:
       'Nie udało się wczytać mapy (OpenStreetMap) — sprawdź internet. Salony są na liście.',

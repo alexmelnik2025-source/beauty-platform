@@ -8,6 +8,7 @@ import { ErrorBox, LanguageSwitch, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { rememberedLanguages, rememberLanguages } from '@/lib/catalogue-languages';
+import { formatKm, formatRating, locate, type Place } from '@/lib/location';
 import { formatPrice } from '@/lib/time';
 import {
   SPECIALTIES,
@@ -112,6 +113,10 @@ export function PublicDirectory() {
   // Task 180b: the words searched for; `query` follows the typing after a short pause.
   const [typed, setTyped] = useState('');
   const [query, setQuery] = useState('');
+  // Task 180b: "W pobliżu" - asked only when the client taps it; the nearest salons first.
+  const [near, setNear] = useState<Place | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationFailed, setLocationFailed] = useState(false);
 
   useEffect(() => {
     // The home page's search and kinds of place come in the address (?q=…&specialty=…).
@@ -143,6 +148,7 @@ export function PublicDirectory() {
     if (languages.length > 0) params.set('language', languages.join(','));
     if (specialty) params.set('specialty', specialty);
     if (query) params.set('q', query);
+    if (near) params.set('near', `${near.latitude.toFixed(4)},${near.longitude.toFixed(4)}`);
     api<PublicSalonDirectory>(`/v1/public/locations?${params.toString()}`)
       .then((value) => {
         if (!active) return;
@@ -156,7 +162,23 @@ export function PublicDirectory() {
     return () => {
       active = false;
     };
-  }, [languages, specialty, query, page, t]);
+  }, [languages, specialty, query, near, page, t]);
+
+  const toggleNear = async () => {
+    setLocationFailed(false);
+    if (near) {
+      setNear(null);
+      setPage(1);
+      return;
+    }
+    setLocating(true);
+    const place = await locate();
+    setLocating(false);
+    if (place) {
+      setNear(place);
+      setPage(1);
+    } else setLocationFailed(true);
+  };
 
   const choose = (next: Spoken[]) => {
     setLanguages(next);
@@ -193,6 +215,17 @@ export function PublicDirectory() {
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
           />
+          <div className="chips">
+            <button
+              type="button"
+              aria-pressed={near !== null}
+              disabled={locating}
+              onClick={() => void toggleNear()}
+            >
+              {locating ? t.directory.locating : `⌖ ${t.directory.near}`}
+            </button>
+          </div>
+          {locationFailed ? <p className="small muted">{t.directory.locationFailed}</p> : null}
           <div className="chips" role="group" aria-label={t.directory.filterLanguage}>
             <button type="button" aria-pressed={chosen.length === 0} onClick={() => choose([])}>
               {t.directory.allLanguages}
@@ -258,6 +291,21 @@ export function PublicDirectory() {
                       <span className="muted small">
                         {salon.addressLine}, {salon.postalCode} {salon.city}
                       </span>
+                      {salon.distanceKm !== null ? (
+                        <span className="small muted">
+                          {fill(t.directory.distance, {
+                            km: formatKm(salon.distanceKm, LOCALE_TAGS[locale]),
+                          })}
+                        </span>
+                      ) : null}
+                      {formatRating(salon, LOCALE_TAGS[locale]) ? (
+                        <span className="small directory-rating">
+                          {fill(t.directory.rating, {
+                            rating: formatRating(salon, LOCALE_TAGS[locale])!,
+                            n: String(salon.reviewCount),
+                          })}
+                        </span>
+                      ) : null}
                       {salon.priceFromGrosze !== null ? (
                         <span className="small directory-price">
                           {fill(t.directory.priceFrom, {

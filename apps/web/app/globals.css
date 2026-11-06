@@ -2136,6 +2136,10 @@ label.btn:focus-within {
   font-size: 1.15rem;
 }
 
+.directory-rating {
+  font-weight: 600;
+}
+
 .directory-price {
   font-weight: 600;
 }

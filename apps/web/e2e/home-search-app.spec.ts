@@ -21,6 +21,9 @@ const run = Date.now().toString(36);
 const PHONE = { width: 390, height: 844 };
 const CLOSE = `Blisko ${run}`;
 const FAR = `Daleko ${run}`;
+/** The app's salons; the site's test has its own (tests may run at the same time). */
+const APP_CLOSE = `${CLOSE} app`;
+const APP_FAR = `${FAR} app`;
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -29,8 +32,8 @@ async function json<T>(res: APIResponse): Promise<T> {
   return (res.status() === 204 ? undefined : await res.json()) as T;
 }
 
-async function owner(api: APIRequestContext): Promise<Record<string, string>> {
-  const email = `app-home-${run}@example.com`;
+async function owner(api: APIRequestContext, who = 'app'): Promise<Record<string, string>> {
+  const email = `home-${who}-${run}@example.com`;
   await json(
     await api.post('/v1/auth/register', {
       headers: freshAddress(),
@@ -104,10 +107,10 @@ test('the app searches from the start screen and lists the nearest salons first'
   request,
 }) => {
   const auth = await owner(request);
-  await salon(request, auth, FAR, { latitude: 50.0614, longitude: 19.9366 }, [
+  await salon(request, auth, APP_FAR, { latitude: 50.0614, longitude: 19.9366 }, [
     { name: 'Ilian', languages: ['pl'], specialties: ['barber'] },
   ]);
-  await salon(request, auth, CLOSE, { latitude: 52.231, longitude: 21.0122 }, [
+  await salon(request, auth, APP_CLOSE, { latitude: 52.231, longitude: 21.0122 }, [
     { name: 'Nazar', languages: ['pl'], specialties: ['barber'] },
   ]);
 
@@ -133,17 +136,17 @@ test('the app searches from the start screen and lists the nearest salons first'
       ),
     ).toBeVisible();
     await expect(app.getByLabel('E-mail', { exact: true })).toBeVisible();
-    await what.fill(`kujawski ${run}`);
+    await what.fill(`kujawski app ${run}`);
     await shot(app, '180b-b-client-app-start-search');
     await app.getByRole('button', { name: 'Szukaj', exact: true }).click();
 
     // The catalogue keeps what was typed and finds both salons (the city, without Polish letters).
     await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
     await expect(app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica')).toHaveValue(
-      `kujawski ${run}`,
+      `kujawski app ${run}`,
     );
-    await expect(app.getByRole('article', { name: CLOSE })).toBeVisible();
-    await expect(app.getByRole('article', { name: FAR })).toBeVisible();
+    await expect(app.getByRole('article', { name: APP_CLOSE })).toBeVisible();
+    await expect(app.getByRole('article', { name: APP_FAR })).toBeVisible();
     await expect(app.getByText('Znalezione salony: 2')).toBeVisible();
 
     // "W pobliżu": the list, nearest first, with the distance from the client.
@@ -153,8 +156,8 @@ test('the app searches from the start screen and lists the nearest salons first'
       'true',
     );
     const cards = app.getByRole('article');
-    await expect(cards.first()).toHaveAccessibleName(CLOSE);
-    await expect(cards.nth(1)).toHaveAccessibleName(FAR);
+    await expect(cards.first()).toHaveAccessibleName(APP_CLOSE);
+    await expect(cards.nth(1)).toHaveAccessibleName(APP_FAR);
     await expect(cards.first().getByText('0,1 km od Ciebie')).toBeVisible();
     await expect(cards.nth(1).getByText(/^\d{3} km od Ciebie$/)).toBeVisible();
     await shot(app, '180b-c-client-app-near-me');
@@ -168,5 +171,43 @@ test('the app searches from the start screen and lists the nearest salons first'
   } finally {
     await phone.close();
     clientApp.server.close();
+  }
+});
+
+test('the site catalogue lists the nearest salons first with the distance (task 180b)', async ({
+  browser,
+  request,
+}) => {
+  const auth = await owner(request, 'site');
+  await salon(request, auth, `${FAR} site`, { latitude: 50.0614, longitude: 19.9366 }, [
+    { name: 'Ilian', languages: ['pl'], specialties: ['barber'] },
+  ]);
+  await salon(request, auth, `${CLOSE} site`, { latitude: 52.231, longitude: 21.0122 }, [
+    { name: 'Nazar', languages: ['pl'], specialties: ['barber'] },
+  ]);
+  const site = await browser.newContext({
+    viewport: PHONE,
+    isMobile: true,
+    locale: 'pl-PL',
+    geolocation: { latitude: 52.2297, longitude: 21.0122 },
+    permissions: ['geolocation'],
+  });
+  try {
+    const page = await site.newPage();
+    await page.goto(`/pl/salons?q=${encodeURIComponent(`site ${run}`)}`);
+    await expect(page.getByText('Znalezione salony: 2')).toBeVisible();
+    await page.getByRole('button', { name: /W pobliżu/ }).click();
+    await expect(page.getByRole('button', { name: /W pobliżu/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const cards = page.getByRole('article');
+    await expect(cards.first()).toHaveAccessibleName(`${CLOSE} site`);
+    await expect(cards.first().getByText('0,1 km od Ciebie')).toBeVisible();
+    await expect(cards.nth(1)).toHaveAccessibleName(`${FAR} site`);
+    await expect(cards.nth(1).getByText(/^\d{3} km od Ciebie$/)).toBeVisible();
+    await shot(page, '180b-e-catalogue-near-me-site');
+  } finally {
+    await site.close();
   }
 });
