@@ -97,14 +97,14 @@ test('the owner sets the messages to clients in the business app (task 208)', as
     await app.getByRole('button', { name: 'Wiadomości do klientów' }).click();
     await expect(app.getByRole('heading', { name: 'Wiadomości do klientów' })).toBeVisible();
     // The salon's defaults: a reminder 24 hours before, nothing held, no "next visit" email.
-    await expect(app.getByRole('button', { name: '24 godz. przed' })).toHaveAttribute(
+    await expect(app.getByRole('button', { name: '24 godz. przed', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Nic się nie zmieniło.')).toBeVisible();
 
-    await app.getByRole('button', { name: '2 godz. przed' }).click();
+    await app.getByRole('button', { name: '2 godz. przed', exact: true }).click();
     await app.getByRole('button', { name: '15 min', exact: true }).click();
     await app.getByLabel('Wysyłaj klientom przypomnienie „Pora na kolejną wizytę?”').click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
