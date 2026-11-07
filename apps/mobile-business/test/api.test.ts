@@ -412,5 +412,11 @@ describe('visit photos (task 80b)', () => {
       'https://api.test/v1/organizations/o1/customers/export.csv?lang=uk',
     );
     expect(seen[seen.length - 1]).toMatchObject({ auth: 'Bearer a2', accept: 'text/csv' });
+
+    // Task 275: with the list's filters on — only the clients of the list.
+    await api.clientsCsv('o1', 'pl', { search: ' Anna ', tag: 'stała', overdue: true, newDays: 0 });
+    expect(seen[seen.length - 1]?.url).toBe(
+      'https://api.test/v1/organizations/o1/customers/export.csv?lang=pl&search=Anna&tag=sta%C5%82a&overdue=yes',
+    );
   });
 });

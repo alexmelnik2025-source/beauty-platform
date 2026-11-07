@@ -9,7 +9,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { BusinessApi, CustomerList, CustomerSegments, CustomerTags, Locale } from '../api';
+import type {
+  BusinessApi,
+  ClientFilters,
+  CustomerList,
+  CustomerSegments,
+  CustomerTags,
+  Locale,
+} from '../api';
 import { birthdayText } from '../clients';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -75,12 +82,36 @@ export function ClientsScreen(props: {
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
 
+  // Task 275: the filters of the list on screen — the CSV then holds only these clients.
+  const filters: ClientFilters = {
+    search: searched,
+    inactiveDays,
+    tag,
+    birthdayDays: birthdays ? 7 : 0,
+    consented,
+    newDays: newcomers ? 30 : 0,
+    overdue,
+    noShows,
+    once,
+  };
+  const filtered = Boolean(
+    searched ||
+    inactiveDays ||
+    tag ||
+    birthdays ||
+    consented ||
+    newcomers ||
+    overdue ||
+    noShows ||
+    once,
+  );
+
   const downloadCsv = async () => {
     if (csvBusy) return;
     setCsvBusy(true);
     setCsvInfo('');
     try {
-      const file = await api.clientsCsv(salon.orgId, props.locale);
+      const file = await api.clientsCsv(salon.orgId, props.locale, filters);
       const result = await shareCsv(file, csvTools());
       setCsvInfo(result === 'failed' ? c.csvFailed : '');
     } catch (e) {
@@ -324,12 +355,14 @@ export function ClientsScreen(props: {
           <View style={styles.row}>
             <Button
               kind="secondary"
-              label={c.csv}
+              label={filtered ? c.csvList : c.csv}
               busy={csvBusy}
               onPress={() => void downloadCsv()}
             />
           </View>
-          <Text style={styles.small}>{Platform.OS === 'web' ? c.csvHint : c.csvHintPhone}</Text>
+          <Text style={styles.small}>
+            {filtered ? c.csvListHint : Platform.OS === 'web' ? c.csvHint : c.csvHintPhone}
+          </Text>
           {csvInfo ? <ErrorText>{csvInfo}</ErrorText> : null}
         </View>
       ) : null}

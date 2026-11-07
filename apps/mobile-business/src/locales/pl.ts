@@ -224,6 +224,9 @@ export const pl = {
       'Wszyscy klienci sieci w pliku dla Excela: kontakty, zgody, wizyty, nieobecności, następna wizyta i ile zapłacili. Pobranie zapisuje się w historii zmian.',
     csvHintPhone:
       'Wszyscy klienci sieci (z kontaktami) — wyślij plik tylko sobie: e-mailem lub do notatek. Pobranie zapisuje się w historii zmian.',
+    csvList: 'Pobierz CSV tej listy',
+    csvListHint:
+      'Tylko klienci z listy poniżej — z włączonymi filtrami i wyszukiwaniem (z kontaktami: wyślij plik tylko sobie). Pobranie zapisuje się w historii zmian.',
     csvFailed: 'Nie udało się zapisać pliku.',
     consentedNone: 'Nikt jeszcze nie zgodził się na wiadomości od salonu.',
     birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',

@@ -161,6 +161,37 @@ export function parseContact(input: string): Contact | null {
 }
 
 /** Task 220: the accountant's CSV of a period, as the server named it. */
+/** The filters of the client list (also for its CSV, task 275); empty values are left out. */
+export interface ClientFilters {
+  search?: string;
+  inactiveDays?: number;
+  tag?: string;
+  birthdayDays?: number;
+  consented?: boolean;
+  newDays?: number;
+  overdue?: boolean;
+  noShows?: boolean;
+  once?: boolean;
+}
+
+export function setClientFilters(query: URLSearchParams, f: ClientFilters): void {
+  if (f.search?.trim()) query.set('search', f.search.trim());
+  if (f.inactiveDays) query.set('inactiveDays', String(f.inactiveDays));
+  if (f.tag) query.set('tag', f.tag);
+  // Task 240: only birthdays in the next `birthdayDays` days, soonest first.
+  if (f.birthdayDays) query.set('birthdayDays', String(f.birthdayDays));
+  // Task 245: only clients who agreed to the salon messages.
+  if (f.consented) query.set('marketing', 'yes');
+  // Task 248: only clients whose first visit was in the last `newDays` days, newest first.
+  if (f.newDays) query.set('newDays', String(f.newDays));
+  // Task 262: only regular clients past their usual break with nothing booked.
+  if (f.overdue) query.set('overdue', 'yes');
+  // Task 264: only clients who did not come at least once in the last year.
+  if (f.noShows) query.set('noShows', 'yes');
+  // Task 270: only clients who came once and have nothing booked.
+  if (f.once) query.set('once', 'yes');
+}
+
 export interface CsvFile {
   fileName: string;
   csv: string;
@@ -544,21 +575,17 @@ export class BusinessApi {
     once = false,
   ): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
-    if (search.trim()) query.set('search', search.trim());
-    if (inactiveDays) query.set('inactiveDays', String(inactiveDays));
-    if (tag) query.set('tag', tag);
-    // Task 240: only birthdays in the next `birthdayDays` days, soonest first.
-    if (birthdayDays) query.set('birthdayDays', String(birthdayDays));
-    // Task 245: only clients who agreed to the salon messages.
-    if (consented) query.set('marketing', 'yes');
-    // Task 248: only clients whose first visit was in the last `newDays` days, newest first.
-    if (newDays) query.set('newDays', String(newDays));
-    // Task 262: only regular clients past their usual break with nothing booked.
-    if (overdue) query.set('overdue', 'yes');
-    // Task 264: only clients who did not come at least once in the last year.
-    if (noShows) query.set('noShows', 'yes');
-    // Task 270: only clients who came once and have nothing booked.
-    if (once) query.set('once', 'yes');
+    setClientFilters(query, {
+      search,
+      inactiveDays,
+      tag,
+      birthdayDays,
+      consented,
+      newDays,
+      overdue,
+      noShows,
+      once,
+    });
     return this.authed<CustomerList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,
@@ -919,8 +946,11 @@ export class BusinessApi {
    * cabinet's client list (contacts, consent, visits, no-shows, the next visit, what they paid).
    * Owners only (the server checks it); every download is written to the audit log.
    */
-  clientsCsv(orgId: string, locale: Locale): Promise<CsvFile> {
-    const query = new URLSearchParams({ lang: locale }).toString();
+  clientsCsv(orgId: string, locale: Locale, filters: ClientFilters = {}): Promise<CsvFile> {
+    const params = new URLSearchParams({ lang: locale });
+    // Task 275: with the list's filters on — only the clients of the list.
+    setClientFilters(params, filters);
+    const query = params.toString();
     return this.csvFile(
       `/v1/organizations/${enc(orgId)}/customers/export.csv?${query}`,
       'klienci.csv',

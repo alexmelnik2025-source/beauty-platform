@@ -27,6 +27,7 @@ import { serveApp } from './mobile-app';
  * Task 270: "Byli tylko raz" — clients who came once, a month to a year ago (270, 270-a).
  * Task 271: "Byli tylko raz: N" in the report, with a link to that list (271, 271-a).
  * Task 272: the switched-on filters stay in the address and survive a reload (272).
+ * Task 276: in the business app, the CSV of the filtered list only (276).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -525,6 +526,14 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards).toHaveCount(1);
     await expect(cards.nth(0)).toContainText('Ewa Wiśniewska');
     await shot(app, '270-a-business-app-once');
+    // Task 276: with a filter on — the CSV of this list only (Ewa, not Adam).
+    const listCsvButton = app.getByRole('button', { name: 'Pobierz CSV tej listy' });
+    const [onceCsv] = await Promise.all([app.waitForEvent('download'), listCsvButton.click()]);
+    const onceText = await readFile((await onceCsv.path())!, 'utf8');
+    expect(onceText).toContain('"Ewa Wiśniewska"');
+    expect(onceText).not.toContain('"Adam Nowak"');
+    await listCsvButton.scrollIntoViewIfNeeded();
+    await shot(app, '276-business-app-list-csv');
     await app.getByRole('switch', { name: /Byli tylko raz/ }).click();
     // Task 269: the owner downloads the cabinet's clients CSV right in the app.
     const csvButton = app.getByRole('button', { name: 'Pobierz CSV klientów' });
