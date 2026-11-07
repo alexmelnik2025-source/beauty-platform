@@ -236,6 +236,15 @@ export const pl = {
     unmarkPaid: 'Cofnij opłatę (zwrot)',
     paid: 'Opłacono',
     paidHint: 'Za opłaconą wizytę klient dostaje pieczątki lub punkty programu lojalnościowego.',
+    paymentMethod: 'Sposób płatności',
+    paymentMethodHint: 'Jak klient zapłacił — do raportu i rozliczenia kasy. Można pominąć.',
+    paymentMethods: {
+      cash: 'Gotówka',
+      card: 'Karta',
+      blik: 'BLIK',
+      transfer: 'Przelew',
+      other: 'Inna',
+    },
     discount: 'Rabat',
     toPay: 'Do zapłaty',
     coupons: 'Kupony klienta',
@@ -289,6 +298,7 @@ export const pl = {
       no_show: 'Oznaczona jako nieobecność',
       paid: 'Opłacona',
       unpaid: 'Anulowano opłatę',
+      payment_method: 'Zmieniono sposób płatności',
       coupon_applied: 'Użyto kuponu',
       coupon_removed: 'Zdjęto kupon',
       tier_discount_applied: 'Użyto rabatu poziomu',
@@ -1304,6 +1314,10 @@ export const pl = {
     busyHours: 'Godziny szczytu',
     busyHoursHint:
       'Ile wizyt zaczyna się o danej godzinie w poszczególne dni tygodnia (bez odwołanych). Ciemniejsze pole — więcej wizyt. Pomaga zaplanować grafik i happy hours.',
+    payments: 'Sposoby płatności',
+    paymentsUnknown: 'Nie podano',
+    paymentsHint:
+      'Opłacone wizyty według sposobu płatności zaznaczonego przy „Opłacono”. „Nie podano” — wizyty bez zaznaczonego sposobu.',
   },
   unsubscribe: {
     title: 'Wiadomości od salonu',

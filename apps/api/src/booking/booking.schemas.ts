@@ -2,6 +2,7 @@ import { visitWishesInputSchema } from './visit-wishes';
 import { z } from 'zod';
 import { LOCALES } from '../auth/auth.schemas';
 import { localDateSchema } from '../scheduling/scheduling.schemas';
+import { paymentMethodSchema } from '../common/enums.schemas';
 
 /** An instant with an explicit offset, e.g. 2027-01-04T09:00:00.000Z — exactly as the slot list returns it. */
 const instant = z.iso.datetime({ offset: true }).transform((value) => Date.parse(value));
@@ -131,6 +132,8 @@ export const createAppointmentSchema = z
     alreadyHappened: z.boolean().default(false),
     /** With alreadyHappened: also mark it paid, so loyalty stamps or points are earned. */
     paid: z.boolean().default(false),
+    /** Task 227: with paid, how the client paid (optional). */
+    paymentMethod: paymentMethodSchema.optional(),
   })
   .refine((v) => Boolean(v.customerId) !== Boolean(v.customer), {
     message: 'give either customerId or customer',
@@ -139,6 +142,10 @@ export const createAppointmentSchema = z
   .refine((v) => !v.paid || v.alreadyHappened, {
     message: 'paid is only for a visit that already happened',
     path: ['paid'],
+  })
+  .refine((v) => !v.paymentMethod || v.paid, {
+    message: 'paymentMethod is only for a paid visit',
+    path: ['paymentMethod'],
   });
 
 export const rescheduleSchema = z.object({

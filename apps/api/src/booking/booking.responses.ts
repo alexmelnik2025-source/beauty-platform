@@ -5,6 +5,7 @@ import {
   appointmentStatusSchema,
   cancelledBySchema,
   localeSchema,
+  paymentMethodSchema,
 } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
 import { loyaltyRewardKindSchema } from '../loyalty/loyalty.schemas';
@@ -93,6 +94,11 @@ export const appointmentSchema = responseSchema(
       .string()
       .nullable()
       .describe('When the staff marked the visit as paid (this earns loyalty stamps or points)'),
+    paymentMethod: paymentMethodSchema
+      .nullable()
+      .describe(
+        'Task 227: how the client paid, as the staff marked it; null = not said or not paid',
+      ),
     version: z.number().int(),
     createdAt: z.string(),
   }),

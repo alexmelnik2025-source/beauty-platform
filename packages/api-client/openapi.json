@@ -5422,6 +5422,16 @@
                   "paid": {
                     "default": false,
                     "type": "boolean"
+                  },
+                  "paymentMethod": {
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "card",
+                      "blik",
+                      "transfer",
+                      "other"
+                    ]
                   }
                 },
                 "required": [
@@ -5822,6 +5832,23 @@
                   },
                   "paid": {
                     "type": "boolean"
+                  },
+                  "method": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "cash",
+                          "card",
+                          "blik",
+                          "transfer",
+                          "other"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -11758,6 +11785,18 @@
             "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
             "type": "string"
           },
+          "paymentMethod": {
+            "nullable": true,
+            "description": "Task 227: how the client paid, as the staff marked it; null = not said or not paid",
+            "type": "string",
+            "enum": [
+              "cash",
+              "card",
+              "blik",
+              "transfer",
+              "other"
+            ]
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -11796,6 +11835,7 @@
           "cancelledBy",
           "cancelReason",
           "paidAt",
+          "paymentMethod",
           "version",
           "createdAt"
         ],
@@ -12089,6 +12129,18 @@
             "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
             "type": "string"
           },
+          "paymentMethod": {
+            "nullable": true,
+            "description": "Task 227: how the client paid, as the staff marked it; null = not said or not paid",
+            "type": "string",
+            "enum": [
+              "cash",
+              "card",
+              "blik",
+              "transfer",
+              "other"
+            ]
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -12152,6 +12204,7 @@
           "cancelledBy",
           "cancelReason",
           "paidAt",
+          "paymentMethod",
           "version",
           "createdAt",
           "history"
@@ -12448,6 +12501,18 @@
               "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
               "type": "string"
             },
+            "paymentMethod": {
+              "nullable": true,
+              "description": "Task 227: how the client paid, as the staff marked it; null = not said or not paid",
+              "type": "string",
+              "enum": [
+                "cash",
+                "card",
+                "blik",
+                "transfer",
+                "other"
+              ]
+            },
             "version": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -12486,6 +12551,7 @@
             "cancelledBy",
             "cancelReason",
             "paidAt",
+            "paymentMethod",
             "version",
             "createdAt"
           ],
@@ -13301,6 +13367,18 @@
                   "description": "When the staff marked the visit as paid (this earns loyalty stamps or points)",
                   "type": "string"
                 },
+                "paymentMethod": {
+                  "nullable": true,
+                  "description": "Task 227: how the client paid, as the staff marked it; null = not said or not paid",
+                  "type": "string",
+                  "enum": [
+                    "cash",
+                    "card",
+                    "blik",
+                    "transfer",
+                    "other"
+                  ]
+                },
                 "version": {
                   "type": "integer",
                   "minimum": -9007199254740991,
@@ -13339,6 +13417,7 @@
                 "cancelledBy",
                 "cancelReason",
                 "paidAt",
+                "paymentMethod",
                 "version",
                 "createdAt"
               ],
@@ -20414,6 +20493,45 @@
             },
             "description": "Every day of the period, in the salon time zone"
           },
+          "payments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "cash",
+                    "card",
+                    "blik",
+                    "transfer",
+                    "other",
+                    "unknown"
+                  ],
+                  "description": "How the client paid; unknown = the staff did not say"
+                },
+                "paid": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Paid visits of the period"
+                },
+                "revenueGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What they brought (price minus discounts), in hundredths of the salon currency"
+                }
+              },
+              "required": [
+                "method",
+                "paid",
+                "revenueGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 227: paid visits by payment method (\"Sposoby płatności\"), most money first, unknown last"
+          },
           "weekdays": {
             "type": "array",
             "items": {
@@ -20788,6 +20906,7 @@
           "staff",
           "services",
           "days",
+          "payments",
           "weekdays",
           "previous",
           "occupancy",

@@ -10,12 +10,15 @@ import {
   isoWeekday,
   zonedToInstant,
 } from '../scheduling/time';
-import type { Location } from '../generated/prisma/client';
+import type { Location, PaymentMethod } from '../generated/prisma/client';
 import type { InstantRange, LocalInterval } from '../scheduling/slots';
 import { occupancy, occupancyPercent } from './occupancy';
 import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
 import { visitsCsv, type CsvLocale } from './visits-csv';
+
+/** Task 227: a payment method, or "unknown" when the staff did not say. */
+type PaymentKey = PaymentMethod | 'unknown';
 
 interface Counts {
   completed: number;
@@ -80,6 +83,7 @@ export class ReportsService {
         priceGrosze: true,
         discountGrosze: true,
         paidAt: true,
+        paymentMethod: true,
         cancelledBy: true,
         customerId: true,
         staff: { select: { id: true, displayName: true } },
@@ -106,6 +110,10 @@ export class ReportsService {
       ]),
     );
     const clients = new Set<string>();
+    const payments = new Map<
+      PaymentKey,
+      { method: PaymentKey; paid: number; revenueGrosze: number }
+    >();
     const busy = new Map<string, { weekday: number; hour: number; visits: number }>();
     const byClient = new Map<string, { completed: number; revenueGrosze: number }>();
     const lastVisit = new Map<
@@ -176,6 +184,12 @@ export class ReportsService {
             t.revenueGrosze += paid;
           }
           totals.discountGrosze += a.discountGrosze;
+          const method: PaymentKey = a.paymentMethod ?? 'unknown';
+          const payment =
+            payments.get(method) ??
+            payments.set(method, { method, paid: 0, revenueGrosze: 0 }).get(method)!;
+          payment.paid++;
+          payment.revenueGrosze += paid;
           if (day) day.revenueGrosze += paid;
           weekday.revenueGrosze += paid;
         }
@@ -253,6 +267,13 @@ export class ReportsService {
           }),
         ),
       days: [...days.values()],
+      // Task 227: how the paid visits were paid, most money first; "unknown" (not said) last.
+      payments: [...payments.values()].sort(
+        (x, y) =>
+          Number(x.method === 'unknown') - Number(y.method === 'unknown') ||
+          y.revenueGrosze - x.revenueGrosze ||
+          y.paid - x.paid,
+      ),
       weekdays,
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
@@ -587,6 +608,7 @@ export class ReportsService {
         priceGrosze: true,
         discountGrosze: true,
         paidAt: true,
+        paymentMethod: true,
         cancelledBy: true,
         customer: { select: { name: true } },
         staff: { select: { displayName: true } },
@@ -609,6 +631,7 @@ export class ReportsService {
           priceGrosze: a.priceGrosze,
           discountGrosze: a.discountGrosze,
           paid: a.paidAt !== null,
+          method: a.paymentMethod,
         };
       }),
       locale,

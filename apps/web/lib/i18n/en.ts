@@ -235,6 +235,15 @@ export const en: Dict = {
     unmarkPaid: 'Undo payment (refund)',
     paid: 'Paid',
     paidHint: 'A paid visit earns the client loyalty stamps or points.',
+    paymentMethod: 'Payment method',
+    paymentMethodHint: 'How the client paid — for the report and the till total. You can skip it.',
+    paymentMethods: {
+      cash: 'Cash',
+      card: 'Card',
+      blik: 'BLIK',
+      transfer: 'Bank transfer',
+      other: 'Other',
+    },
     discount: 'Discount',
     toPay: 'To pay',
     coupons: 'Client’s coupons',
@@ -288,6 +297,7 @@ export const en: Dict = {
       no_show: 'Marked as no-show',
       paid: 'Marked as paid',
       unpaid: 'Payment cancelled',
+      payment_method: 'Payment method changed',
       coupon_applied: 'Coupon used',
       coupon_removed: 'Coupon removed',
       tier_discount_applied: 'Tier discount used',
@@ -1307,6 +1317,10 @@ export const en: Dict = {
     busyHours: 'Peak hours',
     busyHoursHint:
       'How many visits start at each hour on each day of the week (cancelled ones left out). A darker box means more visits. Helps plan the schedule and happy hours.',
+    payments: 'Payment methods',
+    paymentsUnknown: 'Not given',
+    paymentsHint:
+      'Paid visits by the payment method marked with "Paid". "Not given" — visits without a method.',
   },
   unsubscribe: {
     title: 'Messages from the salon',

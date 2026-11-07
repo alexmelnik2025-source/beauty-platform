@@ -337,6 +337,47 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.payments.length > 0 ? (
+              <section className="section" data-testid="report-payments">
+                <h2>{t.reports.payments}</h2>
+                <ol className="report-days">
+                  {report.payments.map((p) => {
+                    const name =
+                      p.method === 'unknown'
+                        ? t.reports.paymentsUnknown
+                        : t.appointment.paymentMethods[p.method];
+                    const share =
+                      totals.revenueGrosze > 0
+                        ? Math.round((p.revenueGrosze / totals.revenueGrosze) * 100)
+                        : 0;
+                    return (
+                      <li key={p.method}>
+                        <span className="small">{name}</span>
+                        <span
+                          className="report-bar"
+                          role="meter"
+                          aria-label={name}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={share}
+                        >
+                          <span style={{ width: `${share}%` }} />
+                        </span>
+                        <span className="small">
+                          {money(p.revenueGrosze)}
+                          <span className="muted">
+                            {' '}
+                            · {fill(t.reports.dayVisits, { n: String(p.paid) })}
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <p className="small muted">{t.reports.paymentsHint}</p>
+              </section>
+            ) : null}
+
             {ratings && ratings.average !== null ? (
               <section className="section" data-testid="report-ratings">
                 <h2>

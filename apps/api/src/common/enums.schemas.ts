@@ -8,6 +8,7 @@ import type {
   Locale,
   MembershipRole,
   MembershipStatus,
+  PaymentMethod,
   Specialty,
 } from '../generated/prisma/client';
 
@@ -56,6 +57,15 @@ export const membershipStatusSchema = z.enum(['invited', 'active'] satisfies Mem
 /** Where a salon session was opened. */
 export const clientTypeSchema = z.enum(['web', 'mobile'] satisfies ClientType[]);
 
+/** Task 227: how the client paid, as the staff marked it. */
+export const paymentMethodSchema = z.enum([
+  'cash',
+  'card',
+  'blik',
+  'transfer',
+  'other',
+] satisfies PaymentMethod[]);
+
 // The lists above must name every database value: adding one to the schema fails here.
 type Missing<Db extends string, Listed extends string> =
   Exclude<Db, Listed> extends never ? true : never;
@@ -69,5 +79,6 @@ const _everyValueListed: [
   Missing<AppointmentSource, z.infer<typeof appointmentSourceSchema>>,
   Missing<CancelledBy, z.infer<typeof cancelledBySchema>>,
   Missing<Specialty, z.infer<typeof specialtySchema>>,
-] = [true, true, true, true, true, true, true, true, true];
+  Missing<PaymentMethod, z.infer<typeof paymentMethodSchema>>,
+] = [true, true, true, true, true, true, true, true, true, true];
 void _everyValueListed;

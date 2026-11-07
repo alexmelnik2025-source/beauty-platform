@@ -5,9 +5,16 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
-import type { AppointmentDetail, Staff, VisitCoupons, VisitPhotoList } from '@/lib/types';
+import type {
+  AppointmentDetail,
+  PaymentMethod,
+  Staff,
+  VisitCoupons,
+  VisitPhotoList,
+} from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox, Sheet, Spinner } from '../ui';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
 
 type Mode = 'view' | 'move' | 'cancel';
 
@@ -44,6 +51,8 @@ export function AppointmentSheet({
   const [move, setMove] = useState({ date: '', time: '', staffId: '', outside: false });
   const [askOutside, setAskOutside] = useState(false);
   const [reason, setReason] = useState('');
+  /** Task 227: how the client paid, chosen before "Opłacono". */
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -167,7 +176,9 @@ export function AppointmentSheet({
           void run(() =>
             api(`${base}/appointments/${a.id}/payment`, {
               method: 'POST',
-              body: { version: a.version, paid: !a.paidAt },
+              body: a.paidAt
+                ? { version: a.version, paid: false }
+                : { version: a.version, paid: true, ...(method ? { method } : {}) },
             }),
           )
         }
@@ -183,7 +194,12 @@ export function AppointmentSheet({
         {a.awaitingApproval ? (
           <span className="chip chip--ready">⏳ {t.appointment.awaitingApproval}</span>
         ) : null}
-        {a.paidAt ? <span className="chip">✓ {t.appointment.paid}</span> : null}
+        {a.paidAt ? (
+          <span className="chip" data-testid="paid-chip">
+            ✓ {t.appointment.paid}
+            {a.paymentMethod ? ` · ${t.appointment.paymentMethods[a.paymentMethod]}` : ''}
+          </span>
+        ) : null}
         <span className="chip">
           {a.source === 'online' ? t.appointment.online : t.appointment.manual}
         </span>
@@ -206,6 +222,23 @@ export function AppointmentSheet({
       ) : null}
       {mode === 'view' && canChange && a.status === 'completed' && !a.paidAt ? (
         <p className="small muted">{t.appointment.paidHint}</p>
+      ) : null}
+      {mode === 'view' && canChange && a.status === 'completed' ? (
+        // Before "Opłacono" the choice waits here; on a paid visit a tap changes it at once.
+        <PaymentMethodPicker
+          value={a.paidAt ? a.paymentMethod : method}
+          disabled={busy}
+          onChange={(next) =>
+            a.paidAt
+              ? void run(() =>
+                  api(`${base}/appointments/${a.id}/payment`, {
+                    method: 'POST',
+                    body: { version: a.version, paid: true, method: next },
+                  }),
+                )
+              : setMethod(next)
+          }
+        />
       ) : null}
 
       {mode === 'view' ? (

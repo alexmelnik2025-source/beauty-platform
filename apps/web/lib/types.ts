@@ -2,7 +2,7 @@
  * Shapes of the API responses the web app uses (see /v1/docs). They all come from
  * @beauty/api-client; only lists of values the interface needs at run time live here.
  */
-import type { AppointmentStatus, Specialty } from '@beauty/api-client';
+import type { AppointmentDetail, AppointmentStatus, Specialty } from '@beauty/api-client';
 
 /** Languages spoken with clients (be = Belarusian). Not the interface languages. */
 export const SPOKEN = ['pl', 'uk', 'ru', 'be', 'en'] as const;
@@ -23,6 +23,19 @@ const _everySpecialty: Exclude<Specialty, (typeof SPECIALTIES)[number]> extends 
   : never = true;
 void _everySpecialty;
 export type { Specialty };
+/** Task 227: how the client paid, in the order the picker shows them. */
+export type PaymentMethod = NonNullable<AppointmentDetail['paymentMethod']>;
+export const PAYMENT_METHODS = [
+  'cash',
+  'card',
+  'blik',
+  'transfer',
+  'other',
+] as const satisfies readonly PaymentMethod[];
+const _everyPaymentMethod: Exclude<PaymentMethod, (typeof PAYMENT_METHODS)[number]> extends never
+  ? true
+  : never = true;
+void _everyPaymentMethod;
 export const APPOINTMENT_STATUSES = [
   'held',
   'confirmed',

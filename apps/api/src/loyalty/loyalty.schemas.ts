@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { LoyaltyMode, LoyaltyRewardKind, LoyaltyTierBasis } from '../generated/prisma/client';
+import { paymentMethodSchema } from '../common/enums.schemas';
 
 export const loyaltyModeSchema = z.enum(['stamps', 'points'] satisfies LoyaltyMode[]);
 export const loyaltyTierBasisSchema = z.enum(['visits', 'spend'] satisfies LoyaltyTierBasis[]);
@@ -119,10 +120,20 @@ export const adjustLoyaltyBalanceSchema = z.object({
 
 export const cancelLoyaltyCouponSchema = z.object({ version: z.number().int().min(1) });
 
-export const setPaidSchema = z.object({
-  version: z.number().int().min(1),
-  paid: z.boolean(),
-});
+export const setPaidSchema = z
+  .object({
+    version: z.number().int().min(1),
+    paid: z.boolean(),
+    /**
+     * Task 227: how the client paid (optional). On a visit that is already paid, sending
+     * paid=true with another method only changes the method; null clears it.
+     */
+    method: paymentMethodSchema.nullable().optional(),
+  })
+  .refine((v) => v.paid || v.method === undefined || v.method === null, {
+    message: 'method is only for a paid visit',
+    path: ['method'],
+  });
 
 /** Task 10d: a coupon on a visit, picked from the list (couponId) or typed from the client's screen (code). */
 export const applyVisitCouponSchema = z

@@ -3098,6 +3098,11 @@ export interface components {
             cancelReason: string | null;
             /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
             paidAt: string | null;
+            /**
+             * @description Task 227: how the client paid, as the staff marked it; null = not said or not paid
+             * @enum {string|null}
+             */
+            paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
             version: number;
             createdAt: string;
         };
@@ -3182,6 +3187,11 @@ export interface components {
             cancelReason: string | null;
             /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
             paidAt: string | null;
+            /**
+             * @description Task 227: how the client paid, as the staff marked it; null = not said or not paid
+             * @enum {string|null}
+             */
+            paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
             version: number;
             createdAt: string;
             history: {
@@ -3272,6 +3282,11 @@ export interface components {
             cancelReason: string | null;
             /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
             paidAt: string | null;
+            /**
+             * @description Task 227: how the client paid, as the staff marked it; null = not said or not paid
+             * @enum {string|null}
+             */
+            paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
             version: number;
             createdAt: string;
         }[];
@@ -3488,6 +3503,11 @@ export interface components {
                 cancelReason: string | null;
                 /** @description When the staff marked the visit as paid (this earns loyalty stamps or points) */
                 paidAt: string | null;
+                /**
+                 * @description Task 227: how the client paid, as the staff marked it; null = not said or not paid
+                 * @enum {string|null}
+                 */
+                paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
                 version: number;
                 createdAt: string;
             }[];
@@ -5231,6 +5251,18 @@ export interface components {
                 date: string;
                 completed: number;
                 /** @description Paid that day, in hundredths of the salon currency */
+                revenueGrosze: number;
+            }[];
+            /** @description Task 227: paid visits by payment method ("Sposoby płatności"), most money first, unknown last */
+            payments: {
+                /**
+                 * @description How the client paid; unknown = the staff did not say
+                 * @enum {string}
+                 */
+                method: "cash" | "card" | "blik" | "transfer" | "other" | "unknown";
+                /** @description Paid visits of the period */
+                paid: number;
+                /** @description What they brought (price minus discounts), in hundredths of the salon currency */
                 revenueGrosze: number;
             }[];
             /** @description Monday to Sunday: which days of the week are busy and which are weak */
@@ -8201,6 +8233,8 @@ export interface operations {
                     alreadyHappened?: boolean;
                     /** @default false */
                     paid?: boolean;
+                    /** @enum {string} */
+                    paymentMethod?: "cash" | "card" | "blik" | "transfer" | "other";
                 };
             };
         };
@@ -8373,6 +8407,7 @@ export interface operations {
                 "application/json": {
                     version: number;
                     paid: boolean;
+                    method?: ("cash" | "card" | "blik" | "transfer" | "other") | null;
                 };
             };
         };

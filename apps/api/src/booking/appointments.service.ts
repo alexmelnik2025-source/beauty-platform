@@ -229,7 +229,9 @@ export class AppointmentsService {
           data: {
             status: 'completed',
             version: { increment: 1 },
-            ...(input.paid ? { paidAt: now, paidByUserId: userId } : {}),
+            ...(input.paid
+              ? { paidAt: now, paidByUserId: userId, paymentMethod: input.paymentMethod ?? null }
+              : {}),
           },
         });
         await this.writer.event(tx, appointment.id, 'created', 'staff', userId, {
@@ -250,6 +252,7 @@ export class AppointmentsService {
           );
           await this.writer.event(tx, appointment.id, 'paid', 'staff', userId, {
             loyaltyEarned: earned,
+            ...(input.paymentMethod ? { method: input.paymentMethod } : {}),
           });
         }
         // No emails: the client was there and the visit is over.
@@ -497,6 +500,20 @@ export class AppointmentsService {
     }
     if (input.paid === (appointment.paidAt !== null)) {
       if (appointment.version !== input.version) throw versionConflict();
+      // Task 227: a paid visit keeps its loyalty; only how it was paid changes.
+      if (input.paid && input.method !== undefined && input.method !== appointment.paymentMethod) {
+        await this.prisma.$transaction(async (tx) => {
+          const result = await tx.appointment.updateMany({
+            where: { id: appointment.id, version: input.version, paidAt: { not: null } },
+            data: { paymentMethod: input.method ?? null, version: { increment: 1 } },
+          });
+          if (result.count !== 1) throw versionConflict();
+          await this.writer.event(tx, appointment.id, 'payment_method', 'staff', userId, {
+            from: appointment.paymentMethod,
+            to: input.method ?? null,
+          });
+        });
+      }
       return this.get(m, userId, locationId, appointmentId);
     }
     await this.prisma.$transaction(async (tx) => {
@@ -510,6 +527,7 @@ export class AppointmentsService {
         data: {
           paidAt: input.paid ? new Date() : null,
           paidByUserId: input.paid ? userId : null,
+          paymentMethod: input.paid ? (input.method ?? null) : null,
           version: { increment: 1 },
         },
       });
@@ -529,6 +547,7 @@ export class AppointmentsService {
         );
         await this.writer.event(tx, appointment.id, 'paid', 'staff', userId, {
           loyaltyEarned: earned,
+          ...(input.method ? { method: input.method } : {}),
         });
       } else {
         const taken = await this.ledger.reverseForVisit(tx, appointment.id, userId);
@@ -910,6 +929,7 @@ export class AppointmentsService {
       cancelledBy: a.cancelledBy,
       cancelReason: a.cancelReason,
       paidAt: a.paidAt?.toISOString() ?? null,
+      paymentMethod: a.paidAt ? a.paymentMethod : null,
       version: a.version,
       createdAt: a.createdAt.toISOString(),
     };

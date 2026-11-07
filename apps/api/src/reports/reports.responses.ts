@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { paymentMethodSchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
 
 const money = (what: string) =>
@@ -58,6 +59,19 @@ export const salonReportSchema = responseSchema(
         }),
       )
       .describe('Every day of the period, in the salon time zone'),
+    payments: z
+      .array(
+        z.strictObject({
+          method: z
+            .enum([...paymentMethodSchema.options, 'unknown'])
+            .describe('How the client paid; unknown = the staff did not say'),
+          paid: z.number().int().describe('Paid visits of the period'),
+          revenueGrosze: money('What they brought (price minus discounts)'),
+        }),
+      )
+      .describe(
+        'Task 227: paid visits by payment method ("Sposoby płatności"), most money first, unknown last',
+      ),
     weekdays: z
       .array(
         z.strictObject({

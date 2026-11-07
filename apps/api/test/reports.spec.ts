@@ -93,6 +93,8 @@ interface VisitOptions {
   date: string;
   status: 'completed' | 'no_show' | 'confirmed' | 'cancelled';
   paid?: boolean;
+  /** Task 227: how it was paid. */
+  method?: 'cash' | 'card' | 'blik' | 'transfer' | 'other';
   discountGrosze?: number;
   online?: boolean;
   cancelledBy?: 'customer' | 'salon';
@@ -125,6 +127,7 @@ async function visit(o: VisitOptions): Promise<string> {
       source: o.online ? 'online' : 'manual',
       discountGrosze: o.discountGrosze ?? 0,
       paidAt: o.paid ? new Date() : null,
+      paymentMethod: o.paid ? (o.method ?? null) : null,
       ...(o.status === 'cancelled'
         ? { cancelledAt: new Date(), cancelledBy: o.cancelledBy ?? 'customer' }
         : {}),
@@ -523,9 +526,46 @@ describe('salon report', () => {
     await report(owner.auth, { from: today, to: from }).expect(400);
     await report(owner.auth, { from: addDays(today, -365), to: today }).expect(200);
   });
+  it('"Sposoby płatności": paid visits by payment method, not said last (task 227)', async () => {
+    const d1 = addDays(today, -4);
+    await visit({ date: d1, status: 'completed', paid: true, method: 'cash' });
+    await visit({
+      date: d1,
+      status: 'completed',
+      paid: true,
+      method: 'card',
+      discountGrosze: 1000,
+    });
+    await visit({ date: d1, status: 'completed', paid: true, method: 'card' });
+    await visit({ date: d1, status: 'completed', paid: true });
+    // Not paid, or not taken place: not in the list.
+    await visit({ date: d1, status: 'completed' });
+    await visit({ date: d1, status: 'no_show' });
+    const res = await report().expect(200);
+    expect(res.body.payments).toEqual([
+      { method: 'card', paid: 2, revenueGrosze: 15000 },
+      { method: 'cash', paid: 1, revenueGrosze: 8000 },
+      { method: 'unknown', paid: 1, revenueGrosze: 8000 },
+    ]);
+    const sum = res.body.payments.reduce(
+      (total: number, p: { revenueGrosze: number }) => total + p.revenueGrosze,
+      0,
+    );
+    expect(sum).toBe(res.body.totals.revenueGrosze);
+    const empty = await report(owner.auth, { from: today, to: today }).expect(200);
+    expect(empty.body.payments).toEqual([]);
+  });
+
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {
     const d1 = addDays(today, -3);
-    await visit({ date: d1, status: 'completed', paid: true, discountGrosze: 1550, online: true });
+    await visit({
+      date: d1,
+      status: 'completed',
+      paid: true,
+      method: 'card',
+      discountGrosze: 1550,
+      online: true,
+    });
     await visit({
       date: d1,
       staffId: olaId,
@@ -558,17 +598,18 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     const lines = text.slice(1).trimEnd().split('\r\n');
     expect(lines).toEqual([
-      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono',
-      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak`,
-      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie`,
-      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie`,
+      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności',
+      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta`,
+      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;`,
+      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;`,
     ]);
     expect(text).not.toContain('+48600000002');
     expect(text).not.toContain('@example.com');
 
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
     expect(english).toContain('Date;Time;Specialist;Service;Client;Status;Booked;Price');
-    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes');
+    expect(english).toContain('To pay;Paid;Payment method');
+    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes;card');
 
     // The same access as the report.
     await csv({}, kasiaUser.auth).expect(403);
@@ -596,9 +637,10 @@ describe('salon report', () => {
       priceGrosze: 100,
       discountGrosze: 0,
       paid: true,
+      method: null,
     };
     expect(visitsCsv([row], 'pl').split('\r\n')[1]).toBe(
-      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak`,
+      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;`,
     );
   });
 });

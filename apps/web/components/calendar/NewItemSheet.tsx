@@ -5,11 +5,12 @@ import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
-import type { Customer, Service, Staff, TimeBlockSeries } from '@/lib/types';
+import type { Customer, PaymentMethod, Service, Staff, TimeBlockSeries } from '@/lib/types';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { useSession } from '../Session';
 import { ErrorBox, Sheet } from '../ui';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
 
 /** The client a new visit is for, when it is known in advance ("Umów ponownie", task 223). */
 export type DraftCustomer = Pick<Customer, 'id' | 'name' | 'phone'>;
@@ -68,6 +69,8 @@ export function NewItemSheet({
   const [outside, setOutside] = useState(false);
   const [askOutside, setAskOutside] = useState(false);
   const [paidNow, setPaidNow] = useState(false);
+  /** Task 227: how the walk-in paid (optional). */
+  const [paidWith, setPaidWith] = useState<PaymentMethod | null>(null);
   const [error, setError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a retry after a dropped connection does not book twice.
@@ -138,7 +141,13 @@ export function NewItemSheet({
                   },
                 }),
             note: note || undefined,
-            ...(inPast ? { alreadyHappened: true, paid: paidNow } : { allowOutsideHours: outside }),
+            ...(inPast
+              ? {
+                  alreadyHappened: true,
+                  paid: paidNow,
+                  ...(paidNow && paidWith ? { paymentMethod: paidWith } : {}),
+                }
+              : { allowOutsideHours: outside }),
           },
         });
       }
@@ -373,6 +382,7 @@ export function NewItemSheet({
                   />
                   <span>{t.appointment.walkInPaid}</span>
                 </label>
+                {paidNow ? <PaymentMethodPicker value={paidWith} onChange={setPaidWith} /> : null}
               </>
             ) : null}
 

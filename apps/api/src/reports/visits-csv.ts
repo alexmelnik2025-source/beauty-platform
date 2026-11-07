@@ -5,6 +5,8 @@
  * No client contacts — only the name the salon sees in its calendar.
  */
 
+import type { PaymentMethod } from '../generated/prisma/client';
+
 export const CSV_LOCALES = ['pl', 'uk', 'ru', 'en'] as const;
 export type CsvLocale = (typeof CSV_LOCALES)[number];
 
@@ -23,7 +25,10 @@ interface CsvTexts {
     discount: string,
     toPay: string,
     paid: string,
+    method: string,
   ];
+  /** Task 227: how the client paid. */
+  method: Record<PaymentMethod, string>;
   status: Record<Status, string>;
   cancelledByClient: string;
   online: string;
@@ -47,7 +52,15 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Rabat',
       'Do zapłaty',
       'Opłacono',
+      'Sposób płatności',
     ],
+    method: {
+      cash: 'gotówka',
+      card: 'karta',
+      blik: 'BLIK',
+      transfer: 'przelew',
+      other: 'inna',
+    },
     status: {
       confirmed: 'Zaplanowana',
       completed: 'Odbyła się',
@@ -74,7 +87,15 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Знижка',
       'До сплати',
       'Оплачено',
+      'Спосіб оплати',
     ],
+    method: {
+      cash: 'готівка',
+      card: 'картка',
+      blik: 'BLIK',
+      transfer: 'переказ',
+      other: 'інший',
+    },
     status: {
       confirmed: 'Запланований',
       completed: 'Відбувся',
@@ -101,7 +122,15 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Скидка',
       'К оплате',
       'Оплачено',
+      'Способ оплаты',
     ],
+    method: {
+      cash: 'наличные',
+      card: 'карта',
+      blik: 'BLIK',
+      transfer: 'перевод',
+      other: 'другой',
+    },
     status: {
       confirmed: 'Запланирован',
       completed: 'Состоялся',
@@ -128,7 +157,15 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Discount',
       'To pay',
       'Paid',
+      'Payment method',
     ],
+    method: {
+      cash: 'cash',
+      card: 'card',
+      blik: 'BLIK',
+      transfer: 'bank transfer',
+      other: 'other',
+    },
     status: {
       confirmed: 'Upcoming',
       completed: 'Completed',
@@ -156,6 +193,8 @@ export interface CsvVisit {
   priceGrosze: number;
   discountGrosze: number;
   paid: boolean;
+  /** Task 227: null = not said (or not paid). */
+  method: PaymentMethod | null;
 }
 
 /** One cell: quoted when it holds the separator, a quote or a line break; no formula injection. */
@@ -191,6 +230,7 @@ export function visitsCsv(visits: CsvVisit[], locale: CsvLocale): string {
         amount(v.discountGrosze, locale),
         amount(v.priceGrosze - v.discountGrosze, locale),
         v.paid ? t.yes : t.no,
+        v.paid && v.method ? t.method[v.method] : '',
       ]
         .map(cell)
         .join(';'),
