@@ -397,5 +397,12 @@ describe('visit photos (task 80b)', () => {
       'https://api.test/v1/organizations/o1/locations/l1/reports/visits-csv?from=2026-11-01&to=2026-11-30&locale=pl',
     );
     expect(csvCall).toMatchObject({ auth: 'Bearer a2', accept: 'text/csv' });
+
+    // Task 238: the till's cash journal — same download, another file.
+    const till = await api.tillCsv('o1', 'l1', '2026-11-01', '2026-11-30', 'en');
+    expect(till.csv.startsWith('\uFEFF')).toBe(true);
+    expect(seen[seen.length - 1]?.url).toBe(
+      'https://api.test/v1/organizations/o1/locations/l1/reports/till-csv?from=2026-11-01&to=2026-11-30&locale=en',
+    );
   });
 });

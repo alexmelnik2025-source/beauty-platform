@@ -72,12 +72,14 @@ export function ReportsScreen(props: {
   }, [load]);
 
   // Task 220: the accountant's CSV of the period — saved in a browser, shared on a phone.
-  const downloadCsv = async () => {
+  // Task 238: "till" — the till's cash journal (owners and managers).
+  const downloadCsv = async (kind: 'visits' | 'till' = 'visits') => {
     if (csvBusy) return;
     setCsvBusy(true);
     setCsvInfo('');
     try {
-      const file = await api.visitsCsv(
+      const file = await (kind === 'till' ? api.tillCsv : api.visitsCsv).call(
+        api,
         salon.orgId,
         salon.locationId,
         range.from,
@@ -232,6 +234,17 @@ export function ReportsScreen(props: {
                   {csvInfo}
                 </Text>
               ) : null}
+            </View>
+          ) : null}
+
+          {shown.scope === 'location' ? (
+            <View style={{ gap: 4 }}>
+              <Button
+                kind="secondary"
+                label={csvBusy ? t.loading : r.tillCsv}
+                onPress={() => void downloadCsv('till')}
+              />
+              <Text style={styles.small}>{r.tillCsvHint}</Text>
             </View>
           ) : null}
 

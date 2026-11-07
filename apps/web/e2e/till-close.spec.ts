@@ -286,6 +286,19 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     await expect(appCloses).toContainText(/Zamknięcia kasy · różnica razem: \+10,00\s*zł/);
     await expect(appCloses).toContainText(/policzono 100,00\s*zł · powinno być 90,00\s*zł/);
     await shot(app, '235-business-app-report-till-closes');
+    // Task 238: "CSV kasy" in the app — the till's cash journal of the period.
+    const [appTillFile] = await Promise.all([
+      app.waitForEvent('download'),
+      app.getByRole('button', { name: 'CSV kasy' }).click(),
+    ]);
+    expect(appTillFile.suggestedFilename()).toMatch(/^till-.+\.csv$/);
+    const appTillText = (await readFile((await appTillFile.path())!)).toString('utf8');
+    expect(appTillText.charCodeAt(0)).toBe(0xfeff);
+    expect(appTillText).toMatch(
+      /;Zamknięcie kasy;100,00;90,00;10,00;Klient nie wziął reszty;Aleksander Owner/,
+    );
+    await app.getByRole('button', { name: 'CSV kasy' }).scrollIntoViewIfNeeded();
+    await shot(app, '238-a-business-app-till-csv');
   } finally {
     businessApp.server.close();
   }

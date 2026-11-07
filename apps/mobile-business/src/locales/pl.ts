@@ -409,6 +409,8 @@ export const pl = {
     csvHint: 'Wszystkie wizyty z tego okresu dla księgowej (bez danych kontaktowych klientów).',
     csvHintPhone:
       'Wszystkie wizyty z tego okresu dla księgowej (bez kontaktów klientów) — wyślij je e-mailem lub zapisz w notatkach.',
+    tillCsv: 'CSV kasy',
+    tillCsvHint: 'Wpłaty, wypłaty i zamknięcia kasy z tego okresu — dziennik kasowy dla księgowej.',
     csvFailed: 'Nie udało się zapisać pliku.',
     empty: 'Brak wizyt w tym okresie.',
     note: 'Przychód to opłacone wizyty po rabatach z programu lojalnościowego.',

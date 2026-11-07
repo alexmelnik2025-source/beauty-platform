@@ -830,7 +830,32 @@ export class BusinessApi {
    * Task 220: every visit of the period as the accountant's CSV (the same file as "Pobierz CSV"
    * in the cabinet; no client contacts). Same access as the report.
    */
-  async visitsCsv(
+  visitsCsv(
+    orgId: string,
+    locationId: string,
+    from: string,
+    to: string,
+    locale: Locale,
+  ): Promise<CsvFile> {
+    return this.reportCsv('visits', orgId, locationId, from, to, locale);
+  }
+
+  /**
+   * Task 238: the till's cash journal of the period ("CSV kasy": cash put in, taken out, till
+   * closes). Owners and managers only.
+   */
+  tillCsv(
+    orgId: string,
+    locationId: string,
+    from: string,
+    to: string,
+    locale: Locale,
+  ): Promise<CsvFile> {
+    return this.reportCsv('till', orgId, locationId, from, to, locale);
+  }
+
+  private async reportCsv(
+    file: 'visits' | 'till',
     orgId: string,
     locationId: string,
     from: string,
@@ -838,7 +863,7 @@ export class BusinessApi {
     locale: Locale,
   ): Promise<CsvFile> {
     const query = new URLSearchParams({ from, to, locale }).toString();
-    const path = `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/visits-csv?${query}`;
+    const path = `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/${file}-csv?${query}`;
     if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
     let res = await this.fetchCsv(path);
     if (res.status === 401 && (await this.refresh())) res = await this.fetchCsv(path);
@@ -853,7 +878,7 @@ export class BusinessApi {
       );
     }
     const disposition = res.headers.get('content-disposition') ?? '';
-    const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? `visits-${from}-${to}.csv`;
+    const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? `${file}-${from}-${to}.csv`;
     // Spreadsheet programs need the byte order mark to read UTF-8 (fetch may drop it).
     const csv = await res.text();
     return { fileName, csv: csv.startsWith('\uFEFF') ? csv : `\uFEFF${csv}` };

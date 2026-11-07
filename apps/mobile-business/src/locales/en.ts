@@ -411,6 +411,9 @@ export const en: Dictionary = {
     csvHint: 'Every visit of this period for the accountant (no client contact details).',
     csvHintPhone:
       'Every visit of this period for the accountant (no client contacts) — send it by e-mail or save it to notes.',
+    tillCsv: 'Till CSV',
+    tillCsvHint:
+      'Cash put in, taken out and till closes of this period — a cash journal for the accountant.',
     csvFailed: 'Could not save the file.',
     empty: 'No visits in this period.',
     note: 'Revenue is paid visits after loyalty discounts.',
