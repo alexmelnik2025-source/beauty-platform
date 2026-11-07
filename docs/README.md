@@ -2152,3 +2152,22 @@ zamknięcia zmieniły się płatności gotówką lub wpłaty i wypłaty». Ма�
 строка «wpłaty 50,00 zł · wypłaty 10,00 zł». Суммы — текущие (если движение удалили после закрытия, оно уже не
 считается, а «Powinno być» остаётся таким, каким было при подсчёте). API: поля `cashInGrosze`, `cashOutGrosze` в
 `tillCloses.days` отчёта. Тест в `apps/api/test/till-close.spec.ts`, e2e `till-close.spec.ts` (скриншот 237).
+
+## «CSV kasy» — кассовый журнал для бухгалтера (задача 238)
+
+В «Raporty» кабинета рядом с «Pobierz CSV» у владельца и менеджера есть «CSV kasy» (в бизнес-приложении — кнопка под
+отчётом; в браузере файл сохраняется, на телефоне открывается «Поделиться»). Файл за выбранный период — строка на каждую
+«Wpłata do kasy» / «Wypłata z kasy» (сумма, причина, кто, во сколько) и на каждое «Zamknięcie kasy» (policzono, powinno
+być, różnica со знаком, notatka, kto); по дням, закрытие — последним в своём дне. Формат как у «Pobierz CSV»: UTF-8 с
+BOM, «;», десятичная запятая (точка для en), 4 языка. Мастер не видит и не скачивает (403). API: `GET
+…/reports/till-csv?from=&to=&locale=` (`apps/api/src/reports/till-csv.ts`), `BusinessApi.tillCsv`. Тесты
+`apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/api.test.ts`; e2e `till-close.spec.ts` (скриншоты 238,
+238-a).
+
+## «Kasa nie została zamknięta» (задача 239)
+
+Владелец и менеджер на сегодняшнем дне календаря кабинета и бизнес-приложения видят «Kasa z dnia … nie została
+zamknięta.» — если в последний день с наличными (визиты, оплаченные наличными, или wpłaty / wypłaty) за прошлые 14 дней
+кассу не закрыли. «Pokaż ten dzień» открывает этот день, где есть «Zamknij kasę». Закрыли — напоминание пропадает.
+Мастер его не видит (сервер отвечает 403). API: поле `unclosedDay` в `GET …/reports/till-close`. Тест
+`apps/api/test/till-close.spec.ts`, e2e `till-close.spec.ts` (скриншот 239).
