@@ -320,6 +320,38 @@ describe('"Zamknij kasę" (task 232)', () => {
     });
     expect(sent).toEqual([{ date: '2026-11-06', countedCashGrosze: 8000, note: 'Reszta' }]);
   });
+
+  it('notes cash put in or taken out and removes a mistake (task 236)', async () => {
+    const path = '/v1/organizations/o1/locations/l1/reports/till-movements';
+    const sent: unknown[] = [];
+    const { fetchFn } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a7', 'refresh-token-0123456789xyz')],
+      [`POST ${path}`]: (body) => {
+        sent.push(body);
+        return [201, { date: '2026-11-06', cashOutGrosze: 1000 }];
+      },
+      [`DELETE ${path}/m1`]: () => [200, { date: '2026-11-06', cashOutGrosze: 0 }],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('refresh-token-0123456789abc'),
+      fetchFn,
+    );
+    await api.restore();
+    const movement = {
+      date: '2026-11-06',
+      kind: 'out' as const,
+      amountGrosze: 1000,
+      note: 'Ręczniki',
+    };
+    await expect(api.addTillMovement('o1', 'l1', movement)).resolves.toMatchObject({
+      cashOutGrosze: 1000,
+    });
+    await expect(api.removeTillMovement('o1', 'l1', 'm1')).resolves.toMatchObject({
+      cashOutGrosze: 0,
+    });
+    expect(sent).toEqual([movement]);
+  });
 });
 
 describe('visit photos (task 80b)', () => {

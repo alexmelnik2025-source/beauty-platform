@@ -39,3 +39,28 @@ export function parseCash(text: string): number | null {
 export function signed(hundredths: number, format: (positive: number) => string): string {
   return `${hundredths > 0 ? '+' : hundredths < 0 ? '−' : ''}${format(Math.abs(hundredths))}`;
 }
+
+/**
+ * Task 236: what the form says should be in the till — with cash put in or taken out, the whole
+ * sum and its parts; otherwise just what the cash visits brought.
+ */
+export function expectedParts(
+  view: TillClose,
+):
+  | { kind: 'visits'; visits: number }
+  | { kind: 'withMovements'; total: number; visits: number; cashIn: number; cashOut: number } {
+  return view.movements.length === 0
+    ? { kind: 'visits', visits: view.visitsCashGrosze }
+    : {
+        kind: 'withMovements',
+        total: view.expectedCashGrosze,
+        visits: view.visitsCashGrosze,
+        cashIn: view.cashInGrosze,
+        cashOut: view.cashOutGrosze,
+      };
+}
+
+/** Task 236: a movement can be saved with an amount above zero and a reason. */
+export function movementReady(amount: number | null, note: string): boolean {
+  return amount !== null && amount > 0 && note.trim() !== '';
+}

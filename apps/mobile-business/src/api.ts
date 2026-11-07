@@ -805,6 +805,27 @@ export class BusinessApi {
     );
   }
 
+  /** Task 236: "Wpłata / wypłata" — cash put into ("in") or taken out of ("out") the till. */
+  addTillMovement(
+    orgId: string,
+    locationId: string,
+    movement: { date: string; kind: 'in' | 'out'; amountGrosze: number; note: string },
+  ): Promise<TillClose> {
+    return this.authed<TillClose>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/till-movements`,
+      movement,
+    );
+  }
+
+  /** Task 236: removes a cash movement noted by mistake; answers the till of its day. */
+  removeTillMovement(orgId: string, locationId: string, movementId: string): Promise<TillClose> {
+    return this.authed<TillClose>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/till-movements/${enc(movementId)}`,
+    );
+  }
+
   /**
    * Task 220: every visit of the period as the accountant's CSV (the same file as "Pobierz CSV"
    * in the cabinet; no client contacts). Same access as the report.

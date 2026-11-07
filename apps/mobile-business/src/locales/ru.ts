@@ -54,6 +54,19 @@ export const ru: Dictionary = {
     tillChanged:
       'После закрытия изменились оплаты наличными или внесения и выплаты — теперь {sum}.',
     tillRecount: 'Посчитать заново',
+    tillMove: 'Внесение / выплата',
+    tillMoveIn: 'Внесение в кассу',
+    tillMoveOut: 'Выплата из кассы',
+    tillMoveAmount: 'Сумма ({currency})',
+    tillMoveNote: 'Причина',
+    tillMoveHint: 'напр. сдача на начало дня, полотенца',
+    tillMoveInRow: 'Внесение {sum}',
+    tillMoveOutRow: 'Выплата {sum}',
+    tillMoveRemove: 'Удалить',
+    tillMoveRemoveLabel: 'Удалить: {what}',
+    tillMoves: 'Внесения и выплаты',
+    tillShouldBe:
+      'Должно быть в кассе: {sum} (за визиты наличными {visits}, внесения {in}, выплаты {out})',
     status: { confirmed: 'Подтверждён', completed: 'Завершён', no_show: 'Не пришёл' },
   },
   week: {

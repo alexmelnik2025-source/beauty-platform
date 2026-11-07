@@ -15,7 +15,8 @@ import { serveApp } from './mobile-app';
  * types the cash counted in the till — 80 zł — and sees "brakuje 10,00 zł" (screenshot 232),
  * then counts again and it matches (232-a). The business app shows the closed till under
  * "Kasa dnia" and counts it again (232-b). Task 233: the report lists the counted day (233),
- * and the business app's report too (235). Task 236: cash taken out of the till (236).
+ * and the business app's report too (235). Task 236: cash taken out of the till (236), put in from the
+ * business app (236-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -238,6 +239,21 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     await expect(appTill).toContainText('Klient nie wziął reszty');
     await appTill.scrollIntoViewIfNeeded();
     await shot(app, '232-b-business-app-till-close');
+
+    // Task 236 in the business app: 10 zł put into the till, then removed as a mistake.
+    await appTill.getByRole('button', { name: 'Wpłata / wypłata' }).click();
+    const appMove = app.getByTestId('till-move-form');
+    await appMove.getByRole('radio', { name: 'Wpłata do kasy' }).click();
+    await appMove.getByLabel(/Kwota/).fill('10');
+    await appMove.getByLabel('Powód').fill('Reszta');
+    await appMove.getByRole('button', { name: 'Zapisz', exact: true }).click();
+    const appMoves = appTill.getByTestId('till-moves');
+    await expect(appMoves).toContainText(/Wpłata 10,00\s*zł · Reszta/);
+    await expect(appTill.getByTestId('till-closed')).toContainText(/teraz 100,00\s*zł/);
+    await appMoves.scrollIntoViewIfNeeded();
+    await shot(app, '236-a-business-app-cash-in');
+    await appMoves.getByRole('button', { name: /Usuń: Wpłata 10,00\s*zł · Reszta/ }).click();
+    await expect(appMoves).toHaveCount(0);
 
     // Task 235: "Zamknięcia kasy" in the business app's report.
     await app.getByRole('button', { name: 'Raporty' }).click();
