@@ -27,6 +27,8 @@ export function ClientsScreen(props: {
   locale: Locale;
   salon: SalonChoice;
   timeZone: string;
+  /** Task 249: open with "Nowi (30 dni)" on (from the report). */
+  newcomers?: boolean;
   onBack: () => void;
 }) {
   const { api, t, salon, onBack } = props;
@@ -46,7 +48,7 @@ export function ClientsScreen(props: {
   // Task 245: only clients who agreed to the salon messages.
   const [consented, setConsented] = useState(false);
   // Task 248: only clients whose first visit was in the last 30 days, newest first.
-  const [newcomers, setNewcomers] = useState(false);
+  const [newcomers, setNewcomers] = useState(props.newcomers ?? false);
 
   const search = useCallback(
     async (text: string) => {

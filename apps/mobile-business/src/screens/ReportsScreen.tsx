@@ -28,6 +28,7 @@ import { shareCsv, type CsvShareTools } from '../share';
 import { signed } from '../tillClose';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
+import { ClientsScreen } from './ClientsScreen';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -51,6 +52,8 @@ export function ReportsScreen(props: {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
+  // Task 249: "Pokaż nowych klientów" opens the client list with the new clients.
+  const [newcomersOpen, setNewcomersOpen] = useState(false);
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
   const range = reportRange(period, today);
@@ -129,6 +132,20 @@ export function ReportsScreen(props: {
       {sub ? <Text style={styles.small}>{sub}</Text> : null}
     </View>
   );
+
+  if (newcomersOpen) {
+    return (
+      <ClientsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        newcomers
+        onBack={() => setNewcomersOpen(false)}
+      />
+    );
+  }
 
   if (clientId) {
     return (
@@ -552,6 +569,13 @@ export function ReportsScreen(props: {
                     </Text>
                   ))
                 : null}
+              {shown.scope !== 'own' ? (
+                <Button
+                  kind="link"
+                  label={r.newcomersList}
+                  onPress={() => setNewcomersOpen(true)}
+                />
+              ) : null}
               <Text style={styles.small}>{r.newcomersHint}</Text>
             </View>
           ) : null}

@@ -453,6 +453,7 @@ export const pl = {
     rebookingHint:
       'Klienci z tego okresu, którzy mają już kolejną wizytę (u dowolnego specjalisty).',
     newcomers: 'Nowi klienci — wrócili: {n}%',
+    newcomersList: 'Pokaż nowych klientów',
     newcomersCount: 'nowi: {clients} · wrócili: {returned} · mają wizytę: {booked}',
     newcomersHint:
       'Klienci z pierwszą wizytą w tym okresie: ilu przyszło ponownie, a ilu ma już zarezerwowaną wizytę.',

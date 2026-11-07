@@ -611,6 +611,11 @@ export default function ReportsPage() {
                     ))}
                   </ul>
                 ) : null}
+                {report.scope !== 'own' ? (
+                  <p className="small">
+                    <Link href={`/${locale}/app/clients?new=1`}>{t.reports.newcomersList}</Link>
+                  </p>
+                ) : null}
                 <p className="small muted">{t.reports.newcomersHint}</p>
               </section>
             ) : null}

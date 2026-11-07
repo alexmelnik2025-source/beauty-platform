@@ -454,6 +454,7 @@ export const en: Dictionary = {
     rebookingStaff: '{n}% · {rebooked}/{clients}',
     rebookingHint: 'Clients of this period who already have another visit (with any specialist).',
     newcomers: 'New clients — came back: {n}%',
+    newcomersList: 'Show the new clients',
     newcomersCount: 'new: {clients} · came back: {returned} · have a visit booked: {booked}',
     newcomersHint:
       'Clients with their first visit in this period: how many came again and how many have a visit booked.',
