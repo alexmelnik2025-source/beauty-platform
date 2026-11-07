@@ -302,7 +302,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByText('opłacone wizyty: 3')).toBeVisible();
     await expect(app.getByText(/240,00\s*zł/)).toBeVisible();
     await expect(app.getByText('Ilian').first()).toBeVisible();
-    await expect(app.getByText(/150,00\s*zł/)).toBeVisible();
+    await expect(app.getByText(/150,00\s*zł/).first()).toBeVisible();
     await shot(app, '75-business-app-reports');
     // Monday to Sunday in the app too (task 32).
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
