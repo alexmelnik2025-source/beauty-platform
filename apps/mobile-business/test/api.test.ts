@@ -266,6 +266,29 @@ describe('BusinessApi', () => {
       'GET /v1/organizations/o1/customers?limit=50',
     ]);
   });
+  it('asks for the clients in the chosen order (task 280)', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a1', 'r2-refresh-token-0123456789')],
+      'GET /v1/organizations/o1/customers?limit=50&sort=visits': () => [200, []],
+      'GET /v1/organizations/o1/customers?limit=50&offset=50&sort=recent': () => [200, []],
+      'GET /v1/organizations/o1/customers?limit=50': () => [200, []],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('saved-refresh-token-0123456789'),
+      fetchFn,
+    );
+    const page = (offset: number, sort: 'name' | 'recent' | 'visits') =>
+      api.customers('o1', '', 50, 0, '', 0, false, 0, false, false, false, offset, sort);
+    await expect(page(0, 'visits')).resolves.toEqual([]);
+    await expect(page(50, 'recent')).resolves.toEqual([]);
+    await expect(page(0, 'name')).resolves.toEqual([]);
+    expect(calls.map((call) => call.key).slice(-3)).toEqual([
+      'GET /v1/organizations/o1/customers?limit=50&sort=visits',
+      'GET /v1/organizations/o1/customers?limit=50&offset=50&sort=recent',
+      'GET /v1/organizations/o1/customers?limit=50',
+    ]);
+  });
   it('moves and cancels a visit with the version it read', async () => {
     const { fetchFn, calls } = fakeServer({
       'POST /v1/auth/refresh': () => [200, tokens('a1', 'r2-refresh-token-0123456789')],

@@ -12,6 +12,7 @@ import {
 import type {
   BusinessApi,
   ClientFilters,
+  ClientSort,
   CustomerList,
   CustomerSegments,
   CustomerTags,
@@ -29,6 +30,8 @@ import type { SalonChoice } from './SalonsScreen';
 const PAGE = 50;
 /** Task 140: "who hasn't been for a while" — 0 = everyone. */
 const INACTIVE = [0, 30, 60, 90, 180] as const;
+/** Task 280: the orders of the list. */
+const SORTS = ['name', 'recent', 'visits'] as const satisfies readonly ClientSort[];
 
 /** Task 273: " · 3" after a quick filter's name — how many clients it would show. */
 function segmentCount(value: number | null | undefined): string {
@@ -61,6 +64,8 @@ export function ClientsScreen(props: {
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [inactiveDays, setInactiveDays] = useState(0);
+  // Task 280: A–Z, the latest visit first or the most visits first.
+  const [sort, setSort] = useState<ClientSort>('name');
   // Task 224: only clients with this label; '' = everyone.
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState<CustomerTags['tags']>([]);
@@ -106,6 +111,10 @@ export function ClientsScreen(props: {
     once,
   );
 
+  // Task 280: these filters keep their own order (the newest, the most recently due…).
+  const ownOrder = birthdays || newcomers || overdue || noShows || once;
+  const order: ClientSort = ownOrder ? 'name' : sort;
+
   // Task 277: a full page came back — there may be more clients ("Pokaż więcej klientów").
   const [hasMore, setHasMore] = useState(false);
   const [moreBusy, setMoreBusy] = useState(false);
@@ -127,6 +136,7 @@ export function ClientsScreen(props: {
         noShows,
         once,
         list.length,
+        order,
       );
       const seen = new Set(list.map((client) => client.id));
       setList([...list, ...page.filter((client) => !seen.has(client.id))]);
@@ -169,6 +179,8 @@ export function ClientsScreen(props: {
           overdue,
           noShows,
           once,
+          0,
+          order,
         );
         setList(page);
         setHasMore(page.length === PAGE);
@@ -180,7 +192,20 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, inactiveDays, tag, birthdays, consented, newcomers, overdue, noShows, once],
+    [
+      api,
+      salon,
+      t,
+      inactiveDays,
+      tag,
+      birthdays,
+      consented,
+      newcomers,
+      overdue,
+      noShows,
+      once,
+      order,
+    ],
   );
 
   const loadTags = useCallback(async () => {
@@ -281,6 +306,29 @@ export function ClientsScreen(props: {
         ))}
       </View>
       {inactiveDays ? <Text style={styles.muted}>{c.inactiveHint}</Text> : null}
+      {ownOrder ? null : (
+        <>
+          <Text style={styles.muted}>{c.sort}</Text>
+          <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={c.sort}>
+            {SORTS.map((value) => (
+              <Pressable
+                key={value}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: value === sort }}
+                onPress={() => {
+                  setQuery('');
+                  setSort(value);
+                }}
+                style={[styles.chip, value === sort && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, value === sort && styles.chipTextOn]}>
+                  {value === 'name' ? c.sortName : value === 'recent' ? c.sortRecent : c.sortVisits}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      )}
       <View style={styles.row}>
         <Pressable
           accessibilityRole="switch"

@@ -1,11 +1,13 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 279: "Kolejność" above the cabinet's client list — A–Z (the default), the latest visit
  * first, or the most visits first. Zenon came three times, Adam once (the latest), Basia never.
  * The chosen order stays in the address (a reload keeps it). Screenshot 279.
+ * Task 280: the same choice in the business app's "Klienci" (screenshot 280).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -147,4 +149,38 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await expect(order).toHaveCount(0);
   await expect(rows).toHaveCount(2);
   await desk.close();
+
+  // Task 280: the business app.
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const phone = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'pl-PL',
+      isMobile: true,
+      extraHTTPHeaders: freshAddress(),
+    });
+    const app = await phone.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const code = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Klienci' }).click();
+    const cards = app.getByRole('button', { name: /^Karta klienta: / });
+    await expect(cards).toHaveCount(3);
+    await expect(cards.nth(0)).toContainText('Adam Świeży');
+    await app.getByRole('radio', { name: 'Najwięcej wizyt' }).click();
+    await expect(cards.nth(0)).toContainText('Zenon Stały');
+    await expect(cards.nth(1)).toContainText('Adam Świeży');
+    await expect(cards.nth(2)).toContainText('Basia Bez Wizyt');
+    await shot(app, '280-business-app-clients-sort');
+    await app.getByRole('radio', { name: 'Ostatnia wizyta' }).click();
+    await expect(cards.nth(0)).toContainText('Adam Świeży');
+    await expect(cards.nth(1)).toContainText('Zenon Stały');
+    await phone.close();
+  } finally {
+    businessApp.server.close();
+  }
 });

@@ -197,6 +197,11 @@ export const ru: Dictionary = {
     inactiveHint:
       'Уже были, но не за это время и без записи. Предложения — только тем, кто согласился на маркетинг.',
     inactiveNone: 'Никого — все возвращаются.',
+    /** Task 280: the order of the client list. */
+    sort: 'Порядок',
+    sortName: 'А–Я',
+    sortRecent: 'Последний визит',
+    sortVisits: 'Больше визитов',
     tagFilter: 'Теги',
     allTags: 'Все',
     addTag: 'Добавить тег',

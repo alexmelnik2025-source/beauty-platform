@@ -196,6 +196,11 @@ export const pl = {
     inactiveHint:
       'Byli już u nas, ale nie od tego czasu i nie mają wizyty. Ofertę wysyłaj tylko osobom ze zgodą marketingową.',
     inactiveNone: 'Nikt — wszyscy wracają.',
+    /** Task 280: the order of the client list. */
+    sort: 'Kolejność',
+    sortName: 'A–Z',
+    sortRecent: 'Ostatnia wizyta',
+    sortVisits: 'Najwięcej wizyt',
     tagFilter: 'Tagi',
     allTags: 'Wszystkie',
     addTag: 'Dodaj tag',

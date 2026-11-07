@@ -196,6 +196,11 @@ export const uk: Dictionary = {
     inactiveHint:
       'Уже були, але не за цей час і без запланованого візиту. Пропозиції — лише тим, хто погодився на маркетинг.',
     inactiveNone: 'Нікого — усі повертаються.',
+    /** Task 280: the order of the client list. */
+    sort: 'Порядок',
+    sortName: 'А–Я',
+    sortRecent: 'Останній візит',
+    sortVisits: 'Найбільше візитів',
     tagFilter: 'Теги',
     allTags: 'Усі',
     addTag: 'Додати тег',

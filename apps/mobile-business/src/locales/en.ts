@@ -198,6 +198,11 @@ export const en: Dictionary = {
     inactiveHint:
       'They came before, but not in this time, and have nothing booked. Send offers only to people who agreed to marketing.',
     inactiveNone: 'Nobody — everyone comes back.',
+    /** Task 280: the order of the client list. */
+    sort: 'Order',
+    sortName: 'A–Z',
+    sortRecent: 'Latest visit',
+    sortVisits: 'Most visits',
     tagFilter: 'Tags',
     allTags: 'All',
     addTag: 'Add a tag',
