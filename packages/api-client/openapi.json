@@ -6467,6 +6467,13 @@
             "schema": {}
           },
           {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Task 277: skip this many clients (the next page of the list)",
+            "schema": {}
+          },
+          {
             "name": "limit",
             "required": false,
             "in": "query",

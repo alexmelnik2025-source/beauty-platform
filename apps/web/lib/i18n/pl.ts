@@ -1067,6 +1067,7 @@ export const pl = {
     exportList: 'Eksportuj tę listę (CSV)',
     exportListHint:
       'Tylko klienci z listy poniżej — z włączonymi filtrami i wyszukiwaniem, w tej samej kolejności.',
+    more: 'Pokaż więcej klientów',
     privacy: 'Dane osobowe (RODO)',
     privacyHint:
       'Na prośbę klienta: pobierz wszystko, co salon o nim przechowuje, albo usuń jego dane.',

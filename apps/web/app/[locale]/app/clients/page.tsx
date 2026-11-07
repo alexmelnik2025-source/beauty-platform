@@ -16,6 +16,8 @@ type ClientRow = Customer;
 
 /** Task 140: the choices of "haven't been for a while", in days. */
 const INACTIVE_DAYS = [30, 60, 90, 180];
+/** Task 277: clients per page of the list (the most the API gives at once). */
+const PAGE = 100;
 
 type ClientDetail = CustomerDetail;
 
@@ -46,6 +48,9 @@ export default function ClientsPage() {
   const [once, setOnce] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
+  // Task 277: a full page came back — there may be more clients ("Pokaż więcej").
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [open, setOpen] = useState<string | 'new' | null>(null);
   const [error, setError] = useState('');
   // Task 272: the filters were read from the address; from now on they are written back to it.
@@ -116,15 +121,33 @@ export default function ClientsPage() {
 
   const load = useCallback(async () => {
     try {
-      setRows(
-        await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
-          query: { ...filters, limit: 100 },
-        }),
-      );
+      const page = await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
+        query: { ...filters, limit: PAGE },
+      });
+      setRows(page);
+      setHasMore(page.length === PAGE);
     } catch (err) {
       setError(errorText(t, err));
     }
   }, [orgId, filters, t]);
+
+  /** Task 277: the next page of the same list, added below. */
+  async function loadMore(): Promise<void> {
+    if (!rows || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
+        query: { ...filters, limit: PAGE, offset: rows.length },
+      });
+      const seen = new Set(rows.map((c) => c.id));
+      setRows([...rows, ...page.filter((c) => !seen.has(c.id))]);
+      setHasMore(page.length === PAGE);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
   const loadTags = useCallback(async () => {
@@ -357,6 +380,16 @@ export default function ClientsPage() {
             ))}
           </ul>
         )}
+        {rows?.length && hasMore ? (
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            disabled={loadingMore}
+            onClick={() => void loadMore()}
+          >
+            {t.clients.more}
+          </button>
+        ) : null}
       </div>
       {open ? (
         <ClientSheet

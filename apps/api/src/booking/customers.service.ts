@@ -19,8 +19,17 @@ import type {
 
 export type { CustomerDetailResponse, CustomerResponse } from './booking.responses';
 
-/** The filters of the client list, without how many rows to return. */
-export type ClientFilters = Omit<ListCustomersQuery, 'limit'>;
+/** The filters of the client list, without which rows to return. */
+export type ClientFilters = Omit<ListCustomersQuery, 'limit' | 'offset'>;
+
+/** Task 277: which rows of the list — `limit` of them after the first `offset`. */
+interface Page {
+  offset: number;
+  limit: number;
+}
+
+const slicePage = <T>(rows: T[], page: Page | null): T[] =>
+  page ? rows.slice(page.offset, page.offset + page.limit) : rows;
 
 const clientExists = (code: string, message: string, existingId: string): AppException =>
   new AppException(HttpStatus.CONFLICT, code, message, [
@@ -49,7 +58,7 @@ export class CustomersService {
   ) {}
 
   async list(m: MembershipContext, query: ListCustomersQuery): Promise<CustomerResponse[]> {
-    const rows = await this.matching(m, query, query.limit);
+    const rows = await this.matching(m, query, { offset: query.offset, limit: query.limit });
     return rows.map((c) => toCustomer(c, m));
   }
 
@@ -58,18 +67,21 @@ export class CustomersService {
    * list's order — for the CSV of the filtered list.
    */
   async matchingIds(m: MembershipContext, query: ClientFilters): Promise<string[]> {
-    const rows = await this.matching(m, query, undefined);
+    const rows = await this.matching(m, query, null);
     return rows.map((c) => c.id);
   }
 
-  /** The clients the list shows (`limit` undefined: all of them), in the list's order. */
+  /**
+   * The clients the list shows, in the list's order: one page of them (task 277: `offset` for
+   * "Pokaż więcej"), or all of them with `page` null.
+   */
   private async matching(
     m: MembershipContext,
     query: ClientFilters,
-    limit: number | undefined,
+    page: Page | null,
   ): Promise<Customer[]> {
     if (query.marketing && !m.permissions.viewClientContacts) return [];
-    if (query.birthdayDays) return this.birthdays(m, query, limit);
+    if (query.birthdayDays) return this.birthdays(m, query, page);
     // Task 248: the newest clients first, by their first visit.
     const newcomers = query.newDays ? await this.newcomers(m, query.newDays) : null;
     // Task 262: clients past their usual time to come back, the most recently due first.
@@ -104,8 +116,11 @@ export class CustomersService {
           once ? { id: { in: [...once.keys()] } } : {},
         ],
       },
-      orderBy: { name: 'asc' },
-      take: newcomers || overdue || noShows || once ? undefined : limit,
+      // The id keeps clients with the same name in one order from page to page (task 277).
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      ...(newcomers || overdue || noShows || once || !page
+        ? {}
+        : { skip: page.offset, take: page.limit }),
     });
     if (newcomers) {
       rows.sort((a, b) => newcomers.get(b.id)!.getTime() - newcomers.get(a.id)!.getTime());
@@ -119,7 +134,7 @@ export class CustomersService {
     if (once) {
       rows.sort((a, b) => once.get(b.id)!.getTime() - once.get(a.id)!.getTime());
     }
-    return rows.slice(0, limit);
+    return newcomers || overdue || noShows || once ? slicePage(rows, page) : rows;
   }
 
   /**
@@ -203,7 +218,7 @@ export class CustomersService {
   private async birthdays(
     m: MembershipContext,
     query: ClientFilters,
-    limit: number | undefined,
+    page: Page | null,
   ): Promise<Customer[]> {
     if (!m.permissions.viewClientContacts) return [];
     const days = birthdayWindow(await this.today(m), query.birthdayDays ?? 1);
@@ -225,9 +240,12 @@ export class CustomersService {
           query.marketing ? { id: { in: await this.consented(m.organizationId) } } : {},
         ],
       },
-      orderBy: { name: 'asc' },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
-    return rows.sort((a, b) => days.get(a.birthday!)! - days.get(b.birthday!)!).slice(0, limit);
+    return slicePage(
+      rows.sort((a, b) => days.get(a.birthday!)! - days.get(b.birthday!)!),
+      page,
+    );
   }
 
   /** Task 240: today in the caller's first salon (the order of the salons in the cabinet). */

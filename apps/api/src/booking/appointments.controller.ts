@@ -364,6 +364,11 @@ export class CustomersController {
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Task 277: skip this many clients (the next page of the list)',
+  })
+  @ApiQuery({
     name: 'inactiveDays',
     required: false,
     description:

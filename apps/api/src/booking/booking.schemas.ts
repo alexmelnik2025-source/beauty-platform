@@ -211,6 +211,8 @@ export const updateCustomerSchema = z.object({
 export const listCustomersSchema = z.object({
   search: z.string().trim().max(100).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
+  /** Task 277: skip this many clients ("Pokaż więcej" asks for the next page). */
+  offset: z.coerce.number().int().min(0).max(100_000).default(0),
   /**
    * Task 140 — "haven't been for a while": only clients who have come before (a visit that took
    * place) but not in the last N days, and have no visit booked ahead.

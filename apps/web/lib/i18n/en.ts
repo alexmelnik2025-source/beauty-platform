@@ -1069,6 +1069,7 @@ export const en: Dict = {
     exportList: 'Export this list (CSV)',
     exportListHint:
       'Only the clients in the list below — with the filters and search that are on, in the same order.',
+    more: 'Show more clients',
     privacy: 'Personal data (GDPR)',
     privacyHint:
       "On the client's request: download everything the salon keeps about them, or erase their data.",

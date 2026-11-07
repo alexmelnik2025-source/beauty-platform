@@ -398,6 +398,25 @@ describe('"Nowi klienci" (task 248)', () => {
     await ctx.http().get(`${customersBase}?newDays=365`).set(owner.auth).expect(400);
   });
 
+  it('"Pokaż więcej": the next page with offset, also on a filtered list (task 277)', async () => {
+    // Jan: first came 5 days ago; Ewa — 3 days ago; Olek — 2 days ago.
+    await pastVisit(kasiaId, 5);
+    customerId = await client('Ewa Nowa', '+48600000003');
+    await pastVisit(kasiaId, 3);
+    customerId = await client('Olek Nowy', '+48600000004');
+    await pastVisit(tomekId, 2);
+    await client('Adam Bez Wizyt', '+48600000005');
+
+    expect(await names('limit=2')).toEqual(['Adam Bez Wizyt', 'Ewa Nowa']);
+    expect(await names('limit=2&offset=2')).toEqual(['Jan Nowak', 'Olek Nowy']);
+    expect(await names('limit=2&offset=4')).toEqual([]);
+    // A filtered list keeps its own order from page to page.
+    expect(await names('newDays=30&limit=2')).toEqual(['Olek Nowy', 'Ewa Nowa']);
+    expect(await names('newDays=30&limit=2&offset=2')).toEqual(['Jan Nowak']);
+    expect(await names('newDays=30&limit=2&offset=2', manager.auth)).toEqual(['Jan Nowak']);
+    await ctx.http().get(`${customersBase}?offset=-1`).set(owner.auth).expect(400);
+  });
+
   it("another organization's clients do not leak", async () => {
     await pastVisit(kasiaId, 5);
     const stranger = await signUp(ctx, 'stranger@example.com');

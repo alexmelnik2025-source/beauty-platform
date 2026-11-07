@@ -9045,6 +9045,8 @@ export interface operations {
                 tag?: unknown;
                 /** @description Task 140: only clients who came before but not in the last N days (14–730) and have nothing booked ahead */
                 inactiveDays?: unknown;
+                /** @description Task 277: skip this many clients (the next page of the list) */
+                offset?: unknown;
                 limit?: unknown;
                 search?: unknown;
             };

@@ -10,10 +10,12 @@ import { CustomersService } from './customers.service';
 
 /** Task 21: the owner downloads the salon's client list as a CSV file. */
 
-export const exportCustomersSchema = listCustomersSchema.omit({ limit: true }).extend({
-  /** Language of the column names and of "yes / no". */
-  lang: z.enum(['pl', 'uk', 'ru', 'en']).default('pl'),
-});
+export const exportCustomersSchema = listCustomersSchema
+  .omit({ limit: true, offset: true })
+  .extend({
+    /** Language of the column names and of "yes / no". */
+    lang: z.enum(['pl', 'uk', 'ru', 'en']).default('pl'),
+  });
 
 /**
  * Task 275: the filters of the client list (search, label, quick filters). With any of them the
