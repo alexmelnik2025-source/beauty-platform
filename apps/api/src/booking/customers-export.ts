@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
 import { PrismaService } from '../prisma/prisma.service';
+import { amount } from '../reports/visits-csv';
 import { instantToLocal } from '../scheduling/time';
 
 /** Task 21: the owner downloads the salon's client list as a CSV file. */
@@ -27,6 +28,8 @@ const HEADERS = {
       'Klient od',
       'Urodziny',
       'Nieobecności (12 mies.)',
+      'Następna wizyta',
+      'Zapłacono łącznie',
       'Notatka',
     ],
     yes: 'tak',
@@ -45,6 +48,8 @@ const HEADERS = {
       'Клієнт з',
       'День народження',
       'Неявки (12 міс.)',
+      'Наступний візит',
+      'Сплачено разом',
       'Нотатка',
     ],
     yes: 'так',
@@ -63,6 +68,8 @@ const HEADERS = {
       'Клиент с',
       'День рождения',
       'Неявки (12 мес.)',
+      'Следующий визит',
+      'Оплачено всего',
       'Заметка',
     ],
     yes: 'да',
@@ -81,6 +88,8 @@ const HEADERS = {
       'Client since',
       'Birthday',
       'No-shows (12 months)',
+      'Next visit',
+      'Paid in total',
       'Note',
     ],
     yes: 'yes',
@@ -112,44 +121,91 @@ export class CustomersExportService {
    */
   async csv(m: MembershipContext, userId: string, query: ExportCustomersQuery): Promise<string> {
     const organizationId = m.organizationId;
-    const [customers, consents, visits, location, missed] = await Promise.all([
-      this.prisma.customer.findMany({
-        where: { organizationId },
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      }),
-      this.prisma.consentRecord.findMany({
-        where: { type: 'marketing', customer: { organizationId } },
-        orderBy: [{ customerId: 'asc' }, { createdAt: 'desc' }],
-        distinct: ['customerId'],
-        select: { customerId: true, granted: true },
-      }),
-      this.prisma.appointment.groupBy({
-        by: ['customerId'],
-        where: { status: 'completed', location: { organizationId }, customerId: { not: null } },
-        _count: { _all: true },
-        _max: { startAt: true },
-      }),
-      this.prisma.location.findFirst({
-        where: { organizationId },
-        orderBy: { createdAt: 'asc' },
-        select: { timezone: true },
-      }),
-      // Task 266: visits marked "did not come" in the last 365 days.
-      this.prisma.appointment.groupBy({
-        by: ['customerId'],
-        where: {
-          status: 'no_show',
-          location: { organizationId },
-          customerId: { not: null },
-          startAt: { gte: new Date(Date.now() - 365 * 86_400_000) },
-        },
-        _count: { _all: true },
-      }),
-    ]);
+    const [customers, consents, visits, location, missed, upcoming, paid, locations] =
+      await Promise.all([
+        this.prisma.customer.findMany({
+          where: { organizationId },
+          orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        }),
+        this.prisma.consentRecord.findMany({
+          where: { type: 'marketing', customer: { organizationId } },
+          orderBy: [{ customerId: 'asc' }, { createdAt: 'desc' }],
+          distinct: ['customerId'],
+          select: { customerId: true, granted: true },
+        }),
+        this.prisma.appointment.groupBy({
+          by: ['customerId'],
+          where: { status: 'completed', location: { organizationId }, customerId: { not: null } },
+          _count: { _all: true },
+          _max: { startAt: true },
+        }),
+        this.prisma.location.findFirst({
+          where: { organizationId },
+          orderBy: { createdAt: 'asc' },
+          select: { timezone: true },
+        }),
+        // Task 266: visits marked "did not come" in the last 365 days.
+        this.prisma.appointment.groupBy({
+          by: ['customerId'],
+          where: {
+            status: 'no_show',
+            location: { organizationId },
+            customerId: { not: null },
+            startAt: { gte: new Date(Date.now() - 365 * 86_400_000) },
+          },
+          _count: { _all: true },
+        }),
+        // Task 267: the nearest booked visit from now on.
+        this.prisma.appointment.groupBy({
+          by: ['customerId'],
+          where: {
+            status: 'confirmed',
+            location: { organizationId },
+            customerId: { not: null },
+            startAt: { gte: new Date() },
+          },
+          _min: { startAt: true },
+        }),
+        // Task 268: what the client paid — the same rule as "Zapłacono" in the client card.
+        this.prisma.appointment.groupBy({
+          by: ['customerId', 'locationId'],
+          where: {
+            location: { organizationId },
+            customerId: { not: null },
+            paidAt: { not: null },
+            status: { not: 'cancelled' },
+          },
+          _sum: { priceGrosze: true, discountGrosze: true },
+        }),
+        this.prisma.location.findMany({
+          where: { organizationId },
+          select: { id: true, currency: true },
+        }),
+      ]);
     const timeZone = location?.timezone ?? 'Europe/Warsaw';
     const consent = new Map(consents.map((c) => [c.customerId, c.granted]));
     const done = new Map(visits.map((v) => [v.customerId, v]));
     const noShows = new Map(missed.map((v) => [v.customerId, v._count._all]));
+    const next = new Map(upcoming.map((v) => [v.customerId, v._min.startAt]));
+    const currencyOf = new Map(locations.map((l) => [l.id, l.currency]));
+    const oneCurrency = new Set(locations.map((l) => l.currency)).size <= 1;
+    const paidBy = new Map<string, Map<string, number>>();
+    for (const row of paid) {
+      if (!row.customerId) continue;
+      const currency = currencyOf.get(row.locationId) ?? 'PLN';
+      const sums = paidBy.get(row.customerId) ?? new Map<string, number>();
+      const sum = (row._sum.priceGrosze ?? 0) - (row._sum.discountGrosze ?? 0);
+      sums.set(currency, (sums.get(currency) ?? 0) + sum);
+      paidBy.set(row.customerId, sums);
+    }
+    // One currency in the network: a plain number the spreadsheet can add up ("80,00");
+    // several: each with its currency ("80,00 PLN + 20,00 EUR"), the biggest first.
+    const paidCell = (customerId: string): string => {
+      const sums = [...(paidBy.get(customerId) ?? [])].sort((a, b) => b[1] - a[1]);
+      if (sums.length === 0) return oneCurrency ? amount(0, query.lang) : '';
+      if (oneCurrency) return amount(sums[0]![1], query.lang);
+      return sums.map(([currency, sum]) => `${amount(sum, query.lang)} ${currency}`).join(' + ');
+    };
     const words = HEADERS[query.lang];
     const day = (d: Date | null | undefined) =>
       d ? instantToLocal(d.getTime(), timeZone).date : '';
@@ -171,6 +227,8 @@ export class CustomersExportService {
           // Task 242: "15.03" — day and month, no year is kept.
           c.birthday ? `${c.birthday.slice(3)}.${c.birthday.slice(0, 2)}` : '',
           String(noShows.get(c.id) ?? 0),
+          day(next.get(c.id)),
+          paidCell(c.id),
           c.note ?? '',
         ]
           .map(csvCell)

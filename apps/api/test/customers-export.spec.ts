@@ -142,6 +142,41 @@ describe('clients CSV export', () => {
         },
       });
     }
+    // Task 268: the completed visit was paid (80 zł, 5 zł off); a cancelled paid one never counts.
+    await ctx.prisma.appointment.update({
+      where: { id: booked.body.id },
+      data: { paidAt: past, discountGrosze: 500 },
+    });
+    // Task 267: Żaneta is booked again in two days.
+    await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId: service.body.id,
+        staffId: staff.body.id,
+        start: start.toISOString(),
+        allowOutsideHours: true,
+        customerId: zaneta.id,
+      })
+      .expect(201);
+    const later = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId: service.body.id,
+        staffId: staff.body.id,
+        start: new Date(start.getTime() + 5 * 86_400_000).toISOString(),
+        allowOutsideHours: true,
+        customerId: zaneta.id,
+      })
+      .expect(201);
+    await ctx.prisma.appointment.update({
+      where: { id: later.body.id },
+      data: { status: 'cancelled', paidAt: new Date() },
+    });
+
     await ctx.prisma.consentRecord.create({
       data: { customerId: zaneta.id, type: 'marketing', version: '1', granted: true },
     });
@@ -190,6 +225,8 @@ describe('clients CSV export', () => {
         'Klient od',
         'Urodziny',
         'Nieobecności (12 mies.)',
+        'Następna wizyta',
+        'Zapłacono łącznie',
         'Notatka',
       ],
       [
@@ -204,6 +241,8 @@ describe('clients CSV export', () => {
         today,
         '05.03',
         '0',
+        '',
+        '0,00',
         "'=1+1",
       ],
       [
@@ -218,6 +257,8 @@ describe('clients CSV export', () => {
         today,
         '',
         '2',
+        addDays(today, 2),
+        '75,00',
         '',
       ],
     ]);
@@ -225,12 +266,76 @@ describe('clients CSV export', () => {
     const english = await ctx.http().get(`${exportUrl()}?lang=en`).set(owner.auth).expect(200);
     expect(rows(english.text)[0]![0]).toBe('Name');
     expect(rows(english.text)[2]![5]).toBe('yes');
+    expect(rows(english.text)[0]!.slice(11, 13)).toEqual(['Next visit', 'Paid in total']);
+    expect(rows(english.text)[2]![12]).toBe('75.00');
     await ctx.http().get(`${exportUrl()}?lang=xx`).set(owner.auth).expect(400);
 
     const audit = await ctx.prisma.auditLog.findMany({
       where: { organizationId: orgId, action: 'customers.exported' },
     });
     expect(audit).toHaveLength(2);
+  });
+
+  it('"Zapłacono łącznie" per currency when the salons use different ones (task 268)', async () => {
+    const service = await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(owner.auth)
+      .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 })
+      .expect(201);
+    const staff = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Kasia', serviceIds: [service.body.id] })
+      .expect(201);
+    const client = await ctx
+      .http()
+      .post(`/v1/organizations/${orgId}/customers`)
+      .set(owner.auth)
+      .send({ name: 'Petr Novák', phone: '+420600100200' })
+      .expect(201);
+    const home = await ctx.prisma.location.findFirstOrThrow({ where: { organizationId: orgId } });
+    const praha = await ctx.prisma.location.create({
+      data: {
+        organizationId: orgId,
+        name: 'Barber Praha',
+        slug: 'barber-praha',
+        addressLine: 'Václavské nám. 1',
+        city: 'Praha',
+        postalCode: '110 00',
+        currency: 'CZK',
+      },
+    });
+    const visit = (locationId: string, priceGrosze: number, daysAgo: number) => {
+      const startAt = new Date(Date.now() - daysAgo * 86_400_000);
+      const endAt = new Date(startAt.getTime() + 30 * 60_000);
+      return ctx.prisma.appointment.create({
+        data: {
+          locationId,
+          staffId: staff.body.id,
+          serviceId: service.body.id,
+          customerId: client.body.id,
+          status: 'completed',
+          source: 'manual',
+          startAt,
+          endAt,
+          blockedUntil: endAt,
+          priceGrosze,
+          durationMinutes: 30,
+          bufferMinutes: 0,
+          paidAt: endAt,
+        },
+      });
+    };
+    await visit(home.id, 8000, 3);
+    await visit(praha.id, 50000, 5);
+    await visit(praha.id, 25050, 7);
+
+    const res = await ctx.http().get(exportUrl()).set(owner.auth).expect(200);
+    const [header, petr] = rows(res.text);
+    expect(petr![header!.indexOf('Zapłacono łącznie')]).toBe('750,50 CZK + 80,00 PLN');
+    expect(petr![header!.indexOf('Następna wizyta')]).toBe('');
   });
 
   it('only the owner: managers and staff members cannot take the client list', async () => {
