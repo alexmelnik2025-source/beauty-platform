@@ -38,6 +38,8 @@ import { dialForTimeZone } from '../phone';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { presetChoice, type NewVisitPreset } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
+import type { PaymentMethod } from '../payment';
 
 type Client = { id: string; name: string; phone: string | null } | null;
 
@@ -79,6 +81,8 @@ export function NewVisitScreen(props: {
   const [walkInDay, setWalkInDay] = useState(props.today);
   const [walkInTime, setWalkInTime] = useState('');
   const [paid, setPaid] = useState(false);
+  /** Task 227: how the walk-in paid (optional). */
+  const [paidWith, setPaidWith] = useState<PaymentMethod | null>(null);
   const [search, setSearch] = useState('');
   const [found, setFound] = useState<CustomerList | null>(null);
   const [client, setClient] = useState<Client>(props.preset?.customer ?? null);
@@ -218,7 +222,7 @@ export function NewVisitScreen(props: {
           client: customer,
           locale: props.locale,
           note,
-          walkIn: walkIn ? { paid } : null,
+          walkIn: walkIn ? { paid, method: paidWith } : null,
         }),
       );
       props.onCreated(created);
@@ -329,6 +333,7 @@ export function NewVisitScreen(props: {
               />
               {problem === 'time' ? <ErrorText>{n.badTime}</ErrorText> : null}
               <Check label={n.paid} checked={paid} onPress={() => setPaid(!paid)} />
+              {paid ? <PaymentMethodPicker t={t} value={paidWith} onChange={setPaidWith} /> : null}
             </Card>
           ) : (
             <>

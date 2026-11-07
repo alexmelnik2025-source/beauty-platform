@@ -90,6 +90,15 @@ export const pl = {
     markPaid: 'Opłacono',
     unmarkPaid: 'Cofnij opłatę (zwrot)',
     paidHint: 'Za opłaconą wizytę klient dostaje pieczątki lub punkty programu lojalnościowego.',
+    paymentMethod: 'Sposób płatności',
+    paymentMethodHint: 'Jak klient zapłacił — do raportu i rozliczenia kasy. Można pominąć.',
+    paymentMethods: {
+      cash: 'Gotówka',
+      card: 'Karta',
+      blik: 'BLIK',
+      transfer: 'Przelew',
+      other: 'Inna',
+    },
     notStarted: '„Przyszedł” i „Nie przyszedł” można zaznaczyć, gdy wizyta się zacznie.',
     move: 'Przenieś',
     bookAgain: 'Umów ponownie',
@@ -390,6 +399,9 @@ export const pl = {
     busyHours: 'Godziny szczytu',
     busyHoursHint:
       'Godziny, o których zaczyna się najwięcej wizyt (bez odwołanych). Pełna tabela — w „Raporty” w kabinecie.',
+    payments: 'Sposoby płatności',
+    paymentsUnknown: 'Nie podano',
+    paymentsRow: '{amount} · wizyty: {n}',
   },
   team: {
     open: 'Zespół',

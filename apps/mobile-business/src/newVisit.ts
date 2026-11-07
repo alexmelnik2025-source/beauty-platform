@@ -9,6 +9,7 @@ import {
 } from './api';
 import { addDays } from './day';
 import { normalizePhone } from './phone';
+import type { PaymentMethod } from './payment';
 import type { NewVisitPreset } from './waitlist';
 
 /**
@@ -156,7 +157,7 @@ export function newAppointmentBody(input: {
   /** Language of the client's emails (the language of the app for a new client). */
   locale: Locale;
   note: string;
-  walkIn: { paid: boolean } | null;
+  walkIn: { paid: boolean; method?: PaymentMethod | null } | null;
 }): NewAppointment {
   const body: NewAppointment = {
     serviceId: input.serviceId,
@@ -169,7 +170,10 @@ export function newAppointmentBody(input: {
   if (note) body.note = note.slice(0, 500);
   if (input.walkIn) {
     body.alreadyHappened = true;
-    if (input.walkIn.paid) body.paid = true;
+    if (input.walkIn.paid) {
+      body.paid = true;
+      if (input.walkIn.method) body.paymentMethod = input.walkIn.method;
+    }
   }
   return body;
 }

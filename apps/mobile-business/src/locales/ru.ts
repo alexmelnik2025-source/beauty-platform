@@ -90,6 +90,15 @@ export const ru: Dictionary = {
     markPaid: 'Оплачено',
     unmarkPaid: 'Отменить оплату (возврат)',
     paidHint: 'За оплаченный визит клиент получает отметки или баллы программы лояльности.',
+    paymentMethod: 'Способ оплаты',
+    paymentMethodHint: 'Как клиент заплатил — для отчёта и итога кассы. Можно пропустить.',
+    paymentMethods: {
+      cash: 'Наличные',
+      card: 'Карта',
+      blik: 'BLIK',
+      transfer: 'Перевод',
+      other: 'Другой',
+    },
     notStarted: '«Пришёл» и «Не пришёл» можно отметить, когда визит начнётся.',
     move: 'Перенести',
     bookAgain: 'Записать снова',
@@ -389,6 +398,9 @@ export const ru: Dictionary = {
     busyHours: 'Часы пик',
     busyHoursHint:
       'Часы, в которые начинается больше всего визитов (без отменённых). Полная таблица — в «Отчётах» в кабинете.',
+    payments: 'Способы оплаты',
+    paymentsUnknown: 'Не указано',
+    paymentsRow: '{amount} · визиты: {n}',
   },
   team: {
     open: 'Команда',

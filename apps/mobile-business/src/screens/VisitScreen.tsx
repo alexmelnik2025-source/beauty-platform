@@ -31,6 +31,8 @@ import {
 import { wishLines } from '../wishes';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
+import type { PaymentMethod } from '../payment';
 import type { NewVisitPreset } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -58,6 +60,8 @@ export function VisitScreen(props: {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
+  /** Task 227: how the client paid, chosen before "Opłacono". */
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
   // Move / cancel (task 17b).
   const [mode, setMode] = useState<'move' | 'cancel' | null>(null);
   const [moveDate, setMoveDate] = useState('');
@@ -165,8 +169,8 @@ export function VisitScreen(props: {
   const phone = visit.customer?.phone ?? null;
   const setStatus = (status: 'completed' | 'no_show') =>
     run((a) => api.setStatus(salon.orgId, salon.locationId, a.id, a.version, status));
-  const setPaid = (paid: boolean) =>
-    run((a) => api.setPaid(salon.orgId, salon.locationId, a.id, a.version, paid));
+  const setPaid = (paid: boolean, method?: PaymentMethod | null) =>
+    run((a) => api.setPaid(salon.orgId, salon.locationId, a.id, a.version, paid, method));
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -183,7 +187,12 @@ export function VisitScreen(props: {
         {visit.awaitingApproval ? (
           <Text style={[styles.chip, styles.chipStrong]}>⏳ {v.awaitingApproval}</Text>
         ) : null}
-        {visit.paidAt ? <Text style={styles.chip}>✓ {v.paid}</Text> : null}
+        {visit.paidAt ? (
+          <Text style={styles.chip}>
+            ✓ {v.paid}
+            {visit.paymentMethod ? ` · ${v.paymentMethods[visit.paymentMethod]}` : ''}
+          </Text>
+        ) : null}
         <Text style={styles.chip}>{visit.source === 'online' ? v.online : v.manual}</Text>
         {visit.firstVisit ? <Text style={styles.chip}>{v.firstVisit}</Text> : null}
       </View>
@@ -317,8 +326,22 @@ export function VisitScreen(props: {
       {actions.pay ? (
         <>
           <Text style={styles.muted}>{v.paidHint}</Text>
-          <Button label={v.markPaid} busy={busy} onPress={() => void setPaid(true)} />
+          <PaymentMethodPicker t={t} value={method} onChange={setMethod} disabled={busy} />
+          <Button
+            label={v.markPaid}
+            busy={busy}
+            onPress={() => void setPaid(true, method ?? undefined)}
+          />
         </>
+      ) : null}
+      {actions.unpay ? (
+        // Task 227: on a paid visit a tap changes only how it was paid.
+        <PaymentMethodPicker
+          t={t}
+          value={visit.paymentMethod}
+          onChange={(next) => void setPaid(true, next)}
+          disabled={busy}
+        />
       ) : null}
       {actions.unpay ? (
         <Button

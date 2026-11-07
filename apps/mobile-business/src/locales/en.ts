@@ -92,6 +92,15 @@ export const en: Dictionary = {
     markPaid: 'Paid',
     unmarkPaid: 'Undo payment (refund)',
     paidHint: 'A paid visit earns the client loyalty stamps or points.',
+    paymentMethod: 'Payment method',
+    paymentMethodHint: 'How the client paid — for the report and the till total. You can skip it.',
+    paymentMethods: {
+      cash: 'Cash',
+      card: 'Card',
+      blik: 'BLIK',
+      transfer: 'Bank transfer',
+      other: 'Other',
+    },
     notStarted: '"Came" and "Did not come" can be marked once the visit has started.',
     move: 'Move',
     bookAgain: 'Book again',
@@ -390,6 +399,9 @@ export const en: Dictionary = {
     busyHours: 'Peak hours',
     busyHoursHint:
       'The hours most visits start at (cancelled ones left out). The full table is in “Reports” in the cabinet.',
+    payments: 'Payment methods',
+    paymentsUnknown: 'Not given',
+    paymentsRow: '{amount} · visits: {n}',
   },
   team: {
     open: 'Team',

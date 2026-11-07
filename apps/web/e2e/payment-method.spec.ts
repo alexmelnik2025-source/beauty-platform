@@ -8,11 +8,12 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 227: how the client paid. In the visit card the owner picks "Karta" and marks
  * "Opłacono" (screenshot 227), changes it to "Gotówka" later (only the method changes), and
- * "Raporty" shows "Sposoby płatności" (227-a).
+ * "Raporty" shows "Sposoby płatności" (227-a); the business app's report too (227-b).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -165,4 +166,33 @@ test('the owner marks how the client paid; the report shows the payment methods'
   await expect(payments.getByRole('listitem')).toContainText('wizyty: 1');
   await shot(page, '227-a-report-payment-methods');
   await context.close();
+
+  // The business app (its web preview): the same split in "Raporty".
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const app = await (
+      await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        locale: 'pl-PL',
+        isMobile: true,
+      })
+    ).newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Raporty' }).click();
+    await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+    const appPayments = app.getByTestId('report-payments');
+    await appPayments.scrollIntoViewIfNeeded();
+    await expect(appPayments).toContainText('Sposoby płatności');
+    await expect(appPayments).toContainText('Gotówka');
+    await expect(appPayments).toContainText(/90,00\s*zł · wizyty: 1/);
+    await shot(app, '227-b-business-app-payment-methods');
+  } finally {
+    businessApp.server.close();
+  }
 });

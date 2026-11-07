@@ -90,6 +90,15 @@ export const uk: Dictionary = {
     markPaid: 'Оплачено',
     unmarkPaid: 'Скасувати оплату (повернення)',
     paidHint: 'За оплачений візит клієнт отримує штампи або бали програми лояльності.',
+    paymentMethod: 'Спосіб оплати',
+    paymentMethodHint: 'Як клієнт заплатив — для звіту й підсумку каси. Можна пропустити.',
+    paymentMethods: {
+      cash: 'Готівка',
+      card: 'Картка',
+      blik: 'BLIK',
+      transfer: 'Переказ',
+      other: 'Інший',
+    },
     notStarted: '«Прийшов» і «Не прийшов» можна позначити, коли візит почнеться.',
     move: 'Перенести',
     bookAgain: 'Записати знову',
@@ -389,6 +398,9 @@ export const uk: Dictionary = {
     busyHours: 'Години пік',
     busyHoursHint:
       'Години, о які починається найбільше візитів (без скасованих). Повна таблиця — у «Звітах» у кабінеті.',
+    payments: 'Способи оплати',
+    paymentsUnknown: 'Не вказано',
+    paymentsRow: '{amount} · візити: {n}',
   },
   team: {
     open: 'Команда',

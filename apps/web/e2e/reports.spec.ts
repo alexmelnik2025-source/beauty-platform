@@ -392,7 +392,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByRole('heading', { name: 'Raporty' })).toBeVisible();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     await expect(app.getByText('opłacone wizyty: 3')).toBeVisible();
-    await expect(app.getByText(/240,00\s*zł/)).toBeVisible();
+    await expect(app.getByText(/240,00\s*zł/).first()).toBeVisible();
     await expect(app.getByText('Ilian').first()).toBeVisible();
     await expect(app.getByText(/150,00\s*zł/).first()).toBeVisible();
     await expect(app.getByText('odwołane: 1 (klient: 1 · salon: 0)').first()).toBeVisible();

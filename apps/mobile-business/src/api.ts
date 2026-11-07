@@ -12,6 +12,7 @@ import type {
 } from '@beauty/api-client';
 import type { MessagesChanges } from './messages';
 import type { SalonChanges } from './salon';
+import { paymentBody, type PaymentMethod } from './payment';
 
 /**
  * The business app's connection to the API: sign-in with a code (no password),
@@ -106,6 +107,8 @@ export interface NewAppointment {
   alreadyHappened?: boolean;
   /** With alreadyHappened: paid too, so loyalty stamps or points are earned. */
   paid?: boolean;
+  /** Task 227: with paid, how the client paid. */
+  paymentMethod?: PaymentMethod;
 }
 export type {
   AppointmentDetail,
@@ -385,14 +388,13 @@ export class BusinessApi {
     id: string,
     version: number,
     paid: boolean,
+    /** Task 227: how the client paid; on a paid visit another method only changes it. */
+    method?: PaymentMethod | null,
   ): Promise<AppointmentDetail> {
     return this.authed<AppointmentDetail>(
       'POST',
       `${appointmentPath(orgId, locationId, id)}/payment`,
-      {
-        version,
-        paid,
-      },
+      paymentBody(version, paid, method),
     );
   }
 

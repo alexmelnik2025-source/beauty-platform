@@ -273,6 +273,21 @@ export function ReportsScreen(props: {
               </View>
             ))
           )}
+          {shown.payments.length > 0 ? (
+            <View style={{ gap: 6 }} testID="report-payments">
+              <Text style={styles.section}>{r.payments}</Text>
+              {shown.payments.map((p) => (
+                <View key={p.method} style={styles.cardTop}>
+                  <Text style={styles.name}>
+                    {p.method === 'unknown' ? r.paymentsUnknown : t.visit.paymentMethods[p.method]}
+                  </Text>
+                  <Text style={styles.muted}>
+                    {fill(r.paymentsRow, { amount: money(p.revenueGrosze), n: String(p.paid) })}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           {shown.busyHours.length > 0 ? (
             <View style={{ gap: 6 }} testID="report-busy-hours">
               <Text style={styles.section}>{r.busyHours}</Text>
