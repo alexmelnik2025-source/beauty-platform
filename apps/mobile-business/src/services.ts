@@ -13,8 +13,8 @@ export interface ServiceGroup {
   services: Service[];
 }
 
-const byOrder = (a: Service, b: Service) =>
-  a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+/** The salon's order; equal ones keep the server's (older first), as on the booking page. */
+const byOrder = (a: Service, b: Service) => a.sortOrder - b.sortOrder;
 
 /** Categories in the salon's order; empty categories are left out. */
 export function priceList(services: ServiceList, categories: ServiceCategoryList): ServiceGroup[] {

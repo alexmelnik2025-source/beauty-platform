@@ -47,6 +47,14 @@ describe('priceList', () => {
       [null, ['Konsultacja', 'Stara']],
     ]);
   });
+
+  it('services with the same place keep the order the server sent (as on the booking page)', () => {
+    const groups = priceList(
+      [service({ id: '1', name: 'Strzyżenie męskie' }), service({ id: '2', name: 'Broda' })],
+      [],
+    );
+    expect(groups[0]!.services.map((s) => s.name)).toEqual(['Strzyżenie męskie', 'Broda']);
+  });
 });
 
 describe('service helpers', () => {
