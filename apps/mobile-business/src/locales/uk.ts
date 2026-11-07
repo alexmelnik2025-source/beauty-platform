@@ -101,6 +101,7 @@ export const uk: Dictionary = {
     online: 'Онлайн',
     manual: 'Додано салоном',
     firstVisit: 'Перший візит',
+    birthdayToday: 'День народження в день візиту',
     awaitingApproval: 'Чекає на підтвердження',
     approve: 'Підтвердити запис',
     approveHint:

@@ -102,6 +102,7 @@ export const en: Dictionary = {
     online: 'Online',
     manual: 'Added by the salon',
     firstVisit: 'First visit',
+    birthdayToday: 'Birthday on the visit day',
     awaitingApproval: 'Waiting for confirmation',
     approve: 'Accept booking',
     approveHint:

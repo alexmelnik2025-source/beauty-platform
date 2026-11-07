@@ -43,6 +43,11 @@ export const appointmentSchema = responseSchema(
         name: z.string(),
         phone: z.string().nullable().describe('null when the caller may not see client contacts'),
         email: z.string().nullable().describe('null when the caller may not see client contacts'),
+        birthdayToday: z
+          .boolean()
+          .describe(
+            "Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts",
+          ),
       })
       .nullable(),
     priceGrosze: z

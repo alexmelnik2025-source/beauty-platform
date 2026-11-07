@@ -727,7 +727,7 @@ export function DayScreen(props: {
             <Pressable
               key={v.id}
               accessibilityRole="button"
-              accessibilityLabel={`${v.start} ${v.waiting ? '⏳ ' : ''}${v.customer ?? t.day.walkIn} · ${v.service}`}
+              accessibilityLabel={`${v.start} ${v.waiting ? '⏳ ' : ''}${v.birthday ? '🎂 ' : ''}${v.customer ?? t.day.walkIn} · ${v.service}`}
               onPress={() => setOpenId(v.id)}
               style={({ pressed }) => pressed && { opacity: 0.7 }}
             >
@@ -742,6 +742,7 @@ export function DayScreen(props: {
                 </View>
                 <Text style={styles.customer}>
                   {v.waiting ? '⏳ ' : ''}
+                  {v.birthday ? '🎂 ' : ''}
                   {v.customer ?? t.day.walkIn}
                 </Text>
                 <Text style={styles.muted}>

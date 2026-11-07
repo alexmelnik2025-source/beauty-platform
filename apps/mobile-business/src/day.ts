@@ -55,6 +55,8 @@ export type DayVisit = {
   phone: string | null;
   /** Task 161b: booked by a client the cancellation guard marks; the salon has to accept it. */
   waiting: boolean;
+  /** Task 243: the visit is on the client's birthday (only for those who see client contacts). */
+  birthday: boolean;
 };
 
 /**
@@ -77,6 +79,7 @@ export function visitsOfDay(calendar: Calendar, date: string): DayVisit[] {
       customer: a.customer?.name ?? null,
       phone: a.customer?.phone ?? null,
       waiting: a.awaitingApproval === true,
+      birthday: a.customer?.birthdayToday === true,
     }));
 }
 

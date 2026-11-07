@@ -114,6 +114,7 @@ describe('day calendar', () => {
         customer: 'Piotr',
         phone: '+48600500600',
         waiting: false,
+        birthday: false,
       },
       expect.objectContaining({ id: 'b', start: '14:00', end: '14:45', phone: null }),
     ]);
@@ -126,6 +127,14 @@ describe('day calendar', () => {
       ),
     };
     expect(visitsOfDay(waiting, '2026-11-03').map((v) => v.waiting)).toEqual([false, true]);
+    // Task 243: the visit on the client's birthday.
+    const birthday = {
+      ...calendar,
+      appointments: calendar.appointments.map((a) =>
+        a.id === 'a' && a.customer ? { ...a, customer: { ...a.customer, birthdayToday: true } } : a,
+      ),
+    };
+    expect(visitsOfDay(birthday, '2026-11-03').map((v) => v.birthday)).toEqual([true, false]);
   });
 
   it('shows who works that day', () => {

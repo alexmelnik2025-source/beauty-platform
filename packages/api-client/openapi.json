@@ -11982,13 +11982,18 @@
                 "nullable": true,
                 "description": "null when the caller may not see client contacts",
                 "type": "string"
+              },
+              "birthdayToday": {
+                "type": "boolean",
+                "description": "Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts"
               }
             },
             "required": [
               "id",
               "name",
               "phone",
-              "email"
+              "email",
+              "birthdayToday"
             ],
             "additionalProperties": false
           },
@@ -12333,13 +12338,18 @@
                 "nullable": true,
                 "description": "null when the caller may not see client contacts",
                 "type": "string"
+              },
+              "birthdayToday": {
+                "type": "boolean",
+                "description": "Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts"
               }
             },
             "required": [
               "id",
               "name",
               "phone",
-              "email"
+              "email",
+              "birthdayToday"
             ],
             "additionalProperties": false
           },
@@ -12712,13 +12722,18 @@
                   "nullable": true,
                   "description": "null when the caller may not see client contacts",
                   "type": "string"
+                },
+                "birthdayToday": {
+                  "type": "boolean",
+                  "description": "Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts"
                 }
               },
               "required": [
                 "id",
                 "name",
                 "phone",
-                "email"
+                "email",
+                "birthdayToday"
               ],
               "additionalProperties": false
             },
@@ -13585,13 +13600,18 @@
                       "nullable": true,
                       "description": "null when the caller may not see client contacts",
                       "type": "string"
+                    },
+                    "birthdayToday": {
+                      "type": "boolean",
+                      "description": "Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts"
                     }
                   },
                   "required": [
                     "id",
                     "name",
                     "phone",
-                    "email"
+                    "email",
+                    "birthdayToday"
                   ],
                   "additionalProperties": false
                 },

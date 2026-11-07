@@ -205,6 +205,9 @@ export function AppointmentSheet({
           {a.source === 'online' ? t.appointment.online : t.appointment.manual}
         </span>
         {a.firstVisit ? <span className="chip">{t.appointment.firstVisit}</span> : null}
+        {a.customer?.birthdayToday ? (
+          <span className="chip">🎂 {t.appointment.birthdayToday}</span>
+        ) : null}
         {a.staffChosenByClient ? (
           <span className="chip">{t.appointment.chosenByClient}</span>
         ) : null}

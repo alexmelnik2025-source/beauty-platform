@@ -50,6 +50,7 @@ export type {
   VisitCouponsResponse,
 } from './booking.responses';
 import { offerFor } from '../scheduling/staff-prices';
+import { birthdayWindow } from './customers.service';
 
 type Loaded = Appointment & {
   location: Location;
@@ -938,6 +939,10 @@ export class AppointmentsService {
             name: a.customer.name,
             phone: contacts ? a.customer.phone : null,
             email: contacts ? a.customer.email : null,
+            birthdayToday:
+              contacts &&
+              a.customer.birthday !== null &&
+              birthdayWindow(local.date, 1).has(a.customer.birthday),
           }
         : null,
       priceGrosze: prices ? a.priceGrosze : null,

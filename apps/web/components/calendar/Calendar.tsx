@@ -740,7 +740,7 @@ function AppointmentBlock({
       <span className="n">
         {a.status === 'held'
           ? t.calendar.held
-          : `${a.awaitingApproval ? '⏳ ' : ''}${a.customer?.name ?? '—'}`}
+          : `${a.awaitingApproval ? '⏳ ' : ''}${a.customer?.birthdayToday ? '🎂 ' : ''}${a.customer?.name ?? '—'}`}
       </span>
       <span className="s">{a.service.name}</span>
     </button>

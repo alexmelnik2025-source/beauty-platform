@@ -3154,6 +3154,8 @@ export interface components {
                 phone: string | null;
                 /** @description null when the caller may not see client contacts */
                 email: string | null;
+                /** @description Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts */
+                birthdayToday: boolean;
             } | null;
             /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
@@ -3245,6 +3247,8 @@ export interface components {
                 phone: string | null;
                 /** @description null when the caller may not see client contacts */
                 email: string | null;
+                /** @description Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts */
+                birthdayToday: boolean;
             } | null;
             /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
@@ -3342,6 +3346,8 @@ export interface components {
                 phone: string | null;
                 /** @description null when the caller may not see client contacts */
                 email: string | null;
+                /** @description Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts */
+                birthdayToday: boolean;
             } | null;
             /** @description Hundredths of the location currency; null when a staff member may not see prices */
             priceGrosze: number | null;
@@ -3565,6 +3571,8 @@ export interface components {
                     phone: string | null;
                     /** @description null when the caller may not see client contacts */
                     email: string | null;
+                    /** @description Task 243: the visit is on the client's birthday (the salon's day); false when the caller may not see client contacts */
+                    birthdayToday: boolean;
                 } | null;
                 /** @description Hundredths of the location currency; null when a staff member may not see prices */
                 priceGrosze: number | null;

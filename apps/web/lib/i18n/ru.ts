@@ -247,6 +247,7 @@ export const ru: Dict = {
     online: 'Онлайн',
     manual: 'Добавлена салоном',
     firstVisit: 'Первый визит',
+    birthdayToday: 'День рождения в день визита',
     awaitingApproval: 'Ждёт подтверждения',
     approve: 'Подтвердить запись',
     approveHint:

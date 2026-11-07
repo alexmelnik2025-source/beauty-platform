@@ -199,6 +199,9 @@ export function VisitScreen(props: {
         ) : null}
         <Text style={styles.chip}>{visit.source === 'online' ? v.online : v.manual}</Text>
         {visit.firstVisit ? <Text style={styles.chip}>{v.firstVisit}</Text> : null}
+        {visit.customer?.birthdayToday ? (
+          <Text style={styles.chip}>🎂 {v.birthdayToday}</Text>
+        ) : null}
       </View>
 
       {error ? <ErrorText>{error}</ErrorText> : null}

@@ -176,6 +176,58 @@ describe('client birthday (task 240)', () => {
     expect(await birthdays(1)).toEqual([]);
   });
 
+  it("marks the visit on the client's birthday in the calendar (task 243)", async () => {
+    const haircutId = (
+      await ctx
+        .http()
+        .post(`${base}/services`)
+        .set(owner.auth)
+        .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 })
+        .expect(201)
+    ).body.id;
+    const staffId = (
+      await ctx
+        .http()
+        .post(`${base}/staff`)
+        .set(owner.auth)
+        .send({ displayName: 'Kasia', serviceIds: [haircutId] })
+        .expect(201)
+    ).body.id;
+    const start = fromNow(2 * DAY);
+    const visitDay = instantToLocal(Date.parse(start), 'Europe/Warsaw').date.slice(5);
+    const visit = async (customerId: string) =>
+      (
+        await ctx
+          .http()
+          .post(`${base}/appointments`)
+          .set(owner.auth)
+          .send({ serviceId: haircutId, staffId, start, customerId, allowOutsideHours: true })
+          .expect(201)
+      ).body;
+    const jan = await client('Jan Nowak', '+48600000001', visitDay);
+    const adam = await client('Adam Kowalski', '+48600000002', mmdd(0));
+    const first = await visit(jan);
+    expect(first.customer.birthdayToday).toBe(true);
+    await ctx
+      .http()
+      .post(`${base}/appointments/${first.id}/cancel`)
+      .set(owner.auth)
+      .send({ version: first.version, reason: 'test' });
+    const second = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId: haircutId,
+        staffId,
+        start: fromNow(2 * DAY + 60 * 60_000),
+        customerId: adam,
+        allowOutsideHours: true,
+      })
+      .expect(201);
+    expect(second.body.customer.birthdayToday).toBe(false);
+  });
+
   it('a specialist without contacts does not see it or change it; other salons see nothing', async () => {
     const haircutId = (
       await ctx

@@ -101,6 +101,7 @@ export const pl = {
     online: 'Online',
     manual: 'Dodana przez salon',
     firstVisit: 'Pierwsza wizyta',
+    birthdayToday: 'Urodziny w dniu wizyty',
     awaitingApproval: 'Czeka na potwierdzenie',
     approve: 'Przyjmij rezerwację',
     approveHint:

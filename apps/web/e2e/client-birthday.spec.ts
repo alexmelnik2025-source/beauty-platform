@@ -70,7 +70,7 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   const org = await json<{ id: string }>(
     await request.post('/v1/organizations', { headers: owner, data: { name: 'GESTALT' } }),
   );
-  await json(
+  const location = await json<{ id: string }>(
     await request.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
@@ -137,6 +137,49 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await shot(page, '240-client-birthdays');
   await filter.click();
   await expect(rows).toHaveCount(4);
+
+  // Task 243: a visit on the client's birthday is marked in the calendar and in the visit card.
+  const salon = `/v1/organizations/${org.id}/locations/${location.id}`;
+  const service = await json<{ id: string }>(
+    await request.post(`${salon}/services`, {
+      headers: owner,
+      data: { name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 },
+    }),
+  );
+  const staff = await json<{ id: string }>(
+    await request.post(`${salon}/staff`, {
+      headers: owner,
+      data: { displayName: 'Kasia', serviceIds: [service.id] },
+    }),
+  );
+  // Ten days ahead at 12:00 UTC (the same day in Warsaw), so not among "the next 7 days".
+  const start = new Date(Date.now() + 10 * 24 * 60 * 60_000);
+  start.setUTCHours(12, 0, 0, 0);
+  const marek = await json<{ id: string }>(
+    await request.post(`/v1/organizations/${org.id}/customers`, {
+      headers: owner,
+      data: { name: 'Marek Lewandowski', phone: '+48600000255', birthday: mmdd(10) },
+    }),
+  );
+  const visit = await json<{ date: string; customer: { birthdayToday: boolean } }>(
+    await request.post(`${salon}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: service.id,
+        staffId: staff.id,
+        start: start.toISOString(),
+        customerId: marek.id,
+        allowOutsideHours: true,
+      },
+    }),
+  );
+  expect(visit.customer.birthdayToday).toBe(true);
+  await page.goto(`/pl/app/calendar?date=${visit.date}`);
+  const block = page.getByRole('button', { name: /🎂 Marek Lewandowski/ });
+  await expect(block).toBeVisible();
+  await block.click();
+  await expect(page.getByRole('dialog').getByText('🎂 Urodziny w dniu wizyty')).toBeVisible();
+  await shot(page, '243-birthday-visit');
   await context.close();
 
   // Business app (task 240b).

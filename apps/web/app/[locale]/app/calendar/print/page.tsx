@@ -172,6 +172,7 @@ export default function DayPlanPrintPage() {
                               </td>
                               <td>{r.a.service.name}</td>
                               <td>
+                                {r.a.customer?.birthdayToday ? '🎂 ' : ''}
                                 {r.a.customer?.name ?? '—'}
                                 {r.a.customer?.phone ? (
                                   <span className="day-plan__phone"> {r.a.customer.phone}</span>
