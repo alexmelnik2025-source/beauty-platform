@@ -8,13 +8,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ApiError, type BusinessApi, type Locale } from '../api';
+import { ApiError, type BusinessApi, type Locale, type ServiceCategoryList } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
   bookingProblem,
   durationText,
+  movedCategoryOrder,
   movedOrder,
   priceInput,
   priceList,
@@ -28,7 +29,7 @@ import type { SalonChoice } from './SalonsScreen';
 /**
  * Task 93: "Usługi" — the owner or a manager sees the price list by category and changes a
  * service's price, duration and "bookable online" from the phone; ↑ / ↓ set the order clients
- * see (task 253). New services, categories and
+ * see (task 253), and the categories' order too (task 255). New services, categories and
  * who performs a service stay in the cabinet (one line says so).
  */
 export function ServicesScreen(props: {
@@ -41,6 +42,7 @@ export function ServicesScreen(props: {
   const { api, t, salon, onBack } = props;
   const u = t.services;
   const [groups, setGroups] = useState<ServiceGroup[] | null>(null);
+  const [categories, setCategories] = useState<ServiceCategoryList>([]);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
@@ -54,6 +56,7 @@ export function ServicesScreen(props: {
         api.serviceCategories(salon.orgId, salon.locationId),
       ]);
       setGroups(priceList(services, categories));
+      setCategories(categories);
       setError('');
     } catch (e) {
       setError(errorText(e, t));
@@ -119,6 +122,29 @@ export function ServicesScreen(props: {
       const services = await api.reorderServices(salon.orgId, salon.locationId, order);
       const categories = await api.serviceCategories(salon.orgId, salon.locationId);
       setGroups(priceList(services, categories));
+      setCategories(categories);
+      setInfo(u.orderSaved);
+      setError('');
+    } catch (e) {
+      setError(errorText(e, t));
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Task 255: a category one place up or down — clients see the price-list groups so. */
+  async function moveCategory(id: string, step: -1 | 1) {
+    const order = groups ? movedCategoryOrder(categories, groups, id, step) : null;
+    if (!order || busy) return;
+    setBusy(true);
+    try {
+      const [sorted, services] = await Promise.all([
+        api.reorderServiceCategories(salon.orgId, salon.locationId, order),
+        api.services(salon.orgId, salon.locationId),
+      ]);
+      setGroups(priceList(services, sorted));
+      setCategories(sorted);
       setInfo(u.orderSaved);
       setError('');
     } catch (e) {
@@ -151,93 +177,119 @@ export function ServicesScreen(props: {
       ) : groups.length === 0 ? (
         <Text style={styles.muted}>{u.none}</Text>
       ) : (
-        groups.map((group) => (
-          <View key={group.name ?? '-'} style={{ gap: 10 }}>
-            <Text role="heading" aria-level={2} style={styles.section}>
-              {group.name ?? u.other}
-            </Text>
-            {group.services.map((service, index) => {
-              const problem = bookingProblem(service);
-              const open = editId === service.id;
-              return (
-                <Card key={service.id}>
-                  <Text style={[styles.name, !service.active && { color: colors.muted }]}>
-                    {service.name}
-                  </Text>
-                  <Text style={styles.text}>
-                    {`${price(service.priceGrosze)} · ${durationText(service.durationMinutes, u.units)}`}
-                  </Text>
-                  {problem ? (
-                    <Text style={styles.warn}>{problem === 'hidden' ? u.hidden : u.nobody}</Text>
-                  ) : null}
-                  {open ? (
-                    <View style={{ gap: 10, marginTop: 6 }}>
-                      <Text style={styles.label}>
-                        {fill(u.price, { currency: salon.currency })}
-                      </Text>
-                      <TextInput
-                        accessibilityLabel={fill(u.price, { currency: salon.currency })}
-                        value={form.price}
-                        onChangeText={(price) => setForm((f) => ({ ...f, price }))}
-                        keyboardType="decimal-pad"
-                        style={styles.input}
-                      />
-                      <Text style={styles.label}>{u.duration}</Text>
-                      <TextInput
-                        accessibilityLabel={u.duration}
-                        value={form.duration}
-                        onChangeText={(duration) => setForm((f) => ({ ...f, duration }))}
-                        keyboardType="number-pad"
-                        style={styles.input}
-                      />
-                      <Pressable
-                        accessibilityRole="checkbox"
-                        accessibilityLabel={u.active}
-                        accessibilityState={{ checked: form.active }}
-                        onPress={() => setForm((f) => ({ ...f, active: !f.active }))}
-                        style={styles.check}
-                      >
-                        <Text style={[styles.box, form.active && styles.boxOn]}>
-                          {form.active ? '✓' : ''}
+        groups.map((group, groupIndex) => {
+          const id = group.id;
+          const named = groups.filter((g) => g.id).length;
+          return (
+            <View key={id ?? '-'} style={{ gap: 10 }}>
+              <View style={styles.row}>
+                <Text role="heading" aria-level={2} style={[styles.section, { flexShrink: 1 }]}>
+                  {group.name ?? u.other}
+                </Text>
+                {id && groupIndex > 0 ? (
+                  <Button
+                    kind="link"
+                    label="↑"
+                    a11yLabel={fill(u.categoryUp, { name: group.name ?? '' })}
+                    onPress={() => void moveCategory(id, -1)}
+                  />
+                ) : null}
+                {id && groupIndex < named - 1 ? (
+                  <Button
+                    kind="link"
+                    label="↓"
+                    a11yLabel={fill(u.categoryDown, { name: group.name ?? '' })}
+                    onPress={() => void moveCategory(id, 1)}
+                  />
+                ) : null}
+              </View>
+              {group.services.map((service, index) => {
+                const problem = bookingProblem(service);
+                const open = editId === service.id;
+                return (
+                  <Card key={service.id}>
+                    <Text style={[styles.name, !service.active && { color: colors.muted }]}>
+                      {service.name}
+                    </Text>
+                    <Text style={styles.text}>
+                      {`${price(service.priceGrosze)} · ${durationText(service.durationMinutes, u.units)}`}
+                    </Text>
+                    {problem ? (
+                      <Text style={styles.warn}>{problem === 'hidden' ? u.hidden : u.nobody}</Text>
+                    ) : null}
+                    {open ? (
+                      <View style={{ gap: 10, marginTop: 6 }}>
+                        <Text style={styles.label}>
+                          {fill(u.price, { currency: salon.currency })}
                         </Text>
-                        <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
-                      </Pressable>
-                      <View style={styles.row}>
-                        <Button label={u.save} busy={busy} onPress={() => void save(service)} />
-                        <Button kind="secondary" label={u.cancel} onPress={() => setEditId(null)} />
+                        <TextInput
+                          accessibilityLabel={fill(u.price, { currency: salon.currency })}
+                          value={form.price}
+                          onChangeText={(price) => setForm((f) => ({ ...f, price }))}
+                          keyboardType="decimal-pad"
+                          style={styles.input}
+                        />
+                        <Text style={styles.label}>{u.duration}</Text>
+                        <TextInput
+                          accessibilityLabel={u.duration}
+                          value={form.duration}
+                          onChangeText={(duration) => setForm((f) => ({ ...f, duration }))}
+                          keyboardType="number-pad"
+                          style={styles.input}
+                        />
+                        <Pressable
+                          accessibilityRole="checkbox"
+                          accessibilityLabel={u.active}
+                          accessibilityState={{ checked: form.active }}
+                          onPress={() => setForm((f) => ({ ...f, active: !f.active }))}
+                          style={styles.check}
+                        >
+                          <Text style={[styles.box, form.active && styles.boxOn]}>
+                            {form.active ? '✓' : ''}
+                          </Text>
+                          <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
+                        </Pressable>
+                        <View style={styles.row}>
+                          <Button label={u.save} busy={busy} onPress={() => void save(service)} />
+                          <Button
+                            kind="secondary"
+                            label={u.cancel}
+                            onPress={() => setEditId(null)}
+                          />
+                        </View>
                       </View>
-                    </View>
-                  ) : (
-                    <View style={styles.row}>
-                      <Button
-                        kind="link"
-                        label={u.edit}
-                        a11yLabel={`${u.edit}: ${service.name}`}
-                        onPress={() => edit(service)}
-                      />
-                      {index > 0 ? (
+                    ) : (
+                      <View style={styles.row}>
                         <Button
                           kind="link"
-                          label="↑"
-                          a11yLabel={fill(u.up, { name: service.name })}
-                          onPress={() => void move(service, -1)}
+                          label={u.edit}
+                          a11yLabel={`${u.edit}: ${service.name}`}
+                          onPress={() => edit(service)}
                         />
-                      ) : null}
-                      {index < group.services.length - 1 ? (
-                        <Button
-                          kind="link"
-                          label="↓"
-                          a11yLabel={fill(u.down, { name: service.name })}
-                          onPress={() => void move(service, 1)}
-                        />
-                      ) : null}
-                    </View>
-                  )}
-                </Card>
-              );
-            })}
-          </View>
-        ))
+                        {index > 0 ? (
+                          <Button
+                            kind="link"
+                            label="↑"
+                            a11yLabel={fill(u.up, { name: service.name })}
+                            onPress={() => void move(service, -1)}
+                          />
+                        ) : null}
+                        {index < group.services.length - 1 ? (
+                          <Button
+                            kind="link"
+                            label="↓"
+                            a11yLabel={fill(u.down, { name: service.name })}
+                            onPress={() => void move(service, 1)}
+                          />
+                        ) : null}
+                      </View>
+                    )}
+                  </Card>
+                );
+              })}
+            </View>
+          );
+        })
       )}
       {groups && groups.length > 0 ? <Text style={styles.muted}>{u.hint}</Text> : null}
     </ScrollView>

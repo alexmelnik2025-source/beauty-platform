@@ -725,6 +725,19 @@ export class BusinessApi {
   }
 
   /** Task 253: owner or manager — every service of the salon once, first to last. */
+  /** Task 255: every category of the salon once, first to last (owner or manager). */
+  reorderServiceCategories(
+    orgId: string,
+    locationId: string,
+    categoryIds: string[],
+  ): Promise<ServiceCategoryList> {
+    return this.authed<ServiceCategoryList>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/service-categories/order`,
+      { categoryIds },
+    );
+  }
+
   reorderServices(orgId: string, locationId: string, serviceIds: string[]): Promise<ServiceList> {
     return this.authed<ServiceList>(
       'PUT',

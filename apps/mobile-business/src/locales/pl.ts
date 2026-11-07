@@ -572,6 +572,8 @@ export const pl = {
     up: 'Wyżej: {name}',
     down: 'Niżej: {name}',
     orderSaved: 'Kolejność zapisana — tak klienci widzą usługi.',
+    categoryUp: 'Kategoria wyżej: {name}',
+    categoryDown: 'Kategoria niżej: {name}',
     units: { h: 'g', min: 'min' },
     problem: {
       price: 'Wpisz cenę, np. 90 lub 90,50.',

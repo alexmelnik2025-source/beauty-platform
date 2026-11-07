@@ -3,6 +3,7 @@ import type { ServiceCategoryList, ServiceList } from '../src/api';
 import {
   bookingProblem,
   durationText,
+  movedCategoryOrder,
   movedOrder,
   parseDuration,
   parsePrice,
@@ -147,5 +148,37 @@ describe('movedOrder (task 253)', () => {
     expect(movedOrder(groups, 'beard', -1)).toBeNull();
     expect(movedOrder(groups, 'talk', 1)).toBeNull();
     expect(movedOrder(groups, 'unknown', 1)).toBeNull();
+  });
+});
+
+describe('movedCategoryOrder (task 255)', () => {
+  const groups = priceList(
+    [
+      service({ id: 'cut', name: 'Strzyżenie', categoryId: 'c-hair' }),
+      service({ id: 'beard', name: 'Broda', categoryId: 'c-beard' }),
+      service({ id: 'talk', name: 'Konsultacja' }),
+    ],
+    categories,
+  );
+
+  it('swaps the category with its neighbour on the screen and sends every category once', () => {
+    expect(groups.map((g) => g.id)).toEqual(['c-hair', 'c-beard', null]);
+    expect(movedCategoryOrder(categories, groups, 'c-beard', -1)).toEqual([
+      'c-beard',
+      'c-hair',
+      'c-empty',
+    ]);
+    expect(movedCategoryOrder(categories, groups, 'c-hair', 1)).toEqual([
+      'c-beard',
+      'c-hair',
+      'c-empty',
+    ]);
+  });
+
+  it('does not move past the first or the last category on the screen', () => {
+    expect(movedCategoryOrder(categories, groups, 'c-hair', -1)).toBeNull();
+    // The empty category is not on the screen: "Broda" is the last one there.
+    expect(movedCategoryOrder(categories, groups, 'c-beard', 1)).toBeNull();
+    expect(movedCategoryOrder(categories, groups, 'c-empty', -1)).toBeNull();
   });
 });

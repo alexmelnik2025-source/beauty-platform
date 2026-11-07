@@ -573,6 +573,8 @@ export const en: Dictionary = {
     up: 'Move up: {name}',
     down: 'Move down: {name}',
     orderSaved: 'Order saved — this is how clients see the services.',
+    categoryUp: 'Category up: {name}',
+    categoryDown: 'Category down: {name}',
     units: { h: 'h', min: 'min' },
     problem: {
       price: 'Enter a price, e.g. 90 or 90.50.',

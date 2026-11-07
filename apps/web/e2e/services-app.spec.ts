@@ -12,7 +12,8 @@ import { serveApp } from './mobile-app';
  * Task 93: "Usługi" in the business app (web preview of apps/mobile-business). The owner sees
  * the price list by category with a warning on a service nobody performs, changes a price and a
  * duration, and takes a service off online booking. Task 253: "↑" puts the combo first in its
- * category — the order clients see. Screenshots 93–93b, 253.
+ * category — the order clients see. Task 255: "↑" by "Broda" puts the category first.
+ * Screenshots 93–93b, 253, 255.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -177,6 +178,13 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie męskie' })).toBeVisible();
     await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie + broda' })).toHaveCount(0);
     await shot(app, '253-business-app-service-order');
+
+    // ── Task 255: "Broda" goes first among the categories ─────────────────
+    await expect(app.getByRole('button', { name: 'Kategoria wyżej: Włosy' })).toHaveCount(0);
+    await app.getByRole('button', { name: 'Kategoria wyżej: Broda' }).click();
+    await expect(app.getByRole('button', { name: 'Kategoria wyżej: Włosy' })).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Kategoria wyżej: Broda' })).toHaveCount(0);
+    await shot(app, '255-business-app-category-order');
     await context.close();
   } finally {
     businessApp.server.close();
@@ -190,4 +198,8 @@ test('the owner changes prices, durations and online booking in the business app
     await request.get(`${base}/services`, { headers: owner }),
   );
   expect(list.map((s) => s.id).slice(0, 2)).toEqual([combo.id, haircut.id]);
+  const categories = await json<{ id: string }[]>(
+    await request.get(`${base}/service-categories`, { headers: owner }),
+  );
+  expect(categories.map((c) => c.id)).toEqual([beard.id, hair.id]);
 });

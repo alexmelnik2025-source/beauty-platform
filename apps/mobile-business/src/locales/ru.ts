@@ -573,6 +573,8 @@ export const ru: Dictionary = {
     up: 'Выше: {name}',
     down: 'Ниже: {name}',
     orderSaved: 'Порядок сохранён — так клиенты видят услуги.',
+    categoryUp: 'Категорию выше: {name}',
+    categoryDown: 'Категорию ниже: {name}',
     units: { h: 'ч', min: 'мин' },
     problem: {
       price: 'Введите цену, напр. 90 или 90,50.',

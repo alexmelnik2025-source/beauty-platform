@@ -572,6 +572,8 @@ export const uk: Dictionary = {
     up: 'Вище: {name}',
     down: 'Нижче: {name}',
     orderSaved: 'Порядок збережено — так клієнти бачать послуги.',
+    categoryUp: 'Категорію вище: {name}',
+    categoryDown: 'Категорію нижче: {name}',
     units: { h: 'год', min: 'хв' },
     problem: {
       price: 'Введіть ціну, напр. 90 або 90,50.',

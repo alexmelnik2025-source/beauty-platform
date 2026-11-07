@@ -8,6 +8,8 @@ import type { ServiceCategoryList, ServiceChange, ServiceList } from './api';
 
 export type Service = ServiceList[number];
 export interface ServiceGroup {
+  /** Task 255: the category's id; null = services without a category (shown last). */
+  id: string | null;
   /** null = services without a category (shown last). */
   name: string | null;
   services: Service[];
@@ -16,17 +18,20 @@ export interface ServiceGroup {
 /** The salon's order; equal ones keep the server's (older first), as on the booking page. */
 const byOrder = (a: Service, b: Service) => a.sortOrder - b.sortOrder;
 
+/** Categories in the salon's order (as the server sorts them: place, then name). */
+const byCategoryOrder = (a: ServiceCategoryList[number], b: ServiceCategoryList[number]) =>
+  a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+
 /** Categories in the salon's order; empty categories are left out. */
 export function priceList(services: ServiceList, categories: ServiceCategoryList): ServiceGroup[] {
-  const groups: ServiceGroup[] = [...categories]
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
-    .map((c) => ({
-      name: c.name,
-      services: services.filter((s) => s.categoryId === c.id).sort(byOrder),
-    }));
+  const groups: ServiceGroup[] = [...categories].sort(byCategoryOrder).map((c) => ({
+    id: c.id,
+    name: c.name,
+    services: services.filter((s) => s.categoryId === c.id).sort(byOrder),
+  }));
   const known = new Set(categories.map((c) => c.id));
   const rest = services.filter((s) => !s.categoryId || !known.has(s.categoryId)).sort(byOrder);
-  if (rest.length > 0) groups.push({ name: null, services: rest });
+  if (rest.length > 0) groups.push({ id: null, name: null, services: rest });
   return groups.filter((g) => g.services.length > 0);
 }
 
@@ -46,6 +51,26 @@ export function movedOrder(groups: ServiceGroup[], id: string, step: -1 | 1): st
     [ids[index], ids[target]] = [ids[target]!, ids[index]!];
     return ids;
   });
+}
+
+/**
+ * Task 255: the order of every category after moving one a place up (-1) or down (+1) among
+ * the ones on the screen — the server takes every category of the salon once (also the empty
+ * ones the screen leaves out). null at the edge.
+ */
+export function movedCategoryOrder(
+  categories: ServiceCategoryList,
+  groups: ServiceGroup[],
+  id: string,
+  step: -1 | 1,
+): string[] | null {
+  const shown = groups.flatMap((g) => (g.id ? [g.id] : []));
+  const index = shown.indexOf(id);
+  const other = index < 0 ? undefined : shown[index + step];
+  if (!other) return null;
+  return [...categories]
+    .sort(byCategoryOrder)
+    .map((c) => (c.id === id ? other : c.id === other ? id : c.id));
 }
 
 /** Why clients cannot book the service online, if they cannot. */
