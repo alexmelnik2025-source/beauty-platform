@@ -188,6 +188,7 @@ export function DayScreen(props: {
         locale={props.locale}
         salon={salon}
         today={today}
+        timeZone={props.timeZone}
         onBack={() => setReportsOpen(false)}
       />
     );

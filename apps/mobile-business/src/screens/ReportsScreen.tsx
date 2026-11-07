@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  BackHandler,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type { BusinessApi, Locale, SalonReport } from '../api';
 import { dayTitle, formatPrice } from '../day';
 import { errorText } from '../errors';
@@ -15,6 +23,7 @@ import {
   type ReportPeriod,
 } from '../reports';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { ClientScreen } from './ClientScreen';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -27,6 +36,8 @@ export function ReportsScreen(props: {
   locale: Locale;
   salon: SalonChoice;
   today: string;
+  /** Task 217: a top client's card opens with the salon's time zone. */
+  timeZone: string;
   onBack: () => void;
 }) {
   const { api, t, salon, today, onBack } = props;
@@ -35,6 +46,7 @@ export function ReportsScreen(props: {
   const [report, setReport] = useState<SalonReport | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [clientId, setClientId] = useState<string | null>(null);
   const range = reportRange(period, today);
 
   const load = useCallback(async () => {
@@ -53,14 +65,15 @@ export function ReportsScreen(props: {
     void load();
   }, [load]);
 
-  // Android "back" closes the reports instead of the app.
+  // Android "back" closes the reports instead of the app (a client card handles it itself).
   useEffect(() => {
+    if (clientId) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       onBack();
       return true;
     });
     return () => sub.remove();
-  }, [onBack]);
+  }, [onBack, clientId]);
 
   const money = (hundredths: number) =>
     formatPrice(hundredths, report?.location.currency ?? salon.currency, props.locale);
@@ -86,6 +99,20 @@ export function ReportsScreen(props: {
       {sub ? <Text style={styles.small}>{sub}</Text> : null}
     </View>
   );
+
+  if (clientId) {
+    return (
+      <ClientScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        id={clientId}
+        timeZone={props.timeZone}
+        onBack={() => setClientId(null)}
+      />
+    );
+  }
 
   return (
     <ScrollView
@@ -211,15 +238,23 @@ export function ReportsScreen(props: {
             <View style={{ gap: 8 }} testID="report-top-clients">
               <Text style={styles.section}>{r.topClients}</Text>
               {shown.topClients.map((c) => (
-                <Card key={c.id}>
-                  <View style={styles.cardTop}>
-                    <Text style={styles.name}>{c.name}</Text>
-                    <Text style={styles.name}>{money(c.revenueGrosze)}</Text>
-                  </View>
-                  <Text style={styles.muted}>
-                    {fill(r.topClientVisits, { n: String(c.completed) })}
-                  </Text>
-                </Card>
+                <Pressable
+                  key={c.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${c.name} · ${money(c.revenueGrosze)}`}
+                  onPress={() => setClientId(c.id)}
+                  style={({ pressed }) => pressed && { opacity: 0.7 }}
+                >
+                  <Card>
+                    <View style={styles.cardTop}>
+                      <Text style={styles.name}>{c.name}</Text>
+                      <Text style={styles.name}>{money(c.revenueGrosze)}</Text>
+                    </View>
+                    <Text style={styles.muted}>
+                      {fill(r.topClientVisits, { n: String(c.completed) })}
+                    </Text>
+                  </Card>
+                </Pressable>
               ))}
               <Text style={styles.small}>{r.topClientsHint}</Text>
             </View>

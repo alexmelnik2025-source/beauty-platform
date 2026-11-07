@@ -371,7 +371,7 @@ export const pl = {
     topClients: 'Najlepsi klienci',
     topClientVisits: 'wizyty: {n}',
     topClientsHint:
-      'Do 10 klientów, którzy w tym okresie przynieśli najwięcej. Kontakty — w „Klienci”.',
+      'Do 10 klientów, którzy w tym okresie przynieśli najwięcej. Dotknij klienta, aby otworzyć jego kartę.',
     busyHours: 'Godziny szczytu',
     busyHoursHint:
       'Godziny, o których zaczyna się najwięcej wizyt (bez odwołanych). Pełna tabela — w „Raporty” w kabinecie.',

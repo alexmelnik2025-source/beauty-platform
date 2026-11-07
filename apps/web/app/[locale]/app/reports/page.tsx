@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api, apiResponse } from '@/lib/api';
@@ -414,7 +415,13 @@ export default function ReportsPage() {
                         <tbody>
                           {report.topClients.map((c) => (
                             <tr key={c.id}>
-                              <th scope="row">{c.name}</th>
+                              <th scope="row">
+                                <Link
+                                  href={`/${locale}/app/clients?open=${encodeURIComponent(c.id)}`}
+                                >
+                                  {c.name}
+                                </Link>
+                              </th>
                               <td>{c.completed}</td>
                               <td>{money(c.revenueGrosze)}</td>
                             </tr>

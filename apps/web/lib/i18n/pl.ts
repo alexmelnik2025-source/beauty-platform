@@ -1281,7 +1281,7 @@ export const pl = {
     topClients: 'Najlepsi klienci',
     colClient: 'Klient',
     topClientsHint:
-      'Do 10 klientów, którzy w tym okresie przynieśli najwięcej (opłacone wizyty), potem najczęściej przychodzili. Dane kontaktowe — w „Klienci”.',
+      'Do 10 klientów, którzy w tym okresie przynieśli najwięcej (opłacone wizyty), potem najczęściej przychodzili. Kliknij imię, aby otworzyć kartę klienta.',
     busyHours: 'Godziny szczytu',
     busyHoursHint:
       'Ile wizyt zaczyna się o danej godzinie w poszczególne dni tygodnia (bez odwołanych). Ciemniejsze pole — więcej wizyt. Pomaga zaplanować grafik i happy hours.',

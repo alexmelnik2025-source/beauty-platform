@@ -1976,3 +1976,10 @@ API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply
 «Raporty» — тепловая таблица дни × часы (от первого до последнего часа с визитами), бизнес-приложение — три самых
 загруженных часа (`peakHours` в `apps/mobile-business/src/reports.ts`). Тесты `reports.spec.ts` (API) и
 `test/reports.test.ts` (приложение), e2e `reports.spec.ts` (скриншоты 74g, 75g).
+
+## Из отчёта в карточку клиента (задача 217)
+
+`/{locale}/app/clients?open=<id>` открывает карточку клиента сразу (параметр читается при загрузке страницы; права
+проверяет сервер). Имена в «Najlepsi klienci» кабинета ведут туда; в бизнес-приложении `ReportsScreen` открывает
+`ClientScreen` поверх отчёта (отчёт не перезагружается, «назад» Android закрывает сначала карточку). e2e
+`reports.spec.ts` (скриншоты 74h, 75h).

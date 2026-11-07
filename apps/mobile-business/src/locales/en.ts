@@ -372,7 +372,7 @@ export const en: Dictionary = {
     topClients: 'Top clients',
     topClientVisits: 'visits: {n}',
     topClientsHint:
-      'Up to 10 clients who brought the most in this period. Contact details are in “Clients”.',
+      'Up to 10 clients who brought the most in this period. Tap a client to open their card.',
     busyHours: 'Peak hours',
     busyHoursHint:
       'The hours most visits start at (cancelled ones left out). The full table is in “Reports” in the cabinet.',

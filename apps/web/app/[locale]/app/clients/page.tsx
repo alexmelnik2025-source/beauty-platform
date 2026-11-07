@@ -27,6 +27,12 @@ export default function ClientsPage() {
   const [open, setOpen] = useState<string | 'new' | null>(null);
   const [error, setError] = useState('');
 
+  // Task 217: "/app/clients?open=<id>" (from "Najlepsi klienci" in the report) opens that card.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('open');
+    if (id) setOpen(id);
+  }, []);
+
   const load = useCallback(async () => {
     try {
       setRows(
