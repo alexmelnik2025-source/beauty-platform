@@ -427,6 +427,9 @@ export const pl = {
     byService: 'Usługi',
     byCategory: 'Kategorie usług',
     noCategory: 'Bez kategorii',
+    unbooked: 'Usługi bez wizyt',
+    unbookedHint:
+      'Usługi dostępne do rezerwacji, których nikt nie zarezerwował w tym okresie (odwołane wizyty się nie liczą). Warto sprawdzić ich cenę, opis lub zdjęcia — albo ukryć je w „Usługi”.',
     row: 'odbyte: {completed} · nie przyszli: {noShow}',
     rowCancelled: 'odwołane: {n} ({split})',
     csv: 'Pobierz CSV',

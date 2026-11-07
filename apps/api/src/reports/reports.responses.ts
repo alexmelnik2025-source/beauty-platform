@@ -229,6 +229,18 @@ export const salonReportSchema = responseSchema(
       .describe(
         "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report",
       ),
+    unbookedServices: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          name: z.string(),
+          categoryName: z.string().nullable().describe('null = no category'),
+          priceGrosze: money('The price on the price list'),
+        }),
+      )
+      .describe(
+        'Task 259: "Usługi bez wizyt" — bookable services nobody booked in the period (cancelled visits do not count), in price-list order; empty in a specialist\'s own report',
+      ),
     busyHours: z
       .array(
         z.strictObject({

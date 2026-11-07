@@ -21668,6 +21668,39 @@
             },
             "description": "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report"
           },
+          "unbookedServices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "categoryName": {
+                  "nullable": true,
+                  "description": "null = no category",
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "The price on the price list, in hundredths of the salon currency"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "categoryName",
+                "priceGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 259: \"Usługi bez wizyt\" — bookable services nobody booked in the period (cancelled visits do not count), in price-list order; empty in a specialist's own report"
+          },
           "busyHours": {
             "type": "array",
             "items": {
@@ -21910,6 +21943,7 @@
           "ratings",
           "rebooking",
           "topClients",
+          "unbookedServices",
           "busyHours",
           "marketing",
           "newcomers",

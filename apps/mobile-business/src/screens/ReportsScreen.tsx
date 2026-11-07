@@ -415,6 +415,21 @@ export function ReportsScreen(props: {
               <Text style={styles.small}>{r.topClientsHint}</Text>
             </View>
           ) : null}
+          {shown.unbookedServices.length > 0 ? (
+            <View style={{ gap: 8 }} testID="report-unbooked">
+              <Text style={styles.section}>{r.unbooked}</Text>
+              {shown.unbookedServices.map((s) => (
+                <Card key={s.id}>
+                  <View style={styles.cardTop}>
+                    <Text style={styles.name}>{s.name}</Text>
+                    <Text style={styles.name}>{money(s.priceGrosze)}</Text>
+                  </View>
+                  {s.categoryName ? <Text style={styles.muted}>{s.categoryName}</Text> : null}
+                </Card>
+              ))}
+              <Text style={styles.small}>{r.unbookedHint}</Text>
+            </View>
+          ) : null}
           {totals.visits > 0 ? (
             <View style={{ gap: 6 }}>
               <Text style={styles.section}>{r.byWeekday}</Text>

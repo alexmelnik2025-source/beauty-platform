@@ -1605,6 +1605,13 @@ fieldset.field > legend {
   color: var(--ink);
 }
 
+.report-unbooked {
+  margin: 0 0 8px;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 4px;
+}
+
 .report-table-wrap {
   overflow-x: auto;
 }

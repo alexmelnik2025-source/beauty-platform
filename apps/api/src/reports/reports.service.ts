@@ -352,6 +352,7 @@ export class ReportsService {
       ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
       rebooking: await this.rebooking(locationId, lastVisit),
       topClients: own ? [] : await this.topClients(byClient),
+      unbookedServices: own ? [] : await this.unbookedServices(locationId, rows, rangeEnd),
       marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
       newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),
@@ -605,6 +606,48 @@ export class ReportsService {
       newInPeriod,
       unsubscribed,
     };
+  }
+
+  /**
+   * Task 259: "Usługi bez wizyt" — services clients can book (active) that nobody booked in the
+   * period: no visit that was not cancelled. Services added after the period are left out.
+   * In price-list order (category, then service). Not in a specialist's own report: the price
+   * list is the owner's.
+   */
+  private async unbookedServices(
+    locationId: string,
+    rows: { status: string; service: { id: string } }[],
+    rangeEnd: Date,
+  ): Promise<SalonReport['unbookedServices']> {
+    const booked = new Set(rows.filter((a) => a.status !== 'cancelled').map((a) => a.service.id));
+    const services = await this.prisma.service.findMany({
+      where: { locationId, active: true, createdAt: { lt: rangeEnd } },
+      select: {
+        id: true,
+        name: true,
+        priceGrosze: true,
+        sortOrder: true,
+        createdAt: true,
+        category: { select: { name: true, sortOrder: true } },
+      },
+    });
+    return services
+      .filter((s) => !booked.has(s.id))
+      .sort(
+        (a, b) =>
+          // Services without a category after the grouped ones, as on the booking page.
+          Number(a.category === null) - Number(b.category === null) ||
+          (a.category?.sortOrder ?? 0) - (b.category?.sortOrder ?? 0) ||
+          (a.category?.name ?? '').localeCompare(b.category?.name ?? '') ||
+          a.sortOrder - b.sortOrder ||
+          a.createdAt.getTime() - b.createdAt.getTime(),
+      )
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        categoryName: s.category?.name ?? null,
+        priceGrosze: s.priceGrosze,
+      }));
   }
 
   /**

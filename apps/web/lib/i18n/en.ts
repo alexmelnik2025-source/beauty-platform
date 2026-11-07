@@ -1397,6 +1397,10 @@ export const en: Dict = {
       'How many clients who came in this period agreed to get messages from the salon (latest answer is “yes”). New — first consent in this period. Clients tick the box when booking and unsubscribe with the link in a message.',
     topClients: 'Top clients',
     colClient: 'Client',
+    unbooked: 'Services without visits',
+    unbookedHint:
+      'Bookable services nobody booked in this period (cancelled visits do not count). Worth checking their price, description or photos — or hiding them in “Services”.',
+    unbookedLink: 'Open services',
     topClientsHint:
       'Up to 10 clients who brought the most in this period (paid visits), then came most often. Click a name to open the client’s card.',
     busyHours: 'Peak hours',

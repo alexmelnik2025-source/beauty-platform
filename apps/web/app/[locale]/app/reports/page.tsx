@@ -781,6 +781,27 @@ export default function ReportsPage() {
                   </section>
                 ) : null}
 
+                {report.unbookedServices.length > 0 ? (
+                  <section className="section" data-testid="report-unbooked">
+                    <h2>{t.reports.unbooked}</h2>
+                    <ul className="report-unbooked">
+                      {report.unbookedServices.map((s) => (
+                        <li key={s.id}>
+                          <span>{s.name}</span>
+                          {s.categoryName ? (
+                            <span className="small muted"> · {s.categoryName}</span>
+                          ) : null}
+                          <span className="small muted"> · {money(s.priceGrosze)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="small muted">
+                      {t.reports.unbookedHint}{' '}
+                      <Link href={`/${locale}/app/services`}>{t.reports.unbookedLink}</Link>
+                    </p>
+                  </section>
+                ) : null}
+
                 <section className="section">
                   <h2>{t.reports.byWeekday}</h2>
                   <ol className="report-days">

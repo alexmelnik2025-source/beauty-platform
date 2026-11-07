@@ -429,6 +429,9 @@ export const en: Dictionary = {
     byService: 'Services',
     byCategory: 'Service categories',
     noCategory: 'No category',
+    unbooked: 'Services without visits',
+    unbookedHint:
+      'Bookable services nobody booked in this period (cancelled visits do not count). Worth checking their price, description or photos — or hiding them in “Services”.',
     row: 'completed: {completed} · no-shows: {noShow}',
     rowCancelled: 'cancelled: {n} ({split})',
     csv: 'Download CSV',

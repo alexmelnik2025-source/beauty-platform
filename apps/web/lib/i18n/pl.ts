@@ -1394,6 +1394,10 @@ export const pl = {
       'Ilu klientów, którzy przyszli w tym okresie, zgodziło się na wiadomości od salonu (ostatnia odpowiedź — „tak”). Nowe — pierwsza zgoda w tym okresie. Klient zaznacza zgodę przy rezerwacji, a wypisuje się linkiem z wiadomości.',
     topClients: 'Najlepsi klienci',
     colClient: 'Klient',
+    unbooked: 'Usługi bez wizyt',
+    unbookedHint:
+      'Usługi dostępne do rezerwacji, których nikt nie zarezerwował w tym okresie (odwołane wizyty się nie liczą). Warto sprawdzić ich cenę, opis lub zdjęcia — albo ukryć je w „Usługi”.',
+    unbookedLink: 'Otwórz usługi',
     topClientsHint:
       'Do 10 klientów, którzy w tym okresie przynieśli najwięcej (opłacone wizyty), potem najczęściej przychodzili. Kliknij imię, aby otworzyć kartę klienta.',
     busyHours: 'Godziny szczytu',

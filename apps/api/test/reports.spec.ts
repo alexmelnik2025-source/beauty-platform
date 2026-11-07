@@ -785,6 +785,68 @@ describe('salon report', () => {
     ]);
   });
 
+  it('"Usługi bez wizyt": bookable services nobody booked, in price-list order (task 259)', async () => {
+    const d1 = addDays(today, -3);
+    // Nothing booked yet: the whole price list, in its order.
+    const empty = await report().expect(200);
+    expect(empty.body.unbookedServices).toEqual([
+      { id: haircutId, name: 'Strzyżenie', categoryName: null, priceGrosze: 8000 },
+      { id: beardId, name: 'Broda', categoryName: null, priceGrosze: 5000 },
+    ]);
+
+    // A grouped service comes first, as on the booking page.
+    const beard = await ctx
+      .http()
+      .post(`${base}/service-categories`)
+      .set(owner.auth)
+      .send({ name: 'Broda i wąsy' })
+      .expect(201);
+    await ctx
+      .http()
+      .patch(`${base}/services/${beardId}`)
+      .set(owner.auth)
+      .send({ version: 1, categoryId: beard.body.id })
+      .expect(200);
+    // A hidden service is not offered, so it is not listed.
+    const hidden = await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(owner.auth)
+      .send({ name: 'Ukryta', durationMinutes: 30, priceGrosze: 1000 })
+      .expect(201);
+    await ctx.prisma.service.update({ where: { id: hidden.body.id }, data: { active: false } });
+
+    await visit({ date: d1, status: 'completed', paid: true });
+    // A cancelled visit is not a booking that stayed.
+    await visit({ date: d1, serviceId: beardId, status: 'cancelled' });
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.unbookedServices).toEqual([
+      { id: beardId, name: 'Broda', categoryName: 'Broda i wąsy', priceGrosze: 5000 },
+    ]);
+
+    // A no-show still means a client booked it.
+    await visit({ date: d1, serviceId: beardId, status: 'no_show' });
+    expect((await report().expect(200)).body.unbookedServices).toEqual([]);
+
+    // A period that ended before the services were added lists nothing.
+    const past = await report(owner.auth, {
+      from: addDays(today, -30),
+      to: addDays(today, -20),
+    }).expect(200);
+    expect(past.body.unbookedServices).toEqual([]);
+
+    // Not in a specialist's own report.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth, { from: addDays(today, -30), to: today }).expect(200);
+    expect(own.body.unbookedServices).toEqual([]);
+  });
+
   it('"Napiwki": tips of the visits that took place, by specialist, not in the revenue (task 229)', async () => {
     const d1 = addDays(today, -3);
     await visit({ date: d1, status: 'completed', paid: true, tipGrosze: 1000 });

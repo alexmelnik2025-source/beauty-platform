@@ -5572,6 +5572,15 @@ export interface components {
                 /** @description What their paid visits brought, in hundredths of the salon currency */
                 revenueGrosze: number;
             }[];
+            /** @description Task 259: "Usługi bez wizyt" — bookable services nobody booked in the period (cancelled visits do not count), in price-list order; empty in a specialist's own report */
+            unbookedServices: {
+                id: string;
+                name: string;
+                /** @description null = no category */
+                categoryName: string | null;
+                /** @description The price on the price list, in hundredths of the salon currency */
+                priceGrosze: number;
+            }[];
             /** @description Task 216: "Godziny szczytu" — when visits start, only hours with visits */
             busyHours: {
                 /** @description 1 = Monday … 7 = Sunday */
