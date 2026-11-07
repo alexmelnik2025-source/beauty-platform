@@ -2333,3 +2333,20 @@ następny dzień», «2–7 dni», «8–14 dni», «Ponad 14 dni» (полос�
 зависит; только число, без имён; в отчёте мастера — 0 и блока нет. API: поле `overdueClients` в `GET …/reports`; общий
 подсчёт — `dueToComeBack()` в `customers.service.ts`. Тест: `apps/api/test/reports.spec.ts`; e2e и скриншоты 263,
 263-a — `client-birthday.spec.ts`.
+
+## Фильтр «Nie przyszli» в «Klienci» (задача 264)
+
+Над списком клиентов (кабинет и бизнес-приложение) кнопка «🚫 Nie przyszli»: клиенты, у которых за последние
+12 месяцев хотя бы один визит отмечен «Nie przyszedł» (в салонах пользователя), последний пропуск — сверху. Только
+список, без блокировок и рассылок (защита от отмен — задача 161). API: `noShows=yes` в `GET …/customers` (только
+владелец и менеджер, менеджер — по своим салонам). Тест: `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты
+264, 264-a — `client-birthday.spec.ts`.
+
+## «Nie przyszli: N» в отчёте (задача 265)
+
+В «Raporty» (кабинет и бизнес-приложение) блок «🚫 Nie przyszli: N» — сколько клиентов этого салона хотя бы раз не
+пришли за последние 12 месяцев (то же правило, что у фильтра 264), со ссылкой «Pokaż, kto nie przyszedł» на список
+«Klienci» с включённым фильтром (`/app/clients?noShows=1`). Число — на сегодня, от выбранного периода не зависит;
+только число, без имён; в отчёте мастера — 0 и блока нет. API: поле `noShowClients` в `GET …/reports`; общий подсчёт —
+`missedVisits()` в `customers.service.ts`. Тест: `apps/api/test/reports.spec.ts`; e2e и скриншоты 265, 265-a —
+`client-birthday.spec.ts`.
