@@ -26,6 +26,7 @@ const closed = (counted: number, expected: number, now = expected): TillClose =>
     closedByName: 'Anna',
     closedAt: '2026-11-06T19:00:00.000Z',
   },
+  unclosedDay: null,
 });
 
 describe('"Zamknij kasę" (task 232)', () => {

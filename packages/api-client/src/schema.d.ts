@@ -5805,6 +5805,8 @@ export interface components {
                 closedByName: string;
                 closedAt: string;
             } | null;
+            /** @description Task 239: the latest earlier day (up to 14 days back) on which the till had cash — visits paid in cash, cash put in or taken out — when its till was not counted; null when it was or there was none */
+            unclosedDay: string | null;
         };
         TimeBlock: {
             id: string;

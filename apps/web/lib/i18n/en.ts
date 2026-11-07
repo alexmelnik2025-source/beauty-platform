@@ -198,6 +198,8 @@ export const en: Dict = {
     weekOf: "Specialist's week",
     till: 'Till',
     tillTips: 'Tips',
+    tillUnclosed: 'The till of {day} was not closed.',
+    tillUnclosedOpen: 'Show that day',
     tillOwn: 'your visits only',
     tillUnpaid: 'came, not paid: {n}',
     tillLabel: "Till — the day's paid visits by payment method",

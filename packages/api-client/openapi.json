@@ -22657,6 +22657,11 @@
               "closedAt"
             ],
             "additionalProperties": false
+          },
+          "unclosedDay": {
+            "nullable": true,
+            "description": "Task 239: the latest earlier day (up to 14 days back) on which the till had cash — visits paid in cash, cash put in or taken out — when its till was not counted; null when it was or there was none",
+            "type": "string"
           }
         },
         "required": [
@@ -22667,7 +22672,8 @@
           "cashInGrosze",
           "cashOutGrosze",
           "movements",
-          "close"
+          "close",
+          "unclosedDay"
         ],
         "additionalProperties": false
       },

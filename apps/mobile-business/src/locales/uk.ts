@@ -38,6 +38,8 @@ export const uk: Dictionary = {
     tillTips: 'Чайові {amount}',
     tillOwn: 'лише ваші візити',
     tillUnpaid: 'прийшли, не оплачено: {n}',
+    tillUnclosed: 'Касу за {day} не закрито.',
+    tillUnclosedOpen: 'Показати цей день',
     tillClose: 'Закрити касу',
     tillExpected: 'Готівка за візити цього дня: {sum}',
     tillCounted: 'Готівка в касі ({currency})',

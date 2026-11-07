@@ -199,6 +199,8 @@ export const ru: Dict = {
     weekOf: 'Неделя мастера',
     till: 'Касса дня',
     tillTips: 'Чаевые',
+    tillUnclosed: 'Касса за {day} не закрыта.',
+    tillUnclosedOpen: 'Показать этот день',
     tillOwn: 'только ваши визиты',
     tillUnpaid: 'пришли, не оплачено: {n}',
     tillLabel: 'Касса дня — оплаченные визиты этого дня по способу оплаты',

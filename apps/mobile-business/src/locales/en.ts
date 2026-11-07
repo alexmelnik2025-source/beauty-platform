@@ -40,6 +40,8 @@ export const en: Dictionary = {
     tillTips: 'Tips {amount}',
     tillOwn: 'your visits only',
     tillUnpaid: 'came, not paid: {n}',
+    tillUnclosed: 'The till of {day} was not closed.',
+    tillUnclosedOpen: 'Show that day',
     tillClose: 'Close the till',
     tillExpected: 'Cash for visits this day: {sum}',
     tillCounted: 'Cash in the till ({currency})',

@@ -38,6 +38,8 @@ export const pl = {
     tillTips: 'Napiwki {amount}',
     tillOwn: 'tylko Twoje wizyty',
     tillUnpaid: 'przyszli, nieopłacone: {n}',
+    tillUnclosed: 'Kasa z dnia {day} nie została zamknięta.',
+    tillUnclosedOpen: 'Pokaż ten dzień',
     tillClose: 'Zamknij kasę',
     tillExpected: 'Gotówka za wizyty tego dnia: {sum}',
     tillCounted: 'Gotówka w kasie ({currency})',

@@ -199,6 +199,8 @@ export const pl = {
     weekOf: 'Tydzień specjalisty',
     till: 'Kasa dnia',
     tillTips: 'Napiwki',
+    tillUnclosed: 'Kasa z dnia {day} nie została zamknięta.',
+    tillUnclosedOpen: 'Pokaż ten dzień',
     tillOwn: 'tylko Twoje wizyty',
     tillUnpaid: 'przyszli, nieopłacone: {n}',
     tillLabel: 'Kasa dnia — opłacone wizyty tego dnia według sposobu płatności',

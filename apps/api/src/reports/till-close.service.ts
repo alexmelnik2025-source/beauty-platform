@@ -9,6 +9,9 @@ import type { TillCloseResponse } from './reports.responses';
 import type { CloseTillInput, TillMovementInput, VisitsCsvQuery } from './reports.schemas';
 import { tillCsv, type TillCsvLine } from './till-csv';
 
+/** Task 239: how far back "Kasa nie została zamknięta" looks for a day with cash. */
+const UNCLOSED_LOOKBACK_DAYS = 14;
+
 const dayNotStarted = (): AppException =>
   new AppException(
     HttpStatus.CONFLICT,
@@ -170,13 +173,14 @@ export class TillCloseService {
   }
 
   private async view(location: Location, date: string): Promise<TillCloseResponse> {
-    const [cash, row] = await Promise.all([
+    const [cash, row, unclosedDay] = await Promise.all([
       this.cash(location, date),
       this.prisma.tillClose.findUnique({
         where: {
           locationId_date: { locationId: location.id, date: new Date(`${date}T00:00:00Z`) },
         },
       }),
+      this.unclosedDay(location, date),
     ]);
     return {
       date,
@@ -203,7 +207,54 @@ export class TillCloseService {
             closedAt: row.closedAt.toISOString(),
           }
         : null,
+      unclosedDay,
     };
+  }
+
+  /**
+   * Task 239: "Kasa nie została zamknięta" — the latest day before `date` (up to 14 days back)
+   * on which the till had cash: visits that took place and were paid in cash, or cash put in or
+   * taken out. That day when its till was not counted; null when it was, or there was none.
+   */
+  private async unclosedDay(location: Location, date: string): Promise<string | null> {
+    const from = addDays(date, -UNCLOSED_LOOKBACK_DAYS);
+    const [visit, movement] = await Promise.all([
+      this.prisma.appointment.findFirst({
+        where: {
+          locationId: location.id,
+          status: 'completed',
+          paidAt: { not: null },
+          paymentMethod: 'cash',
+          startAt: {
+            gte: new Date(zonedToInstant(from, 0, location.timezone)),
+            lt: new Date(zonedToInstant(date, 0, location.timezone)),
+          },
+        },
+        orderBy: { startAt: 'desc' },
+        select: { startAt: true },
+      }),
+      this.prisma.tillMovement.findFirst({
+        where: {
+          locationId: location.id,
+          date: { gte: new Date(`${from}T00:00:00Z`), lt: new Date(`${date}T00:00:00Z`) },
+        },
+        orderBy: { date: 'desc' },
+        select: { date: true },
+      }),
+    ]);
+    const days = [
+      visit ? instantToLocal(visit.startAt.getTime(), location.timezone).date : '',
+      movement ? movement.date.toISOString().slice(0, 10) : '',
+    ];
+    const latest = days.sort().at(-1);
+    if (!latest) return null;
+    const closed = await this.prisma.tillClose.findUnique({
+      where: {
+        locationId_date: { locationId: location.id, date: new Date(`${latest}T00:00:00Z`) },
+      },
+      select: { id: true },
+    });
+    return closed ? null : latest;
   }
 
   /**

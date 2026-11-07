@@ -270,6 +270,12 @@ export const tillCloseSchema = responseSchema(
       })
       .nullable()
       .describe('null — the till of that day was not counted yet'),
+    unclosedDay: z
+      .string()
+      .nullable()
+      .describe(
+        'Task 239: the latest earlier day (up to 14 days back) on which the till had cash — visits paid in cash, cash put in or taken out — when its till was not counted; null when it was or there was none',
+      ),
   }),
 );
 

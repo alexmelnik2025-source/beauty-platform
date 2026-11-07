@@ -133,7 +133,12 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await page.getByLabel('Hasło').fill(PASSWORD);
   await page.getByRole('button', { name: 'Zaloguj się' }).click();
   await page.waitForURL(/\/pl\/app\/calendar/);
-  await page.goto(`/pl/app/calendar?date=${visit.date}`);
+  // Task 239: today's calendar reminds that the till of the visit's day was not closed.
+  const reminder = page.getByTestId('till-reminder');
+  await expect(reminder).toContainText('nie została zamknięta');
+  await shot(page, '239-till-not-closed');
+  await reminder.getByRole('button', { name: 'Pokaż ten dzień' }).click();
+  await expect(reminder).toHaveCount(0);
   const till = page.getByTestId('till');
   await expect(till).toContainText(/Kasa dnia: 90,00\s*zł/);
 
@@ -165,6 +170,10 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await form.getByRole('button', { name: 'Zapisz' }).click();
   await expect(till.getByTestId('till-diff')).toHaveText('zgadza się');
   await shot(page, '232-a-till-close-matches');
+  // Closed — today's calendar no longer reminds of it.
+  await page.getByRole('button', { name: 'Dziś', exact: true }).click();
+  await expect(till).toHaveCount(0);
+  await expect(reminder).toHaveCount(0);
 
   // Task 233: "Zamknięcia kasy" in the report.
   await page.getByRole('link', { name: 'Raporty' }).click();

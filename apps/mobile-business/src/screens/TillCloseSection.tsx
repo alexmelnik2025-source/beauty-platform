@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, TillClose } from '../api';
-import { formatPrice } from '../day';
+import { dayTitle, formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
@@ -56,6 +56,49 @@ export function TillCloseSection(props: {
     <View style={styles.box}>
       <TillMovements {...props} view={view} onChange={setView} />
       <TillCount {...props} view={view} onChange={setView} />
+    </View>
+  );
+}
+
+/**
+ * Task 239: "Kasa nie została zamknięta" — on today's screen the owner or a manager sees when the
+ * till of the latest earlier day with cash was not counted; a tap opens that day to close it.
+ * The server answers only owners and managers; for anyone else nothing is shown.
+ */
+export function TillReminder(props: {
+  api: BusinessApi;
+  t: Dictionary;
+  locale: Locale;
+  salon: SalonChoice;
+  today: string;
+  reloads: number;
+  onOpen: (date: string) => void;
+}) {
+  const { api, salon, today, t } = props;
+  const [day, setDay] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .tillClose(salon.orgId, salon.locationId, today)
+      .then((v) => {
+        if (alive) setDay(v.unclosedDay);
+      })
+      .catch(() => {
+        if (alive) setDay(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [api, salon, today, props.reloads]);
+
+  if (!day) return null;
+  return (
+    <View style={styles.reminder} testID="till-reminder">
+      <Text role="status" style={styles.diff}>
+        {fill(t.day.tillUnclosed, { day: dayTitle(day, props.locale) })}
+      </Text>
+      <Button kind="link" label={t.day.tillUnclosedOpen} onPress={() => props.onOpen(day)} />
     </View>
   );
 }
@@ -358,6 +401,14 @@ function TillCount(props: PartProps) {
 
 const styles = StyleSheet.create({
   box: { gap: 6, paddingTop: 8 },
+  reminder: {
+    gap: 4,
+    marginTop: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.ink,
+    borderRadius: 8,
+  },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   title: { fontSize: 15, fontWeight: '600', color: colors.ink },
   diff: { fontSize: 15, color: colors.ink },

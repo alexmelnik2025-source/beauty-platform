@@ -27,6 +27,7 @@ import { AppointmentSheet } from './AppointmentSheet';
 import { BlockSheet } from './BlockSheet';
 import { MoveSheet, type MoveTarget } from './MoveSheet';
 import { NewItemSheet, type NewItemDraft } from './NewItemSheet';
+import { TillReminder } from './TillReminder';
 import { TillStrip } from './TillStrip';
 
 const REFRESH_MS = 30_000;
@@ -427,6 +428,10 @@ export function Calendar() {
           ›
         </button>
       </div>
+
+      {manager && mode === 'day' && date === today ? (
+        <TillReminder base={base} today={today} refresh={data} onOpen={setDate} />
+      ) : null}
 
       {canSeeTill && mode === 'day' && date <= today ? (
         <TillStrip base={base} date={date} currency={location.currency} refresh={data} />

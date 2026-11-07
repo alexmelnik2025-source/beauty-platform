@@ -455,3 +455,37 @@ describe('the till as a CSV cash journal (task 238)', () => {
       .expect(404);
   });
 });
+
+describe('"Kasa nie została zamknięta" (task 239)', () => {
+  const TODAY = addDays(DAY, 1);
+
+  it('names the latest earlier day with cash whose till was not counted', async () => {
+    // Nothing yet; a visit paid by card is not cash.
+    expect((await till(TODAY).expect(200)).body.unclosedDay).toBeNull();
+    await walkIn(at(9), { paid: true, paymentMethod: 'card' }).expect(201);
+    expect((await till(TODAY).expect(200)).body.unclosedDay).toBeNull();
+
+    await walkIn(at(10), { paid: true, paymentMethod: 'cash' }).expect(201);
+    const today = await till(TODAY).expect(200);
+    expect(registeredResponseSchema('TillClose').safeParse(today.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(today.body.unclosedDay).toBe(DAY);
+    // The day itself looks only at the days before it.
+    expect((await till(DAY).expect(200)).body.unclosedDay).toBeNull();
+
+    // Counted — the reminder goes away; an older day without a close is not brought back.
+    await ctx
+      .http()
+      .post(`${base}/reports/till-movements`)
+      .set(owner.auth)
+      .send({ date: addDays(DAY, -3), kind: 'in', amountGrosze: 5000, note: 'Reszta' })
+      .expect(201);
+    await close({ date: DAY, countedCashGrosze: 8000 }).expect(200);
+    expect((await till(TODAY).expect(200)).body.unclosedDay).toBeNull();
+    // But the day after that older day still sees it.
+    expect((await till(addDays(DAY, -2)).expect(200)).body.unclosedDay).toBe(addDays(DAY, -3));
+    // Too long ago — not reminded any more.
+    expect((await till(addDays(DAY, 16)).expect(200)).body.unclosedDay).toBeNull();
+  });
+});
