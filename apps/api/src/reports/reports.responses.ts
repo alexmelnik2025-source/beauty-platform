@@ -247,6 +247,36 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 244: "Zgody na wiadomości" — counts only; all zeros in a specialist\'s own report',
       ),
+    newcomers: z
+      .strictObject({
+        clients: z
+          .number()
+          .int()
+          .describe(
+            'New clients: their first visit at this salon that took place is in the period',
+          ),
+        returned: z
+          .number()
+          .int()
+          .describe('Of them, clients who came again on a later day (any specialist)'),
+        booked: z
+          .number()
+          .int()
+          .describe('Of the rest, clients with a visit booked for a later day'),
+        percent: z.number().int().describe('returned plus booked of clients, 0–100'),
+        staff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              displayName: z.string(),
+              clients: z.number().int(),
+              returned: z.number().int(),
+              booked: z.number().int(),
+            }),
+          )
+          .describe("By the specialist of the client's first visit, most clients first"),
+      })
+      .describe('Task 246: "Nowi klienci — czy wrócili" — counts only, no names'),
   }),
 );
 

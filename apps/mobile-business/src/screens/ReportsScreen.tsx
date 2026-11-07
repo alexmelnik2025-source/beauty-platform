@@ -518,6 +518,43 @@ export function ReportsScreen(props: {
               <Text style={styles.small}>{r.rebookingHint}</Text>
             </View>
           ) : null}
+          {shown.newcomers.clients > 0 ? (
+            <View style={{ gap: 6 }} testID="report-newcomers">
+              <Text style={styles.section}>
+                {fill(r.newcomers, { n: String(shown.newcomers.percent) })}
+              </Text>
+              <View
+                style={styles.bar}
+                accessibilityRole="progressbar"
+                accessibilityLabel={fill(r.newcomers, { n: String(shown.newcomers.percent) })}
+                accessibilityValue={{ min: 0, max: 100, now: shown.newcomers.percent }}
+              >
+                <View
+                  style={[styles.barFill, { width: `${Math.min(100, shown.newcomers.percent)}%` }]}
+                />
+              </View>
+              <Text style={styles.small}>
+                {fill(r.newcomersCount, {
+                  returned: String(shown.newcomers.returned),
+                  booked: String(shown.newcomers.booked),
+                  clients: String(shown.newcomers.clients),
+                })}
+              </Text>
+              {shown.scope !== 'own' && shown.newcomers.staff.length > 1
+                ? shown.newcomers.staff.map((s) => (
+                    <Text key={s.id} style={styles.small}>
+                      {s.displayName}:{' '}
+                      {fill(r.newcomersCount, {
+                        returned: String(s.returned),
+                        booked: String(s.booked),
+                        clients: String(s.clients),
+                      })}
+                    </Text>
+                  ))
+                : null}
+              <Text style={styles.small}>{r.newcomersHint}</Text>
+            </View>
+          ) : null}
           {shown.scope !== 'own' && shown.marketing.clients > 0 ? (
             <View style={{ gap: 6 }} testID="report-marketing">
               <Text style={styles.section}>

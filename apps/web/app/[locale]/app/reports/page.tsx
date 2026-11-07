@@ -575,6 +575,46 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report && report.newcomers.clients > 0 ? (
+              <section className="section" data-testid="report-newcomers">
+                <h2>
+                  {t.reports.newcomers}: {report.newcomers.percent}%
+                </h2>
+                <span
+                  className="report-bar"
+                  role="meter"
+                  aria-label={t.reports.newcomers}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={report.newcomers.percent}
+                >
+                  <span style={{ width: `${Math.min(100, report.newcomers.percent)}%` }} />
+                </span>
+                <p className="small muted">
+                  {fill(t.reports.newcomersCount, {
+                    returned: String(report.newcomers.returned),
+                    booked: String(report.newcomers.booked),
+                    clients: String(report.newcomers.clients),
+                  })}
+                </p>
+                {report.scope !== 'own' && report.newcomers.staff.length > 1 ? (
+                  <ul className="small">
+                    {report.newcomers.staff.map((s) => (
+                      <li key={s.id}>
+                        {s.displayName}:{' '}
+                        {fill(t.reports.newcomersCount, {
+                          returned: String(s.returned),
+                          booked: String(s.booked),
+                          clients: String(s.clients),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <p className="small muted">{t.reports.newcomersHint}</p>
+              </section>
+            ) : null}
+
             {report && report.scope !== 'own' && report.marketing.clients > 0 ? (
               <section className="section" data-testid="report-marketing">
                 <h2>

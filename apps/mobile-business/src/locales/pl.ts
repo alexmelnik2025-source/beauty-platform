@@ -448,6 +448,10 @@ export const pl = {
     rebookingStaff: '{n}% · {rebooked}/{clients}',
     rebookingHint:
       'Klienci z tego okresu, którzy mają już kolejną wizytę (u dowolnego specjalisty).',
+    newcomers: 'Nowi klienci — wrócili: {n}%',
+    newcomersCount: 'nowi: {clients} · wrócili: {returned} · mają wizytę: {booked}',
+    newcomersHint:
+      'Klienci z pierwszą wizytą w tym okresie: ilu przyszło ponownie, a ilu ma już zarezerwowaną wizytę.',
     marketing: 'Zgody na wiadomości: {n}%',
     marketingCount: 'zgoda: {consented} z {clients}',
     marketingNew: 'nowe w tym okresie: {n}',

@@ -308,6 +308,93 @@ export class ReportsService {
       topClients: own ? [] : await this.topClients(byClient),
       marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
+      newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),
+    };
+  }
+
+  /**
+   * Task 246: "Nowi klienci — czy wrócili" — of the clients whose first visit at this salon took
+   * place in the period, how many came again on a later day (any specialist) and how many of the
+   * rest have a visit booked for a later day. By specialist: the one of that first visit (in a specialist's
+   * own report — only clients whose first visit was hers). Counts only.
+   */
+  private async newcomers(
+    locationId: string,
+    staffIds: string[] | null,
+    tz: string,
+    clients: Set<string>,
+    rangeStart: Date,
+  ): Promise<SalonReport['newcomers']> {
+    const empty = { clients: 0, returned: 0, booked: 0, percent: 0, staff: [] };
+    if (clients.size === 0) return empty;
+    const visits = await this.prisma.appointment.findMany({
+      where: {
+        locationId,
+        customerId: { in: [...clients] },
+        status: { in: ['confirmed', 'completed'] },
+      },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+      select: {
+        customerId: true,
+        status: true,
+        startAt: true,
+        staff: { select: { id: true, displayName: true } },
+      },
+    });
+    const firstVisit = new Map<
+      string,
+      { startAt: Date; staff: { id: string; displayName: string } }
+    >();
+    for (const a of visits) {
+      if (a.customerId && a.status === 'completed' && !firstVisit.has(a.customerId)) {
+        firstVisit.set(a.customerId, { startAt: a.startAt, staff: a.staff });
+      }
+    }
+    for (const [customerId, first] of firstVisit) {
+      if (first.startAt < rangeStart || (staffIds && !staffIds.includes(first.staff.id))) {
+        firstVisit.delete(customerId);
+      }
+    }
+    if (firstVisit.size === 0) return empty;
+    const came = new Set<string>();
+    const hasBooking = new Set<string>();
+    const day = (at: Date) => instantToLocal(at.getTime(), tz).date;
+    for (const a of visits) {
+      const first = a.customerId ? firstVisit.get(a.customerId) : undefined;
+      // A second service on the same day is the same visit, not a return.
+      if (!a.customerId || !first || day(a.startAt) <= day(first.startAt)) continue;
+      if (a.status === 'completed') came.add(a.customerId);
+      else hasBooking.add(a.customerId);
+    }
+    const staff = new Map<
+      string,
+      { id: string; displayName: string; clients: number; returned: number; booked: number }
+    >();
+    let returned = 0;
+    let booked = 0;
+    for (const [customerId, first] of firstVisit) {
+      const row =
+        staff.get(first.staff.id) ??
+        staff
+          .set(first.staff.id, { ...first.staff, clients: 0, returned: 0, booked: 0 })
+          .get(first.staff.id)!;
+      row.clients++;
+      if (came.has(customerId)) {
+        returned++;
+        row.returned++;
+      } else if (hasBooking.has(customerId)) {
+        booked++;
+        row.booked++;
+      }
+    }
+    return {
+      clients: firstVisit.size,
+      returned,
+      booked,
+      percent: Math.round(((returned + booked) / firstVisit.size) * 100),
+      staff: [...staff.values()].sort(
+        (a, b) => b.clients - a.clients || a.displayName.localeCompare(b.displayName),
+      ),
     };
   }
 

@@ -417,6 +417,61 @@ describe('salon report', () => {
     });
   });
 
+  it('"Nowi klienci — czy wrócili": new clients who came again or booked (task 246)', async () => {
+    // Jan came before the period: he is not new.
+    await visit({ date: addDays(today, -30), status: 'completed' });
+    await visit({ date: addDays(today, -3), status: 'completed' });
+    // Ewa: new at Ola, came again (at Kasia).
+    await visit({
+      date: addDays(today, -6),
+      staffId: olaId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+    await visit({ date: addDays(today, -2), email: 'ewa@example.com', status: 'completed' });
+    // Adam: new at Kasia, has a booked visit.
+    await visit({ date: addDays(today, -5), email: 'adam@example.com', status: 'completed' });
+    await visit({ date: addDays(today, 3), email: 'adam@example.com', status: 'confirmed' });
+    // Piotr: new at Kasia (two services that day), cancelled the next one, missed another.
+    await visit({ date: addDays(today, -4), email: 'piotr@example.com', status: 'completed' });
+    await visit({
+      date: addDays(today, -4),
+      serviceId: beardId,
+      email: 'piotr@example.com',
+      status: 'completed',
+    });
+    await visit({ date: addDays(today, 2), email: 'piotr@example.com', status: 'cancelled' });
+    await visit({ date: addDays(today, -1), email: 'piotr@example.com', status: 'no_show' });
+
+    const res = await report().expect(200);
+    expect(res.body.totals.newClients).toBe(3);
+    expect(res.body.newcomers).toEqual({
+      clients: 3,
+      returned: 1,
+      booked: 1,
+      percent: 67,
+      staff: [
+        { id: kasiaId, displayName: 'Kasia', clients: 2, returned: 0, booked: 1 },
+        { id: olaId, displayName: 'Ola', clients: 1, returned: 1, booked: 0 },
+      ],
+    });
+    expect(JSON.stringify(res.body.newcomers)).not.toMatch(/Jan|Ewa|@/);
+
+    // A specialist's own report: only the new clients of her own visits.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.newcomers).toEqual({
+      clients: 2,
+      returned: 0,
+      booked: 1,
+      percent: 50,
+      staff: [{ id: kasiaId, displayName: 'Kasia', clients: 2, returned: 0, booked: 1 }],
+    });
+  });
+
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {
     const d1 = addDays(today, -5);
     const d2 = addDays(today, -2);

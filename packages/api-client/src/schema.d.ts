@@ -5533,6 +5533,25 @@ export interface components {
                 /** @description Clients who once said "yes" and later "no" (for example, the email link) */
                 unsubscribed: number;
             };
+            /** @description Task 246: "Nowi klienci — czy wrócili" — counts only, no names */
+            newcomers: {
+                /** @description New clients: their first visit at this salon that took place is in the period */
+                clients: number;
+                /** @description Of them, clients who came again on a later day (any specialist) */
+                returned: number;
+                /** @description Of the rest, clients with a visit booked for a later day */
+                booked: number;
+                /** @description returned plus booked of clients, 0–100 */
+                percent: number;
+                /** @description By the specialist of the client's first visit, most clients first */
+                staff: {
+                    id: string;
+                    displayName: string;
+                    clients: number;
+                    returned: number;
+                    booked: number;
+                }[];
+            };
         };
         SalonReview: {
             id: string;
