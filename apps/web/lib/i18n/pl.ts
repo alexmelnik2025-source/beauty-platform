@@ -901,6 +901,7 @@ export const pl = {
     copyTitle: 'Kopia usługi',
     copyName: '{name} (kopia)',
     copyHint: 'Sprawdź i zapisz — kopia powstanie dopiero po „Zapisz”.',
+    orderHint: 'Kolejność jak na stronie rezerwacji i w aplikacji — strzałkami ustaw, co pierwsze.',
     whoPerforms: 'Kto wykonuje tę usługę?',
     whoPerformsHint: 'Klienci mogą zarezerwować usługę tylko u zaznaczonych specjalistów.',
     staffPrice: 'Cena u: {name}',

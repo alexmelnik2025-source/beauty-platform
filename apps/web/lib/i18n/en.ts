@@ -903,6 +903,8 @@ export const en: Dict = {
     copyTitle: 'Copy of a service',
     copyName: '{name} (copy)',
     copyHint: 'Check and save — the copy is created only after “Save”.',
+    orderHint:
+      'The order clients see on the booking page and in the app — use the arrows to set what comes first.',
     whoPerforms: 'Who performs this service?',
     whoPerformsHint: 'Clients can book the service only with the specialists ticked here.',
     staffPrice: 'Price with {name}',

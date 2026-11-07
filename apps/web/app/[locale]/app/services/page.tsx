@@ -38,6 +38,7 @@ export default function ServicesPage() {
   const [copyOf, setCopyOf] = useState<ServiceRow | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [error, setError] = useState('');
+  const [moving, setMoving] = useState(false);
   const categoryLock = useSubmitLock();
 
   const load = useCallback(async () => {
@@ -99,6 +100,35 @@ export default function ServicesPage() {
     { category: null, items: services.filter((s) => !s.categoryId) },
   ];
 
+  /**
+   * Task 252: a place up or down within the category. The server takes every service once,
+   * in the order of the page; clients see the price list so.
+   */
+  async function move(items: ServiceRow[], index: number, by: -1 | 1) {
+    const row = items[index];
+    const other = items[index + by];
+    if (!row || !other || moving) return;
+    const next = groups
+      .flatMap((g) => g.items)
+      .map((s) => (s.id === row.id ? other : s.id === other.id ? row : s));
+    setServices(next);
+    setMoving(true);
+    setError('');
+    try {
+      setServices(
+        await api<ServiceRow[]>(`${base}/services/order`, {
+          method: 'PUT',
+          body: { serviceIds: next.map((s) => s.id) },
+        }),
+      );
+    } catch (err) {
+      setError(errorText(t, err));
+      await load();
+    } finally {
+      setMoving(false);
+    }
+  }
+
   return (
     <>
       <div className="page-head">
@@ -117,6 +147,9 @@ export default function ServicesPage() {
       <div className="page">
         <ErrorBox>{error}</ErrorBox>
         {services.length === 0 ? <p className="note">{t.services.empty}</p> : null}
+        {groups.some((g) => g.items.length > 1) ? (
+          <p className="small muted">{t.services.orderHint}</p>
+        ) : null}
         {groups.map((g) =>
           g.items.length === 0 && !g.category ? null : (
             <section key={g.category?.id ?? 'none'} className="section">
@@ -135,8 +168,8 @@ export default function ServicesPage() {
                 ) : null}
               </div>
               <ul className="list">
-                {g.items.map((s) => (
-                  <li key={s.id}>
+                {g.items.map((s, index) => (
+                  <li key={s.id} className={g.items.length > 1 ? 'orderable' : undefined}>
                     <button
                       type="button"
                       className="list-row"
@@ -162,6 +195,26 @@ export default function ServicesPage() {
                       </span>
                       <span>{formatPrice(s.priceGrosze, location.currency, tag)}</span>
                     </button>
+                    {g.items.length > 1 ? (
+                      <span className="order-btns">
+                        <button
+                          type="button"
+                          aria-label={fill(t.team.moveUp, { name: s.name })}
+                          disabled={moving || index === 0}
+                          onClick={() => void move(g.items, index, -1)}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={fill(t.team.moveDown, { name: s.name })}
+                          disabled={moving || index === g.items.length - 1}
+                          onClick={() => void move(g.items, index, 1)}
+                        >
+                          ↓
+                        </button>
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>

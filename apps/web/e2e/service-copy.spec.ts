@@ -13,7 +13,8 @@ import { waitForEmail } from './mailpit';
  * her own 75 zł) and presses "Duplikuj": a new-service window opens, already filled in —
  * "Strzyżenie męskie (kopia)", the same price, time and specialists, Kasia's own price. Closing
  * it creates nothing; after renaming and "Zapisz" the copy is on the list with Kasia's price,
- * and the original is unchanged. Screenshot 251.
+ * and the original is unchanged. Task 252: "↑" puts the copy first — the order clients see.
+ * Screenshots 251, 252.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -146,7 +147,7 @@ test('the owner duplicates a service — the copy is filled in and saved only on
   await dialog.getByLabel('Nazwa', { exact: true }).fill('Strzyżenie + broda');
   await dialog.getByRole('button', { name: 'Zapisz' }).click();
   await expect(dialog).toBeHidden();
-  await expect(cabinet.getByRole('button', { name: /Strzyżenie \+ broda/ })).toBeVisible();
+  await expect(cabinet.locator('.list-row', { hasText: 'Strzyżenie + broda' })).toBeVisible();
 
   const list = await services();
   const copy = list.find((s) => s.name === 'Strzyżenie + broda')!;
@@ -164,5 +165,19 @@ test('the owner duplicates a service — the copy is filled in and saved only on
   // The original keeps its name and Kasia's price.
   expect(list.find((s) => s.id === haircut.id)?.name).toBe('Strzyżenie męskie');
   expect(prices.prices.filter((p) => p.serviceId === haircut.id)).toHaveLength(1);
+
+  // Task 252: the copy goes first — "↑" by it; the first one has no way up.
+  await expect(cabinet.getByRole('button', { name: 'Wyżej: Strzyżenie męskie' })).toBeDisabled();
+  await cabinet.getByRole('button', { name: 'Wyżej: Strzyżenie + broda' }).click();
+  await expect(cabinet.getByRole('button', { name: 'Wyżej: Strzyżenie + broda' })).toBeDisabled();
+  await expect(cabinet.locator('.list-row strong')).toHaveText([
+    'Strzyżenie + broda',
+    'Strzyżenie męskie',
+  ]);
+  await shot(cabinet, '252-service-order');
+  expect((await services()).map((s) => s.name)).toEqual([
+    'Strzyżenie + broda',
+    'Strzyżenie męskie',
+  ]);
   await desk.close();
 });
