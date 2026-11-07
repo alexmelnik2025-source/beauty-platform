@@ -59,7 +59,7 @@ test('the report groups the visits by price-list category', async ({ browser, re
     await request.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
-        name: 'Gestalt Barbershop',
+        name: 'Barber Kategorie',
         addressLine: 'ul. Józefa Bema 91',
         city: 'Warszawa',
         postalCode: '01-233',
