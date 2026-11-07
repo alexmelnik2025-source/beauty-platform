@@ -26,6 +26,7 @@ import { serveApp } from './mobile-app';
  * Task 269: the owner downloads all clients as CSV in the business app (269).
  * Task 270: "Byli tylko raz" — clients who came once, a month to a year ago (270, 270-a).
  * Task 271: "Byli tylko raz: N" in the report, with a link to that list (271, 271-a).
+ * Task 272: the switched-on filters stay in the address and survive a reload (272).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -411,6 +412,26 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText('Ewa Wiśniewska');
   await shot(page, '270-clients-once');
+  // Task 272: the filter is in the address — after a reload it is still on; off — gone from it.
+  await expect(page).toHaveURL(/\/pl\/app\/clients\?once=1$/);
+  await page.getByRole('button', { name: /Nie przyszli/ }).click();
+  await expect(page).toHaveURL(/\/pl\/app\/clients\?once=1&noShows=1$|\?noShows=1&once=1$/);
+  await page.reload();
+  await expect(once).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: /Nie przyszli/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(
+    page.getByText('W ostatnich 12 miesiącach wszyscy przychodzili na wizyty.'),
+  ).toBeVisible();
+  await shot(page, '272-clients-filters-in-address');
+  await page.getByRole('button', { name: /Nie przyszli/ }).click();
+  await expect(page).toHaveURL(/\/pl\/app\/clients\?once=1$/);
+  await expect(rows).toHaveCount(1);
+  await once.click();
+  await expect(page).toHaveURL(/\/pl\/app\/clients$/);
+  await expect(rows).toHaveCount(5);
   // Task 271: the report counts Ewa and links to the list.
   await page.goto('/pl/app/reports');
   const onceReport = page.getByTestId('report-once');

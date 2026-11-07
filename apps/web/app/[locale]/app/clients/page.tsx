@@ -14,6 +14,9 @@ import type { Customer, CustomerDetail, CustomerTags } from '@/lib/types';
 
 type ClientRow = Customer;
 
+/** Task 140: the choices of "haven't been for a while", in days. */
+const INACTIVE_DAYS = [30, 60, 90, 180];
+
 type ClientDetail = CustomerDetail;
 
 export default function ClientsPage() {
@@ -43,6 +46,8 @@ export default function ClientsPage() {
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
   const [error, setError] = useState('');
+  // Task 272: the filters were read from the address; from now on they are written back to it.
+  const [fromAddress, setFromAddress] = useState(false);
 
   // Task 217: "/app/clients?open=<id>" (from "Najlepsi klienci" in the report) opens that card.
   useEffect(() => {
@@ -57,7 +62,37 @@ export default function ClientsPage() {
     if (params.get('noShows') === '1') setNoShows(true);
     // Task 271: "/app/clients?once=1" (from "Byli tylko raz" in the report).
     if (params.get('once') === '1') setOnce(true);
+    // Task 272: the other filters come back from the address too (a reload, a saved link).
+    if (params.get('birthdays') === '1') setBirthdays(true);
+    if (params.get('consented') === '1') setConsented(true);
+    const inactive = Number(params.get('inactive'));
+    if (INACTIVE_DAYS.includes(inactive)) setInactiveDays(inactive);
+    const label = params.get('tag')?.trim();
+    if (label) setTag(label.slice(0, 30));
+    setFromAddress(true);
   }, []);
+
+  // Task 272: the switched-on filters stay in the address, so a reload or a saved link keeps them.
+  useEffect(() => {
+    if (!fromAddress) return;
+    const params = new URLSearchParams(window.location.search);
+    const flag = (key: string, on: boolean) => (on ? params.set(key, '1') : params.delete(key));
+    flag('new', newcomers);
+    flag('overdue', overdue);
+    flag('noShows', noShows);
+    flag('once', once);
+    flag('birthdays', birthdays);
+    flag('consented', consented);
+    if (inactiveDays) params.set('inactive', String(inactiveDays));
+    else params.delete('inactive');
+    if (tag) params.set('tag', tag);
+    else params.delete('tag');
+    const query = params.toString();
+    const next = `${window.location.pathname}${query ? `?${query}` : ''}`;
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(window.history.state, '', next);
+    }
+  }, [fromAddress, newcomers, overdue, noShows, once, birthdays, consented, inactiveDays, tag]);
 
   const load = useCallback(async () => {
     try {
@@ -176,7 +211,7 @@ export default function ClientsPage() {
             onChange={(e) => setInactiveDays(Number(e.target.value))}
           >
             <option value={0}>{t.clients.inactive.all}</option>
-            {[30, 60, 90, 180].map((days) => (
+            {INACTIVE_DAYS.map((days) => (
               <option key={days} value={days}>
                 {fill(t.clients.inactive.days, { days: String(days) })}
               </option>
