@@ -235,7 +235,9 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     `UPDATE appointment SET start_at = start_at - interval '4 days', end_at = end_at - interval '4 days', blocked_until = blocked_until - interval '4 days', status = 'cancelled', cancelled_at = now(), cancelled_by = 'customer' WHERE id = '${cancelled.id}'`,
   ]);
 
-  // Jan has already booked his next visit (tomorrow, after the period): "Kolejna wizyta" (task 218).
+  // Jan has already booked his next visit (in two days, after the period): "Kolejna wizyta"
+  // (task 218). Not tomorrow: between 23:00 and 24:00 UTC tomorrow (UTC) is already today in
+  // Warsaw, and the visit would count in today's "Obłożenie".
   await json(
     await request.post(`${base}/appointments`, {
       headers: owner,
@@ -243,7 +245,12 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
         serviceId: services[0],
         staffId: staff[1],
         start: new Date(
-          Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 14),
+          Date.UTC(
+            tomorrow.getUTCFullYear(),
+            tomorrow.getUTCMonth(),
+            tomorrow.getUTCDate() + 1,
+            14,
+          ),
         ).toISOString(),
         allowOutsideHours: true,
         customer: { name: 'Jan', phone: '+48600000100', email: `jan-${run}@example.com` },
