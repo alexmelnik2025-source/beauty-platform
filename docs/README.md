@@ -2144,3 +2144,11 @@ zamknięcia zmieniły się płatności gotówką lub wpłaty i wypłaty». Ма�
 `visitsCashGrosze`, `cashInGrosze`, `cashOutGrosze`, `movements`; таблица `till_movement` (миграция
 `20261107100000_till_movement`). Тесты `apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/tillClose.test.ts`,
 `api.test.ts`; e2e `till-close.spec.ts` (скриншоты 236, 236-a).
+
+## Wpłaty i wypłaty в отчёте (задача 237)
+
+В «Zamknięcia kasy» отчёта кабинета у каждого закрытого дня — колонки «Wpłaty» и «Wypłaty» (сколько положили в кассу и
+взяли из неё в этот день, задача 236); колонки видны, только если за период такие были. В бизнес-приложении под днём —
+строка «wpłaty 50,00 zł · wypłaty 10,00 zł». Суммы — текущие (если движение удалили после закрытия, оно уже не
+считается, а «Powinno być» остаётся таким, каким было при подсчёте). API: поля `cashInGrosze`, `cashOutGrosze` в
+`tillCloses.days` отчёта. Тест в `apps/api/test/till-close.spec.ts`, e2e `till-close.spec.ts` (скриншот 237).

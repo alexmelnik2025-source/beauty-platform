@@ -685,11 +685,22 @@ export class ReportsService {
       },
       orderBy: { date: 'asc' },
     });
+    // Task 237: cash put in or taken out on those days (task 236).
+    const movements = await this.prisma.tillMovement.groupBy({
+      by: ['date', 'kind'],
+      where: { locationId, date: { in: rows.map((r) => r.date) } },
+      _sum: { amountGrosze: true },
+    });
+    const moved = (date: Date, kind: 'in' | 'out') =>
+      movements.find((mv) => mv.date.getTime() === date.getTime() && mv.kind === kind)?._sum
+        .amountGrosze ?? 0;
     const days = rows.map((r) => ({
       date: r.date.toISOString().slice(0, 10),
       expectedCashGrosze: r.expectedCashGrosze,
       countedCashGrosze: r.countedCashGrosze,
       differenceGrosze: r.countedCashGrosze - r.expectedCashGrosze,
+      cashInGrosze: moved(r.date, 'in'),
+      cashOutGrosze: moved(r.date, 'out'),
     }));
     return { days, differenceGrosze: days.reduce((sum, d) => sum + d.differenceGrosze, 0) };
   }

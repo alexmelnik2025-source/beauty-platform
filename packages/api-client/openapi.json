@@ -20951,13 +20951,27 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991,
                       "description": "Counted minus expected"
+                    },
+                    "cashInGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Task 237: cash put into the till that day (now), in hundredths of the salon currency"
+                    },
+                    "cashOutGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Task 237: cash taken out of the till that day (now), in hundredths of the salon currency"
                     }
                   },
                   "required": [
                     "date",
                     "expectedCashGrosze",
                     "countedCashGrosze",
-                    "differenceGrosze"
+                    "differenceGrosze",
+                    "cashInGrosze",
+                    "cashOutGrosze"
                   ],
                   "additionalProperties": false
                 },

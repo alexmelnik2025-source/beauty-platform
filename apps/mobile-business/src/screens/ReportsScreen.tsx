@@ -321,6 +321,15 @@ export function ReportsScreen(props: {
                       difference: signed(d.differenceGrosze, money),
                     })}
                   </Text>
+                  {d.cashInGrosze > 0 || d.cashOutGrosze > 0 ? (
+                    // Task 237: cash put in or taken out that day (task 236).
+                    <Text style={styles.muted}>
+                      {fill(r.tillClosesMoves, {
+                        in: money(d.cashInGrosze),
+                        out: money(d.cashOutGrosze),
+                      })}
+                    </Text>
+                  ) : null}
                 </View>
               ))}
               <Text style={styles.muted}>{r.tillClosesHint}</Text>

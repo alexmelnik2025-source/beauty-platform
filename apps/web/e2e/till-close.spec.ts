@@ -16,7 +16,7 @@ import { serveApp } from './mobile-app';
  * then counts again and it matches (232-a). The business app shows the closed till under
  * "Kasa dnia" and counts it again (232-b). Task 233: the report lists the counted day (233),
  * and the business app's report too (235). Task 236: cash taken out of the till (236), put in from the
- * business app (236-a).
+ * business app (236-a); the report shows it beside the closed day (237).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -200,6 +200,16 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   );
   await shot(page, '236-till-cash-out');
   await form.getByRole('button', { name: 'Anuluj' }).click();
+
+  // Task 237: the report shows the cash taken out beside the closed day.
+  await page.getByRole('link', { name: 'Raporty' }).click();
+  await page.waitForURL(/\/pl\/app\/reports$/);
+  await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+  await closes.scrollIntoViewIfNeeded();
+  await expect(closes.getByRole('columnheader', { name: 'Wypłaty' })).toBeVisible();
+  await expect(closes.getByRole('row').nth(1)).toContainText(/0,00\s*zł.*10,00\s*zł/);
+  await shot(page, '237-report-till-moves');
+  await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await moves.getByRole('button', { name: /Usuń: wypłata 10,00\s*zł · Ręczniki/ }).click();
   await expect(moves).toHaveCount(0);
   await expect(till.getByTestId('till-diff')).toHaveText('zgadza się');

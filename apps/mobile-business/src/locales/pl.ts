@@ -442,6 +442,7 @@ export const pl = {
     tipsHint: 'Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
     tillCloses: 'Zamknięcia kasy · różnica razem: {sum}',
     tillClosesRow: 'policzono {counted} · powinno być {expected} · {difference}',
+    tillClosesMoves: 'wpłaty {in} · wypłaty {out}',
     tillClosesHint: 'Dni, w których zamknięto kasę. Minus — brakowało gotówki.',
     paymentsUnknown: 'Nie podano',
     paymentsRow: '{amount} · wizyty: {n}',

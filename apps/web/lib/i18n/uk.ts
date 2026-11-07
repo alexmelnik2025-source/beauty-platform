@@ -1358,6 +1358,8 @@ export const uk: Dict = {
     tillCloses: 'Закриття каси',
     colDay: 'День',
     colCashVisits: 'Має бути',
+    colCashIn: 'Внесення',
+    colCashOut: 'Виплати',
     colCounted: 'Пораховано',
     colDifference: 'Різниця',
     tillClosesTotal: 'Різниця разом: {sum}',

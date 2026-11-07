@@ -1361,6 +1361,8 @@ export const pl = {
     tillCloses: 'Zamknięcia kasy',
     colDay: 'Dzień',
     colCashVisits: 'Powinno być',
+    colCashIn: 'Wpłaty',
+    colCashOut: 'Wypłaty',
     colCounted: 'Policzono',
     colDifference: 'Różnica',
     tillClosesTotal: 'Różnica razem: {sum}',

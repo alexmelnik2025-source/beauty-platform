@@ -5383,6 +5383,10 @@ export interface components {
                     countedCashGrosze: number;
                     /** @description Counted minus expected */
                     differenceGrosze: number;
+                    /** @description Task 237: cash put into the till that day (now), in hundredths of the salon currency */
+                    cashInGrosze: number;
+                    /** @description Task 237: cash taken out of the till that day (now), in hundredths of the salon currency */
+                    cashOutGrosze: number;
                 }[];
                 /** @description All the differences of the period added up (below zero — cash missing) */
                 differenceGrosze: number;

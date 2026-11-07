@@ -1366,6 +1366,8 @@ export const ru: Dict = {
     tillCloses: 'Закрытия кассы',
     colDay: 'День',
     colCashVisits: 'Должно быть',
+    colCashIn: 'Внесения',
+    colCashOut: 'Выплаты',
     colCounted: 'Посчитано',
     colDifference: 'Разница',
     tillClosesTotal: 'Разница всего: {sum}',

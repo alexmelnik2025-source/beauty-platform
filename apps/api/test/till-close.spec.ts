@@ -192,8 +192,21 @@ describe('till close (task 232)', () => {
     expect((await till().expect(200)).body.close.countedCashGrosze).toBe(100);
   });
 
-  it("the report lists the counted days of the period; not in a specialist's own report (task 233)", async () => {
+  it("the report lists the counted days of the period; not in a specialist's own report (tasks 233, 237)", async () => {
     await walkIn(at(10), { paid: true, paymentMethod: 'cash' }).expect(201);
+    // Task 237: cash put in and taken out that day is shown beside the close.
+    for (const [kind, amountGrosze] of [
+      ['in', 5000],
+      ['out', 1500],
+      ['out', 3500],
+    ] as const) {
+      await ctx
+        .http()
+        .post(`${base}/reports/till-movements`)
+        .set(owner.auth)
+        .send({ date: DAY, kind, amountGrosze, note: 'Ruch' })
+        .expect(201);
+    }
     await close({ date: DAY, countedCashGrosze: 7000 }).expect(200);
     const earlier = addDays(DAY, -2);
     await close({ date: earlier, countedCashGrosze: 500 }).expect(200);
@@ -210,8 +223,22 @@ describe('till close (task 232)', () => {
     expect(parsed.error?.issues ?? []).toEqual([]);
     expect(report.tillCloses).toEqual({
       days: [
-        { date: earlier, expectedCashGrosze: 0, countedCashGrosze: 500, differenceGrosze: 500 },
-        { date: DAY, expectedCashGrosze: 8000, countedCashGrosze: 7000, differenceGrosze: -1000 },
+        {
+          date: earlier,
+          expectedCashGrosze: 0,
+          countedCashGrosze: 500,
+          differenceGrosze: 500,
+          cashInGrosze: 0,
+          cashOutGrosze: 0,
+        },
+        {
+          date: DAY,
+          expectedCashGrosze: 8000,
+          countedCashGrosze: 7000,
+          differenceGrosze: -1000,
+          cashInGrosze: 5000,
+          cashOutGrosze: 5000,
+        },
       ],
       differenceGrosze: -500,
     });

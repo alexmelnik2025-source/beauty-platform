@@ -442,6 +442,7 @@ export const en: Dictionary = {
     tipsHint: 'They are not part of the salon’s revenue — the salon decides how to share them.',
     tillCloses: 'Till closes · total difference: {sum}',
     tillClosesRow: 'counted {counted} · should be {expected} · {difference}',
+    tillClosesMoves: 'cash in {in} · cash out {out}',
     tillClosesHint: 'Days whose till was closed. Minus — cash was missing.',
     paymentsUnknown: 'Not given',
     paymentsRow: '{amount} · visits: {n}',

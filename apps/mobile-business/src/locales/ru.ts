@@ -442,6 +442,7 @@ export const ru: Dictionary = {
     tipsHint: 'Не входят в выручку салона — как их делить, решает салон.',
     tillCloses: 'Закрытия кассы · разница всего: {sum}',
     tillClosesRow: 'посчитано {counted} · должно быть {expected} · {difference}',
+    tillClosesMoves: 'внесения {in} · выплаты {out}',
     tillClosesHint: 'Дни, когда закрыли кассу. Минус — не хватало наличных.',
     paymentsUnknown: 'Не указано',
     paymentsRow: '{amount} · визиты: {n}',

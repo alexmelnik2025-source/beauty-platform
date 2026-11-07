@@ -441,6 +441,7 @@ export const uk: Dictionary = {
     tipsHint: 'Не входять у виторг салону — як їх ділити, вирішує салон.',
     tillCloses: 'Закриття каси · різниця разом: {sum}',
     tillClosesRow: 'пораховано {counted} · має бути {expected} · {difference}',
+    tillClosesMoves: 'внесення {in} · виплати {out}',
     tillClosesHint: 'Дні, коли закрили касу. Мінус — бракувало готівки.',
     paymentsUnknown: 'Не вказано',
     paymentsRow: '{amount} · візити: {n}',

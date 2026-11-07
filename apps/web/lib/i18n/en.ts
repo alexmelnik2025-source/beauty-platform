@@ -1364,6 +1364,8 @@ export const en: Dict = {
     tillCloses: 'Till closes',
     colDay: 'Day',
     colCashVisits: 'Should be',
+    colCashIn: 'Cash in',
+    colCashOut: 'Cash out',
     colCounted: 'Counted',
     colDifference: 'Difference',
     tillClosesTotal: 'Total difference: {sum}',

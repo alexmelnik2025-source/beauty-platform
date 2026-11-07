@@ -201,6 +201,7 @@ test('the owner sets up "time for the next visit"; the client unsubscribes in on
   // A changed link does nothing.
   await client.goto(`/pl/u/${customerId}.nope`);
   await client.getByRole('button', { name: 'Wypisz się' }).click();
-  await expect(client.getByRole('alert')).toBeVisible();
+  // Not Next's empty route announcer, which is an alert too.
+  await expect(client.getByRole('alert').filter({ hasText: /\S/ })).toBeVisible();
   await phone.close();
 });

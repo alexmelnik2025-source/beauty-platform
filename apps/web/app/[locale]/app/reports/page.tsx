@@ -109,6 +109,9 @@ export default function ReportsPage() {
   /** Task 233: "+10,00 zł" / "−10,00 zł" / "0,00 zł". */
   const signedMoney = (hundredths: number) =>
     `${hundredths > 0 ? '+' : hundredths < 0 ? '−' : ''}${money(Math.abs(hundredths))}`;
+  /** Task 237: "Wpłaty" / "Wypłaty" columns only when cash was put in or taken out. */
+  const tillMoves =
+    report?.tillCloses.days.some((d) => d.cashInGrosze > 0 || d.cashOutGrosze > 0) ?? false;
   const totals = report?.totals;
   const notCancelled = totals
     ? totals.visits - totals.cancelledByClient - totals.cancelledBySalon
@@ -427,6 +430,12 @@ export default function ReportsPage() {
                       <tr>
                         <th scope="col">{t.reports.colDay}</th>
                         <th scope="col">{t.reports.colCashVisits}</th>
+                        {tillMoves ? (
+                          <>
+                            <th scope="col">{t.reports.colCashIn}</th>
+                            <th scope="col">{t.reports.colCashOut}</th>
+                          </>
+                        ) : null}
                         <th scope="col">{t.reports.colCounted}</th>
                         <th scope="col">{t.reports.colDifference}</th>
                       </tr>
@@ -436,6 +445,12 @@ export default function ReportsPage() {
                         <tr key={d.date}>
                           <th scope="row">{formatDay(d.date, tag)}</th>
                           <td>{money(d.expectedCashGrosze)}</td>
+                          {tillMoves ? (
+                            <>
+                              <td>{money(d.cashInGrosze)}</td>
+                              <td>{money(d.cashOutGrosze)}</td>
+                            </>
+                          ) : null}
                           <td>{money(d.countedCashGrosze)}</td>
                           <td>{signedMoney(d.differenceGrosze)}</td>
                         </tr>

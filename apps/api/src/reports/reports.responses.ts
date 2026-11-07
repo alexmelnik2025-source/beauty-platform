@@ -97,6 +97,8 @@ export const salonReportSchema = responseSchema(
               expectedCashGrosze: money('What should have been in the till when it was counted'),
               countedCashGrosze: money('The cash counted in the till'),
               differenceGrosze: z.number().int().describe('Counted minus expected'),
+              cashInGrosze: money('Task 237: cash put into the till that day (now)'),
+              cashOutGrosze: money('Task 237: cash taken out of the till that day (now)'),
             }),
           )
           .describe('Days of the period whose till was counted, oldest first'),
