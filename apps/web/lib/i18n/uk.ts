@@ -188,6 +188,10 @@ export const uk: Dict = {
     showCancelled: 'Показати скасовані',
     previousWeek: 'Попередній тиждень',
     nextWeek: 'Наступний тиждень',
+    moveTitle: 'Перенести візит?',
+    moveWas: 'Було',
+    moveWill: 'Буде',
+    dragHint: 'Перетягніть візит мишкою, щоб змінити час або майстра.',
   },
   appointment: {
     title: 'Запис',

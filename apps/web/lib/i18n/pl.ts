@@ -188,6 +188,10 @@ export const pl = {
     showCancelled: 'Pokaż odwołane',
     previousWeek: 'Poprzedni tydzień',
     nextWeek: 'Następny tydzień',
+    moveTitle: 'Przenieść wizytę?',
+    moveWas: 'Było',
+    moveWill: 'Będzie',
+    dragHint: 'Przeciągnij wizytę myszką, aby zmienić godzinę lub specjalistę.',
   },
   appointment: {
     title: 'Wizyta',

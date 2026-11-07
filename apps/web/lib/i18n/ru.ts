@@ -188,6 +188,10 @@ export const ru: Dict = {
     showCancelled: 'Показать отменённые',
     previousWeek: 'Предыдущая неделя',
     nextWeek: 'Следующая неделя',
+    moveTitle: 'Перенести визит?',
+    moveWas: 'Было',
+    moveWill: 'Будет',
+    dragHint: 'Перетащите визит мышкой, чтобы изменить время или мастера.',
   },
   appointment: {
     title: 'Запись',

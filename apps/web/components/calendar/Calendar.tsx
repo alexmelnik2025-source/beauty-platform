@@ -1,6 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { api, apiResponse } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import {
@@ -17,10 +25,25 @@ import { useSession } from '../Session';
 import { ErrorBox, initials, Spinner } from '../ui';
 import { AppointmentSheet } from './AppointmentSheet';
 import { BlockSheet } from './BlockSheet';
+import { MoveSheet, type MoveTarget } from './MoveSheet';
 import { NewItemSheet, type NewItemDraft } from './NewItemSheet';
 
 const REFRESH_MS = 30_000;
 const HOUR_PX = 80;
+/** How far (px) the mouse must travel before a press on a visit becomes a drag (task 221). */
+const DRAG_START_PX = 6;
+
+/** A visit being dragged: where it was grabbed and where it would land now. */
+interface Drag {
+  appointment: Appointment;
+  /** Minutes between the visit's start and the point it was grabbed at. */
+  grabMinutes: number;
+  x: number;
+  y: number;
+  moved: boolean;
+  staffId: string;
+  minute: number;
+}
 
 /** Monday of the week that contains `date`. */
 function weekStart(date: string): string {
@@ -53,6 +76,17 @@ export function Calendar() {
   const [openAppointment, setOpenAppointment] = useState<string | null>(null);
   const [openBlock, setOpenBlock] = useState<TimeBlock | null>(null);
   const [draft, setDraft] = useState<NewItemDraft | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  /** The click that ends a drag must not also open the visit card. */
+  const justDragged = useRef(false);
+  const grid = useRef<HTMLDivElement>(null);
+  // Task 221: owners and managers move any visit; a specialist only their own, in their own
+  // column, and only with "change own visits". The server checks the same again.
+  const manager = session.role !== 'staff';
+  const canDrag = manager || session.permissions.changeOwnAppointments === true;
+  const canOutside = manager || session.permissions.bookOutsideHours === true;
   const [now, setNow] = useState(() => Date.now());
   const etag = useRef<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -165,6 +199,63 @@ export function Calendar() {
 
   function openNew(staffId: string, minute: number) {
     setDraft({ kind: 'appointment', staffId, date, minute });
+  }
+
+  // Task 221: drag a visit with the mouse to another time or specialist. Touch screens keep
+  // scrolling the calendar; there the visit card's "Przenieś" does the same.
+  function startDrag(e: ReactPointerEvent<HTMLButtonElement>, a: Appointment) {
+    if (!canDrag || a.status !== 'confirmed' || e.pointerType === 'touch' || e.button !== 0) {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = {
+      appointment: a,
+      grabMinutes: ((e.clientY - rect.top) / HOUR_PX) * 60,
+      x: e.clientX,
+      y: e.clientY,
+      moved: false,
+      staffId: a.staff.id,
+      minute: clockToMinutes(a.time),
+    };
+  }
+
+  function moveDrag(e: ReactPointerEvent<HTMLButtonElement>) {
+    const d = dragRef.current;
+    if (!d || !view || !grid.current || !data) return;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_START_PX) return;
+    const cols = Array.from(grid.current.querySelectorAll<HTMLElement>('[data-staff-col]'));
+    if (cols.length === 0) return;
+    let col = cols.find((c) => c.dataset.staffCol === d.staffId) ?? cols[0]!;
+    if (manager) {
+      col =
+        cols.find((c) => {
+          const r = c.getBoundingClientRect();
+          return e.clientX >= r.left && e.clientX < r.right;
+        }) ?? col;
+    }
+    const top = col.getBoundingClientRect().top;
+    const step = data.location.slotStepMinutes || 15;
+    const raw = view.startMin + ((e.clientY - top) / HOUR_PX) * 60 - d.grabMinutes;
+    const latest = 24 * 60 - d.appointment.durationMinutes;
+    const minute = Math.min(latest, Math.max(0, Math.round(raw / step) * step));
+    const next = { ...d, moved: true, staffId: col.dataset.staffCol ?? d.staffId, minute };
+    dragRef.current = next;
+    setDrag(next);
+  }
+
+  function endDrag(cancelled: boolean) {
+    const d = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    if (!d?.moved) return;
+    justDragged.current = true;
+    window.setTimeout(() => {
+      justDragged.current = false;
+    }, 0);
+    const a = d.appointment;
+    if (cancelled || (d.staffId === a.staff.id && d.minute === clockToMinutes(a.time))) return;
+    setMoveTarget({ appointment: a, date, staffId: d.staffId, minute: d.minute });
   }
 
   if (error && !data) {
@@ -280,7 +371,11 @@ export function Calendar() {
         <div className="cal-empty muted">{t.calendar.noStaff}</div>
       ) : (
         <div className="cal-scroll" ref={scroller}>
-          <div className="cal-grid" style={{ '--cols': data.staff.length } as CSSProperties}>
+          <div
+            className="cal-grid"
+            ref={grid}
+            style={{ '--cols': data.staff.length } as CSSProperties}
+          >
             <div className="cal-head">
               <div className="corner" />
               {data.staff.map((s) => {
@@ -314,7 +409,7 @@ export function Calendar() {
               const height = ((view.endMin - view.startMin) / 60) * HOUR_PX;
               const nowLocal = toLocal(now, tz);
               return (
-                <div key={s.id} className="col" style={{ height }}>
+                <div key={s.id} className="col" style={{ height }} data-staff-col={s.id}>
                   {hours.map((h) => (
                     <div
                       key={h.start}
@@ -378,9 +473,32 @@ export function Calendar() {
                         top={px(clockToMinutes(a.time))}
                         height={Math.max(26, (a.durationMinutes / 60) * HOUR_PX - 2)}
                         color={colors.get(a.service.id)}
-                        onOpen={() => setOpenAppointment(a.id)}
+                        dragging={drag?.moved === true && drag.appointment.id === a.id}
+                        onOpen={() => {
+                          if (!justDragged.current) setOpenAppointment(a.id);
+                        }}
+                        onPointerDown={(e) => startDrag(e, a)}
+                        onPointerMove={moveDrag}
+                        onPointerUp={() => endDrag(false)}
+                        onPointerCancel={() => endDrag(true)}
                       />
                     ))}
+                  {drag?.moved && drag.staffId === s.id ? (
+                    <div
+                      className="event is-ghost"
+                      aria-hidden="true"
+                      style={{
+                        top: px(drag.minute),
+                        height: Math.max(26, (drag.appointment.durationMinutes / 60) * HOUR_PX - 2),
+                      }}
+                    >
+                      <span className="t">
+                        {minutesToClock(drag.minute)}–
+                        {minutesToClock(drag.minute + drag.appointment.durationMinutes)}
+                      </span>
+                      <span className="n">{drag.appointment.customer?.name ?? '—'}</span>
+                    </div>
+                  ) : null}
                   {date === nowLocal.date &&
                   nowLocal.minute >= view.startMin &&
                   nowLocal.minute <= view.endMin ? (
@@ -402,6 +520,7 @@ export function Calendar() {
           />
           <span>{t.calendar.showCancelled}</span>
         </label>
+        {canDrag ? <p className="small muted hide-mobile">{t.calendar.dragHint}</p> : null}
       </div>
 
       {openAppointment ? (
@@ -420,6 +539,20 @@ export function Calendar() {
           staffList={staffList}
           onClose={() => setOpenBlock(null)}
           onChanged={() => void load(true)}
+        />
+      ) : null}
+      {moveTarget ? (
+        <MoveSheet
+          target={moveTarget}
+          base={base}
+          tz={tz}
+          staffList={staffList}
+          canOutside={canOutside}
+          onClose={() => setMoveTarget(null)}
+          onMoved={() => {
+            setMoveTarget(null);
+            void load(true);
+          }}
         />
       ) : null}
       {draft ? (
@@ -445,13 +578,23 @@ function AppointmentBlock({
   top,
   height,
   color,
+  dragging,
   onOpen,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
 }: {
   appointment: Appointment;
   top: number;
   height: number;
   color: string | undefined;
+  dragging: boolean;
   onOpen: () => void;
+  onPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerMove: (e: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerUp: () => void;
+  onPointerCancel: () => void;
 }) {
   const { t } = useI18n();
   const end = minutesToClock(clockToMinutes(a.time) + a.durationMinutes);
@@ -460,12 +603,17 @@ function AppointmentBlock({
   if (a.status === 'completed') classes.push('is-done');
   if (a.status === 'no_show') classes.push('is-noshow');
   if (a.status === 'cancelled') classes.push('is-cancelled');
+  if (dragging) classes.push('is-dragging');
   return (
     <button
       type="button"
       className={classes.join(' ')}
       style={{ top, height, '--svc': color } as CSSProperties}
       onClick={onOpen}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       <span className="t">
         {a.time}–{end}

@@ -187,6 +187,10 @@ export const en: Dict = {
     showCancelled: 'Show cancelled',
     previousWeek: 'Previous week',
     nextWeek: 'Next week',
+    moveTitle: 'Move this visit?',
+    moveWas: 'Was',
+    moveWill: 'Will be',
+    dragHint: 'Drag a visit with the mouse to change its time or specialist.',
   },
   appointment: {
     title: 'Appointment',

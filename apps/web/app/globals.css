@@ -668,6 +668,18 @@ h3 {
   opacity: 0.4;
 }
 
+/* Task 221: a visit being dragged, and where it would land. */
+.event.is-dragging {
+  opacity: 0.35;
+}
+
+.event.is-ghost {
+  z-index: 3;
+  border-style: dashed;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+
 .block {
   position: absolute;
   left: 4px;
