@@ -2324,3 +2324,12 @@ następny dzień», «2–7 dni», «8–14 dni», «Ponad 14 dni» (полос�
 ушедших показывает «Dawno nie byli», задача 140). Только список, без рассылок. API: `overdue=yes` в
 `GET …/customers` (только владелец и менеджер, менеджер — по своим салонам). Тест:
 `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 262, 262-a — `client-birthday.spec.ts`.
+
+## «Pora wrócić: N» в отчёте (задача 263)
+
+В «Raporty» (кабинет и бизнес-приложение) блок «⏰ Pora wrócić: N» — сколько постоянных клиентов этого салона уже
+пропустили свой обычный срок и не записаны (то же правило, что у фильтра 262), со ссылкой «Pokaż, komu pora wrócić» на
+список «Klienci» с включённым фильтром (`/app/clients?overdue=1`). Число — на сегодня, от выбранного периода не
+зависит; только число, без имён; в отчёте мастера — 0 и блока нет. API: поле `overdueClients` в `GET …/reports`; общий
+подсчёт — `dueToComeBack()` в `customers.service.ts`. Тест: `apps/api/test/reports.spec.ts`; e2e и скриншоты 263,
+263-a — `client-birthday.spec.ts`.
