@@ -452,6 +452,9 @@ export const pl = {
     newcomersCount: 'nowi: {clients} · wrócili: {returned} · mają wizytę: {booked}',
     newcomersHint:
       'Klienci z pierwszą wizytą w tym okresie: ilu przyszło ponownie, a ilu ma już zarezerwowaną wizytę.',
+    returnInterval: 'Co ile dni wracają klienci',
+    returnIntervalCount: 'zwykle co {median} dni · średnio {average} · powroty: {n}',
+    returnIntervalHint: 'Dni między kolejnymi wizytami tego samego klienta. „Zwykle” to mediana.',
     marketing: 'Zgody na wiadomości: {n}%',
     marketingCount: 'zgoda: {consented} z {clients}',
     marketingNew: 'nowe w tym okresie: {n}',

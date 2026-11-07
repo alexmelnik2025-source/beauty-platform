@@ -472,6 +472,59 @@ describe('salon report', () => {
     });
   });
 
+  it('"Co ile dni wracają klienci": days between visits in a row, by specialist (task 247)', async () => {
+    // Jan: before the period at Kasia, then 21 days later at Kasia, then 7 days later at Ola.
+    await visit({ date: addDays(today, -30), status: 'completed' });
+    await visit({ date: addDays(today, -9), status: 'completed' });
+    await visit({ date: addDays(today, -2), staffId: olaId, status: 'completed' });
+    // Ewa: two services on one day (not a return), then 5 days later at Ola; a missed visit.
+    await visit({
+      date: addDays(today, -6),
+      staffId: olaId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+    await visit({
+      date: addDays(today, -6),
+      serviceId: beardId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+    await visit({
+      date: addDays(today, -1),
+      staffId: olaId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+    await visit({ date: addDays(today, -4), email: 'ewa@example.com', status: 'no_show' });
+    // Adam came once.
+    await visit({ date: addDays(today, -3), email: 'adam@example.com', status: 'completed' });
+
+    const res = await report().expect(200);
+    expect(res.body.returnInterval).toEqual({
+      intervals: 3,
+      averageDays: 11,
+      medianDays: 7,
+      staff: [
+        { id: olaId, displayName: 'Ola', intervals: 2, averageDays: 6, medianDays: 6 },
+        { id: kasiaId, displayName: 'Kasia', intervals: 1, averageDays: 21, medianDays: 21 },
+      ],
+    });
+
+    // A specialist's own report: only the returns to her.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.returnInterval).toEqual({
+      intervals: 1,
+      averageDays: 21,
+      medianDays: 21,
+      staff: [{ id: kasiaId, displayName: 'Kasia', intervals: 1, averageDays: 21, medianDays: 21 }],
+    });
+  });
+
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {
     const d1 = addDays(today, -5);
     const d2 = addDays(today, -2);

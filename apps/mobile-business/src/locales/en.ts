@@ -453,6 +453,9 @@ export const en: Dictionary = {
     newcomersCount: 'new: {clients} · came back: {returned} · have a visit booked: {booked}',
     newcomersHint:
       'Clients with their first visit in this period: how many came again and how many have a visit booked.',
+    returnInterval: 'How often clients come back',
+    returnIntervalCount: 'usually every {median} days · on average {average} · returns: {n}',
+    returnIntervalHint: 'Days between visits in a row of the same client. “Usually” is the median.',
     marketing: 'Consent to messages: {n}%',
     marketingCount: 'agreed: {consented} of {clients}',
     marketingNew: 'new in this period: {n}',

@@ -277,6 +277,32 @@ export const salonReportSchema = responseSchema(
           .describe("By the specialist of the client's first visit, most clients first"),
       })
       .describe('Task 246: "Nowi klienci — czy wrócili" — counts only, no names'),
+    returnInterval: z
+      .strictObject({
+        intervals: z
+          .number()
+          .int()
+          .describe(
+            'Returns in the period: a visit that took place after an earlier one of the same client on another day',
+          ),
+        averageDays: z.number().int().describe('Average days between the two visits; 0 when none'),
+        medianDays: z
+          .number()
+          .int()
+          .describe('The typical (median) days between them; 0 when none'),
+        staff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              displayName: z.string(),
+              intervals: z.number().int(),
+              averageDays: z.number().int(),
+              medianDays: z.number().int(),
+            }),
+          )
+          .describe('By the specialist of the later visit, most returns first'),
+      })
+      .describe('Task 247: "Co ile dni wracają klienci" — counts only, no names'),
   }),
 );
 

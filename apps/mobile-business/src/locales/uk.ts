@@ -452,6 +452,9 @@ export const uk: Dictionary = {
     newcomersCount: 'нових: {clients} · повернулися: {returned} · мають запис: {booked}',
     newcomersHint:
       'Клієнти з першим візитом у цьому періоді: скільки прийшли знову, а скільки вже мають запис.',
+    returnInterval: 'Як часто повертаються клієнти',
+    returnIntervalCount: 'зазвичай кожні {median} дн. · у середньому {average} · повернень: {n}',
+    returnIntervalHint: 'Дні між візитами поспіль одного клієнта. «Зазвичай» — медіана.',
     marketing: 'Згода на повідомлення: {n}%',
     marketingCount: 'згода: {consented} з {clients}',
     marketingNew: 'нові за цей період: {n}',

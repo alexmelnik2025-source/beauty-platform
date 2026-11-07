@@ -5552,6 +5552,23 @@ export interface components {
                     booked: number;
                 }[];
             };
+            /** @description Task 247: "Co ile dni wracają klienci" — counts only, no names */
+            returnInterval: {
+                /** @description Returns in the period: a visit that took place after an earlier one of the same client on another day */
+                intervals: number;
+                /** @description Average days between the two visits; 0 when none */
+                averageDays: number;
+                /** @description The typical (median) days between them; 0 when none */
+                medianDays: number;
+                /** @description By the specialist of the later visit, most returns first */
+                staff: {
+                    id: string;
+                    displayName: string;
+                    intervals: number;
+                    averageDays: number;
+                    medianDays: number;
+                }[];
+            };
         };
         SalonReview: {
             id: string;

@@ -1367,6 +1367,10 @@ export const pl = {
     newcomersCount: 'nowi: {clients} · wrócili: {returned} · mają wizytę: {booked}',
     newcomersHint:
       'Klienci, których pierwsza wizyta w salonie była w tym okresie: ilu przyszło ponownie (do dowolnego specjalisty), a ilu z pozostałych ma już zarezerwowaną wizytę. Przy specjaliście — klienci, których pierwsza wizyta była u niego.',
+    returnInterval: 'Co ile dni wracają klienci',
+    returnIntervalCount: 'zwykle co {median} dni · średnio {average} · powroty: {n}',
+    returnIntervalHint:
+      'Dni między dwiema kolejnymi wizytami tego samego klienta (w różne dni), gdy późniejsza była w tym okresie. „Zwykle” to mediana. Przy specjaliście — powroty do niego. Pomaga ustawić, po ilu dniach wysyłać „Pora na kolejną wizytę”.',
     marketing: 'Zgody na wiadomości',
     marketingCount: 'zgoda: {consented} z {clients}',
     marketingNew: 'nowe w tym okresie: {n}',

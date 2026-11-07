@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   addDays,
   datesBetween,
+  daysBetween,
   instantToLocal,
   isoWeekday,
   zonedToInstant,
@@ -309,6 +310,67 @@ export class ReportsService {
       marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
       newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),
+      returnInterval: await this.returnInterval(locationId, staffIds, tz, clients, rangeStart),
+    };
+  }
+
+  /**
+   * Task 247: "Co ile dni wracają klienci" — for the clients who came in the period, the days
+   * between two visits in a row that took place (on different days), where the later one is in the
+   * period: the average and the median. By the specialist of the later visit (in a specialist's
+   * own report — only her visits). Counts only.
+   */
+  private async returnInterval(
+    locationId: string,
+    staffIds: string[] | null,
+    tz: string,
+    clients: Set<string>,
+    rangeStart: Date,
+  ): Promise<SalonReport['returnInterval']> {
+    const all: number[] = [];
+    const byStaff = new Map<string, { id: string; displayName: string; days: number[] }>();
+    if (clients.size > 0) {
+      const visits = await this.prisma.appointment.findMany({
+        where: { locationId, customerId: { in: [...clients] }, status: 'completed' },
+        orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+        select: {
+          customerId: true,
+          startAt: true,
+          staff: { select: { id: true, displayName: true } },
+        },
+      });
+      const previousDay = new Map<string, string>();
+      for (const a of visits) {
+        if (!a.customerId) continue;
+        const day = instantToLocal(a.startAt.getTime(), tz).date;
+        const before = previousDay.get(a.customerId);
+        previousDay.set(a.customerId, day);
+        if (!before || before === day || a.startAt < rangeStart) continue;
+        if (staffIds && !staffIds.includes(a.staff.id)) continue;
+        const days = daysBetween(before, day);
+        all.push(days);
+        const row =
+          byStaff.get(a.staff.id) ??
+          byStaff.set(a.staff.id, { ...a.staff, days: [] }).get(a.staff.id)!;
+        row.days.push(days);
+      }
+    }
+    const summary = (days: number[]) => {
+      if (days.length === 0) return { intervals: 0, averageDays: 0, medianDays: 0 };
+      const sorted = [...days].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      const median = sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+      return {
+        intervals: days.length,
+        averageDays: Math.round(days.reduce((sum, d) => sum + d, 0) / days.length),
+        medianDays: Math.round(median),
+      };
+    };
+    return {
+      ...summary(all),
+      staff: [...byStaff.values()]
+        .map(({ id, displayName, days }) => ({ id, displayName, ...summary(days) }))
+        .sort((a, b) => b.intervals - a.intervals || a.displayName.localeCompare(b.displayName)),
     };
   }
 

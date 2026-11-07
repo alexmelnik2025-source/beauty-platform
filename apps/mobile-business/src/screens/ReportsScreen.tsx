@@ -555,6 +555,31 @@ export function ReportsScreen(props: {
               <Text style={styles.small}>{r.newcomersHint}</Text>
             </View>
           ) : null}
+          {shown.returnInterval.intervals > 0 ? (
+            <View style={{ gap: 6 }} testID="report-return-interval">
+              <Text style={styles.section}>{r.returnInterval}</Text>
+              <Text style={styles.small}>
+                {fill(r.returnIntervalCount, {
+                  median: String(shown.returnInterval.medianDays),
+                  average: String(shown.returnInterval.averageDays),
+                  n: String(shown.returnInterval.intervals),
+                })}
+              </Text>
+              {shown.scope !== 'own' && shown.returnInterval.staff.length > 1
+                ? shown.returnInterval.staff.map((s) => (
+                    <Text key={s.id} style={styles.small}>
+                      {s.displayName}:{' '}
+                      {fill(r.returnIntervalCount, {
+                        median: String(s.medianDays),
+                        average: String(s.averageDays),
+                        n: String(s.intervals),
+                      })}
+                    </Text>
+                  ))
+                : null}
+              <Text style={styles.small}>{r.returnIntervalHint}</Text>
+            </View>
+          ) : null}
           {shown.scope !== 'own' && shown.marketing.clients > 0 ? (
             <View style={{ gap: 6 }} testID="report-marketing">
               <Text style={styles.section}>

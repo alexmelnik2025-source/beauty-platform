@@ -26,6 +26,7 @@ import { serveApp } from './mobile-app';
  * Cancellations by specialist and service, no-show share (task 219): 74j, app 75.
  * "Pobierz CSV" in the business app — the accountant's file of the period (task 220): 75j.
  * "Nowi klienci — wrócili" — new clients who came again or booked (task 246): 246, app 246-a.
+ * "Co ile dni wracają klienci" — days between visits in a row (task 247): 247, app 247-a.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -249,6 +250,29 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     }),
   );
 
+  // Task 247: Piotr also came 40 days ago (before the period) at Marek — a return after 39 days.
+  const earlier = await json<{ id: string }>(
+    await request.post(`${base}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: services[0],
+        staffId: staff[1],
+        start: new Date(
+          Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 18),
+        ).toISOString(),
+        allowOutsideHours: true,
+        customer: { name: 'Piotr', phone: '+48600000101', email: `piotr-${run}@example.com` },
+      },
+    }),
+  );
+  execFileSync('psql', [
+    (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `UPDATE appointment SET start_at = start_at - interval '41 days', end_at = end_at - interval '41 days', blocked_until = blocked_until - interval '41 days', status = 'completed' WHERE id = '${earlier.id}'`,
+  ]);
+
   // Task 244: Jan agreed to the salon's messages (as the booking checkbox does); Piotr did not.
   execFileSync('psql', [
     (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
@@ -270,7 +294,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(totals.getByText('opłacone wizyty: 3')).toBeVisible();
   await expect(totals.getByText(/240,00\s*zł/)).toBeVisible();
   await expect(totals.getByText(/80,00\s*zł/)).toBeVisible();
-  await expect(totals.getByText('nowi: 2')).toBeVisible();
+  await expect(totals.getByText('nowi: 1')).toBeVisible();
   const byStaff = page.getByRole('table').first();
   await expect(byStaff.getByRole('row').nth(1)).toContainText('Ilian');
   await expect(byStaff.getByRole('row').nth(1)).toContainText(/150,00\s*zł/);
@@ -336,17 +360,23 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(marketing).toContainText('zgoda: 1 z 2 · nowe w tym okresie: 1');
   await expect(marketing).not.toContainText('Jan');
   await shot(page, '244-owner-reports-marketing');
-  // "Nowi klienci — wrócili": Jan and Piotr are new; Jan has his next visit booked (task 246).
+  // "Nowi klienci — wrócili": only Jan is new (Piotr came before); he has his next visit booked
+  // (task 246).
   const newcomers = page.getByTestId('report-newcomers');
   await newcomers.scrollIntoViewIfNeeded();
   await expect(
-    newcomers.getByRole('heading', { name: 'Nowi klienci — wrócili: 50%' }),
+    newcomers.getByRole('heading', { name: 'Nowi klienci — wrócili: 100%' }),
   ).toBeVisible();
-  await expect(newcomers).toContainText('nowi: 2 · wrócili: 0 · mają wizytę: 1');
-  await expect(newcomers).toContainText('Ilian: nowi: 1 · wrócili: 0 · mają wizytę: 1');
-  await expect(newcomers).toContainText('Marek: nowi: 1 · wrócili: 0 · mają wizytę: 0');
+  await expect(newcomers).toContainText('nowi: 1 · wrócili: 0 · mają wizytę: 1');
   await expect(newcomers).not.toContainText('Jan');
   await shot(page, '246-owner-reports-newcomers');
+  // "Co ile dni wracają klienci": Piotr came back after 39 days (task 247).
+  const interval = page.getByTestId('report-return-interval');
+  await interval.scrollIntoViewIfNeeded();
+  await expect(interval.getByRole('heading', { name: 'Co ile dni wracają klienci' })).toBeVisible();
+  await expect(interval).toContainText('zwykle co 39 dni · średnio 39 · powroty: 1');
+  await expect(interval).not.toContainText('Piotr');
+  await shot(page, '247-owner-reports-return-interval');
   // "Najlepsi klienci": Jan 150 zł (2 visits), then Piotr 90 zł; Adam did not come (task 215).
   const top = page.getByTestId('report-top-clients');
   await top.scrollIntoViewIfNeeded();
@@ -463,11 +493,17 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     );
     await shot(app, '244-a-business-app-reports-marketing');
     // "Nowi klienci — wrócili" in the app too (task 246).
-    await app.getByText('Nowi klienci — wrócili: 50%').scrollIntoViewIfNeeded();
+    await app.getByText('Nowi klienci — wrócili: 100%').scrollIntoViewIfNeeded();
     await expect(app.getByTestId('report-newcomers')).toContainText(
-      'nowi: 2 · wrócili: 0 · mają wizytę: 1',
+      'nowi: 1 · wrócili: 0 · mają wizytę: 1',
     );
     await shot(app, '246-a-business-app-reports-newcomers');
+    // "Co ile dni wracają klienci" in the app too (task 247).
+    await app.getByText('Co ile dni wracają klienci').scrollIntoViewIfNeeded();
+    await expect(app.getByTestId('report-return-interval')).toContainText(
+      'zwykle co 39 dni · średnio 39 · powroty: 1',
+    );
+    await shot(app, '247-a-business-app-reports-return-interval');
     // "Najlepsi klienci" in the app too (task 215).
     await app.getByText('Najlepsi klienci').scrollIntoViewIfNeeded();
     await expect(app.getByTestId('report-top-clients')).toContainText('Jan');

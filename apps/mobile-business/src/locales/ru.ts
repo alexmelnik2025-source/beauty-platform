@@ -453,6 +453,9 @@ export const ru: Dictionary = {
     newcomersCount: 'новых: {clients} · вернулись: {returned} · есть запись: {booked}',
     newcomersHint:
       'Клиенты с первым визитом в этом периоде: сколько пришли снова, а сколько уже записаны.',
+    returnInterval: 'Как часто возвращаются клиенты',
+    returnIntervalCount: 'обычно каждые {median} дн. · в среднем {average} · возвратов: {n}',
+    returnIntervalHint: 'Дни между визитами подряд одного клиента. «Обычно» — медиана.',
     marketing: 'Согласие на сообщения: {n}%',
     marketingCount: 'согласие: {consented} из {clients}',
     marketingNew: 'новые за период: {n}',

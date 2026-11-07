@@ -1369,6 +1369,10 @@ export const en: Dict = {
     newcomersCount: 'new: {clients} · came back: {returned} · have a visit booked: {booked}',
     newcomersHint:
       'Clients whose first visit at the salon was in this period: how many came again (to any specialist), and how many of the rest already have a visit booked. By specialist — clients whose first visit was with them.',
+    returnInterval: 'How often clients come back',
+    returnIntervalCount: 'usually every {median} days · on average {average} · returns: {n}',
+    returnIntervalHint:
+      'Days between two visits in a row of the same client (on different days) when the later one was in this period. “Usually” is the median. By specialist — returns to them. Helps choose after how many days to send “Time for your next visit”.',
     marketing: 'Consent to messages',
     marketingCount: 'agreed: {consented} of {clients}',
     marketingNew: 'new in this period: {n}',

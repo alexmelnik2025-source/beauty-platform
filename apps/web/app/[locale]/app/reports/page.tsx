@@ -615,6 +615,34 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report && report.returnInterval.intervals > 0 ? (
+              <section className="section" data-testid="report-return-interval">
+                <h2>{t.reports.returnInterval}</h2>
+                <p>
+                  {fill(t.reports.returnIntervalCount, {
+                    median: String(report.returnInterval.medianDays),
+                    average: String(report.returnInterval.averageDays),
+                    n: String(report.returnInterval.intervals),
+                  })}
+                </p>
+                {report.scope !== 'own' && report.returnInterval.staff.length > 1 ? (
+                  <ul className="small">
+                    {report.returnInterval.staff.map((s) => (
+                      <li key={s.id}>
+                        {s.displayName}:{' '}
+                        {fill(t.reports.returnIntervalCount, {
+                          median: String(s.medianDays),
+                          average: String(s.averageDays),
+                          n: String(s.intervals),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <p className="small muted">{t.reports.returnIntervalHint}</p>
+              </section>
+            ) : null}
+
             {report && report.scope !== 'own' && report.marketing.clients > 0 ? (
               <section className="section" data-testid="report-marketing">
                 <h2>

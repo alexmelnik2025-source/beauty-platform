@@ -21618,6 +21618,75 @@
             ],
             "additionalProperties": false,
             "description": "Task 246: \"Nowi klienci — czy wrócili\" — counts only, no names"
+          },
+          "returnInterval": {
+            "type": "object",
+            "properties": {
+              "intervals": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Returns in the period: a visit that took place after an earlier one of the same client on another day"
+              },
+              "averageDays": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Average days between the two visits; 0 when none"
+              },
+              "medianDays": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "The typical (median) days between them; 0 when none"
+              },
+              "staff": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "intervals": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "averageDays": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "medianDays": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "intervals",
+                    "averageDays",
+                    "medianDays"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By the specialist of the later visit, most returns first"
+              }
+            },
+            "required": [
+              "intervals",
+              "averageDays",
+              "medianDays",
+              "staff"
+            ],
+            "additionalProperties": false,
+            "description": "Task 247: \"Co ile dni wracają klienci\" — counts only, no names"
           }
         },
         "required": [
@@ -21640,7 +21709,8 @@
           "topClients",
           "busyHours",
           "marketing",
-          "newcomers"
+          "newcomers",
+          "returnInterval"
         ],
         "additionalProperties": false
       },
