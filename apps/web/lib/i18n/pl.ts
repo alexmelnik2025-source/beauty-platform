@@ -892,6 +892,7 @@ export const pl = {
     categoryName: 'Nazwa kategorii',
     deleteCategory: 'Usuń kategorię',
     deleteCategoryHint: 'Usługi z tej kategorii zostaną, bez kategorii.',
+    renameCategory: 'Zmień nazwę',
     empty: 'Dodaj pierwszą usługę — klienci zobaczą ją na stronie rezerwacji.',
     delete: 'Usuń usługę',
     deleteConfirm: 'Usunąć tę usługę? Tego nie da się cofnąć.',

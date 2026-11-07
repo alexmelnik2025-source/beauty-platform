@@ -894,6 +894,7 @@ export const en: Dict = {
     categoryName: 'Category name',
     deleteCategory: 'Delete category',
     deleteCategoryHint: 'Its services stay, without a category.',
+    renameCategory: 'Rename',
     empty: 'Add your first service — clients will see it on the booking page.',
     delete: 'Delete service',
     deleteConfirm: 'Delete this service? This cannot be undone.',

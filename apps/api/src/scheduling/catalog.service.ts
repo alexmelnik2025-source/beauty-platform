@@ -310,6 +310,46 @@ export class CatalogService {
     return rows.map(toCategory);
   }
 
+  /**
+   * Task 254: the owner sets the order of the categories once — the booking page, the apps and
+   * the cabinet list them in it. Every category of the location, exactly once.
+   */
+  async reorderCategories(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    categoryIds: string[],
+  ): Promise<ServiceCategoryResponse[]> {
+    await this.access.writable(m, locationId);
+    const categories = await this.prisma.serviceCategory.findMany({
+      where: { locationId },
+      select: { id: true, sortOrder: true },
+    });
+    const known = new Set(categories.map((c) => c.id));
+    if (
+      new Set(categoryIds).size !== categoryIds.length ||
+      categoryIds.length !== known.size ||
+      categoryIds.some((id) => !known.has(id))
+    ) {
+      throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Incomplete order', [
+        { path: 'categoryIds', message: 'list every category of this location exactly once' },
+      ]);
+    }
+    const current = new Map(categories.map((c) => [c.id, c.sortOrder]));
+    await this.prisma.$transaction(async (tx) => {
+      for (const [index, id] of categoryIds.entries()) {
+        const sortOrder = index * 10;
+        if (current.get(id) === sortOrder) continue;
+        await tx.serviceCategory.update({
+          where: { id },
+          data: { sortOrder, version: { increment: 1 } },
+        });
+      }
+      await this.record(tx, m, actorUserId, 'service_category.reordered', 'location', locationId);
+    });
+    return this.listCategories(m, locationId);
+  }
+
   async createCategory(
     m: MembershipContext,
     actorUserId: string,
@@ -317,9 +357,19 @@ export class CatalogService {
     input: CreateServiceCategoryInput,
   ): Promise<ServiceCategoryResponse> {
     await this.access.writable(m, locationId);
+    const fields = { ...input };
+    // Task 254: once the owner has set an order, a new category goes to the end of it.
+    if (fields.sortOrder === 0) {
+      const last = await this.prisma.serviceCategory.aggregate({
+        where: { locationId },
+        _max: { sortOrder: true },
+      });
+      const max = last._max.sortOrder ?? 0;
+      if (max > 0) fields.sortOrder = max + 10;
+    }
     try {
       const row = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.serviceCategory.create({ data: { ...input, locationId } });
+        const created = await tx.serviceCategory.create({ data: { ...fields, locationId } });
         await this.record(
           tx,
           m,

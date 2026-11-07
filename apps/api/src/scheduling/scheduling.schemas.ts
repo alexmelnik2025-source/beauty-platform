@@ -105,6 +105,9 @@ export const updateStaffSchema = z
 
 export const staffServicesSchema = z.object({ serviceIds });
 
+/** Task 254: every category of the location once, first to last. */
+export const serviceCategoryOrderSchema = z.object({ categoryIds: z.array(z.uuid()).max(200) });
+
 // ── Working hours ────────────────────────────────────────
 
 const clock = z

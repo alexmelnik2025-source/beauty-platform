@@ -39,6 +39,9 @@ export default function ServicesPage() {
   const [newCategory, setNewCategory] = useState('');
   const [error, setError] = useState('');
   const [moving, setMoving] = useState(false);
+  /** Task 254: the category being renamed and its new name. */
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const renameLock = useSubmitLock();
   const categoryLock = useSubmitLock();
 
   const load = useCallback(async () => {
@@ -66,7 +69,8 @@ export default function ServicesPage() {
     try {
       await api(`${base}/service-categories`, {
         method: 'POST',
-        body: { name: newCategory, sortOrder: categories.length },
+        // Task 254: the server puts a new category at the end of the order.
+        body: { name: newCategory },
       });
       setNewCategory('');
       await load();
@@ -83,6 +87,52 @@ export default function ServicesPage() {
       await load();
     } catch (err) {
       setError(errorText(t, err));
+    }
+  }
+
+  async function renameCategory(e: FormEvent) {
+    e.preventDefault();
+    const category = categories.find((c) => c.id === renaming?.id);
+    if (!renaming || !category || !renameLock.lock()) return;
+    setError('');
+    try {
+      await api(`${base}/service-categories/${category.id}`, {
+        method: 'PATCH',
+        body: { version: category.version, name: renaming.name },
+      });
+      setRenaming(null);
+      await load();
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      renameLock.unlock();
+    }
+  }
+
+  /**
+   * Task 254: a category one place up or down. The server takes every category once, in the
+   * order of the page; clients see the price-list groups so.
+   */
+  async function moveCategory(index: number, by: -1 | 1) {
+    const row = categories[index];
+    const other = categories[index + by];
+    if (!row || !other || moving) return;
+    const next = categories.map((c) => (c.id === row.id ? other : c.id === other.id ? row : c));
+    setCategories(next);
+    setMoving(true);
+    setError('');
+    try {
+      setCategories(
+        await api<Category[]>(`${base}/service-categories/order`, {
+          method: 'PUT',
+          body: { categoryIds: next.map((c) => c.id) },
+        }),
+      );
+    } catch (err) {
+      setError(errorText(t, err));
+      await load();
+    } finally {
+      setMoving(false);
     }
   }
 
@@ -147,26 +197,80 @@ export default function ServicesPage() {
       <div className="page">
         <ErrorBox>{error}</ErrorBox>
         {services.length === 0 ? <p className="note">{t.services.empty}</p> : null}
-        {groups.some((g) => g.items.length > 1) ? (
+        {categories.length > 1 || groups.some((g) => g.items.length > 1) ? (
           <p className="small muted">{t.services.orderHint}</p>
         ) : null}
-        {groups.map((g) =>
+        {groups.map((g, categoryIndex) =>
           g.items.length === 0 && !g.category ? null : (
             <section key={g.category?.id ?? 'none'} className="section">
-              <div className="row" style={{ alignItems: 'center' }}>
-                <h2 style={{ flex: '1 1 auto' }}>{g.category?.name ?? t.services.noCategory}</h2>
-                {g.category ? (
+              {renaming && g.category && renaming.id === g.category.id ? (
+                <form className="copy-field" onSubmit={renameCategory}>
+                  <input
+                    className="input"
+                    aria-label={t.services.categoryName}
+                    required
+                    autoFocus
+                    maxLength={60}
+                    value={renaming.name}
+                    onChange={(e) => setRenaming({ ...renaming, name: e.target.value })}
+                  />
+                  <button className="btn btn--small" disabled={renameLock.busy}>
+                    {t.common.save}
+                  </button>
                   <button
                     type="button"
-                    className="link-btn small"
-                    style={{ flex: '0 0 auto' }}
-                    title={t.services.deleteCategoryHint}
-                    onClick={() => void removeCategory(g.category!.id)}
+                    className="btn btn--quiet btn--small"
+                    onClick={() => setRenaming(null)}
                   >
-                    {t.services.deleteCategory}
+                    {t.common.cancel}
                   </button>
-                ) : null}
-              </div>
+                </form>
+              ) : (
+                <div className="row" style={{ alignItems: 'center' }}>
+                  <h2 style={{ flex: '1 1 auto' }}>{g.category?.name ?? t.services.noCategory}</h2>
+                  {g.category ? (
+                    <>
+                      <button
+                        type="button"
+                        className="link-btn small"
+                        style={{ flex: '0 0 auto' }}
+                        onClick={() => setRenaming({ id: g.category!.id, name: g.category!.name })}
+                      >
+                        {t.services.renameCategory}
+                      </button>
+                      <button
+                        type="button"
+                        className="link-btn small"
+                        style={{ flex: '0 0 auto' }}
+                        title={t.services.deleteCategoryHint}
+                        onClick={() => void removeCategory(g.category!.id)}
+                      >
+                        {t.services.deleteCategory}
+                      </button>
+                    </>
+                  ) : null}
+                  {g.category && categories.length > 1 ? (
+                    <span className="order-btns">
+                      <button
+                        type="button"
+                        aria-label={fill(t.team.moveUp, { name: g.category.name })}
+                        disabled={moving || categoryIndex === 0}
+                        onClick={() => void moveCategory(categoryIndex, -1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={fill(t.team.moveDown, { name: g.category.name })}
+                        disabled={moving || categoryIndex === categories.length - 1}
+                        onClick={() => void moveCategory(categoryIndex, 1)}
+                      >
+                        ↓
+                      </button>
+                    </span>
+                  ) : null}
+                </div>
+              )}
               <ul className="list">
                 {g.items.map((s, index) => (
                   <li key={s.id} className={g.items.length > 1 ? 'orderable' : undefined}>
