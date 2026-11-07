@@ -52,6 +52,7 @@ import { TeamHoursScreen } from './TeamHoursScreen';
 import { VisitScreen } from './VisitScreen';
 import { WeekScreen } from './WeekScreen';
 import { WaitlistSection } from './WaitlistSection';
+import { TillCloseSection } from './TillCloseSection';
 import { presetFromEntry, type NewVisitPreset } from '../waitlist';
 
 const REFRESH_MS = 30_000;
@@ -695,6 +696,18 @@ export function DayScreen(props: {
                   {fill(t.day.tillUnpaid, { n: String(till.unpaid) })}
                 </Text>
               ) : null}
+              {till.own ? null : (
+                // Task 232: "Zamknij kasę" — owners and managers (the whole salon's till).
+                <TillCloseSection
+                  api={api}
+                  t={t}
+                  locale={props.locale}
+                  salon={salon}
+                  date={date}
+                  timeZone={props.timeZone}
+                  reloads={reloads}
+                />
+              )}
             </View>
           ) : null}
           {visits.length === 0 ? <Text style={styles.muted}>{t.day.empty}</Text> : null}

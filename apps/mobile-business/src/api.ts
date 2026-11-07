@@ -7,6 +7,7 @@ import type {
   Me,
   PermissionCatalog,
   SalonReport,
+  TillClose,
   Tokens,
   components,
 } from '@beauty/api-client';
@@ -119,6 +120,7 @@ export type {
   Me,
   PermissionCatalog,
   SalonReport,
+  TillClose,
   Tokens,
 };
 
@@ -773,6 +775,33 @@ export class BusinessApi {
     return this.authed<SalonReport>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports?${query}`,
+    );
+  }
+
+  /**
+   * Task 232: the day's till — what the visits paid in cash brought and, once counted, the cash
+   * in the till. Owners and managers only (a specialist gets 403).
+   */
+  tillClose(orgId: string, locationId: string, date: string): Promise<TillClose> {
+    const query = new URLSearchParams({ date }).toString();
+    return this.authed<TillClose>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/till-close?${query}`,
+    );
+  }
+
+  /** Task 232: "Zamknij kasę" — the cash counted at the end of the day; again replaces it. */
+  closeTill(
+    orgId: string,
+    locationId: string,
+    date: string,
+    countedCashGrosze: number,
+    note: string | null,
+  ): Promise<TillClose> {
+    return this.authed<TillClose>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/till-close`,
+      { date, countedCashGrosze, note },
     );
   }
 

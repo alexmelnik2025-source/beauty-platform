@@ -8,11 +8,13 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 232: "Zamknij kasę". A visit paid in cash (90 zł) yesterday; in "Kasa dnia" the owner
  * types the cash counted in the till — 80 zł — and sees "brakuje 10,00 zł" (screenshot 232),
- * then counts again and it matches (232-a).
+ * then counts again and it matches (232-a). The business app shows the closed till under
+ * "Kasa dnia" and counts it again (232-b).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -161,4 +163,41 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await expect(till.getByTestId('till-diff')).toHaveText('zgadza się');
   await shot(page, '232-a-till-close-matches');
   await context.close();
+
+  // The business app (its web preview): the closed till under "Kasa dnia", counted again.
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const app = await (
+      await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        locale: 'pl-PL',
+        isMobile: true,
+      })
+    ).newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    const appTill = app.getByTestId('till');
+    for (let back = 0; back < 3 && !(await appTill.isVisible()); back++) {
+      await app.getByRole('button', { name: 'Poprzedni dzień' }).click();
+      await app.waitForTimeout(800);
+    }
+    await expect(appTill.getByTestId('till-diff')).toHaveText('Zgadza się');
+    await appTill.getByRole('button', { name: 'Policz ponownie' }).click();
+    const appForm = app.getByTestId('till-close-form');
+    await expect(appForm).toContainText(/Gotówka za wizyty tego dnia: 90,00\s*zł/);
+    await app.getByLabel(/Gotówka w kasie/).fill('100');
+    await app.getByLabel('Notatka (opcjonalnie)').fill('Klient nie wziął reszty');
+    await app.getByRole('button', { name: 'Zapisz', exact: true }).click();
+    await expect(appTill.getByTestId('till-diff')).toHaveText(/Nadwyżka 10,00\s*zł/);
+    await expect(appTill).toContainText('Klient nie wziął reszty');
+    await appTill.scrollIntoViewIfNeeded();
+    await shot(app, '232-b-business-app-till-close');
+  } finally {
+    businessApp.server.close();
+  }
 });

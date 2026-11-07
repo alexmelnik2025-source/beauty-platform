@@ -296,6 +296,32 @@ describe('BusinessApi', () => {
   });
 });
 
+describe('"Zamknij kasę" (task 232)', () => {
+  it('reads the till of a day and saves the counted cash', async () => {
+    const path = '/v1/organizations/o1/locations/l1/reports/till-close';
+    const sent: unknown[] = [];
+    const { fetchFn } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a6', 'refresh-token-0123456789xyz')],
+      [`GET ${path}?date=2026-11-06`]: () => [200, { date: '2026-11-06', close: null }],
+      [`PUT ${path}`]: (body) => {
+        sent.push(body);
+        return [200, { date: '2026-11-06', close: { differenceGrosze: -1000 } }];
+      },
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('refresh-token-0123456789abc'),
+      fetchFn,
+    );
+    await api.restore();
+    await expect(api.tillClose('o1', 'l1', '2026-11-06')).resolves.toMatchObject({ close: null });
+    await expect(api.closeTill('o1', 'l1', '2026-11-06', 8000, 'Reszta')).resolves.toMatchObject({
+      close: { differenceGrosze: -1000 },
+    });
+    expect(sent).toEqual([{ date: '2026-11-06', countedCashGrosze: 8000, note: 'Reszta' }]);
+  });
+});
+
 describe('visit photos (task 80b)', () => {
   it('turns the signed picture links into full addresses for the phone', () => {
     const api = new BusinessApi('https://api.test/', memoryStore(), fakeServer({}).fetchFn);
