@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Res,
   UseGuards,
@@ -31,9 +32,11 @@ import {
   applyVisitCouponSchema,
   removeVisitCouponSchema,
   setPaidSchema,
+  setTipSchema,
   type ApplyVisitCouponInput,
   type RemoveVisitCouponInput,
   type SetPaidInput,
+  type SetTipInput,
 } from '../loyalty/loyalty.schemas';
 import {
   CurrentMembership,
@@ -227,6 +230,25 @@ export class AppointmentsController {
     @Body(new ZodValidationPipe(setPaidSchema)) body: SetPaidInput,
   ): Promise<AppointmentDetailResponse> {
     return this.appointments.setPaid(m, auth.userId, locationId, appointmentId, body);
+  }
+
+  @Put(':appointmentId/tip')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Note the tip the client left on a "came" visit (0 = none)',
+    description:
+      'Task 229: only a note for the report and the till; not part of the revenue. 409 NOT_COMPLETED: only completed visits. Who may mark the visit paid may note the tip.',
+  })
+  @ApiZodBody(setTipSchema)
+  @ApiZodResponse(appointmentDetailSchema)
+  setTip(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Body(new ZodValidationPipe(setTipSchema)) body: SetTipInput,
+  ): Promise<AppointmentDetailResponse> {
+    return this.appointments.setTip(m, auth.userId, locationId, appointmentId, body);
   }
 
   @Get(':appointmentId/coupons')

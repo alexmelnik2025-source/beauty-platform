@@ -99,6 +99,12 @@ export const appointmentSchema = responseSchema(
       .describe(
         'Task 227: how the client paid, as the staff marked it; null = not said or not paid',
       ),
+    tipGrosze: z
+      .number()
+      .int()
+      .describe(
+        'Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price',
+      ),
     version: z.number().int(),
     createdAt: z.string(),
   }),

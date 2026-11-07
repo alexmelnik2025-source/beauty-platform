@@ -15,6 +15,7 @@ import type {
 import { useSession } from '../Session';
 import { ErrorBox, Sheet, Spinner } from '../ui';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
+import { TipField } from './TipField';
 
 type Mode = 'view' | 'move' | 'cancel';
 
@@ -239,6 +240,25 @@ export function AppointmentSheet({
               : setMethod(next)
           }
         />
+      ) : null}
+      {mode === 'view' && canChange && a.status === 'completed' ? (
+        <TipField
+          value={a.tipGrosze}
+          currency={session.location.currency}
+          disabled={busy}
+          onSave={(tipGrosze) =>
+            void run(() =>
+              api(`${base}/appointments/${a.id}/tip`, {
+                method: 'PUT',
+                body: { version: a.version, tipGrosze },
+              }),
+            )
+          }
+        />
+      ) : a.tipGrosze > 0 ? (
+        <p className="small" data-testid="tip-note">
+          {t.appointment.tip}: {money(a.tipGrosze)}
+        </p>
       ) : null}
 
       {mode === 'view' ? (

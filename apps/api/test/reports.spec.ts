@@ -96,6 +96,8 @@ interface VisitOptions {
   /** Task 227: how it was paid. */
   method?: 'cash' | 'card' | 'blik' | 'transfer' | 'other';
   discountGrosze?: number;
+  /** Task 229: the tip the client left. */
+  tipGrosze?: number;
   online?: boolean;
   cancelledBy?: 'customer' | 'salon';
 }
@@ -128,6 +130,7 @@ async function visit(o: VisitOptions): Promise<string> {
       discountGrosze: o.discountGrosze ?? 0,
       paidAt: o.paid ? new Date() : null,
       paymentMethod: o.paid ? (o.method ?? null) : null,
+      tipGrosze: o.tipGrosze ?? 0,
       ...(o.status === 'cancelled'
         ? { cancelledAt: new Date(), cancelledBy: o.cancelledBy ?? 'customer' }
         : {}),
@@ -299,6 +302,7 @@ describe('salon report', () => {
     expect(res.body.totals).toMatchObject({ visits: 0, revenueGrosze: 0, averageTicketGrosze: 0 });
     expect(res.body.staff).toEqual([]);
     expect(res.body.days).toHaveLength(11);
+    expect(res.body.tips).toEqual({ totalGrosze: 0, visits: 0, staff: [] });
   });
 
   it('a specialist sees only their own results, and only with the permission', async () => {
@@ -313,6 +317,7 @@ describe('salon report', () => {
     expect(own.body.scope).toBe('own');
     expect(own.body.totals).toMatchObject({ completed: 1, revenueGrosze: 8000 });
     expect(own.body.staff.map((s: { id: string }) => s.id)).toEqual([kasiaId]);
+    expect(own.body.tips.staff).toEqual([]);
     // The salon's best clients are not in a specialist's own report (task 215).
     expect(own.body.topClients).toEqual([]);
     // Task 218: only Kasia's own clients (Jan has no later visit).
@@ -556,6 +561,39 @@ describe('salon report', () => {
     expect(empty.body.payments).toEqual([]);
   });
 
+  it('"Napiwki": tips of the visits that took place, by specialist, not in the revenue (task 229)', async () => {
+    const d1 = addDays(today, -3);
+    await visit({ date: d1, status: 'completed', paid: true, tipGrosze: 1000 });
+    await visit({ date: d1, status: 'completed', tipGrosze: 500 });
+    await visit({ date: d1, staffId: olaId, status: 'completed', paid: true, tipGrosze: 2000 });
+    await visit({ date: d1, staffId: olaId, status: 'completed', paid: true });
+    // A tip on a visit that did not take place does not count (the API refuses it anyway).
+    await visit({ date: d1, status: 'no_show', tipGrosze: 700 });
+    const res = await report().expect(200);
+    expect(res.body.tips).toEqual({
+      totalGrosze: 3500,
+      visits: 3,
+      staff: [
+        { id: olaId, displayName: 'Ola', tipsGrosze: 2000, visits: 1 },
+        { id: kasiaId, displayName: 'Kasia', tipsGrosze: 1500, visits: 2 },
+      ],
+    });
+    // Revenue is what the visits cost, without tips.
+    expect(res.body.totals.revenueGrosze).toBe(3 * 8000);
+
+    // A specialist with own results sees only own tips.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.tips).toEqual({
+      totalGrosze: 1500,
+      visits: 2,
+      staff: [{ id: kasiaId, displayName: 'Kasia', tipsGrosze: 1500, visits: 2 }],
+    });
+  });
+
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {
     const d1 = addDays(today, -3);
     await visit({
@@ -564,6 +602,7 @@ describe('salon report', () => {
       paid: true,
       method: 'card',
       discountGrosze: 1550,
+      tipGrosze: 1000,
       online: true,
     });
     await visit({
@@ -598,18 +637,18 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     const lines = text.slice(1).trimEnd().split('\r\n');
     expect(lines).toEqual([
-      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności',
-      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta`,
-      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;`,
-      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;`,
+      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności;Napiwek',
+      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta;10,00`,
+      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;;0,00`,
+      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;;0,00`,
     ]);
     expect(text).not.toContain('+48600000002');
     expect(text).not.toContain('@example.com');
 
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
     expect(english).toContain('Date;Time;Specialist;Service;Client;Status;Booked;Price');
-    expect(english).toContain('To pay;Paid;Payment method');
-    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes;card');
+    expect(english).toContain('To pay;Paid;Payment method;Tip');
+    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes;card;10.00');
 
     // The same access as the report.
     await csv({}, kasiaUser.auth).expect(403);
@@ -638,9 +677,10 @@ describe('salon report', () => {
       discountGrosze: 0,
       paid: true,
       method: null,
+      tipGrosze: 0,
     };
     expect(visitsCsv([row], 'pl').split('\r\n')[1]).toBe(
-      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;`,
+      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;;0,00`,
     );
   });
 });

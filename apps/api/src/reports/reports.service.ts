@@ -84,6 +84,7 @@ export class ReportsService {
         discountGrosze: true,
         paidAt: true,
         paymentMethod: true,
+        tipGrosze: true,
         cancelledBy: true,
         customerId: true,
         staff: { select: { id: true, displayName: true } },
@@ -115,6 +116,12 @@ export class ReportsService {
       { method: PaymentKey; paid: number; revenueGrosze: number }
     >();
     const busy = new Map<string, { weekday: number; hour: number; visits: number }>();
+    // Task 229: tips of the visits that took place — by specialist; not part of the revenue.
+    const tips = { totalGrosze: 0, visits: 0 };
+    const tipsByStaff = new Map<
+      string,
+      { id: string; displayName: string; tipsGrosze: number; visits: number }
+    >();
     const byClient = new Map<string, { completed: number; revenueGrosze: number }>();
     const lastVisit = new Map<
       string,
@@ -176,6 +183,15 @@ export class ReportsService {
           }
         }
         if (client) client.completed++;
+        if (a.tipGrosze > 0) {
+          tips.totalGrosze += a.tipGrosze;
+          tips.visits++;
+          const tipRow =
+            tipsByStaff.get(a.staff.id) ??
+            tipsByStaff.set(a.staff.id, { ...a.staff, tipsGrosze: 0, visits: 0 }).get(a.staff.id)!;
+          tipRow.tipsGrosze += a.tipGrosze;
+          tipRow.visits++;
+        }
         if (a.paidAt) {
           const paid = a.priceGrosze - a.discountGrosze;
           if (client) client.revenueGrosze += paid;
@@ -274,6 +290,15 @@ export class ReportsService {
           y.revenueGrosze - x.revenueGrosze ||
           y.paid - x.paid,
       ),
+      tips: {
+        ...tips,
+        staff: [...tipsByStaff.values()].sort(
+          (x, y) =>
+            y.tipsGrosze - x.tipsGrosze ||
+            y.visits - x.visits ||
+            x.displayName.localeCompare(y.displayName),
+        ),
+      },
       weekdays,
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
@@ -609,6 +634,7 @@ export class ReportsService {
         discountGrosze: true,
         paidAt: true,
         paymentMethod: true,
+        tipGrosze: true,
         cancelledBy: true,
         customer: { select: { name: true } },
         staff: { select: { displayName: true } },
@@ -632,6 +658,7 @@ export class ReportsService {
           discountGrosze: a.discountGrosze,
           paid: a.paidAt !== null,
           method: a.paymentMethod,
+          tipGrosze: a.tipGrosze,
         };
       }),
       locale,

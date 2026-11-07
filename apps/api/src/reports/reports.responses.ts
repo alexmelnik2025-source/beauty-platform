@@ -72,6 +72,22 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 227: paid visits by payment method ("Sposoby płatności"), most money first, unknown last',
       ),
+    tips: z
+      .strictObject({
+        totalGrosze: money('Tips clients left on the visits of the period that took place'),
+        visits: z.number().int().describe('Visits with a tip'),
+        staff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              displayName: z.string(),
+              tipsGrosze: money('Tips on the visits of this specialist'),
+              visits: z.number().int(),
+            }),
+          )
+          .describe('Specialists with a tip in the period, most first'),
+      })
+      .describe('Task 229: "Napiwki" — noted by the staff; not part of the revenue'),
     weekdays: z
       .array(
         z.strictObject({

@@ -34,6 +34,7 @@ export const APPOINTMENT_EVENT_TYPES = [
   'paid',
   'unpaid',
   'payment_method',
+  'tip',
   'coupon_applied',
   'coupon_removed',
   'tier_discount_applied',
