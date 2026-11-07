@@ -372,9 +372,10 @@ describe('salon report', () => {
     await visit({ date: addDays(today, -1), email: 'ola@example.com', status: 'no_show' });
     const id = async (email: string) =>
       (await ctx.prisma.customer.findFirstOrThrow({ where: { organizationId: orgId, email } })).id;
-    const [jan, ewa, adam, ola] = await Promise.all(
-      ['jan', 'ewa', 'adam', 'ola'].map((n) => id(`${n}@example.com`)),
-    );
+    const jan = await id('jan@example.com');
+    const ewa = await id('ewa@example.com');
+    const adam = await id('adam@example.com');
+    const ola = await id('ola@example.com');
     const longAgo = new Date(zonedToInstant(addDays(today, -60), 12 * 60, TZ));
     const recently = new Date(zonedToInstant(addDays(today, -2), 12 * 60, TZ));
     await ctx.prisma.consentRecord.createMany({
