@@ -338,6 +338,79 @@ describe('clients CSV export', () => {
     expect(petr![header!.indexOf('Następna wizyta')]).toBe('');
   });
 
+  it('only the clients the filtered list shows, in its order (task 275)', async () => {
+    const add = (name: string, phone: string, tags: string[] = []) =>
+      ctx
+        .http()
+        .post(`/v1/organizations/${orgId}/customers`)
+        .set(owner.auth)
+        .send({ name, phone, tags })
+        .expect(201);
+    const adam = await add('Adam Stały', '+48600000011', ['stała']);
+    await add('Bartek Nowy', '+48600000012');
+    await add('Cezary Stały', '+48600000013', ['stała']);
+    const service = await ctx
+      .http()
+      .post(`${base}/services`)
+      .set(owner.auth)
+      .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 })
+      .expect(201);
+    const staff = await ctx
+      .http()
+      .post(`${base}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Kasia', serviceIds: [service.body.id] })
+      .expect(201);
+    const location = await ctx.prisma.location.findFirstOrThrow({
+      where: { organizationId: orgId },
+    });
+    const startAt = new Date(Date.now() - 3 * 86_400_000);
+    const endAt = new Date(startAt.getTime() + 30 * 60_000);
+    await ctx.prisma.appointment.create({
+      data: {
+        locationId: location.id,
+        staffId: staff.body.id,
+        serviceId: service.body.id,
+        customerId: adam.body.id,
+        status: 'no_show',
+        source: 'manual',
+        startAt,
+        endAt,
+        blockedUntil: endAt,
+        priceGrosze: 8000,
+        durationMinutes: 30,
+        bufferMinutes: 0,
+      },
+    });
+    const names = async (query: string) => {
+      const res = await ctx.http().get(`${exportUrl()}?${query}`).set(owner.auth).expect(200);
+      return rows(res.text)
+        .slice(1)
+        .map((row) => row[0]);
+    };
+
+    expect(await names('tag=sta%C5%82a')).toEqual(['Adam Stały', 'Cezary Stały']);
+    expect(await names('noShows=yes')).toEqual(['Adam Stały']);
+    expect(await names('search=Bartek')).toEqual(['Bartek Nowy']);
+    expect(await names('once=yes')).toEqual([]);
+    expect(await names('lang=en')).toEqual(['Adam Stały', 'Bartek Nowy', 'Cezary Stały']);
+    // The same limits as the list's filters.
+    await ctx.http().get(`${exportUrl()}?inactiveDays=5`).set(owner.auth).expect(400);
+    await ctx.http().get(`${exportUrl()}?overdue=no`).set(owner.auth).expect(400);
+
+    const audit = await ctx.prisma.auditLog.findMany({
+      where: { organizationId: orgId, action: 'customers.exported' },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(audit.map((a) => a.metadata)).toEqual([
+      { count: 2, filters: { tag: 'stała' } },
+      { count: 1, filters: { noShows: 'yes' } },
+      { count: 1, filters: { search: 'Bartek' } },
+      { count: 0, filters: { once: 'yes' } },
+      { count: 3 },
+    ]);
+  });
+
   it('only the owner: managers and staff members cannot take the client list', async () => {
     const manager = await addMember('manager@example.com', 'manager');
     const staff = await addMember('staff@example.com', 'staff');

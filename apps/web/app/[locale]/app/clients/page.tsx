@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ClientGuard } from '@/components/guard/ClientGuard';
 import { ClientLoyalty } from '@/components/loyalty/ClientLoyalty';
 import { useSession } from '@/components/Session';
@@ -96,40 +96,35 @@ export default function ClientsPage() {
     }
   }, [fromAddress, newcomers, overdue, noShows, once, birthdays, consented, inactiveDays, tag]);
 
+  /** The list's filters — also what "Export this list" sends (task 275). */
+  const filters = useMemo(
+    () => ({
+      search: search.trim() || undefined,
+      inactiveDays: inactiveDays || undefined,
+      tag: tag || undefined,
+      birthdayDays: birthdays ? 7 : undefined,
+      marketing: consented ? ('yes' as const) : undefined,
+      newDays: newcomers ? 30 : undefined,
+      overdue: overdue ? ('yes' as const) : undefined,
+      noShows: noShows ? ('yes' as const) : undefined,
+      once: once ? ('yes' as const) : undefined,
+    }),
+    [search, inactiveDays, tag, birthdays, consented, newcomers, overdue, noShows, once],
+  );
+  /** Task 275: with any filter on, the CSV holds only the clients of the list. */
+  const filtered = Object.values(filters).some((value) => value !== undefined);
+
   const load = useCallback(async () => {
     try {
       setRows(
         await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
-          query: {
-            search: search.trim() || undefined,
-            limit: 100,
-            inactiveDays: inactiveDays || undefined,
-            tag: tag || undefined,
-            birthdayDays: birthdays ? 7 : undefined,
-            marketing: consented ? 'yes' : undefined,
-            newDays: newcomers ? 30 : undefined,
-            overdue: overdue ? 'yes' : undefined,
-            noShows: noShows ? 'yes' : undefined,
-            once: once ? 'yes' : undefined,
-          },
+          query: { ...filters, limit: 100 },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [
-    orgId,
-    search,
-    inactiveDays,
-    tag,
-    birthdays,
-    consented,
-    newcomers,
-    overdue,
-    noShows,
-    once,
-    t,
-  ]);
+  }, [orgId, filters, t]);
 
   /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
   const loadTags = useCallback(async () => {
@@ -158,7 +153,10 @@ export default function ClientsPage() {
     void loadSegments();
   }, [loadSegments]);
 
-  /** Task 21: the owner downloads all clients as a CSV file (column names in the cabinet language). */
+  /**
+   * Task 21: the owner downloads all clients as a CSV file (column names in the cabinet language);
+   * task 275: with filters on — only the clients of the list.
+   */
   async function exportCsv(): Promise<void> {
     if (exporting) return;
     setExporting(true);
@@ -166,7 +164,7 @@ export default function ClientsPage() {
     try {
       const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
       const res = await apiResponse(`/v1/organizations/${orgId}/customers/export.csv`, {
-        query: { lang },
+        query: { lang, ...filters },
       });
       const name =
         /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ??
@@ -197,11 +195,11 @@ export default function ClientsPage() {
             <button
               type="button"
               className="btn btn--quiet btn--small"
-              title={t.clients.exportHint}
+              title={filtered ? t.clients.exportListHint : t.clients.exportHint}
               disabled={exporting}
               onClick={() => void exportCsv()}
             >
-              {t.clients.export}
+              {filtered ? t.clients.exportList : t.clients.export}
             </button>
           )}
           <button type="button" className="btn btn--small" onClick={() => setOpen('new')}>

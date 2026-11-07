@@ -5,13 +5,31 @@ import type { MembershipContext } from '../common/request-context';
 import { PrismaService } from '../prisma/prisma.service';
 import { amount } from '../reports/visits-csv';
 import { instantToLocal } from '../scheduling/time';
+import { listCustomersSchema } from './booking.schemas';
+import { CustomersService } from './customers.service';
 
 /** Task 21: the owner downloads the salon's client list as a CSV file. */
 
-export const exportCustomersSchema = z.object({
+export const exportCustomersSchema = listCustomersSchema.omit({ limit: true }).extend({
   /** Language of the column names and of "yes / no". */
   lang: z.enum(['pl', 'uk', 'ru', 'en']).default('pl'),
 });
+
+/**
+ * Task 275: the filters of the client list (search, label, quick filters). With any of them the
+ * file holds only the clients the list shows, in the list's order.
+ */
+const FILTERS = [
+  'search',
+  'inactiveDays',
+  'tag',
+  'birthdayDays',
+  'marketing',
+  'newDays',
+  'overdue',
+  'noShows',
+  'once',
+] as const;
 export type ExportCustomersQuery = z.infer<typeof exportCustomersSchema>;
 
 const HEADERS = {
@@ -112,6 +130,7 @@ export class CustomersExportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly customersService: CustomersService,
   ) {}
 
   /**
@@ -121,10 +140,18 @@ export class CustomersExportService {
    */
   async csv(m: MembershipContext, userId: string, query: ExportCustomersQuery): Promise<string> {
     const organizationId = m.organizationId;
-    const [customers, consents, visits, location, missed, upcoming, paid, locations] =
+    const filters = Object.fromEntries(
+      FILTERS.filter((key) => query[key] !== undefined && query[key] !== '').map((key) => [
+        key,
+        query[key],
+      ]),
+    );
+    const filtered = Object.keys(filters).length > 0;
+    const ids = filtered ? await this.customersService.matchingIds(m, query) : null;
+    const [found, consents, visits, location, missed, upcoming, paid, locations] =
       await Promise.all([
         this.prisma.customer.findMany({
-          where: { organizationId },
+          where: { organizationId, ...(ids ? { id: { in: ids } } : {}) },
           orderBy: [{ name: 'asc' }, { id: 'asc' }],
         }),
         this.prisma.consentRecord.findMany({
@@ -182,6 +209,11 @@ export class CustomersExportService {
           select: { id: true, currency: true },
         }),
       ]);
+    // Task 275: the filtered list keeps its own order (e.g. the most recently due first).
+    const position = new Map((ids ?? []).map((id, index) => [id, index]));
+    const customers = ids
+      ? [...found].sort((a, b) => position.get(a.id)! - position.get(b.id)!)
+      : found;
     const timeZone = location?.timezone ?? 'Europe/Warsaw';
     const consent = new Map(consents.map((c) => [c.customerId, c.granted]));
     const done = new Map(visits.map((v) => [v.customerId, v]));
@@ -242,7 +274,7 @@ export class CustomersExportService {
       action: 'customers.exported',
       entityType: 'organization',
       entityId: organizationId,
-      metadata: { count: customers.length },
+      metadata: { count: customers.length, ...(filtered ? { filters } : {}) },
     });
     return `\uFEFF${lines.join('\r\n')}\r\n`;
   }

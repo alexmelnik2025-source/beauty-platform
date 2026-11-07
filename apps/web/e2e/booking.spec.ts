@@ -778,8 +778,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByText(/Ofertę wysyłaj tylko osobom ze zgodą/)).toBeVisible();
   await expect(ownerPage.getByRole('button', { name: /Anna Kowalska/ })).toHaveCount(0);
   await shot(ownerPage, '75a-owner-clients-inactive');
+  // Task 275: with a filter on, the file holds only the clients of the list (Anna is not on it).
+  const [listCsv] = await Promise.all([
+    ownerPage.waitForEvent('download'),
+    ownerPage.getByRole('button', { name: 'Eksportuj tę listę (CSV)' }).click(),
+  ]);
+  const listText = (await readFile(await listCsv.path())).toString('utf8');
+  expect(listText.startsWith('\uFEFF"Imię i nazwisko"')).toBe(true);
+  expect(listText).not.toContain('"Anna Kowalska"');
+  await shot(ownerPage, '275-owner-clients-export-list');
   await ownerPage.getByLabel('Kto dawno nie był').selectOption({ label: 'Wszyscy klienci' });
   await expect(ownerPage.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
+  await expect(ownerPage.getByRole('button', { name: 'Eksportuj CSV' })).toBeVisible();
   // GDPR (task 21): the owner downloads a client's data and erases them on request.
   await json(
     await request.post(`/v1/organizations/${org.id}/customers`, {

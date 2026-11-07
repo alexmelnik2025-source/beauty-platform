@@ -19,6 +19,9 @@ import type {
 
 export type { CustomerDetailResponse, CustomerResponse } from './booking.responses';
 
+/** The filters of the client list, without how many rows to return. */
+export type ClientFilters = Omit<ListCustomersQuery, 'limit'>;
+
 const clientExists = (code: string, message: string, existingId: string): AppException =>
   new AppException(HttpStatus.CONFLICT, code, message, [
     { path: 'customerId', message: existingId },
@@ -46,8 +49,27 @@ export class CustomersService {
   ) {}
 
   async list(m: MembershipContext, query: ListCustomersQuery): Promise<CustomerResponse[]> {
+    const rows = await this.matching(m, query, query.limit);
+    return rows.map((c) => toCustomer(c, m));
+  }
+
+  /**
+   * Task 275: the ids of every client the list would show with these filters (no limit), in the
+   * list's order — for the CSV of the filtered list.
+   */
+  async matchingIds(m: MembershipContext, query: ClientFilters): Promise<string[]> {
+    const rows = await this.matching(m, query, undefined);
+    return rows.map((c) => c.id);
+  }
+
+  /** The clients the list shows (`limit` undefined: all of them), in the list's order. */
+  private async matching(
+    m: MembershipContext,
+    query: ClientFilters,
+    limit: number | undefined,
+  ): Promise<Customer[]> {
     if (query.marketing && !m.permissions.viewClientContacts) return [];
-    if (query.birthdayDays) return this.birthdays(m, query);
+    if (query.birthdayDays) return this.birthdays(m, query, limit);
     // Task 248: the newest clients first, by their first visit.
     const newcomers = query.newDays ? await this.newcomers(m, query.newDays) : null;
     // Task 262: clients past their usual time to come back, the most recently due first.
@@ -83,7 +105,7 @@ export class CustomersService {
         ],
       },
       orderBy: { name: 'asc' },
-      take: newcomers || overdue || noShows || once ? undefined : query.limit,
+      take: newcomers || overdue || noShows || once ? undefined : limit,
     });
     if (newcomers) {
       rows.sort((a, b) => newcomers.get(b.id)!.getTime() - newcomers.get(a.id)!.getTime());
@@ -97,7 +119,7 @@ export class CustomersService {
     if (once) {
       rows.sort((a, b) => once.get(b.id)!.getTime() - once.get(a.id)!.getTime());
     }
-    return rows.slice(0, query.limit).map((c) => toCustomer(c, m));
+    return rows.slice(0, limit);
   }
 
   /**
@@ -180,8 +202,9 @@ export class CustomersService {
    */
   private async birthdays(
     m: MembershipContext,
-    query: ListCustomersQuery,
-  ): Promise<CustomerResponse[]> {
+    query: ClientFilters,
+    limit: number | undefined,
+  ): Promise<Customer[]> {
     if (!m.permissions.viewClientContacts) return [];
     const days = birthdayWindow(await this.today(m), query.birthdayDays ?? 1);
     const rows = await this.prisma.customer.findMany({
@@ -204,10 +227,7 @@ export class CustomersService {
       },
       orderBy: { name: 'asc' },
     });
-    return rows
-      .sort((a, b) => days.get(a.birthday!)! - days.get(b.birthday!)!)
-      .slice(0, query.limit)
-      .map((c) => toCustomer(c, m));
+    return rows.sort((a, b) => days.get(a.birthday!)! - days.get(b.birthday!)!).slice(0, limit);
   }
 
   /** Task 240: today in the caller's first salon (the order of the salons in the cabinet). */
