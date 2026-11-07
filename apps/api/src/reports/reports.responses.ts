@@ -94,9 +94,7 @@ export const salonReportSchema = responseSchema(
           .array(
             z.strictObject({
               date: z.string(),
-              expectedCashGrosze: money(
-                'What the cash visits had brought when the till was counted',
-              ),
+              expectedCashGrosze: money('What should have been in the till when it was counted'),
               countedCashGrosze: money('The cash counted in the till'),
               differenceGrosze: z.number().int().describe('Counted minus expected'),
             }),
@@ -238,11 +236,28 @@ export const tillCloseSchema = responseSchema(
   z.strictObject({
     date: z.string(),
     currency: z.string(),
-    expectedCashGrosze: money('What the visits of the day paid in cash brought, now'),
+    expectedCashGrosze: money(
+      'What should be in the till now: cash visits plus cash put in minus cash taken out',
+    ),
+    visitsCashGrosze: money('What the visits of the day paid in cash brought'),
+    cashInGrosze: money('Task 236: cash put into the till that day'),
+    cashOutGrosze: money('Task 236: cash taken out of the till that day'),
+    movements: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          kind: z.enum(['in', 'out']),
+          amountGrosze: money('The amount put in or taken out'),
+          note: z.string().describe('Why (e.g. "change for the day", "towels")'),
+          createdByName: z.string(),
+          createdAt: z.string(),
+        }),
+      )
+      .describe('Task 236: cash put in or taken out that day, oldest first'),
     close: z
       .strictObject({
         countedCashGrosze: money('The cash counted in the till'),
-        expectedCashGrosze: money('What the cash visits had brought when the till was counted'),
+        expectedCashGrosze: money('What should have been in the till when it was counted'),
         differenceGrosze: z
           .number()
           .int()

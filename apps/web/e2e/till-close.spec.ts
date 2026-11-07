@@ -15,7 +15,7 @@ import { serveApp } from './mobile-app';
  * types the cash counted in the till — 80 zł — and sees "brakuje 10,00 zł" (screenshot 232),
  * then counts again and it matches (232-a). The business app shows the closed till under
  * "Kasa dnia" and counts it again (232-b). Task 233: the report lists the counted day (233),
- * and the business app's report too (235).
+ * and the business app's report too (235). Task 236: cash taken out of the till (236).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -175,6 +175,34 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await expect(closes.getByRole('row').nth(1)).toContainText(/90,00\s*zł.*90,00\s*zł/);
   await expect(closes.getByTestId('report-till-total')).toHaveText(/Różnica razem: 0,00\s*zł/);
   await shot(page, '233-report-till-closes');
+
+  // Task 236: 10 zł taken out of the till for towels — the till should then hold 80 zł; the
+  // closed till says the cash changed since. Removing the mistake brings it back.
+  await page.goto(`/pl/app/calendar?date=${visit.date}`);
+  await till.getByRole('button', { name: 'Wpłata / wypłata' }).click();
+  const moveForm = page.getByTestId('till-move-form');
+  await expect(moveForm.getByLabel('Wypłata z kasy')).toBeChecked();
+  const moveSave = moveForm.getByRole('button', { name: 'Zapisz' });
+  await moveForm.getByLabel(/Kwota/).fill('10');
+  await expect(moveSave).toBeDisabled(); // a reason is needed
+  await moveForm.getByLabel('Powód').fill('Ręczniki');
+  await moveSave.click();
+  const moves = till.getByTestId('till-moves');
+  await expect(moves).toContainText(/wypłata 10,00\s*zł · Ręczniki/);
+  await expect(moves).toContainText('Aleksander Owner');
+  await expect(till.getByTestId('till-closed')).toContainText(
+    /zmieniły się płatności gotówką lub wpłaty i wypłaty — teraz 80,00\s*zł/,
+  );
+  await till.getByRole('button', { name: 'Policz ponownie' }).click();
+  await expect(form).toContainText(
+    /Powinno być w kasie: 80,00\s*zł \(za wizyty gotówką 90,00\s*zł, wpłaty 0,00\s*zł, wypłaty 10,00\s*zł\)/,
+  );
+  await shot(page, '236-till-cash-out');
+  await form.getByRole('button', { name: 'Anuluj' }).click();
+  await moves.getByRole('button', { name: /Usuń: wypłata 10,00\s*zł · Ręczniki/ }).click();
+  await expect(moves).toHaveCount(0);
+  await expect(till.getByTestId('till-diff')).toHaveText('zgadza się');
+  await expect(till.getByTestId('till-closed')).not.toContainText('zmieniły się');
   await context.close();
 
   // The business app (its web preview): the closed till under "Kasa dnia", counted again.
@@ -217,7 +245,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     const appCloses = app.getByTestId('report-till-closes');
     await appCloses.scrollIntoViewIfNeeded();
     await expect(appCloses).toContainText(/Zamknięcia kasy · różnica razem: \+10,00\s*zł/);
-    await expect(appCloses).toContainText(/policzono 100,00\s*zł · za wizyty gotówką 90,00\s*zł/);
+    await expect(appCloses).toContainText(/policzono 100,00\s*zł · powinno być 90,00\s*zł/);
     await shot(app, '235-business-app-report-till-closes');
   } finally {
     businessApp.server.close();

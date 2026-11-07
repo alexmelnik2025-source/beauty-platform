@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Post,
   Put,
   Query,
   Res,
@@ -36,10 +38,12 @@ import {
   closeTillSchema,
   reportQuerySchema,
   tillCloseQuerySchema,
+  tillMovementSchema,
   visitsCsvQuerySchema,
   type CloseTillInput,
   type ReportQuery,
   type TillCloseQuery,
+  type TillMovementInput,
   type VisitsCsvQuery,
 } from './reports.schemas';
 import { CSV_LOCALES } from './visits-csv';
@@ -47,6 +51,7 @@ import { ReportsService } from './reports.service';
 import { TillCloseService } from './till-close.service';
 
 const locationIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Location') });
+const movementIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Till movement') });
 
 @ApiTags('reports')
 @ApiBearerAuth()
@@ -139,5 +144,36 @@ export class ReportsController {
     @Body(new ZodValidationPipe(closeTillSchema)) body: CloseTillInput,
   ): Promise<TillCloseResponse> {
     return this.till.close(m, auth.userId, locationId, body);
+  }
+
+  @Post('till-movements')
+  @ApiOperation({
+    summary: '"Wpłata / wypłata": note cash put into or taken out of the till on a day',
+    description:
+      'Task 236. Owners and managers only. kind "in" — put in (e.g. change for the day), "out" — taken out (e.g. towels, to the bank); note says why. The till should then hold the cash visits plus "in" minus "out". 409 DAY_NOT_STARTED for a day after today (salon time). Answers the till of that day.',
+  })
+  @ApiZodBody(tillMovementSchema)
+  @ApiZodResponse(tillCloseSchema, HttpStatus.CREATED)
+  addTillMovement(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Body(new ZodValidationPipe(tillMovementSchema)) body: TillMovementInput,
+  ): Promise<TillCloseResponse> {
+    return this.till.addMovement(m, auth.userId, locationId, body);
+  }
+
+  @Delete('till-movements/:movementId')
+  @ApiOperation({
+    summary: 'Remove a cash movement noted by mistake',
+    description: 'Task 236. Owners and managers only. Answers the till of its day.',
+  })
+  @ApiZodResponse(tillCloseSchema)
+  removeTillMovement(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Param('movementId', movementIdPipe) movementId: string,
+  ): Promise<TillCloseResponse> {
+    return this.till.removeMovement(m, locationId, movementId);
   }
 }

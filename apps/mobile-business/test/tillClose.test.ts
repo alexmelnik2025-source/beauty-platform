@@ -6,6 +6,10 @@ const closed = (counted: number, expected: number, now = expected): TillClose =>
   date: '2026-11-06',
   currency: 'PLN',
   expectedCashGrosze: now,
+  visitsCashGrosze: now,
+  cashInGrosze: 0,
+  cashOutGrosze: 0,
+  movements: [],
   close: {
     countedCashGrosze: counted,
     expectedCashGrosze: expected,

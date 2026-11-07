@@ -43,7 +43,8 @@ type Ids = Record<
   | 'rewardId'
   | 'couponId'
   | 'entryId'
-  | 'reviewId',
+  | 'reviewId'
+  | 'movementId',
   string
 >;
 
@@ -128,6 +129,9 @@ function validBody(route: Route): object {
   if (p.endsWith('/appointments/:appointmentId/payment')) return { version: 1, paid: true };
   if (p.endsWith('/appointments/:appointmentId/tip')) return { version: 1, tipGrosze: 1000 };
   if (p.endsWith('/reports/till-close')) return { date: DATE, countedCashGrosze: 1000 };
+  if (p.endsWith('/reports/till-movements')) {
+    return { date: DATE, kind: 'out', amountGrosze: 1000, note: 'Hacked' };
+  }
   if (p.endsWith('/loyalty/program')) {
     return {
       version: 0,
@@ -449,6 +453,17 @@ async function seedLocation(
       text: 'Super',
     },
   });
+  // Cash taken out of the till (task 236).
+  const movement = await ctx.prisma.tillMovement.create({
+    data: {
+      locationId: org.locationId,
+      date: new Date(`${DATE}T00:00:00.000Z`),
+      kind: 'out',
+      amountGrosze: 1000,
+      note: 'Ręczniki',
+      createdByName: 'Owner',
+    },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -469,6 +484,7 @@ async function seedLocation(
     couponId: coupon.body.id,
     entryId: entry.id,
     reviewId: review.id,
+    movementId: movement.id,
   };
 }
 
@@ -511,6 +527,9 @@ async function snapshotOf(ids: Ids) {
     }),
     waitlist: await ctx.prisma.waitlistEntry.findMany({ where: { locationId: ids.locationId } }),
     reviews: await ctx.prisma.visitReview.findMany({ where: { locationId: ids.locationId } }),
+    tillMovements: await ctx.prisma.tillMovement.findMany({
+      where: { locationId: ids.locationId },
+    }),
   };
 }
 
@@ -554,7 +573,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|seriesId|serviceCategoryId|invitationId|photoId|rewardId|couponId|entryId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|seriesId|serviceCategoryId|invitationId|photoId|rewardId|couponId|entryId|movementId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },

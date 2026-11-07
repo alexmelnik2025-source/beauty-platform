@@ -2961,6 +2961,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/till-movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Wpłata / wypłata": note cash put into or taken out of the till on a day
+         * @description Task 236. Owners and managers only. kind "in" — put in (e.g. change for the day), "out" — taken out (e.g. towels, to the bank); note says why. The till should then hold the cash visits plus "in" minus "out". 409 DAY_NOT_STARTED for a day after today (salon time). Answers the till of that day.
+         */
+        post: operations["ReportsController_addTillMovement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/till-movements/{movementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a cash movement noted by mistake
+         * @description Task 236. Owners and managers only. Answers the till of its day.
+         */
+        delete: operations["ReportsController_removeTillMovement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -5337,7 +5377,7 @@ export interface components {
                 /** @description Days of the period whose till was counted, oldest first */
                 days: {
                     date: string;
-                    /** @description What the cash visits had brought when the till was counted, in hundredths of the salon currency */
+                    /** @description What should have been in the till when it was counted, in hundredths of the salon currency */
                     expectedCashGrosze: number;
                     /** @description The cash counted in the till, in hundredths of the salon currency */
                     countedCashGrosze: number;
@@ -5709,13 +5749,31 @@ export interface components {
         TillClose: {
             date: string;
             currency: string;
-            /** @description What the visits of the day paid in cash brought, now, in hundredths of the salon currency */
+            /** @description What should be in the till now: cash visits plus cash put in minus cash taken out, in hundredths of the salon currency */
             expectedCashGrosze: number;
+            /** @description What the visits of the day paid in cash brought, in hundredths of the salon currency */
+            visitsCashGrosze: number;
+            /** @description Task 236: cash put into the till that day, in hundredths of the salon currency */
+            cashInGrosze: number;
+            /** @description Task 236: cash taken out of the till that day, in hundredths of the salon currency */
+            cashOutGrosze: number;
+            /** @description Task 236: cash put in or taken out that day, oldest first */
+            movements: {
+                id: string;
+                /** @enum {string} */
+                kind: "in" | "out";
+                /** @description The amount put in or taken out, in hundredths of the salon currency */
+                amountGrosze: number;
+                /** @description Why (e.g. "change for the day", "towels") */
+                note: string;
+                createdByName: string;
+                createdAt: string;
+            }[];
             /** @description null — the till of that day was not counted yet */
             close: {
                 /** @description The cash counted in the till, in hundredths of the salon currency */
                 countedCashGrosze: number;
-                /** @description What the cash visits had brought when the till was counted, in hundredths of the salon currency */
+                /** @description What should have been in the till when it was counted, in hundredths of the salon currency */
                 expectedCashGrosze: number;
                 /** @description Counted minus expected: below zero — cash is missing, above — too much */
                 differenceGrosze: number;
@@ -11187,6 +11245,59 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TillClose"];
+                };
+            };
+        };
+    };
+    ReportsController_addTillMovement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    date: string;
+                    /** @enum {string} */
+                    kind: "in" | "out";
+                    amountGrosze: number;
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TillClose"];
+                };
+            };
+        };
+    };
+    ReportsController_removeTillMovement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                movementId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

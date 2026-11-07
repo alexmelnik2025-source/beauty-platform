@@ -1,12 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { AppException } from '../common/app-exception';
+import { AppException, notFound } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
 import type { Location } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, localToday, zonedToInstant } from '../scheduling/time';
 import type { TillCloseResponse } from './reports.responses';
-import type { CloseTillInput } from './reports.schemas';
+import type { CloseTillInput, TillMovementInput } from './reports.schemas';
 
 const dayNotStarted = (): AppException =>
   new AppException(
@@ -21,6 +21,10 @@ const dayNotStarted = (): AppException =>
  * should have brought and shows the difference. Counting again replaces the note. Only for
  * those who see the whole salon (owners and the location's managers); a specialist gets 403.
  * Tips are not part of it — the app does not know how a tip was paid.
+ *
+ * Task 236: cash put into the till (change for the day) or taken out of it (bought towels,
+ * taken to the bank) is noted with a reason; the till should then hold the cash visits plus
+ * what was put in minus what was taken out.
  */
 @Injectable()
 export class TillCloseService {
@@ -44,18 +48,14 @@ export class TillCloseService {
     if (input.date > localToday(Date.now(), location.timezone)) {
       throw dayNotStarted();
     }
-    const expected = await this.expectedCash(location, input.date);
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true },
-    });
+    const { expected } = await this.cash(location, input.date);
     const date = new Date(`${input.date}T00:00:00Z`);
     const data = {
       countedCashGrosze: input.countedCashGrosze,
       expectedCashGrosze: expected,
       note: input.note?.trim() || null,
       closedByUserId: userId,
-      closedByName: user?.name ?? '',
+      closedByName: await this.userName(userId),
       closedAt: new Date(),
     };
     await this.prisma.tillClose.upsert({
@@ -66,9 +66,57 @@ export class TillCloseService {
     return this.view(location, input.date);
   }
 
+  /** Task 236: notes cash put into ("in") or taken out of ("out") the till on a day. */
+  async addMovement(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    input: TillMovementInput,
+  ): Promise<TillCloseResponse> {
+    const location = await this.access.writable(m, locationId);
+    if (input.date > localToday(Date.now(), location.timezone)) {
+      throw dayNotStarted();
+    }
+    await this.prisma.tillMovement.create({
+      data: {
+        locationId,
+        date: new Date(`${input.date}T00:00:00Z`),
+        kind: input.kind,
+        amountGrosze: input.amountGrosze,
+        note: input.note,
+        createdByUserId: userId,
+        createdByName: await this.userName(userId),
+      },
+    });
+    return this.view(location, input.date);
+  }
+
+  /** Task 236: removes a cash movement noted by mistake; answers the till of its day. */
+  async removeMovement(
+    m: MembershipContext,
+    locationId: string,
+    movementId: string,
+  ): Promise<TillCloseResponse> {
+    const location = await this.access.writable(m, locationId);
+    const row = await this.prisma.tillMovement.findFirst({
+      where: { id: movementId, locationId },
+    });
+    if (!row) throw notFound('Till movement');
+    await this.prisma.tillMovement.delete({ where: { id: row.id } });
+    return this.view(location, row.date.toISOString().slice(0, 10));
+  }
+
+  private async userName(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    return user?.name ?? '';
+  }
+
   private async view(location: Location, date: string): Promise<TillCloseResponse> {
-    const [expected, row] = await Promise.all([
-      this.expectedCash(location, date),
+    const [cash, row] = await Promise.all([
+      this.cash(location, date),
       this.prisma.tillClose.findUnique({
         where: {
           locationId_date: { locationId: location.id, date: new Date(`${date}T00:00:00Z`) },
@@ -78,7 +126,18 @@ export class TillCloseService {
     return {
       date,
       currency: location.currency,
-      expectedCashGrosze: expected,
+      expectedCashGrosze: cash.expected,
+      visitsCashGrosze: cash.visits,
+      cashInGrosze: cash.cashIn,
+      cashOutGrosze: cash.cashOut,
+      movements: cash.movements.map((mv) => ({
+        id: mv.id,
+        kind: mv.kind,
+        amountGrosze: mv.amountGrosze,
+        note: mv.note,
+        createdByName: mv.createdByName,
+        createdAt: mv.createdAt.toISOString(),
+      })),
       close: row
         ? {
             countedCashGrosze: row.countedCashGrosze,
@@ -92,8 +151,27 @@ export class TillCloseService {
     };
   }
 
+  /**
+   * What should be in the till: the visits of the day that took place and were paid in cash
+   * (price minus discounts), plus cash put in, minus cash taken out (task 236).
+   */
+  private async cash(location: Location, date: string) {
+    const [visits, movements] = await Promise.all([
+      this.visitsCash(location, date),
+      this.prisma.tillMovement.findMany({
+        where: { locationId: location.id, date: new Date(`${date}T00:00:00Z`) },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+    ]);
+    const sum = (kind: 'in' | 'out') =>
+      movements.filter((mv) => mv.kind === kind).reduce((s, mv) => s + mv.amountGrosze, 0);
+    const cashIn = sum('in');
+    const cashOut = sum('out');
+    return { visits, cashIn, cashOut, expected: visits + cashIn - cashOut, movements };
+  }
+
   /** What the visits of the day that took place and were paid in cash brought (price minus discounts). */
-  private async expectedCash(location: Location, date: string): Promise<number> {
+  private async visitsCash(location: Location, date: string): Promise<number> {
     const rows = await this.prisma.appointment.findMany({
       where: {
         locationId: location.id,

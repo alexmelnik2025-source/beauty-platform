@@ -506,6 +506,7 @@ model Location {
   reviewSettings    ReviewSettings?
   reviews           VisitReview[]
   tillCloses        TillClose[]
+  tillMovements     TillMovement[]
 
   @@index([organizationId])
   @@map("location")
@@ -1434,4 +1435,34 @@ model TillClose {
 
   @@unique([locationId, date])
   @@map("till_close")
+}
+
+enum TillMovementKind {
+  /// Cash put into the till (e.g. change at the start of the day).
+  in
+  /// Cash taken out of the till (e.g. bought towels, paid out to the bank).
+  out
+
+  @@map("till_movement_kind")
+}
+
+/// Task 236: "Wpłata / wypłata" — cash put into or taken out of the till during a salon day,
+/// with a note why. The till close (task 232) expects the cash visits plus what was put in
+/// minus what was taken out. Only a note — no payment systems.
+model TillMovement {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  locationId      String           @map("location_id") @db.Uuid
+  /// Local date at the location.
+  date            DateTime         @db.Date
+  kind            TillMovementKind
+  amountGrosze    Int              @map("amount_grosze")
+  note            String
+  createdByUserId String?          @map("created_by_user_id") @db.Uuid
+  createdByName   String           @map("created_by_name")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, date])
+  @@map("till_movement")
 }

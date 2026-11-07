@@ -2933,6 +2933,23 @@ ul.wish-photos {
   gap: 4px 8px;
 }
 
+.till-moves {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.till-moves__kind {
+  display: inline-flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .till-close__missing {
   font-weight: 600;
   text-decoration: underline;

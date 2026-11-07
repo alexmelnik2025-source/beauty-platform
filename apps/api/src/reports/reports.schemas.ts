@@ -38,3 +38,13 @@ export const closeTillSchema = z.object({
 
 export type TillCloseQuery = z.infer<typeof tillCloseQuerySchema>;
 export type CloseTillInput = z.infer<typeof closeTillSchema>;
+
+/** Task 236: cash put into ("in") or taken out of ("out") the till, with the reason. */
+export const tillMovementSchema = z.object({
+  date: localDateSchema,
+  kind: z.enum(['in', 'out']),
+  amountGrosze: z.number().int().min(1).max(100_000_000),
+  note: z.string().trim().min(1).max(200),
+});
+
+export type TillMovementInput = z.infer<typeof tillMovementSchema>;
