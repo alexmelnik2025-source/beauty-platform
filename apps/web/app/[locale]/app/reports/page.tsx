@@ -106,6 +106,9 @@ export default function ReportsPage() {
 
   const money = (hundredths: number) =>
     formatPrice(hundredths, report?.location.currency ?? session.location.currency, tag);
+  /** Task 233: "+10,00 zł" / "−10,00 zł" / "0,00 zł". */
+  const signedMoney = (hundredths: number) =>
+    `${hundredths > 0 ? '+' : hundredths < 0 ? '−' : ''}${money(Math.abs(hundredths))}`;
   const totals = report?.totals;
   const notCancelled = totals
     ? totals.visits - totals.cancelledByClient - totals.cancelledBySalon
@@ -411,6 +414,41 @@ export default function ReportsPage() {
                   })}
                 </ol>
                 <p className="small muted">{t.reports.tipsHint}</p>
+              </section>
+            ) : null}
+
+            {report.tillCloses.days.length > 0 ? (
+              // Task 233: the days of the period whose till was counted ("Zamknij kasę", task 232).
+              <section className="section" data-testid="report-till-closes">
+                <h2>{t.reports.tillCloses}</h2>
+                <div className="report-table-wrap">
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">{t.reports.colDay}</th>
+                        <th scope="col">{t.reports.colCashVisits}</th>
+                        <th scope="col">{t.reports.colCounted}</th>
+                        <th scope="col">{t.reports.colDifference}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.tillCloses.days.map((d) => (
+                        <tr key={d.date}>
+                          <th scope="row">{formatDay(d.date, tag)}</th>
+                          <td>{money(d.expectedCashGrosze)}</td>
+                          <td>{money(d.countedCashGrosze)}</td>
+                          <td>{signedMoney(d.differenceGrosze)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="small" data-testid="report-till-total">
+                  {fill(t.reports.tillClosesTotal, {
+                    sum: signedMoney(report.tillCloses.differenceGrosze),
+                  })}
+                </p>
+                <p className="small muted">{t.reports.tillClosesHint}</p>
               </section>
             ) : null}
 

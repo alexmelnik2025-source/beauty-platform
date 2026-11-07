@@ -14,7 +14,7 @@ import { serveApp } from './mobile-app';
  * Task 232: "Zamknij kasę". A visit paid in cash (90 zł) yesterday; in "Kasa dnia" the owner
  * types the cash counted in the till — 80 zł — and sees "brakuje 10,00 zł" (screenshot 232),
  * then counts again and it matches (232-a). The business app shows the closed till under
- * "Kasa dnia" and counts it again (232-b).
+ * "Kasa dnia" and counts it again (232-b). Task 233: the report lists the counted day (233).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -162,6 +162,18 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await form.getByRole('button', { name: 'Zapisz' }).click();
   await expect(till.getByTestId('till-diff')).toHaveText('zgadza się');
   await shot(page, '232-a-till-close-matches');
+
+  // Task 233: "Zamknięcia kasy" in the report.
+  await page.getByRole('link', { name: 'Raporty' }).click();
+  await page.waitForURL(/\/pl\/app\/reports$/);
+  await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+  const closes = page.getByTestId('report-till-closes');
+  await closes.scrollIntoViewIfNeeded();
+  await expect(closes.getByRole('heading')).toHaveText('Zamknięcia kasy');
+  await expect(closes.getByRole('row')).toHaveCount(2);
+  await expect(closes.getByRole('row').nth(1)).toContainText(/90,00\s*zł.*90,00\s*zł/);
+  await expect(closes.getByTestId('report-till-total')).toHaveText(/Różnica razem: 0,00\s*zł/);
+  await shot(page, '233-report-till-closes');
   await context.close();
 
   // The business app (its web preview): the closed till under "Kasa dnia", counted again.

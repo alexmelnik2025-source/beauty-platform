@@ -88,6 +88,28 @@ export const salonReportSchema = responseSchema(
           .describe('Specialists with a tip in the period, most first'),
       })
       .describe('Task 229: "Napiwki" — noted by the staff; not part of the revenue'),
+    tillCloses: z
+      .strictObject({
+        days: z
+          .array(
+            z.strictObject({
+              date: z.string(),
+              expectedCashGrosze: money(
+                'What the cash visits had brought when the till was counted',
+              ),
+              countedCashGrosze: money('The cash counted in the till'),
+              differenceGrosze: z.number().int().describe('Counted minus expected'),
+            }),
+          )
+          .describe('Days of the period whose till was counted, oldest first'),
+        differenceGrosze: z
+          .number()
+          .int()
+          .describe('All the differences of the period added up (below zero — cash missing)'),
+      })
+      .describe(
+        'Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist\'s own report',
+      ),
     weekdays: z
       .array(
         z.strictObject({

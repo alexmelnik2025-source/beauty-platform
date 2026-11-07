@@ -1345,6 +1345,14 @@ export const pl = {
     tipsHint:
       'Napiwki zapisane przy wizytach, które się odbyły. Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
     tipsVisits: 'wizyty z napiwkiem: {n}',
+    tillCloses: 'Zamknięcia kasy',
+    colDay: 'Dzień',
+    colCashVisits: 'Za wizyty gotówką',
+    colCounted: 'Policzono',
+    colDifference: 'Różnica',
+    tillClosesTotal: 'Różnica razem: {sum}',
+    tillClosesHint:
+      'Dni, w których zamknięto kasę w „Kasa dnia”: gotówka policzona w kasie i to, co przyniosły wizyty opłacone gotówką. Minus — brakowało gotówki.',
     paymentsUnknown: 'Nie podano',
     paymentsHint:
       'Opłacone wizyty według sposobu płatności zaznaczonego przy „Opłacono”. „Nie podano” — wizyty bez zaznaczonego sposobu.',

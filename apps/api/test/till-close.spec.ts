@@ -191,4 +191,50 @@ describe('till close (task 232)', () => {
       .expect((r) => expect([403, 404]).toContain(r.status));
     expect((await till().expect(200)).body.close.countedCashGrosze).toBe(100);
   });
+
+  it("the report lists the counted days of the period; not in a specialist's own report (task 233)", async () => {
+    await walkIn(at(10), { paid: true, paymentMethod: 'cash' }).expect(201);
+    await close({ date: DAY, countedCashGrosze: 7000 }).expect(200);
+    const earlier = addDays(DAY, -2);
+    await close({ date: earlier, countedCashGrosze: 500 }).expect(200);
+
+    const report = (
+      await ctx
+        .http()
+        .get(`${base}/reports`)
+        .query({ from: addDays(DAY, -6), to: DAY })
+        .set(owner.auth)
+        .expect(200)
+    ).body;
+    const parsed = registeredResponseSchema('SalonReport').safeParse(report);
+    expect(parsed.error?.issues ?? []).toEqual([]);
+    expect(report.tillCloses).toEqual({
+      days: [
+        { date: earlier, expectedCashGrosze: 0, countedCashGrosze: 500, differenceGrosze: 500 },
+        { date: DAY, expectedCashGrosze: 8000, countedCashGrosze: 7000, differenceGrosze: -1000 },
+      ],
+      differenceGrosze: -500,
+    });
+    // Outside the period — not listed.
+    const before = (
+      await ctx
+        .http()
+        .get(`${base}/reports`)
+        .query({ from: addDays(DAY, -30), to: addDays(DAY, -3) })
+        .set(owner.auth)
+        .expect(200)
+    ).body;
+    expect(before.tillCloses).toEqual({ days: [], differenceGrosze: 0 });
+
+    const own = (
+      await ctx
+        .http()
+        .get(`${base}/reports`)
+        .query({ from: addDays(DAY, -6), to: DAY })
+        .set(kasia.auth)
+        .expect(200)
+    ).body;
+    expect(own.scope).toBe('own');
+    expect(own.tillCloses).toEqual({ days: [], differenceGrosze: 0 });
+  });
 });

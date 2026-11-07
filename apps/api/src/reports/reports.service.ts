@@ -300,6 +300,7 @@ export class ReportsService {
         ),
       },
       weekdays,
+      tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
       ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
@@ -670,6 +671,29 @@ export class ReportsService {
    * Who sees what: owners and managers the whole location; a specialist only their own visits,
    * and only with "viewOwnEarnings". The period in the salon's own dates.
    */
+  /** Task 233: the days of the period whose till was counted (task 232) — not in an own report. */
+  private async tillCloses(
+    locationId: string,
+    own: boolean,
+    query: ReportQuery,
+  ): Promise<SalonReport['tillCloses']> {
+    if (own) return { days: [], differenceGrosze: 0 };
+    const rows = await this.prisma.tillClose.findMany({
+      where: {
+        locationId,
+        date: { gte: new Date(`${query.from}T00:00:00Z`), lte: new Date(`${query.to}T00:00:00Z`) },
+      },
+      orderBy: { date: 'asc' },
+    });
+    const days = rows.map((r) => ({
+      date: r.date.toISOString().slice(0, 10),
+      expectedCashGrosze: r.expectedCashGrosze,
+      countedCashGrosze: r.countedCashGrosze,
+      differenceGrosze: r.countedCashGrosze - r.expectedCashGrosze,
+    }));
+    return { days, differenceGrosze: days.reduce((sum, d) => sum + d.differenceGrosze, 0) };
+  }
+
   private async scope(
     m: MembershipContext,
     userId: string,

@@ -1349,6 +1349,14 @@ export const en: Dict = {
     tipsHint:
       'Tips noted on visits that took place. They are not part of the salon’s revenue — the salon decides how to share them.',
     tipsVisits: 'visits with a tip: {n}',
+    tillCloses: 'Till closes',
+    colDay: 'Day',
+    colCashVisits: 'Cash visits',
+    colCounted: 'Counted',
+    colDifference: 'Difference',
+    tillClosesTotal: 'Total difference: {sum}',
+    tillClosesHint:
+      'Days whose till was closed in "Till": the cash counted and what the visits paid in cash brought. Minus — cash was missing.',
     paymentsUnknown: 'Not given',
     paymentsHint:
       'Paid visits by the payment method marked with "Paid". "Not given" — visits without a method.',

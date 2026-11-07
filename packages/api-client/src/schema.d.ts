@@ -5332,6 +5332,21 @@ export interface components {
                     visits: number;
                 }[];
             };
+            /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
+            tillCloses: {
+                /** @description Days of the period whose till was counted, oldest first */
+                days: {
+                    date: string;
+                    /** @description What the cash visits had brought when the till was counted, in hundredths of the salon currency */
+                    expectedCashGrosze: number;
+                    /** @description The cash counted in the till, in hundredths of the salon currency */
+                    countedCashGrosze: number;
+                    /** @description Counted minus expected */
+                    differenceGrosze: number;
+                }[];
+                /** @description All the differences of the period added up (below zero — cash missing) */
+                differenceGrosze: number;
+            };
             /** @description Monday to Sunday: which days of the week are busy and which are weak */
             weekdays: {
                 /** @description 1 = Monday … 7 = Sunday */

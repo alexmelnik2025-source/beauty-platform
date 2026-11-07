@@ -20803,6 +20803,60 @@
             "additionalProperties": false,
             "description": "Task 229: \"Napiwki\" — noted by the staff; not part of the revenue"
           },
+          "tillCloses": {
+            "type": "object",
+            "properties": {
+              "days": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "expectedCashGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "What the cash visits had brought when the till was counted, in hundredths of the salon currency"
+                    },
+                    "countedCashGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "The cash counted in the till, in hundredths of the salon currency"
+                    },
+                    "differenceGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Counted minus expected"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "expectedCashGrosze",
+                    "countedCashGrosze",
+                    "differenceGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Days of the period whose till was counted, oldest first"
+              },
+              "differenceGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "All the differences of the period added up (below zero — cash missing)"
+              }
+            },
+            "required": [
+              "days",
+              "differenceGrosze"
+            ],
+            "additionalProperties": false,
+            "description": "Task 233: \"Zamknięcia kasy\" (task 232) in the period; empty in a specialist's own report"
+          },
           "weekdays": {
             "type": "array",
             "items": {
@@ -21179,6 +21233,7 @@
           "days",
           "payments",
           "tips",
+          "tillCloses",
           "weekdays",
           "previous",
           "occupancy",
