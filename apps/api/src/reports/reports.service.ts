@@ -306,6 +306,7 @@ export class ReportsService {
       ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
       rebooking: await this.rebooking(locationId, lastVisit),
       topClients: own ? [] : await this.topClients(byClient),
+      marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
     };
   }
@@ -363,6 +364,52 @@ export class ReportsService {
             b.percent - a.percent ||
             a.displayName.localeCompare(b.displayName),
         ),
+    };
+  }
+
+  /**
+   * Task 244: "Zgody na wiadomości" — of the clients who came in the period, how many may get the
+   * salon's messages now (their latest marketing answer is "yes"), how many said "yes" for the
+   * first time in the period, and how many said "no" later (unsubscribed). Counts only, no names;
+   * not in a specialist's own report — consents belong with the client's contacts.
+   */
+  private async marketing(
+    clients: Set<string>,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['marketing']> {
+    if (clients.size === 0) {
+      return { clients: 0, consented: 0, percent: 0, newInPeriod: 0, unsubscribed: 0 };
+    }
+    const records = await this.prisma.consentRecord.findMany({
+      where: { customerId: { in: [...clients] }, type: 'marketing' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { customerId: true, granted: true, createdAt: true },
+    });
+    const byClient = new Map<string, { firstYes: Date | null; latest: boolean }>();
+    for (const r of records) {
+      const row = byClient.get(r.customerId) ?? { firstYes: null, latest: false };
+      if (r.granted && !row.firstYes) row.firstYes = r.createdAt;
+      row.latest = r.granted;
+      byClient.set(r.customerId, row);
+    }
+    let consented = 0;
+    let newInPeriod = 0;
+    let unsubscribed = 0;
+    for (const row of byClient.values()) {
+      if (!row.latest) {
+        if (row.firstYes) unsubscribed++;
+        continue;
+      }
+      consented++;
+      if (row.firstYes && row.firstYes >= rangeStart && row.firstYes < rangeEnd) newInPeriod++;
+    }
+    return {
+      clients: clients.size,
+      consented,
+      percent: Math.round((consented / clients.size) * 100),
+      newInPeriod,
+      unsubscribed,
     };
   }
 

@@ -1359,6 +1359,12 @@ export const pl = {
     rebookingCount: 'zapisanych: {rebooked} z {clients}',
     rebookingHint:
       'Ilu klientów, którzy przyszli w tym okresie, ma już kolejną wizytę po ostatniej (u dowolnego specjalisty). Przy specjaliście — klienci, których ostatnia wizyta była u niego.',
+    marketing: 'Zgody na wiadomości',
+    marketingCount: 'zgoda: {consented} z {clients}',
+    marketingNew: 'nowe w tym okresie: {n}',
+    marketingUnsubscribed: 'wypisali się: {n}',
+    marketingHint:
+      'Ilu klientów, którzy przyszli w tym okresie, zgodziło się na wiadomości od salonu (ostatnia odpowiedź — „tak”). Nowe — pierwsza zgoda w tym okresie. Klient zaznacza zgodę przy rezerwacji, a wypisuje się linkiem z wiadomości.',
     topClients: 'Najlepsi klienci',
     colClient: 'Klient',
     topClientsHint:

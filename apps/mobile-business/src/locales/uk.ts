@@ -445,6 +445,12 @@ export const uk: Dictionary = {
     rebookingStaff: '{n}% · {rebooked}/{clients}',
     rebookingHint:
       'Клієнти цього періоду, які вже записані на наступний візит (до будь-якого майстра).',
+    marketing: 'Згода на повідомлення: {n}%',
+    marketingCount: 'згода: {consented} з {clients}',
+    marketingNew: 'нові за цей період: {n}',
+    marketingUnsubscribed: 'відписалися: {n}',
+    marketingHint:
+      'Клієнти цього періоду, які погодилися на повідомлення від салону (позначають це під час запису).',
     topClients: 'Найкращі клієнти',
     topClientVisits: 'візити: {n}',
     topClientsHint:

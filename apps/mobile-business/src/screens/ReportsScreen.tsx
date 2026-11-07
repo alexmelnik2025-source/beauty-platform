@@ -518,6 +518,37 @@ export function ReportsScreen(props: {
               <Text style={styles.small}>{r.rebookingHint}</Text>
             </View>
           ) : null}
+          {shown.scope !== 'own' && shown.marketing.clients > 0 ? (
+            <View style={{ gap: 6 }} testID="report-marketing">
+              <Text style={styles.section}>
+                {fill(r.marketing, { n: String(shown.marketing.percent) })}
+              </Text>
+              <View
+                style={styles.bar}
+                accessibilityRole="progressbar"
+                accessibilityLabel={fill(r.marketing, { n: String(shown.marketing.percent) })}
+                accessibilityValue={{ min: 0, max: 100, now: shown.marketing.percent }}
+              >
+                <View
+                  style={[styles.barFill, { width: `${Math.min(100, shown.marketing.percent)}%` }]}
+                />
+              </View>
+              <Text style={styles.small}>
+                {fill(r.marketingCount, {
+                  consented: String(shown.marketing.consented),
+                  clients: String(shown.marketing.clients),
+                })}
+                {' · '}
+                {fill(r.marketingNew, { n: String(shown.marketing.newInPeriod) })}
+                {shown.marketing.unsubscribed > 0
+                  ? ` · ${fill(r.marketingUnsubscribed, {
+                      n: String(shown.marketing.unsubscribed),
+                    })}`
+                  : null}
+              </Text>
+              <Text style={styles.small}>{r.marketingHint}</Text>
+            </View>
+          ) : null}
         </>
       ) : !error ? (
         <Text style={styles.muted}>{t.loading}</Text>

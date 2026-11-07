@@ -227,6 +227,26 @@ export const salonReportSchema = responseSchema(
         }),
       )
       .describe('Task 216: "Godziny szczytu" — when visits start, only hours with visits'),
+    marketing: z
+      .strictObject({
+        clients: z.number().int().describe('Different clients with a visit that took place'),
+        consented: z
+          .number()
+          .int()
+          .describe('Of them, clients whose latest answer about the salon messages is "yes"'),
+        percent: z.number().int().describe('consented of clients, 0–100'),
+        newInPeriod: z
+          .number()
+          .int()
+          .describe('Of the consented, clients who said "yes" for the first time in the period'),
+        unsubscribed: z
+          .number()
+          .int()
+          .describe('Clients who once said "yes" and later "no" (for example, the email link)'),
+      })
+      .describe(
+        'Task 244: "Zgody na wiadomości" — counts only; all zeros in a specialist\'s own report',
+      ),
   }),
 );
 

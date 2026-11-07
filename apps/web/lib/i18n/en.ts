@@ -1362,6 +1362,12 @@ export const en: Dict = {
     rebookingCount: 'booked: {rebooked} of {clients}',
     rebookingHint:
       'How many clients who came in this period already have another visit after their last one (with any specialist). Per specialist — clients whose last visit was with them.',
+    marketing: 'Consent to messages',
+    marketingCount: 'agreed: {consented} of {clients}',
+    marketingNew: 'new in this period: {n}',
+    marketingUnsubscribed: 'unsubscribed: {n}',
+    marketingHint:
+      'How many clients who came in this period agreed to get messages from the salon (latest answer is “yes”). New — first consent in this period. Clients tick the box when booking and unsubscribe with the link in a message.',
     topClients: 'Top clients',
     colClient: 'Client',
     topClientsHint:

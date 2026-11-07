@@ -248,6 +248,15 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     }),
   );
 
+  // Task 244: Jan agreed to the salon's messages (as the booking checkbox does); Piotr did not.
+  execFileSync('psql', [
+    (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `INSERT INTO consent_record (id, customer_id, type, version, granted) SELECT gen_random_uuid(), id, 'marketing', 'e2e', true FROM customer WHERE email = 'jan-${run}@example.com'`,
+  ]);
+
   const context = await browser.newContext({ viewport: DESKTOP, locale: 'pl-PL' });
   const page = await context.newPage();
   await signIn(page, OWNER);
@@ -318,6 +327,14 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   );
   await expect(rebooking).not.toContainText('Jan');
   await shot(page, '74i-owner-reports-rebooking');
+  // "Zgody na wiadomości": Jan agreed, Piotr did not — 1 of 2, new in the period (task 244).
+  const marketing = page.getByTestId('report-marketing');
+  await marketing.scrollIntoViewIfNeeded();
+  await expect(marketing.getByRole('heading', { name: 'Zgody na wiadomości: 50%' })).toBeVisible();
+  await expect(marketing.getByRole('meter')).toHaveAttribute('aria-valuenow', '50');
+  await expect(marketing).toContainText('zgoda: 1 z 2 · nowe w tym okresie: 1');
+  await expect(marketing).not.toContainText('Jan');
+  await shot(page, '244-owner-reports-marketing');
   // "Najlepsi klienci": Jan 150 zł (2 visits), then Piotr 90 zł; Adam did not come (task 215).
   const top = page.getByTestId('report-top-clients');
   await top.scrollIntoViewIfNeeded();
@@ -427,6 +444,12 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByTestId('report-rebooking')).toContainText('100% · 1/1');
     await expect(app.getByTestId('report-rebooking')).toContainText('0% · 0/1');
     await shot(app, '75i-business-app-reports-rebooking');
+    // "Zgody na wiadomości" in the app too (task 244).
+    await app.getByText('Zgody na wiadomości: 50%').scrollIntoViewIfNeeded();
+    await expect(app.getByTestId('report-marketing')).toContainText(
+      'zgoda: 1 z 2 · nowe w tym okresie: 1',
+    );
+    await shot(app, '244-a-business-app-reports-marketing');
     // "Najlepsi klienci" in the app too (task 215).
     await app.getByText('Najlepsi klienci').scrollIntoViewIfNeeded();
     await expect(app.getByTestId('report-top-clients')).toContainText('Jan');

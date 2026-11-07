@@ -303,6 +303,7 @@ describe('salon report', () => {
     expect(res.body.staff).toEqual([]);
     expect(res.body.days).toHaveLength(11);
     expect(res.body.tips).toEqual({ totalGrosze: 0, visits: 0, staff: [] });
+    expect(res.body.marketing).toMatchObject({ clients: 0, consented: 0, percent: 0 });
   });
 
   it('a specialist sees only their own results, and only with the permission', async () => {
@@ -362,6 +363,57 @@ describe('salon report', () => {
       ],
     });
     expect(JSON.stringify(res.body.rebooking)).not.toMatch(/Jan|@/);
+  });
+
+  it('"Zgody na wiadomości": consents of the clients who came, counts only (task 244)', async () => {
+    await visit({ date: addDays(today, -3), status: 'completed' }); // Jan
+    await visit({ date: addDays(today, -2), email: 'ewa@example.com', status: 'completed' });
+    await visit({ date: addDays(today, -2), email: 'adam@example.com', status: 'completed' });
+    await visit({ date: addDays(today, -1), email: 'ola@example.com', status: 'no_show' });
+    const id = async (email: string) =>
+      (await ctx.prisma.customer.findFirstOrThrow({ where: { organizationId: orgId, email } })).id;
+    const [jan, ewa, adam, ola] = await Promise.all(
+      ['jan', 'ewa', 'adam', 'ola'].map((n) => id(`${n}@example.com`)),
+    );
+    const longAgo = new Date(zonedToInstant(addDays(today, -60), 12 * 60, TZ));
+    const recently = new Date(zonedToInstant(addDays(today, -2), 12 * 60, TZ));
+    await ctx.prisma.consentRecord.createMany({
+      data: [
+        // Jan said yes long ago and again at a booking in the period: consented, not new.
+        { customerId: jan, type: 'marketing', version: 't', granted: true, createdAt: longAgo },
+        { customerId: jan, type: 'marketing', version: 't', granted: true, createdAt: recently },
+        // Ewa said yes for the first time in the period.
+        { customerId: ewa, type: 'marketing', version: 't', granted: true, createdAt: recently },
+        // Adam said yes and then unsubscribed.
+        { customerId: adam, type: 'marketing', version: 't', granted: true, createdAt: longAgo },
+        { customerId: adam, type: 'marketing', version: 't', granted: false, createdAt: recently },
+        // Ola did not come: she is not counted.
+        { customerId: ola, type: 'marketing', version: 't', granted: true, createdAt: recently },
+      ],
+    });
+
+    const res = await report().expect(200);
+    expect(res.body.marketing).toEqual({
+      clients: 3,
+      consented: 2,
+      percent: 67,
+      newInPeriod: 1,
+      unsubscribed: 1,
+    });
+
+    // A specialist's own report: zeros — consents go with the client's contacts.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.marketing).toEqual({
+      clients: 0,
+      consented: 0,
+      percent: 0,
+      newInPeriod: 0,
+      unsubscribed: 0,
+    });
   });
 
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {

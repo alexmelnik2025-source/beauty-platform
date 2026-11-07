@@ -446,6 +446,12 @@ export const en: Dictionary = {
     rebookingCount: 'booked: {rebooked} of {clients}',
     rebookingStaff: '{n}% · {rebooked}/{clients}',
     rebookingHint: 'Clients of this period who already have another visit (with any specialist).',
+    marketing: 'Consent to messages: {n}%',
+    marketingCount: 'agreed: {consented} of {clients}',
+    marketingNew: 'new in this period: {n}',
+    marketingUnsubscribed: 'unsubscribed: {n}',
+    marketingHint:
+      'Clients of this period who agreed to messages from the salon (they tick it when booking).',
     topClients: 'Top clients',
     topClientVisits: 'visits: {n}',
     topClientsHint:

@@ -21486,6 +21486,50 @@
               "additionalProperties": false
             },
             "description": "Task 216: \"Godziny szczytu\" — when visits start, only hours with visits"
+          },
+          "marketing": {
+            "type": "object",
+            "properties": {
+              "clients": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Different clients with a visit that took place"
+              },
+              "consented": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Of them, clients whose latest answer about the salon messages is \"yes\""
+              },
+              "percent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "consented of clients, 0–100"
+              },
+              "newInPeriod": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Of the consented, clients who said \"yes\" for the first time in the period"
+              },
+              "unsubscribed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Clients who once said \"yes\" and later \"no\" (for example, the email link)"
+              }
+            },
+            "required": [
+              "clients",
+              "consented",
+              "percent",
+              "newInPeriod",
+              "unsubscribed"
+            ],
+            "additionalProperties": false,
+            "description": "Task 244: \"Zgody na wiadomości\" — counts only; all zeros in a specialist's own report"
           }
         },
         "required": [
@@ -21506,7 +21550,8 @@
           "ratings",
           "rebooking",
           "topClients",
-          "busyHours"
+          "busyHours",
+          "marketing"
         ],
         "additionalProperties": false
       },

@@ -5520,6 +5520,19 @@ export interface components {
                 /** @description Visits that were not cancelled */
                 visits: number;
             }[];
+            /** @description Task 244: "Zgody na wiadomości" — counts only; all zeros in a specialist's own report */
+            marketing: {
+                /** @description Different clients with a visit that took place */
+                clients: number;
+                /** @description Of them, clients whose latest answer about the salon messages is "yes" */
+                consented: number;
+                /** @description consented of clients, 0–100 */
+                percent: number;
+                /** @description Of the consented, clients who said "yes" for the first time in the period */
+                newInPeriod: number;
+                /** @description Clients who once said "yes" and later "no" (for example, the email link) */
+                unsubscribed: number;
+            };
         };
         SalonReview: {
             id: string;

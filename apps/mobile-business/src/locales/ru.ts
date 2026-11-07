@@ -446,6 +446,12 @@ export const ru: Dictionary = {
     rebookingStaff: '{n}% · {rebooked}/{clients}',
     rebookingHint:
       'Клиенты этого периода, которые уже записаны на следующий визит (к любому мастеру).',
+    marketing: 'Согласие на сообщения: {n}%',
+    marketingCount: 'согласие: {consented} из {clients}',
+    marketingNew: 'новые за период: {n}',
+    marketingUnsubscribed: 'отписались: {n}',
+    marketingHint:
+      'Клиенты этого периода, которые согласились на сообщения от салона (отмечают это при записи).',
     topClients: 'Лучшие клиенты',
     topClientVisits: 'визиты: {n}',
     topClientsHint:

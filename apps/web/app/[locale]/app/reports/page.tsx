@@ -575,6 +575,38 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report && report.scope !== 'own' && report.marketing.clients > 0 ? (
+              <section className="section" data-testid="report-marketing">
+                <h2>
+                  {t.reports.marketing}: {report.marketing.percent}%
+                </h2>
+                <span
+                  className="report-bar"
+                  role="meter"
+                  aria-label={t.reports.marketing}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={report.marketing.percent}
+                >
+                  <span style={{ width: `${Math.min(100, report.marketing.percent)}%` }} />
+                </span>
+                <p className="small muted">
+                  {fill(t.reports.marketingCount, {
+                    consented: String(report.marketing.consented),
+                    clients: String(report.marketing.clients),
+                  })}
+                  {' · '}
+                  {fill(t.reports.marketingNew, { n: String(report.marketing.newInPeriod) })}
+                  {report.marketing.unsubscribed > 0
+                    ? ` · ${fill(t.reports.marketingUnsubscribed, {
+                        n: String(report.marketing.unsubscribed),
+                      })}`
+                    : null}
+                </p>
+                <p className="small muted">{t.reports.marketingHint}</p>
+              </section>
+            ) : null}
+
             {totals.visits === 0 ? (
               <p className="note">{t.reports.empty}</p>
             ) : (
