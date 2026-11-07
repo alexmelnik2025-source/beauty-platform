@@ -240,7 +240,7 @@ export class CustomersService {
     where: Prisma.AppointmentWhereInput,
     withMoney: boolean,
   ): Promise<CustomerDetailResponse['summary']> {
-    const [byStatus, upcoming, dates, paid] = await Promise.all([
+    const [byStatus, upcoming, dates, paid, starts] = await Promise.all([
       this.prisma.appointment.groupBy({
         by: ['status', 'cancelledBy'],
         where,
@@ -261,6 +261,12 @@ export class CustomersService {
             _sum: { priceGrosze: true, discountGrosze: true },
           })
         : null,
+      this.prisma.appointment.findMany({
+        where: { AND: [where, { status: 'completed' }] },
+        orderBy: { startAt: 'asc' },
+        select: { startAt: true },
+        take: 500,
+      }),
     ]);
     const count = (match: (row: (typeof byStatus)[number]) => boolean): number =>
       byStatus.filter(match).reduce((sum, row) => sum + row._count._all, 0);
@@ -289,6 +295,7 @@ export class CustomersService {
       upcoming,
       firstVisitAt: dates._min.startAt?.toISOString() ?? null,
       lastVisitAt: dates._max.startAt?.toISOString() ?? null,
+      rhythmDays: rhythm(starts.map((a) => a.startAt)),
       paid: money,
     };
   }
@@ -369,6 +376,7 @@ export class CustomersService {
         upcoming: 0,
         firstVisitAt: null,
         lastVisitAt: null,
+        rhythmDays: null,
         paid: m.role === 'staff' ? null : [],
       },
     };
@@ -522,4 +530,20 @@ export function birthdayWindow(today: string, days: number): Map<string, number>
     if (mmdd === '02-28' && !leap) window.set('02-29', i);
   }
   return window;
+}
+
+/**
+ * Task 250: the typical (median) days between visits in a row that took place on different days;
+ * null with fewer than two such gaps (three visits).
+ */
+export function rhythm(starts: Date[]): number | null {
+  const gaps: number[] = [];
+  for (let i = 1; i < starts.length; i++) {
+    const days = Math.round((starts[i]!.getTime() - starts[i - 1]!.getTime()) / 86_400_000);
+    if (days > 0) gaps.push(days);
+  }
+  if (gaps.length < 2) return null;
+  gaps.sort((a, b) => a - b);
+  const mid = Math.floor(gaps.length / 2);
+  return Math.round(gaps.length % 2 === 1 ? gaps[mid]! : (gaps[mid - 1]! + gaps[mid]!) / 2);
 }

@@ -235,6 +235,7 @@ export const uk: Dictionary = {
     yes: 'так',
     no: 'ні',
     completed: 'Відбулися візити: {count}',
+    rhythm: 'зазвичай повертається кожні {days} дн.',
     noShows: 'Неявки: {count}',
     cancelledByClient: 'Скасував(ла) сам(а): {count}',
     paid: 'Оплачено: {amount}',

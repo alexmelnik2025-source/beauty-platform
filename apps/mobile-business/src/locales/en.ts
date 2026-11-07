@@ -237,6 +237,7 @@ export const en: Dictionary = {
     yes: 'yes',
     no: 'no',
     completed: 'Completed visits: {count}',
+    rhythm: 'usually comes back every {days} days',
     noShows: 'No-shows: {count}',
     cancelledByClient: 'Cancelled by the client: {count}',
     paid: 'Paid: {amount}',

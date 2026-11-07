@@ -204,6 +204,13 @@ export const customerDetailSchema = responseSchema(
         upcoming: z.number().int().describe('Confirmed visits still ahead'),
         firstVisitAt: z.string().nullable().describe('Start of the first visit that took place'),
         lastVisitAt: z.string().nullable().describe('Start of the latest visit that took place'),
+        rhythmDays: z
+          .number()
+          .int()
+          .nullable()
+          .describe(
+            'Task 250: the client usually comes back every so many days (the median between visits that took place on different days); null with fewer than 3 such visits',
+          ),
         paid: z
           .array(
             z.strictObject({

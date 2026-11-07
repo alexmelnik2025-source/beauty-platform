@@ -4186,6 +4186,8 @@ export interface components {
                 firstVisitAt: string | null;
                 /** @description Start of the latest visit that took place */
                 lastVisitAt: string | null;
+                /** @description Task 250: the client usually comes back every so many days (the median between visits that took place on different days); null with fewer than 3 such visits */
+                rhythmDays: number | null;
                 /** @description One row per currency of the salons; null for staff members */
                 paid: {
                     /** @description ISO 4217 code of the salon */

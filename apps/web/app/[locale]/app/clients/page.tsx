@@ -725,6 +725,20 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
     [t.clients.summary.firstVisit, day(summary.firstVisitAt)],
     [t.clients.summary.lastVisit, day(summary.lastVisitAt)],
   ];
+  // Task 250: "usually every N days" and when the client may come next.
+  if (summary.rhythmDays && summary.lastVisitAt) {
+    tiles.push([
+      t.clients.summary.rhythm,
+      fill(t.clients.summary.rhythmValue, {
+        days: String(summary.rhythmDays),
+        date: day(
+          new Date(
+            new Date(summary.lastVisitAt).getTime() + summary.rhythmDays * 86_400_000,
+          ).toISOString(),
+        ),
+      }),
+    ]);
+  }
   if (summary.paid) {
     tiles.push([
       t.clients.summary.paid,

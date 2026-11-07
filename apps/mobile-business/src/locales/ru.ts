@@ -236,6 +236,7 @@ export const ru: Dictionary = {
     yes: 'да',
     no: 'нет',
     completed: 'Состоявшихся визитов: {count}',
+    rhythm: 'обычно возвращается каждые {days} дн.',
     noShows: 'Неявки: {count}',
     cancelledByClient: 'Отменил(а) сам(а): {count}',
     paid: 'Оплачено: {amount}',

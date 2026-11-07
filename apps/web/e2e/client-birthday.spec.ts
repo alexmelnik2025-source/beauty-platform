@@ -16,6 +16,7 @@ import { serveApp } from './mobile-app';
  * business app shows the same list and the birthday in the card (240-b).
  * Task 245: "Zgoda na wiadomości" — only clients who agreed to the salon messages (245, 245-a).
  * Task 248: "Nowi (30 dni)" — clients whose first visit was in the last 30 days (248, 248-a).
+ * Task 250: "Wraca zwykle co N dni" in the client card (250, 250-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -230,6 +231,33 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
       },
     }),
   );
+  // Task 250: Jan also came 10 and 20 days ago — he usually comes back every 10 days.
+  const sql250 = (statement: string) =>
+    execFileSync('psql', [
+      (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-c',
+      statement,
+    ]);
+  for (const daysAgo of [10, 20]) {
+    const earlier = await json<{ id: string }>(
+      await request.post(`${salon}/appointments`, {
+        headers: owner,
+        data: {
+          serviceId: service.id,
+          staffId: staff.id,
+          start: new Date(firstVisit.getTime() - (daysAgo / 10) * 60 * 60_000).toISOString(),
+          customerId: jan!.id,
+          alreadyHappened: true,
+          allowOutsideHours: true,
+        },
+      }),
+    );
+    sql250(
+      `UPDATE appointment SET start_at = start_at - interval '${daysAgo} days' + interval '${daysAgo / 10} hours', end_at = end_at - interval '${daysAgo} days' + interval '${daysAgo / 10} hours', blocked_until = blocked_until - interval '${daysAgo} days' + interval '${daysAgo / 10} hours' WHERE id = '${earlier.id}'`,
+    );
+  }
   await page.goto('/pl/app/clients');
   await expect(rows).toHaveCount(5);
   const newcomers = page.getByRole('button', { name: /Nowi \(30 dni\)/ });
@@ -238,6 +266,13 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText('Jan Kowalski');
   await shot(page, '248-clients-newcomers');
+  await rows.nth(0).click();
+  const summary = page.getByRole('dialog').getByTestId('client-summary');
+  await expect(summary).toContainText('Wraca zwykle');
+  await expect(summary).toContainText('co 10 dni · następna ok.');
+  await summary.scrollIntoViewIfNeeded();
+  await shot(page, '250-client-rhythm');
+  await page.keyboard.press('Escape');
   await context.close();
 
   // Business app (task 240b).
@@ -279,6 +314,12 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards).toHaveCount(1);
     await expect(cards.nth(0)).toContainText('Jan Kowalski');
     await shot(app, '248-a-business-app-newcomers');
+    // Task 250: Jan's card says he usually comes back every 10 days.
+    await cards.nth(0).click();
+    await expect(app.getByText('wraca zwykle co 10 dni')).toBeVisible();
+    await shot(app, '250-a-business-app-client-rhythm');
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await expect(cards).toHaveCount(1);
     await app.getByRole('switch', { name: /Nowi \(30 dni\)/ }).click();
     await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();

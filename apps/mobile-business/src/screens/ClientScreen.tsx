@@ -236,6 +236,11 @@ export function ClientScreen(props: {
           })}
         </Text>
         {/* Task 98: the server's summary over every visit the user may see. */}
+        {client.summary.rhythmDays ? (
+          <Text style={styles.chip}>
+            {fill(c.rhythm, { days: String(client.summary.rhythmDays) })}
+          </Text>
+        ) : null}
         {client.summary.noShow > 0 ? (
           <Text style={[styles.chip, styles.chipBad]}>
             {fill(c.noShows, { count: String(client.summary.noShow) })}

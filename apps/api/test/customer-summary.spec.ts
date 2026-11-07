@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
+import { rhythm } from '../src/booking/customers.service';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -164,6 +165,7 @@ describe('client summary on the card (task 98)', () => {
       upcoming: 0,
       firstVisitAt: null,
       lastVisitAt: null,
+      rhythmDays: null,
       paid: [],
     });
   });
@@ -208,6 +210,8 @@ describe('client summary on the card (task 98)', () => {
       upcoming: 1,
       firstVisitAt: firstStart.toISOString(),
       lastVisitAt: latestStart.toISOString(),
+      // Task 250: 20 and 8 days between the three visits.
+      rhythmDays: 14,
       paid: [{ currency: 'PLN', amountGrosze: 6000 + 8000 }],
     });
     // The manager of the salon sees the same, money included.
@@ -270,6 +274,18 @@ describe('client summary on the card (task 98)', () => {
       { currency: 'PLN', amountGrosze: 8000 },
     ]);
     expect(body.summary.completed).toBe(2);
+  });
+});
+
+describe('"Wraca zwykle co N dni" (task 250)', () => {
+  it('the median of the gaps; same-day visits are one; fewer than three visits — none', () => {
+    const at = (day: number, hour = 12) => new Date(Date.UTC(2026, 0, day, hour));
+    expect(rhythm([])).toBeNull();
+    expect(rhythm([at(1), at(29)])).toBeNull();
+    // Two services on one day count once.
+    expect(rhythm([at(1), at(1, 13), at(29)])).toBeNull();
+    expect(rhythm([at(1), at(29), at(29, 13), at(31)])).toBe(15);
+    expect(rhythm([at(1), at(22), at(29), at(31)])).toBe(7);
   });
 });
 

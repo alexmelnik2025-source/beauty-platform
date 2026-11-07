@@ -1035,6 +1035,8 @@ export const pl = {
       firstVisit: 'Pierwsza wizyta',
       lastVisit: 'Ostatnia wizyta',
       paid: 'Zapłacono łącznie',
+      rhythm: 'Wraca zwykle',
+      rhythmValue: 'co {days} dni · następna ok. {date}',
       title: 'Podsumowanie',
     },
     marketing: 'Zgoda na wiadomości od salonu',

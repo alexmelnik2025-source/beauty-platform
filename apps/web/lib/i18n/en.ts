@@ -1037,6 +1037,8 @@ export const en: Dict = {
       firstVisit: 'First visit',
       lastVisit: 'Latest visit',
       paid: 'Paid in total',
+      rhythm: 'Usually comes back',
+      rhythmValue: 'every {days} days · next around {date}',
       title: 'Summary',
     },
     marketing: 'Agreed to salon messages',

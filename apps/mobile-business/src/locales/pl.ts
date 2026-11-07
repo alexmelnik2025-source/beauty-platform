@@ -235,6 +235,7 @@ export const pl = {
     yes: 'tak',
     no: 'nie',
     completed: 'Odbyte wizyty: {count}',
+    rhythm: 'wraca zwykle co {days} dni',
     noShows: 'Nieobecności: {count}',
     cancelledByClient: 'Odwołał(a) sam(a): {count}',
     paid: 'Zapłacono: {amount}',

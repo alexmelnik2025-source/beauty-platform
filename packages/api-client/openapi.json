@@ -16095,6 +16095,13 @@
                 "description": "Start of the latest visit that took place",
                 "type": "string"
               },
+              "rhythmDays": {
+                "nullable": true,
+                "description": "Task 250: the client usually comes back every so many days (the median between visits that took place on different days); null with fewer than 3 such visits",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
               "paid": {
                 "nullable": true,
                 "description": "One row per currency of the salons; null for staff members",
@@ -16129,6 +16136,7 @@
               "upcoming",
               "firstVisitAt",
               "lastVisitAt",
+              "rhythmDays",
               "paid"
             ],
             "additionalProperties": false,

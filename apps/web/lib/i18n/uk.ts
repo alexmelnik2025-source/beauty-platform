@@ -1032,6 +1032,8 @@ export const uk: Dict = {
       firstVisit: 'Перший візит',
       lastVisit: 'Останній візит',
       paid: 'Оплачено разом',
+      rhythm: 'Зазвичай повертається',
+      rhythmValue: 'кожні {days} дн. · наступний бл. {date}',
       title: 'Підсумок',
     },
     marketing: 'Згода на повідомлення від салону',

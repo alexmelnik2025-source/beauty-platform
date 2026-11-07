@@ -1039,6 +1039,8 @@ export const ru: Dict = {
       firstVisit: 'Первый визит',
       lastVisit: 'Последний визит',
       paid: 'Оплачено всего',
+      rhythm: 'Обычно возвращается',
+      rhythmValue: 'каждые {days} дн. · следующий ок. {date}',
       title: 'Сводка',
     },
     marketing: 'Согласие на сообщения от салона',
