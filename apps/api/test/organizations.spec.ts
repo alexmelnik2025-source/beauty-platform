@@ -115,6 +115,25 @@ describe('locations', () => {
     expect(second.body.slug).toBe('barber-mokotow-2');
   });
 
+  it('a name taken 20 times still gets a booking link, with a random ending (task 258)', async () => {
+    const owner = await signUp(ctx, 'owner@example.com');
+    const org = await ctx.http().post('/v1/organizations').set(owner.auth).send({ name: 'Group' });
+    const slugs: string[] = [];
+    for (let i = 0; i < 21; i++) {
+      const res = await ctx
+        .http()
+        .post(`/v1/organizations/${org.body.id}/locations`)
+        .set(owner.auth)
+        .send(LOCATION)
+        .expect(201);
+      slugs.push(res.body.slug);
+    }
+    expect(slugs[0]).toBe('barber-mokotow');
+    expect(slugs[19]).toBe('barber-mokotow-20');
+    expect(slugs[20]).toMatch(/^barber-mokotow-[a-z0-9]{6}$/);
+    expect(new Set(slugs).size).toBe(21);
+  });
+
   it('refuses a booking link that is already taken', async () => {
     const owner = await signUp(ctx, 'owner@example.com');
     const { orgId, slug } = await createOrgWithLocation(ctx, owner, 'Group');

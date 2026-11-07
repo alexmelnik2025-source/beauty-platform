@@ -1,5 +1,6 @@
 import { wishQuestions } from '../booking/visit-wishes';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { randomInt } from 'node:crypto';
 import { AppException } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
@@ -26,6 +27,12 @@ export type {
   LocationResponse,
   OrganizationResponse,
 } from './organizations.responses';
+
+/** Six lowercase letters and digits for a booking link ending (36^6 ≈ 2 billion). */
+function randomSuffix(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length: 6 }, () => chars[randomInt(chars.length)]).join('');
+}
 
 const slugTaken = (): AppException =>
   new AppException(HttpStatus.CONFLICT, 'SLUG_TAKEN', 'This booking link is already taken');
@@ -186,9 +193,13 @@ export class OrganizationsService {
     const { slug: requestedSlug, ...fields } = input;
     const candidates = requestedSlug
       ? [requestedSlug]
-      : Array.from({ length: 20 }, (_, i) =>
-          i === 0 ? slugify(input.name) : `${slugify(input.name)}-${i + 1}`,
-        );
+      : [
+          ...Array.from({ length: 20 }, (_, i) =>
+            i === 0 ? slugify(input.name) : `${slugify(input.name)}-${i + 1}`,
+          ),
+          // Task 258: a common name ("Barber") taken 20 times still gets a link — a random ending.
+          ...Array.from({ length: 5 }, () => `${slugify(input.name)}-${randomSuffix()}`),
+        ];
 
     for (const slug of candidates) {
       try {
