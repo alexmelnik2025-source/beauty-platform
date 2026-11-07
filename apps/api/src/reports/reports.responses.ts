@@ -354,6 +354,12 @@ export const salonReportSchema = responseSchema(
           .describe('By the specialist of the later visit, most returns first'),
       })
       .describe('Task 247: "Co ile dni wracają klienci" — counts only, no names'),
+    overdueClients: z
+      .number()
+      .int()
+      .describe(
+        'Task 263: regular clients of this salon (three visits or more) past their usual break with nothing booked, as of now whatever the period; 0 in a specialist own report',
+      ),
   }),
 );
 

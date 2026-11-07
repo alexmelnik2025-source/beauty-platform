@@ -116,45 +116,11 @@ export class CustomersService {
    * the salons the caller works in (`rhythm`, task 250) — whose latest visit plus their usual
    * break is already behind, and who have nothing booked ahead there; with that due date.
    */
-  private async overdue(m: MembershipContext): Promise<Map<string, Date>> {
-    const now = Date.now();
-    const here = {
+  private overdue(m: MembershipContext): Promise<Map<string, Date>> {
+    return dueToComeBack(this.prisma, {
       location: { organizationId: m.organizationId },
       ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
-    };
-    const [visits, booked] = await Promise.all([
-      this.prisma.appointment.findMany({
-        where: { ...here, status: 'completed', customerId: { not: null } },
-        orderBy: [{ customerId: 'asc' }, { startAt: 'asc' }],
-        select: { customerId: true, startAt: true },
-      }),
-      this.prisma.appointment.findMany({
-        where: {
-          ...here,
-          status: 'confirmed',
-          startAt: { gte: new Date(now) },
-          customerId: { not: null },
-        },
-        distinct: ['customerId'],
-        select: { customerId: true },
-      }),
-    ]);
-    const ahead = new Set(booked.map((b) => b.customerId));
-    const starts = new Map<string, Date[]>();
-    for (const v of visits) {
-      if (!v.customerId || ahead.has(v.customerId)) continue;
-      const list = starts.get(v.customerId) ?? [];
-      list.push(v.startAt);
-      starts.set(v.customerId, list);
-    }
-    const due = new Map<string, Date>();
-    for (const [id, list] of starts) {
-      const days = rhythm(list);
-      if (days === null) continue;
-      const at = new Date(list[list.length - 1]!.getTime() + days * 86_400_000);
-      if (at.getTime() <= now) due.set(id, at);
-    }
-    return due;
+    });
   }
 
   /**
@@ -590,6 +556,51 @@ export function birthdayWindow(today: string, days: number): Map<string, number>
     if (mmdd === '02-28' && !leap) window.set('02-29', i);
   }
   return window;
+}
+
+/**
+ * Tasks 262, 263: clients with a habit — at least three visits that took place on different days
+ * among the visits `here` matches (`rhythm`, task 250) — whose latest visit plus their usual break
+ * is already behind and who have nothing booked ahead there; with that due date.
+ */
+export async function dueToComeBack(
+  prisma: PrismaService,
+  here: Prisma.AppointmentWhereInput,
+  now = Date.now(),
+): Promise<Map<string, Date>> {
+  const [visits, booked] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { AND: [here, { status: 'completed', customerId: { not: null } }] },
+      orderBy: [{ customerId: 'asc' }, { startAt: 'asc' }],
+      select: { customerId: true, startAt: true },
+    }),
+    prisma.appointment.findMany({
+      where: {
+        AND: [
+          here,
+          { status: 'confirmed', startAt: { gte: new Date(now) }, customerId: { not: null } },
+        ],
+      },
+      distinct: ['customerId'],
+      select: { customerId: true },
+    }),
+  ]);
+  const ahead = new Set(booked.map((b) => b.customerId));
+  const starts = new Map<string, Date[]>();
+  for (const v of visits) {
+    if (!v.customerId || ahead.has(v.customerId)) continue;
+    const list = starts.get(v.customerId) ?? [];
+    list.push(v.startAt);
+    starts.set(v.customerId, list);
+  }
+  const due = new Map<string, Date>();
+  for (const [id, list] of starts) {
+    const days = rhythm(list);
+    if (days === null) continue;
+    const at = new Date(list[list.length - 1]!.getTime() + days * 86_400_000);
+    if (at.getTime() <= now) due.set(id, at);
+  }
+  return due;
 }
 
 /**

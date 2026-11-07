@@ -1390,6 +1390,10 @@ export const pl = {
     newcomersHint:
       'Klienci, których pierwsza wizyta w salonie była w tym okresie: ilu przyszło ponownie (do dowolnego specjalisty), a ilu z pozostałych ma już zarezerwowaną wizytę. Przy specjaliście — klienci, których pierwsza wizyta była u niego.',
     returnInterval: 'Co ile dni wracają klienci',
+    overdueClients: 'Pora wrócić: {n}',
+    overdueClientsList: 'Pokaż, komu pora wrócić',
+    overdueClientsHint:
+      'Stali klienci salonu (co najmniej 3 wizyty), którym minął ich zwykły odstęp między wizytami i nie mają rezerwacji — stan na dziś, niezależnie od okresu.',
     returnIntervalCount: 'zwykle co {median} dni · średnio {average} · powroty: {n}',
     returnIntervalHint:
       'Dni między dwiema kolejnymi wizytami tego samego klienta (w różne dni), gdy późniejsza była w tym okresie. „Zwykle” to mediana. Przy specjaliście — powroty do niego. Pomaga ustawić, po ilu dniach wysyłać „Pora na kolejną wizytę”.',

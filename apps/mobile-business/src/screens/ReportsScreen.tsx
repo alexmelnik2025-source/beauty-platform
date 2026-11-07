@@ -63,6 +63,8 @@ export function ReportsScreen(props: {
   const [clientId, setClientId] = useState<string | null>(null);
   // Task 249: "Pokaż nowych klientów" opens the client list with the new clients.
   const [newcomersOpen, setNewcomersOpen] = useState(false);
+  // Task 263: "Pokaż, komu pora wrócić" opens the client list with "Pora wrócić" on.
+  const [overdueOpen, setOverdueOpen] = useState(false);
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
   const range = reportRange(period, today);
@@ -141,6 +143,20 @@ export function ReportsScreen(props: {
       {sub ? <Text style={styles.small}>{sub}</Text> : null}
     </View>
   );
+
+  if (overdueOpen) {
+    return (
+      <ClientsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        overdue
+        onBack={() => setOverdueOpen(false)}
+      />
+    );
+  }
 
   if (newcomersOpen) {
     return (
@@ -659,6 +675,19 @@ export function ReportsScreen(props: {
                   ))
                 : null}
               <Text style={styles.small}>{r.returnIntervalHint}</Text>
+            </View>
+          ) : null}
+          {shown.scope !== 'own' && shown.overdueClients > 0 ? (
+            <View style={{ gap: 6 }} testID="report-overdue">
+              <Text style={styles.section}>
+                ⏰ {fill(r.overdueClients, { n: String(shown.overdueClients) })}
+              </Text>
+              <Button
+                kind="link"
+                label={r.overdueClientsList}
+                onPress={() => setOverdueOpen(true)}
+              />
+              <Text style={styles.small}>{r.overdueClientsHint}</Text>
             </View>
           ) : null}
           {shown.scope !== 'own' && shown.marketing.clients > 0 ? (

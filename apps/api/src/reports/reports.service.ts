@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { forbidden } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
+import { dueToComeBack } from '../booking/customers.service';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -409,6 +410,10 @@ export class ReportsService {
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
       newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),
       returnInterval: await this.returnInterval(locationId, staffIds, tz, clients, rangeStart),
+      // Task 263: today's count, whatever the period; not in a specialist's own report.
+      overdueClients: own
+        ? 0
+        : (await dueToComeBack(this.prisma, { locationId, customer: { anonymizedAt: null } })).size,
     };
   }
 

@@ -527,6 +527,34 @@ describe('salon report', () => {
     });
   });
 
+  it('"Pora wrócić": regular clients past their usual break, today whatever the period (task 263)', async () => {
+    // Jan: every 20 days, last 30 days ago — due 10 days ago.
+    for (const days of [70, 50, 30]) {
+      await visit({ date: addDays(today, -days), status: 'completed' });
+    }
+    // Ewa: due as well, but booked again.
+    for (const days of [30, 20, 10]) {
+      await visit({ date: addDays(today, -days), email: 'ewa@example.com', status: 'completed' });
+    }
+    await visit({ date: addDays(today, 3), email: 'ewa@example.com', status: 'confirmed' });
+    // Adam: two visits are not a habit yet.
+    for (const days of [60, 40]) {
+      await visit({ date: addDays(today, -days), email: 'adam@example.com', status: 'completed' });
+    }
+
+    expect((await report().expect(200)).body.overdueClients).toBe(1);
+    // Any period: the count is as of today.
+    const lastYear = { from: addDays(today, -400), to: addDays(today, -380) };
+    expect((await report(owner.auth, lastYear).expect(200)).body.overdueClients).toBe(1);
+
+    // Not in a specialist's own report.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    expect((await report(kasiaUser.auth).expect(200)).body.overdueClients).toBe(0);
+  });
+
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {
     const d1 = addDays(today, -5);
     const d2 = addDays(today, -2);

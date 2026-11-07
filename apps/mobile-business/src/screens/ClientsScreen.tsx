@@ -29,6 +29,8 @@ export function ClientsScreen(props: {
   timeZone: string;
   /** Task 249: open with "Nowi (30 dni)" on (from the report). */
   newcomers?: boolean;
+  /** Task 263: open with "Pora wrócić" on (from the report). */
+  overdue?: boolean;
   onBack: () => void;
 }) {
   const { api, t, salon, onBack } = props;
@@ -50,7 +52,7 @@ export function ClientsScreen(props: {
   // Task 248: only clients whose first visit was in the last 30 days, newest first.
   const [newcomers, setNewcomers] = useState(props.newcomers ?? false);
   // Task 262: only regular clients past their usual break with nothing booked.
-  const [overdue, setOverdue] = useState(false);
+  const [overdue, setOverdue] = useState(props.overdue ?? false);
 
   const search = useCallback(
     async (text: string) => {

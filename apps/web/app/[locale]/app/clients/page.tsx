@@ -47,6 +47,8 @@ export default function ClientsPage() {
     if (id) setOpen(id);
     // Task 249: "/app/clients?new=1" (from "Nowi klienci" in the report) shows the new clients.
     if (params.get('new') === '1') setNewcomers(true);
+    // Task 263: "/app/clients?overdue=1" (from "Pora wrócić" in the report).
+    if (params.get('overdue') === '1') setOverdue(true);
   }, []);
 
   const load = useCallback(async () => {

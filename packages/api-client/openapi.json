@@ -22037,6 +22037,12 @@
             ],
             "additionalProperties": false,
             "description": "Task 247: \"Co ile dni wracają klienci\" — counts only, no names"
+          },
+          "overdueClients": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 263: regular clients of this salon (three visits or more) past their usual break with nothing booked, as of now whatever the period; 0 in a specialist own report"
           }
         },
         "required": [
@@ -22063,7 +22069,8 @@
           "busyHours",
           "marketing",
           "newcomers",
-          "returnInterval"
+          "returnInterval",
+          "overdueClients"
         ],
         "additionalProperties": false
       },

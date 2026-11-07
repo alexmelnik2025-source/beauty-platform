@@ -657,6 +657,18 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report && report.scope !== 'own' && report.overdueClients > 0 ? (
+              <section className="section" data-testid="report-overdue">
+                <h2>⏰ {fill(t.reports.overdueClients, { n: String(report.overdueClients) })}</h2>
+                <p className="small">
+                  <Link href={`/${locale}/app/clients?overdue=1`}>
+                    {t.reports.overdueClientsList}
+                  </Link>
+                </p>
+                <p className="small muted">{t.reports.overdueClientsHint}</p>
+              </section>
+            ) : null}
+
             {report && report.scope !== 'own' && report.marketing.clients > 0 ? (
               <section className="section" data-testid="report-marketing">
                 <h2>

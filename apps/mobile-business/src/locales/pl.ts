@@ -479,6 +479,10 @@ export const pl = {
     newcomersHint:
       'Klienci z pierwszą wizytą w tym okresie: ilu przyszło ponownie, a ilu ma już zarezerwowaną wizytę.',
     returnInterval: 'Co ile dni wracają klienci',
+    overdueClients: 'Pora wrócić: {n}',
+    overdueClientsList: 'Pokaż, komu pora wrócić',
+    overdueClientsHint:
+      'Stali klienci salonu (co najmniej 3 wizyty), którym minął ich zwykły odstęp między wizytami i nie mają rezerwacji — stan na dziś, niezależnie od okresu.',
     returnIntervalCount: 'zwykle co {median} dni · średnio {average} · powroty: {n}',
     returnIntervalHint: 'Dni między kolejnymi wizytami tego samego klienta. „Zwykle” to mediana.',
     marketing: 'Zgody na wiadomości: {n}%',

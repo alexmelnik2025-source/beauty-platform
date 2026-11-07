@@ -5664,6 +5664,8 @@ export interface components {
                     medianDays: number;
                 }[];
             };
+            /** @description Task 263: regular clients of this salon (three visits or more) past their usual break with nothing booked, as of now whatever the period; 0 in a specialist own report */
+            overdueClients: number;
         };
         SalonReview: {
             id: string;

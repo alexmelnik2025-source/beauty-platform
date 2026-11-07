@@ -19,6 +19,7 @@ import { serveApp } from './mobile-app';
  * Task 250: "Wraca zwykle co N dni" in the client card (250, 250-a).
  * Task 261: "Ulubiona usługa" and "Ulubiony specjalista" in the client card (261, 261-a).
  * Task 262: "Pora wrócić" — regular clients past their usual break with nothing booked (262, 262-a).
+ * Task 263: "Pora wrócić: N" in the report, with a link to that list (263, 263-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -315,6 +316,20 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText('Piotr Zieliński');
   await shot(page, '262-clients-overdue');
+  // Task 263: the report counts Piotr and links to the list.
+  await page.goto('/pl/app/reports');
+  const overdueReport = page.getByTestId('report-overdue');
+  await expect(overdueReport).toContainText('Pora wrócić: 1');
+  await overdueReport.scrollIntoViewIfNeeded();
+  await shot(page, '263-report-overdue');
+  await overdueReport.getByRole('link', { name: 'Pokaż, komu pora wrócić' }).click();
+  await page.waitForURL(/\/pl\/app\/clients\?overdue=1/);
+  await expect(page.getByRole('button', { name: /Pora wrócić/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Piotr Zieliński');
   await context.close();
 
   // Business app (task 240b).
@@ -390,6 +405,19 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await app.getByRole('button', { name: 'Zapisz', exact: true }).first().click();
     await expect(app.getByText('🎂 Urodziny: 16 marca')).toBeVisible();
     await expect(app.getByText('Zapisano datę urodzin.')).toBeVisible();
+    // Task 263 in the app: "Pora wrócić: 1" in the report opens the list with Piotr.
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Raporty' }).click();
+    const appOverdue = app.getByTestId('report-overdue');
+    await expect(appOverdue).toContainText('Pora wrócić: 1');
+    await appOverdue.scrollIntoViewIfNeeded();
+    await shot(app, '263-a-business-app-report-overdue');
+    await app.getByRole('button', { name: 'Pokaż, komu pora wrócić' }).click();
+    await expect(app.getByRole('switch', { name: /Pora wrócić/ })).toBeChecked();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Piotr Zieliński');
     await phone.close();
   } finally {
     businessApp.server.close();
