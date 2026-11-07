@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { DASHBOARD_LOCALES, LOCALES, useI18n } from '@/lib/i18n';
 
 export function Wordmark({ href }: { href?: string }) {
@@ -53,10 +53,15 @@ export function ErrorBox({ children }: { children: ReactNode }) {
   );
 }
 
+/** What Tab can reach inside a sheet. */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 /**
  * Side panel on a computer, bottom sheet on a phone. Escape and the backdrop close it;
- * focus moves into the panel when it opens.
+ * focus moves into the panel when it opens, Tab stays inside, and closing returns the focus.
  */
+
 export function Sheet({
   title,
   onClose,
@@ -70,20 +75,60 @@ export function Sheet({
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  // The latest onClose, so a parent re-render does not move the focus back to the sheet.
+  const close = useRef(onClose);
   useEffect(() => {
-    ref.current?.focus();
+    close.current = onClose;
+  });
+  useEffect(() => {
+    // Task 230: keyboard — focus goes into the sheet, Tab stays inside it, Escape closes it,
+    // and the focus returns to what opened it (e.g. the visit in the calendar).
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const sheet = ref.current;
+    sheet?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        close.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !sheet) return;
+      const active = document.activeElement;
+      // Another sheet on top of this one keeps its own focus.
+      if (active && active !== document.body && !sheet.contains(active)) return;
+      const items = [...sheet.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+        (el) => el.getClientRects().length > 0,
+      );
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && (active === first || active === sheet)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
   return (
     <>
       <div className="sheet-backdrop" onClick={onClose} />
-      <div className="sheet" role="dialog" aria-modal="true" tabIndex={-1} ref={ref}>
+      <div
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        ref={ref}
+      >
         <div className="sheet-head">
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label={t.common.close}>
             ✕
           </button>
