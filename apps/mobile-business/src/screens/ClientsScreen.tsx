@@ -36,6 +36,8 @@ export function ClientsScreen(props: {
   overdue?: boolean;
   /** Task 265: open with "Nie przyszli" on (from the report). */
   noShows?: boolean;
+  /** Task 271: open with "Byli tylko raz" on (from the report). */
+  once?: boolean;
   onBack: () => void;
 }) {
   const { api, t, salon, onBack } = props;
@@ -60,6 +62,8 @@ export function ClientsScreen(props: {
   const [overdue, setOverdue] = useState(props.overdue ?? false);
   // Task 264: only clients who did not come at least once in the last year.
   const [noShows, setNoShows] = useState(props.noShows ?? false);
+  // Task 270: only clients who came once (30–365 days ago) and have nothing booked.
+  const [once, setOnce] = useState(props.once ?? false);
   // Task 269: the owner downloads all clients as the cabinet's CSV.
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
@@ -95,6 +99,7 @@ export function ClientsScreen(props: {
             newcomers ? 30 : 0,
             overdue,
             noShows,
+            once,
           ),
         );
         setSearched(text.trim());
@@ -105,7 +110,7 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, inactiveDays, tag, birthdays, consented, newcomers, overdue, noShows],
+    [api, salon, t, inactiveDays, tag, birthdays, consented, newcomers, overdue, noShows, once],
   );
 
   const loadTags = useCallback(async () => {
@@ -238,10 +243,20 @@ export function ClientsScreen(props: {
         >
           <Text style={[styles.chipText, noShows && styles.chipTextOn]}>🚫 {c.missed}</Text>
         </Pressable>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: once }}
+          accessibilityHint={c.onceHint}
+          onPress={() => setOnce(!once)}
+          style={[styles.chip, once && styles.chipOn]}
+        >
+          <Text style={[styles.chipText, once && styles.chipTextOn]}>👋 {c.once}</Text>
+        </Pressable>
       </View>
       {newcomers ? <Text style={styles.muted}>{c.newcomersHint}</Text> : null}
       {overdue ? <Text style={styles.muted}>{c.overdueHint}</Text> : null}
       {noShows ? <Text style={styles.muted}>{c.missedHint}</Text> : null}
+      {once ? <Text style={styles.muted}>{c.onceHint}</Text> : null}
       {tags.length > 0 ? (
         <>
           <Text style={styles.muted}>{c.tagFilter}</Text>
@@ -295,11 +310,13 @@ export function ClientsScreen(props: {
                 ? c.overdueNone
                 : noShows
                   ? c.missedNone
-                  : consented
-                    ? c.consentedNone
-                    : inactiveDays
-                      ? c.inactiveNone
-                      : c.none}
+                  : once
+                    ? c.onceNone
+                    : consented
+                      ? c.consentedNone
+                      : inactiveDays
+                        ? c.inactiveNone
+                        : c.none}
         </Text>
       ) : (
         <>

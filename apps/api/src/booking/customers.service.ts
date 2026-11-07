@@ -53,6 +53,8 @@ export class CustomersService {
     const overdue = query.overdue ? await this.overdue(m) : null;
     // Task 264: clients who did not come in the last year, the most recent no-show first.
     const noShows = query.noShows ? await this.noShows(m) : null;
+    // Task 270: clients who came once and did not come back, the most recent first.
+    const once = query.once ? await this.once(m) : null;
     const search = query.search
       ? {
           OR: [
@@ -76,10 +78,11 @@ export class CustomersService {
           newcomers ? { id: { in: [...newcomers.keys()] } } : {},
           overdue ? { id: { in: [...overdue.keys()] } } : {},
           noShows ? { id: { in: [...noShows.keys()] } } : {},
+          once ? { id: { in: [...once.keys()] } } : {},
         ],
       },
       orderBy: { name: 'asc' },
-      take: newcomers || overdue || noShows ? undefined : query.limit,
+      take: newcomers || overdue || noShows || once ? undefined : query.limit,
     });
     if (newcomers) {
       rows.sort((a, b) => newcomers.get(b.id)!.getTime() - newcomers.get(a.id)!.getTime());
@@ -89,6 +92,9 @@ export class CustomersService {
     }
     if (noShows) {
       rows.sort((a, b) => noShows.get(b.id)!.getTime() - noShows.get(a.id)!.getTime());
+    }
+    if (once) {
+      rows.sort((a, b) => once.get(b.id)!.getTime() - once.get(a.id)!.getTime());
     }
     return rows.slice(0, query.limit).map((c) => toCustomer(c, m));
   }
@@ -135,6 +141,17 @@ export class CustomersService {
    */
   private noShows(m: MembershipContext): Promise<Map<string, Date>> {
     return missedVisits(this.prisma, {
+      location: { organizationId: m.organizationId },
+      ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+    });
+  }
+
+  /**
+   * Task 270: clients who came once in the salons the caller works in (`cameOnce`), with that
+   * visit's start.
+   */
+  private once(m: MembershipContext): Promise<Map<string, Date>> {
+    return cameOnce(this.prisma, {
       location: { organizationId: m.organizationId },
       ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
     });
@@ -648,6 +665,54 @@ export async function missedVisits(
       .filter((l) => l.customerId && l._max.startAt)
       .map((l) => [l.customerId!, l._max.startAt!]),
   );
+}
+
+/**
+ * Tasks 270, 271: clients who came once among the visits `here` matches — every visit that took
+ * place falls on one day (two services in a row are one visit), 30 to 365 days ago — and who have
+ * nothing booked ahead; with that visit's start. Fresher first visits are under "Nowi (30 dni)"
+ * (task 248).
+ */
+export async function cameOnce(
+  prisma: PrismaService,
+  here: Prisma.AppointmentWhereInput,
+  now = Date.now(),
+): Promise<Map<string, Date>> {
+  const [spans, booked] = await Promise.all([
+    prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: { AND: [here, { status: 'completed', customerId: { not: null } }] },
+      _min: { startAt: true },
+      _max: { startAt: true },
+      having: {
+        startAt: {
+          _min: { gte: new Date(now - 365 * 86_400_000) },
+          _max: { lte: new Date(now - 30 * 86_400_000) },
+        },
+      },
+    }),
+    prisma.appointment.findMany({
+      where: {
+        AND: [
+          here,
+          { status: 'confirmed', startAt: { gte: new Date(now) }, customerId: { not: null } },
+        ],
+      },
+      distinct: ['customerId'],
+      select: { customerId: true },
+    }),
+  ]);
+  const ahead = new Set(booked.map((b) => b.customerId));
+  const once = new Map<string, Date>();
+  for (const span of spans) {
+    const first = span._min.startAt;
+    const last = span._max.startAt;
+    if (!span.customerId || !first || !last || ahead.has(span.customerId)) continue;
+    // Same rule as `rhythm`: visits less than half a day apart are one visit.
+    if (Math.round((last.getTime() - first.getTime()) / 86_400_000) > 0) continue;
+    once.set(span.customerId, last);
+  }
+  return once;
 }
 
 /**

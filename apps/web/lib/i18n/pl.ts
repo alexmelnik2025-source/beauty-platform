@@ -1023,6 +1023,10 @@ export const pl = {
     noShowsHint:
       'Klienci, którzy w ostatnich 12 miesiącach co najmniej raz nie przyszli na umówioną wizytę — ostatnia nieobecność na górze.',
     noShowsNone: 'W ostatnich 12 miesiącach wszyscy przychodzili na wizyty.',
+    once: 'Byli tylko raz',
+    onceHint:
+      'Klienci, którzy byli tylko na jednej wizycie (od miesiąca do roku temu) i nie mają kolejnej rezerwacji — najświeższe na górze.',
+    onceNone: 'Nie ma klientów, którzy byli tylko raz i nie wrócili.',
     consentedNone: 'Nikt jeszcze nie zgodził się na wiadomości od salonu.',
     birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',
     birthdayToday: 'dziś',

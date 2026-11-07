@@ -37,6 +37,8 @@ export default function ClientsPage() {
   const [overdue, setOverdue] = useState(false);
   // Task 264: only clients who did not come at least once in the last year.
   const [noShows, setNoShows] = useState(false);
+  // Task 270: only clients who came once (30–365 days ago) and have nothing booked.
+  const [once, setOnce] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
@@ -53,6 +55,8 @@ export default function ClientsPage() {
     if (params.get('overdue') === '1') setOverdue(true);
     // Task 265: "/app/clients?noShows=1" (from "Nie przyszli" in the report).
     if (params.get('noShows') === '1') setNoShows(true);
+    // Task 271: "/app/clients?once=1" (from "Byli tylko raz" in the report).
+    if (params.get('once') === '1') setOnce(true);
   }, []);
 
   const load = useCallback(async () => {
@@ -69,13 +73,26 @@ export default function ClientsPage() {
             newDays: newcomers ? 30 : undefined,
             overdue: overdue ? 'yes' : undefined,
             noShows: noShows ? 'yes' : undefined,
+            once: once ? 'yes' : undefined,
           },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, search, inactiveDays, tag, birthdays, consented, newcomers, overdue, noShows, t]);
+  }, [
+    orgId,
+    search,
+    inactiveDays,
+    tag,
+    birthdays,
+    consented,
+    newcomers,
+    overdue,
+    noShows,
+    once,
+    t,
+  ]);
 
   /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
   const loadTags = useCallback(async () => {
@@ -211,10 +228,19 @@ export default function ClientsPage() {
           >
             🚫 {t.clients.noShows}
           </button>
+          <button
+            type="button"
+            aria-pressed={once}
+            title={t.clients.onceHint}
+            onClick={() => setOnce(!once)}
+          >
+            👋 {t.clients.once}
+          </button>
         </div>
         {newcomers ? <p className="small muted">{t.clients.newcomersHint}</p> : null}
         {overdue ? <p className="small muted">{t.clients.overdueHint}</p> : null}
         {noShows ? <p className="small muted">{t.clients.noShowsHint}</p> : null}
+        {once ? <p className="small muted">{t.clients.onceHint}</p> : null}
         {tags.length ? (
           <div className="chips tag-filter" role="group" aria-label={t.clients.tagFilter}>
             <button type="button" aria-pressed={tag === ''} onClick={() => setTag('')}>
@@ -245,13 +271,15 @@ export default function ClientsPage() {
                   ? t.clients.overdueNone
                   : noShows
                     ? t.clients.noShowsNone
-                    : consented
-                      ? t.clients.consentedNone
-                      : inactiveDays
-                        ? t.clients.inactive.none
-                        : search || tag
-                          ? t.clients.notFound
-                          : t.clients.empty}
+                    : once
+                      ? t.clients.onceNone
+                      : consented
+                        ? t.clients.consentedNone
+                        : inactiveDays
+                          ? t.clients.inactive.none
+                          : search || tag
+                            ? t.clients.notFound
+                            : t.clients.empty}
           </p>
         ) : (
           <ul className="list">

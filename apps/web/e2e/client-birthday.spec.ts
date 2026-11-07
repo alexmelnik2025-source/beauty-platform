@@ -24,6 +24,7 @@ import { serveApp } from './mobile-app';
  * Task 265: "Nie przyszli: N" in the report, with a link to that list (265, 265-a).
  * Task 263: "Pora wrócić: N" in the report, with a link to that list (263, 263-a).
  * Task 269: the owner downloads all clients as CSV in the business app (269).
+ * Task 270: "Byli tylko raz" — clients who came once, a month to a year ago (270, 270-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -378,6 +379,37 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   );
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText('Adam Nowak');
+  // Task 270: Ewa came once, 60 days ago, and has not booked again — she is the only one under
+  // "Byli tylko raz" (Adam's only visit was a no-show, Marek's is ahead).
+  const [ewa] = await json<{ id: string }[]>(
+    await request.get(`/v1/organizations/${org.id}/customers?search=Ewa%20Wi`, {
+      headers: owner,
+    }),
+  );
+  const ewaVisit = await json<{ id: string }>(
+    await request.post(`${salon}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: service.id,
+        staffId: staff.id,
+        start: new Date(firstVisit.getTime() - 90 * 60_000).toISOString(),
+        customerId: ewa!.id,
+        alreadyHappened: true,
+        allowOutsideHours: true,
+      },
+    }),
+  );
+  sql250(
+    `UPDATE appointment SET start_at = start_at - interval '60 days', end_at = end_at - interval '60 days', blocked_until = blocked_until - interval '60 days' WHERE id = '${ewaVisit.id}'`,
+  );
+  await page.goto('/pl/app/clients');
+  await expect(rows).toHaveCount(5);
+  const once = page.getByRole('button', { name: /Byli tylko raz/ });
+  await once.click();
+  await expect(once).toHaveAttribute('aria-pressed', 'true');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Ewa Wiśniewska');
+  await shot(page, '270-clients-once');
   await context.close();
 
   // Business app (task 240b).
@@ -441,6 +473,12 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards.nth(0)).toContainText('Adam Nowak');
     await shot(app, '264-a-business-app-no-shows');
     await app.getByRole('switch', { name: /Nie przyszli/ }).click();
+    // Task 270 in the app: only Ewa came once.
+    await app.getByRole('switch', { name: /Byli tylko raz/ }).click();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Ewa Wiśniewska');
+    await shot(app, '270-a-business-app-once');
+    await app.getByRole('switch', { name: /Byli tylko raz/ }).click();
     // Task 269: the owner downloads the cabinet's clients CSV right in the app.
     const csvButton = app.getByRole('button', { name: 'Pobierz CSV klientów' });
     await expect(csvButton).toBeVisible();

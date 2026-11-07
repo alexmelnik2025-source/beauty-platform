@@ -8995,6 +8995,8 @@ export interface operations {
     CustomersController_list: {
         parameters: {
             query?: {
+                /** @description Task 270: only clients who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, the most recent first */
+                once?: "yes";
                 /** @description Task 264: only clients who did not come (no-show) at least once in the last 365 days, the most recent no-show first */
                 noShows?: "yes";
                 /** @description Task 262: only clients past their usual time to come back (from three visits) with nothing booked ahead, the most recently due first */

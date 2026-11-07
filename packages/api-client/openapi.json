@@ -6398,6 +6398,18 @@
         "operationId": "CustomersController_list",
         "parameters": [
           {
+            "name": "once",
+            "required": false,
+            "in": "query",
+            "description": "Task 270: only clients who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, the most recent first",
+            "schema": {
+              "enum": [
+                "yes"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "noShows",
             "required": false,
             "in": "query",

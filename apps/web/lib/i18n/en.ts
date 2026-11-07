@@ -1025,6 +1025,10 @@ export const en: Dict = {
     noShowsHint:
       'Clients who missed a booked visit at least once in the last 12 months — the most recent no-show first.',
     noShowsNone: 'Everybody came to their visits in the last 12 months.',
+    once: 'Came only once',
+    onceHint:
+      'Clients who came to one visit only (between a month and a year ago) and have nothing booked — the most recent first.',
+    onceNone: 'No clients who came once and did not come back.',
     consentedNone: 'No one has agreed to messages from the salon yet.',
     birthdaysNone: 'Nobody has a birthday in the next 7 days.',
     birthdayToday: 'today',

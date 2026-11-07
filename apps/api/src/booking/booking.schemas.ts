@@ -243,6 +243,11 @@ export const listCustomersSchema = z.object({
    * most recent no-show first.
    */
   noShows: z.enum(['yes']).optional(),
+  /**
+   * Task 270: only clients who came once — visits that took place on one day only, 30–365 days
+   * ago — and have nothing booked ahead, the most recent first.
+   */
+  once: z.enum(['yes']).optional(),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;

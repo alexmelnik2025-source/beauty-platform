@@ -525,3 +525,59 @@ describe('"Nie przyszli" (task 264)', () => {
     expect(await names('noShows=yes')).toEqual(['Jan Nowak']);
   });
 });
+
+describe('"Byli raz" (task 270)', () => {
+  const names = async (query: string, auth = owner.auth) =>
+    (await ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200)).body.map(
+      (c: { name: string }) => c.name,
+    );
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  it('lists clients who came on one day only, 30–365 days ago, with nothing booked', async () => {
+    // Jan: one visit 40 days ago — two services that day are still one visit.
+    await pastVisit(kasiaId, 40);
+    await pastVisit(tomekId, 40);
+    // Piotr: one visit 100 days ago.
+    customerId = await client('Piotr Raz', '+48600000003');
+    await pastVisit(tomekId, 100);
+    // Ewa: came twice.
+    customerId = await client('Ewa Dwa', '+48600000004');
+    await pastVisit(kasiaId, 90);
+    await pastVisit(kasiaId, 60);
+    // Ola: one visit, but only 10 days ago — still new ("Nowi (30 dni)").
+    customerId = await client('Ola Nowa', '+48600000005');
+    await pastVisit(kasiaId, 10);
+    // Adam: one visit 50 days ago, but already booked again.
+    customerId = await client('Adam Wraca', '+48600000006');
+    await pastVisit(kasiaId, 50);
+    await futureVisit(kasiaId, 3);
+    // Iza: one visit 400 days ago — too long ago.
+    customerId = await client('Iza Dawno', '+48600000007');
+    await pastVisit(kasiaId, 400);
+
+    expect(await names('once=yes')).toEqual(['Jan Nowak', 'Piotr Raz']);
+    expect(await names('once=yes&search=piotr')).toEqual(['Piotr Raz']);
+    expect(await names('once=yes&limit=1')).toEqual(['Jan Nowak']);
+    expect(await names('once=yes', manager.auth)).toEqual(['Jan Nowak', 'Piotr Raz']);
+    expect(await names('limit=100')).toHaveLength(6);
+    await ctx.http().get(`${customersBase}?once=no`).set(owner.auth).expect(400);
+    await ctx.http().get(`${customersBase}?once=yes`).set(kasia.auth).expect(403);
+  });
+
+  it("another organization's clients do not leak", async () => {
+    await pastVisit(kasiaId, 45);
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const other = await createOrgWithLocation(ctx, stranger, 'Inny');
+    const theirs = await ctx
+      .http()
+      .get(`/v1/organizations/${other.orgId}/customers?once=yes`)
+      .set(stranger.auth)
+      .expect(200);
+    expect(theirs.body).toEqual([]);
+    expect(await names('once=yes')).toEqual(['Jan Nowak']);
+  });
+});

@@ -216,6 +216,10 @@ export const en: Dictionary = {
     missedHint:
       'Clients who missed a booked visit at least once in the last 12 months — the most recent no-show first.',
     missedNone: 'Everybody came to their visits in the last 12 months.',
+    once: 'Came only once',
+    onceHint:
+      'Clients who came to one visit only (between a month and a year ago) and have nothing booked — the most recent first.',
+    onceNone: 'No clients who came once and did not come back.',
     // Task 269: the owner downloads all clients.
     csv: 'Download clients CSV',
     csvHint:

@@ -399,6 +399,13 @@ export class CustomersController {
     description:
       'Task 264: only clients who did not come (no-show) at least once in the last 365 days, the most recent no-show first',
   })
+  @ApiQuery({
+    name: 'once',
+    required: false,
+    enum: ['yes'],
+    description:
+      'Task 270: only clients who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, the most recent first',
+  })
   @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,

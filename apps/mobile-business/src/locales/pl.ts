@@ -214,6 +214,10 @@ export const pl = {
     missedHint:
       'Klienci, którzy w ostatnich 12 miesiącach co najmniej raz nie przyszli na umówioną wizytę — ostatnia nieobecność na górze.',
     missedNone: 'W ostatnich 12 miesiącach wszyscy przychodzili na wizyty.',
+    once: 'Byli tylko raz',
+    onceHint:
+      'Klienci, którzy byli tylko na jednej wizycie (od miesiąca do roku temu) i nie mają kolejnej rezerwacji — najświeższe na górze.',
+    onceNone: 'Nie ma klientów, którzy byli tylko raz i nie wrócili.',
     // Task 269: the owner downloads all clients.
     csv: 'Pobierz CSV klientów',
     csvHint:
