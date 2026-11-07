@@ -54,12 +54,19 @@ export const updateServiceSchema = z
   .partial()
   .extend({ version: z.number().int().min(1) });
 
-export const createServiceCategorySchema = z.object({
+const categoryFields = {
   name: z.string().trim().min(1).max(60),
-  sortOrder: z.number().int().min(0).max(10_000).default(0),
+  sortOrder: z.number().int().min(0).max(10_000),
+};
+
+export const createServiceCategorySchema = z.object({
+  ...categoryFields,
+  sortOrder: categoryFields.sortOrder.default(0),
 });
 
-export const updateServiceCategorySchema = createServiceCategorySchema
+/** Without defaults: a rename must not put the category back to the top (task 254). */
+export const updateServiceCategorySchema = z
+  .object(categoryFields)
   .partial()
   .extend({ version: z.number().int().min(1) });
 

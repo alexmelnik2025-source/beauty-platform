@@ -7242,7 +7242,6 @@ export interface operations {
             content: {
                 "application/json": {
                     name?: string;
-                    /** @default 0 */
                     sortOrder?: number;
                     version: number;
                 };

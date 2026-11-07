@@ -122,6 +122,22 @@ describe('the order of the categories', () => {
     expect(await list()).toEqual(['Włosy', 'Broda', 'Afro']);
   });
 
+  it('renaming a category keeps its place', async () => {
+    const hair = await addCategory('Włosy');
+    const beard = await addCategory('Broda');
+    const listed = await order([hair, beard]).expect(200);
+    const version = (listed.body as { id: string; version: number }[]).find(
+      (c) => c.id === beard,
+    )!.version;
+    await ctx
+      .http()
+      .patch(`${base}/service-categories/${beard}`)
+      .set(owner.auth)
+      .send({ version, name: 'Broda i golenie' })
+      .expect(200);
+    expect(await list()).toEqual(['Włosy', 'Broda i golenie']);
+  });
+
   it('a moved category gets a new version, so an old rename form cannot undo the order', async () => {
     const hair = await addCategory('Włosy');
     const beard = await addCategory('Broda');

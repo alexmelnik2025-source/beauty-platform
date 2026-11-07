@@ -2269,5 +2269,6 @@ e2e и скриншоты 245, 245-a — `client-birthday.spec.ts`.
 у заголовка категории. В этом порядке клиенты видят группы прайс-листа на странице записи и в приложениях. API:
 `PUT /v1/organizations/:orgId/locations/:locationId/service-categories/order` с `categoryIds` — каждая категория
 салона ровно один раз (как порядок услуг, задача 252); только владелец и менеджер. Новая категория встаёт в конец
-заданного порядка (кабинет больше не передаёт `sortOrder`). Тест: `apps/api/test/category-order.spec.ts`; e2e и
+заданного порядка (кабинет больше не передаёт `sortOrder`), а переименование (`PATCH` без `sortOrder`) больше не
+сбрасывает её место в начало. Тест: `apps/api/test/category-order.spec.ts`; e2e и
 скриншоты 254 (`category-order.spec.ts`) и 255 (`services-app.spec.ts`).
