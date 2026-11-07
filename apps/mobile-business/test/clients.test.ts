@@ -6,6 +6,7 @@ import {
   type TokenStore,
 } from '../src/api';
 import {
+  birthdayText,
   bonusSummary,
   canEditNotes,
   completedCount,
@@ -22,6 +23,15 @@ const staff = (permissions: Partial<Me['permissions']>): Me =>
   ({ role: 'staff', permissions }) as Me;
 
 describe('client card helpers', () => {
+  it('shows a birthday as day and month, or "today" in the salon\'s time zone (task 240)', () => {
+    // 23:30 UTC on 14 March is already 15 March in Warsaw.
+    const now = new Date('2027-03-14T23:30:00Z');
+    expect(birthdayText('03-15', 'pl', 'dziś', 'Europe/Warsaw', now)).toBe('dziś');
+    expect(birthdayText('03-14', 'pl', 'dziś', 'Europe/Warsaw', now)).toBe('14 marca');
+    expect(birthdayText('03-15', 'en', 'today', 'UTC', now)).toBe('15 March');
+    expect(birthdayText('02-29', 'pl', 'dziś', 'Europe/Warsaw', now)).toBe('29 lutego');
+  });
+
   it('owners and managers edit notes; a specialist needs to see and to edit them', () => {
     expect(canEditNotes({ role: 'owner', permissions: {} } as Me)).toBe(true);
     expect(canEditNotes({ role: 'manager', permissions: {} } as Me)).toBe(true);

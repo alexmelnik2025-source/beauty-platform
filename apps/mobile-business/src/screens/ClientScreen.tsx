@@ -18,6 +18,7 @@ import {
   type LoyaltyAccount,
 } from '../api';
 import {
+  birthdayText,
   bonusSummary,
   canEditNotes,
   completedCount,
@@ -252,6 +253,12 @@ export function ClientScreen(props: {
           </View>
         ) : null}
         {client.email ? <Text style={styles.value}>{client.email}</Text> : null}
+        {client.birthday ? (
+          <Text style={styles.value}>
+            🎂 {c.birthday}:{' '}
+            {birthdayText(client.birthday, props.locale, c.birthdayToday, props.timeZone)}
+          </Text>
+        ) : null}
         {!client.phone && !client.email ? (
           <Text style={styles.muted}>{c.contactsHidden}</Text>
         ) : null}

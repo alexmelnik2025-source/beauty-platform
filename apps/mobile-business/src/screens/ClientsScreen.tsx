@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import type { BusinessApi, CustomerList, CustomerTags, Locale } from '../api';
+import { birthdayText } from '../clients';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
@@ -40,12 +41,14 @@ export function ClientsScreen(props: {
   // Task 224: only clients with this label; '' = everyone.
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState<CustomerTags['tags']>([]);
+  // Task 240: only clients with a birthday in the next 7 days.
+  const [birthdays, setBirthdays] = useState(false);
 
   const search = useCallback(
     async (text: string) => {
       setBusy(true);
       try {
-        setList(await api.customers(salon.orgId, text, PAGE, inactiveDays, tag));
+        setList(await api.customers(salon.orgId, text, PAGE, inactiveDays, tag, birthdays ? 7 : 0));
         setSearched(text.trim());
         setError('');
       } catch (e) {
@@ -54,7 +57,7 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, inactiveDays, tag],
+    [api, salon, t, inactiveDays, tag, birthdays],
   );
 
   const loadTags = useCallback(async () => {
@@ -142,6 +145,16 @@ export function ClientsScreen(props: {
         ))}
       </View>
       {inactiveDays ? <Text style={styles.muted}>{c.inactiveHint}</Text> : null}
+      <View style={styles.row}>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: birthdays }}
+          onPress={() => setBirthdays(!birthdays)}
+          style={[styles.chip, birthdays && styles.chipOn]}
+        >
+          <Text style={[styles.chipText, birthdays && styles.chipTextOn]}>🎂 {c.birthdays}</Text>
+        </Pressable>
+      </View>
       {tags.length > 0 ? (
         <>
           <Text style={styles.muted}>{c.tagFilter}</Text>
@@ -172,7 +185,9 @@ export function ClientsScreen(props: {
           <Text style={styles.muted}>{t.loading}</Text>
         ) : null
       ) : list.length === 0 ? (
-        <Text style={styles.muted}>{inactiveDays ? c.inactiveNone : c.none}</Text>
+        <Text style={styles.muted}>
+          {birthdays ? c.birthdaysNone : inactiveDays ? c.inactiveNone : c.none}
+        </Text>
       ) : (
         <>
           {!searched && list.length >= PAGE ? (
@@ -191,6 +206,12 @@ export function ClientsScreen(props: {
                 {client.phone || client.email ? (
                   <Text style={styles.muted}>
                     {[client.phone, client.email].filter(Boolean).join(' · ')}
+                  </Text>
+                ) : null}
+                {client.birthday ? (
+                  <Text style={styles.muted}>
+                    🎂{' '}
+                    {birthdayText(client.birthday, props.locale, c.birthdayToday, props.timeZone)}
                   </Text>
                 ) : null}
                 {client.tags && client.tags.length > 0 ? (

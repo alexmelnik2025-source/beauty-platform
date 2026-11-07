@@ -7,16 +7,19 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 240: the client's birthday (day and month, no year) in the cabinet card, and "Urodziny w
- * ciągu 7 dni" above the client list — soonest first, with the date. Screenshots 240 and 240-a.
+ * ciągu 7 dni" above the client list — soonest first, with the date. Screenshots 240 and 240-a; the
+ * business app shows the same list and the birthday in the card (240-b).
  */
 
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `birthday-owner-${run}@example.com`;
 const DESKTOP = { width: 1280, height: 900 };
+const PHONE = { width: 390, height: 844 };
 /** The salon's own address: the API limits sign-ups and sign-ins per address. */
 const OWNER_IP = freshAddress();
 
@@ -135,4 +138,39 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await filter.click();
   await expect(rows).toHaveCount(4);
   await context.close();
+
+  // Business app (task 240b).
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const phone = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      isMobile: true,
+      extraHTTPHeaders: freshAddress(),
+    });
+    const app = await phone.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Klienci' }).click();
+    await expect(app.getByText('Ewa Wiśniewska')).toBeVisible();
+    await app.getByRole('switch', { name: /Urodziny w ciągu 7 dni/ }).click();
+    await expect(app.getByText('Ewa Wiśniewska')).toHaveCount(0);
+    await expect(app.getByText('Piotr Zieliński')).toHaveCount(0);
+    const cards = app.getByRole('button', { name: /^Karta klienta: / });
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(0)).toContainText('Adam Nowak');
+    await expect(cards.nth(1)).toContainText('Jan Kowalski');
+    await shot(app, '240-b-business-app-birthdays');
+    await app.getByRole('switch', { name: /Urodziny w ciągu 7 dni/ }).click();
+    await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
+    await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();
+    await phone.close();
+  } finally {
+    businessApp.server.close();
+  }
 });

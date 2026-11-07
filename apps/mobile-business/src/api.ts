@@ -534,11 +534,14 @@ export class BusinessApi {
     limit = 50,
     inactiveDays = 0,
     tag = '',
+    birthdayDays = 0,
   ): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
     if (search.trim()) query.set('search', search.trim());
     if (inactiveDays) query.set('inactiveDays', String(inactiveDays));
     if (tag) query.set('tag', tag);
+    // Task 240: only birthdays in the next `birthdayDays` days, soonest first.
+    if (birthdayDays) query.set('birthdayDays', String(birthdayDays));
     return this.authed<CustomerList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,

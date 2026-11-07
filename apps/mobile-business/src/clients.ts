@@ -113,3 +113,27 @@ export function dateIn(iso: string, timeZone: string, locale: DayLocale): string
     year: 'numeric',
   }).format(new Date(iso));
 }
+
+/**
+ * Task 240: "MM-DD" (no year) → "15 marca", or "dziś" when it is today in the salon's time zone.
+ */
+export function birthdayText(
+  birthday: string,
+  locale: DayLocale,
+  todayWord: string,
+  timeZone: string,
+  now = new Date(),
+): string {
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  if (birthday === today) return todayWord;
+  const [month, day] = birthday.split('-').map(Number) as [number, number];
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(Date.UTC(2000, month - 1, day)));
+}
