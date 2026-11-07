@@ -200,6 +200,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/time-off')) return { start: `${DATE}T09:00`, end: `${DATE}T10:00` };
   if (p.endsWith('/services/:serviceId/staff')) return { staffIds: [] };
   if (p.endsWith('/staff/order')) return { staffIds: [currentIds?.staffId] };
+  if (p.endsWith('/services/order')) return { serviceIds: [currentIds?.serviceId] };
   if (p.endsWith('/staff/:staffId/services')) return { serviceIds: [] };
   if (p.endsWith('/staff/:staffId')) return { version: 1, displayName: 'Hacked' };
   if (p.endsWith('/staff')) return { displayName: 'Hacked' };
