@@ -2262,3 +2262,12 @@ e2e и скриншоты 245, 245-a — `client-birthday.spec.ts`.
 (мастер без права на историю — только по своим). Только подсказка, без рассылок. API: `summary.rhythmDays` в
 `GET …/customers/:id`. Тест: `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 250, 250-a —
 `client-birthday.spec.ts`.
+
+## Порядок и названия категорий (задачи 254, 255)
+
+В кабинете («Usługi») у каждой категории стрелки ↑ / ↓ и «Zmień nazwę»; в бизнес-приложении («Usługi») — те же ↑ / ↓
+у заголовка категории. В этом порядке клиенты видят группы прайс-листа на странице записи и в приложениях. API:
+`PUT /v1/organizations/:orgId/locations/:locationId/service-categories/order` с `categoryIds` — каждая категория
+салона ровно один раз (как порядок услуг, задача 252); только владелец и менеджер. Новая категория встаёт в конец
+заданного порядка (кабинет больше не передаёт `sortOrder`). Тест: `apps/api/test/category-order.spec.ts`; e2e и
+скриншоты 254 (`category-order.spec.ts`) и 255 (`services-app.spec.ts`).
