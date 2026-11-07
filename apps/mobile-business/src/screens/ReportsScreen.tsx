@@ -67,6 +67,8 @@ export function ReportsScreen(props: {
   const [overdueOpen, setOverdueOpen] = useState(false);
   // Task 265: "Pokaż, kto nie przyszedł" opens the client list with "Nie przyszli" on.
   const [noShowsOpen, setNoShowsOpen] = useState(false);
+  // Task 271: "Pokaż, kto był tylko raz" opens the client list with "Byli tylko raz" on.
+  const [onceOpen, setOnceOpen] = useState(false);
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
   const range = reportRange(period, today);
@@ -145,6 +147,20 @@ export function ReportsScreen(props: {
       {sub ? <Text style={styles.small}>{sub}</Text> : null}
     </View>
   );
+
+  if (onceOpen) {
+    return (
+      <ClientsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        once
+        onBack={() => setOnceOpen(false)}
+      />
+    );
+  }
 
   if (noShowsOpen) {
     return (
@@ -717,6 +733,15 @@ export function ReportsScreen(props: {
                 onPress={() => setNoShowsOpen(true)}
               />
               <Text style={styles.small}>{r.noShowClientsHint}</Text>
+            </View>
+          ) : null}
+          {shown.scope !== 'own' && shown.onceClients > 0 ? (
+            <View style={{ gap: 6 }} testID="report-once">
+              <Text style={styles.section}>
+                👋 {fill(r.onceClients, { n: String(shown.onceClients) })}
+              </Text>
+              <Button kind="link" label={r.onceClientsList} onPress={() => setOnceOpen(true)} />
+              <Text style={styles.small}>{r.onceClientsHint}</Text>
             </View>
           ) : null}
           {shown.scope !== 'own' && shown.marketing.clients > 0 ? (

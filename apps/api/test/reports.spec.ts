@@ -576,6 +576,31 @@ describe('salon report', () => {
     expect((await report(kasiaUser.auth).expect(200)).body.noShowClients).toBe(0);
   });
 
+  it('"Byli tylko raz": clients who came once and did not come back, today whatever the period (task 271)', async () => {
+    // Jan came once, 40 days ago (two services that day are one visit).
+    await visit({ date: addDays(today, -40), status: 'completed' });
+    await visit({ date: addDays(today, -40), status: 'completed' });
+    // Ewa came twice.
+    await visit({ date: addDays(today, -90), email: 'ewa@example.com', status: 'completed' });
+    await visit({ date: addDays(today, -60), email: 'ewa@example.com', status: 'completed' });
+    // Adam came once, 50 days ago, but is booked again.
+    await visit({ date: addDays(today, -50), email: 'adam@example.com', status: 'completed' });
+    await visit({ date: addDays(today, 5), email: 'adam@example.com', status: 'confirmed' });
+    // Ola came once, but only 10 days ago — still new.
+    await visit({ date: addDays(today, -10), email: 'ola@example.com', status: 'completed' });
+
+    expect((await report().expect(200)).body.onceClients).toBe(1);
+    const lastYear = { from: addDays(today, -400), to: addDays(today, -380) };
+    expect((await report(owner.auth, lastYear).expect(200)).body.onceClients).toBe(1);
+
+    // Not in a specialist's own report.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    expect((await report(kasiaUser.auth).expect(200)).body.onceClients).toBe(0);
+  });
+
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {
     const d1 = addDays(today, -5);
     const d2 = addDays(today, -2);

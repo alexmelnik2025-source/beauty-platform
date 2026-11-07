@@ -366,6 +366,12 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 265: clients of this salon who did not come (no-show) at least once in the last 365 days, as of now whatever the period; 0 in a specialist own report',
       ),
+    onceClients: z
+      .number()
+      .int()
+      .describe(
+        'Task 271: clients of this salon who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, as of now whatever the period; 0 in a specialist own report',
+      ),
   }),
 );
 

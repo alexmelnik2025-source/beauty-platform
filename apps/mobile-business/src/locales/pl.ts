@@ -502,6 +502,10 @@ export const pl = {
     noShowClientsList: 'Pokaż, kto nie przyszedł',
     noShowClientsHint:
       'Klienci salonu, którzy w ostatnich 12 miesiącach co najmniej raz nie przyszli na umówioną wizytę — stan na dziś, niezależnie od okresu.',
+    onceClients: 'Byli tylko raz: {n}',
+    onceClientsList: 'Pokaż, kto był tylko raz',
+    onceClientsHint:
+      'Klienci salonu, którzy byli tylko na jednej wizycie (od miesiąca do roku temu) i nie mają kolejnej rezerwacji — stan na dziś, niezależnie od okresu.',
     returnIntervalCount: 'zwykle co {median} dni · średnio {average} · powroty: {n}',
     returnIntervalHint: 'Dni między kolejnymi wizytami tego samego klienta. „Zwykle” to mediana.',
     marketing: 'Zgody na wiadomości: {n}%',

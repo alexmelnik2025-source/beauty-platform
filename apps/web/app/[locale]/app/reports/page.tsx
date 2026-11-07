@@ -681,6 +681,16 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report && report.scope !== 'own' && report.onceClients > 0 ? (
+              <section className="section" data-testid="report-once">
+                <h2>👋 {fill(t.reports.onceClients, { n: String(report.onceClients) })}</h2>
+                <p className="small">
+                  <Link href={`/${locale}/app/clients?once=1`}>{t.reports.onceClientsList}</Link>
+                </p>
+                <p className="small muted">{t.reports.onceClientsHint}</p>
+              </section>
+            ) : null}
+
             {report && report.scope !== 'own' && report.marketing.clients > 0 ? (
               <section className="section" data-testid="report-marketing">
                 <h2>

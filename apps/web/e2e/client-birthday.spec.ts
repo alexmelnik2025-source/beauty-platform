@@ -25,6 +25,7 @@ import { serveApp } from './mobile-app';
  * Task 263: "Pora wrócić: N" in the report, with a link to that list (263, 263-a).
  * Task 269: the owner downloads all clients as CSV in the business app (269).
  * Task 270: "Byli tylko raz" — clients who came once, a month to a year ago (270, 270-a).
+ * Task 271: "Byli tylko raz: N" in the report, with a link to that list (271, 271-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -410,6 +411,20 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText('Ewa Wiśniewska');
   await shot(page, '270-clients-once');
+  // Task 271: the report counts Ewa and links to the list.
+  await page.goto('/pl/app/reports');
+  const onceReport = page.getByTestId('report-once');
+  await expect(onceReport).toContainText('Byli tylko raz: 1');
+  await onceReport.scrollIntoViewIfNeeded();
+  await shot(page, '271-report-once');
+  await onceReport.getByRole('link', { name: 'Pokaż, kto był tylko raz' }).click();
+  await page.waitForURL(/\/pl\/app\/clients\?once=1/);
+  await expect(page.getByRole('button', { name: /Byli tylko raz/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Ewa Wiśniewska');
   await context.close();
 
   // Business app (task 240b).
@@ -531,6 +546,16 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(app.getByRole('switch', { name: /Nie przyszli/ })).toBeVisible();
     await expect(cards).toHaveCount(1);
     await expect(cards.nth(0)).toContainText('Adam Nowak');
+    // Task 271 in the app: "Byli tylko raz: 1" in the report opens the list with Ewa.
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    const appOnce = app.getByTestId('report-once');
+    await expect(appOnce).toContainText('Byli tylko raz: 1');
+    await appOnce.scrollIntoViewIfNeeded();
+    await shot(app, '271-a-business-app-report-once');
+    await app.getByRole('button', { name: 'Pokaż, kto był tylko raz' }).click();
+    await expect(app.getByRole('switch', { name: /Byli tylko raz/ })).toBeVisible();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Ewa Wiśniewska');
     await phone.close();
   } finally {
     businessApp.server.close();

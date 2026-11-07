@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { forbidden } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
-import { dueToComeBack, missedVisits } from '../booking/customers.service';
+import { cameOnce, dueToComeBack, missedVisits } from '../booking/customers.service';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -419,6 +419,11 @@ export class ReportsService {
       noShowClients: own
         ? 0
         : (await missedVisits(this.prisma, { locationId, customer: { anonymizedAt: null } })).size,
+      // Task 271: clients who came once and did not come back, as of today; not in a
+      // specialist's own report.
+      onceClients: own
+        ? 0
+        : (await cameOnce(this.prisma, { locationId, customer: { anonymizedAt: null } })).size,
     };
   }
 

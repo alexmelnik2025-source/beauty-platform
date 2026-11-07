@@ -1410,6 +1410,10 @@ export const en: Dict = {
     noShowClientsList: 'Show who did not come',
     noShowClientsHint:
       'Clients of the salon who missed a booked visit at least once in the last 12 months — as of today, whatever the period.',
+    onceClients: 'Came only once: {n}',
+    onceClientsList: 'Show who came only once',
+    onceClientsHint:
+      'Clients of the salon who came to one visit only (between a month and a year ago) and have nothing booked — as of today, whatever the period.',
     returnIntervalCount: 'usually every {median} days · on average {average} · returns: {n}',
     returnIntervalHint:
       'Days between two visits in a row of the same client (on different days) when the later one was in this period. “Usually” is the median. By specialist — returns to them. Helps choose after how many days to send “Time for your next visit”.',
