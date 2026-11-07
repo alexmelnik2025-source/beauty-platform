@@ -179,6 +179,44 @@ export const customerTagsSchema = responseSchema(
 );
 export type CustomerTagsResponse = z.infer<typeof customerTagsSchema>;
 
+/** Task 273: how many clients each quick filter above the client list would show. */
+export const customerSegmentsSchema = responseSchema(
+  'CustomerSegments',
+  z.strictObject({
+    birthdays: z
+      .number()
+      .int()
+      .nullable()
+      .describe(
+        'Clients with a birthday in the next 7 days (today included); null without the permission to see client contacts',
+      ),
+    consented: z
+      .number()
+      .int()
+      .nullable()
+      .describe(
+        'Clients whose latest answer about the salon messages is "yes"; null without the permission to see client contacts',
+      ),
+    newcomers: z
+      .number()
+      .int()
+      .describe('Clients whose first visit that took place was in the last 30 days'),
+    overdue: z
+      .number()
+      .int()
+      .describe('Clients past their usual time to come back, with nothing booked ahead'),
+    noShows: z
+      .number()
+      .int()
+      .describe('Clients who did not come at least once in the last 365 days'),
+    once: z
+      .number()
+      .int()
+      .describe('Clients who came on one day only, 30–365 days ago, with nothing booked ahead'),
+  }),
+);
+export type CustomerSegmentsResponse = z.infer<typeof customerSegmentsSchema>;
+
 export const customerDetailSchema = responseSchema(
   'CustomerDetail',
   customerSchema.extend({

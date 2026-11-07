@@ -6660,6 +6660,34 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/customers/segments": {
+      "get": {
+        "description": "Task 273: the numbers next to the filters (Nowi, Pora wrócić, Nie przyszli, Byli tylko raz, Urodziny, Zgoda). Birthdays and consents are null without the permission to see client contacts.",
+        "operationId": "CustomersController_segments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSegments"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How many clients each quick filter of the client list would show",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/customers/{customerId}": {
       "get": {
         "description": "Staff members: clients they have (had) an appointment with; contacts, history and notes depend on their permissions.",
@@ -16638,6 +16666,58 @@
           ],
           "additionalProperties": false
         }
+      },
+      "CustomerSegments": {
+        "type": "object",
+        "properties": {
+          "birthdays": {
+            "nullable": true,
+            "description": "Clients with a birthday in the next 7 days (today included); null without the permission to see client contacts",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "consented": {
+            "nullable": true,
+            "description": "Clients whose latest answer about the salon messages is \"yes\"; null without the permission to see client contacts",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "newcomers": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Clients whose first visit that took place was in the last 30 days"
+          },
+          "overdue": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Clients past their usual time to come back, with nothing booked ahead"
+          },
+          "noShows": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Clients who did not come at least once in the last 365 days"
+          },
+          "once": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Clients who came on one day only, 30–365 days ago, with nothing booked ahead"
+          }
+        },
+        "required": [
+          "birthdays",
+          "consented",
+          "newcomers",
+          "overdue",
+          "noShows",
+          "once"
+        ],
+        "additionalProperties": false
       },
       "CustomerTags": {
         "type": "object",

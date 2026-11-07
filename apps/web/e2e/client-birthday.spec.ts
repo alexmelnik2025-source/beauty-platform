@@ -408,6 +408,12 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await page.goto('/pl/app/clients');
   await expect(rows).toHaveCount(5);
   const once = page.getByRole('button', { name: /Byli tylko raz/ });
+  // Task 273: next to each filter — how many clients it would show (Ewa; Adam did not come).
+  await expect(once.locator('.segment-count')).toHaveText('1');
+  await expect(
+    page.getByRole('button', { name: /Nie przyszli/ }).locator('.segment-count'),
+  ).toHaveText('1');
+  await shot(page, '273-clients-segment-counts');
   await once.click();
   await expect(once).toHaveAttribute('aria-pressed', 'true');
   await expect(rows).toHaveCount(1);

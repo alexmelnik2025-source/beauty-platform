@@ -84,6 +84,7 @@ export type AppointmentDetail = Schemas['AppointmentDetail'];
 export type Customer = Schemas['Customer'];
 export type CustomerDetail = Schemas['CustomerDetail'];
 export type CustomerTags = Schemas['CustomerTags'];
+export type CustomerSegments = Schemas['CustomerSegments'];
 export type TimeBlock = Schemas['TimeBlock'];
 /** Blocks made at once as "every week" (`POST …/time-blocks/series`). */
 export type TimeBlockSeries = Schemas['TimeBlockSeries'];

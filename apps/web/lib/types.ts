@@ -61,6 +61,7 @@ export type {
   GuardedClients,
   Customer,
   CustomerDetail,
+  CustomerSegments,
   CustomerTags,
   ClientAppointment,
   ClientLoyalty,

@@ -10,7 +10,7 @@ import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
-import type { Customer, CustomerDetail, CustomerTags } from '@/lib/types';
+import type { Customer, CustomerDetail, CustomerSegments, CustomerTags } from '@/lib/types';
 
 type ClientRow = Customer;
 
@@ -30,6 +30,8 @@ export default function ClientsPage() {
   // Task 224: only clients with this label; '' = everyone.
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState<CustomerTags['tags']>([]);
+  // Task 273: how many clients each quick filter would show (null until loaded or on an error).
+  const [segments, setSegments] = useState<CustomerSegments | null>(null);
   // Task 240: only clients with a birthday in the next 7 days.
   const [birthdays, setBirthdays] = useState(false);
   // Task 245: only clients who agreed to the salon messages.
@@ -139,9 +141,22 @@ export default function ClientsPage() {
     }
   }, [orgId]);
 
+  /** Task 273: the numbers next to the quick filters (refreshed after a card is saved). */
+  const loadSegments = useCallback(async () => {
+    try {
+      setSegments(await api<CustomerSegments>(`/v1/organizations/${orgId}/customers/segments`));
+    } catch {
+      setSegments(null);
+    }
+  }, [orgId]);
+
   useEffect(() => {
     void loadTags();
   }, [loadTags]);
+
+  useEffect(() => {
+    void loadSegments();
+  }, [loadSegments]);
 
   /** Task 21: the owner downloads all clients as a CSV file (column names in the cabinet language). */
   async function exportCsv(): Promise<void> {
@@ -227,7 +242,7 @@ export default function ClientsPage() {
                 aria-pressed={birthdays}
                 onClick={() => setBirthdays(!birthdays)}
               >
-                🎂 {t.clients.birthdays}
+                🎂 {t.clients.birthdays} <SegmentCount value={segments?.birthdays} />
               </button>
               <button
                 type="button"
@@ -235,7 +250,7 @@ export default function ClientsPage() {
                 title={t.clients.consentedHint}
                 onClick={() => setConsented(!consented)}
               >
-                ✉️ {t.clients.consented}
+                ✉️ {t.clients.consented} <SegmentCount value={segments?.consented} />
               </button>
             </>
           ) : null}
@@ -245,7 +260,7 @@ export default function ClientsPage() {
             title={t.clients.newcomersHint}
             onClick={() => setNewcomers(!newcomers)}
           >
-            🌱 {t.clients.newcomers}
+            🌱 {t.clients.newcomers} <SegmentCount value={segments?.newcomers} />
           </button>
           <button
             type="button"
@@ -253,7 +268,7 @@ export default function ClientsPage() {
             title={t.clients.overdueHint}
             onClick={() => setOverdue(!overdue)}
           >
-            ⏰ {t.clients.overdue}
+            ⏰ {t.clients.overdue} <SegmentCount value={segments?.overdue} />
           </button>
           <button
             type="button"
@@ -261,7 +276,7 @@ export default function ClientsPage() {
             title={t.clients.noShowsHint}
             onClick={() => setNoShows(!noShows)}
           >
-            🚫 {t.clients.noShows}
+            🚫 {t.clients.noShows} <SegmentCount value={segments?.noShows} />
           </button>
           <button
             type="button"
@@ -269,7 +284,7 @@ export default function ClientsPage() {
             title={t.clients.onceHint}
             onClick={() => setOnce(!once)}
           >
-            👋 {t.clients.once}
+            👋 {t.clients.once} <SegmentCount value={segments?.once} />
           </button>
         </div>
         {newcomers ? <p className="small muted">{t.clients.newcomersHint}</p> : null}
@@ -355,11 +370,18 @@ export default function ClientsPage() {
             setOpen(null);
             void load();
             void loadTags();
+            void loadSegments();
           }}
         />
       ) : null}
     </>
   );
+}
+
+/** Task 273: the number of clients a quick filter would show, after its name. */
+function SegmentCount({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) return null;
+  return <span className="muted segment-count">{value}</span>;
 }
 
 /** "vip, , broda " → ['vip', 'broda'] (the server keeps at most 10 labels of 30 characters). */

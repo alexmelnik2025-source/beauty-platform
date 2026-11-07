@@ -1524,6 +1524,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/customers/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How many clients each quick filter of the client list would show
+         * @description Task 273: the numbers next to the filters (Nowi, Pora wrócić, Nie przyszli, Byli tylko raz, Urodziny, Zgoda). Birthdays and consents are null without the permission to see client contacts.
+         */
+        get: operations["CustomersController_segments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/customers/{customerId}": {
         parameters: {
             query?: never;
@@ -4300,6 +4320,20 @@ export interface components {
             version: number;
             createdAt: string;
         }[];
+        CustomerSegments: {
+            /** @description Clients with a birthday in the next 7 days (today included); null without the permission to see client contacts */
+            birthdays: number | null;
+            /** @description Clients whose latest answer about the salon messages is "yes"; null without the permission to see client contacts */
+            consented: number | null;
+            /** @description Clients whose first visit that took place was in the last 30 days */
+            newcomers: number;
+            /** @description Clients past their usual time to come back, with nothing booked ahead */
+            overdue: number;
+            /** @description Clients who did not come at least once in the last 365 days */
+            noShows: number;
+            /** @description Clients who came on one day only, 30–365 days ago, with nothing booked ahead */
+            once: number;
+        };
         CustomerTags: {
             /** @description Most used first, then alphabetically; at most 50. Empty when the caller may not see notes and tags */
             tags: {
@@ -9104,6 +9138,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerTags"];
+                };
+            };
+        };
+    };
+    CustomersController_segments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerSegments"];
                 };
             };
         };

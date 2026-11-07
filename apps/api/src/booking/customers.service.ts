@@ -13,6 +13,7 @@ import type {
 import type {
   CustomerDetailResponse,
   CustomerResponse,
+  CustomerSegmentsResponse,
   CustomerTagsResponse,
 } from './booking.responses';
 
@@ -182,16 +183,7 @@ export class CustomersService {
     query: ListCustomersQuery,
   ): Promise<CustomerResponse[]> {
     if (!m.permissions.viewClientContacts) return [];
-    const location = await this.prisma.location.findFirst({
-      where: {
-        organizationId: m.organizationId,
-        ...(m.role === 'owner' ? {} : { id: { in: m.locationIds } }),
-      },
-      orderBy: { createdAt: 'asc' },
-      select: { timezone: true },
-    });
-    const today = instantToLocal(Date.now(), location?.timezone ?? 'Europe/Warsaw').date;
-    const days = birthdayWindow(today, query.birthdayDays ?? 1);
+    const days = birthdayWindow(await this.today(m), query.birthdayDays ?? 1);
     const rows = await this.prisma.customer.findMany({
       where: {
         AND: [
@@ -216,6 +208,45 @@ export class CustomersService {
       .sort((a, b) => days.get(a.birthday!)! - days.get(b.birthday!)!)
       .slice(0, query.limit)
       .map((c) => toCustomer(c, m));
+  }
+
+  /** Task 240: today in the caller's first salon (the order of the salons in the cabinet). */
+  private async today(m: MembershipContext): Promise<string> {
+    const location = await this.prisma.location.findFirst({
+      where: {
+        organizationId: m.organizationId,
+        ...(m.role === 'owner' ? {} : { id: { in: m.locationIds } }),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { timezone: true },
+    });
+    return instantToLocal(Date.now(), location?.timezone ?? 'Europe/Warsaw').date;
+  }
+
+  /**
+   * Task 273: how many clients each quick filter above the client list would show — the same
+   * rules and visibility as the filters themselves (`list`), without the search and label.
+   * Birthdays and consents are contact details: null without the permission to see them.
+   */
+  async segments(m: MembershipContext): Promise<CustomerSegmentsResponse> {
+    const visible = await this.visibleTo(m, null);
+    const count = (where: Prisma.CustomerWhereInput) =>
+      this.prisma.customer.count({ where: { AND: [visible, { anonymizedAt: null }, where] } });
+    const among = (ids: Iterable<string>) => count({ id: { in: [...ids] } });
+    const contacts = m.permissions.viewClientContacts;
+    const [birthdays, consented, newcomers, overdue, noShows, once] = await Promise.all([
+      contacts
+        ? this.today(m).then((today) =>
+            count({ birthday: { in: [...birthdayWindow(today, 7).keys()] } }),
+          )
+        : null,
+      contacts ? this.consented(m.organizationId).then(among) : null,
+      this.newcomers(m, 30).then((ids) => among(ids.keys())),
+      this.overdue(m).then((ids) => among(ids.keys())),
+      this.noShows(m).then((ids) => among(ids.keys())),
+      this.once(m).then((ids) => among(ids.keys())),
+    ]);
+    return { birthdays, consented, newcomers, overdue, noShows, once };
   }
 
   /**

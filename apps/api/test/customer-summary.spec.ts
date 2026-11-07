@@ -581,3 +581,104 @@ describe('"Byli raz" (task 270)', () => {
     expect(await names('once=yes')).toEqual(['Jan Nowak']);
   });
 });
+
+describe('numbers next to the quick filters (task 273)', () => {
+  async function client(name: string, phone: string, birthday?: string): Promise<string> {
+    return (
+      await ctx
+        .http()
+        .post(customersBase)
+        .set(owner.auth)
+        .send({ name, phone, ...(birthday ? { birthday } : {}) })
+        .expect(201)
+    ).body.id;
+  }
+
+  const segments = async (auth: Record<string, string>, path = customersBase) => {
+    const res = await ctx.http().get(`${path}/segments`).set(auth).expect(200);
+    expect(
+      registeredResponseSchema('CustomerSegments').safeParse(res.body).error?.issues ?? [],
+    ).toEqual([]);
+    return res.body;
+  };
+
+  /** Two days ahead (UTC) — inside the 7-day window whatever the salon's time zone. */
+  const soon = () => new Date(Date.now() + 2 * DAY).toISOString().slice(5, 10);
+
+  it('counts each filter with the same rules as the list; managers only their salons', async () => {
+    // Jan: did not come 40 days ago, came 10 days ago — new (first visit that took place) and a no-show.
+    const missed = await pastVisit(kasiaId, 40, false);
+    await ctx.prisma.appointment.update({ where: { id: missed }, data: { status: 'no_show' } });
+    await pastVisit(kasiaId, 10);
+    // Piotr: came once, 100 days ago.
+    customerId = await client('Piotr Raz', '+48600000003');
+    await pastVisit(tomekId, 100);
+    // Adam: every 20 days, last 30 days ago — due.
+    customerId = await client('Adam Stały', '+48600000004');
+    await pastVisit(kasiaId, 70);
+    await pastVisit(kasiaId, 50);
+    await pastVisit(kasiaId, 30);
+    // Ewa: no visits, a birthday soon, agreed to the salon messages.
+    const ewa = await client('Ewa Urodziny', '+48600000005', soon());
+    await ctx.prisma.consentRecord.create({
+      data: { customerId: ewa, type: 'marketing', version: 'test', granted: true },
+    });
+    // Erased clients are not counted.
+    const gone = await client('Usunięta', '+48600000006', soon());
+    await ctx
+      .http()
+      .post(`${customersBase}/${gone}/anonymize`)
+      .set(owner.auth)
+      .send({ version: 1 })
+      .expect(200);
+
+    expect(await segments(owner.auth)).toEqual({
+      birthdays: 1,
+      consented: 1,
+      newcomers: 1,
+      overdue: 1,
+      noShows: 1,
+      once: 1,
+    });
+    // The numbers match the lists.
+    const count = async (query: string) =>
+      (await ctx.http().get(`${customersBase}?${query}`).set(owner.auth).expect(200)).body.length;
+    expect(await count('newDays=30')).toBe(1);
+    expect(await count('overdue=yes')).toBe(1);
+    expect(await count('noShows=yes')).toBe(1);
+    expect(await count('once=yes')).toBe(1);
+    expect(await count('birthdayDays=7')).toBe(1);
+    expect(await count('marketing=yes')).toBe(1);
+    // A manager sees only clients with visits in their salons: Ewa has none.
+    expect(await segments(manager.auth)).toEqual({
+      birthdays: 0,
+      consented: 0,
+      newcomers: 1,
+      overdue: 1,
+      noShows: 1,
+      once: 1,
+    });
+    // Specialists do not get the client list.
+    await ctx.http().get(`${customersBase}/segments`).set(kasia.auth).expect(403);
+  });
+
+  it("another organization's clients do not leak", async () => {
+    await pastVisit(kasiaId, 45);
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const other = await createOrgWithLocation(ctx, stranger, 'Inny');
+    expect(await segments(stranger.auth, `/v1/organizations/${other.orgId}/customers`)).toEqual({
+      birthdays: 0,
+      consented: 0,
+      newcomers: 0,
+      overdue: 0,
+      noShows: 0,
+      once: 0,
+    });
+    await ctx
+      .http()
+      .get(`/v1/organizations/${other.orgId}/customers/segments`)
+      .set(owner.auth)
+      .expect(404);
+    expect((await segments(owner.auth)).once).toBe(1);
+  });
+});

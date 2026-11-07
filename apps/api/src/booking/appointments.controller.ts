@@ -54,8 +54,10 @@ import {
   appointmentListSchema,
   customerDetailSchema,
   customerListSchema,
+  customerSegmentsSchema,
   customerTagsSchema,
   visitCouponsSchema,
+  type CustomerSegmentsResponse,
   type CustomerTagsResponse,
 } from './booking.responses';
 import {
@@ -466,6 +468,18 @@ export class CustomersController {
   @ApiZodResponse(customerTagsSchema)
   tags(@CurrentMembership() m: MembershipContext): Promise<CustomerTagsResponse> {
     return this.customers.tags(m);
+  }
+
+  @Get('segments')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'How many clients each quick filter of the client list would show',
+    description:
+      'Task 273: the numbers next to the filters (Nowi, Pora wrócić, Nie przyszli, Byli tylko raz, Urodziny, Zgoda). Birthdays and consents are null without the permission to see client contacts.',
+  })
+  @ApiZodResponse(customerSegmentsSchema)
+  segments(@CurrentMembership() m: MembershipContext): Promise<CustomerSegmentsResponse> {
+    return this.customers.segments(m);
   }
 
   @Get(':customerId')
