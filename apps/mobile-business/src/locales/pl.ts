@@ -214,6 +214,13 @@ export const pl = {
     missedHint:
       'Klienci, którzy w ostatnich 12 miesiącach co najmniej raz nie przyszli na umówioną wizytę — ostatnia nieobecność na górze.',
     missedNone: 'W ostatnich 12 miesiącach wszyscy przychodzili na wizyty.',
+    // Task 269: the owner downloads all clients.
+    csv: 'Pobierz CSV klientów',
+    csvHint:
+      'Wszyscy klienci sieci w pliku dla Excela: kontakty, zgody, wizyty, nieobecności, następna wizyta i ile zapłacili. Pobranie zapisuje się w historii zmian.',
+    csvHintPhone:
+      'Wszyscy klienci sieci (z kontaktami) — wyślij plik tylko sobie: e-mailem lub do notatek. Pobranie zapisuje się w historii zmian.',
+    csvFailed: 'Nie udało się zapisać pliku.',
     consentedNone: 'Nikt jeszcze nie zgodził się na wiadomości od salonu.',
     birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',
     birthday: 'Urodziny',

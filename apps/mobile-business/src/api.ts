@@ -901,7 +901,20 @@ export class BusinessApi {
     return this.reportCsv('till', orgId, locationId, from, to, locale);
   }
 
-  private async reportCsv(
+  /**
+   * Task 269: every client of the network as a CSV file — the same file as "Pobierz CSV" in the
+   * cabinet's client list (contacts, consent, visits, no-shows, the next visit, what they paid).
+   * Owners only (the server checks it); every download is written to the audit log.
+   */
+  clientsCsv(orgId: string, locale: Locale): Promise<CsvFile> {
+    const query = new URLSearchParams({ lang: locale }).toString();
+    return this.csvFile(
+      `/v1/organizations/${enc(orgId)}/customers/export.csv?${query}`,
+      'klienci.csv',
+    );
+  }
+
+  private reportCsv(
     file: 'visits' | 'till',
     orgId: string,
     locationId: string,
@@ -910,7 +923,14 @@ export class BusinessApi {
     locale: Locale,
   ): Promise<CsvFile> {
     const query = new URLSearchParams({ from, to, locale }).toString();
-    const path = `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/${file}-csv?${query}`;
+    return this.csvFile(
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/${file}-csv?${query}`,
+      `${file}-${from}-${to}.csv`,
+    );
+  }
+
+  /** Downloads a CSV file (signed in), keeping the server's file name. */
+  private async csvFile(path: string, fallbackName: string): Promise<CsvFile> {
     if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
     let res = await this.fetchCsv(path);
     if (res.status === 401 && (await this.refresh())) res = await this.fetchCsv(path);
@@ -925,7 +945,7 @@ export class BusinessApi {
       );
     }
     const disposition = res.headers.get('content-disposition') ?? '';
-    const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? `${file}-${from}-${to}.csv`;
+    const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallbackName;
     // Spreadsheet programs need the byte order mark to read UTF-8 (fetch may drop it).
     const csv = await res.text();
     return { fileName, csv: csv.startsWith('\uFEFF') ? csv : `\uFEFF${csv}` };
