@@ -2129,3 +2129,18 @@ e2e `client-a11y.spec.ts` открывает главную, каталог са
 компьютере и проверяет, что у каждой видимой кнопки и ссылки есть название (текст, `aria-label` или подписанная
 картинка) — как задача 230 для кабинета. Сейчас безымянных нет; новый значок без подписи уронит проверку. Окно фото
 салона уже закрывается Escape и возвращает фокус. Скриншот 234.
+
+## «Wpłata / wypłata» — деньги в кассу и из кассы (задача 236)
+
+В «Kasa dnia» (над календарём дня в кабинете и в дне бизнес-приложения) у владельца и менеджера есть «Wpłata /
+wypłata»: «Wpłata do kasy» (например, reszta na początek dnia) или «Wypłata z kasy» (ręczniki, do banku) — сумма и
+обязательный «Powód». Под полосой — список за день: «wypłata 10,00 zł · Ręczniki (Anna, 14:05)» и «Usuń» для ошибки.
+«Zamknij kasę» (задача 232) теперь сравнивает посчитанное с тем, что должно быть в кассе: наличные за визиты + wpłaty −
+wypłaty («Powinno być w kasie: 80,00 zł (za wizyty gotówką 90,00 zł, wpłaty 0,00 zł, wypłaty 10,00 zł)»); в закрытой
+кассе и в «Zamknięcia kasy» отчёта — «powinno być». Если после закрытия добавили или убрали движение, видно «Od
+zamknięcia zmieniły się płatności gotówką lub wpłaty i wypłaty». Мастер этого не видит и не может (403), будущий день —
+409 `DAY_NOT_STARTED`. Только отметка — платёжных систем нет. API: `POST …/reports/till-movements` (`{ date, kind:
+"in"|"out", amountGrosze, note }`), `DELETE …/reports/till-movements/:movementId`; в `GET …/reports/till-close` — поля
+`visitsCashGrosze`, `cashInGrosze`, `cashOutGrosze`, `movements`; таблица `till_movement` (миграция
+`20261107100000_till_movement`). Тесты `apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/tillClose.test.ts`,
+`api.test.ts`; e2e `till-close.spec.ts` (скриншоты 236, 236-a).
