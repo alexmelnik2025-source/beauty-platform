@@ -121,7 +121,7 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await page.goto('/pl/app/clients');
 
   const rows = page.locator('.list-row');
-  const order = page.getByLabel('Kolejność', { exact: true });
+  const order = page.getByTestId('clients-sort');
   await expect(rows).toHaveCount(3);
   await expect(rows.nth(0)).toContainText('Adam Świeży');
   await expect(rows.nth(1)).toContainText('Basia Bez Wizyt');

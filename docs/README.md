@@ -2432,3 +2432,13 @@ e2e и скриншоты 273, 274 — `client-birthday.spec.ts`.
 …/customers?offset=N&limit=M` — пропустить первые N клиентов; клиенты с одинаковым именем идут в одном порядке от
 страницы к странице. Права те же. Тест: `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 277, 278 —
 `clients-more.spec.ts`.
+
+## «Kolejność» списка клиентов (задачи 279, 280)
+
+Над списком «Klienci» в кабинете — выбор «Kolejność»: по алфавиту (как раньше), «Ostatnia wizyta — najnowsze» (кто был
+недавно — сверху, клиенты без визитов — в конце) или «Najwięcej wizyt» (постоянные — сверху). Считаются только
+визиты, которые состоялись, в салонах, где работает пользователь (менеджер видит порядок по своему салону). Выбор
+сохраняется в адресе (`/app/clients?sort=visits`). Фильтры со своим порядком (Nowi, Pora wrócić, Nie przyszli, Byli
+tylko raz, Urodziny) его сохраняют — пока они включены, выбора нет. В бизнес-приложении — те же три кнопки. API: `GET
+…/customers?sort=name|recent|visits` (работает с поиском, тегом, «Kto dawno nie był» и `offset`). Тест:
+`apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 279, 280 — `clients-sort.spec.ts`.
