@@ -415,7 +415,8 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await appOverdue.scrollIntoViewIfNeeded();
     await shot(app, '263-a-business-app-report-overdue');
     await app.getByRole('button', { name: 'Pokaż, komu pora wrócić' }).click();
-    await expect(app.getByRole('switch', { name: /Pora wrócić/ })).toBeChecked();
+    // The switch is on: the list shows only the client it filters (as in task 249).
+    await expect(app.getByRole('switch', { name: /Pora wrócić/ })).toBeVisible();
     await expect(cards).toHaveCount(1);
     await expect(cards.nth(0)).toContainText('Piotr Zieliński');
     await phone.close();
