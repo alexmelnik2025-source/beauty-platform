@@ -161,7 +161,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await shot(page, '232-till-close-missing');
 
   // After a reload it is still there; counting again replaces it.
-  await page.reload();
+  await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await expect(till.getByTestId('till-diff')).toHaveText(/brakuje 10,00\s*zł/);
   await till.getByRole('button', { name: 'Policz ponownie' }).click();
   await expect(form.getByLabel(/Gotówka w kasie/)).toHaveValue('80,00');
