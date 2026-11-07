@@ -224,6 +224,14 @@ describe('salon report', () => {
     Object.assign(weekdays[isoWeekday(d1) - 1]!, { completed: 2, revenueGrosze: 14000 });
     Object.assign(weekdays[isoWeekday(d2) - 1]!, { completed: 2, noShow: 1, revenueGrosze: 5000 });
     expect(res.body.weekdays).toEqual(weekdays);
+    // Task 216: when visits start (every visit here is at 12:00), cancelled ones left out.
+    expect(res.body.busyHours).toEqual(
+      [
+        { weekday: isoWeekday(d1), hour: 12, visits: 2 },
+        { weekday: isoWeekday(d2), hour: 12, visits: 3 },
+        { weekday: isoWeekday(today), hour: 12, visits: 1 },
+      ].sort((a, b) => a.weekday - b.weekday),
+    );
     expect(res.body.previous).toEqual({
       from: addDays(from, -11),
       to: addDays(from, -1),

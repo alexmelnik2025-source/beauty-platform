@@ -99,6 +99,7 @@ export class ReportsService {
       ]),
     );
     const clients = new Set<string>();
+    const busy = new Map<string, { weekday: number; hour: number; visits: number }>();
     const byClient = new Map<string, { completed: number; revenueGrosze: number }>();
     const weekdays = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
       weekday,
@@ -126,6 +127,12 @@ export class ReportsService {
         else totals.cancelledBySalon++;
         continue;
       }
+      const hour = Math.floor(instantToLocal(a.startAt.getTime(), tz).minute / 60);
+      const cellKey = `${weekday.weekday}-${hour}`;
+      const cell =
+        busy.get(cellKey) ??
+        busy.set(cellKey, { weekday: weekday.weekday, hour, visits: 0 }).get(cellKey)!;
+      cell.visits++;
       if (a.source === 'online') totals.online++;
       if (a.status === 'confirmed') totals.upcoming++;
       if (a.status === 'no_show') {
@@ -206,6 +213,7 @@ export class ReportsService {
       occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
       ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
       topClients: own ? [] : await this.topClients(byClient),
+      busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
     };
   }
 

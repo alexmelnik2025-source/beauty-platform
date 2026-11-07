@@ -5262,6 +5262,15 @@ export interface components {
                 /** @description What their paid visits brought, in hundredths of the salon currency */
                 revenueGrosze: number;
             }[];
+            /** @description Task 216: "Godziny szczytu" — when visits start, only hours with visits */
+            busyHours: {
+                /** @description 1 = Monday … 7 = Sunday */
+                weekday: number;
+                /** @description Hour the visit starts at, 0–23, in the salon time zone */
+                hour: number;
+                /** @description Visits that were not cancelled */
+                visits: number;
+            }[];
         };
         SalonReview: {
             id: string;

@@ -50,3 +50,13 @@ export function starsText(average: number, locale: keyof typeof INTL_LOCALE): st
     maximumFractionDigits: 1,
   }).format(average);
 }
+
+/** Task 216: the busiest hours of the week, most visits first (then earlier in the week). */
+export function peakHours<T extends { weekday: number; hour: number; visits: number }>(
+  cells: T[],
+  count = 3,
+): T[] {
+  return [...cells]
+    .sort((a, b) => b.visits - a.visits || a.weekday - b.weekday || a.hour - b.hour)
+    .slice(0, count);
+}

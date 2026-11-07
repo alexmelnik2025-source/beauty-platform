@@ -137,6 +137,15 @@ export const salonReportSchema = responseSchema(
       .describe(
         "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report",
       ),
+    busyHours: z
+      .array(
+        z.strictObject({
+          weekday: z.number().int().describe('1 = Monday … 7 = Sunday'),
+          hour: z.number().int().describe('Hour the visit starts at, 0–23, in the salon time zone'),
+          visits: z.number().int().describe('Visits that were not cancelled'),
+        }),
+      )
+      .describe('Task 216: "Godziny szczytu" — when visits start, only hours with visits'),
   }),
 );
 

@@ -1285,6 +1285,9 @@ export const en: Dict = {
     colClient: 'Client',
     topClientsHint:
       'Up to 10 clients who brought the most in this period (paid visits), then came most often. Contact details are in “Clients”.',
+    busyHours: 'Peak hours',
+    busyHoursHint:
+      'How many visits start at each hour on each day of the week (cancelled ones left out). A darker box means more visits. Helps plan the schedule and happy hours.',
   },
   unsubscribe: {
     title: 'Messages from the salon',

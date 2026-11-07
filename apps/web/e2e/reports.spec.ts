@@ -20,6 +20,7 @@ import { serveApp } from './mobile-app';
  * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d, app 75c.
  * "Oceny klientów" — the reviews of the period by stars and specialist (task 213): 74e, app 75d.
  * "Najlepsi klienci" — the clients who brought the most, names only (task 215): 74f, app 75f.
+ * "Godziny szczytu" — when visits start, by weekday and hour (task 216): 74g, app 75g.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -261,6 +262,14 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(top.getByRole('row')).toHaveCount(3);
   await expect(top).not.toContainText('@');
   await shot(page, '74f-owner-reports-top-clients');
+  // "Godziny szczytu": the visits start at 09:00, 10:00, 11:00 and 12:00 Warsaw time (task 216).
+  const busy = page.getByTestId('report-busy-hours');
+  await busy.scrollIntoViewIfNeeded();
+  await expect(busy.getByRole('heading', { name: 'Godziny szczytu' })).toBeVisible();
+  for (const h of ['09', '10', '11', '12']) {
+    await expect(busy.locator(`td[title*=" ${h}:00 · wizyty: 1"]`)).toHaveText('1');
+  }
+  await shot(page, '74g-owner-reports-busy-hours');
 
   // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([
@@ -322,6 +331,10 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByTestId('report-top-clients')).toContainText('Jan');
     await expect(app.getByTestId('report-top-clients')).toContainText('Piotr');
     await shot(app, '75f-business-app-reports-top-clients');
+    // "Godziny szczytu" in the app: the three busiest hours (task 216).
+    await app.getByText('Godziny szczytu').scrollIntoViewIfNeeded();
+    await expect(app.getByTestId('report-busy-hours')).toContainText('09:00');
+    await shot(app, '75g-business-app-reports-busy-hours');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 

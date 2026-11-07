@@ -20580,6 +20580,39 @@
               "additionalProperties": false
             },
             "description": "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report"
+          },
+          "busyHours": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weekday": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "1 = Monday … 7 = Sunday"
+                },
+                "hour": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Hour the visit starts at, 0–23, in the salon time zone"
+                },
+                "visits": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits that were not cancelled"
+                }
+              },
+              "required": [
+                "weekday",
+                "hour",
+                "visits"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 216: \"Godziny szczytu\" — when visits start, only hours with visits"
           }
         },
         "required": [
@@ -20595,7 +20628,8 @@
           "previous",
           "occupancy",
           "ratings",
-          "topClients"
+          "topClients",
+          "busyHours"
         ],
         "additionalProperties": false
       },

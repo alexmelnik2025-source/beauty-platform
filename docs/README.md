@@ -1968,3 +1968,11 @@ API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply
 равенстве — по числу визитов, которые состоялись. Только `id`, имя, `completed`, `revenueGrosze` — без контактов. В
 отчёте мастера (`scope: own`) — пустой список. Кабинет «Raporty» — таблица «Najlepsi klienci», бизнес-приложение —
 карточки. Тест `apps/api/test/reports.spec.ts`, e2e `reports.spec.ts` (скриншоты 74f, 75f).
+
+## «Godziny szczytu» в отчёте (задача 216)
+
+`GET …/reports` возвращает `busyHours` — `{ weekday (1 = пн … 7 = вс), hour (0–23, время салона), visits }` только для
+часов, в которые начинаются визиты периода (кроме отменённых; удержанные и истёкшие не входят вообще). Кабинет
+«Raporty» — тепловая таблица дни × часы (от первого до последнего часа с визитами), бизнес-приложение — три самых
+загруженных часа (`peakHours` в `apps/mobile-business/src/reports.ts`). Тесты `reports.spec.ts` (API) и
+`test/reports.test.ts` (приложение), e2e `reports.spec.ts` (скриншоты 74g, 75g).

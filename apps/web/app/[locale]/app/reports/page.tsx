@@ -114,6 +114,17 @@ export default function ReportsPage() {
       average,
     );
   const maxStars = Math.max(1, ...(ratings?.stars ?? [1]));
+  /** Task 216: "Godziny szczytu" — the hours that have visits on any day, and how many. */
+  const busy = report?.busyHours ?? [];
+  const busyRange = busy.length
+    ? Array.from(
+        { length: Math.max(...busy.map((b) => b.hour)) - Math.min(...busy.map((b) => b.hour)) + 1 },
+        (_, i) => Math.min(...busy.map((b) => b.hour)) + i,
+      )
+    : [];
+  const busyCell = (weekday: number, hour: number) =>
+    busy.find((b) => b.weekday === weekday && b.hour === hour)?.visits ?? 0;
+  const maxBusy = Math.max(1, ...busy.map((b) => b.visits));
   /** Task 141: minutes as hours, "12,5". */
   const hours = (minutes: number) =>
     new Intl.NumberFormat(tag, { maximumFractionDigits: 1 }).format(minutes / 60);
@@ -439,6 +450,57 @@ export default function ReportsPage() {
                   </ol>
                   <p className="small muted">{t.reports.weekdayHint}</p>
                 </section>
+
+                {report.busyHours.length > 0 ? (
+                  <section className="section" data-testid="report-busy-hours">
+                    <h2>{t.reports.busyHours}</h2>
+                    <div className="report-table-wrap">
+                      <table className="report-heat">
+                        <thead>
+                          <tr>
+                            <td />
+                            {busyRange.map((h) => (
+                              <th key={h} scope="col">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[1, 2, 3, 4, 5, 6, 7].map((weekday) => (
+                            <tr key={weekday}>
+                              <th scope="row">{weekdayName(weekday, tag)}</th>
+                              {busyRange.map((h) => {
+                                const n = busyCell(weekday, h);
+                                return (
+                                  <td
+                                    key={h}
+                                    title={
+                                      n
+                                        ? `${weekdayName(weekday, tag)} ${String(h).padStart(2, '0')}:00 · ${fill(t.reports.dayVisits, { n: String(n) })}`
+                                        : undefined
+                                    }
+                                    style={
+                                      n
+                                        ? {
+                                            background: `rgba(17, 17, 17, ${0.12 + 0.88 * (n / maxBusy)})`,
+                                            color: n / maxBusy > 0.5 ? '#fff' : 'var(--ink)',
+                                          }
+                                        : undefined
+                                    }
+                                  >
+                                    {n || ''}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="small muted">{t.reports.busyHoursHint}</p>
+                  </section>
+                ) : null}
 
                 <section className="section">
                   <h2>{t.reports.byDay}</h2>

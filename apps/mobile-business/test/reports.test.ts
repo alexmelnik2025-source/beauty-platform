@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { change, onlineShare, reportRange, starsText, weekdayLong } from '../src/reports';
+import {
+  change,
+  onlineShare,
+  peakHours,
+  reportRange,
+  starsText,
+  weekdayLong,
+} from '../src/reports';
 
 describe('report periods', () => {
   it('this month, last month (also across a year) and the last 30 days', () => {
@@ -46,5 +53,23 @@ describe('average stars (task 213)', () => {
     expect(starsText(4.5, 'pl')).toBe('4,5');
     expect(starsText(5, 'pl')).toBe('5,0');
     expect(starsText(4.7, 'en')).toBe('4.7');
+  });
+});
+
+describe('peak hours (task 216)', () => {
+  it('most visits first, ties earlier in the week and the day', () => {
+    const cells = [
+      { weekday: 1, hour: 9, visits: 1 },
+      { weekday: 5, hour: 17, visits: 6 },
+      { weekday: 6, hour: 10, visits: 4 },
+      { weekday: 2, hour: 18, visits: 4 },
+      { weekday: 2, hour: 12, visits: 4 },
+    ];
+    expect(peakHours(cells)).toEqual([
+      { weekday: 5, hour: 17, visits: 6 },
+      { weekday: 2, hour: 12, visits: 4 },
+      { weekday: 2, hour: 18, visits: 4 },
+    ]);
+    expect(peakHours([])).toEqual([]);
   });
 });

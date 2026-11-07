@@ -372,6 +372,9 @@ export const pl = {
     topClientVisits: 'wizyty: {n}',
     topClientsHint:
       'Do 10 klientów, którzy w tym okresie przynieśli najwięcej. Kontakty — w „Klienci”.',
+    busyHours: 'Godziny szczytu',
+    busyHoursHint:
+      'Godziny, o których zaczyna się najwięcej wizyt (bez odwołanych). Pełna tabela — w „Raporty” w kabinecie.',
   },
   team: {
     open: 'Zespół',

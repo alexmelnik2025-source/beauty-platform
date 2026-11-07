@@ -7,6 +7,7 @@ import { fill, type Dictionary } from '../i18n';
 import {
   change,
   onlineShare,
+  peakHours,
   REPORT_PERIODS,
   reportRange,
   starsText,
@@ -192,6 +193,20 @@ export function ReportsScreen(props: {
               </View>
             ))
           )}
+          {shown.busyHours.length > 0 ? (
+            <View style={{ gap: 6 }} testID="report-busy-hours">
+              <Text style={styles.section}>{r.busyHours}</Text>
+              {peakHours(shown.busyHours).map((c) => (
+                <View key={`${c.weekday}-${c.hour}`} style={styles.cardTop}>
+                  <Text style={styles.name}>
+                    {weekdayLong(c.weekday, props.locale)}, {String(c.hour).padStart(2, '0')}:00
+                  </Text>
+                  <Text style={styles.muted}>{fill(r.weekdayVisits, { n: String(c.visits) })}</Text>
+                </View>
+              ))}
+              <Text style={styles.small}>{r.busyHoursHint}</Text>
+            </View>
+          ) : null}
           {shown.topClients.length > 0 ? (
             <View style={{ gap: 8 }} testID="report-top-clients">
               <Text style={styles.section}>{r.topClients}</Text>

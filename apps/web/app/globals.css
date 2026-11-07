@@ -1578,6 +1578,32 @@ h3 {
   background: var(--ink);
 }
 
+.report-heat {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 13px;
+}
+
+.report-heat th {
+  font-weight: 500;
+  color: var(--graphite);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.report-heat tbody th {
+  text-align: left;
+  padding-right: 8px;
+}
+
+.report-heat td {
+  min-width: 30px;
+  height: 30px;
+  text-align: center;
+  border-radius: var(--radius-s);
+  background: var(--fog);
+}
+
 .report-ratings-staff {
   display: grid;
   gap: 6px;

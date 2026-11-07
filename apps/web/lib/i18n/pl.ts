@@ -1282,6 +1282,9 @@ export const pl = {
     colClient: 'Klient',
     topClientsHint:
       'Do 10 klientów, którzy w tym okresie przynieśli najwięcej (opłacone wizyty), potem najczęściej przychodzili. Dane kontaktowe — w „Klienci”.',
+    busyHours: 'Godziny szczytu',
+    busyHoursHint:
+      'Ile wizyt zaczyna się o danej godzinie w poszczególne dni tygodnia (bez odwołanych). Ciemniejsze pole — więcej wizyt. Pomaga zaplanować grafik i happy hours.',
   },
   unsubscribe: {
     title: 'Wiadomości od salonu',
