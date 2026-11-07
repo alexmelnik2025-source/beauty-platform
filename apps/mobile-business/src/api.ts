@@ -241,6 +241,15 @@ export class BusinessApi {
     );
   }
 
+  /** Task 214: several days of the calendar at once (the "Tydzień" overview). */
+  calendarRange(orgId: string, locationId: string, from: string, to: string): Promise<Calendar> {
+    const query = new URLSearchParams({ from, to }).toString();
+    return this.authed<Calendar>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/calendar?${query}`,
+    );
+  }
+
   /** What the signed-in person may do in this organization (role and permissions). */
   permissions(orgId: string): Promise<PermissionCatalog> {
     return this.authed<PermissionCatalog>('GET', `/v1/organizations/${enc(orgId)}/permissions`);

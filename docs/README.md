@@ -1953,3 +1953,11 @@ API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply
 весь салон, мастер с `viewOwnEarnings` — только свои визиты. Кабинет «Raporty» и бизнес-приложение показывают блок
 «Oceny klientów: ★ 4,7» с полосками по звёздам и списком мастеров. Тест `apps/api/test/reports.spec.ts`, e2e
 `reports.spec.ts` (скриншоты 74e, 75d).
+
+## Бизнес-приложение: «Tydzień» (задача 214)
+
+Кнопка «Tydzień» рядом с «Dziś» на экране дня открывает неделю (понедельник — воскресенье) одним запросом
+`GET …/calendar?from=…&to=…` (`calendarRange` в `apps/mobile-business/src/api.ts`). Для каждого дня
+(`weekSummary` в `src/week.ts`): визиты без отменённых, «09:00–18:30» от начала первого до конца последнего,
+«⏳ czekają: N» (ждут ответа салона, задача 161b), сколько мастеров работает по графику. Тап по дню — экран этого дня.
+Тест `test/week.test.ts`, e2e-шаг в `reports.spec.ts` (скриншот 75e).

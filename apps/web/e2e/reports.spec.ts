@@ -19,6 +19,7 @@ import { serveApp } from './mobile-app';
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
  * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d, app 75c.
  * "Oceny klientów" — the reviews of the period by stars and specialist (task 213): 74e, app 75d.
+ * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -308,6 +309,34 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await shot(app, '75d-business-app-reports-ratings');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+
+    // "Tydzień" (task 214): the visits' day shows 4 visits and both specialists at work.
+    const visitDay = new Intl.DateTimeFormat('pl-PL', {
+      timeZone: 'Europe/Warsaw',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(
+      new Date(
+        Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 8) -
+          2 * 86_400_000,
+      ),
+    );
+    await app.getByRole('button', { name: 'Tydzień' }).click();
+    await expect(app.getByRole('heading', { name: 'Tydzień' })).toBeVisible();
+    await expect(app.getByText(/^Wizyty w tygodniu: \d+$/)).toBeVisible();
+    const dayCard = app.getByRole('button', { name: new RegExp(`^${visitDay}( · dziś)?: `) });
+    // On a Monday the visits' day is in the week before.
+    if (!(await dayCard.isVisible())) {
+      await app.getByRole('button', { name: 'Poprzedni tydzień' }).click();
+    }
+    await expect(dayCard).toBeVisible();
+    await expect(dayCard).toContainText('wizyty: 4');
+    await expect(dayCard).toContainText('pracują: 2');
+    await shot(app, '75e-business-app-week');
+    await dayCard.click();
+    await expect(app.getByRole('heading', { name: visitDay })).toBeVisible();
+    await expect(app.getByText('Wizyty (4)')).toBeVisible();
   } finally {
     businessApp.server.close();
   }

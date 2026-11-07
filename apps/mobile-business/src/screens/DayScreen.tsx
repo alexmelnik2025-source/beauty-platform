@@ -39,6 +39,7 @@ import { MessagesScreen } from './MessagesScreen';
 import { maySeeSalon } from '../salon';
 import { TeamHoursScreen } from './TeamHoursScreen';
 import { VisitScreen } from './VisitScreen';
+import { WeekScreen } from './WeekScreen';
 import { WaitlistSection } from './WaitlistSection';
 import { presetFromEntry, type NewVisitPreset } from '../waitlist';
 
@@ -89,6 +90,7 @@ export function DayScreen(props: {
   const [adding, setAdding] = useState(false);
   const [canReport, setCanReport] = useState(salon.role !== 'staff');
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [weekOpen, setWeekOpen] = useState(false);
   const [salonOpen, setSalonOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [salonName, setSalonName] = useState(salon.locationName);
@@ -159,6 +161,24 @@ export function DayScreen(props: {
   // a specialist's calendar already holds just their own visits (the server decides).
   const showMineSwitch = salon.role !== 'staff' && mineId !== null;
   const visits = all && showMineSwitch && mineOnly ? onlyMine(all, mineId) : all;
+
+  if (weekOpen) {
+    return (
+      <WeekScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        date={date}
+        today={today}
+        onOpenDay={(day) => {
+          setDate(day);
+          setWeekOpen(false);
+        }}
+        onBack={() => setWeekOpen(false)}
+      />
+    );
+  }
 
   if (reportsOpen) {
     return (
@@ -524,6 +544,7 @@ export function DayScreen(props: {
           a11yLabel={t.day.next}
           onPress={() => setDate(addDays(date, 1))}
         />
+        <Button kind="secondary" label={t.week.open} onPress={() => setWeekOpen(true)} />
         <Button kind="link" label={t.day.refresh} onPress={load} />
       </View>
       {rights && mayAddVisits(rights, mineId) ? (
