@@ -793,3 +793,70 @@ describe('sorting the client list (task 279)', () => {
     expect(await names('sort=recent', manager.auth)).toEqual(['Jan Nowak', 'Ewa Dwa Salony']);
   });
 });
+
+describe('the nearest booked visit first (task 281)', () => {
+  const names = async (query: string, auth = owner.auth) =>
+    (await ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200)).body.map(
+      (c: { name: string }) => c.name,
+    );
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  it('booked clients by the nearest visit, then everyone else by name', async () => {
+    // Jan: booked in 5 and in 2 days — the nearest is in 2 days.
+    await futureVisit(kasiaId, 5);
+    await futureVisit(kasiaId, 2);
+    // Ewa: booked tomorrow.
+    customerId = await client('Ewa Jutro', '+48600000003');
+    await futureVisit(tomekId, 1);
+    // Olek: only past visits and a cancelled booking — counts as nothing booked.
+    customerId = await client('Olek Bez Rezerwacji', '+48600000004');
+    await pastVisit(kasiaId, 10);
+    const cancelled = await futureVisit(kasiaId, 1);
+    await ctx.prisma.appointment.update({
+      where: { id: cancelled },
+      data: { status: 'cancelled', cancelledBy: 'customer' },
+    });
+    await client('Adam Nikt', '+48600000005');
+
+    expect(await names('sort=next')).toEqual([
+      'Ewa Jutro',
+      'Jan Nowak',
+      'Adam Nikt',
+      'Olek Bez Rezerwacji',
+    ]);
+    // Pages keep the order.
+    expect(await names('sort=next&limit=2&offset=1')).toEqual(['Jan Nowak', 'Adam Nikt']);
+    // The manager sees the same order for the salon's clients.
+    expect(await names('sort=next', manager.auth)).toEqual([
+      'Ewa Jutro',
+      'Jan Nowak',
+      'Olek Bez Rezerwacji',
+    ]);
+  });
+
+  it('counts only bookings in the salons the manager works in', async () => {
+    const other = await ctx.prisma.location.create({
+      data: {
+        organizationId: orgId,
+        name: 'Drugi',
+        slug: 'drugi-281',
+        addressLine: 'Prosta 1',
+        city: 'Warszawa',
+        postalCode: '00-001',
+      },
+    });
+    await futureVisit(kasiaId, 3);
+    customerId = await client('Ewa Dwa Salony', '+48600000003');
+    await futureVisit(tomekId, 6);
+    const there = await futureVisit(tomekId, 1);
+    await ctx.prisma.appointment.update({ where: { id: there }, data: { locationId: other.id } });
+    // The owner: Ewa's visit tomorrow in the other salon is the nearest.
+    expect(await names('sort=next')).toEqual(['Ewa Dwa Salony', 'Jan Nowak']);
+    // The manager works only in the first salon: Jan in 3 days, Ewa in 6.
+    expect(await names('sort=next', manager.auth)).toEqual(['Jan Nowak', 'Ewa Dwa Salony']);
+  });
+});

@@ -1045,6 +1045,7 @@ export const pl = {
       name: 'Alfabetycznie (A–Z)',
       recent: 'Ostatnia wizyta — najnowsze',
       visits: 'Najwięcej wizyt',
+      next: 'Najbliższa zaplanowana wizyta',
     },
     summary: {
       completed: 'Odbyte wizyty',

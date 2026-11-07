@@ -2442,3 +2442,11 @@ e2e и скриншоты 273, 274 — `client-birthday.spec.ts`.
 tylko raz, Urodziny) его сохраняют — пока они включены, выбора нет. В бизнес-приложении — те же три кнопки. API: `GET
 …/customers?sort=name|recent|visits` (работает с поиском, тегом, «Kto dawno nie był» и `offset`). Тест:
 `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 279, 280 — `clients-sort.spec.ts`.
+
+## «Najbliższa zaplanowana wizyta» в «Kolejność» (задачи 281, 282)
+
+Четвёртый вариант порядка списка «Klienci» в кабинете («Najbliższa zaplanowana wizyta») и в бизнес-приложении
+(«Najbliższa wizyta»): сверху клиенты, которые записаны вперёд, — у кого ближайшая запись раньше, тот выше; дальше все
+остальные по алфавиту. Удобно, чтобы перед рабочим днём или неделей увидеть, кто скоро придёт. Считаются только
+подтверждённые записи с текущего момента (отменённые — нет) в салонах, где работает пользователь. API: `GET
+…/customers?sort=next`. Тест: `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 281, 282 — `clients-sort.spec.ts`.

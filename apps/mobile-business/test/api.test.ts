@@ -272,21 +272,25 @@ describe('BusinessApi', () => {
       'GET /v1/organizations/o1/customers?limit=50&sort=visits': () => [200, []],
       'GET /v1/organizations/o1/customers?limit=50&offset=50&sort=recent': () => [200, []],
       'GET /v1/organizations/o1/customers?limit=50': () => [200, []],
+      'GET /v1/organizations/o1/customers?limit=50&sort=next': () => [200, []],
     });
     const api = new BusinessApi(
       'https://api.test',
       memoryStore('saved-refresh-token-0123456789'),
       fetchFn,
     );
-    const page = (offset: number, sort: 'name' | 'recent' | 'visits') =>
+    const page = (offset: number, sort: 'name' | 'recent' | 'visits' | 'next') =>
       api.customers('o1', '', 50, 0, '', 0, false, 0, false, false, false, offset, sort);
     await expect(page(0, 'visits')).resolves.toEqual([]);
     await expect(page(50, 'recent')).resolves.toEqual([]);
     await expect(page(0, 'name')).resolves.toEqual([]);
-    expect(calls.map((call) => call.key).slice(-3)).toEqual([
+    // Task 282: the nearest booked visit first.
+    await expect(page(0, 'next')).resolves.toEqual([]);
+    expect(calls.map((call) => call.key).slice(-4)).toEqual([
       'GET /v1/organizations/o1/customers?limit=50&sort=visits',
       'GET /v1/organizations/o1/customers?limit=50&offset=50&sort=recent',
       'GET /v1/organizations/o1/customers?limit=50',
+      'GET /v1/organizations/o1/customers?limit=50&sort=next',
     ]);
   });
   it('moves and cancels a visit with the version it read', async () => {

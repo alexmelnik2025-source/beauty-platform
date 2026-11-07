@@ -31,7 +31,7 @@ const PAGE = 50;
 /** Task 140: "who hasn't been for a while" — 0 = everyone. */
 const INACTIVE = [0, 30, 60, 90, 180] as const;
 /** Task 280: the orders of the list. */
-const SORTS = ['name', 'recent', 'visits'] as const satisfies readonly ClientSort[];
+const SORTS = ['name', 'recent', 'visits', 'next'] as const satisfies readonly ClientSort[];
 
 /** Task 273: " · 3" after a quick filter's name — how many clients it would show. */
 function segmentCount(value: number | null | undefined): string {
@@ -322,7 +322,14 @@ export function ClientsScreen(props: {
                 style={[styles.chip, value === sort && styles.chipOn]}
               >
                 <Text style={[styles.chipText, value === sort && styles.chipTextOn]}>
-                  {value === 'name' ? c.sortName : value === 'recent' ? c.sortRecent : c.sortVisits}
+                  {
+                    {
+                      name: c.sortName,
+                      recent: c.sortRecent,
+                      visits: c.sortVisits,
+                      next: c.sortNext,
+                    }[value]
+                  }
                 </Text>
               </Pressable>
             ))}

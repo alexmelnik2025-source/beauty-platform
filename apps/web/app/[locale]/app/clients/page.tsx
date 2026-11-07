@@ -18,8 +18,8 @@ type ClientRow = Customer;
 const INACTIVE_DAYS = [30, 60, 90, 180];
 /** Task 277: clients per page of the list (the most the API gives at once). */
 const PAGE = 100;
-/** Task 279: the orders of the list. */
-const SORTS = ['name', 'recent', 'visits'] as const;
+/** Task 279: the orders of the list; task 281: the nearest booked visit first. */
+const SORTS = ['name', 'recent', 'visits', 'next'] as const;
 type Sort = (typeof SORTS)[number];
 
 type ClientDetail = CustomerDetail;

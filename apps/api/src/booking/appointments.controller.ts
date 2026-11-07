@@ -416,9 +416,9 @@ export class CustomersController {
   @ApiQuery({
     name: 'sort',
     required: false,
-    enum: ['name', 'recent', 'visits'],
+    enum: ['name', 'recent', 'visits', 'next'],
     description:
-      'Task 279: A–Z (default), the latest visit first, or the most visits first. Filters with their own order keep it',
+      'Task 279: A–Z (default), the latest visit first, or the most visits first; task 281: the nearest booked visit first. Filters with their own order keep it',
   })
   @ApiZodResponse(customerListSchema)
   list(

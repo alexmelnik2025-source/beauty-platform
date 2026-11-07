@@ -102,7 +102,12 @@ export class CustomersService {
       : {};
     const ordered = Boolean(newcomers || overdue || noShows || once);
     // Task 279: by the latest visit or by the number of visits (in the caller's salons).
-    const visits = !ordered && query.sort !== 'name' ? await this.visitStats(m) : null;
+    const visits =
+      ordered || query.sort === 'name'
+        ? null
+        : query.sort === 'next'
+          ? await this.nextVisits(m)
+          : await this.visitStats(m);
     const rows = await this.prisma.customer.findMany({
       // Erased clients (task 21) are not listed; their visits still show in the calendar.
       where: {
@@ -126,7 +131,9 @@ export class CustomersService {
     if (visits) {
       const key = (id: string): number => {
         const v = visits.get(id);
-        if (!v) return -1;
+        if (!v) return Number.MIN_SAFE_INTEGER;
+        // Task 281: the nearest booked visit first — the earlier, the higher.
+        if (query.sort === 'next') return -v.latest.getTime();
         return query.sort === 'recent' ? v.latest.getTime() : v.count;
       };
       // Stable: equal keys stay in name order (and clients without visits come last).
@@ -146,6 +153,32 @@ export class CustomersService {
       rows.sort((a, b) => once.get(b.id)!.getTime() - once.get(a.id)!.getTime());
     }
     return ordered ? slicePage(rows, page) : rows;
+  }
+
+  /**
+   * Task 281: per client, the start of the nearest visit booked from now on in the salons the
+   * caller works in (in `latest`, so the list sorts it like the other orders).
+   */
+  private async nextVisits(
+    m: MembershipContext,
+  ): Promise<Map<string, { count: number; latest: Date }>> {
+    const groups = await this.prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: {
+        status: 'confirmed',
+        startAt: { gte: new Date() },
+        customerId: { not: null },
+        location: { organizationId: m.organizationId },
+        ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+      },
+      _count: { _all: true },
+      _min: { startAt: true },
+    });
+    return new Map(
+      groups
+        .filter((g) => g.customerId && g._min.startAt)
+        .map((g) => [g.customerId!, { count: g._count._all, latest: g._min.startAt! }]),
+    );
   }
 
   /**

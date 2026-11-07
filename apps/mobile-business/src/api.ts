@@ -193,7 +193,8 @@ export function setClientFilters(query: URLSearchParams, f: ClientFilters): void
 }
 
 /** Task 279: the order of the client list. */
-export type ClientSort = 'name' | 'recent' | 'visits';
+/** Task 279 (281: `next` — the nearest booked visit first). */
+export type ClientSort = 'name' | 'recent' | 'visits' | 'next';
 
 export interface CsvFile {
   fileName: string;
@@ -593,7 +594,8 @@ export class BusinessApi {
     });
     // Task 277: the next page of the same list ("Pokaż więcej klientów").
     if (offset) query.set('offset', String(offset));
-    // Task 279: the latest visit first or the most visits first (A–Z is the default).
+    // Task 279: the latest visit first or the most visits first (A–Z is the default);
+    // task 281: the nearest booked visit first.
     if (sort !== 'name') query.set('sort', sort);
     return this.authed<CustomerList>(
       'GET',

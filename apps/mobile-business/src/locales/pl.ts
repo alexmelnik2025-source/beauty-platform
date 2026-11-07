@@ -201,6 +201,7 @@ export const pl = {
     sortName: 'A–Z',
     sortRecent: 'Ostatnia wizyta',
     sortVisits: 'Najwięcej wizyt',
+    sortNext: 'Najbliższa wizyta',
     tagFilter: 'Tagi',
     allTags: 'Wszystkie',
     addTag: 'Dodaj tag',

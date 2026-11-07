@@ -1047,6 +1047,7 @@ export const en: Dict = {
       name: 'Alphabetically (A–Z)',
       recent: 'Latest visit first',
       visits: 'Most visits first',
+      next: 'Nearest booked visit',
     },
     summary: {
       completed: 'Visits that took place',

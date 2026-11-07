@@ -203,6 +203,7 @@ export const en: Dictionary = {
     sortName: 'A–Z',
     sortRecent: 'Latest visit',
     sortVisits: 'Most visits',
+    sortNext: 'Nearest booking',
     tagFilter: 'Tags',
     allTags: 'All',
     addTag: 'Add a tag',
