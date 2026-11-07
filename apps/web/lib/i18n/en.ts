@@ -1060,7 +1060,8 @@ export const en: Dict = {
     duplicateEmail: 'A client with this email exists.',
     addAnyway: 'Add anyway',
     export: 'Export CSV',
-    exportHint: 'All clients of the salon in a file for Excel: contacts, consent, visits.',
+    exportHint:
+      'All clients of the salon in a file for Excel: contacts, consent, visits, no-shows, the next visit and what they paid.',
     privacy: 'Personal data (GDPR)',
     privacyHint:
       "On the client's request: download everything the salon keeps about them, or erase their data.",
