@@ -100,6 +100,9 @@ function validBody(route: Route): object {
   if (p.endsWith('/members/:membershipId/permissions')) {
     return { version: 1, staffCategoryId: null, overrides: { viewClientContacts: true } };
   }
+  if (p.endsWith('/service-categories/order')) {
+    return { categoryIds: [currentIds?.serviceCategoryId] };
+  }
   if (p.endsWith('/service-categories/:serviceCategoryId')) return { version: 1, name: 'Hacked' };
   if (p.endsWith('/service-categories')) return { name: 'Hacked' };
   if (p.endsWith('/customers/:customerId/anonymize')) return { version: 1 };

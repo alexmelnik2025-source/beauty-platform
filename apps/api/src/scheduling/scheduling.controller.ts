@@ -48,6 +48,7 @@ import {
   localDateSchema,
   overrideSchema,
   serviceStaffSchema,
+  serviceCategoryOrderSchema,
   staffServicesSchema,
   updateServiceCategorySchema,
   updateServiceSchema,
@@ -109,6 +110,24 @@ export class ServiceCategoriesController {
     @Body(new ZodValidationPipe(createServiceCategorySchema)) body: CreateServiceCategoryInput,
   ): Promise<ServiceCategoryResponse> {
     return this.catalog.createCategory(m, auth.userId, locationId, body);
+  }
+
+  @Put('order')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Set the order of the categories on the booking page and in the apps (task 254)',
+    description:
+      'Send every category of the location exactly once, first to last. Replaces sortOrder.',
+  })
+  @ApiZodBody(serviceCategoryOrderSchema)
+  @ApiZodResponse(serviceCategoryListSchema)
+  reorder(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(serviceCategoryOrderSchema)) body: { categoryIds: string[] },
+  ): Promise<ServiceCategoryResponse[]> {
+    return this.catalog.reorderCategories(m, auth.userId, locationId, body.categoryIds);
   }
 
   @Patch(':serviceCategoryId')
