@@ -367,6 +367,11 @@ export const ru: Dictionary = {
     ratingsStaff: '{stars} ★ · отзывов: {n}',
     ratingsHint:
       'Средняя оценка по отзывам о визитах этого периода. Ответить на отзывы — в «Отзывы».',
+    rebooking: 'Следующий визит: {n}%',
+    rebookingCount: 'записаны: {rebooked} из {clients}',
+    rebookingStaff: '{n}% · {rebooked}/{clients}',
+    rebookingHint:
+      'Клиенты этого периода, которые уже записаны на следующий визит (к любому мастеру).',
     topClients: 'Лучшие клиенты',
     topClientVisits: 'визиты: {n}',
     topClientsHint:

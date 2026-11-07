@@ -5253,6 +5253,23 @@ export interface components {
                     average: number;
                 }[];
             };
+            /** @description Task 218: how many clients of the period booked their next visit ("Kolejna wizyta") */
+            rebooking: {
+                /** @description Different clients with a visit that took place */
+                clients: number;
+                /** @description Of them, clients with a later visit (booked, came or did not come) after their last visit of the period */
+                rebooked: number;
+                /** @description rebooked of clients, 0–100 */
+                percent: number;
+                /** @description By the specialist of the client's last visit of the period, most clients first */
+                staff: {
+                    id: string;
+                    displayName: string;
+                    clients: number;
+                    rebooked: number;
+                    percent: number;
+                }[];
+            };
             /** @description Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report */
             topClients: {
                 id: string;

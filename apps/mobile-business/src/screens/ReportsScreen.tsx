@@ -352,6 +352,44 @@ export function ReportsScreen(props: {
               <Text style={styles.small}>{r.ratingsHint}</Text>
             </View>
           ) : null}
+          {shown.rebooking.clients > 0 ? (
+            <View style={{ gap: 6 }} testID="report-rebooking">
+              <Text style={styles.section}>
+                {fill(r.rebooking, { n: String(shown.rebooking.percent) })}
+              </Text>
+              <Text style={styles.small}>
+                {fill(r.rebookingCount, {
+                  rebooked: String(shown.rebooking.rebooked),
+                  clients: String(shown.rebooking.clients),
+                })}
+              </Text>
+              {shown.scope !== 'own'
+                ? shown.rebooking.staff.map((s) => (
+                    <View key={s.id} style={styles.weekday}>
+                      <Text style={styles.weekdayName} numberOfLines={1}>
+                        {s.displayName}
+                      </Text>
+                      <View
+                        style={styles.bar}
+                        accessibilityRole="progressbar"
+                        accessibilityLabel={s.displayName}
+                        accessibilityValue={{ min: 0, max: 100, now: s.percent }}
+                      >
+                        <View style={[styles.barFill, { width: `${Math.min(100, s.percent)}%` }]} />
+                      </View>
+                      <Text style={styles.small}>
+                        {fill(r.rebookingStaff, {
+                          n: String(s.percent),
+                          rebooked: String(s.rebooked),
+                          clients: String(s.clients),
+                        })}
+                      </Text>
+                    </View>
+                  ))
+                : null}
+              <Text style={styles.small}>{r.rebookingHint}</Text>
+            </View>
+          ) : null}
         </>
       ) : !error ? (
         <Text style={styles.muted}>{t.loading}</Text>

@@ -198,6 +198,16 @@ describe('salon report', () => {
       { id: idOf('ewa@example.com'), name: 'Jan Nowak', completed: 2, revenueGrosze: 5000 },
     ]);
     expect(JSON.stringify(res.body.topClients)).not.toMatch(/@|\+48/);
+    // Task 218: Jan (last came on d1 at Kasia) has booked today; Ewa (d2 at Ola) has not.
+    expect(res.body.rebooking).toEqual({
+      clients: 2,
+      rebooked: 1,
+      percent: 50,
+      staff: [
+        { id: kasiaId, displayName: 'Kasia', clients: 1, rebooked: 1, percent: 100 },
+        { id: olaId, displayName: 'Ola', clients: 1, rebooked: 0, percent: 0 },
+      ],
+    });
     expect(res.body.services).toEqual([
       { id: haircutId, name: 'Strzyżenie', completed: 3, noShow: 1, revenueGrosze: 14000, paid: 2 },
       { id: beardId, name: 'Broda', completed: 1, noShow: 0, revenueGrosze: 5000, paid: 1 },
@@ -265,6 +275,48 @@ describe('salon report', () => {
     expect(own.body.staff.map((s: { id: string }) => s.id)).toEqual([kasiaId]);
     // The salon's best clients are not in a specialist's own report (task 215).
     expect(own.body.topClients).toEqual([]);
+    // Task 218: only Kasia's own clients (Jan has no later visit).
+    expect(own.body.rebooking).toEqual({
+      clients: 1,
+      rebooked: 0,
+      percent: 0,
+      staff: [{ id: kasiaId, displayName: 'Kasia', clients: 1, rebooked: 0, percent: 0 }],
+    });
+  });
+
+  it('"Kolejna wizyta": a later visit at any specialist counts, a cancelled one does not (task 218)', async () => {
+    // Jan: came at Kasia, then booked at Ola after the period.
+    await visit({ date: addDays(today, -3), status: 'completed' });
+    await visit({ date: addDays(today, 5), staffId: olaId, status: 'confirmed' });
+    // Ewa: came twice at Ola; the later one is her last visit, she cancelled the next one.
+    await visit({
+      date: addDays(today, -6),
+      staffId: olaId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+    await visit({
+      date: addDays(today, -2),
+      staffId: olaId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+    await visit({ date: addDays(today, 3), email: 'ewa@example.com', status: 'cancelled' });
+    // Adam: came at Kasia and did not come to the next one — he still booked it.
+    await visit({ date: addDays(today, -4), email: 'adam@example.com', status: 'completed' });
+    await visit({ date: addDays(today, -1), email: 'adam@example.com', status: 'no_show' });
+
+    const res = await report().expect(200);
+    expect(res.body.rebooking).toEqual({
+      clients: 3,
+      rebooked: 2,
+      percent: 67,
+      staff: [
+        { id: kasiaId, displayName: 'Kasia', clients: 2, rebooked: 2, percent: 100 },
+        { id: olaId, displayName: 'Ola', clients: 1, rebooked: 0, percent: 0 },
+      ],
+    });
+    expect(JSON.stringify(res.body.rebooking)).not.toMatch(/Jan|@/);
   });
 
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {

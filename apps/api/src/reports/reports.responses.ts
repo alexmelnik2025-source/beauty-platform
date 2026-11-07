@@ -125,6 +125,33 @@ export const salonReportSchema = responseSchema(
           .describe('Specialists with reviews in the period, best rated first'),
       })
       .describe('Task 213: how clients rated the visits of the period ("Oceny")'),
+    rebooking: z
+      .strictObject({
+        clients: z.number().int().describe('Different clients with a visit that took place'),
+        rebooked: z
+          .number()
+          .int()
+          .describe(
+            'Of them, clients with a later visit (booked, came or did not come) after their last visit of the period',
+          ),
+        percent: z.number().int().describe('rebooked of clients, 0–100'),
+        staff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              displayName: z.string(),
+              clients: z.number().int(),
+              rebooked: z.number().int(),
+              percent: z.number().int(),
+            }),
+          )
+          .describe(
+            "By the specialist of the client's last visit of the period, most clients first",
+          ),
+      })
+      .describe(
+        'Task 218: how many clients of the period booked their next visit ("Kolejna wizyta")',
+      ),
     topClients: z
       .array(
         z.strictObject({

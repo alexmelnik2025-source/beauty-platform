@@ -363,6 +363,51 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report && report.rebooking.clients > 0 ? (
+              <section className="section" data-testid="report-rebooking">
+                <h2>
+                  {t.reports.rebooking}: {report.rebooking.percent}%
+                </h2>
+                <p className="small muted">
+                  {fill(t.reports.rebookingCount, {
+                    rebooked: String(report.rebooking.rebooked),
+                    clients: String(report.rebooking.clients),
+                  })}
+                </p>
+                {report.scope !== 'own' ? (
+                  <ol className="report-days">
+                    {report.rebooking.staff.map((s) => (
+                      <li key={s.id}>
+                        <span className="small">{s.displayName}</span>
+                        <span
+                          className="report-bar"
+                          role="meter"
+                          aria-label={s.displayName}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={s.percent}
+                        >
+                          <span style={{ width: `${Math.min(100, s.percent)}%` }} />
+                        </span>
+                        <span className="small">
+                          {s.percent}%
+                          <span className="muted">
+                            {' '}
+                            ·{' '}
+                            {fill(t.reports.rebookingCount, {
+                              rebooked: String(s.rebooked),
+                              clients: String(s.clients),
+                            })}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+                <p className="small muted">{t.reports.rebookingHint}</p>
+              </section>
+            ) : null}
+
             {totals.visits === 0 ? (
               <p className="note">{t.reports.empty}</p>
             ) : (

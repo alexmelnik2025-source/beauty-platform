@@ -20547,6 +20547,75 @@
             "additionalProperties": false,
             "description": "Task 213: how clients rated the visits of the period (\"Oceny\")"
           },
+          "rebooking": {
+            "type": "object",
+            "properties": {
+              "clients": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Different clients with a visit that took place"
+              },
+              "rebooked": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Of them, clients with a later visit (booked, came or did not come) after their last visit of the period"
+              },
+              "percent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "rebooked of clients, 0–100"
+              },
+              "staff": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "clients": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "rebooked": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "percent": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "clients",
+                    "rebooked",
+                    "percent"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By the specialist of the client's last visit of the period, most clients first"
+              }
+            },
+            "required": [
+              "clients",
+              "rebooked",
+              "percent",
+              "staff"
+            ],
+            "additionalProperties": false,
+            "description": "Task 218: how many clients of the period booked their next visit (\"Kolejna wizyta\")"
+          },
           "topClients": {
             "type": "array",
             "items": {
@@ -20628,6 +20697,7 @@
           "previous",
           "occupancy",
           "ratings",
+          "rebooking",
           "topClients",
           "busyHours"
         ],

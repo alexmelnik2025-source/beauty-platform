@@ -369,6 +369,10 @@ export const en: Dictionary = {
     ratingsCount: 'reviews: {n}',
     ratingsStaff: '{stars} ★ · reviews: {n}',
     ratingsHint: 'Average of the reviews of visits in this period. Reply to reviews in “Reviews”.',
+    rebooking: 'Next visit booked: {n}%',
+    rebookingCount: 'booked: {rebooked} of {clients}',
+    rebookingStaff: '{n}% · {rebooked}/{clients}',
+    rebookingHint: 'Clients of this period who already have another visit (with any specialist).',
     topClients: 'Top clients',
     topClientVisits: 'visits: {n}',
     topClientsHint:

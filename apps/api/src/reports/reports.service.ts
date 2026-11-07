@@ -101,6 +101,10 @@ export class ReportsService {
     const clients = new Set<string>();
     const busy = new Map<string, { weekday: number; hour: number; visits: number }>();
     const byClient = new Map<string, { completed: number; revenueGrosze: number }>();
+    const lastVisit = new Map<
+      string,
+      { startAt: Date; staff: { id: string; displayName: string } }
+    >();
     const weekdays = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
       weekday,
       completed: 0,
@@ -147,7 +151,13 @@ export class ReportsService {
           ? (byClient.get(a.customerId) ??
             byClient.set(a.customerId, { completed: 0, revenueGrosze: 0 }).get(a.customerId)!)
           : null;
-        if (a.customerId) clients.add(a.customerId);
+        if (a.customerId) {
+          clients.add(a.customerId);
+          const last = lastVisit.get(a.customerId);
+          if (!last || a.startAt > last.startAt) {
+            lastVisit.set(a.customerId, { startAt: a.startAt, staff: a.staff });
+          }
+        }
         if (client) client.completed++;
         if (a.paidAt) {
           const paid = a.priceGrosze - a.discountGrosze;
@@ -212,8 +222,65 @@ export class ReportsService {
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
       ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
+      rebooking: await this.rebooking(locationId, lastVisit),
       topClients: own ? [] : await this.topClients(byClient),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
+    };
+  }
+
+  /**
+   * Task 218: "Kolejna wizyta" — of the clients who came in the period, how many have a later
+   * visit at this salon (booked, came or did not come; any specialist) after their last visit of
+   * the period. By specialist: the one of that last visit. Counts only, no names.
+   */
+  private async rebooking(
+    locationId: string,
+    lastVisit: Map<string, { startAt: Date; staff: { id: string; displayName: string } }>,
+  ): Promise<SalonReport['rebooking']> {
+    const percent = (part: number, whole: number) =>
+      whole > 0 ? Math.round((part / whole) * 100) : 0;
+    if (lastVisit.size === 0) return { clients: 0, rebooked: 0, percent: 0, staff: [] };
+    const latest = new Map(
+      (
+        await this.prisma.appointment.groupBy({
+          by: ['customerId'],
+          where: {
+            locationId,
+            customerId: { in: [...lastVisit.keys()] },
+            status: { in: ['confirmed', 'completed', 'no_show'] },
+          },
+          _max: { startAt: true },
+        })
+      ).map((g) => [g.customerId, g._max.startAt]),
+    );
+    const staff = new Map<
+      string,
+      { id: string; displayName: string; clients: number; rebooked: number }
+    >();
+    let rebooked = 0;
+    for (const [customerId, last] of lastVisit) {
+      const row =
+        staff.get(last.staff.id) ??
+        staff.set(last.staff.id, { ...last.staff, clients: 0, rebooked: 0 }).get(last.staff.id)!;
+      row.clients++;
+      const next = latest.get(customerId);
+      if (next && next > last.startAt) {
+        rebooked++;
+        row.rebooked++;
+      }
+    }
+    return {
+      clients: lastVisit.size,
+      rebooked,
+      percent: percent(rebooked, lastVisit.size),
+      staff: [...staff.values()]
+        .map((s) => ({ ...s, percent: percent(s.rebooked, s.clients) }))
+        .sort(
+          (a, b) =>
+            b.clients - a.clients ||
+            b.percent - a.percent ||
+            a.displayName.localeCompare(b.displayName),
+        ),
     };
   }
 

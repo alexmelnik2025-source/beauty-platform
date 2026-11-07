@@ -1281,6 +1281,10 @@ export const en: Dict = {
     ratingsStaff: '{stars} ★ · reviews: {n}',
     ratingsHint:
       'Average of the reviews of visits in this period (including ones written later). Reply to reviews on the “Reviews” tab.',
+    rebooking: 'Next visit booked',
+    rebookingCount: 'booked: {rebooked} of {clients}',
+    rebookingHint:
+      'How many clients who came in this period already have another visit after their last one (with any specialist). Per specialist — clients whose last visit was with them.',
     topClients: 'Top clients',
     colClient: 'Client',
     topClientsHint:

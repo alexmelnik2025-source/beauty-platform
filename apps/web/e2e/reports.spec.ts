@@ -22,6 +22,7 @@ import { serveApp } from './mobile-app';
  * "Najlepsi klienci" — the clients who brought the most, names only (task 215): 74f, app 75f.
  * "Godziny szczytu" — when visits start, by weekday and hour (task 216): 74g, app 75g.
  * A top client's name opens their card (task 217): 74h, app 75h.
+ * "Kolejna wizyta" — clients of the period who booked again, by specialist (task 218): 74i, app 75i.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -206,6 +207,22 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     }
   }
 
+  // Jan has already booked his next visit (tomorrow, after the period): "Kolejna wizyta" (task 218).
+  await json(
+    await request.post(`${base}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: services[0],
+        staffId: staff[1],
+        start: new Date(
+          Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 14),
+        ).toISOString(),
+        allowOutsideHours: true,
+        customer: { name: 'Jan', phone: '+48600000100', email: `jan-${run}@example.com` },
+      },
+    }),
+  );
+
   const context = await browser.newContext({ viewport: DESKTOP, locale: 'pl-PL' });
   const page = await context.newPage();
   await signIn(page, OWNER);
@@ -254,6 +271,21 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     '4,5 ★ · opinie: 2',
   );
   await shot(page, '74e-owner-reports-ratings');
+  // "Kolejna wizyta": Jan (last came to Ilian) has booked again, Piotr (Marek) not yet (task 218).
+  const rebooking = page.getByTestId('report-rebooking');
+  await rebooking.scrollIntoViewIfNeeded();
+  await expect(rebooking.getByRole('heading', { name: 'Kolejna wizyta: 50%' })).toBeVisible();
+  await expect(rebooking.getByText('zapisanych: 1 z 2', { exact: true })).toBeVisible();
+  await expect(rebooking.getByRole('meter', { name: 'Ilian' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
+  );
+  await expect(rebooking.getByRole('meter', { name: 'Marek' })).toHaveAttribute(
+    'aria-valuenow',
+    '0',
+  );
+  await expect(rebooking).not.toContainText('Jan');
+  await shot(page, '74i-owner-reports-rebooking');
   // "Najlepsi klienci": Jan 150 zł (2 visits), then Piotr 90 zł; Adam did not come (task 215).
   const top = page.getByTestId('report-top-clients');
   await top.scrollIntoViewIfNeeded();
@@ -332,6 +364,11 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByText('4,5 ★ · opinie: 2')).toBeVisible();
     await expect(app.getByText('5,0 ★ · opinie: 1')).toBeVisible();
     await shot(app, '75d-business-app-reports-ratings');
+    // "Kolejna wizyta" in the app too (task 218).
+    await app.getByText('Kolejna wizyta: 50%').scrollIntoViewIfNeeded();
+    await expect(app.getByTestId('report-rebooking')).toContainText('100% · 1/1');
+    await expect(app.getByTestId('report-rebooking')).toContainText('0% · 0/1');
+    await shot(app, '75i-business-app-reports-rebooking');
     // "Najlepsi klienci" in the app too (task 215).
     await app.getByText('Najlepsi klienci').scrollIntoViewIfNeeded();
     await expect(app.getByTestId('report-top-clients')).toContainText('Jan');

@@ -368,6 +368,11 @@ export const pl = {
     ratingsStaff: '{stars} ★ · opinie: {n}',
     ratingsHint:
       'Średnia z opinii o wizytach z tego okresu. Odpowiedzieć na opinie można w „Opinie”.',
+    rebooking: 'Kolejna wizyta: {n}%',
+    rebookingCount: 'zapisanych: {rebooked} z {clients}',
+    rebookingStaff: '{n}% · {rebooked}/{clients}',
+    rebookingHint:
+      'Klienci z tego okresu, którzy mają już kolejną wizytę (u dowolnego specjalisty).',
     topClients: 'Najlepsi klienci',
     topClientVisits: 'wizyty: {n}',
     topClientsHint:
