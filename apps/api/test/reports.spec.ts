@@ -775,6 +775,14 @@ describe('salon report', () => {
       cancelledBy: 'customer',
     });
     await visit({ date: addDays(today, -1), staffId: olaId, status: 'no_show' });
+    // Task 257: the category of the service is the last column; Broda has none.
+    const category = await ctx.prisma.serviceCategory.create({
+      data: { locationId, name: 'Włosy' },
+    });
+    await ctx.prisma.service.update({
+      where: { id: haircutId },
+      data: { categoryId: category.id },
+    });
     const csv = (q: object = {}, auth = owner.auth) =>
       ctx
         .http()
@@ -798,18 +806,18 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     const lines = text.slice(1).trimEnd().split('\r\n');
     expect(lines).toEqual([
-      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności;Napiwek',
-      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta;10,00`,
-      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;;0,00`,
-      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;;0,00`,
+      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności;Napiwek;Kategoria',
+      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta;10,00;Włosy`,
+      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;;0,00;`,
+      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;;0,00;Włosy`,
     ]);
     expect(text).not.toContain('+48600000002');
     expect(text).not.toContain('@example.com');
 
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
     expect(english).toContain('Date;Time;Specialist;Service;Client;Status;Booked;Price');
-    expect(english).toContain('To pay;Paid;Payment method;Tip');
-    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes;card;10.00');
+    expect(english).toContain('To pay;Paid;Payment method;Tip;Category');
+    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes;card;10.00;Włosy');
 
     // The same access as the report.
     await csv({}, kasiaUser.auth).expect(403);
@@ -839,9 +847,10 @@ describe('salon report', () => {
       paid: true,
       method: null,
       tipGrosze: 0,
+      category: '-Hair',
     };
     expect(visitsCsv([row], 'pl').split('\r\n')[1]).toBe(
-      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;;0,00`,
+      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;;0,00;'-Hair`,
     );
   });
 });

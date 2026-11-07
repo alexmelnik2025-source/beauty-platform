@@ -27,6 +27,7 @@ interface CsvTexts {
     paid: string,
     method: string,
     tip: string,
+    category: string,
   ];
   /** Task 227: how the client paid. */
   method: Record<PaymentMethod, string>;
@@ -55,6 +56,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Opłacono',
       'Sposób płatności',
       'Napiwek',
+      'Kategoria',
     ],
     method: {
       cash: 'gotówka',
@@ -91,6 +93,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Оплачено',
       'Спосіб оплати',
       'Чайові',
+      'Категорія',
     ],
     method: {
       cash: 'готівка',
@@ -127,6 +130,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Оплачено',
       'Способ оплаты',
       'Чаевые',
+      'Категория',
     ],
     method: {
       cash: 'наличные',
@@ -163,6 +167,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Paid',
       'Payment method',
       'Tip',
+      'Category',
     ],
     method: {
       cash: 'cash',
@@ -202,6 +207,8 @@ export interface CsvVisit {
   method: PaymentMethod | null;
   /** Task 229: the tip the client left (0 = none). */
   tipGrosze: number;
+  /** Task 257: the price-list category of the service; null = none. */
+  category: string | null;
 }
 
 /** One cell: quoted when it holds the separator, a quote or a line break; no formula injection. */
@@ -239,6 +246,7 @@ export function visitsCsv(visits: CsvVisit[], locale: CsvLocale): string {
         v.paid ? t.yes : t.no,
         v.paid && v.method ? t.method[v.method] : '',
         amount(v.tipGrosze, locale),
+        v.category ?? '',
       ]
         .map(cell)
         .join(';'),

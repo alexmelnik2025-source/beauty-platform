@@ -835,7 +835,7 @@ export class ReportsService {
         cancelledBy: true,
         customer: { select: { name: true } },
         staff: { select: { displayName: true } },
-        service: { select: { name: true } },
+        service: { select: { name: true, category: { select: { name: true } } } },
       },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
     });
@@ -856,6 +856,7 @@ export class ReportsService {
           paid: a.paidAt !== null,
           method: a.paymentMethod,
           tipGrosze: a.tipGrosze,
+          category: a.service.category?.name ?? null,
         };
       }),
       locale,
