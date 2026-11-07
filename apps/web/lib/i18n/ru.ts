@@ -219,6 +219,7 @@ export const ru: Dict = {
     note: 'Заметка',
     contactsHidden: 'Контакты видны только с разрешением',
     call: 'Позвонить',
+    bookAgain: 'Записать снова',
     sms: 'SMS',
     history: 'История',
     reschedule: 'Перенести',

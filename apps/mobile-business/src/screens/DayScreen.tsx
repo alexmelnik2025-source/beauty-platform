@@ -440,6 +440,16 @@ export function DayScreen(props: {
         canChange={canChange}
         onBack={() => setOpenId(null)}
         onChanged={() => void load()}
+        onBookAgain={
+          rights && mayAddVisits(rights, mineId)
+            ? (next) => {
+                // Task 223: the new-visit form with the same client, service and specialist.
+                setOpenId(null);
+                setPreset(next);
+                setAdding(true);
+              }
+            : undefined
+        }
       />
     );
   }

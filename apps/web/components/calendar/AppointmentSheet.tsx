@@ -17,12 +17,15 @@ export function AppointmentSheet({
   staffList,
   onClose,
   onChanged,
+  onBookAgain,
 }: {
   id: string;
   base: string;
   staffList: Staff[];
   onClose: () => void;
   onChanged: () => void;
+  /** Task 223: a new visit for the same client, service and specialist. */
+  onBookAgain?: (visit: AppointmentDetail) => void;
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
@@ -267,6 +270,17 @@ export function AppointmentSheet({
                 <div className="small muted">{t.appointment.contactsHidden}</div>
               ) : null}
               {a.customer?.email ? <div className="small">{a.customer.email}</div> : null}
+              {onBookAgain && a.customer && a.status !== 'held' && a.status !== 'expired' ? (
+                <div className="row" style={{ marginTop: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn--quiet btn--small"
+                    onClick={() => onBookAgain(a)}
+                  >
+                    {t.appointment.bookAgain}
+                  </button>
+                </div>
+              ) : null}
             </dd>
             <dt>{t.appointment.service}</dt>
             <dd>

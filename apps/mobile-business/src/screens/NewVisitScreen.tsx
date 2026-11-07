@@ -57,7 +57,10 @@ export function NewVisitScreen(props: {
   date: string;
   me: MyRights;
   mineId: string | null;
-  /** Task 94: a client from the waiting list — service, specialist, day and contacts filled in. */
+  /**
+   * Task 94: a client from the waiting list — service, specialist, day and contacts filled in.
+   * Task 223: "Umów ponownie" — the same, with the client from the base and the visit's time.
+   */
   preset?: NewVisitPreset;
   onBack: () => void;
   onCreated: (visit: AppointmentDetail) => void;
@@ -78,7 +81,9 @@ export function NewVisitScreen(props: {
   const [paid, setPaid] = useState(false);
   const [search, setSearch] = useState('');
   const [found, setFound] = useState<CustomerList | null>(null);
-  const [client, setClient] = useState<Client>(null);
+  const [client, setClient] = useState<Client>(props.preset?.customer ?? null);
+  // Task 223: the time of the visit booked again, picked once if it is free on the first day.
+  const wantedTime = useRef(props.preset?.time);
   const [form, setForm] = useState(props.preset?.client ?? { name: '', phone: '', email: '' });
   // Applied once, when the services and specialists have loaded.
   const preset = useRef(props.preset);
@@ -154,6 +159,13 @@ export function NewVisitScreen(props: {
   useEffect(() => {
     void loadTimes();
   }, [loadTimes]);
+
+  useEffect(() => {
+    if (!availability || !wantedTime.current) return;
+    const same = freeTimes(availability, staffId, date).find((s) => s.time === wantedTime.current);
+    wantedTime.current = undefined;
+    if (same) setStart(same.start);
+  }, [availability, staffId, date]);
 
   // Clients of the salon as the owner or manager types (from 2 characters).
   useEffect(() => {

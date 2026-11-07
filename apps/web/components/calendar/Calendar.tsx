@@ -530,6 +530,21 @@ export function Calendar() {
           staffList={staffList}
           onClose={() => setOpenAppointment(null)}
           onChanged={() => void load(true)}
+          onBookAgain={(visit) => {
+            // Task 223: the same client, service, specialist and time; the date is picked in the
+            // form (today at the earliest).
+            setOpenAppointment(null);
+            setDraft({
+              kind: 'appointment',
+              staffId: visit.staff.id,
+              date: visit.date > today ? visit.date : today,
+              minute: clockToMinutes(visit.time),
+              serviceId: visit.service.id,
+              customer: visit.customer
+                ? { id: visit.customer.id, name: visit.customer.name, phone: visit.customer.phone }
+                : undefined,
+            });
+          }}
         />
       ) : null}
       {openBlock ? (

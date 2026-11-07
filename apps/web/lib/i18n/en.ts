@@ -218,6 +218,7 @@ export const en: Dict = {
     note: 'Note',
     contactsHidden: 'Contact details need a permission',
     call: 'Call',
+    bookAgain: 'Book again',
     sms: 'SMS',
     history: 'History',
     reschedule: 'Move',

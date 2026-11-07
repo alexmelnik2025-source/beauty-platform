@@ -20,10 +20,18 @@ import {
 import { addDays, dayTitle, formatPrice, timeIn, todayIn, visitActions } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { cancelReason, createProblem, freeTimes, mayMoveOrCancel } from '../newVisit';
+import {
+  cancelReason,
+  createProblem,
+  freeTimes,
+  mayBookAgain,
+  mayMoveOrCancel,
+  presetFromVisit,
+} from '../newVisit';
 import { wishLines } from '../wishes';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
+import type { NewVisitPreset } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -40,6 +48,8 @@ export function VisitScreen(props: {
   canChange: boolean;
   onBack: () => void;
   onChanged: () => void;
+  /** Task 223: "Umów ponownie" — absent when this person may not add visits. */
+  onBookAgain?: (preset: NewVisitPreset) => void;
 }) {
   const { api, t, salon, id, onBack } = props;
   const [visit, setVisit] = useState<AppointmentDetail | null>(null);
@@ -203,6 +213,16 @@ export function VisitScreen(props: {
         {visit.customer ? (
           <View style={styles.row}>
             <Button kind="link" label={t.clients.card} onPress={() => setClientOpen(true)} />
+            {props.onBookAgain && mayBookAgain(visit, true) ? (
+              <Button
+                kind="link"
+                label={v.bookAgain}
+                onPress={() => {
+                  const preset = presetFromVisit(visit, today);
+                  if (preset) props.onBookAgain?.(preset);
+                }}
+              />
+            ) : null}
           </View>
         ) : null}
 

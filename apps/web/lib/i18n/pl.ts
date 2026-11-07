@@ -219,6 +219,7 @@ export const pl = {
     note: 'Notatka',
     contactsHidden: 'Kontakt widoczny tylko z uprawnieniem',
     call: 'Zadzwoń',
+    bookAgain: 'Umów ponownie',
     sms: 'SMS',
     history: 'Historia',
     reschedule: 'Przenieś',

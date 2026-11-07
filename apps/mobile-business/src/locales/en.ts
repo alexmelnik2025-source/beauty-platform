@@ -94,6 +94,7 @@ export const en: Dictionary = {
     paidHint: 'A paid visit earns the client loyalty stamps or points.',
     notStarted: '"Came" and "Did not come" can be marked once the visit has started.',
     move: 'Move',
+    bookAgain: 'Book again',
     cancel: 'Cancel the visit',
     moveTitle: 'New time',
     moveAsk: 'Move to {when}?',

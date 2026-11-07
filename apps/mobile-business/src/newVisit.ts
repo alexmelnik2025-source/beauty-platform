@@ -9,6 +9,7 @@ import {
 } from './api';
 import { addDays } from './day';
 import { normalizePhone } from './phone';
+import type { NewVisitPreset } from './waitlist';
 
 /**
  * "New visit" in the business app (task 17a): the salon books a client who phoned or came in,
@@ -210,4 +211,38 @@ export function mayMoveOrCancel(
 export function cancelReason(input: string): string | null {
   const reason = input.trim().replace(/\s+/g, ' ');
   return reason ? reason.slice(0, 300) : null;
+}
+
+/**
+ * "Umów ponownie" in the visit card (task 223): a new visit for the same client, service and
+ * specialist, from today at the earliest (or the visit's own day, if it is later), the same
+ * time suggested. Null for a visit without a client (a walk-in).
+ */
+export function presetFromVisit(
+  visit: {
+    date: string;
+    time: string;
+    service: { id: string };
+    staff: { id: string };
+    customer: { id: string; name: string; phone: string | null } | null;
+  },
+  today: string,
+): NewVisitPreset | null {
+  if (!visit.customer) return null;
+  return {
+    serviceId: visit.service.id,
+    staffId: visit.staff.id,
+    date: visit.date > today ? visit.date : today,
+    client: { name: '', phone: '', email: '' },
+    customer: { id: visit.customer.id, name: visit.customer.name, phone: visit.customer.phone },
+    time: visit.time,
+  };
+}
+
+/** May "Umów ponownie" be offered for this visit (it has a client and was really booked)? */
+export function mayBookAgain(
+  visit: { status: string; customer: unknown },
+  canAdd: boolean,
+): boolean {
+  return canAdd && visit.customer !== null && visit.status !== 'held' && visit.status !== 'expired';
 }

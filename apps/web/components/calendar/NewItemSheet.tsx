@@ -11,11 +11,16 @@ import { PhoneField } from '../PhoneField';
 import { useSession } from '../Session';
 import { ErrorBox, Sheet } from '../ui';
 
+/** The client a new visit is for, when it is known in advance ("Umów ponownie", task 223). */
+export type DraftCustomer = Pick<Customer, 'id' | 'name' | 'phone'>;
+
 export interface NewItemDraft {
   kind: 'appointment' | 'block';
   staffId: string | null;
   date: string;
   minute: number;
+  serviceId?: string;
+  customer?: DraftCustomer;
 }
 
 export function NewItemSheet({
@@ -44,7 +49,7 @@ export function NewItemSheet({
 
   const [kind, setKind] = useState(draft.kind === 'block' && canBlock ? 'block' : 'appointment');
   const activeServices = services.filter((s) => s.active);
-  const [serviceId, setServiceId] = useState('');
+  const [serviceId, setServiceId] = useState(draft.serviceId ?? '');
   const [staffId, setStaffId] = useState(draft.staffId ?? '');
   const [date, setDate] = useState(draft.date);
   const [time, setTime] = useState(minutesToClock(draft.minute));
@@ -57,7 +62,7 @@ export function NewItemSheet({
   const [note, setNote] = useState('');
   const [search, setSearch] = useState('');
   const [found, setFound] = useState<Customer[]>([]);
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<DraftCustomer | null>(draft.customer ?? null);
   const dial = dialForTimeZone(session.location.timezone);
   const [fresh, setFresh] = useState({ name: '', phone: `+${dial} `, email: '' });
   const [outside, setOutside] = useState(false);

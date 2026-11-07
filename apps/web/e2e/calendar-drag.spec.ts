@@ -13,7 +13,8 @@ import { waitForEmail } from './mailpit';
  * Task 221: in the cabinet calendar the owner drags a visit with the mouse to another
  * specialist and time, confirms the move, then drags it before working hours and saves it
  * with "Zapisz także poza godzinami pracy". Screenshots 221 (the confirmation) and 221-a
- * (the error and the outside-hours choice).
+ * (the error and the outside-hours choice). Task 223: "Umów ponownie" from the visit card,
+ * screenshot 223.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -211,5 +212,34 @@ test('the owner drags a visit to another specialist and time, and before working
   await sheet.getByRole('button', { name: 'Przenieś wizytę' }).click();
   await expect(sheet).toBeHidden();
   await expect(marek.getByRole('button', { name: /Jan Kowalski/ })).toContainText('07:00–07:45');
+
+  // 3. Task 223: "Umów ponownie" in the visit card — the same client, service, specialist and
+  // time are filled in; the salon picks the date and saves without typing the phone again.
+  await marek.getByRole('button', { name: /Jan Kowalski/ }).click();
+  const card = page.getByRole('dialog');
+  await card.getByRole('button', { name: 'Umów ponownie' }).click();
+  await expect(card.getByRole('heading', { name: 'Nowa wizyta' })).toBeVisible();
+  await expect(card).toContainText('Jan Kowalski');
+  await expect(card.getByLabel('Usługa', { exact: true })).toHaveValue(haircut.id);
+  await expect(card.getByLabel('Specjalista', { exact: true })).toHaveValue(staff[1]!);
+  await expect(card.getByLabel('Godzina', { exact: true })).toHaveValue('07:00');
+  const nextWeek = new Date(tomorrow.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+  await card.getByLabel('Data', { exact: true }).fill(nextWeek);
+  await card.getByLabel('Godzina', { exact: true }).fill('12:00');
+  await shot(page, '223-book-again');
+  await card.getByRole('button', { name: 'Zapisz wizytę' }).click();
+  await expect(card).toBeHidden();
+  await expect(marek.getByRole('button', { name: /Jan Kowalski/ })).toContainText('12:00–12:45');
+  const first = await json<{ customer: { id: string } }>(
+    await request.get(`${base}/appointments/${visit.id}`, { headers: owner }),
+  );
+  const again = await json<{ appointments: { customer: { id: string } | null }[] }>(
+    await request.get(`${base}/calendar`, {
+      headers: owner,
+      params: { from: nextWeek, to: nextWeek },
+    }),
+  );
+  expect(again.appointments).toHaveLength(1);
+  expect(again.appointments[0]!.customer?.id).toBe(first.customer.id);
   await context.close();
 });

@@ -16,6 +16,10 @@ export interface NewVisitPreset {
   staffId: string | null;
   date: string;
   client: { name: string; phone: string; email: string };
+  /** Task 223 ("Umów ponownie"): a client already in the salon's base, booked by id. */
+  customer?: { id: string; name: string; phone: string | null };
+  /** Task 223: the time to suggest first ("10:30"), when it is free. */
+  time?: string;
 }
 
 /** Clients waiting for this day, who asked first on top. */

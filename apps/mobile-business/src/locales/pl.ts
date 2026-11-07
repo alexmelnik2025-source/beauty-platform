@@ -92,6 +92,7 @@ export const pl = {
     paidHint: 'Za opłaconą wizytę klient dostaje pieczątki lub punkty programu lojalnościowego.',
     notStarted: '„Przyszedł” i „Nie przyszedł” można zaznaczyć, gdy wizyta się zacznie.',
     move: 'Przenieś',
+    bookAgain: 'Umów ponownie',
     cancel: 'Odwołaj wizytę',
     moveTitle: 'Nowy termin',
     moveAsk: 'Przenieść na {when}?',

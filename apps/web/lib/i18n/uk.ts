@@ -219,6 +219,7 @@ export const uk: Dict = {
     note: 'Нотатка',
     contactsHidden: 'Контакти видно лише з дозволом',
     call: 'Подзвонити',
+    bookAgain: 'Записати знову',
     sms: 'SMS',
     history: 'Історія',
     reschedule: 'Перенести',

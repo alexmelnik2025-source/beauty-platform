@@ -9,9 +9,11 @@ import {
   cancelReason,
   mayMoveOrCancel,
   mayAddVisits,
+  mayBookAgain,
   maySearchClients,
   newAppointmentBody,
   parseTime,
+  presetFromVisit,
   staffForService,
   walkInDays,
   type MyRights,
@@ -238,5 +240,40 @@ describe('move and cancel in the visit card', () => {
     expect(cancelReason('   ')).toBeNull();
     expect(cancelReason('  Mistrz   chory ')).toBe('Mistrz chory');
     expect(cancelReason('x'.repeat(400))).toHaveLength(300);
+  });
+});
+
+describe('"Umów ponownie" (task 223)', () => {
+  const visit = {
+    date: '2026-11-03',
+    time: '10:30',
+    status: 'completed',
+    service: { id: 'svc-1' },
+    staff: { id: 'staff-1' },
+    customer: { id: 'cust-1', name: 'Jan Kowalski', phone: '+48600000001' },
+  };
+
+  it('keeps the client, service, specialist and time; the day is today at the earliest', () => {
+    expect(presetFromVisit(visit, '2026-11-07')).toEqual({
+      serviceId: 'svc-1',
+      staffId: 'staff-1',
+      date: '2026-11-07',
+      client: { name: '', phone: '', email: '' },
+      customer: { id: 'cust-1', name: 'Jan Kowalski', phone: '+48600000001' },
+      time: '10:30',
+    });
+    expect(presetFromVisit({ ...visit, date: '2026-11-20' }, '2026-11-07')?.date).toBe(
+      '2026-11-20',
+    );
+  });
+
+  it('is not offered for a visit without a client, a held or an expired one', () => {
+    expect(presetFromVisit({ ...visit, customer: null }, '2026-11-07')).toBeNull();
+    expect(mayBookAgain(visit, true)).toBe(true);
+    expect(mayBookAgain(visit, false)).toBe(false);
+    expect(mayBookAgain({ ...visit, customer: null }, true)).toBe(false);
+    expect(mayBookAgain({ ...visit, status: 'held' }, true)).toBe(false);
+    expect(mayBookAgain({ ...visit, status: 'expired' }, true)).toBe(false);
+    expect(mayBookAgain({ ...visit, status: 'cancelled' }, true)).toBe(true);
   });
 });
