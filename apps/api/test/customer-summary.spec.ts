@@ -472,3 +472,56 @@ describe('"Pora wrócić" (task 262)', () => {
     expect(await names('overdue=yes')).toEqual(['Jan Nowak']);
   });
 });
+
+describe('"Nie przyszli" (task 264)', () => {
+  const names = async (query: string, auth = owner.auth) =>
+    (await ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200)).body.map(
+      (c: { name: string }) => c.name,
+    );
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  async function noShow(staffId: string, daysAgo: number): Promise<void> {
+    const id = await pastVisit(staffId, daysAgo, false);
+    await ctx.prisma.appointment.update({ where: { id }, data: { status: 'no_show' } });
+  }
+
+  it('lists clients who did not come in the last year, the most recent no-show first', async () => {
+    // Jan: did not come 40 days ago (and came later).
+    await noShow(kasiaId, 40);
+    await pastVisit(kasiaId, 10);
+    // Piotr: did not come 5 days ago.
+    customerId = await client('Piotr Spóźniony', '+48600000003');
+    await noShow(tomekId, 5);
+    // Ewa: did not come, but 400 days ago — too long ago.
+    customerId = await client('Ewa Dawno', '+48600000004');
+    await noShow(kasiaId, 400);
+    // Ola: always comes.
+    customerId = await client('Ola Słowna', '+48600000005');
+    await pastVisit(kasiaId, 20);
+
+    expect(await names('noShows=yes')).toEqual(['Piotr Spóźniony', 'Jan Nowak']);
+    expect(await names('noShows=yes&search=jan')).toEqual(['Jan Nowak']);
+    expect(await names('noShows=yes&limit=1')).toEqual(['Piotr Spóźniony']);
+    expect(await names('noShows=yes', manager.auth)).toEqual(['Piotr Spóźniony', 'Jan Nowak']);
+    expect(await names('limit=100')).toHaveLength(4);
+    await ctx.http().get(`${customersBase}?noShows=no`).set(owner.auth).expect(400);
+    await ctx.http().get(`${customersBase}?noShows=yes`).set(kasia.auth).expect(403);
+  });
+
+  it("another organization's clients do not leak", async () => {
+    await noShow(kasiaId, 3);
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const other = await createOrgWithLocation(ctx, stranger, 'Inny');
+    const theirs = await ctx
+      .http()
+      .get(`/v1/organizations/${other.orgId}/customers?noShows=yes`)
+      .set(stranger.auth)
+      .expect(200);
+    expect(theirs.body).toEqual([]);
+    expect(await names('noShows=yes')).toEqual(['Jan Nowak']);
+  });
+});

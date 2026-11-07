@@ -212,6 +212,10 @@ export const en: Dictionary = {
     overdueHint:
       'Regular clients (at least 3 visits) whose usual break between visits has already passed and who have nothing booked — the most recent first.',
     overdueNone: 'Nobody is late for their usual visit.',
+    noShows: 'Did not come',
+    noShowsHint:
+      'Clients who missed a booked visit at least once in the last 12 months — the most recent no-show first.',
+    noShowsNone: 'Everybody came to their visits in the last 12 months.',
     consentedNone: 'No one has agreed to messages from the salon yet.',
     birthdaysNone: 'Nobody has a birthday in the next 7 days.',
     birthday: 'Birthday',

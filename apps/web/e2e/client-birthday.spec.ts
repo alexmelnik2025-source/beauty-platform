@@ -19,6 +19,7 @@ import { serveApp } from './mobile-app';
  * Task 250: "Wraca zwykle co N dni" in the client card (250, 250-a).
  * Task 261: "Ulubiona usługa" and "Ulubiony specjalista" in the client card (261, 261-a).
  * Task 262: "Pora wrócić" — regular clients past their usual break with nothing booked (262, 262-a).
+ * Task 264: "Nie przyszli" — clients who did not come in the last year (264, 264-a).
  * Task 263: "Pora wrócić: N" in the report, with a link to that list (263, 263-a).
  */
 
@@ -330,6 +331,36 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   );
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText('Piotr Zieliński');
+  // Task 264: Adam did not come to his visit 3 days ago — he is the only one under "Nie przyszli".
+  const [adam] = await json<{ id: string }[]>(
+    await request.get(`/v1/organizations/${org.id}/customers?search=Adam%20Nowak`, {
+      headers: owner,
+    }),
+  );
+  const missed = await json<{ id: string }>(
+    await request.post(`${salon}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: service.id,
+        staffId: staff.id,
+        start: new Date(firstVisit.getTime() - 45 * 60_000).toISOString(),
+        customerId: adam!.id,
+        alreadyHappened: true,
+        allowOutsideHours: true,
+      },
+    }),
+  );
+  sql250(
+    `UPDATE appointment SET status = 'no_show', start_at = start_at - interval '3 days', end_at = end_at - interval '3 days', blocked_until = blocked_until - interval '3 days' WHERE id = '${missed.id}'`,
+  );
+  await page.goto('/pl/app/clients');
+  await expect(rows).toHaveCount(5);
+  const noShows = page.getByRole('button', { name: /Nie przyszli/ });
+  await noShows.click();
+  await expect(noShows).toHaveAttribute('aria-pressed', 'true');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Adam Nowak');
+  await shot(page, '264-clients-no-shows');
   await context.close();
 
   // Business app (task 240b).
@@ -387,6 +418,12 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards.nth(0)).toContainText('Piotr Zieliński');
     await shot(app, '262-a-business-app-overdue');
     await app.getByRole('switch', { name: /Pora wrócić/ }).click();
+    // Task 264 in the app: only Adam did not come.
+    await app.getByRole('switch', { name: /Nie przyszli/ }).click();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Adam Nowak');
+    await shot(app, '264-a-business-app-no-shows');
+    await app.getByRole('switch', { name: /Nie przyszli/ }).click();
     await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
     await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();

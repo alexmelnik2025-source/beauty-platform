@@ -35,6 +35,8 @@ export default function ClientsPage() {
   const [newcomers, setNewcomers] = useState(false);
   // Task 262: only regular clients past their usual break with nothing booked.
   const [overdue, setOverdue] = useState(false);
+  // Task 264: only clients who did not come at least once in the last year.
+  const [noShows, setNoShows] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
@@ -64,13 +66,14 @@ export default function ClientsPage() {
             marketing: consented ? 'yes' : undefined,
             newDays: newcomers ? 30 : undefined,
             overdue: overdue ? 'yes' : undefined,
+            noShows: noShows ? 'yes' : undefined,
           },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, search, inactiveDays, tag, birthdays, consented, newcomers, overdue, t]);
+  }, [orgId, search, inactiveDays, tag, birthdays, consented, newcomers, overdue, noShows, t]);
 
   /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
   const loadTags = useCallback(async () => {
@@ -198,9 +201,18 @@ export default function ClientsPage() {
           >
             ⏰ {t.clients.overdue}
           </button>
+          <button
+            type="button"
+            aria-pressed={noShows}
+            title={t.clients.noShowsHint}
+            onClick={() => setNoShows(!noShows)}
+          >
+            🚫 {t.clients.noShows}
+          </button>
         </div>
         {newcomers ? <p className="small muted">{t.clients.newcomersHint}</p> : null}
         {overdue ? <p className="small muted">{t.clients.overdueHint}</p> : null}
+        {noShows ? <p className="small muted">{t.clients.noShowsHint}</p> : null}
         {tags.length ? (
           <div className="chips tag-filter" role="group" aria-label={t.clients.tagFilter}>
             <button type="button" aria-pressed={tag === ''} onClick={() => setTag('')}>
@@ -229,13 +241,15 @@ export default function ClientsPage() {
                 ? t.clients.newcomersNone
                 : overdue
                   ? t.clients.overdueNone
-                  : consented
-                    ? t.clients.consentedNone
-                    : inactiveDays
-                      ? t.clients.inactive.none
-                      : search || tag
-                        ? t.clients.notFound
-                        : t.clients.empty}
+                  : noShows
+                    ? t.clients.noShowsNone
+                    : consented
+                      ? t.clients.consentedNone
+                      : inactiveDays
+                        ? t.clients.inactive.none
+                        : search || tag
+                          ? t.clients.notFound
+                          : t.clients.empty}
           </p>
         ) : (
           <ul className="list">

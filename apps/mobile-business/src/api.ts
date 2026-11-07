@@ -538,6 +538,7 @@ export class BusinessApi {
     consented = false,
     newDays = 0,
     overdue = false,
+    noShows = false,
   ): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
     if (search.trim()) query.set('search', search.trim());
@@ -551,6 +552,8 @@ export class BusinessApi {
     if (newDays) query.set('newDays', String(newDays));
     // Task 262: only regular clients past their usual break with nothing booked.
     if (overdue) query.set('overdue', 'yes');
+    // Task 264: only clients who did not come at least once in the last year.
+    if (noShows) query.set('noShows', 'yes');
     return this.authed<CustomerList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,

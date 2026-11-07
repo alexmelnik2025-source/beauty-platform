@@ -6398,6 +6398,18 @@
         "operationId": "CustomersController_list",
         "parameters": [
           {
+            "name": "noShows",
+            "required": false,
+            "in": "query",
+            "description": "Task 264: only clients who did not come (no-show) at least once in the last 365 days, the most recent no-show first",
+            "schema": {
+              "enum": [
+                "yes"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "overdue",
             "required": false,
             "in": "query",

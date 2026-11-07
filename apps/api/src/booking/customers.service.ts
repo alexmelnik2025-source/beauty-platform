@@ -51,6 +51,8 @@ export class CustomersService {
     const newcomers = query.newDays ? await this.newcomers(m, query.newDays) : null;
     // Task 262: clients past their usual time to come back, the most recently due first.
     const overdue = query.overdue ? await this.overdue(m) : null;
+    // Task 264: clients who did not come in the last year, the most recent no-show first.
+    const noShows = query.noShows ? await this.noShows(m) : null;
     const search = query.search
       ? {
           OR: [
@@ -73,16 +75,20 @@ export class CustomersService {
           query.marketing ? { id: { in: await this.consented(m.organizationId) } } : {},
           newcomers ? { id: { in: [...newcomers.keys()] } } : {},
           overdue ? { id: { in: [...overdue.keys()] } } : {},
+          noShows ? { id: { in: [...noShows.keys()] } } : {},
         ],
       },
       orderBy: { name: 'asc' },
-      take: newcomers || overdue ? undefined : query.limit,
+      take: newcomers || overdue || noShows ? undefined : query.limit,
     });
     if (newcomers) {
       rows.sort((a, b) => newcomers.get(b.id)!.getTime() - newcomers.get(a.id)!.getTime());
     }
     if (overdue) {
       rows.sort((a, b) => overdue.get(b.id)!.getTime() - overdue.get(a.id)!.getTime());
+    }
+    if (noShows) {
+      rows.sort((a, b) => noShows.get(b.id)!.getTime() - noShows.get(a.id)!.getTime());
     }
     return rows.slice(0, query.limit).map((c) => toCustomer(c, m));
   }
@@ -121,6 +127,29 @@ export class CustomersService {
       location: { organizationId: m.organizationId },
       ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
     });
+  }
+
+  /**
+   * Task 264: clients with a visit marked "did not come" in the last 365 days — in the salons the
+   * caller works in — with the latest such visit's start.
+   */
+  private async noShows(m: MembershipContext): Promise<Map<string, Date>> {
+    const latest = await this.prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: {
+        status: 'no_show',
+        customerId: { not: null },
+        startAt: { gte: new Date(Date.now() - 365 * 24 * 60 * 60_000) },
+        location: { organizationId: m.organizationId },
+        ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+      },
+      _max: { startAt: true },
+    });
+    return new Map(
+      latest
+        .filter((l) => l.customerId && l._max.startAt)
+        .map((l) => [l.customerId!, l._max.startAt!]),
+    );
   }
 
   /**

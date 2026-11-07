@@ -238,6 +238,11 @@ export const listCustomersSchema = z.object({
    * between their visits, from three visits) with nothing booked ahead, the most recently due first.
    */
   overdue: z.enum(['yes']).optional(),
+  /**
+   * Task 264: only clients who did not come (no-show) at least once in the last 365 days, the
+   * most recent no-show first.
+   */
+  noShows: z.enum(['yes']).optional(),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;
