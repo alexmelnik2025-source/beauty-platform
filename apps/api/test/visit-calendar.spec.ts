@@ -206,7 +206,8 @@ describe('"Add to calendar" for a booked visit', () => {
     expect(lines.find((l) => l.startsWith('DESCRIPTION:'))).toContain('Specjalista: Kasia');
     expect(lines.find((l) => l.startsWith('URL:'))).toMatch(new RegExp(`/pl/m/${manageToken}$`));
     expect(res.text).not.toContain(CLIENT.email);
-    expect(res.text).not.toContain('600');
+    // The phone in any form; not just "600", which a time stamp like 003600Z holds too.
+    expect(res.text).not.toMatch(/600\s?100\s?200/);
   });
 
   it('after a move the same event is updated; after a cancellation it is marked cancelled', async () => {
