@@ -107,6 +107,13 @@ export default function ReportsPage() {
   const maxWeekday = Math.max(1, ...(report?.weekdays.map((d) => d.completed) ?? [1]));
   const previous = report?.previous;
   const occupancy = report?.occupancy;
+  const ratings = report?.ratings;
+  /** Task 213: stars with one decimal, "4,5". */
+  const stars = (average: number) =>
+    new Intl.NumberFormat(tag, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+      average,
+    );
+  const maxStars = Math.max(1, ...(ratings?.stars ?? [1]));
   /** Task 141: minutes as hours, "12,5". */
   const hours = (minutes: number) =>
     new Intl.NumberFormat(tag, { maximumFractionDigits: 1 }).format(minutes / 60);
@@ -293,6 +300,54 @@ export default function ReportsPage() {
                   ))}
                 </ol>
                 <p className="small muted">{t.reports.occupancyHint}</p>
+              </section>
+            ) : null}
+
+            {ratings && ratings.average !== null ? (
+              <section className="section" data-testid="report-ratings">
+                <h2>
+                  {t.reports.ratings}: ★ {stars(ratings.average)}
+                </h2>
+                <p className="small muted">
+                  {fill(t.reports.ratingsCount, { n: String(ratings.reviews) })}
+                </p>
+                <ol className="report-days">
+                  {[5, 4, 3, 2, 1].map((n) => {
+                    const count = ratings.stars[n - 1] ?? 0;
+                    return (
+                      <li key={n}>
+                        <span className="small">{'★'.repeat(n)}</span>
+                        <span
+                          className="report-bar"
+                          role="meter"
+                          aria-label={`${n} ★`}
+                          aria-valuemin={0}
+                          aria-valuemax={ratings.reviews}
+                          aria-valuenow={count}
+                        >
+                          <span style={{ width: `${(count / maxStars) * 100}%` }} />
+                        </span>
+                        <span className="small">{count}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {ratings.staff.length > 0 && report?.scope !== 'own' ? (
+                  <ul className="report-ratings-staff">
+                    {ratings.staff.map((s) => (
+                      <li key={s.id}>
+                        <span>{s.displayName}</span>
+                        <span className="small muted">
+                          {fill(t.reports.ratingsStaff, {
+                            stars: stars(s.average),
+                            n: String(s.reviews),
+                          })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <p className="small muted">{t.reports.ratingsHint}</p>
               </section>
             ) : null}
 

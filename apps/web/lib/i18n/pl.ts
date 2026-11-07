@@ -1273,6 +1273,11 @@ export const pl = {
     occupancyHours: 'zajęte {booked} z {work} godz.',
     occupancyHint:
       'Obłożenie — jaka część godzin pracy z grafiku (bez urlopów i zablokowanego czasu) była zajęta wizytami, także tymi, na które klient nie przyszedł. Odwołane wizyty się nie liczą.',
+    ratings: 'Oceny klientów',
+    ratingsCount: 'opinie: {n}',
+    ratingsStaff: '{stars} ★ · opinie: {n}',
+    ratingsHint:
+      'Średnia z opinii o wizytach z tego okresu (także tych napisanych później). Odpowiedzi na opinie — w zakładce „Opinie”.',
   },
   unsubscribe: {
     title: 'Wiadomości od salonu',

@@ -18,6 +18,7 @@ import { serveApp } from './mobile-app';
  * "Pobierz CSV" downloads every visit of the period for the accountant (task 30).
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
  * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d, app 75c.
+ * "Oceny klientów" — the reviews of the period by stars and specialist (task 213): 74e, app 75d.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -42,6 +43,18 @@ function moveToThePast(appointmentId: string) {
     'ON_ERROR_STOP=1',
     '-c',
     `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days' WHERE id = '${appointmentId}'`,
+  ]);
+}
+
+/** Task 213: a client's review of a visit, written straight into the database. */
+function review(appointmentId: string, rating: number) {
+  const url = (process.env.DATABASE_URL ?? '').replace(/\?.*$/, '');
+  execFileSync('psql', [
+    url,
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `INSERT INTO visit_review (id, appointment_id, location_id, staff_id, rating, updated_at) SELECT gen_random_uuid(), id, location_id, staff_id, ${rating}, now() FROM appointment WHERE id = '${appointmentId}'`,
   ]);
 }
 
@@ -141,11 +154,12 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
 
   // Yesterday: Ilian — haircut (paid) and beard (paid), Marek — haircut (paid), one no-show.
   const tomorrow = new Date(Date.now() + 86_400_000);
+  // Reviews (task 213): Ilian 5 and 4 stars, Marek 5.
   const visits = [
-    { staff: 0, service: 0, email: 'jan', outcome: 'paid' },
-    { staff: 0, service: 1, email: 'jan', outcome: 'paid' },
-    { staff: 1, service: 0, email: 'piotr', outcome: 'paid' },
-    { staff: 1, service: 1, email: 'adam', outcome: 'no_show' },
+    { staff: 0, service: 0, email: 'jan', outcome: 'paid', rating: 5 },
+    { staff: 0, service: 1, email: 'jan', outcome: 'paid', rating: 4 },
+    { staff: 1, service: 0, email: 'piotr', outcome: 'paid', rating: 5 },
+    { staff: 1, service: 1, email: 'adam', outcome: 'no_show', rating: 0 },
   ] as const;
   for (const [i, v] of visits.entries()) {
     const start = new Date(
@@ -168,6 +182,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
       }),
     );
     moveToThePast(booked.id);
+    if (v.rating) review(booked.id, v.rating);
     const marked = await json<{ version: number }>(
       await request.post(`${base}/appointments/${booked.id}/status`, {
         headers: owner,
@@ -222,6 +237,19 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     'zajęte 1,5 z 360 godz.',
   );
   await shot(page, '74d-owner-reports-occupancy');
+  // "Oceny klientów": 3 reviews, ★ 4,7; Marek 5,0 first, then Ilian 4,5 (task 213).
+  const ratings = page.getByTestId('report-ratings');
+  await ratings.scrollIntoViewIfNeeded();
+  await expect(ratings.getByRole('heading', { name: 'Oceny klientów: ★ 4,7' })).toBeVisible();
+  await expect(ratings.getByText('opinie: 3', { exact: true })).toBeVisible();
+  await expect(ratings.getByRole('meter', { name: '5 ★' })).toHaveAttribute('aria-valuenow', '2');
+  await expect(ratings.getByRole('listitem').filter({ hasText: 'Marek' })).toContainText(
+    '5,0 ★ · opinie: 1',
+  );
+  await expect(ratings.getByRole('listitem').filter({ hasText: 'Ilian' })).toContainText(
+    '4,5 ★ · opinie: 2',
+  );
+  await shot(page, '74e-owner-reports-ratings');
 
   // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([
@@ -273,6 +301,11 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await app.getByText(/^Obłożenie: \d+%$/).scrollIntoViewIfNeeded();
     await expect(app.getByText('zajęte 1,5 z 360 godz.').first()).toBeVisible();
     await shot(app, '75c-business-app-reports-occupancy');
+    // "Oceny klientów" in the app too (task 213).
+    await app.getByText('Oceny klientów: ★ 4,7').scrollIntoViewIfNeeded();
+    await expect(app.getByText('4,5 ★ · opinie: 2')).toBeVisible();
+    await expect(app.getByText('5,0 ★ · opinie: 1')).toBeVisible();
+    await shot(app, '75d-business-app-reports-ratings');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
   } finally {

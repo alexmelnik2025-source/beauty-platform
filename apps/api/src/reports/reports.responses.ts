@@ -102,6 +102,29 @@ export const salonReportSchema = responseSchema(
           .describe('Specialists with working time or visits in the period, busiest first'),
       })
       .describe('Task 141: how busy the specialists were ("Obłożenie")'),
+    ratings: z
+      .strictObject({
+        reviews: z.number().int().describe('Reviews clients left for visits of the period'),
+        average: z
+          .number()
+          .nullable()
+          .describe('Average stars (1–5, one decimal); null when there are no reviews'),
+        stars: z
+          .array(z.number().int())
+          .length(5)
+          .describe('How many reviews gave 1, 2, 3, 4 and 5 stars'),
+        staff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              displayName: z.string(),
+              reviews: z.number().int(),
+              average: z.number().describe('Average stars, one decimal'),
+            }),
+          )
+          .describe('Specialists with reviews in the period, best rated first'),
+      })
+      .describe('Task 213: how clients rated the visits of the period ("Oceny")'),
   }),
 );
 

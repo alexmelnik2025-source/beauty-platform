@@ -5236,6 +5236,23 @@ export interface components {
                     percent: number;
                 }[];
             };
+            /** @description Task 213: how clients rated the visits of the period ("Oceny") */
+            ratings: {
+                /** @description Reviews clients left for visits of the period */
+                reviews: number;
+                /** @description Average stars (1–5, one decimal); null when there are no reviews */
+                average: number | null;
+                /** @description How many reviews gave 1, 2, 3, 4 and 5 stars */
+                stars: number[];
+                /** @description Specialists with reviews in the period, best rated first */
+                staff: {
+                    id: string;
+                    displayName: string;
+                    reviews: number;
+                    /** @description Average stars, one decimal */
+                    average: number;
+                }[];
+            };
         };
         SalonReview: {
             id: string;

@@ -1276,6 +1276,11 @@ export const en: Dict = {
     occupancyHours: '{booked} of {work} h booked',
     occupancyHint:
       'Occupancy is the share of scheduled working hours (without time off and blocked time) taken by visits, including ones the client did not come to. Cancelled visits do not count.',
+    ratings: 'Client ratings',
+    ratingsCount: 'reviews: {n}',
+    ratingsStaff: '{stars} ★ · reviews: {n}',
+    ratingsHint:
+      'Average of the reviews of visits in this period (including ones written later). Reply to reviews on the “Reviews” tab.',
   },
   unsubscribe: {
     title: 'Messages from the salon',

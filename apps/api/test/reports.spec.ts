@@ -324,6 +324,60 @@ describe('salon report', () => {
     expect(own.body.occupancy.workMinutes).toBe(work);
   });
 
+  it('ratings: reviews of the period by stars and specialist; a specialist sees only own', async () => {
+    const review = async (o: VisitOptions, rating: number) => {
+      const appointmentId = await visit(o);
+      const staffId = o.staffId ?? kasiaId;
+      await ctx.prisma.visitReview.create({
+        data: { appointmentId, locationId, staffId, rating },
+      });
+    };
+    const d1 = addDays(today, -5);
+    await review({ date: d1, status: 'completed' }, 5);
+    await review({ date: d1, status: 'completed' }, 4);
+    await review({ date: d1, staffId: olaId, status: 'completed' }, 5);
+    await review({ date: d1, staffId: olaId, status: 'completed' }, 5);
+    await review({ date: d1, staffId: olaId, status: 'completed' }, 2);
+    // A review of a visit before the period does not count.
+    await review({ date: addDays(today, -40), status: 'completed' }, 1);
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.ratings).toEqual({
+      reviews: 5,
+      average: 4.2,
+      stars: [0, 1, 0, 1, 3],
+      staff: [
+        { id: kasiaId, displayName: 'Kasia', reviews: 2, average: 4.5 },
+        { id: olaId, displayName: 'Ola', reviews: 3, average: 4 },
+      ],
+    });
+
+    // A specialist with their own report sees only the reviews of their own visits.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.ratings).toEqual({
+      reviews: 2,
+      average: 4.5,
+      stars: [0, 0, 0, 1, 1],
+      staff: [{ id: kasiaId, displayName: 'Kasia', reviews: 2, average: 4.5 }],
+    });
+
+    // No reviews in a period: no average.
+    const empty = await report(owner.auth, { from: addDays(today, -60), to: addDays(today, -50) });
+    expect(empty.body.ratings).toEqual({
+      reviews: 0,
+      average: null,
+      stars: [0, 0, 0, 0, 0],
+      staff: [],
+    });
+  });
+
   it('occupancy: overlapping visits count once, visits outside hours do not count', () => {
     const day = '2026-11-02'; // Monday
     const at = (minute: number) => zonedToInstant(day, minute, TZ);

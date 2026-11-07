@@ -347,6 +347,11 @@ export const pl = {
     occupancyHint:
       'Część godzin pracy z grafiku (bez urlopów i zablokowanego czasu) zajęta wizytami. Odwołane się nie liczą.',
     compared: '% — w porównaniu z: {from} – {to}',
+    ratings: 'Oceny klientów: ★ {stars}',
+    ratingsCount: 'opinie: {n}',
+    ratingsStaff: '{stars} ★ · opinie: {n}',
+    ratingsHint:
+      'Średnia z opinii o wizytach z tego okresu. Odpowiedzieć na opinie można w „Opinie”.',
   },
   team: {
     open: 'Zespół',

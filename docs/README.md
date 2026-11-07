@@ -1944,3 +1944,12 @@ API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply
 собирает или их ещё нет — блока нет. API — `GET /v1/public/locations/:slug/reviews` (165b). Код:
 `apps/mobile-client/src/salonReviews.ts`, `screens/SalonReviews.tsx`; тест `test/salonReviews.test.ts`; e2e —
 `reviews.spec.ts` (скриншоты 212, 212-a).
+
+## «Oceny klientów» в отчёте (задача 213)
+
+`GET …/reports` возвращает `ratings`: `reviews` (отзывы о визитах периода — по дню визита, так что отзыв, написанный
+позже, попадает в месяц визита), `average` (одна десятая, `null` без отзывов), `stars` (сколько отзывов на 1…5 звёзд)
+и `staff` (мастера с отзывами: `average`, `reviews`, лучшие первыми). Права — как у отчёта: владелец и менеджер видят
+весь салон, мастер с `viewOwnEarnings` — только свои визиты. Кабинет «Raporty» и бизнес-приложение показывают блок
+«Oceny klientów: ★ 4,7» с полосками по звёздам и списком мастеров. Тест `apps/api/test/reports.spec.ts`, e2e
+`reports.spec.ts` (скриншоты 74e, 75d).

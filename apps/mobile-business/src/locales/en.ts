@@ -349,6 +349,10 @@ export const en: Dictionary = {
     occupancyHint:
       'The share of scheduled working hours (without time off and blocked time) taken by visits. Cancelled visits do not count.',
     compared: '% — compared with {from} – {to}',
+    ratings: 'Client ratings: ★ {stars}',
+    ratingsCount: 'reviews: {n}',
+    ratingsStaff: '{stars} ★ · reviews: {n}',
+    ratingsHint: 'Average of the reviews of visits in this period. Reply to reviews in “Reviews”.',
   },
   team: {
     open: 'Team',

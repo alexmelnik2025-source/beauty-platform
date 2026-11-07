@@ -20480,6 +20480,72 @@
             ],
             "additionalProperties": false,
             "description": "Task 141: how busy the specialists were (\"Obłożenie\")"
+          },
+          "ratings": {
+            "type": "object",
+            "properties": {
+              "reviews": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Reviews clients left for visits of the period"
+              },
+              "average": {
+                "nullable": true,
+                "description": "Average stars (1–5, one decimal); null when there are no reviews",
+                "type": "number"
+              },
+              "stars": {
+                "minItems": 5,
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "description": "How many reviews gave 1, 2, 3, 4 and 5 stars"
+              },
+              "staff": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "reviews": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "average": {
+                      "type": "number",
+                      "description": "Average stars, one decimal"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "reviews",
+                    "average"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Specialists with reviews in the period, best rated first"
+              }
+            },
+            "required": [
+              "reviews",
+              "average",
+              "stars",
+              "staff"
+            ],
+            "additionalProperties": false,
+            "description": "Task 213: how clients rated the visits of the period (\"Oceny\")"
           }
         },
         "required": [
@@ -20493,7 +20559,8 @@
           "days",
           "weekdays",
           "previous",
-          "occupancy"
+          "occupancy",
+          "ratings"
         ],
         "additionalProperties": false
       },

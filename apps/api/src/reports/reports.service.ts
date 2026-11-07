@@ -197,6 +197,63 @@ export class ReportsService {
       weekdays,
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
+      ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
+    };
+  }
+
+  /**
+   * Task 213: "Oceny" — the reviews clients left for the visits of the period (by the visit's
+   * day, so a review written later still counts for the month of the visit). A specialist with
+   * their own report sees only the reviews of their own visits, as on "Opinie".
+   */
+  private async ratings(
+    locationId: string,
+    staffIds: string[] | null,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['ratings']> {
+    const rows = await this.prisma.visitReview.findMany({
+      where: {
+        locationId,
+        appointment: { startAt: { gte: rangeStart, lt: rangeEnd } },
+        ...(staffIds ? { staffId: { in: staffIds } } : {}),
+      },
+      select: { rating: true, staff: { select: { id: true, displayName: true } } },
+    });
+    const oneDecimal = (sum: number, count: number) => Math.round((sum / count) * 10) / 10;
+    const stars = [0, 0, 0, 0, 0];
+    const staff = new Map<
+      string,
+      { id: string; displayName: string; sum: number; reviews: number }
+    >();
+    let sum = 0;
+    for (const r of rows) {
+      const rating = Math.min(5, Math.max(1, r.rating));
+      stars[rating - 1]!++;
+      sum += rating;
+      const row =
+        staff.get(r.staff.id) ??
+        staff.set(r.staff.id, { ...r.staff, sum: 0, reviews: 0 }).get(r.staff.id)!;
+      row.sum += rating;
+      row.reviews++;
+    }
+    return {
+      reviews: rows.length,
+      average: rows.length > 0 ? oneDecimal(sum, rows.length) : null,
+      stars,
+      staff: [...staff.values()]
+        .map(({ id, displayName, sum: total, reviews }) => ({
+          id,
+          displayName,
+          reviews,
+          average: oneDecimal(total, reviews),
+        }))
+        .sort(
+          (a, b) =>
+            b.average - a.average ||
+            b.reviews - a.reviews ||
+            a.displayName.localeCompare(b.displayName),
+        ),
     };
   }
 

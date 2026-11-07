@@ -42,3 +42,11 @@ export function weekdayLong(weekday: number, locale: keyof typeof INTL_LOCALE): 
     new Date(Date.UTC(2026, 10, 1 + weekday)),
   );
 }
+
+/** Task 213: average stars with one decimal in the app's language — "4,5" / "4.5". */
+export function starsText(average: number, locale: keyof typeof INTL_LOCALE): string {
+  return new Intl.NumberFormat(INTL_LOCALE[locale], {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(average);
+}

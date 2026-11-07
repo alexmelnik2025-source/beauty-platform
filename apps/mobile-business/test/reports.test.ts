@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { change, onlineShare, reportRange, weekdayLong } from '../src/reports';
+import { change, onlineShare, reportRange, starsText, weekdayLong } from '../src/reports';
 
 describe('report periods', () => {
   it('this month, last month (also across a year) and the last 30 days', () => {
@@ -38,5 +38,13 @@ describe('report periods', () => {
     expect(change(10, 0)).toBeNull();
     expect(weekdayLong(1, 'pl')).toBe('poniedziałek');
     expect(weekdayLong(7, 'en')).toBe('Sunday');
+  });
+});
+
+describe('average stars (task 213)', () => {
+  it('one decimal in the app language', () => {
+    expect(starsText(4.5, 'pl')).toBe('4,5');
+    expect(starsText(5, 'pl')).toBe('5,0');
+    expect(starsText(4.7, 'en')).toBe('4.7');
   });
 });

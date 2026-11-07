@@ -1578,6 +1578,22 @@ h3 {
   background: var(--ink);
 }
 
+.report-ratings-staff {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-ratings-staff li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
 .copy-field {
   display: flex;
   gap: 8px;

@@ -9,6 +9,7 @@ import {
   onlineShare,
   REPORT_PERIODS,
   reportRange,
+  starsText,
   weekdayLong,
   type ReportPeriod,
 } from '../reports';
@@ -69,6 +70,8 @@ export function ReportsScreen(props: {
   /** Task 141: minutes as hours, "12,5". */
   const hours = (minutes: number) =>
     new Intl.NumberFormat(props.locale, { maximumFractionDigits: 1 }).format(minutes / 60);
+  const ratings = shown?.ratings;
+  const maxStars = Math.max(1, ...(ratings?.stars ?? [1]));
   const maxWeekday = Math.max(1, ...(shown?.weekdays.map((d) => d.completed) ?? [1]));
   const stat = (label: string, value: string, sub?: string, trend?: string | null) => (
     <View style={styles.stat} key={label}>
@@ -237,6 +240,49 @@ export function ReportsScreen(props: {
                 </View>
               ))}
               <Text style={styles.small}>{r.occupancyHint}</Text>
+            </View>
+          ) : null}
+          {ratings && ratings.average !== null ? (
+            <View style={{ gap: 6 }} testID="report-ratings">
+              <Text style={styles.section}>
+                {fill(r.ratings, { stars: starsText(ratings.average, props.locale) })}
+              </Text>
+              <Text style={styles.small}>
+                {fill(r.ratingsCount, { n: String(ratings.reviews) })}
+              </Text>
+              {[5, 4, 3, 2, 1].map((n) => {
+                const count = ratings.stars[n - 1] ?? 0;
+                return (
+                  <View key={n} style={styles.weekday}>
+                    <Text style={styles.weekdayName}>{'★'.repeat(n)}</Text>
+                    <View
+                      style={styles.bar}
+                      accessibilityRole="progressbar"
+                      accessibilityLabel={`${n} ★`}
+                      accessibilityValue={{ min: 0, max: ratings.reviews, now: count }}
+                    >
+                      <View style={[styles.barFill, { width: `${(count / maxStars) * 100}%` }]} />
+                    </View>
+                    <Text style={styles.small}>{count}</Text>
+                  </View>
+                );
+              })}
+              {shown?.scope !== 'own'
+                ? ratings.staff.map((s) => (
+                    <View key={s.id} style={styles.weekday}>
+                      <Text style={[styles.weekdayName, { flexGrow: 1 }]} numberOfLines={1}>
+                        {s.displayName}
+                      </Text>
+                      <Text style={styles.small}>
+                        {fill(r.ratingsStaff, {
+                          stars: starsText(s.average, props.locale),
+                          n: String(s.reviews),
+                        })}
+                      </Text>
+                    </View>
+                  ))
+                : null}
+              <Text style={styles.small}>{r.ratingsHint}</Text>
             </View>
           ) : null}
         </>
