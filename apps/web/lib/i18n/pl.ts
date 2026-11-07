@@ -1002,6 +1002,10 @@ export const pl = {
     birthdayMonth: 'Miesiąc',
     birthdayHint: 'Tylko dzień i miesiąc, bez roku.',
     birthdays: 'Urodziny w ciągu 7 dni',
+    consented: 'Zgoda na wiadomości',
+    consentedHint:
+      'Tylko klienci, którzy zgodzili się na wiadomości od salonu (i się nie wypisali).',
+    consentedNone: 'Nikt jeszcze nie zgodził się na wiadomości od salonu.',
     birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',
     birthdayToday: 'dziś',
     visits: 'Wizyty',

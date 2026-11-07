@@ -43,12 +43,24 @@ export function ClientsScreen(props: {
   const [tags, setTags] = useState<CustomerTags['tags']>([]);
   // Task 240: only clients with a birthday in the next 7 days.
   const [birthdays, setBirthdays] = useState(false);
+  // Task 245: only clients who agreed to the salon messages.
+  const [consented, setConsented] = useState(false);
 
   const search = useCallback(
     async (text: string) => {
       setBusy(true);
       try {
-        setList(await api.customers(salon.orgId, text, PAGE, inactiveDays, tag, birthdays ? 7 : 0));
+        setList(
+          await api.customers(
+            salon.orgId,
+            text,
+            PAGE,
+            inactiveDays,
+            tag,
+            birthdays ? 7 : 0,
+            consented,
+          ),
+        );
         setSearched(text.trim());
         setError('');
       } catch (e) {
@@ -57,7 +69,7 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, inactiveDays, tag, birthdays],
+    [api, salon, t, inactiveDays, tag, birthdays, consented],
   );
 
   const loadTags = useCallback(async () => {
@@ -154,6 +166,15 @@ export function ClientsScreen(props: {
         >
           <Text style={[styles.chipText, birthdays && styles.chipTextOn]}>🎂 {c.birthdays}</Text>
         </Pressable>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: consented }}
+          accessibilityHint={c.consentedHint}
+          onPress={() => setConsented(!consented)}
+          style={[styles.chip, consented && styles.chipOn]}
+        >
+          <Text style={[styles.chipText, consented && styles.chipTextOn]}>✉️ {c.consented}</Text>
+        </Pressable>
       </View>
       {tags.length > 0 ? (
         <>
@@ -186,7 +207,13 @@ export function ClientsScreen(props: {
         ) : null
       ) : list.length === 0 ? (
         <Text style={styles.muted}>
-          {birthdays ? c.birthdaysNone : inactiveDays ? c.inactiveNone : c.none}
+          {birthdays
+            ? c.birthdaysNone
+            : consented
+              ? c.consentedNone
+              : inactiveDays
+                ? c.inactiveNone
+                : c.none}
         </Text>
       ) : (
         <>

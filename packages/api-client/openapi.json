@@ -6277,6 +6277,18 @@
         "operationId": "CustomersController_list",
         "parameters": [
           {
+            "name": "marketing",
+            "required": false,
+            "in": "query",
+            "description": "Task 245: only clients whose latest answer about the salon messages is \"yes\" (empty without the permission to see client contacts)",
+            "schema": {
+              "enum": [
+                "yes"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "tag",
             "required": false,
             "in": "query",

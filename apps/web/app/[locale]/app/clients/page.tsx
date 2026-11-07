@@ -29,6 +29,8 @@ export default function ClientsPage() {
   const [tags, setTags] = useState<CustomerTags['tags']>([]);
   // Task 240: only clients with a birthday in the next 7 days.
   const [birthdays, setBirthdays] = useState(false);
+  // Task 245: only clients who agreed to the salon messages.
+  const [consented, setConsented] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
@@ -50,13 +52,14 @@ export default function ClientsPage() {
             inactiveDays: inactiveDays || undefined,
             tag: tag || undefined,
             birthdayDays: birthdays ? 7 : undefined,
+            marketing: consented ? 'yes' : undefined,
           },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, search, inactiveDays, tag, birthdays, t]);
+  }, [orgId, search, inactiveDays, tag, birthdays, consented, t]);
 
   /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
   const loadTags = useCallback(async () => {
@@ -153,6 +156,14 @@ export default function ClientsPage() {
             <button type="button" aria-pressed={birthdays} onClick={() => setBirthdays(!birthdays)}>
               🎂 {t.clients.birthdays}
             </button>
+            <button
+              type="button"
+              aria-pressed={consented}
+              title={t.clients.consentedHint}
+              onClick={() => setConsented(!consented)}
+            >
+              ✉️ {t.clients.consented}
+            </button>
           </div>
         ) : null}
         {tags.length ? (
@@ -179,11 +190,13 @@ export default function ClientsPage() {
           <p className="note">
             {birthdays
               ? t.clients.birthdaysNone
-              : inactiveDays
-                ? t.clients.inactive.none
-                : search || tag
-                  ? t.clients.notFound
-                  : t.clients.empty}
+              : consented
+                ? t.clients.consentedNone
+                : inactiveDays
+                  ? t.clients.inactive.none
+                  : search || tag
+                    ? t.clients.notFound
+                    : t.clients.empty}
           </p>
         ) : (
           <ul className="list">

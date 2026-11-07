@@ -45,6 +45,7 @@ export class CustomersService {
   ) {}
 
   async list(m: MembershipContext, query: ListCustomersQuery): Promise<CustomerResponse[]> {
+    if (query.marketing && !m.permissions.viewClientContacts) return [];
     if (query.birthdayDays) return this.birthdays(m, query);
     const search = query.search
       ? {
@@ -65,12 +66,27 @@ export class CustomersService {
           { anonymizedAt: null },
           query.inactiveDays ? this.inactiveSince(m, query.inactiveDays) : {},
           query.tag ? { tags: { has: query.tag } } : {},
+          query.marketing ? { id: { in: await this.consented(m.organizationId) } } : {},
         ],
       },
       orderBy: { name: 'asc' },
       take: query.limit,
     });
     return rows.map((c) => toCustomer(c, m));
+  }
+
+  /**
+   * Task 245: the organization's clients whose latest answer about the salon messages is "yes"
+   * (a later "no" — the unsubscribe link — takes them out).
+   */
+  private async consented(organizationId: string): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<{ customer_id: string; granted: boolean }[]>`
+      SELECT DISTINCT ON (r.customer_id) r.customer_id, r.granted
+      FROM consent_record r
+      JOIN customer c ON c.id = r.customer_id
+      WHERE c.organization_id = ${organizationId}::uuid AND r.type = 'marketing'
+      ORDER BY r.customer_id, r.created_at DESC, r.id DESC`;
+    return rows.filter((r) => r.granted).map((r) => r.customer_id);
   }
 
   /**
@@ -109,6 +125,7 @@ export class CustomersService {
               }
             : {},
           query.tag ? { tags: { has: query.tag } } : {},
+          query.marketing ? { id: { in: await this.consented(m.organizationId) } } : {},
         ],
       },
       orderBy: { name: 'asc' },

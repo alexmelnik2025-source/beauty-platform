@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
@@ -13,6 +14,7 @@ import { serveApp } from './mobile-app';
  * Task 240: the client's birthday (day and month, no year) in the cabinet card, and "Urodziny w
  * ciągu 7 dni" above the client list — soonest first, with the date. Screenshots 240 and 240-a; the
  * business app shows the same list and the birthday in the card (240-b).
+ * Task 245: "Zgoda na wiadomości" — only clients who agreed to the salon messages (245, 245-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -138,6 +140,31 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await filter.click();
   await expect(rows).toHaveCount(4);
 
+  // Task 245: Jan agreed to the salon messages; Piotr agreed and then unsubscribed.
+  const sql = (statement: string) =>
+    execFileSync('psql', [
+      (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-c',
+      statement,
+    ]);
+  const consent = (phone: string, granted: boolean, minutesAgo: number) =>
+    sql(
+      `INSERT INTO consent_record (id, customer_id, type, version, granted, created_at) SELECT gen_random_uuid(), id, 'marketing', 'e2e', ${granted}, now() - interval '${minutesAgo} minutes' FROM customer WHERE organization_id = '${org.id}' AND phone = '${phone}'`,
+    );
+  consent('+48600000251', true, 10);
+  consent('+48600000253', true, 20);
+  consent('+48600000253', false, 5);
+  const consented = page.getByRole('button', { name: /Zgoda na wiadomości/ });
+  await consented.click();
+  await expect(consented).toHaveAttribute('aria-pressed', 'true');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Jan Kowalski');
+  await shot(page, '245-clients-consented');
+  await consented.click();
+  await expect(rows).toHaveCount(4);
+
   // Task 243: a visit on the client's birthday is marked in the calendar and in the visit card.
   const salon = `/v1/organizations/${org.id}/locations/${location.id}`;
   const service = await json<{ id: string }>(
@@ -210,6 +237,13 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards.nth(1)).toContainText('Jan Kowalski');
     await shot(app, '240-b-business-app-birthdays');
     await app.getByRole('switch', { name: /Urodziny w ciągu 7 dni/ }).click();
+    // Task 245 in the app: only Jan agreed to the salon messages (Piotr unsubscribed).
+    await app.getByRole('switch', { name: /Zgoda na wiadomości/ }).click();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Jan Kowalski');
+    await shot(app, '245-a-business-app-consented');
+    await app.getByRole('switch', { name: /Zgoda na wiadomości/ }).click();
+    await expect(cards).toHaveCount(4);
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
     await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();
     // Task 241: the owner changes it right in the app.

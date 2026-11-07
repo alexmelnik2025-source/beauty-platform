@@ -535,6 +535,7 @@ export class BusinessApi {
     inactiveDays = 0,
     tag = '',
     birthdayDays = 0,
+    consented = false,
   ): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
     if (search.trim()) query.set('search', search.trim());
@@ -542,6 +543,8 @@ export class BusinessApi {
     if (tag) query.set('tag', tag);
     // Task 240: only birthdays in the next `birthdayDays` days, soonest first.
     if (birthdayDays) query.set('birthdayDays', String(birthdayDays));
+    // Task 245: only clients who agreed to the salon messages.
+    if (consented) query.set('marketing', 'yes');
     return this.authed<CustomerList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,

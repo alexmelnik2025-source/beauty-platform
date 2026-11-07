@@ -223,6 +223,11 @@ export const listCustomersSchema = z.object({
    * all (1 = today only), soonest first. Empty without the permission to see client contacts.
    */
   birthdayDays: z.coerce.number().int().min(1).max(31).optional(),
+  /**
+   * Task 245: only clients whose latest answer about the salon messages is "yes". Empty without
+   * the permission to see client contacts.
+   */
+  marketing: z.enum(['yes']).optional(),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;

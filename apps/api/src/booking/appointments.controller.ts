@@ -372,6 +372,13 @@ export class CustomersController {
     required: false,
     description: 'Task 224: only clients with this label (exactly as written in the card)',
   })
+  @ApiQuery({
+    name: 'marketing',
+    required: false,
+    enum: ['yes'],
+    description:
+      'Task 245: only clients whose latest answer about the salon messages is "yes" (empty without the permission to see client contacts)',
+  })
   @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
