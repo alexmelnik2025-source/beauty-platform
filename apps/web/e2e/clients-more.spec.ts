@@ -1,17 +1,20 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 277: "Pokaż więcej klientów". The salon has 105 clients; the cabinet's "Klienci" shows
  * the first 100 and a "Pokaż więcej klientów" button, which adds the last five below and then
- * disappears. Screenshot 277.
+ * disappears. Task 278: the same in the business app — 50 at a time, "Pokaż więcej klientów"
+ * twice brings all 105. Screenshots 277, 278.
  */
 
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `more-owner-${run}@example.com`;
 const DESKTOP = { width: 1280, height: 900 };
+const PHONE = { width: 390, height: 844 };
 const CLIENTS = 105;
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
@@ -99,4 +102,38 @@ test('the owner opens the next clients with "Pokaż więcej klientów"', async (
   await expect(rows).toHaveCount(6);
   await expect(more).toHaveCount(0);
   await desk.close();
+
+  // Task 278: the business app — 50 clients at a time.
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const phone = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      isMobile: true,
+      extraHTTPHeaders: freshAddress(),
+    });
+    const app = await phone.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const code = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Klienci' }).click();
+    const cards = app.getByRole('button', { name: /^Karta klienta: / });
+    await expect(cards).toHaveCount(50);
+    const appMore = app.getByRole('button', { name: 'Pokaż więcej klientów' });
+    await appMore.click();
+    await expect(cards).toHaveCount(100);
+    await appMore.scrollIntoViewIfNeeded();
+    await shot(app, '278-business-app-show-more');
+    await appMore.click();
+    await expect(cards).toHaveCount(CLIENTS);
+    await expect(cards.last()).toContainText('Klient 105');
+    await expect(appMore).toHaveCount(0);
+    await phone.close();
+  } finally {
+    businessApp.server.close();
+  }
 });

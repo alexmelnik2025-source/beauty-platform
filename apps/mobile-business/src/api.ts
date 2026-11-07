@@ -573,6 +573,7 @@ export class BusinessApi {
     overdue = false,
     noShows = false,
     once = false,
+    offset = 0,
   ): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
     setClientFilters(query, {
@@ -586,6 +587,8 @@ export class BusinessApi {
       noShows,
       once,
     });
+    // Task 277: the next page of the same list ("Pokaż więcej klientów").
+    if (offset) query.set('offset', String(offset));
     return this.authed<CustomerList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,

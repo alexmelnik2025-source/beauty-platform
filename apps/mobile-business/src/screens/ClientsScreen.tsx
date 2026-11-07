@@ -106,6 +106,38 @@ export function ClientsScreen(props: {
     once,
   );
 
+  // Task 277: a full page came back — there may be more clients ("Pokaż więcej klientów").
+  const [hasMore, setHasMore] = useState(false);
+  const [moreBusy, setMoreBusy] = useState(false);
+
+  const loadMore = async () => {
+    if (!list || moreBusy) return;
+    setMoreBusy(true);
+    try {
+      const page = await api.customers(
+        salon.orgId,
+        searched,
+        PAGE,
+        inactiveDays,
+        tag,
+        birthdays ? 7 : 0,
+        consented,
+        newcomers ? 30 : 0,
+        overdue,
+        noShows,
+        once,
+        list.length,
+      );
+      const seen = new Set(list.map((client) => client.id));
+      setList([...list, ...page.filter((client) => !seen.has(client.id))]);
+      setHasMore(page.length === PAGE);
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setMoreBusy(false);
+    }
+  };
+
   const downloadCsv = async () => {
     if (csvBusy) return;
     setCsvBusy(true);
@@ -125,21 +157,21 @@ export function ClientsScreen(props: {
     async (text: string) => {
       setBusy(true);
       try {
-        setList(
-          await api.customers(
-            salon.orgId,
-            text,
-            PAGE,
-            inactiveDays,
-            tag,
-            birthdays ? 7 : 0,
-            consented,
-            newcomers ? 30 : 0,
-            overdue,
-            noShows,
-            once,
-          ),
+        const page = await api.customers(
+          salon.orgId,
+          text,
+          PAGE,
+          inactiveDays,
+          tag,
+          birthdays ? 7 : 0,
+          consented,
+          newcomers ? 30 : 0,
+          overdue,
+          noShows,
+          once,
         );
+        setList(page);
+        setHasMore(page.length === PAGE);
         setSearched(text.trim());
         setError('');
       } catch (e) {
@@ -421,6 +453,16 @@ export function ClientsScreen(props: {
               </Card>
             </Pressable>
           ))}
+          {hasMore ? (
+            <View style={styles.row}>
+              <Button
+                kind="secondary"
+                label={c.more}
+                busy={moreBusy}
+                onPress={() => void loadMore()}
+              />
+            </View>
+          ) : null}
         </>
       )}
     </ScrollView>

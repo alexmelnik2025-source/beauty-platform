@@ -242,6 +242,7 @@ export const en: Dictionary = {
     birthdayInvalid: 'Enter the day and month, e.g. 15 and 3 — no year.',
     birthdaySaved: 'Birthday saved.',
     first: 'The first {count} clients — type a name or phone to narrow down.',
+    more: 'Show more clients',
     card: 'Client card',
     contacts: 'Contact',
     contactsHidden: 'Contact details need a permission',

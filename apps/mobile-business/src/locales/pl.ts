@@ -240,6 +240,7 @@ export const pl = {
     birthdayInvalid: 'Wpisz dzień i miesiąc, np. 15 i 3 — bez roku.',
     birthdaySaved: 'Zapisano datę urodzin.',
     first: 'Pierwszych {count} klientów — wpisz imię lub telefon, aby zawęzić.',
+    more: 'Pokaż więcej klientów',
     card: 'Karta klienta',
     contacts: 'Kontakt',
     contactsHidden: 'Kontakt widoczny tylko z uprawnieniem',

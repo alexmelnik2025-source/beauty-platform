@@ -246,6 +246,26 @@ describe('BusinessApi', () => {
     await expect(api.createAppointment('o1', 'l1', body)).resolves.toEqual({ id: 'a9' });
     expect(calls.at(-1)).toMatchObject({ body, auth: 'Bearer a1' });
   });
+  it('asks for the next page of clients with offset (task 277)', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a1', 'r2-refresh-token-0123456789')],
+      'GET /v1/organizations/o1/customers?limit=50&overdue=yes&offset=50': () => [200, []],
+      'GET /v1/organizations/o1/customers?limit=50': () => [200, []],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('saved-refresh-token-0123456789'),
+      fetchFn,
+    );
+    await expect(
+      api.customers('o1', '', 50, 0, '', 0, false, 0, true, false, false, 50),
+    ).resolves.toEqual([]);
+    await expect(api.customers('o1', '', 50)).resolves.toEqual([]);
+    expect(calls.map((call) => call.key).slice(-2)).toEqual([
+      'GET /v1/organizations/o1/customers?limit=50&overdue=yes&offset=50',
+      'GET /v1/organizations/o1/customers?limit=50',
+    ]);
+  });
   it('moves and cancels a visit with the version it read', async () => {
     const { fetchFn, calls } = fakeServer({
       'POST /v1/auth/refresh': () => [200, tokens('a1', 'r2-refresh-token-0123456789')],
