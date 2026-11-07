@@ -9,10 +9,10 @@ import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 
 /**
- * Task 254: the order and names of the price-list categories. The owner has "Włosy" and
- * "Broda"; in "Usługi" "↑" by "Broda" puts it first (the order clients see on the booking
- * page), "Zmień nazwę" turns it into "Broda i golenie", and a new category "Dzieci" goes to
- * the end. Screenshot 254.
+ * Task 254: the order and names of the price-list categories. The owner has "Broda" and
+ * "Włosy"; in "Usługi" "↑" by "Włosy" puts it first (the order clients see on the booking
+ * page), "Zmień nazwę" turns "Broda" into "Broda i golenie", and a new category "Dzieci" goes
+ * to the end. Screenshot 254.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -113,26 +113,27 @@ test('the owner orders and renames the categories of the price list', async ({
   await cabinet.goto('/pl/app/services');
 
   const headings = cabinet.locator('.section h2');
-  await expect(headings).toHaveText(['Włosy', 'Broda']);
-  await expect(cabinet.getByRole('button', { name: 'Wyżej: Włosy' })).toBeDisabled();
-  await cabinet.getByRole('button', { name: 'Wyżej: Broda' }).click();
-  await expect(cabinet.getByRole('button', { name: 'Wyżej: Broda' })).toBeDisabled();
+  // Both were added without a place: the server lists them by name.
   await expect(headings).toHaveText(['Broda', 'Włosy']);
-  expect(await categories()).toEqual(['Broda', 'Włosy']);
+  await expect(cabinet.getByRole('button', { name: 'Wyżej: Broda' })).toBeDisabled();
+  await cabinet.getByRole('button', { name: 'Wyżej: Włosy' }).click();
+  await expect(cabinet.getByRole('button', { name: 'Wyżej: Włosy' })).toBeDisabled();
+  await expect(headings).toHaveText(['Włosy', 'Broda']);
+  expect(await categories()).toEqual(['Włosy', 'Broda']);
 
   // Rename "Broda" in place.
-  await cabinet.getByRole('button', { name: 'Zmień nazwę' }).first().click();
+  await cabinet.getByRole('button', { name: 'Zmień nazwę' }).nth(1).click();
   const name = cabinet.getByLabel('Nazwa kategorii', { exact: true }).first();
   await expect(name).toHaveValue('Broda');
   await name.fill('Broda i golenie');
   await cabinet.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(headings).toHaveText(['Broda i golenie', 'Włosy']);
+  await expect(headings).toHaveText(['Włosy', 'Broda i golenie']);
 
   // A new category goes to the end of the order the owner set.
   await cabinet.getByPlaceholder('Nazwa kategorii').fill('Dzieci');
   await cabinet.getByRole('button', { name: 'Nowa kategoria' }).click();
-  await expect(headings).toHaveText(['Broda i golenie', 'Włosy', 'Dzieci']);
+  await expect(headings).toHaveText(['Włosy', 'Broda i golenie', 'Dzieci']);
   await shot(cabinet, '254-category-order');
-  expect(await categories()).toEqual(['Broda i golenie', 'Włosy', 'Dzieci']);
+  expect(await categories()).toEqual(['Włosy', 'Broda i golenie', 'Dzieci']);
   await desk.close();
 });
