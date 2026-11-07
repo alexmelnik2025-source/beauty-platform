@@ -569,6 +569,16 @@ export class BusinessApi {
     return this.authed<CustomerDetail>('PATCH', customerPath(orgId, id), { version, note, tags });
   }
 
+  /** Task 241: owner or manager (the server checks) — "MM-DD" without a year, or null to remove. */
+  updateCustomerBirthday(
+    orgId: string,
+    id: string,
+    version: number,
+    birthday: string | null,
+  ): Promise<CustomerDetail> {
+    return this.authed<CustomerDetail>('PATCH', customerPath(orgId, id), { version, birthday });
+  }
+
   /** Owner or manager only (the server checks): the client's stamps or points, tier and coupons. */
   loyaltyAccount(orgId: string, customerId: string): Promise<LoyaltyAccount> {
     return this.authed<LoyaltyAccount>(

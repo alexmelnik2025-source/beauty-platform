@@ -137,3 +137,20 @@ export function birthdayText(
     month: 'long',
   }).format(new Date(Date.UTC(2000, month - 1, day)));
 }
+
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/**
+ * Task 241: day and month typed in the card → "MM-DD"; both empty → null (remove);
+ * anything else (one of them empty, 31.02, letters) → undefined (refuse).
+ */
+export function parseBirthday(day: string, month: string): string | null | undefined {
+  const d = day.trim();
+  const m = month.trim();
+  if (!d && !m) return null;
+  if (!/^\d{1,2}$/.test(d) || !/^\d{1,2}$/.test(m)) return undefined;
+  const dn = Number(d);
+  const mn = Number(m);
+  if (mn < 1 || mn > 12 || dn < 1 || dn > DAYS_IN_MONTH[mn - 1]!) return undefined;
+  return `${String(mn).padStart(2, '0')}-${String(dn).padStart(2, '0')}`;
+}

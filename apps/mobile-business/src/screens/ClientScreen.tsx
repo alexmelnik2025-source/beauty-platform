@@ -22,6 +22,7 @@ import {
   bonusSummary,
   canEditNotes,
   completedCount,
+  parseBirthday,
   dateIn,
   addTag,
   parseTags,
@@ -68,6 +69,8 @@ export function ClientScreen(props: {
   const [guard, setGuard] = useState<GuardedClient | null>(null);
   const [releasing, setReleasing] = useState(false);
   const [releaseNote, setReleaseNote] = useState('');
+  /** Task 241: the birthday editor (owners and managers), day and month as typed. */
+  const [birthdayEdit, setBirthdayEdit] = useState<{ day: string; month: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -145,6 +148,32 @@ export function ClientScreen(props: {
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
         setError(c.conflict);
         setEditing(false);
+        await load();
+      } else {
+        setError(errorText(e, t));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveBirthday(remove = false) {
+    if (!client || !birthdayEdit) return;
+    const birthday = remove ? null : parseBirthday(birthdayEdit.day, birthdayEdit.month);
+    if (birthday === undefined) {
+      setError(c.birthdayInvalid);
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      setClient(await api.updateCustomerBirthday(salon.orgId, client.id, client.version, birthday));
+      setBirthdayEdit(null);
+      setInfo(c.birthdaySaved);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
+        setError(c.conflict);
+        setBirthdayEdit(null);
         await load();
       } else {
         setError(errorText(e, t));
@@ -258,6 +287,71 @@ export function ClientScreen(props: {
             🎂 {c.birthday}:{' '}
             {birthdayText(client.birthday, props.locale, c.birthdayToday, props.timeZone)}
           </Text>
+        ) : null}
+        {/* Task 241: owners and managers who see the contacts write the birthday down here. */}
+        {salon.role !== 'staff' && client.phone !== null && !client.anonymizedAt ? (
+          birthdayEdit ? (
+            <View style={styles.form}>
+              <Text style={styles.small}>{c.birthdayInvalid}</Text>
+              <View style={styles.row}>
+                <TextInput
+                  accessibilityLabel={c.birthdayDay}
+                  placeholder={c.birthdayDay}
+                  placeholderTextColor={colors.placeholder}
+                  value={birthdayEdit.day}
+                  onChangeText={(day) => setBirthdayEdit({ ...birthdayEdit, day })}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  style={[styles.input, styles.dateInput]}
+                />
+                <TextInput
+                  accessibilityLabel={c.birthdayMonth}
+                  placeholder={c.birthdayMonth}
+                  placeholderTextColor={colors.placeholder}
+                  value={birthdayEdit.month}
+                  onChangeText={(month) => setBirthdayEdit({ ...birthdayEdit, month })}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  style={[styles.input, styles.dateInput]}
+                />
+              </View>
+              <View style={styles.row}>
+                <Button label={c.save} busy={busy} onPress={() => void saveBirthday()} />
+                {client.birthday ? (
+                  <Button
+                    kind="secondary"
+                    label={c.birthdayRemove}
+                    disabled={busy}
+                    onPress={() => void saveBirthday(true)}
+                  />
+                ) : null}
+                <Button
+                  kind="secondary"
+                  label={c.cancel}
+                  disabled={busy}
+                  onPress={() => setBirthdayEdit(null)}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.row}>
+              <Button
+                kind="link"
+                label={`🎂 ${client.birthday ? c.birthdayChange : c.birthdayAdd}`}
+                onPress={() => {
+                  setInfo('');
+                  setBirthdayEdit(
+                    client.birthday
+                      ? {
+                          day: String(Number(client.birthday.slice(3))),
+                          month: String(Number(client.birthday.slice(0, 2))),
+                        }
+                      : { day: '', month: '' },
+                  );
+                }}
+              />
+            </View>
+          )
         ) : null}
         {!client.phone && !client.email ? (
           <Text style={styles.muted}>{c.contactsHidden}</Text>
@@ -493,6 +587,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   noteInput: { minHeight: 90, textAlignVertical: 'top' },
+  dateInput: { flex: 1, minWidth: 110 },
   visit: {
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,

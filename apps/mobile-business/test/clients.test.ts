@@ -10,6 +10,7 @@ import {
   bonusSummary,
   canEditNotes,
   completedCount,
+  parseBirthday,
   dateIn,
   parseTags,
   splitVisits,
@@ -23,6 +24,24 @@ const staff = (permissions: Partial<Me['permissions']>): Me =>
   ({ role: 'staff', permissions }) as Me;
 
 describe('client card helpers', () => {
+  it('reads the typed day and month of a birthday (task 241)', () => {
+    expect(parseBirthday('15', '3')).toBe('03-15');
+    expect(parseBirthday(' 1 ', '12')).toBe('12-01');
+    expect(parseBirthday('29', '2')).toBe('02-29');
+    expect(parseBirthday('', '')).toBeNull();
+    for (const [d, m] of [
+      ['30', '2'],
+      ['31', '4'],
+      ['15', ''],
+      ['', '3'],
+      ['0', '3'],
+      ['15', '13'],
+      ['a', '3'],
+    ] as const) {
+      expect(parseBirthday(d, m)).toBeUndefined();
+    }
+  });
+
   it('shows a birthday as day and month, or "today" in the salon\'s time zone (task 240)', () => {
     // 23:30 UTC on 14 March is already 15 March in Warsaw.
     const now = new Date('2027-03-14T23:30:00Z');

@@ -169,6 +169,21 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await app.getByRole('switch', { name: /Urodziny w ciągu 7 dni/ }).click();
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
     await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();
+    // Task 241: the owner changes it right in the app.
+    await app.getByRole('button', { name: '🎂 Zmień datę urodzin' }).click();
+    await expect(app.getByLabel('Dzień', { exact: true })).toHaveValue('15');
+    await expect(app.getByLabel('Miesiąc (1–12)')).toHaveValue('3');
+    await app.getByLabel('Dzień', { exact: true }).fill('31');
+    await app.getByLabel('Miesiąc (1–12)').fill('4');
+    await app.getByRole('button', { name: 'Zapisz', exact: true }).first().click();
+    // 31 April does not exist: the hint shows again as an error.
+    await expect(app.getByText('Wpisz dzień i miesiąc, np. 15 i 3 — bez roku.')).toHaveCount(2);
+    await app.getByLabel('Dzień', { exact: true }).fill('16');
+    await app.getByLabel('Miesiąc (1–12)').fill('3');
+    await shot(app, '241-business-app-birthday-edit');
+    await app.getByRole('button', { name: 'Zapisz', exact: true }).first().click();
+    await expect(app.getByText('🎂 Urodziny: 16 marca')).toBeVisible();
+    await expect(app.getByText('Zapisano datę urodzin.')).toBeVisible();
     await phone.close();
   } finally {
     businessApp.server.close();
