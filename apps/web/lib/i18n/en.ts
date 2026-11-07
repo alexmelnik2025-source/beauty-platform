@@ -1041,6 +1041,13 @@ export const en: Dict = {
       hint: 'Clients who came before but not in this time and have nothing booked. Send offers only to people who agreed to marketing messages.',
       none: 'Nobody — everyone comes back.',
     },
+    /** Task 279: the order of the client list. */
+    sort: {
+      label: 'Order',
+      name: 'Alphabetically (A–Z)',
+      recent: 'Latest visit first',
+      visits: 'Most visits first',
+    },
     summary: {
       completed: 'Visits that took place',
       noShow: 'No-shows',

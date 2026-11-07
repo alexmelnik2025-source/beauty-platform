@@ -9031,6 +9031,8 @@ export interface operations {
     CustomersController_list: {
         parameters: {
             query?: {
+                /** @description Task 279: A–Z (default), the latest visit first, or the most visits first. Filters with their own order keep it */
+                sort?: "name" | "recent" | "visits";
                 /** @description Task 270: only clients who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, the most recent first */
                 once?: "yes";
                 /** @description Task 264: only clients who did not come (no-show) at least once in the last 365 days, the most recent no-show first */

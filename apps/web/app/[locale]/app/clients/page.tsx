@@ -18,6 +18,9 @@ type ClientRow = Customer;
 const INACTIVE_DAYS = [30, 60, 90, 180];
 /** Task 277: clients per page of the list (the most the API gives at once). */
 const PAGE = 100;
+/** Task 279: the orders of the list. */
+const SORTS = ['name', 'recent', 'visits'] as const;
+type Sort = (typeof SORTS)[number];
 
 type ClientDetail = CustomerDetail;
 
@@ -46,6 +49,8 @@ export default function ClientsPage() {
   const [noShows, setNoShows] = useState(false);
   // Task 270: only clients who came once (30–365 days ago) and have nothing booked.
   const [once, setOnce] = useState(false);
+  // Task 279: A–Z, the latest visit first or the most visits first.
+  const [sort, setSort] = useState<Sort>('name');
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   // Task 277: a full page came back — there may be more clients ("Pokaż więcej").
@@ -76,6 +81,8 @@ export default function ClientsPage() {
     if (INACTIVE_DAYS.includes(inactive)) setInactiveDays(inactive);
     const label = params.get('tag')?.trim();
     if (label) setTag(label.slice(0, 30));
+    const order = SORTS.find((s) => s === params.get('sort'));
+    if (order) setSort(order);
     setFromAddress(true);
   }, []);
 
@@ -94,12 +101,25 @@ export default function ClientsPage() {
     else params.delete('inactive');
     if (tag) params.set('tag', tag);
     else params.delete('tag');
+    if (sort !== 'name') params.set('sort', sort);
+    else params.delete('sort');
     const query = params.toString();
     const next = `${window.location.pathname}${query ? `?${query}` : ''}`;
     if (next !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(window.history.state, '', next);
     }
-  }, [fromAddress, newcomers, overdue, noShows, once, birthdays, consented, inactiveDays, tag]);
+  }, [
+    fromAddress,
+    newcomers,
+    overdue,
+    noShows,
+    once,
+    birthdays,
+    consented,
+    inactiveDays,
+    tag,
+    sort,
+  ]);
 
   /** The list's filters — also what "Export this list" sends (task 275). */
   const filters = useMemo(
@@ -118,18 +138,25 @@ export default function ClientsPage() {
   );
   /** Task 275: with any filter on, the CSV holds only the clients of the list. */
   const filtered = Object.values(filters).some((value) => value !== undefined);
+  /** Task 279: these filters keep their own order (the newest, the most recently due…). */
+  const ownOrder = newcomers || overdue || noShows || once || birthdays;
+  /** The list's query: the filters and the order. */
+  const listQuery = useMemo(
+    () => ({ ...filters, sort: ownOrder || sort === 'name' ? undefined : sort }),
+    [filters, ownOrder, sort],
+  );
 
   const load = useCallback(async () => {
     try {
       const page = await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
-        query: { ...filters, limit: PAGE },
+        query: { ...listQuery, limit: PAGE },
       });
       setRows(page);
       setHasMore(page.length === PAGE);
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, filters, t]);
+  }, [orgId, listQuery, t]);
 
   /** Task 277: the next page of the same list, added below. */
   async function loadMore(): Promise<void> {
@@ -137,7 +164,7 @@ export default function ClientsPage() {
     setLoadingMore(true);
     try {
       const page = await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
-        query: { ...filters, limit: PAGE, offset: rows.length },
+        query: { ...listQuery, limit: PAGE, offset: rows.length },
       });
       const seen = new Set(rows.map((c) => c.id));
       setRows([...rows, ...page.filter((c) => !seen.has(c.id))]);
@@ -187,7 +214,7 @@ export default function ClientsPage() {
     try {
       const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
       const res = await apiResponse(`/v1/organizations/${orgId}/customers/export.csv`, {
-        query: { lang, ...filters },
+        query: { lang, ...listQuery },
       });
       const name =
         /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ??
@@ -255,6 +282,23 @@ export default function ClientsPage() {
           </select>
         </label>
         {inactiveDays ? <p className="small muted">{t.clients.inactive.hint}</p> : null}
+        {ownOrder ? null : (
+          <label className="field">
+            <span>{t.clients.sort.label}</span>
+            <select
+              className="input"
+              data-testid="clients-sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as Sort)}
+            >
+              {SORTS.map((order) => (
+                <option key={order} value={order}>
+                  {t.clients.sort[order]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="chips tag-filter">
           {contacts ? (
             <>

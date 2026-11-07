@@ -1039,6 +1039,13 @@ export const pl = {
       hint: 'Klienci, którzy już byli, ale nie od tego czasu i nie mają zaplanowanej wizyty. Ofertę wysyłaj tylko osobom ze zgodą na wiadomości marketingowe.',
       none: 'Nikt — wszyscy wracają.',
     },
+    /** Task 279: the order of the client list. */
+    sort: {
+      label: 'Kolejność',
+      name: 'Alfabetycznie (A–Z)',
+      recent: 'Ostatnia wizyta — najnowsze',
+      visits: 'Najwięcej wizyt',
+    },
     summary: {
       completed: 'Odbyte wizyty',
       noShow: 'Nieobecności',

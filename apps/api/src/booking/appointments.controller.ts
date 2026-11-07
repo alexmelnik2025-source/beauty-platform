@@ -413,6 +413,13 @@ export class CustomersController {
     description:
       'Task 270: only clients who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, the most recent first',
   })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    enum: ['name', 'recent', 'visits'],
+    description:
+      'Task 279: A–Z (default), the latest visit first, or the most visits first. Filters with their own order keep it',
+  })
   @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,

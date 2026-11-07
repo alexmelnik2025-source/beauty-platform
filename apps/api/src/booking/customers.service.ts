@@ -100,6 +100,9 @@ export class CustomersService {
           ],
         }
       : {};
+    const ordered = Boolean(newcomers || overdue || noShows || once);
+    // Task 279: by the latest visit or by the number of visits (in the caller's salons).
+    const visits = !ordered && query.sort !== 'name' ? await this.visitStats(m) : null;
     const rows = await this.prisma.customer.findMany({
       // Erased clients (task 21) are not listed; their visits still show in the calendar.
       where: {
@@ -118,10 +121,18 @@ export class CustomersService {
       },
       // The id keeps clients with the same name in one order from page to page (task 277).
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      ...(newcomers || overdue || noShows || once || !page
-        ? {}
-        : { skip: page.offset, take: page.limit }),
+      ...(ordered || visits || !page ? {} : { skip: page.offset, take: page.limit }),
     });
+    if (visits) {
+      const key = (id: string): number => {
+        const v = visits.get(id);
+        if (!v) return -1;
+        return query.sort === 'recent' ? v.latest.getTime() : v.count;
+      };
+      // Stable: equal keys stay in name order (and clients without visits come last).
+      rows.sort((a, b) => key(b.id) - key(a.id));
+      return slicePage(rows, page);
+    }
     if (newcomers) {
       rows.sort((a, b) => newcomers.get(b.id)!.getTime() - newcomers.get(a.id)!.getTime());
     }
@@ -134,7 +145,32 @@ export class CustomersService {
     if (once) {
       rows.sort((a, b) => once.get(b.id)!.getTime() - once.get(a.id)!.getTime());
     }
-    return newcomers || overdue || noShows || once ? slicePage(rows, page) : rows;
+    return ordered ? slicePage(rows, page) : rows;
+  }
+
+  /**
+   * Task 279: per client, how many visits took place in the salons the caller works in, and the
+   * start of the latest one.
+   */
+  private async visitStats(
+    m: MembershipContext,
+  ): Promise<Map<string, { count: number; latest: Date }>> {
+    const groups = await this.prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: {
+        status: 'completed',
+        customerId: { not: null },
+        location: { organizationId: m.organizationId },
+        ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+      },
+      _count: { _all: true },
+      _max: { startAt: true },
+    });
+    return new Map(
+      groups
+        .filter((g) => g.customerId && g._max.startAt)
+        .map((g) => [g.customerId!, { count: g._count._all, latest: g._max.startAt! }]),
+    );
   }
 
   /**

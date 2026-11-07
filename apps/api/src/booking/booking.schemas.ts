@@ -250,6 +250,13 @@ export const listCustomersSchema = z.object({
    * ago — and have nothing booked ahead, the most recent first.
    */
   once: z.enum(['yes']).optional(),
+  /**
+   * Task 279: the order of the list — by name (A–Z, the default), by the latest visit that took
+   * place (the most recent first, clients without one at the end) or by how many visits took
+   * place (the most first). Filters with their own order (newcomers, overdue, no-shows, came
+   * once, birthdays) keep it.
+   */
+  sort: z.enum(['name', 'recent', 'visits']).default('name'),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;

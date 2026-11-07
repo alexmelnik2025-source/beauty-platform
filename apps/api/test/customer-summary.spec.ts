@@ -701,3 +701,95 @@ describe('numbers next to the quick filters (task 273)', () => {
     expect((await segments(owner.auth)).once).toBe(1);
   });
 });
+
+describe('sorting the client list (task 279)', () => {
+  const names = async (query: string, auth = owner.auth) =>
+    (await ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200)).body.map(
+      (c: { name: string }) => c.name,
+    );
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  it('by name, by the latest visit or by the number of visits', async () => {
+    // Jan: three visits, the latest 20 days ago.
+    await pastVisit(kasiaId, 60);
+    await pastVisit(kasiaId, 40);
+    await pastVisit(kasiaId, 20);
+    // Ewa: one visit 2 days ago and one booked (a booked visit does not count).
+    customerId = await client('Ewa Świeża', '+48600000003');
+    await pastVisit(tomekId, 2);
+    await futureVisit(tomekId, 3);
+    // Olek: two visits, the latest 10 days ago.
+    customerId = await client('Olek Średni', '+48600000004');
+    await pastVisit(kasiaId, 30);
+    await pastVisit(kasiaId, 10);
+    // Adam and Bartek never came.
+    await client('Bartek Bez Wizyt', '+48600000005');
+    await client('Adam Bez Wizyt', '+48600000006');
+
+    const all = ['Adam Bez Wizyt', 'Bartek Bez Wizyt', 'Ewa Świeża', 'Jan Nowak', 'Olek Średni'];
+    expect(await names('')).toEqual(all);
+    expect(await names('sort=name')).toEqual(all);
+    expect(await names('sort=recent')).toEqual([
+      'Ewa Świeża',
+      'Olek Średni',
+      'Jan Nowak',
+      'Adam Bez Wizyt',
+      'Bartek Bez Wizyt',
+    ]);
+    expect(await names('sort=visits')).toEqual([
+      'Jan Nowak',
+      'Olek Średni',
+      'Ewa Świeża',
+      'Adam Bez Wizyt',
+      'Bartek Bez Wizyt',
+    ]);
+    // Pages keep the order.
+    expect(await names('sort=recent&limit=2&offset=1')).toEqual(['Olek Średni', 'Jan Nowak']);
+    // With a search or a label it sorts what is found.
+    expect(await names('sort=visits&search=a')).toEqual([
+      'Jan Nowak',
+      'Ewa Świeża',
+      'Adam Bez Wizyt',
+      'Bartek Bez Wizyt',
+    ]);
+    // A filter with its own order keeps it.
+    expect(await names('sort=visits&newDays=7')).toEqual(['Ewa Świeża']);
+    // The manager: the salon's clients in the same order.
+    expect(await names('sort=recent', manager.auth)).toEqual([
+      'Ewa Świeża',
+      'Olek Średni',
+      'Jan Nowak',
+    ]);
+    await ctx.http().get(`${customersBase}?sort=price`).set(owner.auth).expect(400);
+  });
+
+  it('counts only visits in the salons the manager works in', async () => {
+    const other = await ctx.prisma.location.create({
+      data: {
+        organizationId: orgId,
+        name: 'Drugi',
+        slug: 'drugi-279',
+        addressLine: 'Prosta 1',
+        city: 'Warszawa',
+        postalCode: '00-001',
+      },
+    });
+    // Jan: one visit here; Ewa: one here and three in the other salon (moved there directly).
+    await pastVisit(kasiaId, 5);
+    customerId = await client('Ewa Dwa Salony', '+48600000003');
+    await pastVisit(tomekId, 15);
+    for (const days of [40, 30, 20]) {
+      const id = await pastVisit(tomekId, days);
+      await ctx.prisma.appointment.update({ where: { id }, data: { locationId: other.id } });
+    }
+    expect(await names('sort=visits')).toEqual(['Ewa Dwa Salony', 'Jan Nowak']);
+    // The manager works only in the first salon: one visit each there (then by name), and Jan's
+    // is the more recent.
+    expect(await names('sort=visits', manager.auth)).toEqual(['Ewa Dwa Salony', 'Jan Nowak']);
+    expect(await names('sort=recent', manager.auth)).toEqual(['Jan Nowak', 'Ewa Dwa Salony']);
+  });
+});

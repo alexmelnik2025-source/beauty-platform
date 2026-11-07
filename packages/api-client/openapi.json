@@ -6398,6 +6398,20 @@
         "operationId": "CustomersController_list",
         "parameters": [
           {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "description": "Task 279: A–Z (default), the latest visit first, or the most visits first. Filters with their own order keep it",
+            "schema": {
+              "enum": [
+                "name",
+                "recent",
+                "visits"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "once",
             "required": false,
             "in": "query",
