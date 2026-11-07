@@ -2937,6 +2937,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/till-csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The till of a period as a CSV cash journal for the accountant
+         * @description Task 238. Owners and managers of the location only (a specialist gets 403). One line for every cash put in or taken out and every till close, oldest first. Same file format as visits-csv.
+         */
+        get: operations["ReportsController_tillCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/reports/till-close": {
         parameters: {
             query?: never;
@@ -11183,6 +11203,32 @@ export interface operations {
         };
     };
     ReportsController_visitsCsv: {
+        parameters: {
+            query: {
+                locale?: "pl" | "uk" | "ru" | "en";
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    ReportsController_tillCsv: {
         parameters: {
             query: {
                 locale?: "pl" | "uk" | "ru" | "en";

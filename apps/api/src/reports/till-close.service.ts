@@ -4,9 +4,10 @@ import type { MembershipContext } from '../common/request-context';
 import type { Location } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { addDays, localToday, zonedToInstant } from '../scheduling/time';
+import { addDays, instantToLocal, localToday, zonedToInstant } from '../scheduling/time';
 import type { TillCloseResponse } from './reports.responses';
-import type { CloseTillInput, TillMovementInput } from './reports.schemas';
+import type { CloseTillInput, TillMovementInput, VisitsCsvQuery } from './reports.schemas';
+import { tillCsv, type TillCsvLine } from './till-csv';
 
 const dayNotStarted = (): AppException =>
   new AppException(
@@ -104,6 +105,60 @@ export class TillCloseService {
     if (!row) throw notFound('Till movement');
     await this.prisma.tillMovement.delete({ where: { id: row.id } });
     return this.view(location, row.date.toISOString().slice(0, 10));
+  }
+
+  /**
+   * Task 238: the till of a period as a CSV cash journal for the accountant — every cash put in
+   * or taken out and every close, oldest first. Owners and managers only, like the till itself.
+   */
+  async csv(
+    m: MembershipContext,
+    locationId: string,
+    query: VisitsCsvQuery,
+  ): Promise<{ csv: string; fileName: string }> {
+    const location = await this.access.writable(m, locationId);
+    const days = {
+      gte: new Date(`${query.from}T00:00:00Z`),
+      lte: new Date(`${query.to}T00:00:00Z`),
+    };
+    const [movements, closes] = await Promise.all([
+      this.prisma.tillMovement.findMany({ where: { locationId, date: days } }),
+      this.prisma.tillClose.findMany({ where: { locationId, date: days } }),
+    ]);
+    const tz = location.timezone;
+    const lines: (TillCsvLine & { at: number })[] = [
+      ...movements.map((mv) => ({
+        date: mv.date.toISOString().slice(0, 10),
+        time: instantToLocal(mv.createdAt.getTime(), tz).time,
+        at: mv.createdAt.getTime(),
+        kind: mv.kind,
+        amountGrosze: mv.amountGrosze,
+        expectedGrosze: null,
+        note: mv.note,
+        by: mv.createdByName,
+      })),
+      ...closes.map((c) => ({
+        date: c.date.toISOString().slice(0, 10),
+        time: instantToLocal(c.closedAt.getTime(), tz).time,
+        at: c.closedAt.getTime(),
+        kind: 'close' as const,
+        amountGrosze: c.countedCashGrosze,
+        expectedGrosze: c.expectedCashGrosze,
+        note: c.note,
+        by: c.closedByName,
+      })),
+    ];
+    // By till day; within a day in the order noted, the close of the day last.
+    lines.sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        Number(a.kind === 'close') - Number(b.kind === 'close') ||
+        a.at - b.at,
+    );
+    return {
+      csv: tillCsv(lines, query.locale),
+      fileName: `till-${location.slug}-${query.from}-${query.to}.csv`,
+    };
   }
 
   private async userName(userId: string): Promise<string> {

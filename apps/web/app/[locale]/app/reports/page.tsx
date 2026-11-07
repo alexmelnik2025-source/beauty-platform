@@ -78,18 +78,21 @@ export default function ReportsPage() {
     };
   }, [session.orgId, session.location.id, range.from, range.to, invalid, t]);
 
-  /** Task 30: every visit of the period as a CSV file the accountant opens in Excel. */
-  async function downloadCsv() {
+  /**
+   * Task 30: every visit of the period as a CSV file the accountant opens in Excel.
+   * Task 238: "till" — the cash journal of the period (owners and managers).
+   */
+  async function downloadCsv(file: 'visits' | 'till' = 'visits') {
     setDownloading(true);
     setError('');
     try {
       const res = await apiResponse(
-        `/v1/organizations/${session.orgId}/locations/${session.location.id}/reports/visits-csv`,
+        `/v1/organizations/${session.orgId}/locations/${session.location.id}/reports/${file}-csv`,
         { query: { from: range.from, to: range.to, locale } },
       );
       const name =
         /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ??
-        `visits-${range.from}-${range.to}.csv`;
+        `${file}-${range.from}-${range.to}.csv`;
       const link = document.createElement('a');
       link.href = URL.createObjectURL(await res.blob());
       link.download = name;
@@ -170,6 +173,18 @@ export default function ReportsPage() {
           >
             {downloading ? t.reports.downloading : t.reports.csv}
           </button>
+          {report?.scope === 'location' ? (
+            // Task 238: the till's cash journal — only for those who see the whole salon.
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              title={t.reports.tillCsvHint}
+              disabled={invalid || downloading}
+              onClick={() => void downloadCsv('till')}
+            >
+              {t.reports.tillCsv}
+            </button>
+          ) : null}
         </div>
       </div>
       <div className="page report-sheet">

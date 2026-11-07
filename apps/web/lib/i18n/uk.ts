@@ -1320,6 +1320,9 @@ export const uk: Dict = {
     colRevenue: 'Виручка',
     dayVisits: 'візитів: {n}',
     csv: 'Завантажити CSV',
+    tillCsv: 'CSV каси',
+    tillCsvHint:
+      'Внесення, вилучення і закриття каси за цей період — касовий журнал для бухгалтера (Excel)',
     downloading: 'Завантаження…',
     print: 'Друкувати',
     printHint: 'Звіт на аркуші A4 або в PDF (у вікні друку — «Зберегти як PDF»)',

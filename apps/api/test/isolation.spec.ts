@@ -221,8 +221,8 @@ function urlFor(route: Route, ids: Ids): string {
   }
   if (path.endsWith('/till-close')) return `${path}?date=${DATE}`;
   if (
-    ['/appointments', '/time-blocks', '/calendar', '/reports', '/visits-csv'].some((end) =>
-      path.endsWith(end),
+    ['/appointments', '/time-blocks', '/calendar', '/reports', '/visits-csv', '/till-csv'].some(
+      (end) => path.endsWith(end),
     )
   ) {
     return `${path}?from=${DATE}&to=${DATE}`;

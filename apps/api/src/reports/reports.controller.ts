@@ -112,6 +112,30 @@ export class ReportsController {
     res.send(csv);
   }
 
+  @Get('till-csv')
+  @ApiOperation({
+    summary: 'The till of a period as a CSV cash journal for the accountant',
+    description:
+      'Task 238. Owners and managers of the location only (a specialist gets 403). One line for every cash put in or taken out and every till close, oldest first. Same file format as visits-csv.',
+  })
+  @ApiQuery({ name: 'from', example: '2026-11-01' })
+  @ApiQuery({ name: 'to', example: '2026-11-30' })
+  @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async tillCsv(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Query(new ZodValidationPipe(visitsCsvQuerySchema)) query: VisitsCsvQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, fileName } = await this.till.csv(m, locationId, query);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
+  }
+
   @Get('till-close')
   @ApiOperation({
     summary: "The day's till: what the visits paid in cash brought and the cash counted",

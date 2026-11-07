@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
@@ -209,6 +210,18 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await expect(closes.getByRole('columnheader', { name: 'Wypłaty' })).toBeVisible();
   await expect(closes.getByRole('row').nth(1)).toContainText(/0,00\s*zł.*10,00\s*zł/);
   await shot(page, '237-report-till-moves');
+  // Task 238: the cash journal of the period as a CSV file for the accountant.
+  const [tillFile] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'CSV kasy' }).click(),
+  ]);
+  expect(tillFile.suggestedFilename()).toMatch(/^till-.+\.csv$/);
+  const tillText = (await readFile((await tillFile.path())!)).toString('utf8');
+  expect(tillText.startsWith('\uFEFFData;Godzina;Rodzaj;Kwota;Powinno być;Różnica')).toBe(true);
+  expect(tillText).toMatch(/;Wypłata z kasy;10,00;;;Ręczniki;Aleksander Owner/);
+  expect(tillText).toMatch(/;Zamknięcie kasy;90,00;90,00;0,00;;Aleksander Owner/);
+  await page.getByRole('button', { name: 'CSV kasy' }).scrollIntoViewIfNeeded();
+  await shot(page, '238-report-till-csv');
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await moves.getByRole('button', { name: /Usuń: wypłata 10,00\s*zł · Ręczniki/ }).click();
   await expect(moves).toHaveCount(0);

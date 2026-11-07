@@ -1328,6 +1328,9 @@ export const ru: Dict = {
     colRevenue: 'Выручка',
     dayVisits: 'визитов: {n}',
     csv: 'Скачать CSV',
+    tillCsv: 'CSV кассы',
+    tillCsvHint:
+      'Внесения, изъятия и закрытия кассы за этот период — кассовый журнал для бухгалтера (Excel)',
     downloading: 'Загрузка…',
     print: 'Печать',
     printHint: 'Отчёт на листе A4 или в PDF (в окне печати — «Сохранить как PDF»)',

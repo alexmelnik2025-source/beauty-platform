@@ -205,13 +205,13 @@ export interface CsvVisit {
 }
 
 /** One cell: quoted when it holds the separator, a quote or a line break; no formula injection. */
-function cell(value: string): string {
+export function cell(value: string): string {
   // A cell that starts with = + - @ would run as a formula in a spreadsheet.
   const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
   return /[";\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
-function amount(hundredths: number, locale: CsvLocale): string {
+export function amount(hundredths: number, locale: CsvLocale): string {
   const text = (hundredths / 100).toFixed(2);
   return locale === 'en' ? text : text.replace('.', ',');
 }

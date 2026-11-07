@@ -380,3 +380,78 @@ describe('cash put into or taken out of the till (task 236)', () => {
     expect(await ctx.prisma.tillMovement.count()).toBe(1);
   });
 });
+
+describe('the till as a CSV cash journal (task 238)', () => {
+  const csv = (q: Record<string, string> = {}, auth = owner.auth) =>
+    ctx
+      .http()
+      .get(`${base}/reports/till-csv`)
+      .query({ from: addDays(DAY, -3), to: DAY, ...q })
+      .set(auth)
+      .buffer(true)
+      .parse((res, done) => {
+        let text = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk: string) => (text += chunk));
+        res.on('end', () => done(null, text));
+      });
+
+  it('every cash put in or taken out and every close of the period, oldest first', async () => {
+    await walkIn(at(10), { paid: true, paymentMethod: 'cash' }).expect(201); // 80,00
+    const move = (body: Record<string, unknown>) =>
+      ctx
+        .http()
+        .post(`${base}/reports/till-movements`)
+        .set(owner.auth)
+        .send({ date: DAY, ...body })
+        .expect(201);
+    await move({ kind: 'in', amountGrosze: 10_000, note: 'Reszta na początek' });
+    await move({ kind: 'out', amountGrosze: 1550, note: '=Ręczniki; "Biedronka"' });
+    await close({ date: DAY, countedCashGrosze: 15_000, note: 'Brak' }).expect(200);
+    // An earlier day of the period, and one outside it.
+    const earlier = addDays(DAY, -2);
+    await move({ date: earlier, kind: 'out', amountGrosze: 500, note: 'Kawa' });
+    await move({ date: addDays(DAY, -10), kind: 'out', amountGrosze: 700, note: 'Stare' });
+
+    const res = await csv().expect(200);
+    expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(res.headers['content-disposition']).toMatch(
+      new RegExp(`^attachment; filename="till-.+-${addDays(DAY, -3)}-${DAY}\\.csv"$`),
+    );
+    const text = res.body as string;
+    expect(text.startsWith('\uFEFF')).toBe(true);
+    const lines = text.slice(1).trimEnd().split('\r\n');
+    expect(lines[0]).toBe('Data;Godzina;Rodzaj;Kwota;Powinno być;Różnica;Powód / notatka;Kto');
+    const rows = lines.slice(1).map((l) => l.replace(/;\d\d:\d\d;/, ';HH:MM;'));
+    expect(rows).toEqual([
+      `${earlier};HH:MM;Wypłata z kasy;5,00;;;Kawa;Anna Właścicielka`,
+      `${DAY};HH:MM;Wpłata do kasy;100,00;;;Reszta na początek;Anna Właścicielka`,
+      `${DAY};HH:MM;Wypłata z kasy;15,50;;;"'=Ręczniki; ""Biedronka""";Anna Właścicielka`,
+      `${DAY};HH:MM;Zamknięcie kasy;150,00;164,50;-14,50;Brak;Anna Właścicielka`,
+    ]);
+
+    const english = (await csv({ locale: 'en' }).expect(200)).body as string;
+    expect(english).toContain('Date;Time;Entry;Amount;Should be;Difference;Reason / note;By');
+    expect(english).toContain(';Till closed;150.00;164.50;-14.50;Brak;');
+    for (const locale of ['uk', 'ru']) {
+      expect(((await csv({ locale }).expect(200)).body as string).split('\r\n')).toHaveLength(6);
+    }
+  });
+
+  it('owners and managers only; a wrong period is refused', async () => {
+    expectError(JSON.parse((await csv({}, kasia.auth).expect(403)).body as string), 'FORBIDDEN');
+    await csv({ from: DAY, to: addDays(DAY, -1) }).expect(400);
+    await csv({ locale: 'de' }).expect(400);
+    const empty = (await csv().expect(200)).body as string;
+    expect(empty.slice(1).trimEnd().split('\r\n')).toHaveLength(1);
+
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const other = await createOrgWithLocation(ctx, stranger, 'Other');
+    await ctx
+      .http()
+      .get(`/v1/organizations/${other.orgId}/locations/${locationId}/reports/till-csv`)
+      .query({ from: DAY, to: DAY })
+      .set(stranger.auth)
+      .expect(404);
+  });
+});

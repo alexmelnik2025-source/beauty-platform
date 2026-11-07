@@ -1326,6 +1326,9 @@ export const en: Dict = {
     colRevenue: 'Revenue',
     dayVisits: 'visits: {n}',
     csv: 'Download CSV',
+    tillCsv: 'Till CSV',
+    tillCsvHint:
+      'Cash put in, taken out and till closes of this period — a cash journal for the accountant (Excel)',
     downloading: 'Downloading…',
     print: 'Print',
     printHint: 'The report on an A4 page or as a PDF (choose “Save as PDF” in the print window)',
