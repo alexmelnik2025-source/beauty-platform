@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
-import { rhythm } from '../src/booking/customers.service';
+import { favorite, rhythm } from '../src/booking/customers.service';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -166,6 +166,8 @@ describe('client summary on the card (task 98)', () => {
       firstVisitAt: null,
       lastVisitAt: null,
       rhythmDays: null,
+      favoriteService: null,
+      favoriteStaff: null,
       paid: [],
     });
   });
@@ -212,6 +214,9 @@ describe('client summary on the card (task 98)', () => {
       lastVisitAt: latestStart.toISOString(),
       // Task 250: 20 and 8 days between the three visits.
       rhythmDays: 14,
+      // Task 261: three haircuts, two of them at Kasia's.
+      favoriteService: { name: 'Strzyżenie', visits: 3 },
+      favoriteStaff: { name: 'Kasia', visits: 2 },
       paid: [{ currency: 'PLN', amountGrosze: 6000 + 8000 }],
     });
     // The manager of the salon sees the same, money included.
@@ -233,7 +238,15 @@ describe('client summary on the card (task 98)', () => {
     });
     const { body } = await card(kasia.auth);
     expect(body.visits).toHaveLength(2);
-    expect(body.summary).toMatchObject({ completed: 1, noShow: 1, upcoming: 0, paid: null });
+    expect(body.summary).toMatchObject({
+      completed: 1,
+      noShow: 1,
+      upcoming: 0,
+      paid: null,
+      // Task 261: one own visit is not a habit.
+      favoriteService: null,
+      favoriteStaff: null,
+    });
   });
 
   it('salons in other currencies are summed separately', async () => {
@@ -286,6 +299,22 @@ describe('"Wraca zwykle co N dni" (task 250)', () => {
     expect(rhythm([at(1), at(1, 13), at(29)])).toBeNull();
     expect(rhythm([at(1), at(29), at(29, 13), at(31)])).toBe(15);
     expect(rhythm([at(1), at(22), at(29), at(31)])).toBe(7);
+  });
+});
+
+describe('favourite service and specialist (task 261)', () => {
+  it('the most frequent name; the latest wins a tie; below two visits — none', () => {
+    expect(favorite([])).toBeNull();
+    expect(favorite(['Strzyżenie'])).toBeNull();
+    expect(favorite(['Strzyżenie', 'Broda'])).toBeNull();
+    expect(favorite(['Strzyżenie', 'Broda', 'Strzyżenie'])).toEqual({
+      name: 'Strzyżenie',
+      visits: 2,
+    });
+    expect(favorite(['Strzyżenie', 'Broda', 'Strzyżenie', 'Broda'])).toEqual({
+      name: 'Broda',
+      visits: 2,
+    });
   });
 });
 

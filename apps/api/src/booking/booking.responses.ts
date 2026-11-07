@@ -211,6 +211,18 @@ export const customerDetailSchema = responseSchema(
           .describe(
             'Task 250: the client usually comes back every so many days (the median between visits that took place on different days); null with fewer than 3 such visits',
           ),
+        favoriteService: z
+          .strictObject({ name: z.string(), visits: z.number().int() })
+          .nullable()
+          .describe(
+            'Task 261: the service the client had most often (visits that took place, by name; the latest wins a tie); null below 2 such visits',
+          ),
+        favoriteStaff: z
+          .strictObject({ name: z.string(), visits: z.number().int() })
+          .nullable()
+          .describe(
+            'Task 261: the specialist the client went to most often (visits that took place); null below 2 such visits',
+          ),
         paid: z
           .array(
             z.strictObject({

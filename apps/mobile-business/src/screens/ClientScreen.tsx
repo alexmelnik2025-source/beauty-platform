@@ -241,6 +241,23 @@ export function ClientScreen(props: {
             {fill(c.rhythm, { days: String(client.summary.rhythmDays) })}
           </Text>
         ) : null}
+        {/* Task 261: what and with whom the client books most often. */}
+        {client.summary.favoriteService ? (
+          <Text style={styles.chip}>
+            {fill(c.favoriteService, {
+              name: client.summary.favoriteService.name,
+              n: String(client.summary.favoriteService.visits),
+            })}
+          </Text>
+        ) : null}
+        {client.summary.favoriteStaff ? (
+          <Text style={styles.chip}>
+            {fill(c.favoriteStaff, {
+              name: client.summary.favoriteStaff.name,
+              n: String(client.summary.favoriteStaff.visits),
+            })}
+          </Text>
+        ) : null}
         {client.summary.noShow > 0 ? (
           <Text style={[styles.chip, styles.chipBad]}>
             {fill(c.noShows, { count: String(client.summary.noShow) })}

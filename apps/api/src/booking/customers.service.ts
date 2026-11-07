@@ -264,7 +264,11 @@ export class CustomersService {
       this.prisma.appointment.findMany({
         where: { AND: [where, { status: 'completed' }] },
         orderBy: { startAt: 'asc' },
-        select: { startAt: true },
+        select: {
+          startAt: true,
+          service: { select: { name: true } },
+          staff: { select: { displayName: true } },
+        },
         take: 500,
       }),
     ]);
@@ -296,6 +300,8 @@ export class CustomersService {
       firstVisitAt: dates._min.startAt?.toISOString() ?? null,
       lastVisitAt: dates._max.startAt?.toISOString() ?? null,
       rhythmDays: rhythm(starts.map((a) => a.startAt)),
+      favoriteService: favorite(starts.map((a) => a.service.name)),
+      favoriteStaff: favorite(starts.map((a) => a.staff.displayName)),
       paid: money,
     };
   }
@@ -377,6 +383,8 @@ export class CustomersService {
         firstVisitAt: null,
         lastVisitAt: null,
         rhythmDays: null,
+        favoriteService: null,
+        favoriteStaff: null,
         paid: m.role === 'staff' ? null : [],
       },
     };
@@ -546,4 +554,23 @@ export function rhythm(starts: Date[]): number | null {
   gaps.sort((a, b) => a - b);
   const mid = Math.floor(gaps.length / 2);
   return Math.round(gaps.length % 2 === 1 ? gaps[mid]! : (gaps[mid - 1]! + gaps[mid]!) / 2);
+}
+
+/**
+ * Task 261: the name that comes up most often among the visits that took place (oldest first);
+ * the latest wins a tie. Null below two visits with that name — one visit is not a habit.
+ */
+export function favorite(names: string[]): { name: string; visits: number } | null {
+  const counts = new Map<string, { visits: number; last: number }>();
+  names.forEach((name, i) => {
+    const row = counts.get(name);
+    counts.set(name, { visits: (row?.visits ?? 0) + 1, last: i });
+  });
+  let best: { name: string; visits: number; last: number } | null = null;
+  for (const [name, row] of counts) {
+    if (!best || row.visits > best.visits || (row.visits === best.visits && row.last > best.last)) {
+      best = { name, ...row };
+    }
+  }
+  return best && best.visits >= 2 ? { name: best.name, visits: best.visits } : null;
 }

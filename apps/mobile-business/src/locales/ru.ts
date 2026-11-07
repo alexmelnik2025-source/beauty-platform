@@ -237,6 +237,8 @@ export const ru: Dictionary = {
     no: 'нет',
     completed: 'Состоявшихся визитов: {count}',
     rhythm: 'обычно возвращается каждые {days} дн.',
+    favoriteService: 'чаще всего: {name} ({n}×)',
+    favoriteStaff: 'чаще всего у: {name} ({n}×)',
     noShows: 'Неявки: {count}',
     cancelledByClient: 'Отменил(а) сам(а): {count}',
     paid: 'Оплачено: {amount}',

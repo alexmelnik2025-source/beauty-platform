@@ -236,6 +236,8 @@ export const pl = {
     no: 'nie',
     completed: 'Odbyte wizyty: {count}',
     rhythm: 'wraca zwykle co {days} dni',
+    favoriteService: 'najczęściej: {name} ({n}×)',
+    favoriteStaff: 'najczęściej u: {name} ({n}×)',
     noShows: 'Nieobecności: {count}',
     cancelledByClient: 'Odwołał(a) sam(a): {count}',
     paid: 'Zapłacono: {amount}',

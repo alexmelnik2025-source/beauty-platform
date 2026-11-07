@@ -4208,6 +4208,16 @@ export interface components {
                 lastVisitAt: string | null;
                 /** @description Task 250: the client usually comes back every so many days (the median between visits that took place on different days); null with fewer than 3 such visits */
                 rhythmDays: number | null;
+                /** @description Task 261: the service the client had most often (visits that took place, by name; the latest wins a tie); null below 2 such visits */
+                favoriteService: {
+                    name: string;
+                    visits: number;
+                } | null;
+                /** @description Task 261: the specialist the client went to most often (visits that took place); null below 2 such visits */
+                favoriteStaff: {
+                    name: string;
+                    visits: number;
+                } | null;
                 /** @description One row per currency of the salons; null for staff members */
                 paid: {
                     /** @description ISO 4217 code of the salon */

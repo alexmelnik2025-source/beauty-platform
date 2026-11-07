@@ -739,6 +739,18 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
       }),
     ]);
   }
+  // Task 261: what and with whom the client books most often (from two visits).
+  for (const [label, fav] of [
+    [t.clients.summary.favoriteService, summary.favoriteService],
+    [t.clients.summary.favoriteStaff, summary.favoriteStaff],
+  ] as const) {
+    if (fav) {
+      tiles.push([
+        label,
+        fill(t.clients.summary.favoriteValue, { name: fav.name, n: String(fav.visits) }),
+      ]);
+    }
+  }
   if (summary.paid) {
     tiles.push([
       t.clients.summary.paid,

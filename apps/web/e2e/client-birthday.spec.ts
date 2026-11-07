@@ -17,6 +17,7 @@ import { serveApp } from './mobile-app';
  * Task 245: "Zgoda na wiadomości" — only clients who agreed to the salon messages (245, 245-a).
  * Task 248: "Nowi (30 dni)" — clients whose first visit was in the last 30 days (248, 248-a).
  * Task 250: "Wraca zwykle co N dni" in the client card (250, 250-a).
+ * Task 261: "Ulubiona usługa" and "Ulubiony specjalista" in the client card (261, 261-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -272,6 +273,12 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(summary).toContainText('co 10 dni · następna ok.');
   await summary.scrollIntoViewIfNeeded();
   await shot(page, '250-client-rhythm');
+  // Task 261: three haircuts, all at Kasia's.
+  await expect(summary).toContainText('Ulubiona usługa');
+  await expect(summary).toContainText('Strzyżenie · 3×');
+  await expect(summary).toContainText('Ulubiony specjalista');
+  await expect(summary).toContainText('Kasia · 3×');
+  await shot(page, '261-client-favorites');
   await page.keyboard.press('Escape');
   await context.close();
 
@@ -318,6 +325,9 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await cards.nth(0).click();
     await expect(app.getByText('wraca zwykle co 10 dni')).toBeVisible();
     await shot(app, '250-a-business-app-client-rhythm');
+    await expect(app.getByText('najczęściej: Strzyżenie (3×)')).toBeVisible();
+    await expect(app.getByText('najczęściej u: Kasia (3×)')).toBeVisible();
+    await shot(app, '261-a-business-app-client-favorites');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(cards).toHaveCount(1);
     await app.getByRole('switch', { name: /Nowi \(30 dni\)/ }).click();

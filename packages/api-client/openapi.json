@@ -16162,6 +16162,46 @@
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
               },
+              "favoriteService": {
+                "nullable": true,
+                "description": "Task 261: the service the client had most often (visits that took place, by name; the latest wins a tie); null below 2 such visits",
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "visits": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "visits"
+                ],
+                "additionalProperties": false
+              },
+              "favoriteStaff": {
+                "nullable": true,
+                "description": "Task 261: the specialist the client went to most often (visits that took place); null below 2 such visits",
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "visits": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "visits"
+                ],
+                "additionalProperties": false
+              },
               "paid": {
                 "nullable": true,
                 "description": "One row per currency of the salons; null for staff members",
@@ -16197,6 +16237,8 @@
               "firstVisitAt",
               "lastVisitAt",
               "rhythmDays",
+              "favoriteService",
+              "favoriteStaff",
               "paid"
             ],
             "additionalProperties": false,
