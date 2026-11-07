@@ -364,7 +364,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await page.setViewportSize(PHONE);
   await page.getByRole('button', { name: 'Ten miesiąc' }).click();
   await page.getByRole('button', { name: 'Własny okres' }).click();
-  await expect(page.getByLabel('Od')).toBeVisible();
+  await expect(page.getByLabel('Od', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
   await expect(totals.getByText('opłacone wizyty: 3')).toBeVisible();
   await shot(page, '74b-owner-reports-phone');
