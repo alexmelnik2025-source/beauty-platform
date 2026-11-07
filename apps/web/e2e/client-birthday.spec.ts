@@ -516,6 +516,10 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards.nth(0)).toContainText('Adam Nowak');
     await shot(app, '264-a-business-app-no-shows');
     await app.getByRole('switch', { name: /Nie przyszli/ }).click();
+    // Task 273 in the app: next to each filter — how many clients it would show.
+    await expect(app.getByRole('switch', { name: /Byli tylko raz · 1/ })).toBeVisible();
+    await expect(app.getByRole('switch', { name: /Nie przyszli · 1/ })).toBeVisible();
+    await shot(app, '274-business-app-segment-counts');
     // Task 270 in the app: only Ewa came once.
     await app.getByRole('switch', { name: /Byli tylko raz/ }).click();
     await expect(cards).toHaveCount(1);

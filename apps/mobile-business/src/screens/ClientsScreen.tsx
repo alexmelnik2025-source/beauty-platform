@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { BusinessApi, CustomerList, CustomerTags, Locale } from '../api';
+import type { BusinessApi, CustomerList, CustomerSegments, CustomerTags, Locale } from '../api';
 import { birthdayText } from '../clients';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -22,6 +22,11 @@ import type { SalonChoice } from './SalonsScreen';
 const PAGE = 50;
 /** Task 140: "who hasn't been for a while" — 0 = everyone. */
 const INACTIVE = [0, 30, 60, 90, 180] as const;
+
+/** Task 273: " · 3" after a quick filter's name — how many clients it would show. */
+function segmentCount(value: number | null | undefined): string {
+  return value === null || value === undefined ? '' : ` · ${value}`;
+}
 
 /** Owner or manager: the salon's clients, search by name, phone, email or tag → the client card. */
 export function ClientsScreen(props: {
@@ -64,6 +69,8 @@ export function ClientsScreen(props: {
   const [noShows, setNoShows] = useState(props.noShows ?? false);
   // Task 270: only clients who came once (30–365 days ago) and have nothing booked.
   const [once, setOnce] = useState(props.once ?? false);
+  // Task 273: how many clients each quick filter would show (null until loaded or on an error).
+  const [segments, setSegments] = useState<CustomerSegments | null>(null);
   // Task 269: the owner downloads all clients as the cabinet's CSV.
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
@@ -125,9 +132,21 @@ export function ClientsScreen(props: {
     void search('');
   }, [search]);
 
+  const loadSegments = useCallback(async () => {
+    try {
+      setSegments(await api.customerSegments(salon.orgId));
+    } catch {
+      setSegments(null);
+    }
+  }, [api, salon]);
+
   useEffect(() => {
     void loadTags();
   }, [loadTags]);
+
+  useEffect(() => {
+    void loadSegments();
+  }, [loadSegments]);
 
   // Android "back" goes to the day, unless a client card is open (it handles "back" itself).
   useEffect(() => {
@@ -152,6 +171,7 @@ export function ClientsScreen(props: {
           setOpenId(null);
           void search(searched);
           void loadTags();
+          void loadSegments();
         }}
       />
     );
@@ -205,7 +225,10 @@ export function ClientsScreen(props: {
           onPress={() => setBirthdays(!birthdays)}
           style={[styles.chip, birthdays && styles.chipOn]}
         >
-          <Text style={[styles.chipText, birthdays && styles.chipTextOn]}>🎂 {c.birthdays}</Text>
+          <Text style={[styles.chipText, birthdays && styles.chipTextOn]}>
+            🎂 {c.birthdays}
+            {segmentCount(segments?.birthdays)}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="switch"
@@ -214,7 +237,10 @@ export function ClientsScreen(props: {
           onPress={() => setConsented(!consented)}
           style={[styles.chip, consented && styles.chipOn]}
         >
-          <Text style={[styles.chipText, consented && styles.chipTextOn]}>✉️ {c.consented}</Text>
+          <Text style={[styles.chipText, consented && styles.chipTextOn]}>
+            ✉️ {c.consented}
+            {segmentCount(segments?.consented)}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="switch"
@@ -223,7 +249,10 @@ export function ClientsScreen(props: {
           onPress={() => setNewcomers(!newcomers)}
           style={[styles.chip, newcomers && styles.chipOn]}
         >
-          <Text style={[styles.chipText, newcomers && styles.chipTextOn]}>🌱 {c.newcomers}</Text>
+          <Text style={[styles.chipText, newcomers && styles.chipTextOn]}>
+            🌱 {c.newcomers}
+            {segmentCount(segments?.newcomers)}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="switch"
@@ -232,7 +261,10 @@ export function ClientsScreen(props: {
           onPress={() => setOverdue(!overdue)}
           style={[styles.chip, overdue && styles.chipOn]}
         >
-          <Text style={[styles.chipText, overdue && styles.chipTextOn]}>⏰ {c.overdue}</Text>
+          <Text style={[styles.chipText, overdue && styles.chipTextOn]}>
+            ⏰ {c.overdue}
+            {segmentCount(segments?.overdue)}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="switch"
@@ -241,7 +273,10 @@ export function ClientsScreen(props: {
           onPress={() => setNoShows(!noShows)}
           style={[styles.chip, noShows && styles.chipOn]}
         >
-          <Text style={[styles.chipText, noShows && styles.chipTextOn]}>🚫 {c.missed}</Text>
+          <Text style={[styles.chipText, noShows && styles.chipTextOn]}>
+            🚫 {c.missed}
+            {segmentCount(segments?.noShows)}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="switch"
@@ -250,7 +285,10 @@ export function ClientsScreen(props: {
           onPress={() => setOnce(!once)}
           style={[styles.chip, once && styles.chipOn]}
         >
-          <Text style={[styles.chipText, once && styles.chipTextOn]}>👋 {c.once}</Text>
+          <Text style={[styles.chipText, once && styles.chipTextOn]}>
+            👋 {c.once}
+            {segmentCount(segments?.once)}
+          </Text>
         </Pressable>
       </View>
       {newcomers ? <Text style={styles.muted}>{c.newcomersHint}</Text> : null}

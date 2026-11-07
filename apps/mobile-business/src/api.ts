@@ -29,6 +29,8 @@ export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
 export type CustomerList = components['schemas']['CustomerList'];
 export type CustomerTags = components['schemas']['CustomerTags'];
+/** Task 273: how many clients each quick filter of the client list would show. */
+export type CustomerSegments = components['schemas']['CustomerSegments'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 /** Task 206: the salon's loyalty program, its rewards and operations. */
 export type LoyaltyProgram = components['schemas']['LoyaltyProgram'];
@@ -566,6 +568,14 @@ export class BusinessApi {
   /** Task 224: the salon's client labels with how many clients have each (owner, manager). */
   customerTags(orgId: string): Promise<CustomerTags> {
     return this.authed<CustomerTags>('GET', `/v1/organizations/${enc(orgId)}/customers/tags`);
+  }
+
+  /** Task 273: the numbers next to the client list's quick filters (owner, manager). */
+  customerSegments(orgId: string): Promise<CustomerSegments> {
+    return this.authed<CustomerSegments>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/customers/segments`,
+    );
   }
 
   /** One client card; a specialist gets only their own clients, contacts and notes by permission. */

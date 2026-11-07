@@ -139,6 +139,7 @@ describe('BusinessApi clients', () => {
     await api.customers('o1', '', 50, 90);
     await api.customers('o1', '', 50, 0, 'stały klient');
     await api.customerTags('o1');
+    await api.customerSegments('o1');
     await api.customer('o1', 'c1');
     await api.updateCustomerNotes('o1', 'c1', 2, 'Lubi krótko', ['vip']);
     await api.updateCustomerNotes('o1', 'c1', 3, null, []);
@@ -151,6 +152,8 @@ describe('BusinessApi clients', () => {
       // Task 224: clients with one label, and the labels themselves.
       ['GET /v1/organizations/o1/customers?limit=50&tag=sta%C5%82y+klient', undefined, 'Bearer a9'],
       ['GET /v1/organizations/o1/customers/tags', undefined, 'Bearer a9'],
+      // Task 273: the numbers next to the quick filters.
+      ['GET /v1/organizations/o1/customers/segments', undefined, 'Bearer a9'],
       ['GET /v1/organizations/o1/customers/c1', undefined, 'Bearer a9'],
       [
         'PATCH /v1/organizations/o1/customers/c1',
