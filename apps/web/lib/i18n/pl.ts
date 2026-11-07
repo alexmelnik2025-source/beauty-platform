@@ -197,6 +197,7 @@ export const pl = {
     weekView: 'Tydzień',
     weekOf: 'Tydzień specjalisty',
     till: 'Kasa dnia',
+    tillTips: 'Napiwki',
     tillOwn: 'tylko Twoje wizyty',
     tillUnpaid: 'przyszli, nieopłacone: {n}',
     tillLabel: 'Kasa dnia — opłacone wizyty tego dnia według sposobu płatności',
@@ -242,6 +243,10 @@ export const pl = {
     paidHint: 'Za opłaconą wizytę klient dostaje pieczątki lub punkty programu lojalnościowego.',
     paymentMethod: 'Sposób płatności',
     paymentMethodHint: 'Jak klient zapłacił — do raportu i rozliczenia kasy. Można pominąć.',
+    tip: 'Napiwek',
+    tipSave: 'Zapisz napiwek',
+    tipHint: 'Tylko do raportu i kasy dnia — nie wchodzi do ceny wizyty. Puste pole usuwa napiwek.',
+    tipInvalid: 'Wpisz kwotę, np. 15 lub 15,50.',
     paymentMethods: {
       cash: 'Gotówka',
       card: 'Karta',
@@ -303,6 +308,7 @@ export const pl = {
       paid: 'Opłacona',
       unpaid: 'Anulowano opłatę',
       payment_method: 'Zmieniono sposób płatności',
+      tip: 'Zmieniono napiwek',
       coupon_applied: 'Użyto kuponu',
       coupon_removed: 'Zdjęto kupon',
       tier_discount_applied: 'Użyto rabatu poziomu',
@@ -1319,6 +1325,10 @@ export const pl = {
     busyHoursHint:
       'Ile wizyt zaczyna się o danej godzinie w poszczególne dni tygodnia (bez odwołanych). Ciemniejsze pole — więcej wizyt. Pomaga zaplanować grafik i happy hours.',
     payments: 'Sposoby płatności',
+    tips: 'Napiwki',
+    tipsHint:
+      'Napiwki zapisane przy wizytach, które się odbyły. Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
+    tipsVisits: 'wizyty z napiwkiem: {n}',
     paymentsUnknown: 'Nie podano',
     paymentsHint:
       'Opłacone wizyty według sposobu płatności zaznaczonego przy „Opłacono”. „Nie podano” — wizyty bez zaznaczonego sposobu.',

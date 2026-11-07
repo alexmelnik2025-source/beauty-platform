@@ -5882,6 +5882,77 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/tip": {
+      "put": {
+        "description": "Task 229: only a note for the report and the till; not part of the revenue. 409 NOT_COMPLETED: only completed visits. Who may mark the visit paid may note the tip.",
+        "operationId": "AppointmentsController_setTip",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "tipGrosze": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  }
+                },
+                "required": [
+                  "version",
+                  "tipGrosze"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Note the tip the client left on a \"came\" visit (0 = none)",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons": {
       "get": {
         "description": "For each unused coupon: what it would take off this visit, or why it cannot be used (problem). Who may change the visit may see this.",
@@ -11797,6 +11868,12 @@
               "other"
             ]
           },
+          "tipGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price"
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -11836,6 +11913,7 @@
           "cancelReason",
           "paidAt",
           "paymentMethod",
+          "tipGrosze",
           "version",
           "createdAt"
         ],
@@ -12141,6 +12219,12 @@
               "other"
             ]
           },
+          "tipGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price"
+          },
           "version": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -12205,6 +12289,7 @@
           "cancelReason",
           "paidAt",
           "paymentMethod",
+          "tipGrosze",
           "version",
           "createdAt",
           "history"
@@ -12513,6 +12598,12 @@
                 "other"
               ]
             },
+            "tipGrosze": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price"
+            },
             "version": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -12552,6 +12643,7 @@
             "cancelReason",
             "paidAt",
             "paymentMethod",
+            "tipGrosze",
             "version",
             "createdAt"
           ],
@@ -13379,6 +13471,12 @@
                     "other"
                   ]
                 },
+                "tipGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price"
+                },
                 "version": {
                   "type": "integer",
                   "minimum": -9007199254740991,
@@ -13418,6 +13516,7 @@
                 "cancelReason",
                 "paidAt",
                 "paymentMethod",
+                "tipGrosze",
                 "version",
                 "createdAt"
               ],
@@ -20532,6 +20631,63 @@
             },
             "description": "Task 227: paid visits by payment method (\"Sposoby płatności\"), most money first, unknown last"
           },
+          "tips": {
+            "type": "object",
+            "properties": {
+              "totalGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Tips clients left on the visits of the period that took place, in hundredths of the salon currency"
+              },
+              "visits": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits with a tip"
+              },
+              "staff": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "tipsGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Tips on the visits of this specialist, in hundredths of the salon currency"
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "tipsGrosze",
+                    "visits"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Specialists with a tip in the period, most first"
+              }
+            },
+            "required": [
+              "totalGrosze",
+              "visits",
+              "staff"
+            ],
+            "additionalProperties": false,
+            "description": "Task 229: \"Napiwki\" — noted by the staff; not part of the revenue"
+          },
           "weekdays": {
             "type": "array",
             "items": {
@@ -20907,6 +21063,7 @@
           "services",
           "days",
           "payments",
+          "tips",
           "weekdays",
           "previous",
           "occupancy",

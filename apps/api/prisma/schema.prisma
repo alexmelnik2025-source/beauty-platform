@@ -860,6 +860,8 @@ model Appointment {
   paidByUserId        String?           @map("paid_by_user_id") @db.Uuid
   /// Task 227: how the client paid (null = not said, or not paid).
   paymentMethod       PaymentMethod?    @map("payment_method")
+  /// Task 229: the tip the client left, as the staff noted it (0 = none). Not part of the revenue.
+  tipGrosze           Int               @default(0) @map("tip_grosze")
   /// Task 161b: booked online by a client the cancellation guard marks with "approval": the
   /// time is kept, but the visit waits until the salon accepts it (null = nothing to accept).
   approvalRequestedAt DateTime?         @map("approval_requested_at") @db.Timestamptz(3)

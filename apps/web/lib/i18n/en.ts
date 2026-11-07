@@ -196,6 +196,7 @@ export const en: Dict = {
     weekView: 'Week',
     weekOf: "Specialist's week",
     till: 'Till',
+    tillTips: 'Tips',
     tillOwn: 'your visits only',
     tillUnpaid: 'came, not paid: {n}',
     tillLabel: "Till — the day's paid visits by payment method",
@@ -241,6 +242,11 @@ export const en: Dict = {
     paidHint: 'A paid visit earns the client loyalty stamps or points.',
     paymentMethod: 'Payment method',
     paymentMethodHint: 'How the client paid — for the report and the till total. You can skip it.',
+    tip: 'Tip',
+    tipSave: 'Save tip',
+    tipHint:
+      'Only for the report and the day’s till — not part of the visit price. An empty field removes the tip.',
+    tipInvalid: 'Enter an amount, e.g. 15 or 15.50.',
     paymentMethods: {
       cash: 'Cash',
       card: 'Card',
@@ -302,6 +308,7 @@ export const en: Dict = {
       paid: 'Marked as paid',
       unpaid: 'Payment cancelled',
       payment_method: 'Payment method changed',
+      tip: 'Tip changed',
       coupon_applied: 'Coupon used',
       coupon_removed: 'Coupon removed',
       tier_discount_applied: 'Tier discount used',
@@ -1322,6 +1329,10 @@ export const en: Dict = {
     busyHoursHint:
       'How many visits start at each hour on each day of the week (cancelled ones left out). A darker box means more visits. Helps plan the schedule and happy hours.',
     payments: 'Payment methods',
+    tips: 'Tips',
+    tipsHint:
+      'Tips noted on visits that took place. They are not part of the salon’s revenue — the salon decides how to share them.',
+    tipsVisits: 'visits with a tip: {n}',
     paymentsUnknown: 'Not given',
     paymentsHint:
       'Paid visits by the payment method marked with "Paid". "Not given" — visits without a method.',

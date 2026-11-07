@@ -11,6 +11,7 @@ import type { SalonReport } from '@/lib/types';
  * payment method (task 227), and how many came but are not paid yet. The numbers come from the
  * salon report of that one day, so the server decides who sees what: the whole salon for the
  * owner and managers, own visits for a specialist with "own earnings", nothing for others.
+ * Task 229: the day's tips too, apart from the money for the visits.
  */
 export function TillStrip({
   base,
@@ -61,6 +62,11 @@ export function TillStrip({
           {money(p.revenueGrosze)}
         </span>
       ))}
+      {report.tips.totalGrosze > 0 ? (
+        <span data-testid="till-tips">
+          {t.calendar.tillTips} {money(report.tips.totalGrosze)}
+        </span>
+      ) : null}
       {unpaid > 0 ? (
         <span className="till-strip__unpaid">
           {fill(t.calendar.tillUnpaid, { n: String(unpaid) })}

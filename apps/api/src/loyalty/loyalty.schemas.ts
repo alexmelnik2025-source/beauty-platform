@@ -135,6 +135,12 @@ export const setPaidSchema = z
     path: ['method'],
   });
 
+/** Task 229: the tip the client left on a visit that took place (0 = none). */
+export const setTipSchema = z.object({
+  version: z.number().int().min(1),
+  tipGrosze: z.number().int().min(0).max(10_000_000),
+});
+
 /** Task 10d: a coupon on a visit, picked from the list (couponId) or typed from the client's screen (code). */
 export const applyVisitCouponSchema = z
   .object({
@@ -214,6 +220,7 @@ export type UpdateLoyaltyProgramInput = z.infer<typeof updateLoyaltyProgramSchem
 export type ReplaceEarnRulesInput = z.infer<typeof replaceEarnRulesSchema>;
 export type ListLoyaltyTransactionsQuery = z.infer<typeof listLoyaltyTransactionsSchema>;
 export type SetPaidInput = z.infer<typeof setPaidSchema>;
+export type SetTipInput = z.infer<typeof setTipSchema>;
 export type CreateLoyaltyRewardInput = z.infer<typeof createLoyaltyRewardSchema>;
 export type UpdateLoyaltyRewardInput = z.infer<typeof updateLoyaltyRewardSchema>;
 export type ListLoyaltyRewardsQuery = z.infer<typeof listLoyaltyRewardsSchema>;

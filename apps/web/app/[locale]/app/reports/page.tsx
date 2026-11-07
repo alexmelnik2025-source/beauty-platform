@@ -378,6 +378,42 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.tips.totalGrosze > 0 ? (
+              <section className="section" data-testid="report-tips">
+                <h2>
+                  {t.reports.tips}: {money(report.tips.totalGrosze)}
+                </h2>
+                <ol className="report-days">
+                  {report.tips.staff.map((s) => {
+                    const share = Math.round((s.tipsGrosze / report.tips.totalGrosze) * 100);
+                    return (
+                      <li key={s.id}>
+                        <span className="small">{s.displayName}</span>
+                        <span
+                          className="report-bar"
+                          role="meter"
+                          aria-label={s.displayName}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={share}
+                        >
+                          <span style={{ width: `${share}%` }} />
+                        </span>
+                        <span className="small">
+                          {money(s.tipsGrosze)}
+                          <span className="muted">
+                            {' '}
+                            · {fill(t.reports.tipsVisits, { n: String(s.visits) })}
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <p className="small muted">{t.reports.tipsHint}</p>
+              </section>
+            ) : null}
+
             {ratings && ratings.average !== null ? (
               <section className="section" data-testid="report-ratings">
                 <h2>

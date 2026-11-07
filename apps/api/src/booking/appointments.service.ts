@@ -15,6 +15,7 @@ import type {
   ApplyVisitCouponInput,
   RemoveVisitCouponInput,
   SetPaidInput,
+  SetTipInput,
 } from '../loyalty/loyalty.schemas';
 import {
   visitCouponFields,
@@ -559,6 +560,44 @@ export class AppointmentsService {
     return this.get(m, userId, locationId, appointmentId);
   }
 
+  /**
+   * Task 229: the tip the client left on a visit that took place. Only a note for the report
+   * and the till — not part of the revenue, no loyalty. 0 clears it.
+   */
+  async setTip(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    input: SetTipInput,
+  ): Promise<AppointmentDetailResponse> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    if (appointment.status !== 'completed') {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        'NOT_COMPLETED',
+        'Only a visit marked as "came" can have a tip',
+      );
+    }
+    if (appointment.version !== input.version) throw versionConflict();
+    if (appointment.tipGrosze === input.tipGrosze) {
+      return this.get(m, userId, locationId, appointmentId);
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.appointment.updateMany({
+        where: { id: appointment.id, version: input.version, status: 'completed' },
+        data: { tipGrosze: input.tipGrosze, version: { increment: 1 } },
+      });
+      if (result.count !== 1) throw versionConflict();
+      await this.writer.event(tx, appointment.id, 'tip', 'staff', userId, {
+        from: appointment.tipGrosze,
+        to: input.tipGrosze,
+      });
+    });
+    return this.get(m, userId, locationId, appointmentId);
+  }
+
   // ── Loyalty coupons on a visit (task 10d) ─────────────
 
   /** Coupons used on the visit and the client's other unused coupons, with what each would take off. */
@@ -930,6 +969,7 @@ export class AppointmentsService {
       cancelReason: a.cancelReason,
       paidAt: a.paidAt?.toISOString() ?? null,
       paymentMethod: a.paidAt ? a.paymentMethod : null,
+      tipGrosze: a.tipGrosze,
       version: a.version,
       createdAt: a.createdAt.toISOString(),
     };

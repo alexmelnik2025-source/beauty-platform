@@ -1325,6 +1325,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/tip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Note the tip the client left on a "came" visit (0 = none)
+         * @description Task 229: only a note for the report and the till; not part of the revenue. 409 NOT_COMPLETED: only completed visits. Who may mark the visit paid may note the tip.
+         */
+        put: operations["AppointmentsController_setTip"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/coupons": {
         parameters: {
             query?: never;
@@ -3103,6 +3123,8 @@ export interface components {
              * @enum {string|null}
              */
             paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
+            /** @description Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price */
+            tipGrosze: number;
             version: number;
             createdAt: string;
         };
@@ -3192,6 +3214,8 @@ export interface components {
              * @enum {string|null}
              */
             paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
+            /** @description Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price */
+            tipGrosze: number;
             version: number;
             createdAt: string;
             history: {
@@ -3287,6 +3311,8 @@ export interface components {
              * @enum {string|null}
              */
             paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
+            /** @description Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price */
+            tipGrosze: number;
             version: number;
             createdAt: string;
         }[];
@@ -3508,6 +3534,8 @@ export interface components {
                  * @enum {string|null}
                  */
                 paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
+                /** @description Task 229: the tip the client left, in hundredths of the salon currency (0 = none); not part of the price */
+                tipGrosze: number;
                 version: number;
                 createdAt: string;
             }[];
@@ -5265,6 +5293,21 @@ export interface components {
                 /** @description What they brought (price minus discounts), in hundredths of the salon currency */
                 revenueGrosze: number;
             }[];
+            /** @description Task 229: "Napiwki" — noted by the staff; not part of the revenue */
+            tips: {
+                /** @description Tips clients left on the visits of the period that took place, in hundredths of the salon currency */
+                totalGrosze: number;
+                /** @description Visits with a tip */
+                visits: number;
+                /** @description Specialists with a tip in the period, most first */
+                staff: {
+                    id: string;
+                    displayName: string;
+                    /** @description Tips on the visits of this specialist, in hundredths of the salon currency */
+                    tipsGrosze: number;
+                    visits: number;
+                }[];
+            };
             /** @description Monday to Sunday: which days of the week are busy and which are weak */
             weekdays: {
                 /** @description 1 = Monday … 7 = Sunday */
@@ -8408,6 +8451,35 @@ export interface operations {
                     version: number;
                     paid: boolean;
                     method?: ("cash" | "card" | "blik" | "transfer" | "other") | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetail"];
+                };
+            };
+        };
+    };
+    AppointmentsController_setTip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                    tipGrosze: number;
                 };
             };
         };
