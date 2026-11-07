@@ -26,6 +26,7 @@ const HEADERS = {
       'Ostatnia wizyta',
       'Klient od',
       'Urodziny',
+      'Nieobecności (12 mies.)',
       'Notatka',
     ],
     yes: 'tak',
@@ -43,6 +44,7 @@ const HEADERS = {
       'Останній візит',
       'Клієнт з',
       'День народження',
+      'Неявки (12 міс.)',
       'Нотатка',
     ],
     yes: 'так',
@@ -60,6 +62,7 @@ const HEADERS = {
       'Последний визит',
       'Клиент с',
       'День рождения',
+      'Неявки (12 мес.)',
       'Заметка',
     ],
     yes: 'да',
@@ -77,6 +80,7 @@ const HEADERS = {
       'Last visit',
       'Client since',
       'Birthday',
+      'No-shows (12 months)',
       'Note',
     ],
     yes: 'yes',
@@ -108,7 +112,7 @@ export class CustomersExportService {
    */
   async csv(m: MembershipContext, userId: string, query: ExportCustomersQuery): Promise<string> {
     const organizationId = m.organizationId;
-    const [customers, consents, visits, location] = await Promise.all([
+    const [customers, consents, visits, location, missed] = await Promise.all([
       this.prisma.customer.findMany({
         where: { organizationId },
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
@@ -130,10 +134,22 @@ export class CustomersExportService {
         orderBy: { createdAt: 'asc' },
         select: { timezone: true },
       }),
+      // Task 266: visits marked "did not come" in the last 365 days.
+      this.prisma.appointment.groupBy({
+        by: ['customerId'],
+        where: {
+          status: 'no_show',
+          location: { organizationId },
+          customerId: { not: null },
+          startAt: { gte: new Date(Date.now() - 365 * 86_400_000) },
+        },
+        _count: { _all: true },
+      }),
     ]);
     const timeZone = location?.timezone ?? 'Europe/Warsaw';
     const consent = new Map(consents.map((c) => [c.customerId, c.granted]));
     const done = new Map(visits.map((v) => [v.customerId, v]));
+    const noShows = new Map(missed.map((v) => [v.customerId, v._count._all]));
     const words = HEADERS[query.lang];
     const day = (d: Date | null | undefined) =>
       d ? instantToLocal(d.getTime(), timeZone).date : '';
@@ -154,6 +170,7 @@ export class CustomersExportService {
           day(c.createdAt),
           // Task 242: "15.03" — day and month, no year is kept.
           c.birthday ? `${c.birthday.slice(3)}.${c.birthday.slice(0, 2)}` : '',
+          String(noShows.get(c.id) ?? 0),
           c.note ?? '',
         ]
           .map(csvCell)

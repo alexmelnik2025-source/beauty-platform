@@ -2350,3 +2350,9 @@ następny dzień», «2–7 dni», «8–14 dni», «Ponad 14 dni» (полос�
 только число, без имён; в отчёте мастера — 0 и блока нет. API: поле `noShowClients` в `GET …/reports`; общий подсчёт —
 `missedVisits()` в `customers.service.ts`. Тест: `apps/api/test/reports.spec.ts`; e2e и скриншоты 265, 265-a —
 `client-birthday.spec.ts`.
+
+## «Nieobecności (12 mies.)» в CSV клиентов (задача 266)
+
+В «Pobierz CSV» списка клиентов владельца (`GET …/customers/export.csv`) перед «Notatka» — колонка «Nieobecności
+(12 mies.)» (uk «Неявки (12 міс.)», ru «Неявки (12 мес.)», en «No-shows (12 months)»): сколько визитов клиента за
+последние 365 дней отмечены «Nie przyszedł», во всех салонах организации. Тест: `apps/api/test/customers-export.spec.ts`.

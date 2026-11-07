@@ -117,6 +117,31 @@ describe('clients CSV export', () => {
     const zaneta = await ctx.prisma.customer.findFirstOrThrow({
       where: { email: 'zaneta@example.com' },
     });
+    // Task 266: Żaneta did not come twice this year and once more than a year ago.
+    for (const [i, daysAgo] of [10, 100, 400].entries()) {
+      const missed = await ctx
+        .http()
+        .post(`${base}/appointments`)
+        .set(owner.auth)
+        .send({
+          serviceId: service.body.id,
+          staffId: staff.body.id,
+          start: new Date(start.getTime() + (i + 1) * 60 * 60_000).toISOString(),
+          allowOutsideHours: true,
+          customerId: zaneta.id,
+        })
+        .expect(201);
+      const at = new Date(past.getTime() - daysAgo * 86_400_000);
+      await ctx.prisma.appointment.update({
+        where: { id: missed.body.id },
+        data: {
+          status: 'no_show',
+          startAt: at,
+          endAt: new Date(at.getTime() + 30 * 60_000),
+          blockedUntil: new Date(at.getTime() + 30 * 60_000),
+        },
+      });
+    }
     await ctx.prisma.consentRecord.create({
       data: { customerId: zaneta.id, type: 'marketing', version: '1', granted: true },
     });
@@ -164,6 +189,7 @@ describe('clients CSV export', () => {
         'Ostatnia wizyta',
         'Klient od',
         'Urodziny',
+        'Nieobecności (12 mies.)',
         'Notatka',
       ],
       [
@@ -177,6 +203,7 @@ describe('clients CSV export', () => {
         '',
         today,
         '05.03',
+        '0',
         "'=1+1",
       ],
       [
@@ -190,6 +217,7 @@ describe('clients CSV export', () => {
         lastDay,
         today,
         '',
+        '2',
         '',
       ],
     ]);
