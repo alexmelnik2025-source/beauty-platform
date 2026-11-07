@@ -10,7 +10,7 @@ import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
 /**
- * Task 224: label chips above the client list — in the cabinet ("Klienci") and in the business
+ * Tasks 224 and 226: label chips above the client list — in the cabinet ("Klienci") and in the business
  * app (web preview of apps/mobile-business). The owner taps "stały klient" and sees only those
  * clients, then another label, then everyone again. Screenshots 224 and 224-a.
  */
@@ -105,7 +105,7 @@ test('the owner filters the client list by a label (cabinet and business app)', 
   await page.goto('/pl/app/clients');
   const rows = page.locator('.list .list-row');
   await expect(rows).toHaveCount(4);
-  const labels = page.getByRole('group', { name: 'Etykiety' });
+  const labels = page.getByRole('group', { name: 'Tagi' });
   // Most used first: "broda" and "stały klient" (2 each, alphabetically), then "kosmetyki".
   await expect(labels.getByRole('button')).toHaveText([
     'Wszystkie',
@@ -127,6 +127,19 @@ test('the owner filters the client list by a label (cabinet and business app)', 
   await expect(rows.first()).toContainText('Piotr Zieliński');
   await labels.getByRole('button', { name: 'Wszystkie' }).click();
   await expect(rows).toHaveCount(4);
+
+  // Task 226: the card offers the salon's tags — one tap adds "broda" to Ewa.
+  await rows.filter({ hasText: 'Ewa Wiśniewska' }).click();
+  const card = page.getByRole('dialog');
+  const offer = card.getByRole('group', { name: 'Dodaj tag' });
+  await expect(offer.getByRole('button')).toHaveText(['+ broda', '+ stały klient', '+ kosmetyki']);
+  await offer.getByRole('button', { name: '+ broda' }).click();
+  await expect(card.getByLabel('Tagi (przez przecinek)')).toHaveValue('broda');
+  await expect(offer.getByRole('button')).toHaveText(['+ stały klient', '+ kosmetyki']);
+  await shot(page, '226-client-tag-suggestions');
+  await card.locator('form.form').getByRole('button', { name: 'Zapisz', exact: true }).click();
+  await expect(card).toBeHidden();
+  await expect(labels.getByRole('button', { name: /broda/ })).toHaveText('broda 3');
   await context.close();
 
   // Business app.
@@ -149,14 +162,24 @@ test('the owner filters the client list by a label (cabinet and business app)', 
     await app.getByRole('button', { name: 'Klienci' }).click();
     await expect(app.getByRole('heading', { name: 'Klienci' })).toBeVisible();
     await expect(app.getByText('Ewa Wiśniewska')).toBeVisible();
-    await app.getByRole('radio', { name: 'broda · 2' }).click();
-    await expect(app.getByText('Piotr Zieliński')).toBeVisible();
+    // Ewa got "broda" in the cabinet above: "broda" now has 3 clients.
+    await expect(app.getByRole('radio', { name: 'broda · 3' })).toBeVisible();
+    await app.getByRole('radio', { name: 'stały klient · 2' }).click();
+    await expect(app.getByText('Adam Nowak')).toBeVisible();
     await expect(app.getByText('Jan Kowalski')).toBeVisible();
     await expect(app.getByText('Ewa Wiśniewska')).toHaveCount(0);
-    await expect(app.getByText('Adam Nowak')).toHaveCount(0);
+    await expect(app.getByText('Piotr Zieliński')).toHaveCount(0);
     await shot(app, '224-a-business-app-client-tags');
     await app.getByRole('radio', { name: 'Wszystkie' }).click();
     await expect(app.getByText('Ewa Wiśniewska')).toBeVisible();
+
+    // Task 226: in the card, the salon's tags are one tap away.
+    await app.getByRole('button', { name: 'Karta klienta: Adam Nowak' }).click();
+    await app.getByRole('button', { name: 'Zmień notatkę i tagi' }).click();
+    await app.getByRole('button', { name: 'Dodaj tag broda' }).click();
+    await expect(app.getByLabel('Tagi', { exact: true })).toHaveValue('stały klient, broda');
+    await expect(app.getByRole('button', { name: 'Dodaj tag broda' })).toHaveCount(0);
+    await shot(app, '226-a-business-app-tag-suggestions');
     await phone.close();
   } finally {
     businessApp.server.close();

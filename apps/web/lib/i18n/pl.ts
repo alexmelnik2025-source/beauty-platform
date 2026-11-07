@@ -942,8 +942,9 @@ export const pl = {
     note: 'Notatka salonu',
     tags: 'Tagi (przez przecinek)',
     tagsHint: 'Np. stały klient, broda, interesują go kosmetyki',
-    tagFilter: 'Etykiety',
+    tagFilter: 'Tagi',
     allTags: 'Wszystkie',
+    addTag: 'Dodaj tag',
     visits: 'Wizyty',
     noVisits: 'Jeszcze bez wizyt.',
     inactive: {

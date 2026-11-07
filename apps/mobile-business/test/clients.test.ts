@@ -12,6 +12,8 @@ import {
   dateIn,
   parseTags,
   splitVisits,
+  suggestTags,
+  addTag,
   visitWhen,
 } from '../src/clients';
 
@@ -33,6 +35,18 @@ describe('client card helpers', () => {
     expect(parseTags('')).toEqual([]);
     expect(parseTags('x'.repeat(40))).toEqual(['x'.repeat(30)]);
     expect(parseTags(Array.from({ length: 12 }, (_, i) => `t${i}`).join(','))).toHaveLength(10);
+  });
+
+  it("offers the salon's labels the client does not have yet and adds one (task 226)", () => {
+    const known = ['stały klient', 'broda', 'kosmetyki'];
+    expect(suggestTags('', known)).toEqual(known);
+    expect(suggestTags('Broda, vip', known)).toEqual(['stały klient', 'kosmetyki']);
+    expect(suggestTags('', known, 2)).toEqual(['stały klient', 'broda']);
+    const ten = Array.from({ length: 10 }, (_, i) => `t${i}`).join(', ');
+    expect(suggestTags(ten, known)).toEqual([]);
+    expect(addTag('', 'broda')).toBe('broda');
+    expect(addTag(' vip ,', 'broda')).toBe('vip, broda');
+    expect(addTag(ten, 'broda')).toBe(ten);
   });
 
   it('upcoming visits of this salon soonest first, the rest newest first', () => {

@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  BackHandler,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -13,8 +22,10 @@ import {
   canEditNotes,
   completedCount,
   dateIn,
+  addTag,
   parseTags,
   splitVisits,
+  suggestTags,
   visitWhen,
   type ClientVisit,
 } from '../clients';
@@ -46,6 +57,8 @@ export function ClientScreen(props: {
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState('');
   const [tags, setTags] = useState('');
+  /** Task 226: the salon's labels, offered while editing (owners and managers). */
+  const [knownTags, setKnownTags] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -74,6 +87,10 @@ export function ClientScreen(props: {
       );
       void api.guardClient(salon.orgId, salon.locationId, id).then(
         (g) => alive && setGuard(g),
+        () => undefined,
+      );
+      void api.customerTags(salon.orgId).then(
+        (r) => alive && setKnownTags(r.tags.map((item) => item.tag)),
         () => undefined,
       );
     }
@@ -267,6 +284,21 @@ export function ClientScreen(props: {
               autoCapitalize="none"
               style={styles.input}
             />
+            {suggestTags(tags, knownTags).length > 0 ? (
+              <View style={styles.row}>
+                {suggestTags(tags, knownTags).map((tag) => (
+                  <Pressable
+                    key={tag}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${c.addTag} ${tag}`}
+                    onPress={() => setTags(addTag(tags, tag))}
+                    style={styles.tagChip}
+                  >
+                    <Text style={styles.tagChipText}>+ {tag}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
             <View style={styles.row}>
               <Button label={c.save} busy={busy} onPress={() => void save()} />
               <Button
@@ -415,6 +447,15 @@ export function ClientScreen(props: {
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+  tagChip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.card,
+  },
+  tagChipText: { color: colors.ink, fontSize: 14 },
   chips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   chip: {
     fontSize: 12,

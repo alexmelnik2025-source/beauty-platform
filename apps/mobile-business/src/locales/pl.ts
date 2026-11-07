@@ -147,8 +147,9 @@ export const pl = {
     inactiveHint:
       'Byli już u nas, ale nie od tego czasu i nie mają wizyty. Ofertę wysyłaj tylko osobom ze zgodą marketingową.',
     inactiveNone: 'Nikt — wszyscy wracają.',
-    tagFilter: 'Etykiety',
+    tagFilter: 'Tagi',
     allTags: 'Wszystkie',
+    addTag: 'Dodaj tag',
     first: 'Pierwszych {count} klientów — wpisz imię lub telefon, aby zawęzić.',
     card: 'Karta klienta',
     contacts: 'Kontakt',

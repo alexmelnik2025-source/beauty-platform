@@ -940,8 +940,9 @@ export const uk: Dict = {
     note: 'Нотатка салону',
     tags: 'Теги (через кому)',
     tagsHint: 'Напр. постійний клієнт, борода, цікавиться косметикою',
-    tagFilter: 'Мітки',
+    tagFilter: 'Теги',
     allTags: 'Усі',
+    addTag: 'Додати тег',
     visits: 'Візити',
     noVisits: 'Ще без візитів.',
     inactive: {

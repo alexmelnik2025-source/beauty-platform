@@ -23,6 +23,23 @@ export function parseTags(input: string): string[] {
   return [...new Set(tags)].slice(0, 10);
 }
 
+/**
+ * Task 226: the salon's labels the client does not have yet, to add with one tap — so the same
+ * label is not typed in two ways ("broda" / "Broda"). In the order given (most used first).
+ */
+export function suggestTags(input: string, known: string[], max = 8): string[] {
+  const have = new Set(parseTags(input).map((tag) => tag.toLocaleLowerCase()));
+  if (have.size >= 10) return [];
+  return known.filter((tag) => !have.has(tag.toLocaleLowerCase())).slice(0, max);
+}
+
+/** "vip" + "broda" → "vip, broda" (the field stays as the person typed it otherwise). */
+export function addTag(input: string, tag: string): string {
+  const current = parseTags(input);
+  if (current.length >= 10) return input;
+  return [...current, tag].join(', ');
+}
+
 export type ClientVisit = CustomerDetail['visits'][number];
 
 /** Visits of the card in this salon: upcoming first (soonest first), then past (newest first). */

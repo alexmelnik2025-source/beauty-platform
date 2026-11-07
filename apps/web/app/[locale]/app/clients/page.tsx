@@ -201,6 +201,7 @@ export default function ClientsPage() {
         <ClientSheet
           orgId={orgId}
           id={open === 'new' ? null : open}
+          knownTags={tags.map((item) => item.tag)}
           onClose={() => setOpen(null)}
           onSaved={() => {
             setOpen(null);
@@ -213,14 +214,29 @@ export default function ClientsPage() {
   );
 }
 
+/** "vip, , broda " → ['vip', 'broda'] (the server keeps at most 10 labels of 30 characters). */
+function tagList(input: string): string[] {
+  return [
+    ...new Set(
+      input
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
 function ClientSheet({
   orgId,
   id,
+  knownTags,
   onClose,
   onSaved,
 }: {
   orgId: string;
   id: string | null;
+  /** Task 226: the salon's labels, most used first — offered under the label field. */
+  knownTags: string[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -380,6 +396,27 @@ function ClientSheet({
             onChange={(e) => setForm({ ...form, tags: e.target.value })}
           />
         </label>
+        {(() => {
+          const have = tagList(form.tags);
+          const lower = new Set(have.map((tag) => tag.toLocaleLowerCase()));
+          const offer =
+            have.length >= 10
+              ? []
+              : knownTags.filter((tag) => !lower.has(tag.toLocaleLowerCase())).slice(0, 8);
+          return offer.length ? (
+            <div className="chips tag-filter" role="group" aria-label={t.clients.addTag}>
+              {offer.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setForm({ ...form, tags: [...have, tag].join(', ') })}
+                >
+                  + {tag}
+                </button>
+              ))}
+            </div>
+          ) : null;
+        })()}
         <label className="field">
           <span>{t.clients.note}</span>
           <textarea
