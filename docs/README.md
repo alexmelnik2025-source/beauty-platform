@@ -2315,3 +2315,12 @@ następny dzień», «2–7 dni», «8–14 dni», «Ponad 14 dni» (полос�
 салонов), при равенстве — более поздняя; меньше двух визитов — не показывается. API: `summary.favoriteService` и
 `summary.favoriteStaff` в `GET …/customers/:id`. Тест: `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты
 261, 261-a — `client-birthday.spec.ts`.
+
+## Фильтр «Pora wrócić» в «Klienci» (задача 262)
+
+Над списком клиентов (кабинет и бизнес-приложение) кнопка «⏰ Pora wrócić»: постоянные клиенты — хотя бы 3 визита,
+которые состоялись в разные дни, — у которых последний визит плюс обычный перерыв («Wraca zwykle co N dni», медиана,
+задача 250) уже позади, а следующей записи в салонах пользователя нет. Самые свежие «просрочки» первыми (давно
+ушедших показывает «Dawno nie byli», задача 140). Только список, без рассылок. API: `overdue=yes` в
+`GET …/customers` (только владелец и менеджер, менеджер — по своим салонам). Тест:
+`apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 262, 262-a — `client-birthday.spec.ts`.
