@@ -2119,7 +2119,9 @@ napiwek». В «Kasa dnia» — «Napiwki 15,50 zł» отдельно от де
 
 В «Raporty» кабинета — таблица дней периода, когда закрывали кассу: «Za wizyty gotówką», «Policzono», «Różnica»
 (+/−), и «Różnica razem» за период. В отчёте мастера («свои результаты») этого блока нет. API: поле `tillCloses` в
-отчёте салона. Тест в `apps/api/test/till-close.spec.ts`, e2e `till-close.spec.ts` (скриншот 233).
+отчёте салона. Тест в `apps/api/test/till-close.spec.ts`, e2e `till-close.spec.ts` (скриншот 233). В «Raporty»
+бизнес-приложения (задача 235) — тот же блок: «Zamknięcia kasy · różnica razem: +10,00 zł» и строка на каждый день
+(скриншот 235).
 
 ## Клиентские страницы для экранного диктора (задача 234)
 
