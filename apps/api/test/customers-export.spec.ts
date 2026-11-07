@@ -131,6 +131,7 @@ describe('clients CSV export', () => {
         locale: 'uk',
         note: '=1+1',
         tags: ['stała', 'broda'],
+        birthday: '03-05',
       })
       .expect(201);
 
@@ -162,6 +163,7 @@ describe('clients CSV export', () => {
         'Odbyte wizyty',
         'Ostatnia wizyta',
         'Klient od',
+        'Urodziny',
         'Notatka',
       ],
       [
@@ -174,6 +176,7 @@ describe('clients CSV export', () => {
         '0',
         '',
         today,
+        '05.03',
         "'=1+1",
       ],
       [
@@ -186,6 +189,7 @@ describe('clients CSV export', () => {
         '1',
         lastDay,
         today,
+        '',
         '',
       ],
     ]);

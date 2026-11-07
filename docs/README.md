@@ -2184,4 +2184,5 @@ zamknięta.» — если в последний день с наличными 
 решает салон; автоматических поздравлений пока нет. В карточке клиента бизнес-приложения владелец или менеджер
 вписывает, меняет или убирает дату: «🎂 Dodaj / Zmień datę urodzin» → день и месяц цифрами (задача 241, проверка
 `parseBirthday` в `apps/mobile-business/src/clients.ts`). Тесты: `apps/api/test/client-birthday.spec.ts`, e2e
-`client-birthday.spec.ts` (скриншоты 240, 240-a, 240-b, 241).
+`client-birthday.spec.ts` (скриншоты 240, 240-a, 240-b, 241). В «Pobierz CSV» клиентов владельца — колонка «Urodziny» («05.03»,
+задача 242).

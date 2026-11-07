@@ -25,6 +25,7 @@ const HEADERS = {
       'Odbyte wizyty',
       'Ostatnia wizyta',
       'Klient od',
+      'Urodziny',
       'Notatka',
     ],
     yes: 'tak',
@@ -41,6 +42,7 @@ const HEADERS = {
       'Візитів відбулося',
       'Останній візит',
       'Клієнт з',
+      'День народження',
       'Нотатка',
     ],
     yes: 'так',
@@ -57,6 +59,7 @@ const HEADERS = {
       'Визитов состоялось',
       'Последний визит',
       'Клиент с',
+      'День рождения',
       'Заметка',
     ],
     yes: 'да',
@@ -73,6 +76,7 @@ const HEADERS = {
       'Completed visits',
       'Last visit',
       'Client since',
+      'Birthday',
       'Note',
     ],
     yes: 'yes',
@@ -148,6 +152,8 @@ export class CustomersExportService {
           String(v?._count._all ?? 0),
           day(v?._max.startAt),
           day(c.createdAt),
+          // Task 242: "15.03" — day and month, no year is kept.
+          c.birthday ? `${c.birthday.slice(3)}.${c.birthday.slice(0, 2)}` : '',
           c.note ?? '',
         ]
           .map(csvCell)
