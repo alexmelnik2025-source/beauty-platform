@@ -125,6 +125,18 @@ export const salonReportSchema = responseSchema(
           .describe('Specialists with reviews in the period, best rated first'),
       })
       .describe('Task 213: how clients rated the visits of the period ("Oceny")'),
+    topClients: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          name: z.string(),
+          completed: z.number().int().describe('Visits that took place in the period'),
+          revenueGrosze: money('What their paid visits brought'),
+        }),
+      )
+      .describe(
+        "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report",
+      ),
   }),
 );
 

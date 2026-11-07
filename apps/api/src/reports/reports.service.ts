@@ -99,6 +99,7 @@ export class ReportsService {
       ]),
     );
     const clients = new Set<string>();
+    const byClient = new Map<string, { completed: number; revenueGrosze: number }>();
     const weekdays = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
       weekday,
       completed: 0,
@@ -135,9 +136,15 @@ export class ReportsService {
         for (const t of targets) t.completed++;
         if (day) day.completed++;
         weekday.completed++;
+        const client = a.customerId
+          ? (byClient.get(a.customerId) ??
+            byClient.set(a.customerId, { completed: 0, revenueGrosze: 0 }).get(a.customerId)!)
+          : null;
         if (a.customerId) clients.add(a.customerId);
+        if (client) client.completed++;
         if (a.paidAt) {
           const paid = a.priceGrosze - a.discountGrosze;
+          if (client) client.revenueGrosze += paid;
           for (const t of targets) {
             t.paid++;
             t.revenueGrosze += paid;
@@ -198,7 +205,37 @@ export class ReportsService {
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
       ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
+      topClients: own ? [] : await this.topClients(byClient),
     };
+  }
+
+  /**
+   * Task 215: "Najlepsi klienci" — up to 10 clients who brought the most (then came most often),
+   * by name only. Not in a specialist's own report: the salon's clients are the owner's.
+   */
+  private async topClients(
+    byClient: Map<string, { completed: number; revenueGrosze: number }>,
+  ): Promise<SalonReport['topClients']> {
+    const top = [...byClient.entries()]
+      .sort(([, a], [, b]) => b.revenueGrosze - a.revenueGrosze || b.completed - a.completed)
+      .slice(0, 10);
+    if (top.length === 0) return [];
+    const names = new Map(
+      (
+        await this.prisma.customer.findMany({
+          where: { id: { in: top.map(([id]) => id) } },
+          select: { id: true, name: true },
+        })
+      ).map((c) => [c.id, c.name]),
+    );
+    return top
+      .map(([id, counts]) => ({ id, name: names.get(id) ?? '', ...counts }))
+      .sort(
+        (a, b) =>
+          b.revenueGrosze - a.revenueGrosze ||
+          b.completed - a.completed ||
+          a.name.localeCompare(b.name),
+      );
   }
 
   /**

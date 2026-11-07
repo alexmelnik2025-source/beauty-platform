@@ -5253,6 +5253,15 @@ export interface components {
                     average: number;
                 }[];
             };
+            /** @description Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report */
+            topClients: {
+                id: string;
+                name: string;
+                /** @description Visits that took place in the period */
+                completed: number;
+                /** @description What their paid visits brought, in hundredths of the salon currency */
+                revenueGrosze: number;
+            }[];
         };
         SalonReview: {
             id: string;

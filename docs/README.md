@@ -1961,3 +1961,10 @@ API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply
 (`weekSummary` в `src/week.ts`): визиты без отменённых, «09:00–18:30» от начала первого до конца последнего,
 «⏳ czekają: N» (ждут ответа салона, задача 161b), сколько мастеров работает по графику. Тап по дню — экран этого дня.
 Тест `test/week.test.ts`, e2e-шаг в `reports.spec.ts` (скриншот 75e).
+
+## «Najlepsi klienci» в отчёте (задача 215)
+
+`GET …/reports` возвращает `topClients` — до 10 клиентов периода по сумме оплаченных визитов (цена минус скидки), при
+равенстве — по числу визитов, которые состоялись. Только `id`, имя, `completed`, `revenueGrosze` — без контактов. В
+отчёте мастера (`scope: own`) — пустой список. Кабинет «Raporty» — таблица «Najlepsi klienci», бизнес-приложение —
+карточки. Тест `apps/api/test/reports.spec.ts`, e2e `reports.spec.ts` (скриншоты 74f, 75f).

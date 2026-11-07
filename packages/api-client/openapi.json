@@ -20546,6 +20546,40 @@
             ],
             "additionalProperties": false,
             "description": "Task 213: how clients rated the visits of the period (\"Oceny\")"
+          },
+          "topClients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits that took place in the period"
+                },
+                "revenueGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What their paid visits brought, in hundredths of the salon currency"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "completed",
+                "revenueGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report"
           }
         },
         "required": [
@@ -20560,7 +20594,8 @@
           "weekdays",
           "previous",
           "occupancy",
-          "ratings"
+          "ratings",
+          "topClients"
         ],
         "additionalProperties": false
       },

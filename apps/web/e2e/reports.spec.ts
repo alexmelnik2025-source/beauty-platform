@@ -19,6 +19,7 @@ import { serveApp } from './mobile-app';
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
  * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d, app 75c.
  * "Oceny klientów" — the reviews of the period by stars and specialist (task 213): 74e, app 75d.
+ * "Najlepsi klienci" — the clients who brought the most, names only (task 215): 74f, app 75f.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -251,6 +252,15 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     '4,5 ★ · opinie: 2',
   );
   await shot(page, '74e-owner-reports-ratings');
+  // "Najlepsi klienci": Jan 150 zł (2 visits), then Piotr 90 zł; Adam did not come (task 215).
+  const top = page.getByTestId('report-top-clients');
+  await top.scrollIntoViewIfNeeded();
+  await expect(top.getByRole('row').nth(1)).toContainText('Jan');
+  await expect(top.getByRole('row').nth(1)).toContainText(/150,00\s*zł/);
+  await expect(top.getByRole('row').nth(2)).toContainText('Piotr');
+  await expect(top.getByRole('row')).toHaveCount(3);
+  await expect(top).not.toContainText('@');
+  await shot(page, '74f-owner-reports-top-clients');
 
   // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([
@@ -307,6 +317,11 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByText('4,5 ★ · opinie: 2')).toBeVisible();
     await expect(app.getByText('5,0 ★ · opinie: 1')).toBeVisible();
     await shot(app, '75d-business-app-reports-ratings');
+    // "Najlepsi klienci" in the app too (task 215).
+    await app.getByText('Najlepsi klienci').scrollIntoViewIfNeeded();
+    await expect(app.getByTestId('report-top-clients')).toContainText('Jan');
+    await expect(app.getByTestId('report-top-clients')).toContainText('Piotr');
+    await shot(app, '75f-business-app-reports-top-clients');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 

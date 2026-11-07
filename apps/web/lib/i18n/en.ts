@@ -1281,6 +1281,10 @@ export const en: Dict = {
     ratingsStaff: '{stars} ★ · reviews: {n}',
     ratingsHint:
       'Average of the reviews of visits in this period (including ones written later). Reply to reviews on the “Reviews” tab.',
+    topClients: 'Top clients',
+    colClient: 'Client',
+    topClientsHint:
+      'Up to 10 clients who brought the most in this period (paid visits), then came most often. Contact details are in “Clients”.',
   },
   unsubscribe: {
     title: 'Messages from the salon',

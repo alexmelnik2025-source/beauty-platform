@@ -190,6 +190,14 @@ describe('salon report', () => {
       { id: kasiaId, displayName: 'Kasia', completed: 2, noShow: 1, revenueGrosze: 14000, paid: 2 },
       { id: olaId, displayName: 'Ola', completed: 2, noShow: 0, revenueGrosze: 5000, paid: 1 },
     ]);
+    // Task 215: the clients who brought the most, names only (no phone or e-mail).
+    const customers = await ctx.prisma.customer.findMany({ select: { id: true, email: true } });
+    const idOf = (email: string) => customers.find((c) => c.email === email)!.id;
+    expect(res.body.topClients).toEqual([
+      { id: idOf('jan@example.com'), name: 'Jan Nowak', completed: 2, revenueGrosze: 14000 },
+      { id: idOf('ewa@example.com'), name: 'Jan Nowak', completed: 2, revenueGrosze: 5000 },
+    ]);
+    expect(JSON.stringify(res.body.topClients)).not.toMatch(/@|\+48/);
     expect(res.body.services).toEqual([
       { id: haircutId, name: 'Strzyżenie', completed: 3, noShow: 1, revenueGrosze: 14000, paid: 2 },
       { id: beardId, name: 'Broda', completed: 1, noShow: 0, revenueGrosze: 5000, paid: 1 },
@@ -247,6 +255,8 @@ describe('salon report', () => {
     expect(own.body.scope).toBe('own');
     expect(own.body.totals).toMatchObject({ completed: 1, revenueGrosze: 8000 });
     expect(own.body.staff.map((s: { id: string }) => s.id)).toEqual([kasiaId]);
+    // The salon's best clients are not in a specialist's own report (task 215).
+    expect(own.body.topClients).toEqual([]);
   });
 
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {

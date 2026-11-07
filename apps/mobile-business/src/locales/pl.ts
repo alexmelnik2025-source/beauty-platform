@@ -368,6 +368,10 @@ export const pl = {
     ratingsStaff: '{stars} ★ · opinie: {n}',
     ratingsHint:
       'Średnia z opinii o wizytach z tego okresu. Odpowiedzieć na opinie można w „Opinie”.',
+    topClients: 'Najlepsi klienci',
+    topClientVisits: 'wizyty: {n}',
+    topClientsHint:
+      'Do 10 klientów, którzy w tym okresie przynieśli najwięcej. Kontakty — w „Klienci”.',
   },
   team: {
     open: 'Zespół',

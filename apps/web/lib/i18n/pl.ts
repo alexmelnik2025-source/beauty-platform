@@ -1278,6 +1278,10 @@ export const pl = {
     ratingsStaff: '{stars} ★ · opinie: {n}',
     ratingsHint:
       'Średnia z opinii o wizytach z tego okresu (także tych napisanych później). Odpowiedzi na opinie — w zakładce „Opinie”.',
+    topClients: 'Najlepsi klienci',
+    colClient: 'Klient',
+    topClientsHint:
+      'Do 10 klientów, którzy w tym okresie przynieśli najwięcej (opłacone wizyty), potem najczęściej przychodzili. Dane kontaktowe — w „Klienci”.',
   },
   unsubscribe: {
     title: 'Wiadomości od salonu',

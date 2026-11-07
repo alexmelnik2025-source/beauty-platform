@@ -369,6 +369,10 @@ export const en: Dictionary = {
     ratingsCount: 'reviews: {n}',
     ratingsStaff: '{stars} ★ · reviews: {n}',
     ratingsHint: 'Average of the reviews of visits in this period. Reply to reviews in “Reviews”.',
+    topClients: 'Top clients',
+    topClientVisits: 'visits: {n}',
+    topClientsHint:
+      'Up to 10 clients who brought the most in this period. Contact details are in “Clients”.',
   },
   team: {
     open: 'Team',

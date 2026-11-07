@@ -388,6 +388,33 @@ export default function ReportsPage() {
                   </section>
                 ))}
 
+                {report.topClients.length > 0 ? (
+                  <section className="section" data-testid="report-top-clients">
+                    <h2>{t.reports.topClients}</h2>
+                    <div className="report-table-wrap">
+                      <table className="report-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">{t.reports.colClient}</th>
+                            <th scope="col">{t.reports.colCompleted}</th>
+                            <th scope="col">{t.reports.colRevenue}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.topClients.map((c) => (
+                            <tr key={c.id}>
+                              <th scope="row">{c.name}</th>
+                              <td>{c.completed}</td>
+                              <td>{money(c.revenueGrosze)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="small muted">{t.reports.topClientsHint}</p>
+                  </section>
+                ) : null}
+
                 <section className="section">
                   <h2>{t.reports.byWeekday}</h2>
                   <ol className="report-days">

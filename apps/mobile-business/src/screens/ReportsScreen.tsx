@@ -192,6 +192,23 @@ export function ReportsScreen(props: {
               </View>
             ))
           )}
+          {shown.topClients.length > 0 ? (
+            <View style={{ gap: 8 }} testID="report-top-clients">
+              <Text style={styles.section}>{r.topClients}</Text>
+              {shown.topClients.map((c) => (
+                <Card key={c.id}>
+                  <View style={styles.cardTop}>
+                    <Text style={styles.name}>{c.name}</Text>
+                    <Text style={styles.name}>{money(c.revenueGrosze)}</Text>
+                  </View>
+                  <Text style={styles.muted}>
+                    {fill(r.topClientVisits, { n: String(c.completed) })}
+                  </Text>
+                </Card>
+              ))}
+              <Text style={styles.small}>{r.topClientsHint}</Text>
+            </View>
+          ) : null}
           {totals.visits > 0 ? (
             <View style={{ gap: 6 }}>
               <Text style={styles.section}>{r.byWeekday}</Text>
