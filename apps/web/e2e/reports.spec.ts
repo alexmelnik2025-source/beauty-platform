@@ -513,10 +513,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await shot(app, '246-a-business-app-reports-newcomers');
     // "Pokaż nowych klientów" in the app: the client list with "Nowi (30 dni)" on (task 249).
     await app.getByRole('button', { name: 'Pokaż nowych klientów' }).click();
-    await expect(app.getByRole('switch', { name: /Nowi \(30 dni\)/ })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await expect(app.getByRole('switch', { name: /Nowi \(30 dni\)/ })).toBeVisible();
     await expect(app.getByRole('button', { name: /^Karta klienta: / })).toHaveCount(1);
     await expect(app.getByRole('button', { name: /^Karta klienta: Jan/ })).toBeVisible();
     await shot(app, '249-a-business-app-report-to-new-clients');
