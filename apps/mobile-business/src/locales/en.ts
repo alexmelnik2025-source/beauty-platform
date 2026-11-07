@@ -427,6 +427,8 @@ export const en: Dictionary = {
     onlineShare: '{n}% of visits',
     byStaff: 'Specialists',
     byService: 'Services',
+    byCategory: 'Service categories',
+    noCategory: 'No category',
     row: 'completed: {completed} · no-shows: {noShow}',
     rowCancelled: 'cancelled: {n} ({split})',
     csv: 'Download CSV',

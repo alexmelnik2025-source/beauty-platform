@@ -1337,6 +1337,8 @@ export const uk: Dict = {
     empty: 'У цьому періоді візитів немає.',
     byStaff: 'Спеціалісти',
     byService: 'Послуги',
+    byCategory: 'Категорії послуг',
+    noCategory: 'Без категорії',
     byDay: 'По днях',
     colName: 'Назва',
     colCompleted: 'Відбулися',

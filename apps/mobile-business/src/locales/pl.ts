@@ -425,6 +425,8 @@ export const pl = {
     onlineShare: '{n}% wizyt',
     byStaff: 'Specjaliści',
     byService: 'Usługi',
+    byCategory: 'Kategorie usług',
+    noCategory: 'Bez kategorii',
     row: 'odbyte: {completed} · nie przyszli: {noShow}',
     rowCancelled: 'odwołane: {n} ({split})',
     csv: 'Pobierz CSV',

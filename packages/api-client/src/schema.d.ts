@@ -5418,6 +5418,25 @@ export interface components {
                 /** @description Task 219: visits the salon cancelled */
                 cancelledBySalon: number;
             }[];
+            /** @description Task 256: the same by price-list category ("Kategorie usług"), by revenue; empty when no service of the period has a category */
+            categories: {
+                /** @description null = services without a category */
+                id: string | null;
+                /** @description null = services without a category */
+                name: string | null;
+                /** @description Visits that took place ("came") */
+                completed: number;
+                /** @description "Did not come" */
+                noShow: number;
+                /** @description What paid visits brought (price minus discounts), in hundredths of the salon currency */
+                revenueGrosze: number;
+                /** @description Visits marked as paid */
+                paid: number;
+                /** @description Task 219: visits the client cancelled */
+                cancelledByClient: number;
+                /** @description Task 219: visits the salon cancelled */
+                cancelledBySalon: number;
+            }[];
             /** @description Every day of the period, in the salon time zone */
             days: {
                 date: string;

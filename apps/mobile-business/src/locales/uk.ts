@@ -424,6 +424,8 @@ export const uk: Dictionary = {
     onlineShare: '{n}% візитів',
     byStaff: 'Спеціалісти',
     byService: 'Послуги',
+    byCategory: 'Категорії послуг',
+    noCategory: 'Без категорії',
     row: 'відбулися: {completed} · не прийшли: {noShow}',
     rowCancelled: 'скасовані: {n} ({split})',
     csv: 'Завантажити CSV',

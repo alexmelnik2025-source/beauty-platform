@@ -425,6 +425,8 @@ export const ru: Dictionary = {
     onlineShare: '{n}% визитов',
     byStaff: 'Специалисты',
     byService: 'Услуги',
+    byCategory: 'Категории услуг',
+    noCategory: 'Без категории',
     row: 'состоялись: {completed} · не пришли: {noShow}',
     rowCancelled: 'отменены: {n} ({split})',
     csv: 'Скачать CSV',

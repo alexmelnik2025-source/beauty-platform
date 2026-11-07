@@ -1341,6 +1341,8 @@ export const pl = {
     empty: 'Brak wizyt w tym okresie.',
     byStaff: 'Specjaliści',
     byService: 'Usługi',
+    byCategory: 'Kategorie usług',
+    noCategory: 'Bez kategorii',
     byDay: 'Dzień po dniu',
     colName: 'Nazwa',
     colCompleted: 'Odbyte',

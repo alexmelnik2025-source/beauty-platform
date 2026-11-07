@@ -50,6 +50,17 @@ export const salonReportSchema = responseSchema(
     services: z
       .array(z.strictObject({ id: z.string(), name: z.string(), ...counts }))
       .describe('Services with any visit in the period, by revenue'),
+    categories: z
+      .array(
+        z.strictObject({
+          id: z.string().nullable().describe('null = services without a category'),
+          name: z.string().nullable().describe('null = services without a category'),
+          ...counts,
+        }),
+      )
+      .describe(
+        'Task 256: the same by price-list category ("Kategorie usług"), by revenue; empty when no service of the period has a category',
+      ),
     days: z
       .array(
         z.strictObject({

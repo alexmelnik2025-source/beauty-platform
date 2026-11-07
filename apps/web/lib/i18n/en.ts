@@ -1344,6 +1344,8 @@ export const en: Dict = {
     empty: 'No visits in this period.',
     byStaff: 'Specialists',
     byService: 'Services',
+    byCategory: 'Service categories',
+    noCategory: 'No category',
     byDay: 'Day by day',
     colName: 'Name',
     colCompleted: 'Completed',

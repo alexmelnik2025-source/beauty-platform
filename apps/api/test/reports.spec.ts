@@ -301,6 +301,7 @@ describe('salon report', () => {
     const res = await report().expect(200);
     expect(res.body.totals).toMatchObject({ visits: 0, revenueGrosze: 0, averageTicketGrosze: 0 });
     expect(res.body.staff).toEqual([]);
+    expect(res.body.categories).toEqual([]);
     expect(res.body.days).toHaveLength(11);
     expect(res.body.tips).toEqual({ totalGrosze: 0, visits: 0, staff: [] });
     expect(res.body.marketing).toMatchObject({ clients: 0, consented: 0, percent: 0 });
@@ -720,6 +721,68 @@ describe('salon report', () => {
     expect(sum).toBe(res.body.totals.revenueGrosze);
     const empty = await report(owner.auth, { from: today, to: today }).expect(200);
     expect(empty.body.payments).toEqual([]);
+  });
+
+  it('"Kategorie usług": the same by price-list category, without a category last by revenue (task 256)', async () => {
+    const d1 = addDays(today, -3);
+    // No category anywhere: nothing to group by.
+    await visit({ date: d1, status: 'completed', paid: true });
+    expect((await report().expect(200)).body.categories).toEqual([]);
+
+    const hair = await ctx
+      .http()
+      .post(`${base}/service-categories`)
+      .set(owner.auth)
+      .send({ name: 'Włosy' })
+      .expect(201);
+    await ctx
+      .http()
+      .patch(`${base}/services/${haircutId}`)
+      .set(owner.auth)
+      .send({ version: 1, categoryId: hair.body.id })
+      .expect(200);
+    await visit({ date: d1, status: 'no_show' });
+    await visit({ date: d1, status: 'cancelled', cancelledBy: 'salon' });
+    // Broda has no category.
+    await visit({ date: d1, serviceId: beardId, staffId: olaId, status: 'completed', paid: true });
+    await visit({ date: d1, serviceId: beardId, staffId: olaId, status: 'completed' });
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.categories).toEqual([
+      {
+        id: hair.body.id,
+        name: 'Włosy',
+        completed: 1,
+        noShow: 1,
+        revenueGrosze: 8000,
+        paid: 1,
+        cancelledByClient: 0,
+        cancelledBySalon: 1,
+      },
+      {
+        id: null,
+        name: null,
+        completed: 2,
+        noShow: 0,
+        revenueGrosze: 5000,
+        paid: 1,
+        cancelledByClient: 0,
+        cancelledBySalon: 0,
+      },
+    ]);
+
+    // A specialist with own results sees only own visits by category.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.categories).toEqual([
+      expect.objectContaining({ id: hair.body.id, completed: 1, noShow: 1, revenueGrosze: 8000 }),
+    ]);
   });
 
   it('"Napiwki": tips of the visits that took place, by specialist, not in the revenue (task 229)', async () => {

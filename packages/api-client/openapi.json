@@ -21078,6 +21078,72 @@
             },
             "description": "Services with any visit in the period, by revenue"
           },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "nullable": true,
+                  "description": "null = services without a category",
+                  "type": "string"
+                },
+                "name": {
+                  "nullable": true,
+                  "description": "null = services without a category",
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits that took place (\"came\")"
+                },
+                "noShow": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "\"Did not come\""
+                },
+                "revenueGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What paid visits brought (price minus discounts), in hundredths of the salon currency"
+                },
+                "paid": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits marked as paid"
+                },
+                "cancelledByClient": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 219: visits the client cancelled"
+                },
+                "cancelledBySalon": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 219: visits the salon cancelled"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "completed",
+                "noShow",
+                "revenueGrosze",
+                "paid",
+                "cancelledByClient",
+                "cancelledBySalon"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 256: the same by price-list category (\"Kategorie usług\"), by revenue; empty when no service of the period has a category"
+          },
           "days": {
             "type": "array",
             "items": {
@@ -21833,6 +21899,7 @@
           "totals",
           "staff",
           "services",
+          "categories",
           "days",
           "payments",
           "tips",

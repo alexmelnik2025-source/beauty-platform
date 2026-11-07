@@ -688,54 +688,65 @@ export default function ReportsPage() {
                   [
                     ['byStaff', report.staff.map((s) => ({ ...s, name: s.displayName }))],
                     ['byService', report.services],
+                    // Task 256: by price-list category, when the price list is grouped.
+                    [
+                      'byCategory',
+                      report.categories.map((c) => ({
+                        ...c,
+                        id: c.id ?? 'none',
+                        name: c.name ?? t.reports.noCategory,
+                      })),
+                    ],
                   ] as const
-                ).map(([key, rows]) => (
-                  <section key={key} className="section">
-                    <h2>{t.reports[key]}</h2>
-                    <div className="report-table-wrap">
-                      <table className="report-table">
-                        <thead>
-                          <tr>
-                            <th scope="col">{t.reports.colName}</th>
-                            <th scope="col">{t.reports.colCompleted}</th>
-                            <th scope="col">{t.reports.colNoShow}</th>
-                            <th scope="col">{t.reports.colCancelled}</th>
-                            <th scope="col">{t.reports.colRevenue}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((r) => (
-                            <tr key={r.id}>
-                              <th scope="row">{r.name}</th>
-                              <td>{r.completed}</td>
-                              <td>
-                                {r.noShow}
-                                {r.noShow > 0 ? (
-                                  <span className="small muted">
-                                    {' '}
-                                    ({Math.round((r.noShow / (r.completed + r.noShow)) * 100)}%)
-                                  </span>
-                                ) : null}
-                              </td>
-                              <td>
-                                {r.cancelledByClient + r.cancelledBySalon}
-                                {r.cancelledByClient + r.cancelledBySalon > 0 ? (
-                                  <div className="small muted">
-                                    {fill(t.reports.cancelledSplit, {
-                                      client: String(r.cancelledByClient),
-                                      salon: String(r.cancelledBySalon),
-                                    })}
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td>{money(r.revenueGrosze)}</td>
+                )
+                  .filter(([, rows]) => rows.length > 0)
+                  .map(([key, rows]) => (
+                    <section key={key} className="section" data-testid={`report-${key}`}>
+                      <h2>{t.reports[key]}</h2>
+                      <div className="report-table-wrap">
+                        <table className="report-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">{t.reports.colName}</th>
+                              <th scope="col">{t.reports.colCompleted}</th>
+                              <th scope="col">{t.reports.colNoShow}</th>
+                              <th scope="col">{t.reports.colCancelled}</th>
+                              <th scope="col">{t.reports.colRevenue}</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                ))}
+                          </thead>
+                          <tbody>
+                            {rows.map((r) => (
+                              <tr key={r.id}>
+                                <th scope="row">{r.name}</th>
+                                <td>{r.completed}</td>
+                                <td>
+                                  {r.noShow}
+                                  {r.noShow > 0 ? (
+                                    <span className="small muted">
+                                      {' '}
+                                      ({Math.round((r.noShow / (r.completed + r.noShow)) * 100)}%)
+                                    </span>
+                                  ) : null}
+                                </td>
+                                <td>
+                                  {r.cancelledByClient + r.cancelledBySalon}
+                                  {r.cancelledByClient + r.cancelledBySalon > 0 ? (
+                                    <div className="small muted">
+                                      {fill(t.reports.cancelledSplit, {
+                                        client: String(r.cancelledByClient),
+                                        salon: String(r.cancelledBySalon),
+                                      })}
+                                    </div>
+                                  ) : null}
+                                </td>
+                                <td>{money(r.revenueGrosze)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  ))}
 
                 {report.topClients.length > 0 ? (
                   <section className="section" data-testid="report-top-clients">

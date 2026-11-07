@@ -1345,6 +1345,8 @@ export const ru: Dict = {
     empty: 'В этом периоде визитов нет.',
     byStaff: 'Специалисты',
     byService: 'Услуги',
+    byCategory: 'Категории услуг',
+    noCategory: 'Без категории',
     byDay: 'По дням',
     colName: 'Название',
     colCompleted: 'Состоялись',

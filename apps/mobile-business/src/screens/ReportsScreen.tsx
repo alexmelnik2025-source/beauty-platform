@@ -272,37 +272,48 @@ export function ReportsScreen(props: {
               [
                 [r.byStaff, shown.staff.map((s) => ({ ...s, name: s.displayName }))],
                 [r.byService, shown.services],
+                // Task 256: by price-list category, when the price list is grouped.
+                [
+                  r.byCategory,
+                  shown.categories.map((c) => ({
+                    ...c,
+                    id: c.id ?? 'none',
+                    name: c.name ?? r.noCategory,
+                  })),
+                ],
               ] as const
-            ).map(([title, rows]) => (
-              <View key={title} style={{ gap: 8 }}>
-                <Text style={styles.section}>{title}</Text>
-                {rows.map((row) => (
-                  <Card key={row.id}>
-                    <View style={styles.cardTop}>
-                      <Text style={styles.name}>{row.name}</Text>
-                      <Text style={styles.name}>{money(row.revenueGrosze)}</Text>
-                    </View>
-                    <Text style={styles.muted}>
-                      {fill(r.row, {
-                        completed: String(row.completed),
-                        noShow: String(row.noShow),
-                      })}
-                    </Text>
-                    {row.cancelledByClient + row.cancelledBySalon > 0 ? (
+            )
+              .filter(([, rows]) => rows.length > 0)
+              .map(([title, rows]) => (
+                <View key={title} style={{ gap: 8 }}>
+                  <Text style={styles.section}>{title}</Text>
+                  {rows.map((row) => (
+                    <Card key={row.id}>
+                      <View style={styles.cardTop}>
+                        <Text style={styles.name}>{row.name}</Text>
+                        <Text style={styles.name}>{money(row.revenueGrosze)}</Text>
+                      </View>
                       <Text style={styles.muted}>
-                        {fill(r.rowCancelled, {
-                          n: String(row.cancelledByClient + row.cancelledBySalon),
-                          split: fill(r.cancelledSplit, {
-                            client: String(row.cancelledByClient),
-                            salon: String(row.cancelledBySalon),
-                          }),
+                        {fill(r.row, {
+                          completed: String(row.completed),
+                          noShow: String(row.noShow),
                         })}
                       </Text>
-                    ) : null}
-                  </Card>
-                ))}
-              </View>
-            ))
+                      {row.cancelledByClient + row.cancelledBySalon > 0 ? (
+                        <Text style={styles.muted}>
+                          {fill(r.rowCancelled, {
+                            n: String(row.cancelledByClient + row.cancelledBySalon),
+                            split: fill(r.cancelledSplit, {
+                              client: String(row.cancelledByClient),
+                              salon: String(row.cancelledBySalon),
+                            }),
+                          })}
+                        </Text>
+                      ) : null}
+                    </Card>
+                  ))}
+                </View>
+              ))
           )}
           {shown.payments.length > 0 ? (
             <View style={{ gap: 6 }} testID="report-payments">

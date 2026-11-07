@@ -39,8 +39,10 @@ const emptyCounts = (): Counts => ({
   cancelledBySalon: 0,
 });
 
-const byRevenue = <T extends Counts & { name: string }>(a: T, b: T): number =>
-  b.revenueGrosze - a.revenueGrosze || b.completed - a.completed || a.name.localeCompare(b.name);
+const byRevenue = <T extends Counts & { name: string | null }>(a: T, b: T): number =>
+  b.revenueGrosze - a.revenueGrosze ||
+  b.completed - a.completed ||
+  (a.name ?? '').localeCompare(b.name ?? '');
 
 /**
  * Task 14: the salon owner's report for a period (the salon's own dates).
@@ -89,7 +91,9 @@ export class ReportsService {
         cancelledBy: true,
         customerId: true,
         staff: { select: { id: true, displayName: true } },
-        service: { select: { id: true, name: true } },
+        service: {
+          select: { id: true, name: true, category: { select: { id: true, name: true } } },
+        },
       },
     });
 
@@ -105,6 +109,8 @@ export class ReportsService {
     };
     const staff = new Map<string, Counts & { id: string; displayName: string; name: string }>();
     const services = new Map<string, Counts & { id: string; name: string }>();
+    // Task 256: the same by price-list category; '' = services without a category.
+    const categories = new Map<string, Counts & { id: string | null; name: string | null }>();
     const days = new Map(
       datesBetween(query.from, query.to).map((date) => [
         date,
@@ -143,11 +149,24 @@ export class ReportsService {
           .get(a.staff.id)!;
       const serviceRow =
         services.get(a.service.id) ??
-        services.set(a.service.id, { ...a.service, ...emptyCounts() }).get(a.service.id)!;
+        services
+          .set(a.service.id, { id: a.service.id, name: a.service.name, ...emptyCounts() })
+          .get(a.service.id)!;
+      const category = a.service.category;
+      const categoryKey = category?.id ?? '';
+      const categoryRow =
+        categories.get(categoryKey) ??
+        categories
+          .set(categoryKey, {
+            id: category?.id ?? null,
+            name: category?.name ?? null,
+            ...emptyCounts(),
+          })
+          .get(categoryKey)!;
       const localDate = instantToLocal(a.startAt.getTime(), tz).date;
       const day = days.get(localDate);
       const weekday = weekdays[isoWeekday(localDate) - 1]!;
-      const targets: Counts[] = [totals, staffRow, serviceRow];
+      const targets: Counts[] = [totals, staffRow, serviceRow, categoryRow];
 
       if (a.status === 'cancelled') {
         for (const t of targets) {
@@ -283,6 +302,32 @@ export class ReportsService {
             cancelledBySalon,
           }),
         ),
+      // Task 256: only when the price list is grouped — a single "no category" row says nothing.
+      categories: [...categories.values()].some((c) => c.id !== null)
+        ? [...categories.values()]
+            .sort(byRevenue)
+            .map(
+              ({
+                id,
+                name,
+                completed,
+                noShow,
+                revenueGrosze,
+                paid,
+                cancelledByClient,
+                cancelledBySalon,
+              }) => ({
+                id,
+                name,
+                completed,
+                noShow,
+                revenueGrosze,
+                paid,
+                cancelledByClient,
+                cancelledBySalon,
+              }),
+            )
+        : [],
       days: [...days.values()],
       // Task 227: how the paid visits were paid, most money first; "unknown" (not said) last.
       payments: [...payments.values()].sort(
