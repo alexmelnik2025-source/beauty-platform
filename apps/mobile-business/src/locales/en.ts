@@ -568,6 +568,9 @@ export const en: Dictionary = {
     conflict: 'Someone has just changed this service — showing the current data.',
     none: 'No services yet — add them in the cabinet.',
     hint: 'New services, categories and who performs a service are set in the cabinet.',
+    up: 'Move up: {name}',
+    down: 'Move down: {name}',
+    orderSaved: 'Order saved — this is how clients see the services.',
     units: { h: 'h', min: 'min' },
     problem: {
       price: 'Enter a price, e.g. 90 or 90.50.',

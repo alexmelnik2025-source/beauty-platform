@@ -15,6 +15,7 @@ import { fill, type Dictionary } from '../i18n';
 import {
   bookingProblem,
   durationText,
+  movedOrder,
   priceInput,
   priceList,
   serviceChange,
@@ -26,7 +27,8 @@ import type { SalonChoice } from './SalonsScreen';
 
 /**
  * Task 93: "Usługi" — the owner or a manager sees the price list by category and changes a
- * service's price, duration and "bookable online" from the phone. New services, categories and
+ * service's price, duration and "bookable online" from the phone; ↑ / ↓ set the order clients
+ * see (task 253). New services, categories and
  * who performs a service stay in the cabinet (one line says so).
  */
 export function ServicesScreen(props: {
@@ -108,6 +110,25 @@ export function ServicesScreen(props: {
     }
   }
 
+  /** Task 253: a place up or down within the category — clients see the price list so. */
+  async function move(service: Service, step: -1 | 1) {
+    const order = groups ? movedOrder(groups, service.id, step) : null;
+    if (!order || busy) return;
+    setBusy(true);
+    try {
+      const services = await api.reorderServices(salon.orgId, salon.locationId, order);
+      const categories = await api.serviceCategories(salon.orgId, salon.locationId);
+      setGroups(priceList(services, categories));
+      setInfo(u.orderSaved);
+      setError('');
+    } catch (e) {
+      setError(errorText(e, t));
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const price = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
   return (
@@ -135,7 +156,7 @@ export function ServicesScreen(props: {
             <Text role="heading" aria-level={2} style={styles.section}>
               {group.name ?? u.other}
             </Text>
-            {group.services.map((service) => {
+            {group.services.map((service, index) => {
               const problem = bookingProblem(service);
               const open = editId === service.id;
               return (
@@ -187,12 +208,30 @@ export function ServicesScreen(props: {
                       </View>
                     </View>
                   ) : (
-                    <Button
-                      kind="link"
-                      label={u.edit}
-                      a11yLabel={`${u.edit}: ${service.name}`}
-                      onPress={() => edit(service)}
-                    />
+                    <View style={styles.row}>
+                      <Button
+                        kind="link"
+                        label={u.edit}
+                        a11yLabel={`${u.edit}: ${service.name}`}
+                        onPress={() => edit(service)}
+                      />
+                      {index > 0 ? (
+                        <Button
+                          kind="link"
+                          label="↑"
+                          a11yLabel={fill(u.up, { name: service.name })}
+                          onPress={() => void move(service, -1)}
+                        />
+                      ) : null}
+                      {index < group.services.length - 1 ? (
+                        <Button
+                          kind="link"
+                          label="↓"
+                          a11yLabel={fill(u.down, { name: service.name })}
+                          onPress={() => void move(service, 1)}
+                        />
+                      ) : null}
+                    </View>
                   )}
                 </Card>
               );

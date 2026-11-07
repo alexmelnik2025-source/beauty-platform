@@ -567,6 +567,9 @@ export const pl = {
     conflict: 'Ktoś właśnie zmienił tę usługę — pokazujemy aktualne dane.',
     none: 'Brak usług — dodaj je w kabinecie.',
     hint: 'Nowe usługi, kategorie i specjalistów usługi dodajesz w kabinecie.',
+    up: 'Wyżej: {name}',
+    down: 'Niżej: {name}',
+    orderSaved: 'Kolejność zapisana — tak klienci widzą usługi.',
     units: { h: 'g', min: 'min' },
     problem: {
       price: 'Wpisz cenę, np. 90 lub 90,50.',

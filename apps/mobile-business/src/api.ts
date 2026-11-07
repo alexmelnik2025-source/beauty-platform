@@ -724,6 +724,15 @@ export class BusinessApi {
     );
   }
 
+  /** Task 253: owner or manager — every service of the salon once, first to last. */
+  reorderServices(orgId: string, locationId: string, serviceIds: string[]): Promise<ServiceList> {
+    return this.authed<ServiceList>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services/order`,
+      { serviceIds },
+    );
+  }
+
   /** Free start times of one specialist for a service on one day (salon-local date). */
   availability(
     orgId: string,

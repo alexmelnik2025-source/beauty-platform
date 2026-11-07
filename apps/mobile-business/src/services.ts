@@ -30,6 +30,24 @@ export function priceList(services: ServiceList, categories: ServiceCategoryList
   return groups.filter((g) => g.services.length > 0);
 }
 
+/**
+ * Task 253: the whole order after moving one service a place up (-1) or down (+1) within its
+ * category — the server takes every service of the salon once. null at the edge of the category.
+ */
+export function movedOrder(groups: ServiceGroup[], id: string, step: -1 | 1): string[] | null {
+  const group = groups.find((g) => g.services.some((s) => s.id === id));
+  if (!group) return null;
+  const index = group.services.findIndex((s) => s.id === id);
+  const target = index + step;
+  if (target < 0 || target >= group.services.length) return null;
+  return groups.flatMap((g) => {
+    const ids = g.services.map((s) => s.id);
+    if (g !== group) return ids;
+    [ids[index], ids[target]] = [ids[target]!, ids[index]!];
+    return ids;
+  });
+}
+
 /** Why clients cannot book the service online, if they cannot. */
 export function bookingProblem(service: Service): 'hidden' | 'nobody' | null {
   if (!service.active) return 'hidden';

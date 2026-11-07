@@ -11,7 +11,8 @@ import { serveApp } from './mobile-app';
 /**
  * Task 93: "Usługi" in the business app (web preview of apps/mobile-business). The owner sees
  * the price list by category with a warning on a service nobody performs, changes a price and a
- * duration, and takes a service off online booking. Screenshots 93–93b.
+ * duration, and takes a service off online booking. Task 253: "↑" puts the combo first in its
+ * category — the order clients see. Screenshots 93–93b, 253.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -98,6 +99,18 @@ test('the owner changes prices, durations and online booking in the business app
       },
     }),
   );
+  const combo = await json<{ id: string }>(
+    await request.post(`${base}/services`, {
+      headers: owner,
+      data: {
+        name: 'Strzyżenie + broda',
+        durationMinutes: 75,
+        priceGrosze: 13000,
+        categoryId: hair.id,
+        staffIds: [kasia.id],
+      },
+    }),
+  );
   await json(
     await request.post(`${base}/services`, {
       headers: owner,
@@ -156,6 +169,14 @@ test('the owner changes prices, durations and online booking in the business app
     await app.getByRole('checkbox', { name: 'Dostępna do rezerwacji online' }).click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Niedostępna online')).toBeVisible();
+
+    // ── Task 253: the combo goes first in "Włosy" ────────────────────────
+    await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie męskie' })).toHaveCount(0);
+    await app.getByRole('button', { name: 'Wyżej: Strzyżenie + broda' }).click();
+    await expect(app.getByText('Kolejność zapisana — tak klienci widzą usługi.')).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie męskie' })).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie + broda' })).toHaveCount(0);
+    await shot(app, '253-business-app-service-order');
     await context.close();
   } finally {
     businessApp.server.close();
@@ -165,4 +186,8 @@ test('the owner changes prices, durations and online booking in the business app
     await request.get(`${base}/services/${haircut.id}`, { headers: owner }),
   );
   expect(saved).toMatchObject({ priceGrosze: 9550, durationMinutes: 60, active: false });
+  const list = await json<{ id: string }[]>(
+    await request.get(`${base}/services`, { headers: owner }),
+  );
+  expect(list.map((s) => s.id).slice(0, 2)).toEqual([combo.id, haircut.id]);
 });

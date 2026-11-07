@@ -3,6 +3,7 @@ import type { ServiceCategoryList, ServiceList } from '../src/api';
 import {
   bookingProblem,
   durationText,
+  movedOrder,
   parseDuration,
   parsePrice,
   priceInput,
@@ -112,5 +113,31 @@ describe('serviceChange', () => {
       ok: false,
       problem: 'duration',
     });
+  });
+});
+
+describe('movedOrder (task 253)', () => {
+  const groups = priceList(
+    [
+      service({ id: 'cut', name: 'Strzyżenie', categoryId: 'c-hair', sortOrder: 0 }),
+      service({ id: 'combo', name: 'Combo', categoryId: 'c-hair', sortOrder: 10 }),
+      service({ id: 'beard', name: 'Broda', categoryId: 'c-beard', sortOrder: 20 }),
+      service({ id: 'trim', name: 'Trymer', categoryId: 'c-beard', sortOrder: 30 }),
+      service({ id: 'talk', name: 'Konsultacja', sortOrder: 40 }),
+    ],
+    categories,
+  );
+
+  it('swaps the service with its neighbour and sends every service once', () => {
+    expect(movedOrder(groups, 'combo', -1)).toEqual(['combo', 'cut', 'beard', 'trim', 'talk']);
+    expect(movedOrder(groups, 'beard', 1)).toEqual(['cut', 'combo', 'trim', 'beard', 'talk']);
+  });
+
+  it('does not move past the edge of its category', () => {
+    expect(movedOrder(groups, 'cut', -1)).toBeNull();
+    expect(movedOrder(groups, 'combo', 1)).toBeNull();
+    expect(movedOrder(groups, 'beard', -1)).toBeNull();
+    expect(movedOrder(groups, 'talk', 1)).toBeNull();
+    expect(movedOrder(groups, 'unknown', 1)).toBeNull();
   });
 });
