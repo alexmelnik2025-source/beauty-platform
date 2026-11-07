@@ -2099,3 +2099,24 @@ napiwek». В «Kasa dnia» — «Napiwki 15,50 zł» отдельно от де
 мог прыгать обратно на окно при каждой перерисовке страницы. e2e `keyboard.spec.ts` открывает визит клавишей Enter,
 проверяет, что Tab не выходит из карточки, и что на страницах «Kalendarz», «Klienci», «Raporty», «Usługi», «Zespół»
 у каждой кнопки и ссылки есть название (скриншот 230).
+
+## «Zamknij kasę» (задача 232)
+
+В «Kasa dnia» (над календарём дня в кабинете и в дне бизнес-приложения) у владельца и менеджера есть «Zamknij kasę»:
+в конце дня вводят, сколько наличных в кассе, и по желанию заметку. Приложение ставит это рядом с тем, что принесли
+визиты этого дня, оплаченные наличными (задача 227), и пишет «brakuje 10,00 zł», «nadwyżka 10,00 zł» или «zgadza się»,
+кто и во сколько закрыл кассу. «Policz ponownie» заменяет запись (одна на день салона). Если после закрытия кто-то
+отметил или снял оплату наличными, видно «Od zamknięcia zmieniły się płatności gotówką — teraz …». Чаевые не входят —
+приложение не знает, как их платили. Мастер этого не видит и не может закрыть (сервер отвечает 403); будущий день
+закрыть нельзя (409 `DAY_NOT_STARTED`). Это только отметка — платёжных систем и терминалов нет. API:
+`GET …/reports/till-close?date=` и `PUT …/reports/till-close` (`{ date, countedCashGrosze, note }`); таблица
+`till_close` (миграция `20261107080000_till_close`). Код: `apps/api/src/reports/till-close.service.ts`,
+`TillClose.tsx` (web), `tillClose.ts` и `TillCloseSection.tsx` (бизнес-приложение). Тесты
+`apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/tillClose.test.ts`; e2e `till-close.spec.ts`
+(скриншоты 232, 232-a, 232-b).
+
+## «Zamknięcia kasy» в отчёте (задача 233)
+
+В «Raporty» кабинета — таблица дней периода, когда закрывали кассу: «Za wizyty gotówką», «Policzono», «Różnica»
+(+/−), и «Różnica razem» за период. В отчёте мастера («свои результаты») этого блока нет. API: поле `tillCloses` в
+отчёте салона. Тест в `apps/api/test/till-close.spec.ts`, e2e `till-close.spec.ts` (скриншот 233).
