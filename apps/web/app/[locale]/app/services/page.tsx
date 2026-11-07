@@ -34,6 +34,8 @@ export default function ServicesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [editing, setEditing] = useState<ServiceRow | 'new' | null>(null);
+  /** Task 251: "Duplikuj" — the new-service window filled in from this service. */
+  const [copyOf, setCopyOf] = useState<ServiceRow | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [error, setError] = useState('');
   const categoryLock = useSubmitLock();
@@ -101,7 +103,14 @@ export default function ServicesPage() {
     <>
       <div className="page-head">
         <h1>{t.services.title}</h1>
-        <button type="button" className="btn btn--small" onClick={() => setEditing('new')}>
+        <button
+          type="button"
+          className="btn btn--small"
+          onClick={() => {
+            setCopyOf(null);
+            setEditing('new');
+          }}
+        >
           + {t.services.add}
         </button>
       </div>
@@ -128,7 +137,14 @@ export default function ServicesPage() {
               <ul className="list">
                 {g.items.map((s) => (
                   <li key={s.id}>
-                    <button type="button" className="list-row" onClick={() => setEditing(s)}>
+                    <button
+                      type="button"
+                      className="list-row"
+                      onClick={() => {
+                        setCopyOf(null);
+                        setEditing(s);
+                      }}
+                    >
                       <span
                         className="swatch"
                         style={{ '--sw': s.color ?? '#000000' } as CSSProperties}
@@ -169,11 +185,20 @@ export default function ServicesPage() {
       </div>
       {editing ? (
         <ServiceSheet
+          key={editing === 'new' ? `new-${copyOf?.id ?? ''}` : editing.id}
           base={base}
           service={editing === 'new' ? null : editing}
+          copyOf={editing === 'new' ? copyOf : null}
           categories={categories}
           staff={staff}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            setCopyOf(null);
+          }}
+          onDuplicate={(source) => {
+            setCopyOf(source);
+            setEditing('new');
+          }}
           onDeleted={(id) => {
             setServices((list) => list?.filter((s) => s.id !== id) ?? null);
             setEditing(null);
@@ -187,6 +212,7 @@ export default function ServicesPage() {
                 : [...(list ?? []), saved],
             );
             setEditing(null);
+            setCopyOf(null);
             void load();
           }}
         />
@@ -198,34 +224,42 @@ export default function ServicesPage() {
 function ServiceSheet({
   base,
   service,
+  copyOf,
   categories,
   staff,
   onClose,
   onSaved,
   onDeleted,
+  onDuplicate,
 }: {
   base: string;
   service: ServiceRow | null;
+  /** Task 251: a new service, filled in from this one; nothing is created until "Zapisz". */
+  copyOf: ServiceRow | null;
   categories: Category[];
   staff: Staff[];
   onClose: () => void;
   onSaved: (saved: ServiceRow) => void;
   onDeleted: (id: string) => void;
+  onDuplicate: (source: ServiceRow) => void;
 }) {
   const { t, locale } = useI18n();
   const { location } = useSession();
+  const source = service ?? copyOf;
   const [form, setForm] = useState({
-    name: service?.name ?? '',
-    description: service?.description ?? '',
-    durationMinutes: service?.durationMinutes ?? 30,
-    bufferMinutes: service?.bufferMinutes ?? 0,
-    price: service ? (service.priceGrosze / 100).toFixed(2) : '',
-    categoryId: service?.categoryId ?? '',
-    color: service?.color ?? PALETTE[0]!,
-    active: service?.active ?? true,
-    wishPhotos: service?.wishPhotos ?? false,
+    name: copyOf
+      ? fill(t.services.copyName, { name: copyOf.name }).slice(0, 100)
+      : (service?.name ?? ''),
+    description: source?.description ?? '',
+    durationMinutes: source?.durationMinutes ?? 30,
+    bufferMinutes: source?.bufferMinutes ?? 0,
+    price: source ? (source.priceGrosze / 100).toFixed(2) : '',
+    categoryId: source?.categoryId ?? '',
+    color: source?.color ?? PALETTE[0]!,
+    active: source?.active ?? true,
+    wishPhotos: source?.wishPhotos ?? false,
     // A new service: everyone who takes visits performs it, until unticked (T5).
-    staffIds: service?.staffIds ?? staff.filter((m) => m.active).map((m) => m.id),
+    staffIds: source?.staffIds ?? staff.filter((m) => m.active).map((m) => m.id),
   });
   /** Task 62: each specialist's own price ("" = the service's price), as typed. */
   const [ownPrices, setOwnPrices] = useState<Record<string, string>>({});
@@ -234,22 +268,23 @@ function ServiceSheet({
   const [ownMinutes, setOwnMinutes] = useState<Record<string, string>>({});
   const [hadOwnMinutes, setHadOwnMinutes] = useState(false);
   useEffect(() => {
-    if (!service) return;
+    if (!source) return;
     api<StaffPrices>(`${base}/staff-prices`)
       .then((res) => {
-        const mine = res.prices.filter((p) => p.serviceId === service.id);
-        setHadOwnPrices(mine.length > 0);
+        const mine = res.prices.filter((p) => p.serviceId === source.id);
+        // A copy is a new service: it has no own prices yet, only the ones typed in here.
+        if (service) setHadOwnPrices(mine.length > 0);
         setOwnPrices(
           Object.fromEntries(mine.map((p) => [p.staffId, (p.priceGrosze / 100).toFixed(2)])),
         );
-        const minutes = res.durations.filter((d) => d.serviceId === service.id);
-        setHadOwnMinutes(minutes.length > 0);
+        const minutes = res.durations.filter((d) => d.serviceId === source.id);
+        if (service) setHadOwnMinutes(minutes.length > 0);
         setOwnMinutes(
           Object.fromEntries(minutes.map((d) => [d.staffId, String(d.durationMinutes)])),
         );
       })
       .catch(() => undefined);
-  }, [base, service]);
+  }, [base, service, source]);
   // Specialists who take visits, and anyone inactive still linked (so they can be unticked).
   const choices = staff.filter((m) => m.active || form.staffIds.includes(m.id));
   const [error, setError] = useState('');
@@ -338,9 +373,17 @@ function ServiceSheet({
   }
 
   return (
-    <Sheet title={service ? t.services.edit : t.services.add} onClose={onClose}>
+    <Sheet
+      title={service ? t.services.edit : copyOf ? t.services.copyTitle : t.services.add}
+      onClose={onClose}
+    >
       <form className="form" onSubmit={save}>
         <ErrorBox>{error}</ErrorBox>
+        {copyOf ? (
+          <p className="small muted" data-testid="service-copy-hint">
+            {t.services.copyHint}
+          </p>
+        ) : null}
         <label className="field">
           <span>{t.services.name}</span>
           <input
@@ -532,14 +575,24 @@ function ServiceSheet({
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              className="link-btn small"
-              disabled={busy}
-              onClick={() => setConfirmDelete(true)}
-            >
-              {t.services.delete}
-            </button>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                className="link-btn small"
+                disabled={busy}
+                onClick={() => onDuplicate(service)}
+              >
+                {t.services.duplicate}
+              </button>
+              <button
+                type="button"
+                className="link-btn small"
+                disabled={busy}
+                onClick={() => setConfirmDelete(true)}
+              >
+                {t.services.delete}
+              </button>
+            </div>
           )
         ) : null}
       </form>
