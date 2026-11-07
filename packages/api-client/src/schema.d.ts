@@ -1444,6 +1444,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/customers/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Labels of the clients, with how many clients have each
+         * @description Task 224: for the label filter above the client list. Empty without the permission to see notes and tags.
+         */
+        get: operations["CustomersController_tags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/customers/{customerId}": {
         parameters: {
             query?: never;
@@ -4078,6 +4098,14 @@ export interface components {
             version: number;
             createdAt: string;
         }[];
+        CustomerTags: {
+            /** @description Most used first, then alphabetically; at most 50. Empty when the caller may not see notes and tags */
+            tags: {
+                tag: string;
+                /** @description Clients with this label the caller can see */
+                clients: number;
+            }[];
+        };
         EmailsRequeued: {
             requeued: number;
         };
@@ -8500,6 +8528,8 @@ export interface operations {
     CustomersController_list: {
         parameters: {
             query?: {
+                /** @description Task 224: only clients with this label (exactly as written in the card) */
+                tag?: unknown;
                 /** @description Task 140: only clients who came before but not in the last N days (14–730) and have nothing booked ahead */
                 inactiveDays?: unknown;
                 limit?: unknown;
@@ -8575,6 +8605,25 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+        };
+    };
+    CustomersController_tags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerTags"];
                 };
             };
         };

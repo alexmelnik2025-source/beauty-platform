@@ -51,7 +51,9 @@ import {
   appointmentListSchema,
   customerDetailSchema,
   customerListSchema,
+  customerTagsSchema,
   visitCouponsSchema,
+  type CustomerTagsResponse,
 } from './booking.responses';
 import {
   approveSchema,
@@ -343,6 +345,11 @@ export class CustomersController {
     description:
       'Task 140: only clients who came before but not in the last N days (14–730) and have nothing booked ahead',
   })
+  @ApiQuery({
+    name: 'tag',
+    required: false,
+    description: 'Task 224: only clients with this label (exactly as written in the card)',
+  })
   @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,
@@ -391,6 +398,18 @@ export class CustomersController {
     res.setHeader('Content-Disposition', `attachment; filename="klienci-${day}.csv"`);
     res.setHeader('Cache-Control', 'private, no-store');
     res.end(csv);
+  }
+
+  @Get('tags')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Labels of the clients, with how many clients have each',
+    description:
+      'Task 224: for the label filter above the client list. Empty without the permission to see notes and tags.',
+  })
+  @ApiZodResponse(customerTagsSchema)
+  tags(@CurrentMembership() m: MembershipContext): Promise<CustomerTagsResponse> {
+    return this.customers.tags(m);
   }
 
   @Get(':customerId')

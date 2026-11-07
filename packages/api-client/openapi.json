@@ -6179,6 +6179,13 @@
         "operationId": "CustomersController_list",
         "parameters": [
           {
+            "name": "tag",
+            "required": false,
+            "in": "query",
+            "description": "Task 224: only clients with this label (exactly as written in the card)",
+            "schema": {}
+          },
+          {
             "name": "inactiveDays",
             "required": false,
             "in": "query",
@@ -6342,6 +6349,34 @@
           }
         ],
         "summary": "All clients as a CSV file (owners only)",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/customers/tags": {
+      "get": {
+        "description": "Task 224: for the label filter above the client list. Empty without the permission to see notes and tags.",
+        "operationId": "CustomersController_tags",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTags"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Labels of the clients, with how many clients have each",
         "tags": [
           "customers"
         ]
@@ -15832,6 +15867,38 @@
           ],
           "additionalProperties": false
         }
+      },
+      "CustomerTags": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tag": {
+                  "type": "string"
+                },
+                "clients": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Clients with this label the caller can see"
+                }
+              },
+              "required": [
+                "tag",
+                "clients"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Most used first, then alphabetically; at most 50. Empty when the caller may not see notes and tags"
+          }
+        },
+        "required": [
+          "tags"
+        ],
+        "additionalProperties": false
       },
       "EmailsRequeued": {
         "type": "object",

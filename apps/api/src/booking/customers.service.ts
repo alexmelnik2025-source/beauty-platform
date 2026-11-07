@@ -9,7 +9,11 @@ import type {
   ListCustomersQuery,
   UpdateCustomerInput,
 } from './booking.schemas';
-import type { CustomerDetailResponse, CustomerResponse } from './booking.responses';
+import type {
+  CustomerDetailResponse,
+  CustomerResponse,
+  CustomerTagsResponse,
+} from './booking.responses';
 
 export type { CustomerDetailResponse, CustomerResponse } from './booking.responses';
 
@@ -58,12 +62,37 @@ export class CustomersService {
           search,
           { anonymizedAt: null },
           query.inactiveDays ? this.inactiveSince(m, query.inactiveDays) : {},
+          query.tag ? { tags: { has: query.tag } } : {},
         ],
       },
       orderBy: { name: 'asc' },
       take: query.limit,
     });
     return rows.map((c) => toCustomer(c, m));
+  }
+
+  /**
+   * Task 224: every label of the clients the caller can see, with how many clients have it —
+   * for the label chips above the client list. Labels are notes: without the permission to see
+   * notes the list is empty.
+   */
+  async tags(m: MembershipContext): Promise<CustomerTagsResponse> {
+    if (!m.permissions.viewClientNotes) return { tags: [] };
+    const rows = await this.prisma.customer.findMany({
+      where: {
+        AND: [await this.visibleTo(m, null), { anonymizedAt: null }, { tags: { isEmpty: false } }],
+      },
+      select: { tags: true },
+    });
+    const counts = new Map<string, number>();
+    for (const row of rows) {
+      for (const tag of row.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+    const tags = [...counts]
+      .map(([tag, clients]) => ({ tag, clients }))
+      .sort((a, b) => b.clients - a.clients || a.tag.localeCompare(b.tag, 'pl'))
+      .slice(0, 50);
+    return { tags };
   }
 
   async get(

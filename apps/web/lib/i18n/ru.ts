@@ -946,6 +946,8 @@ export const ru: Dict = {
     note: 'Заметка салона',
     tags: 'Теги (через запятую)',
     tagsHint: 'Напр. постоянный клиент, борода, интересуется косметикой',
+    tagFilter: 'Метки',
+    allTags: 'Все',
     visits: 'Визиты',
     noVisits: 'Пока без визитов.',
     inactive: {

@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { BusinessApi, CustomerList, Locale } from '../api';
+import type { BusinessApi, CustomerList, CustomerTags, Locale } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
@@ -37,12 +37,15 @@ export function ClientsScreen(props: {
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [inactiveDays, setInactiveDays] = useState(0);
+  // Task 224: only clients with this label; '' = everyone.
+  const [tag, setTag] = useState('');
+  const [tags, setTags] = useState<CustomerTags['tags']>([]);
 
   const search = useCallback(
     async (text: string) => {
       setBusy(true);
       try {
-        setList(await api.customers(salon.orgId, text, PAGE, inactiveDays));
+        setList(await api.customers(salon.orgId, text, PAGE, inactiveDays, tag));
         setSearched(text.trim());
         setError('');
       } catch (e) {
@@ -51,12 +54,24 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, inactiveDays],
+    [api, salon, t, inactiveDays, tag],
   );
+
+  const loadTags = useCallback(async () => {
+    try {
+      setTags((await api.customerTags(salon.orgId)).tags);
+    } catch {
+      setTags([]);
+    }
+  }, [api, salon]);
 
   useEffect(() => {
     void search('');
   }, [search]);
+
+  useEffect(() => {
+    void loadTags();
+  }, [loadTags]);
 
   // Android "back" goes to the day, unless a client card is open (it handles "back" itself).
   useEffect(() => {
@@ -80,6 +95,7 @@ export function ClientsScreen(props: {
         onBack={() => {
           setOpenId(null);
           void search(searched);
+          void loadTags();
         }}
       />
     );
@@ -126,6 +142,29 @@ export function ClientsScreen(props: {
         ))}
       </View>
       {inactiveDays ? <Text style={styles.muted}>{c.inactiveHint}</Text> : null}
+      {tags.length > 0 ? (
+        <>
+          <Text style={styles.muted}>{c.tagFilter}</Text>
+          <View style={styles.row} accessibilityRole="radiogroup">
+            {[{ tag: '', clients: 0 }, ...tags].map((item) => (
+              <Pressable
+                key={item.tag || '*'}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: item.tag === tag }}
+                onPress={() => {
+                  setQuery('');
+                  setTag(item.tag === tag ? '' : item.tag);
+                }}
+                style={[styles.chip, item.tag === tag && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, item.tag === tag && styles.chipTextOn]}>
+                  {item.tag ? `${item.tag} · ${item.clients}` : c.allTags}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       {list === null ? (

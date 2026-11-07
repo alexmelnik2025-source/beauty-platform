@@ -10,7 +10,7 @@ import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
-import type { Customer, CustomerDetail } from '@/lib/types';
+import type { Customer, CustomerDetail, CustomerTags } from '@/lib/types';
 
 type ClientRow = Customer;
 
@@ -22,6 +22,9 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('');
   // Task 140: "haven't been for a while" — 0 = everyone.
   const [inactiveDays, setInactiveDays] = useState(0);
+  // Task 224: only clients with this label; '' = everyone.
+  const [tag, setTag] = useState('');
+  const [tags, setTags] = useState<CustomerTags['tags']>([]);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
@@ -41,13 +44,28 @@ export default function ClientsPage() {
             search: search.trim() || undefined,
             limit: 100,
             inactiveDays: inactiveDays || undefined,
+            tag: tag || undefined,
           },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, search, inactiveDays, t]);
+  }, [orgId, search, inactiveDays, tag, t]);
+
+  /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
+  const loadTags = useCallback(async () => {
+    try {
+      const res = await api<CustomerTags>(`/v1/organizations/${orgId}/customers/tags`);
+      setTags(res.tags);
+    } catch {
+      setTags([]);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    void loadTags();
+  }, [loadTags]);
 
   /** Task 21: the owner downloads all clients as a CSV file (column names in the cabinet language). */
   async function exportCsv(): Promise<void> {
@@ -125,12 +143,33 @@ export default function ClientsPage() {
           </select>
         </label>
         {inactiveDays ? <p className="small muted">{t.clients.inactive.hint}</p> : null}
+        {tags.length ? (
+          <div className="chips tag-filter" role="group" aria-label={t.clients.tagFilter}>
+            <button type="button" aria-pressed={tag === ''} onClick={() => setTag('')}>
+              {t.clients.allTags}
+            </button>
+            {tags.map((item) => (
+              <button
+                key={item.tag}
+                type="button"
+                aria-pressed={tag === item.tag}
+                onClick={() => setTag(tag === item.tag ? '' : item.tag)}
+              >
+                {item.tag} <span className="muted">{item.clients}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         <ErrorBox>{error}</ErrorBox>
         {rows === null ? (
           <Spinner />
         ) : rows.length === 0 ? (
           <p className="note">
-            {inactiveDays ? t.clients.inactive.none : search ? t.clients.notFound : t.clients.empty}
+            {inactiveDays
+              ? t.clients.inactive.none
+              : search || tag
+                ? t.clients.notFound
+                : t.clients.empty}
           </p>
         ) : (
           <ul className="list">
@@ -166,6 +205,7 @@ export default function ClientsPage() {
           onSaved={() => {
             setOpen(null);
             void load();
+            void loadTags();
           }}
         />
       ) : null}

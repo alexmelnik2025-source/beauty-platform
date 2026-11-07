@@ -196,6 +196,8 @@ export const listCustomersSchema = z.object({
    * place) but not in the last N days, and have no visit booked ahead.
    */
   inactiveDays: z.coerce.number().int().min(14).max(730).optional(),
+  /** Task 224: only clients with this label (exactly as written in the card). */
+  tag: z.string().trim().min(1).max(30).optional(),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;

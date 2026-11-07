@@ -149,6 +149,8 @@ export const en: Dictionary = {
     inactiveHint:
       'They came before, but not in this time, and have nothing booked. Send offers only to people who agreed to marketing.',
     inactiveNone: 'Nobody — everyone comes back.',
+    tagFilter: 'Labels',
+    allTags: 'All',
     first: 'The first {count} clients — type a name or phone to narrow down.',
     card: 'Client card',
     contacts: 'Contact',

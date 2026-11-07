@@ -906,6 +906,29 @@ h3 {
   gap: 6px;
 }
 
+/* Task 224: label filter above the client list */
+.tag-filter button {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tag-filter button[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.tag-filter button[aria-pressed='true'] .muted {
+  color: inherit;
+  opacity: 0.7;
+}
+
 .list-pick {
   display: grid;
   gap: 4px;

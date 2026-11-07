@@ -944,6 +944,8 @@ export const en: Dict = {
     note: 'Salon note',
     tags: 'Tags (comma-separated)',
     tagsHint: 'E.g. regular, beard, interested in products',
+    tagFilter: 'Labels',
+    allTags: 'All',
     visits: 'Visits',
     noVisits: 'No visits yet.',
     inactive: {

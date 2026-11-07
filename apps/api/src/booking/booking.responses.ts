@@ -138,6 +138,24 @@ export type CustomerResponse = z.infer<typeof customerSchema>;
 
 export const customerListSchema = responseSchema('CustomerList', z.array(customerSchema));
 
+/** Task 224: the labels the salon gave its clients, to filter the client list by one. */
+export const customerTagsSchema = responseSchema(
+  'CustomerTags',
+  z.strictObject({
+    tags: z
+      .array(
+        z.strictObject({
+          tag: z.string(),
+          clients: z.number().int().describe('Clients with this label the caller can see'),
+        }),
+      )
+      .describe(
+        'Most used first, then alphabetically; at most 50. Empty when the caller may not see notes and tags',
+      ),
+  }),
+);
+export type CustomerTagsResponse = z.infer<typeof customerTagsSchema>;
+
 export const customerDetailSchema = responseSchema(
   'CustomerDetail',
   customerSchema.extend({

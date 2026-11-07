@@ -26,6 +26,7 @@ export type WorkingHours = components['schemas']['WorkingHours'];
 export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
 export type CustomerList = components['schemas']['CustomerList'];
+export type CustomerTags = components['schemas']['CustomerTags'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 /** Task 206: the salon's loyalty program, its rewards and operations. */
 export type LoyaltyProgram = components['schemas']['LoyaltyProgram'];
@@ -509,14 +510,26 @@ export class BusinessApi {
 
   /** Owner or manager only (the server checks): clients by name, phone, email or tag. */
   /** Task 140: `inactiveDays` — only clients who came before but not in that many days. */
-  customers(orgId: string, search: string, limit = 50, inactiveDays = 0): Promise<CustomerList> {
+  customers(
+    orgId: string,
+    search: string,
+    limit = 50,
+    inactiveDays = 0,
+    tag = '',
+  ): Promise<CustomerList> {
     const query = new URLSearchParams({ limit: String(limit) });
     if (search.trim()) query.set('search', search.trim());
     if (inactiveDays) query.set('inactiveDays', String(inactiveDays));
+    if (tag) query.set('tag', tag);
     return this.authed<CustomerList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/customers?${query.toString()}`,
     );
+  }
+
+  /** Task 224: the salon's client labels with how many clients have each (owner, manager). */
+  customerTags(orgId: string): Promise<CustomerTags> {
+    return this.authed<CustomerTags>('GET', `/v1/organizations/${enc(orgId)}/customers/tags`);
   }
 
   /** One client card; a specialist gets only their own clients, contacts and notes by permission. */
