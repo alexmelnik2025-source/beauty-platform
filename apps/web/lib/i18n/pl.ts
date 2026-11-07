@@ -1058,7 +1058,8 @@ export const pl = {
     duplicateEmail: 'Klient z tym e-mailem już istnieje.',
     addAnyway: 'Dodaj mimo to',
     export: 'Eksportuj CSV',
-    exportHint: 'Wszyscy klienci salonu w pliku dla Excela: kontakty, zgoda, wizyty.',
+    exportHint:
+      'Wszyscy klienci salonu w pliku dla Excela: kontakty, zgoda, wizyty, nieobecności, następna wizyta i ile zapłacili.',
     privacy: 'Dane osobowe (RODO)',
     privacyHint:
       'Na prośbę klienta: pobierz wszystko, co salon o nim przechowuje, albo usuń jego dane.',
