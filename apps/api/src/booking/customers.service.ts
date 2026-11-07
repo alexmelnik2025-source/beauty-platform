@@ -4,6 +4,7 @@ import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
 import type { Customer, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { instantToLocal } from '../scheduling/time';
 import type {
   CreateCustomerInput,
   ListCustomersQuery,
@@ -44,6 +45,7 @@ export class CustomersService {
   ) {}
 
   async list(m: MembershipContext, query: ListCustomersQuery): Promise<CustomerResponse[]> {
+    if (query.birthdayDays) return this.birthdays(m, query);
     const search = query.search
       ? {
           OR: [
@@ -69,6 +71,52 @@ export class CustomersService {
       take: query.limit,
     });
     return rows.map((c) => toCustomer(c, m));
+  }
+
+  /**
+   * Task 240: clients whose birthday falls in the next `birthdayDays` days (today included,
+   * the salon's day), soonest first. A birthday is a contact detail: without the permission to
+   * see client contacts the list is empty. 29 February is congratulated on 28 February in a
+   * year without it.
+   */
+  private async birthdays(
+    m: MembershipContext,
+    query: ListCustomersQuery,
+  ): Promise<CustomerResponse[]> {
+    if (!m.permissions.viewClientContacts) return [];
+    const location = await this.prisma.location.findFirst({
+      where: {
+        organizationId: m.organizationId,
+        ...(m.role === 'owner' ? {} : { id: { in: m.locationIds } }),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { timezone: true },
+    });
+    const today = instantToLocal(Date.now(), location?.timezone ?? 'Europe/Warsaw').date;
+    const days = birthdayWindow(today, query.birthdayDays ?? 1);
+    const rows = await this.prisma.customer.findMany({
+      where: {
+        AND: [
+          await this.visibleTo(m, null),
+          { anonymizedAt: null, birthday: { in: [...days.keys()] } },
+          query.search
+            ? {
+                OR: [
+                  { name: { contains: query.search, mode: 'insensitive' as const } },
+                  { phone: { contains: query.search.replace(/\s/g, '') } },
+                  { email: { contains: query.search.toLowerCase() } },
+                ],
+              }
+            : {},
+          query.tag ? { tags: { has: query.tag } } : {},
+        ],
+      },
+      orderBy: { name: 'asc' },
+    });
+    return rows
+      .sort((a, b) => days.get(a.birthday!)! - days.get(b.birthday!)!)
+      .slice(0, query.limit)
+      .map((c) => toCustomer(c, m));
   }
 
   /**
@@ -400,8 +448,31 @@ function toCustomer(c: Customer, m: MembershipContext): CustomerResponse {
     locale: c.locale,
     note: notes ? c.note : null,
     tags: notes ? c.tags : null,
+    birthday: contacts ? c.birthday : null,
     anonymizedAt: c.anonymizedAt?.toISOString() ?? null,
     version: c.version,
     createdAt: c.createdAt.toISOString(),
   };
+}
+
+/**
+ * Task 240: "MM-DD" of `days` days from `today` ("YYYY-MM-DD") → how many days away. In a year
+ * without 29 February, "02-29" counts as 28 February.
+ */
+export function birthdayWindow(today: string, days: number): Map<string, number> {
+  const window = new Map<string, number>();
+  const start = Date.UTC(
+    Number(today.slice(0, 4)),
+    Number(today.slice(5, 7)) - 1,
+    Number(today.slice(8, 10)),
+  );
+  for (let i = 0; i < days; i++) {
+    const date = new Date(start + i * 86_400_000);
+    const mmdd = date.toISOString().slice(5, 10);
+    window.set(mmdd, i);
+    const year = date.getUTCFullYear();
+    const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    if (mmdd === '02-28' && !leap) window.set('02-29', i);
+  }
+  return window;
 }

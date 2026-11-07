@@ -998,6 +998,13 @@ export const en: Dict = {
     tagFilter: 'Tags',
     allTags: 'All',
     addTag: 'Add a tag',
+    birthday: 'Birthday',
+    birthdayDay: 'Day',
+    birthdayMonth: 'Month',
+    birthdayHint: 'Day and month only, no year.',
+    birthdays: 'Birthdays in the next 7 days',
+    birthdaysNone: 'Nobody has a birthday in the next 7 days.',
+    birthdayToday: 'today',
     visits: 'Visits',
     noVisits: 'No visits yet.',
     inactive: {

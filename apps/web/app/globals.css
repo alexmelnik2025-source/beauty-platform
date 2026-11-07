@@ -169,6 +169,21 @@ h3 {
   color: var(--graphite);
 }
 
+/* Task 240: a field made of several inputs (birthday: day + month). */
+fieldset.field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+fieldset.field > legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  color: var(--graphite);
+}
+
 .input,
 .field input,
 .field select,

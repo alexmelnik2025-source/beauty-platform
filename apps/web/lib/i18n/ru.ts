@@ -1001,6 +1001,13 @@ export const ru: Dict = {
     tagFilter: 'Теги',
     allTags: 'Все',
     addTag: 'Добавить тег',
+    birthday: 'День рождения',
+    birthdayDay: 'День',
+    birthdayMonth: 'Месяц',
+    birthdayHint: 'Только день и месяц, без года.',
+    birthdays: 'Дни рождения за 7 дней',
+    birthdaysNone: 'В ближайшие 7 дней ни у кого нет дня рождения.',
+    birthdayToday: 'сегодня',
     visits: 'Визиты',
     noVisits: 'Пока без визитов.',
     inactive: {

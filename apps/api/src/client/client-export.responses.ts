@@ -75,6 +75,10 @@ const exportSalonSchema = z.strictObject({
     phone: z.string(),
     email: z.string().nullable(),
     locale: localeSchema,
+    birthday: z
+      .string()
+      .nullable()
+      .describe('"MM-DD", no year, if the salon wrote it down (task 240)'),
     createdAt: z.string(),
   }),
   consents: z.array(exportConsentSchema).describe('Oldest first'),

@@ -18,13 +18,17 @@ type ClientDetail = CustomerDetail;
 
 export default function ClientsPage() {
   const { t, locale } = useI18n();
-  const { orgId, role } = useSession();
+  const { orgId, role, permissions } = useSession();
+  // Task 240: a birthday is a contact detail.
+  const contacts = permissions.viewClientContacts !== false;
   const [search, setSearch] = useState('');
   // Task 140: "haven't been for a while" — 0 = everyone.
   const [inactiveDays, setInactiveDays] = useState(0);
   // Task 224: only clients with this label; '' = everyone.
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState<CustomerTags['tags']>([]);
+  // Task 240: only clients with a birthday in the next 7 days.
+  const [birthdays, setBirthdays] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
@@ -45,13 +49,14 @@ export default function ClientsPage() {
             limit: 100,
             inactiveDays: inactiveDays || undefined,
             tag: tag || undefined,
+            birthdayDays: birthdays ? 7 : undefined,
           },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, search, inactiveDays, tag, t]);
+  }, [orgId, search, inactiveDays, tag, birthdays, t]);
 
   /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
   const loadTags = useCallback(async () => {
@@ -143,6 +148,13 @@ export default function ClientsPage() {
           </select>
         </label>
         {inactiveDays ? <p className="small muted">{t.clients.inactive.hint}</p> : null}
+        {contacts ? (
+          <div className="chips tag-filter">
+            <button type="button" aria-pressed={birthdays} onClick={() => setBirthdays(!birthdays)}>
+              🎂 {t.clients.birthdays}
+            </button>
+          </div>
+        ) : null}
         {tags.length ? (
           <div className="chips tag-filter" role="group" aria-label={t.clients.tagFilter}>
             <button type="button" aria-pressed={tag === ''} onClick={() => setTag('')}>
@@ -165,11 +177,13 @@ export default function ClientsPage() {
           <Spinner />
         ) : rows.length === 0 ? (
           <p className="note">
-            {inactiveDays
-              ? t.clients.inactive.none
-              : search || tag
-                ? t.clients.notFound
-                : t.clients.empty}
+            {birthdays
+              ? t.clients.birthdaysNone
+              : inactiveDays
+                ? t.clients.inactive.none
+                : search || tag
+                  ? t.clients.notFound
+                  : t.clients.empty}
           </p>
         ) : (
           <ul className="list">
@@ -182,6 +196,9 @@ export default function ClientsPage() {
                       {[c.phone, c.email].filter(Boolean).join(' · ')}
                     </span>
                   </span>
+                  {c.birthday && birthdays ? (
+                    <span className="chip">🎂 {birthdayText(c.birthday, locale, t)}</span>
+                  ) : null}
                   {c.tags?.length ? (
                     <span className="chips">
                       {c.tags.slice(0, 2).map((tag) => (
@@ -215,6 +232,80 @@ export default function ClientsPage() {
 }
 
 /** "vip, , broda " → ['vip', 'broda'] (the server keeps at most 10 labels of 30 characters). */
+/** Task 240: "MM-DD" → "15 marca", or "dziś" on the day. */
+function birthdayText(
+  birthday: string,
+  locale: string,
+  t: ReturnType<typeof useI18n>['t'],
+): string {
+  const now = new Date();
+  const today = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (birthday === today) return t.clients.birthdayToday;
+  const [month, day] = birthday.split('-').map(Number) as [number, number];
+  return new Intl.DateTimeFormat(LOCALE_TAGS[locale as keyof typeof LOCALE_TAGS] ?? 'pl-PL', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2000, month - 1, day)));
+}
+
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/** Task 240: day and month of the birthday, no year; '' while either is not chosen. */
+function BirthdayField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t, locale } = useI18n();
+  const [month, setMonth] = useState(value ? Number(value.slice(0, 2)) : 0);
+  const [day, setDay] = useState(value ? Number(value.slice(3, 5)) : 0);
+  const monthName = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+    month: 'long',
+    timeZone: 'UTC',
+  });
+  function change(nextMonth: number, nextDay: number) {
+    const last = nextMonth ? DAYS_IN_MONTH[nextMonth - 1]! : 31;
+    const fixedDay = Math.min(nextDay, last);
+    setMonth(nextMonth);
+    setDay(fixedDay);
+    onChange(
+      nextMonth && fixedDay
+        ? `${String(nextMonth).padStart(2, '0')}-${String(fixedDay).padStart(2, '0')}`
+        : '',
+    );
+  }
+  const days = month ? DAYS_IN_MONTH[month - 1]! : 31;
+  return (
+    <fieldset className="field">
+      <legend>🎂 {t.clients.birthday}</legend>
+      <div className="row">
+        <select
+          aria-label={t.clients.birthdayDay}
+          value={day}
+          onChange={(e) => change(month, Number(e.target.value))}
+        >
+          <option value={0}>—</option>
+          {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label={t.clients.birthdayMonth}
+          value={month}
+          onChange={(e) => change(Number(e.target.value), day)}
+        >
+          <option value={0}>—</option>
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+            <option key={m} value={m}>
+              {monthName.format(new Date(Date.UTC(2000, m - 1, 1)))}
+            </option>
+          ))}
+        </select>
+      </div>
+      <span className="small muted">{t.clients.birthdayHint}</span>
+    </fieldset>
+  );
+}
+
 function tagList(input: string): string[] {
   return [
     ...new Set(
@@ -252,6 +343,7 @@ function ClientSheet({
     locale: locale as string,
     note: '',
     tags: '',
+    birthday: '',
   });
   const [duplicate, setDuplicate] = useState(false);
   const [error, setError] = useState('');
@@ -269,6 +361,7 @@ function ClientSheet({
           locale: c.locale,
           note: c.note ?? '',
           tags: (c.tags ?? []).join(', '),
+          birthday: c.birthday ?? '',
         });
       })
       .catch((err) => setError(errorText(t, err)));
@@ -294,6 +387,10 @@ function ClientSheet({
             locale: form.locale,
             note: form.note || null,
             tags,
+            // Task 240: sent only when changed, so a hidden birthday is never wiped.
+            ...(form.birthday !== (client.birthday ?? '')
+              ? { birthday: form.birthday || null }
+              : {}),
           },
         });
       } else {
@@ -306,6 +403,7 @@ function ClientSheet({
             locale: form.locale,
             ...(form.note ? { note: form.note } : {}),
             tags,
+            ...(form.birthday ? { birthday: form.birthday } : {}),
             allowDuplicatePhone,
           },
         });
@@ -388,6 +486,13 @@ function ClientSheet({
             ))}
           </select>
         </label>
+        {session.permissions.viewClientContacts !== false && (!client || client.phone !== null) ? (
+          <BirthdayField
+            key={client?.id ?? 'new'}
+            value={form.birthday}
+            onChange={(birthday) => setForm((f) => ({ ...f, birthday }))}
+          />
+        ) : null}
         <label className="field">
           <span>{t.clients.tags}</span>
           <input

@@ -29,6 +29,7 @@ export const customerExportSchema = responseSchema(
       language: localeSchema,
       note: z.string().nullable(),
       tags: z.array(z.string()),
+      birthday: z.string().nullable().describe('"MM-DD", no year (task 240)'),
       createdAt: z.string(),
     }),
     consents: z.array(
@@ -142,6 +143,7 @@ export class CustomerPrivacyService {
         language: customer.locale,
         note: customer.note,
         tags: customer.tags,
+        birthday: customer.birthday,
         createdAt: customer.createdAt.toISOString(),
       },
       consents: consents.map((c) => ({
@@ -216,6 +218,7 @@ export class CustomerPrivacyService {
           email: null,
           note: null,
           tags: [],
+          birthday: null,
           anonymizedAt: now,
           version: { increment: 1 },
         },

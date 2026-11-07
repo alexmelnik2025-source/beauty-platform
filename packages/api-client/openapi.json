@@ -6373,6 +6373,10 @@
                       "maxLength": 30
                     }
                   },
+                  "birthday": {
+                    "type": "string",
+                    "pattern": "^\\d{2}-\\d{2}$"
+                  },
                   "allowDuplicatePhone": {
                     "default": false,
                     "type": "boolean"
@@ -6590,6 +6594,17 @@
                       "minLength": 1,
                       "maxLength": 30
                     }
+                  },
+                  "birthday": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{2}-\\d{2}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -14653,6 +14668,11 @@
                         "sq"
                       ]
                     },
+                    "birthday": {
+                      "nullable": true,
+                      "description": "\"MM-DD\", no year, if the salon wrote it down (task 240)",
+                      "type": "string"
+                    },
                     "createdAt": {
                       "type": "string"
                     }
@@ -14662,6 +14682,7 @@
                     "phone",
                     "email",
                     "locale",
+                    "birthday",
                     "createdAt"
                   ],
                   "additionalProperties": false
@@ -15790,6 +15811,11 @@
               "type": "string"
             }
           },
+          "birthday": {
+            "nullable": true,
+            "description": "\"MM-DD\", no year (task 240); null when unknown or the caller may not see client contacts",
+            "type": "string"
+          },
           "anonymizedAt": {
             "nullable": true,
             "description": "When the owner erased the personal data (GDPR); the name is then \"—\"",
@@ -15812,6 +15838,7 @@
           "locale",
           "note",
           "tags",
+          "birthday",
           "anonymizedAt",
           "version",
           "createdAt"
@@ -15859,6 +15886,11 @@
             "items": {
               "type": "string"
             }
+          },
+          "birthday": {
+            "nullable": true,
+            "description": "\"MM-DD\", no year (task 240); null when unknown or the caller may not see client contacts",
+            "type": "string"
           },
           "anonymizedAt": {
             "nullable": true,
@@ -16011,6 +16043,7 @@
           "locale",
           "note",
           "tags",
+          "birthday",
           "anonymizedAt",
           "version",
           "createdAt",
@@ -16075,6 +16108,11 @@
                   "type": "string"
                 }
               },
+              "birthday": {
+                "nullable": true,
+                "description": "\"MM-DD\", no year (task 240)",
+                "type": "string"
+              },
               "createdAt": {
                 "type": "string"
               }
@@ -16087,6 +16125,7 @@
               "language",
               "note",
               "tags",
+              "birthday",
               "createdAt"
             ],
             "additionalProperties": false
@@ -16319,6 +16358,11 @@
                 "type": "string"
               }
             },
+            "birthday": {
+              "nullable": true,
+              "description": "\"MM-DD\", no year (task 240); null when unknown or the caller may not see client contacts",
+              "type": "string"
+            },
             "anonymizedAt": {
               "nullable": true,
               "description": "When the owner erased the personal data (GDPR); the name is then \"—\"",
@@ -16341,6 +16385,7 @@
             "locale",
             "note",
             "tags",
+            "birthday",
             "anonymizedAt",
             "version",
             "createdAt"

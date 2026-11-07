@@ -1,0 +1,138 @@
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type APIResponse,
+  type Page,
+} from '@playwright/test';
+import { freshAddress } from './addresses';
+import { waitForEmail } from './mailpit';
+
+/**
+ * Task 240: the client's birthday (day and month, no year) in the cabinet card, and "Urodziny w
+ * ciągu 7 dni" above the client list — soonest first, with the date. Screenshots 240 and 240-a.
+ */
+
+const PASSWORD = 'e2e-password-123';
+const run = Date.now().toString(36);
+const OWNER = `birthday-owner-${run}@example.com`;
+const DESKTOP = { width: 1280, height: 900 };
+/** The salon's own address: the API limits sign-ups and sign-ins per address. */
+const OWNER_IP = freshAddress();
+
+const shot = (page: Page, name: string) =>
+  page.screenshot({ path: `e2e/screenshots/${name}.png`, fullPage: true });
+
+async function json<T>(res: APIResponse): Promise<T> {
+  expect(res.ok(), `${res.url()} → ${res.status()} ${await res.text()}`).toBeTruthy();
+  return (res.status() === 204 ? undefined : await res.json()) as T;
+}
+
+async function verifiedUser(api: APIRequestContext, email: string, name: string) {
+  await json(
+    await api.post('/v1/auth/register', {
+      headers: OWNER_IP,
+      data: { email, password: PASSWORD, name },
+    }),
+  );
+  const mail = await waitForEmail(email, /Potwierdź adres/);
+  const token = /token=([^\s&]+)/.exec(mail.text)?.[1];
+  expect(token, 'verification link').toBeTruthy();
+  await json(
+    await api.post('/v1/auth/verify-email', {
+      headers: OWNER_IP,
+      data: { token: decodeURIComponent(token!) },
+    }),
+  );
+  const login = await json<{ accessToken: string }>(
+    await api.post('/v1/auth/login', {
+      headers: OWNER_IP,
+      data: { email, password: PASSWORD, clientType: 'mobile' },
+    }),
+  );
+  return { Authorization: `Bearer ${login.accessToken}` };
+}
+
+/** "MM-DD" `days` from today. */
+const mmdd = (days: number): string => {
+  const d = new Date(Date.now() + days * 24 * 60 * 60_000);
+  return `${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+};
+
+test('the owner writes down a birthday and sees the birthdays of the week', async ({
+  browser,
+  request,
+}) => {
+  const owner = await verifiedUser(request, OWNER, 'Aleksander Owner');
+  const org = await json<{ id: string }>(
+    await request.post('/v1/organizations', { headers: owner, data: { name: 'GESTALT' } }),
+  );
+  await json(
+    await request.post(`/v1/organizations/${org.id}/locations`, {
+      headers: owner,
+      data: {
+        name: `Urodziny ${run}`,
+        addressLine: 'ul. Józefa Bema 91',
+        city: 'Warszawa',
+        postalCode: '01-233',
+      },
+    }),
+  );
+  const clients: [string, string, string | null][] = [
+    ['Jan Kowalski', '+48600000251', mmdd(3)],
+    ['Adam Nowak', '+48600000252', mmdd(1)],
+    ['Piotr Zieliński', '+48600000253', mmdd(20)],
+    ['Ewa Wiśniewska', '+48600000254', null],
+  ];
+  for (const [name, phone, birthday] of clients) {
+    await json(
+      await request.post(`/v1/organizations/${org.id}/customers`, {
+        headers: owner,
+        data: { name, phone, ...(birthday ? { birthday } : {}) },
+      }),
+    );
+  }
+
+  const context = await browser.newContext({
+    viewport: DESKTOP,
+    locale: 'pl-PL',
+    extraHTTPHeaders: OWNER_IP,
+  });
+  const page = await context.newPage();
+  await page.goto('/pl/login');
+  await page.getByLabel('E-mail').fill(OWNER);
+  await page.getByLabel('Hasło').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Zaloguj się' }).click();
+  await page.waitForURL(/\/pl\/app\//);
+  await page.goto('/pl/app/clients');
+  const rows = page.locator('.list .list-row');
+  await expect(rows).toHaveCount(4);
+
+  // Ewa tells her birthday: 15 March.
+  await rows.filter({ hasText: 'Ewa Wiśniewska' }).click();
+  const card = page.getByRole('dialog');
+  await card.getByLabel('Dzień', { exact: true }).selectOption('15');
+  await card.getByLabel('Miesiąc', { exact: true }).selectOption({ label: 'marzec' });
+  await expect(card.getByText('Tylko dzień i miesiąc, bez roku.')).toBeVisible();
+  await shot(page, '240-a-client-birthday-card');
+  await card.locator('form.form').getByRole('button', { name: 'Zapisz', exact: true }).click();
+  await expect(card).toBeHidden();
+  await rows.filter({ hasText: 'Ewa Wiśniewska' }).click();
+  await expect(card.getByLabel('Dzień', { exact: true })).toHaveValue('15');
+  await expect(card.getByLabel('Miesiąc', { exact: true })).toHaveValue('3');
+  await page.keyboard.press('Escape');
+  await expect(card).toBeHidden();
+
+  // Birthdays of the next 7 days: Adam (tomorrow) first, then Jan; Piotr is later, Ewa in March.
+  const filter = page.getByRole('button', { name: /Urodziny w ciągu 7 dni/ });
+  await filter.click();
+  await expect(filter).toHaveAttribute('aria-pressed', 'true');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText('Adam Nowak');
+  await expect(rows.nth(1)).toContainText('Jan Kowalski');
+  await expect(rows.nth(1)).toContainText('🎂');
+  await shot(page, '240-client-birthdays');
+  await filter.click();
+  await expect(rows).toHaveCount(4);
+  await context.close();
+});

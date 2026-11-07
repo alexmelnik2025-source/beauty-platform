@@ -173,6 +173,17 @@ const tags = z
   .max(10)
   .transform((list) => [...new Set(list)]);
 
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/** Task 240: day and month only, "MM-DD" ("02-29" allowed); no year is stored. */
+const birthday = z
+  .string()
+  .regex(/^\d{2}-\d{2}$/, 'Expected MM-DD')
+  .refine((value) => {
+    const [month, day] = value.split('-').map(Number) as [number, number];
+    return month >= 1 && month <= 12 && day >= 1 && day <= DAYS_IN_MONTH[month - 1]!;
+  }, 'No such day');
+
 export const createCustomerSchema = z.object({
   name,
   phone,
@@ -180,6 +191,7 @@ export const createCustomerSchema = z.object({
   locale: z.enum(LOCALES).default('pl'),
   note: z.string().trim().max(1000).optional(),
   tags: tags.default([]),
+  birthday: birthday.optional(),
   /** Create even if another client already has this phone number. */
   allowDuplicatePhone: z.boolean().default(false),
 });
@@ -193,6 +205,7 @@ export const updateCustomerSchema = z.object({
   locale: z.enum(LOCALES).optional(),
   note: z.string().trim().max(1000).nullable().optional(),
   tags: tags.optional(),
+  birthday: birthday.nullable().optional(),
 });
 
 export const listCustomersSchema = z.object({
@@ -205,6 +218,11 @@ export const listCustomersSchema = z.object({
   inactiveDays: z.coerce.number().int().min(14).max(730).optional(),
   /** Task 224: only clients with this label (exactly as written in the card). */
   tag: z.string().trim().min(1).max(30).optional(),
+  /**
+   * Task 240: only clients whose birthday falls today or in the next days — this many days in
+   * all (1 = today only), soonest first. Empty without the permission to see client contacts.
+   */
+  birthdayDays: z.coerce.number().int().min(1).max(31).optional(),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;

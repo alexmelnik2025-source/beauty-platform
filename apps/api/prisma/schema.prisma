@@ -769,6 +769,8 @@ model Customer {
   note           String?
   /// Simple labels without any mailing ("regular", "short fade"). At most 10.
   tags           String[]    @default([])
+  /// Task 240: day and month only ("MM-DD", no year) — seen with the client's contacts.
+  birthday       String?     @db.Char(5)
   /// Task 80: the client's last wishes, offered again on the next booking.
   wishMood       VisitMood?  @map("wish_mood")
   wishDrink      VisitDrink? @map("wish_drink")

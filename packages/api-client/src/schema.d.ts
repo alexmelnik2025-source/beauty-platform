@@ -3829,6 +3829,8 @@ export interface components {
                     email: string | null;
                     /** @enum {string} */
                     locale: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
+                    /** @description "MM-DD", no year, if the salon wrote it down (task 240) */
+                    birthday: string | null;
                     createdAt: string;
                 };
                 /** @description Oldest first */
@@ -4105,6 +4107,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description "MM-DD", no year (task 240); null when unknown or the caller may not see client contacts */
+            birthday: string | null;
             /** @description When the owner erased the personal data (GDPR); the name is then "—" */
             anonymizedAt: string | null;
             version: number;
@@ -4122,6 +4126,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description "MM-DD", no year (task 240); null when unknown or the caller may not see client contacts */
+            birthday: string | null;
             /** @description When the owner erased the personal data (GDPR); the name is then "—" */
             anonymizedAt: string | null;
             version: number;
@@ -4175,6 +4181,8 @@ export interface components {
                 language: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                 note: string | null;
                 tags: string[];
+                /** @description "MM-DD", no year (task 240) */
+                birthday: string | null;
                 createdAt: string;
             };
             consents: {
@@ -4225,6 +4233,8 @@ export interface components {
             /** @description null when the caller may not see notes and tags */
             note: string | null;
             tags: string[] | null;
+            /** @description "MM-DD", no year (task 240); null when unknown or the caller may not see client contacts */
+            birthday: string | null;
             /** @description When the owner erased the personal data (GDPR); the name is then "—" */
             anonymizedAt: string | null;
             version: number;
@@ -8819,6 +8829,7 @@ export interface operations {
                     locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     note?: string;
                     tags?: string[];
+                    birthday?: string;
                     /** @default false */
                     allowDuplicatePhone?: boolean;
                 };
@@ -8917,6 +8928,7 @@ export interface operations {
                     locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     note?: string | null;
                     tags?: string[];
+                    birthday?: string | null;
                 };
             };
         };

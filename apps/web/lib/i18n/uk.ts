@@ -994,6 +994,13 @@ export const uk: Dict = {
     tagFilter: 'Теги',
     allTags: 'Усі',
     addTag: 'Додати тег',
+    birthday: 'День народження',
+    birthdayDay: 'День',
+    birthdayMonth: 'Місяць',
+    birthdayHint: 'Лише день і місяць, без року.',
+    birthdays: 'Дні народження за 7 днів',
+    birthdaysNone: 'Найближчі 7 днів ні в кого немає дня народження.',
+    birthdayToday: 'сьогодні',
     visits: 'Візити',
     noVisits: 'Ще без візитів.',
     inactive: {

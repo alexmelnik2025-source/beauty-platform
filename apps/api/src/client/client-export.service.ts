@@ -64,6 +64,7 @@ export class ClientExportService {
         phone: c.phone,
         email: c.email,
         locale: c.locale,
+        birthday: c.birthday,
         createdAt: c.createdAt.toISOString(),
       },
       consents: c.consents.map((k) => ({

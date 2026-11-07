@@ -138,6 +138,12 @@ export const customerSchema = responseSchema(
     locale: localeSchema,
     note: z.string().nullable().describe('null when the caller may not see notes and tags'),
     tags: z.array(z.string()).nullable(),
+    birthday: z
+      .string()
+      .nullable()
+      .describe(
+        '"MM-DD", no year (task 240); null when unknown or the caller may not see client contacts',
+      ),
     anonymizedAt: z
       .string()
       .nullable()

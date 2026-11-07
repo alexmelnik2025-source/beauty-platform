@@ -996,6 +996,13 @@ export const pl = {
     tagFilter: 'Tagi',
     allTags: 'Wszystkie',
     addTag: 'Dodaj tag',
+    birthday: 'Urodziny',
+    birthdayDay: 'Dzień',
+    birthdayMonth: 'Miesiąc',
+    birthdayHint: 'Tylko dzień i miesiąc, bez roku.',
+    birthdays: 'Urodziny w ciągu 7 dni',
+    birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',
+    birthdayToday: 'dziś',
     visits: 'Wizyty',
     noVisits: 'Jeszcze bez wizyt.',
     inactive: {
