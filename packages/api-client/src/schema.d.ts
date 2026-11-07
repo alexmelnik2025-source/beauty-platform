@@ -565,6 +565,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/services/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the order of the services on the booking page and in the apps (task 252)
+         * @description Send every service of the location exactly once, first to last. Replaces sortOrder.
+         */
+        put: operations["ServicesController_reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}": {
         parameters: {
             query?: never;
@@ -7248,6 +7268,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Service"];
+                };
+            };
+        };
+    };
+    ServicesController_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    serviceIds: string[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceList"];
                 };
             };
         };

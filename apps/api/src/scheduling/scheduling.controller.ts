@@ -174,6 +174,24 @@ export class ServicesController {
     return this.catalog.createService(m, auth.userId, locationId, body);
   }
 
+  @Put('order')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Set the order of the services on the booking page and in the apps (task 252)',
+    description:
+      'Send every service of the location exactly once, first to last. Replaces sortOrder.',
+  })
+  @ApiZodBody(staffServicesSchema)
+  @ApiZodResponse(serviceListSchema)
+  reorder(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(staffServicesSchema)) body: { serviceIds: string[] },
+  ): Promise<ServiceResponse[]> {
+    return this.catalog.reorderServices(m, auth.userId, locationId, body.serviceIds);
+  }
+
   @Get(':serviceId')
   @ApiOperation({ summary: 'One service' })
   @ApiZodResponse(serviceSchema)

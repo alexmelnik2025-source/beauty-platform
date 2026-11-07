@@ -2541,6 +2541,67 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/services/order": {
+      "put": {
+        "description": "Send every service of the location exactly once, first to last. Replaces sortOrder.",
+        "operationId": "ServicesController_reorder",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceIds": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "serviceIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the order of the services on the booking page and in the apps (task 252)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/services/{serviceId}": {
       "get": {
         "operationId": "ServicesController_get",

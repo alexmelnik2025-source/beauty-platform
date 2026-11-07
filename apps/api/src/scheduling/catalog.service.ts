@@ -137,6 +137,15 @@ export class CatalogService {
     const { staffIds, ...fields } = input;
     const staff = [...new Set(staffIds ?? [])];
     await this.assertStaffInLocation(locationId, staff);
+    // Task 252: once the owner has set an order, a new service goes to the end of it.
+    if (fields.sortOrder === 0) {
+      const last = await this.prisma.service.aggregate({
+        where: { locationId },
+        _max: { sortOrder: true },
+      });
+      const max = last._max.sortOrder ?? 0;
+      if (max > 0) fields.sortOrder = max + 10;
+    }
     const service = await this.prisma.$transaction(async (tx) => {
       const created = await tx.service.create({ data: { ...fields, locationId } });
       await tx.staffService.createMany({
@@ -245,6 +254,46 @@ export class CatalogService {
       return tx.service.findUniqueOrThrow({ where: { id: serviceId }, include: withStaff });
     });
     return toService(service);
+  }
+
+  /**
+   * Task 252: the owner sets the order of the services once — the booking page, the apps and
+   * the cabinet list them in it. Every service of the location, exactly once.
+   */
+  async reorderServices(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    serviceIds: string[],
+  ): Promise<ServiceResponse[]> {
+    await this.access.writable(m, locationId);
+    const services = await this.prisma.service.findMany({
+      where: { locationId },
+      select: { id: true, sortOrder: true },
+    });
+    const known = new Set(services.map((s) => s.id));
+    if (
+      new Set(serviceIds).size !== serviceIds.length ||
+      serviceIds.length !== known.size ||
+      serviceIds.some((id) => !known.has(id))
+    ) {
+      throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_ERROR', 'Incomplete order', [
+        { path: 'serviceIds', message: 'list every service of this location exactly once' },
+      ]);
+    }
+    const current = new Map(services.map((s) => [s.id, s.sortOrder]));
+    await this.prisma.$transaction(async (tx) => {
+      for (const [index, id] of serviceIds.entries()) {
+        const sortOrder = index * 10;
+        if (current.get(id) === sortOrder) continue;
+        await tx.service.update({
+          where: { id },
+          data: { sortOrder, version: { increment: 1 } },
+        });
+      }
+      await this.record(tx, m, actorUserId, 'service.reordered', 'location', locationId);
+    });
+    return this.listServices(m, locationId);
   }
 
   // ── Service categories ─────────────────────────────────
