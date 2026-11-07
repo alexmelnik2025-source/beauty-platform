@@ -315,7 +315,8 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
       `UPDATE appointment SET start_at = start_at - interval '${daysAgo} days', end_at = end_at - interval '${daysAgo} days', blocked_until = blocked_until - interval '${daysAgo} days' WHERE id = '${earlier.id}'`,
     );
   }
-  await page.reload();
+  // A plain reload would keep "Nowi (30 dni)" on (task 272): open the list without filters.
+  await page.goto('/pl/app/clients');
   await expect(rows).toHaveCount(5);
   const overdue = page.getByRole('button', { name: /Pora wrócić/ });
   await overdue.click();
