@@ -348,6 +348,19 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   expect(file).toContain(';Marek;Broda;Adam;Nie przyszedł;');
   expect(file).not.toContain('@example.com');
 
+  // "Drukuj" (task 225): as it comes out of the printer — only the report, with the salon's
+  // name and the period; the buttons and the period switch stay on the screen.
+  await expect(page.getByRole('button', { name: 'Drukuj', exact: true })).toBeEnabled();
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByTestId('report-print-title')).toBeVisible();
+  await expect(page.getByTestId('report-print-title')).toContainText('Raporty · ');
+  await expect(page.getByRole('button', { name: 'Pobierz CSV' })).toBeHidden();
+  await expect(page.getByRole('group', { name: 'Okres' })).toBeHidden();
+  await expect(totals).toBeVisible();
+  await page.screenshot({ path: 'e2e/screenshots/225-report-printed.png', fullPage: true });
+  await page.emulateMedia({ media: 'screen' });
+  await expect(page.getByTestId('report-print-title')).toBeHidden();
+
   await page.setViewportSize(PHONE);
   await page.getByRole('button', { name: 'Ten miesiąc' }).click();
   await page.getByRole('button', { name: 'Własny okres' }).click();

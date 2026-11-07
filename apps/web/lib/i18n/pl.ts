@@ -1274,6 +1274,8 @@ export const pl = {
     dayVisits: 'wizyty: {n}',
     csv: 'Pobierz CSV',
     downloading: 'Pobieranie…',
+    print: 'Drukuj',
+    printHint: 'Raport na kartce A4 albo do PDF (w oknie drukowania: „Zapisz jako PDF”)',
     csvHint:
       '„Pobierz CSV” — wszystkie wizyty z tego okresu dla księgowej (bez kontaktów klientów); otwiera się w Excelu.',
     byWeekday: 'Dni tygodnia',

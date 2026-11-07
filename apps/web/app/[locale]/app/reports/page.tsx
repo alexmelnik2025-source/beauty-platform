@@ -58,6 +58,12 @@ export default function ReportsPage() {
   const invalid =
     !range.from || !range.to || range.from > range.to || daysBetween(range.from, range.to) >= 366;
 
+  // Task 225: only the report goes to the printer ("print-report" in globals.css).
+  useEffect(() => {
+    document.documentElement.classList.add('print-report');
+    return () => document.documentElement.classList.remove('print-report');
+  }, []);
+
   useEffect(() => {
     if (invalid) return;
     let live = true;
@@ -140,17 +146,33 @@ export default function ReportsPage() {
     <>
       <div className="page-head">
         <h1>{t.reports.title}</h1>
-        <button
-          type="button"
-          className="btn btn--small"
-          disabled={invalid || downloading}
-          onClick={() => void downloadCsv()}
-        >
-          {downloading ? t.reports.downloading : t.reports.csv}
-        </button>
+        <div className="page-head__actions">
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            title={t.reports.printHint}
+            disabled={!report || invalid}
+            onClick={() => window.print()}
+          >
+            {t.reports.print}
+          </button>
+          <button
+            type="button"
+            className="btn btn--small"
+            disabled={invalid || downloading}
+            onClick={() => void downloadCsv()}
+          >
+            {downloading ? t.reports.downloading : t.reports.csv}
+          </button>
+        </div>
       </div>
-      <div className="page">
-        <div className="tabs" role="group" aria-label={t.reports.period}>
+      <div className="page report-sheet">
+        {report ? (
+          <h2 className="print-only" data-testid="report-print-title">
+            {t.reports.title} · {report.location.name}
+          </h2>
+        ) : null}
+        <div className="tabs print-hide" role="group" aria-label={t.reports.period}>
           {(['thisMonth', 'lastMonth', 'last30', 'custom'] as const).map((p) => (
             <button
               key={p}
@@ -166,7 +188,7 @@ export default function ReportsPage() {
           ))}
         </div>
         {period === 'custom' ? (
-          <div className="row">
+          <div className="row print-hide">
             <label className="field">
               <span>{t.reports.from}</span>
               <input

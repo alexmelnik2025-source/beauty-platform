@@ -2637,6 +2637,49 @@ ul.wish-photos {
   }
 }
 
+/* Task 225: "Drukuj" in the report — only the report, with the salon's name, on A4. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  html.print-report body * {
+    visibility: hidden;
+  }
+
+  html.print-report .report-sheet,
+  html.print-report .report-sheet * {
+    visibility: visible;
+  }
+
+  html.print-report .report-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    color: #000;
+    background: #fff;
+    font-size: 10.5pt;
+  }
+
+  html.print-report .report-sheet .print-only {
+    display: block;
+    margin: 0 0 4px;
+  }
+
+  html.print-report .report-sheet .print-hide {
+    display: none;
+  }
+
+  html.print-report .report-sheet .stats,
+  html.print-report .report-sheet table,
+  html.print-report .report-sheet section {
+    break-inside: avoid;
+  }
+}
+
 /* Task 165b: reviews after the visit. */
 .stars {
   color: var(--ink);

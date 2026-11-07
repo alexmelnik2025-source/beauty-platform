@@ -1277,6 +1277,8 @@ export const en: Dict = {
     dayVisits: 'visits: {n}',
     csv: 'Download CSV',
     downloading: 'Downloading…',
+    print: 'Print',
+    printHint: 'The report on an A4 page or as a PDF (choose “Save as PDF” in the print window)',
     csvHint:
       '“Download CSV” — every visit of this period for the accountant (no client contacts); opens in Excel.',
     byWeekday: 'Days of the week',
