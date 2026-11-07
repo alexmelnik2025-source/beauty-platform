@@ -5176,6 +5176,10 @@ export interface components {
                 revenueGrosze: number;
                 /** @description Visits marked as paid */
                 paid: number;
+                /** @description Task 219: visits the client cancelled */
+                cancelledByClient: number;
+                /** @description Task 219: visits the salon cancelled */
+                cancelledBySalon: number;
             }[];
             /** @description Services with any visit in the period, by revenue */
             services: {
@@ -5189,6 +5193,10 @@ export interface components {
                 revenueGrosze: number;
                 /** @description Visits marked as paid */
                 paid: number;
+                /** @description Task 219: visits the client cancelled */
+                cancelledByClient: number;
+                /** @description Task 219: visits the salon cancelled */
+                cancelledBySalon: number;
             }[];
             /** @description Every day of the period, in the salon time zone */
             days: {

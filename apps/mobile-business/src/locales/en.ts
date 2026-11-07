@@ -356,6 +356,7 @@ export const en: Dictionary = {
     byStaff: 'Specialists',
     byService: 'Services',
     row: 'completed: {completed} · no-shows: {noShow}',
+    rowCancelled: 'cancelled: {n} ({split})',
     empty: 'No visits in this period.',
     note: 'Revenue is paid visits after loyalty discounts.',
     byWeekday: 'Days of the week',

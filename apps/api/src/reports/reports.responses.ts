@@ -9,6 +9,8 @@ const counts = {
   noShow: z.number().int().describe('"Did not come"'),
   revenueGrosze: money('What paid visits brought (price minus discounts)'),
   paid: z.number().int().describe('Visits marked as paid'),
+  cancelledByClient: z.number().int().describe('Task 219: visits the client cancelled'),
+  cancelledBySalon: z.number().int().describe('Task 219: visits the salon cancelled'),
 };
 
 /** Task 14: what the salon earned and how its visits went in a period. */

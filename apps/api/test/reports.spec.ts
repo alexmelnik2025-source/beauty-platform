@@ -186,9 +186,28 @@ describe('salon report', () => {
         newClients: 1,
       },
     });
+    // Task 219: cancellations by the specialist and the service of the cancelled visit.
     expect(res.body.staff).toEqual([
-      { id: kasiaId, displayName: 'Kasia', completed: 2, noShow: 1, revenueGrosze: 14000, paid: 2 },
-      { id: olaId, displayName: 'Ola', completed: 2, noShow: 0, revenueGrosze: 5000, paid: 1 },
+      {
+        id: kasiaId,
+        displayName: 'Kasia',
+        completed: 2,
+        noShow: 1,
+        revenueGrosze: 14000,
+        paid: 2,
+        cancelledByClient: 1,
+        cancelledBySalon: 1,
+      },
+      {
+        id: olaId,
+        displayName: 'Ola',
+        completed: 2,
+        noShow: 0,
+        revenueGrosze: 5000,
+        paid: 1,
+        cancelledByClient: 0,
+        cancelledBySalon: 0,
+      },
     ]);
     // Task 215: the clients who brought the most, names only (no phone or e-mail).
     const customers = await ctx.prisma.customer.findMany({ select: { id: true, email: true } });
@@ -209,8 +228,26 @@ describe('salon report', () => {
       ],
     });
     expect(res.body.services).toEqual([
-      { id: haircutId, name: 'Strzyżenie', completed: 3, noShow: 1, revenueGrosze: 14000, paid: 2 },
-      { id: beardId, name: 'Broda', completed: 1, noShow: 0, revenueGrosze: 5000, paid: 1 },
+      {
+        id: haircutId,
+        name: 'Strzyżenie',
+        completed: 3,
+        noShow: 1,
+        revenueGrosze: 14000,
+        paid: 2,
+        cancelledByClient: 1,
+        cancelledBySalon: 1,
+      },
+      {
+        id: beardId,
+        name: 'Broda',
+        completed: 1,
+        noShow: 0,
+        revenueGrosze: 5000,
+        paid: 1,
+        cancelledByClient: 0,
+        cancelledBySalon: 0,
+      },
     ]);
     expect(res.body.days).toHaveLength(11);
     expect(res.body.days[0]).toEqual({ date: from, completed: 0, revenueGrosze: 0 });

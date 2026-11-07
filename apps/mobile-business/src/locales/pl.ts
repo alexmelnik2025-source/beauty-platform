@@ -354,6 +354,7 @@ export const pl = {
     byStaff: 'Specjaliści',
     byService: 'Usługi',
     row: 'odbyte: {completed} · nie przyszli: {noShow}',
+    rowCancelled: 'odwołane: {n} ({split})',
     empty: 'Brak wizyt w tym okresie.',
     note: 'Przychód to opłacone wizyty po rabatach z programu lojalnościowego.',
     byWeekday: 'Dni tygodnia',

@@ -1261,6 +1261,7 @@ export const en: Dict = {
     colName: 'Name',
     colCompleted: 'Completed',
     colNoShow: 'No-shows',
+    colCancelled: 'Cancelled',
     colRevenue: 'Revenue',
     dayVisits: 'visits: {n}',
     csv: 'Download CSV',

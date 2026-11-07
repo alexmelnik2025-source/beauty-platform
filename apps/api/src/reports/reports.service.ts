@@ -22,9 +22,18 @@ interface Counts {
   noShow: number;
   revenueGrosze: number;
   paid: number;
+  cancelledByClient: number;
+  cancelledBySalon: number;
 }
 
-const emptyCounts = (): Counts => ({ completed: 0, noShow: 0, revenueGrosze: 0, paid: 0 });
+const emptyCounts = (): Counts => ({
+  completed: 0,
+  noShow: 0,
+  revenueGrosze: 0,
+  paid: 0,
+  cancelledByClient: 0,
+  cancelledBySalon: 0,
+});
 
 const byRevenue = <T extends Counts & { name: string }>(a: T, b: T): number =>
   b.revenueGrosze - a.revenueGrosze || b.completed - a.completed || a.name.localeCompare(b.name);
@@ -82,8 +91,6 @@ export class ReportsService {
       visits: rows.length,
       upcoming: 0,
       ...emptyCounts(),
-      cancelledByClient: 0,
-      cancelledBySalon: 0,
       online: 0,
       discountGrosze: 0,
       averageTicketGrosze: 0,
@@ -127,8 +134,10 @@ export class ReportsService {
       const targets: Counts[] = [totals, staffRow, serviceRow];
 
       if (a.status === 'cancelled') {
-        if (a.cancelledBy === 'customer') totals.cancelledByClient++;
-        else totals.cancelledBySalon++;
+        for (const t of targets) {
+          if (a.cancelledBy === 'customer') t.cancelledByClient++;
+          else t.cancelledBySalon++;
+        }
         continue;
       }
       const hour = Math.floor(instantToLocal(a.startAt.getTime(), tz).minute / 60);
@@ -199,24 +208,50 @@ export class ReportsService {
       totals,
       staff: [...staff.values()]
         .sort(byRevenue)
-        .map(({ id, displayName, completed, noShow, revenueGrosze, paid }) => ({
-          id,
-          displayName,
-          completed,
-          noShow,
-          revenueGrosze,
-          paid,
-        })),
+        .map(
+          ({
+            id,
+            displayName,
+            completed,
+            noShow,
+            revenueGrosze,
+            paid,
+            cancelledByClient,
+            cancelledBySalon,
+          }) => ({
+            id,
+            displayName,
+            completed,
+            noShow,
+            revenueGrosze,
+            paid,
+            cancelledByClient,
+            cancelledBySalon,
+          }),
+        ),
       services: [...services.values()]
         .sort(byRevenue)
-        .map(({ id, name, completed, noShow, revenueGrosze, paid }) => ({
-          id,
-          name,
-          completed,
-          noShow,
-          revenueGrosze,
-          paid,
-        })),
+        .map(
+          ({
+            id,
+            name,
+            completed,
+            noShow,
+            revenueGrosze,
+            paid,
+            cancelledByClient,
+            cancelledBySalon,
+          }) => ({
+            id,
+            name,
+            completed,
+            noShow,
+            revenueGrosze,
+            paid,
+            cancelledByClient,
+            cancelledBySalon,
+          }),
+        ),
       days: [...days.values()],
       weekdays,
       previous: await this.previous(locationId, staffIds, tz, query),

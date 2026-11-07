@@ -1258,6 +1258,7 @@ export const pl = {
     colName: 'Nazwa',
     colCompleted: 'Odbyte',
     colNoShow: 'Nie przyszli',
+    colCancelled: 'Odwołane',
     colRevenue: 'Przychód',
     dayVisits: 'wizyty: {n}',
     csv: 'Pobierz CSV',

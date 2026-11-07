@@ -1262,6 +1262,7 @@ export const ru: Dict = {
     colName: 'Название',
     colCompleted: 'Состоялись',
     colNoShow: 'Не пришли',
+    colCancelled: 'Отменены',
     colRevenue: 'Выручка',
     dayVisits: 'визитов: {n}',
     csv: 'Скачать CSV',

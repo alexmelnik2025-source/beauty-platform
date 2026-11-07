@@ -20228,6 +20228,18 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
                   "description": "Visits marked as paid"
+                },
+                "cancelledByClient": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 219: visits the client cancelled"
+                },
+                "cancelledBySalon": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 219: visits the salon cancelled"
                 }
               },
               "required": [
@@ -20236,7 +20248,9 @@
                 "completed",
                 "noShow",
                 "revenueGrosze",
-                "paid"
+                "paid",
+                "cancelledByClient",
+                "cancelledBySalon"
               ],
               "additionalProperties": false
             },
@@ -20276,6 +20290,18 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
                   "description": "Visits marked as paid"
+                },
+                "cancelledByClient": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 219: visits the client cancelled"
+                },
+                "cancelledBySalon": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 219: visits the salon cancelled"
                 }
               },
               "required": [
@@ -20284,7 +20310,9 @@
                 "completed",
                 "noShow",
                 "revenueGrosze",
-                "paid"
+                "paid",
+                "cancelledByClient",
+                "cancelledBySalon"
               ],
               "additionalProperties": false
             },

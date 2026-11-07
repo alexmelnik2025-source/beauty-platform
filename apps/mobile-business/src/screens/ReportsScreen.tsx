@@ -215,6 +215,17 @@ export function ReportsScreen(props: {
                         noShow: String(row.noShow),
                       })}
                     </Text>
+                    {row.cancelledByClient + row.cancelledBySalon > 0 ? (
+                      <Text style={styles.muted}>
+                        {fill(r.rowCancelled, {
+                          n: String(row.cancelledByClient + row.cancelledBySalon),
+                          split: fill(r.cancelledSplit, {
+                            client: String(row.cancelledByClient),
+                            salon: String(row.cancelledBySalon),
+                          }),
+                        })}
+                      </Text>
+                    ) : null}
                   </Card>
                 ))}
               </View>

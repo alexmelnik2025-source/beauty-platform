@@ -23,6 +23,7 @@ import { serveApp } from './mobile-app';
  * "Godziny szczytu" — when visits start, by weekday and hour (task 216): 74g, app 75g.
  * A top client's name opens their card (task 217): 74h, app 75h.
  * "Kolejna wizyta" — clients of the period who booked again, by specialist (task 218): 74i, app 75i.
+ * Cancellations by specialist and service, no-show share (task 219): 74j, app 75.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -207,6 +208,29 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     }
   }
 
+  // Three days ago Piotr cancelled a visit at Marek himself (task 219).
+  const cancelled = await json<{ id: string }>(
+    await request.post(`${base}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: services[0],
+        staffId: staff[1],
+        start: new Date(
+          Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 16),
+        ).toISOString(),
+        allowOutsideHours: true,
+        customer: { name: 'Piotr', phone: '+48600000101', email: `piotr-${run}@example.com` },
+      },
+    }),
+  );
+  execFileSync('psql', [
+    (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `UPDATE appointment SET start_at = start_at - interval '4 days', end_at = end_at - interval '4 days', blocked_until = blocked_until - interval '4 days', status = 'cancelled', cancelled_at = now(), cancelled_by = 'customer' WHERE id = '${cancelled.id}'`,
+  ]);
+
   // Jan has already booked his next visit (tomorrow, after the period): "Kolejna wizyta" (task 218).
   await json(
     await request.post(`${base}/appointments`, {
@@ -240,11 +264,18 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(byStaff.getByRole('row').nth(1)).toContainText('Ilian');
   await expect(byStaff.getByRole('row').nth(1)).toContainText(/150,00\s*zł/);
   await expect(byStaff.getByRole('row').nth(2)).toContainText('Marek');
+  // Marek: Adam did not come (1 of 2 visits, 50%), Piotr cancelled one himself (task 219).
+  await expect(byStaff.getByRole('columnheader', { name: 'Odwołane' })).toBeVisible();
+  await expect(byStaff.getByRole('row').nth(2)).toContainText('1 (50%)');
+  await expect(byStaff.getByRole('row').nth(2)).toContainText('klient: 1 · salon: 0');
+  await expect(byStaff.getByRole('row').nth(1)).not.toContainText('klient:');
   await expect(page.getByRole('heading', { name: 'Dzień po dniu' })).toBeVisible();
   // Monday to Sunday, and the days before the period to compare with (task 31).
   await expect(page.getByRole('heading', { name: 'Dni tygodnia' })).toBeVisible();
   await expect(page.getByText(/w porównaniu z tyloma samymi dniami wcześniej/)).toBeVisible();
   await shot(page, '74-owner-reports');
+  await byStaff.scrollIntoViewIfNeeded();
+  await shot(page, '74j-owner-reports-cancellations');
   await page.getByRole('heading', { name: 'Dni tygodnia' }).scrollIntoViewIfNeeded();
   await shot(page, '74c-owner-reports-weekdays');
   // "Obłożenie": 1.5 h of visits out of 30 days × 12 h for each specialist (task 141).
@@ -350,6 +381,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByText(/240,00\s*zł/)).toBeVisible();
     await expect(app.getByText('Ilian').first()).toBeVisible();
     await expect(app.getByText(/150,00\s*zł/).first()).toBeVisible();
+    await expect(app.getByText('odwołane: 1 (klient: 1 · salon: 0)').first()).toBeVisible();
     await shot(app, '75-business-app-reports');
     // Monday to Sunday in the app too (task 32).
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();

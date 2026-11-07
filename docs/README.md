@@ -1991,3 +1991,10 @@ API: `PUT /v1/organizations/:orgId/locations/:locationId/reviews/:reviewId/reply
 визита периода — как «rebooking rate» во Fresha. По мастерам — по мастеру последнего визита клиента, больше клиентов
 первыми. Только числа, без имён. Мастер со своим отчётом (`scope: own`) видит только своих клиентов. Кабинет
 «Raporty» — блок «Kolejna wizyta: N%» с полосками по мастерам, бизнес-приложение — то же в `ReportsScreen`.
+
+## Отмены по мастерам и услугам в отчёте (задача 219)
+
+В строках `staff` и `services` отчёта (`GET …/reports`) — `cancelledByClient` и `cancelledBySalon`: сколько визитов
+этого мастера / этой услуги в периоде отменил клиент и сколько салон. В кабинете в таблицах «Specjaliści» и «Usługi» —
+колонка «Odwołane» (под числом — «klient: N · salon: M»), у «Nie przyszli» — доля от визитов, которые должны были
+состояться (odbyte + nie przyszli). В бизнес-приложении под строкой мастера/услуги — «odwołane: N (klient · salon)».

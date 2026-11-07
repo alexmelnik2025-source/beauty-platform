@@ -353,6 +353,7 @@ export const uk: Dictionary = {
     byStaff: 'Спеціалісти',
     byService: 'Послуги',
     row: 'відбулися: {completed} · не прийшли: {noShow}',
+    rowCancelled: 'скасовані: {n} ({split})',
     empty: 'У цьому періоді візитів немає.',
     note: 'Виручка — це оплачені візити після знижок програми лояльності.',
     byWeekday: 'Дні тижня',

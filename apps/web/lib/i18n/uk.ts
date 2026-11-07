@@ -1255,6 +1255,7 @@ export const uk: Dict = {
     colName: 'Назва',
     colCompleted: 'Відбулися',
     colNoShow: 'Не прийшли',
+    colCancelled: 'Скасовані',
     colRevenue: 'Виручка',
     dayVisits: 'візитів: {n}',
     csv: 'Завантажити CSV',

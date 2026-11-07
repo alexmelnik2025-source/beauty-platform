@@ -427,6 +427,7 @@ export default function ReportsPage() {
                             <th scope="col">{t.reports.colName}</th>
                             <th scope="col">{t.reports.colCompleted}</th>
                             <th scope="col">{t.reports.colNoShow}</th>
+                            <th scope="col">{t.reports.colCancelled}</th>
                             <th scope="col">{t.reports.colRevenue}</th>
                           </tr>
                         </thead>
@@ -435,7 +436,26 @@ export default function ReportsPage() {
                             <tr key={r.id}>
                               <th scope="row">{r.name}</th>
                               <td>{r.completed}</td>
-                              <td>{r.noShow}</td>
+                              <td>
+                                {r.noShow}
+                                {r.noShow > 0 ? (
+                                  <span className="small muted">
+                                    {' '}
+                                    ({Math.round((r.noShow / (r.completed + r.noShow)) * 100)}%)
+                                  </span>
+                                ) : null}
+                              </td>
+                              <td>
+                                {r.cancelledByClient + r.cancelledBySalon}
+                                {r.cancelledByClient + r.cancelledBySalon > 0 ? (
+                                  <div className="small muted">
+                                    {fill(t.reports.cancelledSplit, {
+                                      client: String(r.cancelledByClient),
+                                      salon: String(r.cancelledBySalon),
+                                    })}
+                                  </div>
+                                ) : null}
+                              </td>
                               <td>{money(r.revenueGrosze)}</td>
                             </tr>
                           ))}

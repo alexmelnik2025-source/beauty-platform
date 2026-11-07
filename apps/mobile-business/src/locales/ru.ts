@@ -353,6 +353,7 @@ export const ru: Dictionary = {
     byStaff: 'Специалисты',
     byService: 'Услуги',
     row: 'состоялись: {completed} · не пришли: {noShow}',
+    rowCancelled: 'отменены: {n} ({split})',
     empty: 'В этом периоде визитов нет.',
     note: 'Выручка — это оплаченные визиты после скидок программы лояльности.',
     byWeekday: 'Дни недели',
