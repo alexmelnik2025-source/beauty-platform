@@ -34,6 +34,9 @@ export const uk: Dictionary = {
     refresh: 'Оновити',
     onlyMine: 'Тільки мої',
     everyone: 'Усі візити',
+    till: 'Каса дня: {amount}',
+    tillOwn: 'лише ваші візити',
+    tillUnpaid: 'прийшли, не оплачено: {n}',
     status: { confirmed: 'Підтверджено', completed: 'Завершено', no_show: 'Не прийшов' },
   },
   week: {

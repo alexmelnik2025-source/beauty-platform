@@ -5,14 +5,25 @@ import type {
   Calendar,
   Locale,
   PermissionCatalog,
+  SalonReport,
   StaffList,
   TimeBlockList,
 } from '../api';
 import { blocksOfDay, blockTargets, canRemoveBlock } from '../blocks';
-import { addDays, dayTitle, myStaffId, onlyMine, staffOfDay, todayIn, visitsOfDay } from '../day';
+import {
+  addDays,
+  dayTitle,
+  formatPrice,
+  myStaffId,
+  onlyMine,
+  staffOfDay,
+  todayIn,
+  visitsOfDay,
+} from '../day';
+import { tillOf } from '../till';
 import { errorText } from '../errors';
 import { badge } from '../notifications';
-import type { Dictionary } from '../i18n';
+import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { BlockScreen } from './BlockScreen';
 import { NotificationsScreen } from './NotificationsScreen';
@@ -96,6 +107,8 @@ export function DayScreen(props: {
   const [salonName, setSalonName] = useState(salon.locationName);
   const [preset, setPreset] = useState<NewVisitPreset | null>(null);
   const [reloads, setReloads] = useState(0);
+  /** Task 228: "Kasa dnia" — the report of the shown day. */
+  const [dayReport, setDayReport] = useState<SalonReport | null>(null);
 
   // Once per salon: may this person mark visits, and are they one of the specialists?
   useEffect(() => {
@@ -155,6 +168,27 @@ export function DayScreen(props: {
     const timer = setInterval(() => void load(), REFRESH_MS);
     return () => clearInterval(timer);
   }, [load]);
+
+  // Task 228: "Kasa dnia" for today and past days, again whenever the day is reloaded.
+  useEffect(() => {
+    if (!canReport || date > today) {
+      setDayReport(null);
+      return;
+    }
+    let alive = true;
+    api
+      .report(salon.orgId, salon.locationId, date, date)
+      .then((r) => {
+        if (alive) setDayReport(r);
+      })
+      .catch(() => {
+        if (alive) setDayReport(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [api, salon, date, today, canReport, reloads]);
+  const till = tillOf(dayReport, date);
 
   const all = calendar && calendar.from === date ? visitsOfDay(calendar, date) : null;
   // "Only mine" is for an owner or manager who also works as a specialist;
@@ -631,6 +665,31 @@ export function DayScreen(props: {
               />
             ) : null}
           </View>
+          {till ? (
+            <View style={styles.till} testID="till" accessibilityRole="summary">
+              <Text style={styles.tillTotal}>
+                {fill(t.day.till, {
+                  amount: formatPrice(till.revenueGrosze, till.currency, props.locale),
+                })}
+                {till.own ? ` · ${t.day.tillOwn}` : ''}
+              </Text>
+              {till.methods.length > 0 ? (
+                <Text style={styles.muted}>
+                  {till.methods
+                    .map(
+                      (m) =>
+                        `${m.method === 'unknown' ? t.reports.paymentsUnknown : t.visit.paymentMethods[m.method]} ${formatPrice(m.revenueGrosze, till.currency, props.locale)}`,
+                    )
+                    .join(' · ')}
+                </Text>
+              ) : null}
+              {till.unpaid > 0 ? (
+                <Text style={styles.tillUnpaid}>
+                  {fill(t.day.tillUnpaid, { n: String(till.unpaid) })}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
           {visits.length === 0 ? <Text style={styles.muted}>{t.day.empty}</Text> : null}
           {visits.map((v) => (
             <Pressable
@@ -690,6 +749,16 @@ const styles = StyleSheet.create({
   salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   sectionRow: { justifyContent: 'space-between', marginTop: 8 },
+  till: {
+    gap: 2,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+  },
+  tillTotal: { fontSize: 16, fontWeight: '700', color: colors.ink },
+  tillUnpaid: { fontSize: 14, fontWeight: '600', color: colors.ink },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   muted: { color: colors.muted, fontSize: 15 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

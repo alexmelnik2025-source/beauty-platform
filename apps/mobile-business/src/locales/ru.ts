@@ -34,6 +34,9 @@ export const ru: Dictionary = {
     refresh: 'Обновить',
     onlyMine: 'Только мои',
     everyone: 'Все визиты',
+    till: 'Касса дня: {amount}',
+    tillOwn: 'только ваши визиты',
+    tillUnpaid: 'пришли, не оплачено: {n}',
     status: { confirmed: 'Подтверждён', completed: 'Завершён', no_show: 'Не пришёл' },
   },
   week: {

@@ -34,6 +34,9 @@ export const pl = {
     refresh: 'Odśwież',
     onlyMine: 'Tylko moje',
     everyone: 'Wszystkie wizyty',
+    till: 'Kasa dnia: {amount}',
+    tillOwn: 'tylko Twoje wizyty',
+    tillUnpaid: 'przyszli, nieopłacone: {n}',
     status: { confirmed: 'Potwierdzona', completed: 'Zakończona', no_show: 'Nie przyszedł' },
   },
   week: {

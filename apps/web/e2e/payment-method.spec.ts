@@ -14,6 +14,7 @@ import { serveApp } from './mobile-app';
  * Task 227: how the client paid. In the visit card the owner picks "Karta" and marks
  * "Opłacono" (screenshot 227), changes it to "Gotówka" later (only the method changes), and
  * "Raporty" shows "Sposoby płatności" (227-a); the business app's report too (227-b).
+ * "Kasa dnia" above the day's calendar (task 228): 228; in the business app's day: 228-a.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -124,6 +125,10 @@ test('the owner marks how the client paid; the report shows the payment methods'
   await page.getByRole('button', { name: 'Zaloguj się' }).click();
   await page.waitForURL(/\/pl\/app\/calendar/);
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
+  // Task 228: "Kasa dnia" — Jan came, nothing is paid yet.
+  const till = page.getByTestId('till');
+  await expect(till).toContainText('Kasa dnia: 0,00');
+  await expect(till).toContainText('przyszli, nieopłacone: 1');
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
   const card = page.getByRole('dialog');
   await expect(card).toContainText('Odbyła się');
@@ -150,6 +155,12 @@ test('the owner marks how the client paid; the report shows the payment methods'
   await expect(card.getByText('Zmieniono sposób płatności')).toBeVisible();
   await expect(card.getByRole('button', { name: 'Cofnij opłatę (zwrot)' })).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(card).toBeHidden();
+  // "Kasa dnia" counts the payment at once, by method (task 228).
+  await expect(till).toContainText(/Kasa dnia: 90,00\s*zł/);
+  await expect(till).toContainText(/Gotówka 90,00\s*zł/);
+  await expect(till).not.toContainText('nieopłacone');
+  await shot(page, '228-calendar-till');
 
   await page.getByRole('link', { name: 'Raporty' }).click();
   await page.waitForURL(/\/pl\/app\/reports$/);
@@ -184,6 +195,15 @@ test('the owner marks how the client paid; the report shows the payment methods'
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // "Kasa dnia" on the visit's day (yesterday; the day before around midnight UTC), task 228.
+    const appTill = app.getByTestId('till');
+    for (let back = 0; back < 3 && !(await appTill.isVisible()); back++) {
+      await app.getByRole('button', { name: 'Poprzedni dzień' }).click();
+      await app.waitForTimeout(800);
+    }
+    await expect(appTill).toContainText(/Kasa dnia: 90,00\s*zł/);
+    await expect(appTill).toContainText(/Gotówka 90,00\s*zł/);
+    await shot(app, '228-a-business-app-till');
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appPayments = app.getByTestId('report-payments');

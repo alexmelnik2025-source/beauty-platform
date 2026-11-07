@@ -195,6 +195,10 @@ export const en: Dict = {
     dayView: 'Day',
     weekView: 'Week',
     weekOf: "Specialist's week",
+    till: 'Till',
+    tillOwn: 'your visits only',
+    tillUnpaid: 'came, not paid: {n}',
+    tillLabel: "Till — the day's paid visits by payment method",
   },
   appointment: {
     title: 'Appointment',

@@ -196,6 +196,10 @@ export const pl = {
     dayView: 'Dzień',
     weekView: 'Tydzień',
     weekOf: 'Tydzień specjalisty',
+    till: 'Kasa dnia',
+    tillOwn: 'tylko Twoje wizyty',
+    tillUnpaid: 'przyszli, nieopłacone: {n}',
+    tillLabel: 'Kasa dnia — opłacone wizyty tego dnia według sposobu płatności',
   },
   appointment: {
     title: 'Wizyta',

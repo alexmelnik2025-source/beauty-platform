@@ -196,6 +196,10 @@ export const uk: Dict = {
     dayView: 'День',
     weekView: 'Тиждень',
     weekOf: 'Тиждень майстра',
+    till: 'Каса дня',
+    tillOwn: 'лише ваші візити',
+    tillUnpaid: 'прийшли, не оплачено: {n}',
+    tillLabel: 'Каса дня — оплачені візити цього дня за способом оплати',
   },
   appointment: {
     title: 'Запис',

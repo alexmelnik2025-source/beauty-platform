@@ -2908,3 +2908,25 @@ ul.wish-photos {
   gap: 8px;
   margin-top: 6px;
 }
+
+/* ── Task 228: "Kasa dnia" above the day's calendar ───── */
+
+.till-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
+.till-strip__unpaid {
+  font-weight: 600;
+}
+
+@media print {
+  .till-strip {
+    display: none;
+  }
+}

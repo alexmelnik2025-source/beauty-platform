@@ -36,6 +36,9 @@ export const en: Dictionary = {
     refresh: 'Refresh',
     onlyMine: 'Only mine',
     everyone: 'All visits',
+    till: 'Till: {amount}',
+    tillOwn: 'your visits only',
+    tillUnpaid: 'came, not paid: {n}',
     status: { confirmed: 'Confirmed', completed: 'Completed', no_show: 'No-show' },
   },
   week: {

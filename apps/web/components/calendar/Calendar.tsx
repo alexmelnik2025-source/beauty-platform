@@ -27,6 +27,7 @@ import { AppointmentSheet } from './AppointmentSheet';
 import { BlockSheet } from './BlockSheet';
 import { MoveSheet, type MoveTarget } from './MoveSheet';
 import { NewItemSheet, type NewItemDraft } from './NewItemSheet';
+import { TillStrip } from './TillStrip';
 
 const REFRESH_MS = 30_000;
 const HOUR_PX = 80;
@@ -92,6 +93,8 @@ export function Calendar() {
   const manager = session.role !== 'staff';
   const canDrag = manager || session.permissions.changeOwnAppointments === true;
   const canOutside = manager || session.permissions.bookOutsideHours === true;
+  /** Task 228: "Kasa dnia" for those who see the salon's (or their own) earnings. */
+  const canSeeTill = manager || session.permissions.viewOwnEarnings === true;
   const [now, setNow] = useState(() => Date.now());
   const today = todayIn(tz);
   const monday = weekStart(date);
@@ -424,6 +427,10 @@ export function Calendar() {
           ›
         </button>
       </div>
+
+      {canSeeTill && mode === 'day' && date <= today ? (
+        <TillStrip base={base} date={date} currency={location.currency} refresh={data} />
+      ) : null}
 
       {error ? (
         <div style={{ padding: '8px 24px' }}>
