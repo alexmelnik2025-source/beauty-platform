@@ -233,6 +233,11 @@ export const listCustomersSchema = z.object({
    * last N days (7–90), newest first.
    */
   newDays: z.coerce.number().int().min(7).max(90).optional(),
+  /**
+   * Task 262: only clients past their usual time to come back (latest visit + the median break
+   * between their visits, from three visits) with nothing booked ahead, the most recently due first.
+   */
+  overdue: z.enum(['yes']).optional(),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;

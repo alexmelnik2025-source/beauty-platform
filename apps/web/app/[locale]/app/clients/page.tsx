@@ -33,6 +33,8 @@ export default function ClientsPage() {
   const [consented, setConsented] = useState(false);
   // Task 248: only clients whose first visit was in the last 30 days, newest first.
   const [newcomers, setNewcomers] = useState(false);
+  // Task 262: only regular clients past their usual break with nothing booked.
+  const [overdue, setOverdue] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [rows, setRows] = useState<ClientRow[] | null>(null);
   const [open, setOpen] = useState<string | 'new' | null>(null);
@@ -59,13 +61,14 @@ export default function ClientsPage() {
             birthdayDays: birthdays ? 7 : undefined,
             marketing: consented ? 'yes' : undefined,
             newDays: newcomers ? 30 : undefined,
+            overdue: overdue ? 'yes' : undefined,
           },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [orgId, search, inactiveDays, tag, birthdays, consented, newcomers, t]);
+  }, [orgId, search, inactiveDays, tag, birthdays, consented, newcomers, overdue, t]);
 
   /** Task 224: the salon's labels for the chips above the list (refreshed after a card is saved). */
   const loadTags = useCallback(async () => {
@@ -185,8 +188,17 @@ export default function ClientsPage() {
           >
             🌱 {t.clients.newcomers}
           </button>
+          <button
+            type="button"
+            aria-pressed={overdue}
+            title={t.clients.overdueHint}
+            onClick={() => setOverdue(!overdue)}
+          >
+            ⏰ {t.clients.overdue}
+          </button>
         </div>
         {newcomers ? <p className="small muted">{t.clients.newcomersHint}</p> : null}
+        {overdue ? <p className="small muted">{t.clients.overdueHint}</p> : null}
         {tags.length ? (
           <div className="chips tag-filter" role="group" aria-label={t.clients.tagFilter}>
             <button type="button" aria-pressed={tag === ''} onClick={() => setTag('')}>
@@ -213,13 +225,15 @@ export default function ClientsPage() {
               ? t.clients.birthdaysNone
               : newcomers
                 ? t.clients.newcomersNone
-                : consented
-                  ? t.clients.consentedNone
-                  : inactiveDays
-                    ? t.clients.inactive.none
-                    : search || tag
-                      ? t.clients.notFound
-                      : t.clients.empty}
+                : overdue
+                  ? t.clients.overdueNone
+                  : consented
+                    ? t.clients.consentedNone
+                    : inactiveDays
+                      ? t.clients.inactive.none
+                      : search || tag
+                        ? t.clients.notFound
+                        : t.clients.empty}
           </p>
         ) : (
           <ul className="list">

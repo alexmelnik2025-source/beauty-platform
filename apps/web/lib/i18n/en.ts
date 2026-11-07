@@ -1017,6 +1017,10 @@ export const en: Dict = {
     newcomersHint:
       'Clients whose first visit at the salon was in the last 30 days — newest first. Worth making sure they come back.',
     newcomersNone: 'No new clients in the last 30 days.',
+    overdue: 'Due to come back',
+    overdueHint:
+      'Regular clients (at least 3 visits) whose usual break between visits has already passed and who have nothing booked — the most recent first.',
+    overdueNone: 'Nobody is late for their usual visit.',
     consentedNone: 'No one has agreed to messages from the salon yet.',
     birthdaysNone: 'Nobody has a birthday in the next 7 days.',
     birthdayToday: 'today',

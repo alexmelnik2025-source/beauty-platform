@@ -411,3 +411,64 @@ describe('"Nowi klienci" (task 248)', () => {
     expect(await names('newDays=30')).toEqual(['Jan Nowak']);
   });
 });
+
+describe('"Pora wrócić" (task 262)', () => {
+  const names = async (query: string, auth = owner.auth) =>
+    (await ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200)).body.map(
+      (c: { name: string }) => c.name,
+    );
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  it('lists clients past their usual break with nothing booked, the most recently due first', async () => {
+    // Jan: every 20 days, last 30 days ago — due 10 days ago.
+    await pastVisit(kasiaId, 70);
+    await pastVisit(kasiaId, 50);
+    await pastVisit(kasiaId, 30);
+    // Piotr: every 15 days, last 15 days ago — due just now.
+    customerId = await client('Piotr Zwykły', '+48600000003');
+    await pastVisit(tomekId, 45);
+    await pastVisit(tomekId, 30);
+    await pastVisit(tomekId, 15);
+    // Ewa: every 8 days, last 4 days ago — due in 4 days.
+    customerId = await client('Ewa Wcześnie', '+48600000004');
+    await pastVisit(kasiaId, 20);
+    await pastVisit(kasiaId, 12);
+    await pastVisit(kasiaId, 4);
+    // Ola: due, but already booked.
+    customerId = await client('Ola Zapisana', '+48600000005');
+    await pastVisit(kasiaId, 45);
+    await pastVisit(kasiaId, 30);
+    await pastVisit(kasiaId, 15);
+    await futureVisit(kasiaId, 2);
+    // Adam: two visits are not a habit yet.
+    customerId = await client('Adam Dwa', '+48600000006');
+    await pastVisit(kasiaId, 100);
+    await pastVisit(kasiaId, 50);
+
+    expect(await names('overdue=yes')).toEqual(['Piotr Zwykły', 'Jan Nowak']);
+    expect(await names('overdue=yes&search=jan')).toEqual(['Jan Nowak']);
+    expect(await names('overdue=yes&limit=1')).toEqual(['Piotr Zwykły']);
+    expect(await names('overdue=yes', manager.auth)).toEqual(['Piotr Zwykły', 'Jan Nowak']);
+    expect(await names('limit=100')).toHaveLength(5);
+    await ctx.http().get(`${customersBase}?overdue=no`).set(owner.auth).expect(400);
+  });
+
+  it("another organization's clients do not leak", async () => {
+    await pastVisit(kasiaId, 70);
+    await pastVisit(kasiaId, 50);
+    await pastVisit(kasiaId, 30);
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const other = await createOrgWithLocation(ctx, stranger, 'Inny');
+    const theirs = await ctx
+      .http()
+      .get(`/v1/organizations/${other.orgId}/customers?overdue=yes`)
+      .set(stranger.auth)
+      .expect(200);
+    expect(theirs.body).toEqual([]);
+    expect(await names('overdue=yes')).toEqual(['Jan Nowak']);
+  });
+});

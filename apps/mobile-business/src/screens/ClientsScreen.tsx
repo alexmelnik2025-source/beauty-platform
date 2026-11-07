@@ -49,6 +49,8 @@ export function ClientsScreen(props: {
   const [consented, setConsented] = useState(false);
   // Task 248: only clients whose first visit was in the last 30 days, newest first.
   const [newcomers, setNewcomers] = useState(props.newcomers ?? false);
+  // Task 262: only regular clients past their usual break with nothing booked.
+  const [overdue, setOverdue] = useState(false);
 
   const search = useCallback(
     async (text: string) => {
@@ -64,6 +66,7 @@ export function ClientsScreen(props: {
             birthdays ? 7 : 0,
             consented,
             newcomers ? 30 : 0,
+            overdue,
           ),
         );
         setSearched(text.trim());
@@ -74,7 +77,7 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, inactiveDays, tag, birthdays, consented, newcomers],
+    [api, salon, t, inactiveDays, tag, birthdays, consented, newcomers, overdue],
   );
 
   const loadTags = useCallback(async () => {
@@ -189,8 +192,18 @@ export function ClientsScreen(props: {
         >
           <Text style={[styles.chipText, newcomers && styles.chipTextOn]}>🌱 {c.newcomers}</Text>
         </Pressable>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: overdue }}
+          accessibilityHint={c.overdueHint}
+          onPress={() => setOverdue(!overdue)}
+          style={[styles.chip, overdue && styles.chipOn]}
+        >
+          <Text style={[styles.chipText, overdue && styles.chipTextOn]}>⏰ {c.overdue}</Text>
+        </Pressable>
       </View>
       {newcomers ? <Text style={styles.muted}>{c.newcomersHint}</Text> : null}
+      {overdue ? <Text style={styles.muted}>{c.overdueHint}</Text> : null}
       {tags.length > 0 ? (
         <>
           <Text style={styles.muted}>{c.tagFilter}</Text>
@@ -226,11 +239,13 @@ export function ClientsScreen(props: {
             ? c.birthdaysNone
             : newcomers
               ? c.newcomersNone
-              : consented
-                ? c.consentedNone
-                : inactiveDays
-                  ? c.inactiveNone
-                  : c.none}
+              : overdue
+                ? c.overdueNone
+                : consented
+                  ? c.consentedNone
+                  : inactiveDays
+                    ? c.inactiveNone
+                    : c.none}
         </Text>
       ) : (
         <>

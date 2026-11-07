@@ -49,6 +49,8 @@ export class CustomersService {
     if (query.birthdayDays) return this.birthdays(m, query);
     // Task 248: the newest clients first, by their first visit.
     const newcomers = query.newDays ? await this.newcomers(m, query.newDays) : null;
+    // Task 262: clients past their usual time to come back, the most recently due first.
+    const overdue = query.overdue ? await this.overdue(m) : null;
     const search = query.search
       ? {
           OR: [
@@ -70,13 +72,17 @@ export class CustomersService {
           query.tag ? { tags: { has: query.tag } } : {},
           query.marketing ? { id: { in: await this.consented(m.organizationId) } } : {},
           newcomers ? { id: { in: [...newcomers.keys()] } } : {},
+          overdue ? { id: { in: [...overdue.keys()] } } : {},
         ],
       },
       orderBy: { name: 'asc' },
-      take: newcomers ? undefined : query.limit,
+      take: newcomers || overdue ? undefined : query.limit,
     });
     if (newcomers) {
       rows.sort((a, b) => newcomers.get(b.id)!.getTime() - newcomers.get(a.id)!.getTime());
+    }
+    if (overdue) {
+      rows.sort((a, b) => overdue.get(b.id)!.getTime() - overdue.get(a.id)!.getTime());
     }
     return rows.slice(0, query.limit).map((c) => toCustomer(c, m));
   }
@@ -103,6 +109,52 @@ export class CustomersService {
         .filter((f) => f.customerId && f._min.startAt)
         .map((f) => [f.customerId!, f._min.startAt!]),
     );
+  }
+
+  /**
+   * Task 262: clients with a habit — at least three visits that took place on different days in
+   * the salons the caller works in (`rhythm`, task 250) — whose latest visit plus their usual
+   * break is already behind, and who have nothing booked ahead there; with that due date.
+   */
+  private async overdue(m: MembershipContext): Promise<Map<string, Date>> {
+    const now = Date.now();
+    const here = {
+      location: { organizationId: m.organizationId },
+      ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+    };
+    const [visits, booked] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: { ...here, status: 'completed', customerId: { not: null } },
+        orderBy: [{ customerId: 'asc' }, { startAt: 'asc' }],
+        select: { customerId: true, startAt: true },
+      }),
+      this.prisma.appointment.findMany({
+        where: {
+          ...here,
+          status: 'confirmed',
+          startAt: { gte: new Date(now) },
+          customerId: { not: null },
+        },
+        distinct: ['customerId'],
+        select: { customerId: true },
+      }),
+    ]);
+    const ahead = new Set(booked.map((b) => b.customerId));
+    const starts = new Map<string, Date[]>();
+    for (const v of visits) {
+      if (!v.customerId || ahead.has(v.customerId)) continue;
+      const list = starts.get(v.customerId) ?? [];
+      list.push(v.startAt);
+      starts.set(v.customerId, list);
+    }
+    const due = new Map<string, Date>();
+    for (const [id, list] of starts) {
+      const days = rhythm(list);
+      if (days === null) continue;
+      const at = new Date(list[list.length - 1]!.getTime() + days * 86_400_000);
+      if (at.getTime() <= now) due.set(id, at);
+    }
+    return due;
   }
 
   /**

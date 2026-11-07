@@ -385,6 +385,13 @@ export class CustomersController {
     description:
       'Task 248: only clients whose first visit that took place was in the last N days (7–90), newest first',
   })
+  @ApiQuery({
+    name: 'overdue',
+    required: false,
+    enum: ['yes'],
+    description:
+      'Task 262: only clients past their usual time to come back (from three visits) with nothing booked ahead, the most recently due first',
+  })
   @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,

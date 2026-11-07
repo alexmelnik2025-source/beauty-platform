@@ -1015,6 +1015,10 @@ export const pl = {
     newcomersHint:
       'Klienci, których pierwsza wizyta w salonie była w ostatnich 30 dniach — najnowsi na górze. Warto zadbać, żeby wrócili.',
     newcomersNone: 'W ostatnich 30 dniach nie było nowych klientów.',
+    overdue: 'Pora wrócić',
+    overdueHint:
+      'Klienci, którzy przychodzą regularnie (co najmniej 3 wizyty), a ich zwykły odstęp między wizytami już minął i nie mają kolejnej rezerwacji — najświeższe na górze.',
+    overdueNone: 'Nikt nie spóźnia się ze swoją zwykłą wizytą.',
     consentedNone: 'Nikt jeszcze nie zgodził się na wiadomości od salonu.',
     birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',
     birthdayToday: 'dziś',

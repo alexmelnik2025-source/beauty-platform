@@ -18,6 +18,7 @@ import { serveApp } from './mobile-app';
  * Task 248: "Nowi (30 dni)" — clients whose first visit was in the last 30 days (248, 248-a).
  * Task 250: "Wraca zwykle co N dni" in the client card (250, 250-a).
  * Task 261: "Ulubiona usługa" and "Ulubiony specjalista" in the client card (261, 261-a).
+ * Task 262: "Pora wrócić" — regular clients past their usual break with nothing booked (262, 262-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -280,6 +281,40 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(summary).toContainText('Kasia · 3×');
   await shot(page, '261-client-favorites');
   await page.keyboard.press('Escape');
+
+  // Task 262: Piotr came 45, 30 and 15 days ago — every 15 days, so he is due now; Jan (every 10
+  // days, last today) is not.
+  const [piotr] = await json<{ id: string }[]>(
+    await request.get(`/v1/organizations/${org.id}/customers?search=Piotr%20Zieli`, {
+      headers: owner,
+    }),
+  );
+  for (const [i, daysAgo] of [45, 30, 15].entries()) {
+    const earlier = await json<{ id: string }>(
+      await request.post(`${salon}/appointments`, {
+        headers: owner,
+        data: {
+          serviceId: service.id,
+          staffId: staff.id,
+          start: new Date(firstVisit.getTime() + (i + 2) * 30 * 60_000).toISOString(),
+          customerId: piotr!.id,
+          alreadyHappened: true,
+          allowOutsideHours: true,
+        },
+      }),
+    );
+    sql250(
+      `UPDATE appointment SET start_at = start_at - interval '${daysAgo} days', end_at = end_at - interval '${daysAgo} days', blocked_until = blocked_until - interval '${daysAgo} days' WHERE id = '${earlier.id}'`,
+    );
+  }
+  await page.reload();
+  await expect(rows).toHaveCount(5);
+  const overdue = page.getByRole('button', { name: /Pora wrócić/ });
+  await overdue.click();
+  await expect(overdue).toHaveAttribute('aria-pressed', 'true');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Piotr Zieliński');
+  await shot(page, '262-clients-overdue');
   await context.close();
 
   // Business app (task 240b).
@@ -331,6 +366,12 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(cards).toHaveCount(1);
     await app.getByRole('switch', { name: /Nowi \(30 dni\)/ }).click();
+    // Task 262 in the app: only Piotr is due to come back.
+    await app.getByRole('switch', { name: /Pora wrócić/ }).click();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Piotr Zieliński');
+    await shot(app, '262-a-business-app-overdue');
+    await app.getByRole('switch', { name: /Pora wrócić/ }).click();
     await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
     await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();
