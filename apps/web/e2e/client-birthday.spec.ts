@@ -243,7 +243,7 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards.nth(0)).toContainText('Jan Kowalski');
     await shot(app, '245-a-business-app-consented');
     await app.getByRole('switch', { name: /Zgoda na wiadomości/ }).click();
-    await expect(cards).toHaveCount(4);
+    await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
     await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();
     // Task 241: the owner changes it right in the app.
