@@ -432,6 +432,15 @@ export const en: Dictionary = {
     unbooked: 'Services without visits',
     unbookedHint:
       'Bookable services nobody booked in this period (cancelled visits do not count). Worth checking their price, description or photos — or hiding them in “Services”.',
+    leadTime: 'How far ahead clients book · usually {n} days',
+    leadSameDay: 'Same day',
+    leadNextDay: 'For the next day',
+    leadWeek: '2–7 days',
+    leadTwoWeeks: '8–14 days',
+    leadLater: 'Over 14 days',
+    leadOnline: 'online: {n}',
+    leadHint:
+      'How many days before the visit clients booked (visits that were not cancelled). Helps decide how far ahead to open the schedule. Visits written down after the fact do not count.',
     row: 'completed: {completed} · no-shows: {noShow}',
     rowCancelled: 'cancelled: {n} ({split})',
     csv: 'Download CSV',

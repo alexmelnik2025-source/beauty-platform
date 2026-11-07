@@ -5572,6 +5572,21 @@ export interface components {
                 /** @description What their paid visits brought, in hundredths of the salon currency */
                 revenueGrosze: number;
             }[];
+            /** @description Task 260: "Z jakim wyprzedzeniem rezerwują" — how far ahead visits are booked; entries made after the visit began do not count */
+            leadTime: {
+                /** @description Visits of the period that were not cancelled and were booked before they began */
+                visits: number;
+                /** @description Typical days between the booking and the visit (salon dates); null without visits */
+                medianDays: number | null;
+                /** @description Same day, next day, 2–7 days, 8–14 days, later — always all five */
+                buckets: {
+                    /** @enum {string} */
+                    key: "sameDay" | "nextDay" | "week" | "twoWeeks" | "later";
+                    visits: number;
+                    /** @description Of them booked online by the client */
+                    online: number;
+                }[];
+            };
             /** @description Task 259: "Usługi bez wizyt" — bookable services nobody booked in the period (cancelled visits do not count), in price-list order; empty in a specialist's own report */
             unbookedServices: {
                 id: string;

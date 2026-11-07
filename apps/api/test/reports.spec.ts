@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
 import { occupancy } from '../src/reports/occupancy';
+import { leadTime } from '../src/reports/reports.service';
 import { visitsCsv } from '../src/reports/visits-csv';
 import { addDays, isoWeekday, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
@@ -845,6 +846,61 @@ describe('salon report', () => {
     });
     const own = await report(kasiaUser.auth, { from: addDays(today, -30), to: today }).expect(200);
     expect(own.body.unbookedServices).toEqual([]);
+  });
+
+  it('"Z jakim wyprzedzeniem rezerwują": days between booking and visit, by bucket (task 260)', async () => {
+    const d1 = addDays(today, -3);
+    const booked = async (daysBefore: number | null, o: Partial<VisitOptions> = {}) => {
+      const id = await visit({ date: d1, status: 'completed', ...o });
+      if (daysBefore !== null) {
+        const { startAt } = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id } });
+        await ctx.prisma.appointment.update({
+          where: { id },
+          data: { createdAt: new Date(startAt.getTime() - daysBefore * 86_400_000 - 3_600_000) },
+        });
+      }
+    };
+    await booked(0, { online: true });
+    await booked(1);
+    await booked(5, { online: true });
+    await booked(5, { status: 'no_show' });
+    await booked(10);
+    await booked(30, { online: true });
+    // Not counted: cancelled, and written down after the visit (createdAt is now).
+    await booked(3, { status: 'cancelled' });
+    await booked(null);
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.leadTime).toEqual({
+      visits: 6,
+      medianDays: 5,
+      buckets: [
+        { key: 'sameDay', visits: 1, online: 1 },
+        { key: 'nextDay', visits: 1, online: 0 },
+        { key: 'week', visits: 2, online: 1 },
+        { key: 'twoWeeks', visits: 1, online: 0 },
+        { key: 'later', visits: 1, online: 1 },
+      ],
+    });
+
+    // Booked at 23:30 for 00:30 the next day is "next day" in the salon's dates.
+    const late = leadTime(
+      [
+        {
+          status: 'confirmed',
+          source: 'online',
+          createdAt: new Date('2026-03-09T22:30:00Z'),
+          startAt: new Date('2026-03-09T23:30:00Z'),
+        },
+      ],
+      TZ,
+    );
+    expect(late).toMatchObject({ visits: 1, medianDays: 1 });
+    expect(late.buckets[1]).toEqual({ key: 'nextDay', visits: 1, online: 1 });
+    expect(leadTime([], TZ)).toMatchObject({ visits: 0, medianDays: null });
   });
 
   it('"Napiwki": tips of the visits that took place, by specialist, not in the revenue (task 229)', async () => {

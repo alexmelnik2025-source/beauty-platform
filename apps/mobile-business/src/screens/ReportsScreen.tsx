@@ -35,6 +35,15 @@ import type { SalonChoice } from './SalonsScreen';
  * "Raporty" (task 15): revenue, visits, clients, specialists and services for a period — the
  * same report as in the cabinet. A specialist gets only their own visits (the server decides).
  */
+/** Task 260: the label of each "how far ahead" bucket. */
+const LEAD_LABELS = {
+  sameDay: 'leadSameDay',
+  nextDay: 'leadNextDay',
+  week: 'leadWeek',
+  twoWeeks: 'leadTwoWeeks',
+  later: 'leadLater',
+} as const;
+
 export function ReportsScreen(props: {
   api: BusinessApi;
   t: Dictionary;
@@ -428,6 +437,28 @@ export function ReportsScreen(props: {
                 </Card>
               ))}
               <Text style={styles.small}>{r.unbookedHint}</Text>
+            </View>
+          ) : null}
+          {shown.leadTime.visits > 0 ? (
+            <View style={{ gap: 6 }} testID="report-lead-time">
+              <Text style={styles.section}>
+                {fill(r.leadTime, { n: String(shown.leadTime.medianDays ?? 0) })}
+              </Text>
+              {shown.leadTime.buckets.map((b) => (
+                <View key={b.key} style={styles.weekday}>
+                  <Text style={styles.weekdayName}>{r[LEAD_LABELS[b.key]]}</Text>
+                  <View style={styles.bar}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        { width: `${(b.visits / shown.leadTime.visits) * 100}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.small}>{fill(r.weekdayVisits, { n: String(b.visits) })}</Text>
+                </View>
+              ))}
+              <Text style={styles.small}>{r.leadHint}</Text>
             </View>
           ) : null}
           {totals.visits > 0 ? (

@@ -1398,6 +1398,15 @@ export const pl = {
     unbookedHint:
       'Usługi dostępne do rezerwacji, których nikt nie zarezerwował w tym okresie (odwołane wizyty się nie liczą). Warto sprawdzić ich cenę, opis lub zdjęcia — albo ukryć je w „Usługi”.',
     unbookedLink: 'Otwórz usługi',
+    leadTime: 'Z jakim wyprzedzeniem rezerwują · zwykle {n} dni',
+    leadSameDay: 'Tego samego dnia',
+    leadNextDay: 'Na następny dzień',
+    leadWeek: '2–7 dni',
+    leadTwoWeeks: '8–14 dni',
+    leadLater: 'Ponad 14 dni',
+    leadOnline: 'online: {n}',
+    leadHint:
+      'Ile dni przed wizytą klienci się zapisali (wizyty, które nie zostały odwołane). Pomaga zdecydować, na ile dni naprzód otwierać grafik. Wizyty wpisane już po fakcie się nie liczą.',
     topClientsHint:
       'Do 10 klientów, którzy w tym okresie przynieśli najwięcej (opłacone wizyty), potem najczęściej przychodzili. Kliknij imię, aby otworzyć kartę klienta.',
     busyHours: 'Godziny szczytu',

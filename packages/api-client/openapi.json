@@ -21668,6 +21668,67 @@
             },
             "description": "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report"
           },
+          "leadTime": {
+            "type": "object",
+            "properties": {
+              "visits": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits of the period that were not cancelled and were booked before they began"
+              },
+              "medianDays": {
+                "nullable": true,
+                "description": "Typical days between the booking and the visit (salon dates); null without visits",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "buckets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "sameDay",
+                        "nextDay",
+                        "week",
+                        "twoWeeks",
+                        "later"
+                      ]
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "online": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Of them booked online by the client"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "visits",
+                    "online"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Same day, next day, 2–7 days, 8–14 days, later — always all five"
+              }
+            },
+            "required": [
+              "visits",
+              "medianDays",
+              "buckets"
+            ],
+            "additionalProperties": false,
+            "description": "Task 260: \"Z jakim wyprzedzeniem rezerwują\" — how far ahead visits are booked; entries made after the visit began do not count"
+          },
           "unbookedServices": {
             "type": "array",
             "items": {
@@ -21943,6 +22004,7 @@
           "ratings",
           "rebooking",
           "topClients",
+          "leadTime",
           "unbookedServices",
           "busyHours",
           "marketing",

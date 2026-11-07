@@ -39,6 +39,56 @@ const emptyCounts = (): Counts => ({
   cancelledBySalon: 0,
 });
 
+const LEAD_BUCKETS = ['sameDay', 'nextDay', 'week', 'twoWeeks', 'later'] as const;
+
+/**
+ * Task 260: how far ahead the visits of the period were booked — days between the booking and the
+ * visit in the salon's own dates. Cancelled visits and entries made after the visit began (the
+ * salon writing down a walk-in or a past visit) do not count.
+ */
+export function leadTime(
+  rows: { status: string; source: string; startAt: Date; createdAt: Date }[],
+  tz: string,
+): SalonReport['leadTime'] {
+  const buckets = new Map<
+    (typeof LEAD_BUCKETS)[number],
+    { key: (typeof LEAD_BUCKETS)[number]; visits: number; online: number }
+  >(LEAD_BUCKETS.map((key) => [key, { key, visits: 0, online: 0 }]));
+  const days: number[] = [];
+  for (const a of rows) {
+    if (a.status === 'cancelled' || a.createdAt >= a.startAt) continue;
+    const ahead = Math.round(
+      (Date.parse(instantToLocal(a.startAt.getTime(), tz).date) -
+        Date.parse(instantToLocal(a.createdAt.getTime(), tz).date)) /
+        86_400_000,
+    );
+    days.push(ahead);
+    const key =
+      ahead <= 0
+        ? 'sameDay'
+        : ahead === 1
+          ? 'nextDay'
+          : ahead <= 7
+            ? 'week'
+            : ahead <= 14
+              ? 'twoWeeks'
+              : 'later';
+    const bucket = buckets.get(key)!;
+    bucket.visits++;
+    if (a.source === 'online') bucket.online++;
+  }
+  days.sort((x, y) => x - y);
+  const mid = Math.floor(days.length / 2);
+  return {
+    visits: days.length,
+    medianDays:
+      days.length === 0
+        ? null
+        : Math.round(days.length % 2 === 1 ? days[mid]! : (days[mid - 1]! + days[mid]!) / 2),
+    buckets: [...buckets.values()],
+  };
+}
+
 const byRevenue = <T extends Counts & { name: string | null }>(a: T, b: T): number =>
   b.revenueGrosze - a.revenueGrosze ||
   b.completed - a.completed ||
@@ -83,6 +133,7 @@ export class ReportsService {
         status: true,
         source: true,
         startAt: true,
+        createdAt: true,
         priceGrosze: true,
         discountGrosze: true,
         paidAt: true,
@@ -353,6 +404,7 @@ export class ReportsService {
       rebooking: await this.rebooking(locationId, lastVisit),
       topClients: own ? [] : await this.topClients(byClient),
       unbookedServices: own ? [] : await this.unbookedServices(locationId, rows, rangeEnd),
+      leadTime: leadTime(rows, tz),
       marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
       newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),

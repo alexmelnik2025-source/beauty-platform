@@ -14,6 +14,7 @@ import { serveApp } from './mobile-app';
  * Task 259: "Usługi bez wizyt" in the report — bookable services nobody booked in the period,
  * in price-list order, with a link to "Usługi" (screenshot 259); the same in the business app's
  * "Raporty" (259-a).
+ * Task 260: "Z jakim wyprzedzeniem rezerwują" — how far ahead the visits were booked (260, 260-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -124,7 +125,7 @@ test('the report lists the services nobody booked', async ({ browser, request })
     '-v',
     'ON_ERROR_STOP=1',
     '-c',
-    `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days', status = 'completed' WHERE id IN ('${ids.join("','")}')`,
+    `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days', status = 'completed', created_at = start_at - interval '2 days' - interval '5 days' WHERE id IN ('${ids.join("','")}')`,
   ]);
 
   const context = await browser.newContext({ viewport: DESKTOP, locale: 'pl-PL' });
@@ -149,6 +150,15 @@ test('the report lists the services nobody booked', async ({ browser, request })
   await expect(items.nth(1)).toContainText('Golenie brzytwą');
   await expect(unbooked).not.toContainText('Strzyżenie męskie');
   await shot(page, '259-report-unbooked');
+  // Task 260: both visits were booked 5 days ahead.
+  const lead = page.getByTestId('report-lead-time');
+  await lead.scrollIntoViewIfNeeded();
+  await expect(lead.getByRole('heading')).toHaveText(
+    'Z jakim wyprzedzeniem rezerwują · zwykle 5 dni',
+  );
+  await expect(lead.getByRole('listitem').nth(2)).toContainText('2–7 dni');
+  await expect(lead.getByRole('listitem').nth(2)).toContainText('wizyty: 2');
+  await shot(page, '260-report-lead-time');
   await unbooked.getByRole('link', { name: 'Otwórz usługi' }).click();
   await page.waitForURL(/\/pl\/app\/services/);
   await context.close();
@@ -177,6 +187,12 @@ test('the report lists the services nobody booked', async ({ browser, request })
     await expect(block.getByText('Koloryzacja brody', { exact: true })).toBeVisible();
     await expect(block.getByText('Golenie brzytwą', { exact: true })).toBeVisible();
     await shot(app, '259-a-business-app-report-unbooked');
+    const lead = app.getByTestId('report-lead-time');
+    await lead.scrollIntoViewIfNeeded();
+    await expect(
+      lead.getByText('Z jakim wyprzedzeniem rezerwują · zwykle 5 dni', { exact: true }),
+    ).toBeVisible();
+    await shot(app, '260-a-business-app-report-lead-time');
   } finally {
     businessApp.server.close();
   }

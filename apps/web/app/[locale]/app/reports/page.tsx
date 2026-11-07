@@ -43,6 +43,15 @@ function weekdayName(weekday: number, localeTag: string): string {
  * Task 14: the owner's report — visits, revenue, clients, specialists, services, day by day.
  * A specialist with "prices and own results" sees only their own visits (the server decides).
  */
+/** Task 260: the label of each "how far ahead" bucket. */
+const LEAD_LABELS = {
+  sameDay: 'leadSameDay',
+  nextDay: 'leadNextDay',
+  week: 'leadWeek',
+  twoWeeks: 'leadTwoWeeks',
+  later: 'leadLater',
+} as const;
+
 export default function ReportsPage() {
   const { t, locale } = useI18n();
   const session = useSession();
@@ -826,6 +835,36 @@ export default function ReportsPage() {
                   </ol>
                   <p className="small muted">{t.reports.weekdayHint}</p>
                 </section>
+
+                {report.leadTime.visits > 0 ? (
+                  <section className="section" data-testid="report-lead-time">
+                    <h2>
+                      {fill(t.reports.leadTime, { n: String(report.leadTime.medianDays ?? 0) })}
+                    </h2>
+                    <ol className="report-days">
+                      {report.leadTime.buckets.map((b) => (
+                        <li key={b.key}>
+                          <span className="small">{t.reports[LEAD_LABELS[b.key]]}</span>
+                          <span className="report-bar" aria-hidden="true">
+                            <span
+                              style={{ width: `${(b.visits / report.leadTime.visits) * 100}%` }}
+                            />
+                          </span>
+                          <span className="small">
+                            {fill(t.reports.dayVisits, { n: String(b.visits) })}
+                            {b.online > 0 ? (
+                              <span className="muted">
+                                {' '}
+                                · {fill(t.reports.leadOnline, { n: String(b.online) })}
+                              </span>
+                            ) : null}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="small muted">{t.reports.leadHint}</p>
+                  </section>
+                ) : null}
 
                 {report.busyHours.length > 0 ? (
                   <section className="section" data-testid="report-busy-hours">

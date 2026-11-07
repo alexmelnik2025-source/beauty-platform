@@ -1401,6 +1401,15 @@ export const en: Dict = {
     unbookedHint:
       'Bookable services nobody booked in this period (cancelled visits do not count). Worth checking their price, description or photos — or hiding them in “Services”.',
     unbookedLink: 'Open services',
+    leadTime: 'How far ahead clients book · usually {n} days',
+    leadSameDay: 'Same day',
+    leadNextDay: 'For the next day',
+    leadWeek: '2–7 days',
+    leadTwoWeeks: '8–14 days',
+    leadLater: 'Over 14 days',
+    leadOnline: 'online: {n}',
+    leadHint:
+      'How many days before the visit clients booked (visits that were not cancelled). Helps decide how far ahead to open the schedule. Visits written down after the fact do not count.',
     topClientsHint:
       'Up to 10 clients who brought the most in this period (paid visits), then came most often. Click a name to open the client’s card.',
     busyHours: 'Peak hours',

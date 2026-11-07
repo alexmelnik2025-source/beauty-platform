@@ -229,6 +229,34 @@ export const salonReportSchema = responseSchema(
       .describe(
         "Task 215: up to 10 clients who brought the most in the period (names only, no contacts); empty in a specialist's own report",
       ),
+    leadTime: z
+      .strictObject({
+        visits: z
+          .number()
+          .int()
+          .describe(
+            'Visits of the period that were not cancelled and were booked before they began',
+          ),
+        medianDays: z
+          .number()
+          .int()
+          .nullable()
+          .describe(
+            'Typical days between the booking and the visit (salon dates); null without visits',
+          ),
+        buckets: z
+          .array(
+            z.strictObject({
+              key: z.enum(['sameDay', 'nextDay', 'week', 'twoWeeks', 'later']),
+              visits: z.number().int(),
+              online: z.number().int().describe('Of them booked online by the client'),
+            }),
+          )
+          .describe('Same day, next day, 2–7 days, 8–14 days, later — always all five'),
+      })
+      .describe(
+        'Task 260: "Z jakim wyprzedzeniem rezerwują" — how far ahead visits are booked; entries made after the visit began do not count',
+      ),
     unbookedServices: z
       .array(
         z.strictObject({
