@@ -42,6 +42,8 @@ interface Drag {
   y: number;
   moved: boolean;
   staffId: string;
+  /** The day of the column it would land in (another day in the week view, task 222). */
+  date: string;
   minute: number;
 }
 
@@ -73,6 +75,9 @@ export function Calendar() {
   const [services, setServices] = useState<Service[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [showCancelled, setShowCancelled] = useState(false);
+  // Task 222: "Tydzień" — one specialist's week, a column per day.
+  const [mode, setMode] = useState<'day' | 'week'>('day');
+  const [weekStaffId, setWeekStaffId] = useState<string | null>(null);
   const [openAppointment, setOpenAppointment] = useState<string | null>(null);
   const [openBlock, setOpenBlock] = useState<TimeBlock | null>(null);
   const [draft, setDraft] = useState<NewItemDraft | null>(null);
@@ -88,6 +93,9 @@ export function Calendar() {
   const canDrag = manager || session.permissions.changeOwnAppointments === true;
   const canOutside = manager || session.permissions.bookOutsideHours === true;
   const [now, setNow] = useState(() => Date.now());
+  const today = todayIn(tz);
+  const monday = weekStart(date);
+  const week = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(monday, i)), [monday]);
   const etag = useRef<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const scrolledFor = useRef<string | null>(null);
@@ -97,7 +105,8 @@ export function Calendar() {
       if (fresh) etag.current = null;
       try {
         const res = await apiResponse(`${base}/calendar`, {
-          query: { from: date, to: date },
+          query:
+            mode === 'week' ? { from: monday, to: addDays(monday, 6) } : { from: date, to: date },
           headers: etag.current ? { 'If-None-Match': etag.current } : {},
         });
         if (res.status === 304) return;
@@ -108,7 +117,7 @@ export function Calendar() {
         setError(errorText(t, err));
       }
     },
-    [base, date, t],
+    [base, date, mode, monday, t],
   );
 
   useEffect(() => {
@@ -144,21 +153,30 @@ export function Calendar() {
     [services],
   );
 
-  const today = todayIn(tz);
-  const monday = weekStart(date);
-  const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+  // The specialist whose week is shown: the chosen one, else the first in the calendar.
+  const weekStaff =
+    data?.staff.find((s) => s.id === weekStaffId) ?? (mode === 'week' ? data?.staff[0] : undefined);
 
   const view = useMemo(() => {
     if (!data) return null;
+    // Day: a column per specialist. Week (task 222): a column per day of one specialist.
+    const columns =
+      mode === 'week' && weekStaff
+        ? week.map((d) => ({ key: d, staff: weekStaff, date: d }))
+        : data.staff.map((s) => ({ key: s.id, staff: s, date }));
+    const dates = new Set(columns.map((c) => c.date));
     const appointments = data.appointments.filter(
-      (a) => a.date === date && (showCancelled || a.status !== 'cancelled'),
+      (a) =>
+        dates.has(a.date) &&
+        (mode === 'day' || a.staff.id === weekStaff?.id) &&
+        (showCancelled || a.status !== 'cancelled'),
     );
     const blocks = data.blocks.filter((b) => !b.deleted);
     // Visible hours: everyone's working time plus anything booked outside it.
     let first = Infinity;
     let last = -Infinity;
-    for (const s of data.staff) {
-      for (const i of s.days.find((d) => d.date === date)?.intervals ?? []) {
+    for (const c of columns) {
+      for (const i of c.staff.days.find((d) => d.date === c.date)?.intervals ?? []) {
         first = Math.min(first, clockToMinutes(i.start));
         last = Math.max(last, clockToMinutes(i.end));
       }
@@ -174,31 +192,33 @@ export function Calendar() {
     }
     const startMin = Math.max(0, Math.floor(first / 60) * 60 - 60);
     const endMin = Math.min(24 * 60, Math.ceil(last / 60) * 60 + 60);
-    return { appointments, blocks, startMin, endMin };
-  }, [data, date, showCancelled]);
+    return { columns, appointments, blocks, startMin, endMin };
+  }, [data, date, showCancelled, mode, week, weekStaff]);
 
   const px = (minutes: number) => ((minutes - (view?.startMin ?? 0)) / 60) * HOUR_PX;
 
   // Once per day shown: scroll to the current time (today) or to the first visit.
   useEffect(() => {
-    if (!view || !scroller.current || scrolledFor.current === `${location.id}:${date}`) return;
-    scrolledFor.current = `${location.id}:${date}`;
+    const key = `${location.id}:${mode}:${mode === 'week' ? monday : date}`;
+    if (!view || !scroller.current || scrolledFor.current === key) return;
+    scrolledFor.current = key;
     const nowLocal = toLocal(Date.now(), tz);
     const first = view.appointments.map((a) => clockToMinutes(a.time)).sort((x, y) => x - y)[0];
-    const target = date === nowLocal.date ? nowLocal.minute : (first ?? view.startMin + 60);
+    const showsToday = view.columns.some((c) => c.date === nowLocal.date);
+    const target = showsToday ? nowLocal.minute : (first ?? view.startMin + 60);
     scroller.current.scrollTop = Math.max(0, ((target - view.startMin) / 60) * HOUR_PX - HOUR_PX);
-  }, [view, date, location.id, tz]);
+  }, [view, date, monday, mode, location.id, tz]);
 
-  /** Minutes of an ISO instant within the shown day (clipped to the day). */
-  const dayMinute = (iso: string) => {
+  /** Minutes of an ISO instant within the column's day (clipped to the day). */
+  const dayMinute = (iso: string, day: string) => {
     const local = toLocal(iso, tz);
-    if (local.date < date) return 0;
-    if (local.date > date) return 24 * 60;
+    if (local.date < day) return 0;
+    if (local.date > day) return 24 * 60;
     return local.minute;
   };
 
-  function openNew(staffId: string, minute: number) {
-    setDraft({ kind: 'appointment', staffId, date, minute });
+  function openNew(staffId: string, day: string, minute: number) {
+    setDraft({ kind: 'appointment', staffId, date: day, minute });
   }
 
   // Task 221: drag a visit with the mouse to another time or specialist. Touch screens keep
@@ -216,6 +236,7 @@ export function Calendar() {
       y: e.clientY,
       moved: false,
       staffId: a.staff.id,
+      date: a.date,
       minute: clockToMinutes(a.time),
     };
   }
@@ -226,8 +247,11 @@ export function Calendar() {
     if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_START_PX) return;
     const cols = Array.from(grid.current.querySelectorAll<HTMLElement>('[data-staff-col]'));
     if (cols.length === 0) return;
-    let col = cols.find((c) => c.dataset.staffCol === d.staffId) ?? cols[0]!;
-    if (manager) {
+    let col =
+      cols.find((c) => c.dataset.staffCol === d.staffId && c.dataset.colDate === d.date) ??
+      cols[0]!;
+    // Another specialist (owner, manager) or, in one specialist's week, another day.
+    if (manager || mode === 'week') {
       col =
         cols.find((c) => {
           const r = c.getBoundingClientRect();
@@ -239,7 +263,13 @@ export function Calendar() {
     const raw = view.startMin + ((e.clientY - top) / HOUR_PX) * 60 - d.grabMinutes;
     const latest = 24 * 60 - d.appointment.durationMinutes;
     const minute = Math.min(latest, Math.max(0, Math.round(raw / step) * step));
-    const next = { ...d, moved: true, staffId: col.dataset.staffCol ?? d.staffId, minute };
+    const next = {
+      ...d,
+      moved: true,
+      staffId: col.dataset.staffCol ?? d.staffId,
+      date: col.dataset.colDate ?? d.date,
+      minute,
+    };
     dragRef.current = next;
     setDrag(next);
   }
@@ -254,8 +284,10 @@ export function Calendar() {
       justDragged.current = false;
     }, 0);
     const a = d.appointment;
-    if (cancelled || (d.staffId === a.staff.id && d.minute === clockToMinutes(a.time))) return;
-    setMoveTarget({ appointment: a, date, staffId: d.staffId, minute: d.minute });
+    const same =
+      d.staffId === a.staff.id && d.date === a.date && d.minute === clockToMinutes(a.time);
+    if (cancelled || same) return;
+    setMoveTarget({ appointment: a, date: d.date, staffId: d.staffId, minute: d.minute });
   }
 
   if (error && !data) {
@@ -270,14 +302,40 @@ export function Calendar() {
     <>
       <div className="cal-toolbar">
         <div className="date-title">
-          <strong>{formatDay(date, tag)}</strong>
+          <strong>
+            {mode === 'week'
+              ? `${formatDay(monday, tag)} – ${formatDay(addDays(monday, 6), tag)}`
+              : formatDay(date, tag)}
+          </strong>
           <span className="small muted">{location.name}</span>
         </div>
+        <div className="tabs cal-mode" role="group" aria-label={t.calendar.viewLabel}>
+          <button type="button" aria-pressed={mode === 'day'} onClick={() => setMode('day')}>
+            {t.calendar.dayView}
+          </button>
+          <button type="button" aria-pressed={mode === 'week'} onClick={() => setMode('week')}>
+            {t.calendar.weekView}
+          </button>
+        </div>
+        {mode === 'week' && data && data.staff.length > 1 ? (
+          <select
+            className="cal-staff-pick"
+            aria-label={t.calendar.weekOf}
+            value={weekStaff?.id ?? ''}
+            onChange={(e) => setWeekStaffId(e.target.value)}
+          >
+            {data.staff.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.displayName}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <button
           type="button"
           className="icon-btn hide-mobile"
-          aria-label={t.calendar.previousDay}
-          onClick={() => setDate(addDays(date, -1))}
+          aria-label={mode === 'week' ? t.calendar.previousWeek : t.calendar.previousDay}
+          onClick={() => setDate(addDays(date, mode === 'week' ? -7 : -1))}
         >
           ‹
         </button>
@@ -287,8 +345,8 @@ export function Calendar() {
         <button
           type="button"
           className="icon-btn hide-mobile"
-          aria-label={t.calendar.nextDay}
-          onClick={() => setDate(addDays(date, 1))}
+          aria-label={mode === 'week' ? t.calendar.nextWeek : t.calendar.nextDay}
+          onClick={() => setDate(addDays(date, mode === 'week' ? 7 : 1))}
         >
           ›
         </button>
@@ -306,7 +364,12 @@ export function Calendar() {
           type="button"
           className="btn btn--quiet btn--small hide-mobile"
           onClick={() =>
-            setDraft({ kind: 'block', staffId: data?.staff[0]?.id ?? null, date, minute: 12 * 60 })
+            setDraft({
+              kind: 'block',
+              staffId: (weekStaff ?? data?.staff[0])?.id ?? null,
+              date,
+              minute: 12 * 60,
+            })
           }
         >
           {t.calendar.blockTime}
@@ -318,7 +381,7 @@ export function Calendar() {
           onClick={() =>
             setDraft({
               kind: 'appointment',
-              staffId: data?.staff[0]?.id ?? null,
+              staffId: (weekStaff ?? data?.staff[0])?.id ?? null,
               date,
               minute: 12 * 60,
             })
@@ -341,9 +404,12 @@ export function Calendar() {
           <button
             key={d}
             type="button"
-            aria-pressed={d === date}
+            aria-pressed={mode === 'day' && d === date}
             className={d === today ? 'is-today' : undefined}
-            onClick={() => setDate(d)}
+            onClick={() => {
+              setDate(d);
+              setMode('day');
+            }}
           >
             <span>{weekdayShort(d, tag)}</span>
             <b>{Number(d.slice(8))}</b>
@@ -372,21 +438,39 @@ export function Calendar() {
       ) : (
         <div className="cal-scroll" ref={scroller}>
           <div
-            className="cal-grid"
+            className={mode === 'week' ? 'cal-grid cal-grid--week' : 'cal-grid'}
             ref={grid}
-            style={{ '--cols': data.staff.length } as CSSProperties}
+            data-testid={mode === 'week' ? 'calendar-week' : 'calendar-day'}
+            style={{ '--cols': view.columns.length } as CSSProperties}
           >
             <div className="cal-head">
               <div className="corner" />
-              {data.staff.map((s) => {
-                const hours = s.days.find((d) => d.date === date)?.intervals ?? [];
+              {view.columns.map(({ key, staff: s, date: day }) => {
+                const hours = s.days.find((d) => d.date === day)?.intervals ?? [];
                 return (
-                  <div key={s.id} className="staff-head">
-                    <span className="avatar" aria-hidden="true">
-                      {initials(s.displayName)}
-                    </span>
+                  <div
+                    key={key}
+                    className={`staff-head${mode === 'week' && day === today ? ' is-today' : ''}`}
+                  >
+                    {mode === 'week' ? (
+                      <button
+                        type="button"
+                        className="avatar day-pick"
+                        aria-label={formatDay(day, tag)}
+                        onClick={() => {
+                          setMode('day');
+                          setDate(day);
+                        }}
+                      >
+                        {Number(day.slice(8))}
+                      </button>
+                    ) : (
+                      <span className="avatar" aria-hidden="true">
+                        {initials(s.displayName)}
+                      </span>
+                    )}
                     <span>
-                      {s.displayName}
+                      {mode === 'week' ? weekdayShort(day, tag) : s.displayName}
                       <small>
                         {hours.length
                           ? hours.map((h) => `${h.start}–${h.end}`).join(', ')
@@ -404,12 +488,18 @@ export function Calendar() {
               ))}
             </div>
 
-            {data.staff.map((s) => {
-              const hours = s.days.find((d) => d.date === date)?.intervals ?? [];
+            {view.columns.map(({ key, staff: s, date: day }) => {
+              const hours = s.days.find((d) => d.date === day)?.intervals ?? [];
               const height = ((view.endMin - view.startMin) / 60) * HOUR_PX;
               const nowLocal = toLocal(now, tz);
               return (
-                <div key={s.id} className="col" style={{ height }} data-staff-col={s.id}>
+                <div
+                  key={key}
+                  className="col"
+                  style={{ height }}
+                  data-staff-col={s.id}
+                  data-col-date={day}
+                >
                   {hours.map((h) => (
                     <div
                       key={h.start}
@@ -425,19 +515,21 @@ export function Calendar() {
                     type="button"
                     className="slot-btn"
                     style={{ top: 0, height }}
-                    aria-label={`${t.calendar.newAppointment}: ${s.displayName}`}
+                    aria-label={`${t.calendar.newAppointment}: ${
+                      mode === 'week' ? formatDay(day, tag) : s.displayName
+                    }`}
                     onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const step = data.location.slotStepMinutes || 15;
                       const raw = view.startMin + ((e.clientY - rect.top) / HOUR_PX) * 60;
-                      openNew(s.id, Math.max(0, Math.floor(raw / step) * step));
+                      openNew(s.id, day, Math.max(0, Math.floor(raw / step) * step));
                     }}
                   />
                   {data.timeOff
                     .filter((o) => o.staffId === s.id)
                     .map((o) => {
-                      const top = px(Math.max(view.startMin, dayMinute(o.start)));
-                      const bottom = px(Math.min(view.endMin, dayMinute(o.end)));
+                      const top = px(Math.max(view.startMin, dayMinute(o.start, day)));
+                      const bottom = px(Math.min(view.endMin, dayMinute(o.end, day)));
                       if (bottom <= top) return null;
                       return (
                         <div key={o.id} className="block" style={{ top, height: bottom - top }}>
@@ -448,8 +540,8 @@ export function Calendar() {
                   {view.blocks
                     .filter((b) => b.staffId === s.id || b.staffId === null)
                     .map((b) => {
-                      const top = px(Math.max(view.startMin, dayMinute(b.start)));
-                      const bottom = px(Math.min(view.endMin, dayMinute(b.end)));
+                      const top = px(Math.max(view.startMin, dayMinute(b.start, day)));
+                      const bottom = px(Math.min(view.endMin, dayMinute(b.end, day)));
                       if (bottom <= top) return null;
                       return (
                         <button
@@ -465,7 +557,7 @@ export function Calendar() {
                       );
                     })}
                   {view.appointments
-                    .filter((a) => a.staff.id === s.id)
+                    .filter((a) => a.staff.id === s.id && a.date === day)
                     .map((a) => (
                       <AppointmentBlock
                         key={a.id}
@@ -483,7 +575,7 @@ export function Calendar() {
                         onPointerCancel={() => endDrag(true)}
                       />
                     ))}
-                  {drag?.moved && drag.staffId === s.id ? (
+                  {drag?.moved && drag.staffId === s.id && drag.date === day ? (
                     <div
                       className="event is-ghost"
                       aria-hidden="true"
@@ -499,7 +591,7 @@ export function Calendar() {
                       <span className="n">{drag.appointment.customer?.name ?? '—'}</span>
                     </div>
                   ) : null}
-                  {date === nowLocal.date &&
+                  {day === nowLocal.date &&
                   nowLocal.minute >= view.startMin &&
                   nowLocal.minute <= view.endMin ? (
                     <div className="now-line" style={{ top: px(nowLocal.minute) }} />

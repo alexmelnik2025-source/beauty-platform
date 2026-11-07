@@ -192,6 +192,10 @@ export const pl = {
     moveWas: 'Było',
     moveWill: 'Będzie',
     dragHint: 'Przeciągnij wizytę myszką, aby zmienić godzinę lub specjalistę.',
+    viewLabel: 'Widok kalendarza',
+    dayView: 'Dzień',
+    weekView: 'Tydzień',
+    weekOf: 'Tydzień specjalisty',
   },
   appointment: {
     title: 'Wizyta',

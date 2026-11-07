@@ -191,6 +191,10 @@ export const en: Dict = {
     moveWas: 'Was',
     moveWill: 'Will be',
     dragHint: 'Drag a visit with the mouse to change its time or specialist.',
+    viewLabel: 'Calendar view',
+    dayView: 'Day',
+    weekView: 'Week',
+    weekOf: "Specialist's week",
   },
   appointment: {
     title: 'Appointment',

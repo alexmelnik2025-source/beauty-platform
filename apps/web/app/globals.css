@@ -566,6 +566,39 @@ h3 {
   color: var(--graphite);
 }
 
+/* Task 222: one specialist's week — a column per day. */
+.cal-grid--week {
+  grid-template-columns: var(--rail) repeat(var(--cols), minmax(130px, 1fr));
+}
+
+.staff-head.is-today .day-pick {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.day-pick {
+  border: 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.cal-mode {
+  flex: none;
+}
+
+.cal-mode button {
+  min-height: 30px;
+  padding: 0 12px;
+}
+
+.cal-staff-pick {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+}
+
 .rail {
   position: sticky;
   left: 0;

@@ -192,6 +192,10 @@ export const uk: Dict = {
     moveWas: 'Було',
     moveWill: 'Буде',
     dragHint: 'Перетягніть візит мишкою, щоб змінити час або майстра.',
+    viewLabel: 'Вигляд календаря',
+    dayView: 'День',
+    weekView: 'Тиждень',
+    weekOf: 'Тиждень майстра',
   },
   appointment: {
     title: 'Запис',
