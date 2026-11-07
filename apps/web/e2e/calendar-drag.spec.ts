@@ -220,8 +220,9 @@ test('the owner drags a visit to another specialist and time, and before working
   await card.getByRole('button', { name: 'Umów ponownie' }).click();
   await expect(card.getByRole('heading', { name: 'Nowa wizyta' })).toBeVisible();
   await expect(card).toContainText('Jan Kowalski');
-  await expect(card.getByLabel('Usługa', { exact: true })).toHaveValue(haircut.id);
-  await expect(card.getByLabel('Specjalista', { exact: true })).toHaveValue(staff[1]!);
+  // The labels wrap the lists, so the lists are found by their order: service, specialist.
+  await expect(card.getByRole('combobox').nth(0)).toHaveValue(haircut.id);
+  await expect(card.getByRole('combobox').nth(1)).toHaveValue(staff[1]!);
   await expect(card.getByLabel('Godzina', { exact: true })).toHaveValue('07:00');
   const nextWeek = new Date(tomorrow.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
   await card.getByLabel('Data', { exact: true }).fill(nextWeek);

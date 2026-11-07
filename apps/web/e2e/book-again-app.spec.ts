@@ -146,8 +146,8 @@ test('the owner books a client again from the visit card in the business app (ta
     // The form starts with the same client, service and specialist, on the visit's day.
     await expect(app.getByRole('heading', { name: 'Nowa wizyta' })).toBeVisible();
     await expect(app.getByText('Jan Kowalski · +48600000223')).toBeVisible();
-    await expect(app.getByText(/^Strzyżenie męskie/).first()).toBeVisible();
-    await expect(app.getByText(/^Kasia Nowak/).first()).toBeVisible();
+    await expect(app.getByText('✓ Strzyżenie męskie · 45 min')).toBeVisible();
+    await expect(app.getByText('✓ Kasia Nowak')).toBeVisible();
     await app.getByRole('button', { name: '15:00', exact: true }).click();
     await shot(app, '223-a-business-app-book-again');
     await app.getByRole('button', { name: 'Zapisz wizytę' }).click();
