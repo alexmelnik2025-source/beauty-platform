@@ -488,6 +488,10 @@ export const en: Dictionary = {
     overdueClientsList: 'Show who is due to come back',
     overdueClientsHint:
       'Regular clients of the salon (at least 3 visits) whose usual break between visits has passed and who have nothing booked — as of today, whatever the period.',
+    noShowClients: 'Did not come: {n}',
+    noShowClientsList: 'Show who did not come',
+    noShowClientsHint:
+      'Clients of the salon who missed a booked visit at least once in the last 12 months — as of today, whatever the period.',
     returnIntervalCount: 'usually every {median} days · on average {average} · returns: {n}',
     returnIntervalHint: 'Days between visits in a row of the same client. “Usually” is the median.',
     marketing: 'Consent to messages: {n}%',

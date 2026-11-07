@@ -669,6 +669,18 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report && report.scope !== 'own' && report.noShowClients > 0 ? (
+              <section className="section" data-testid="report-no-shows">
+                <h2>🚫 {fill(t.reports.noShowClients, { n: String(report.noShowClients) })}</h2>
+                <p className="small">
+                  <Link href={`/${locale}/app/clients?noShows=1`}>
+                    {t.reports.noShowClientsList}
+                  </Link>
+                </p>
+                <p className="small muted">{t.reports.noShowClientsHint}</p>
+              </section>
+            ) : null}
+
             {report && report.scope !== 'own' && report.marketing.clients > 0 ? (
               <section className="section" data-testid="report-marketing">
                 <h2>

@@ -555,6 +555,27 @@ describe('salon report', () => {
     expect((await report(kasiaUser.auth).expect(200)).body.overdueClients).toBe(0);
   });
 
+  it('"Nie przyszli": clients who missed a visit in the last year, today whatever the period (task 265)', async () => {
+    // Jan did not come twice — he counts once.
+    await visit({ date: addDays(today, -40), status: 'no_show' });
+    await visit({ date: addDays(today, -5), status: 'no_show' });
+    // Ewa did not come, but more than a year ago.
+    await visit({ date: addDays(today, -400), email: 'ewa@example.com', status: 'no_show' });
+    // Adam always comes.
+    await visit({ date: addDays(today, -3), email: 'adam@example.com', status: 'completed' });
+
+    expect((await report().expect(200)).body.noShowClients).toBe(1);
+    const lastYear = { from: addDays(today, -400), to: addDays(today, -380) };
+    expect((await report(owner.auth, lastYear).expect(200)).body.noShowClients).toBe(1);
+
+    // Not in a specialist's own report.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    expect((await report(kasiaUser.auth).expect(200)).body.noShowClients).toBe(0);
+  });
+
   it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {
     const d1 = addDays(today, -5);
     const d2 = addDays(today, -2);

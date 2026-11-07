@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { forbidden } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
-import { dueToComeBack } from '../booking/customers.service';
+import { dueToComeBack, missedVisits } from '../booking/customers.service';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -414,6 +414,11 @@ export class ReportsService {
       overdueClients: own
         ? 0
         : (await dueToComeBack(this.prisma, { locationId, customer: { anonymizedAt: null } })).size,
+      // Task 265: clients who did not come in the last 365 days, as of today; not in a
+      // specialist's own report.
+      noShowClients: own
+        ? 0
+        : (await missedVisits(this.prisma, { locationId, customer: { anonymizedAt: null } })).size,
     };
   }
 

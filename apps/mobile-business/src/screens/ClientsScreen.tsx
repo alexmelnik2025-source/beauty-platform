@@ -31,6 +31,8 @@ export function ClientsScreen(props: {
   newcomers?: boolean;
   /** Task 263: open with "Pora wrócić" on (from the report). */
   overdue?: boolean;
+  /** Task 265: open with "Nie przyszli" on (from the report). */
+  noShows?: boolean;
   onBack: () => void;
 }) {
   const { api, t, salon, onBack } = props;
@@ -54,7 +56,7 @@ export function ClientsScreen(props: {
   // Task 262: only regular clients past their usual break with nothing booked.
   const [overdue, setOverdue] = useState(props.overdue ?? false);
   // Task 264: only clients who did not come at least once in the last year.
-  const [noShows, setNoShows] = useState(false);
+  const [noShows, setNoShows] = useState(props.noShows ?? false);
 
   const search = useCallback(
     async (text: string) => {

@@ -360,6 +360,12 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 263: regular clients of this salon (three visits or more) past their usual break with nothing booked, as of now whatever the period; 0 in a specialist own report',
       ),
+    noShowClients: z
+      .number()
+      .int()
+      .describe(
+        'Task 265: clients of this salon who did not come (no-show) at least once in the last 365 days, as of now whatever the period; 0 in a specialist own report',
+      ),
   }),
 );
 

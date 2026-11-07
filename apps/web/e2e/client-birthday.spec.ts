@@ -20,6 +20,7 @@ import { serveApp } from './mobile-app';
  * Task 261: "Ulubiona usługa" and "Ulubiony specjalista" in the client card (261, 261-a).
  * Task 262: "Pora wrócić" — regular clients past their usual break with nothing booked (262, 262-a).
  * Task 264: "Nie przyszli" — clients who did not come in the last year (264, 264-a).
+ * Task 265: "Nie przyszli: N" in the report, with a link to that list (265, 265-a).
  * Task 263: "Pora wrócić: N" in the report, with a link to that list (263, 263-a).
  */
 
@@ -361,6 +362,20 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText('Adam Nowak');
   await shot(page, '264-clients-no-shows');
+  // Task 265: the report counts Adam and links to the list.
+  await page.goto('/pl/app/reports');
+  const noShowReport = page.getByTestId('report-no-shows');
+  await expect(noShowReport).toContainText('Nie przyszli: 1');
+  await noShowReport.scrollIntoViewIfNeeded();
+  await shot(page, '265-report-no-shows');
+  await noShowReport.getByRole('link', { name: 'Pokaż, kto nie przyszedł' }).click();
+  await page.waitForURL(/\/pl\/app\/clients\?noShows=1/);
+  await expect(page.getByRole('button', { name: /Nie przyszli/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Adam Nowak');
   await context.close();
 
   // Business app (task 240b).
@@ -456,6 +471,16 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(app.getByRole('switch', { name: /Pora wrócić/ })).toBeVisible();
     await expect(cards).toHaveCount(1);
     await expect(cards.nth(0)).toContainText('Piotr Zieliński');
+    // Task 265 in the app: "Nie przyszli: 1" in the report opens the list with Adam.
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    const appNoShows = app.getByTestId('report-no-shows');
+    await expect(appNoShows).toContainText('Nie przyszli: 1');
+    await appNoShows.scrollIntoViewIfNeeded();
+    await shot(app, '265-a-business-app-report-no-shows');
+    await app.getByRole('button', { name: 'Pokaż, kto nie przyszedł' }).click();
+    await expect(app.getByRole('switch', { name: /Nie przyszli/ })).toBeVisible();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Adam Nowak');
     await phone.close();
   } finally {
     businessApp.server.close();

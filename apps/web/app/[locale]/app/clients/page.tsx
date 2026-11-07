@@ -51,6 +51,8 @@ export default function ClientsPage() {
     if (params.get('new') === '1') setNewcomers(true);
     // Task 263: "/app/clients?overdue=1" (from "Pora wrócić" in the report).
     if (params.get('overdue') === '1') setOverdue(true);
+    // Task 265: "/app/clients?noShows=1" (from "Nie przyszli" in the report).
+    if (params.get('noShows') === '1') setNoShows(true);
   }, []);
 
   const load = useCallback(async () => {

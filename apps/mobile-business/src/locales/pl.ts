@@ -487,6 +487,10 @@ export const pl = {
     overdueClientsList: 'Pokaż, komu pora wrócić',
     overdueClientsHint:
       'Stali klienci salonu (co najmniej 3 wizyty), którym minął ich zwykły odstęp między wizytami i nie mają rezerwacji — stan na dziś, niezależnie od okresu.',
+    noShowClients: 'Nie przyszli: {n}',
+    noShowClientsList: 'Pokaż, kto nie przyszedł',
+    noShowClientsHint:
+      'Klienci salonu, którzy w ostatnich 12 miesiącach co najmniej raz nie przyszli na umówioną wizytę — stan na dziś, niezależnie od okresu.',
     returnIntervalCount: 'zwykle co {median} dni · średnio {average} · powroty: {n}',
     returnIntervalHint: 'Dni między kolejnymi wizytami tego samego klienta. „Zwykle” to mediana.',
     marketing: 'Zgody na wiadomości: {n}%',

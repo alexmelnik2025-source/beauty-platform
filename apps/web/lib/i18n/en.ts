@@ -1401,6 +1401,10 @@ export const en: Dict = {
     overdueClientsList: 'Show who is due to come back',
     overdueClientsHint:
       'Regular clients of the salon (at least 3 visits) whose usual break between visits has passed and who have nothing booked — as of today, whatever the period.',
+    noShowClients: 'Did not come: {n}',
+    noShowClientsList: 'Show who did not come',
+    noShowClientsHint:
+      'Clients of the salon who missed a booked visit at least once in the last 12 months — as of today, whatever the period.',
     returnIntervalCount: 'usually every {median} days · on average {average} · returns: {n}',
     returnIntervalHint:
       'Days between two visits in a row of the same client (on different days) when the later one was in this period. “Usually” is the median. By specialist — returns to them. Helps choose after how many days to send “Time for your next visit”.',

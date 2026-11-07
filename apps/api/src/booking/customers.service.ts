@@ -133,23 +133,11 @@ export class CustomersService {
    * Task 264: clients with a visit marked "did not come" in the last 365 days — in the salons the
    * caller works in — with the latest such visit's start.
    */
-  private async noShows(m: MembershipContext): Promise<Map<string, Date>> {
-    const latest = await this.prisma.appointment.groupBy({
-      by: ['customerId'],
-      where: {
-        status: 'no_show',
-        customerId: { not: null },
-        startAt: { gte: new Date(Date.now() - 365 * 24 * 60 * 60_000) },
-        location: { organizationId: m.organizationId },
-        ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
-      },
-      _max: { startAt: true },
+  private noShows(m: MembershipContext): Promise<Map<string, Date>> {
+    return missedVisits(this.prisma, {
+      location: { organizationId: m.organizationId },
+      ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
     });
-    return new Map(
-      latest
-        .filter((l) => l.customerId && l._max.startAt)
-        .map((l) => [l.customerId!, l._max.startAt!]),
-    );
   }
 
   /**
@@ -630,6 +618,36 @@ export async function dueToComeBack(
     if (at.getTime() <= now) due.set(id, at);
   }
   return due;
+}
+
+/**
+ * Tasks 264, 265: clients with a visit marked "did not come" in the last 365 days among the visits
+ * `here` matches, with the latest such visit's start.
+ */
+export async function missedVisits(
+  prisma: PrismaService,
+  here: Prisma.AppointmentWhereInput,
+  now = Date.now(),
+): Promise<Map<string, Date>> {
+  const latest = await prisma.appointment.groupBy({
+    by: ['customerId'],
+    where: {
+      AND: [
+        here,
+        {
+          status: 'no_show',
+          customerId: { not: null },
+          startAt: { gte: new Date(now - 365 * 86_400_000), lte: new Date(now) },
+        },
+      ],
+    },
+    _max: { startAt: true },
+  });
+  return new Map(
+    latest
+      .filter((l) => l.customerId && l._max.startAt)
+      .map((l) => [l.customerId!, l._max.startAt!]),
+  );
 }
 
 /**

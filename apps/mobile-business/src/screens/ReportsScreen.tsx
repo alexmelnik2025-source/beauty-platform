@@ -65,6 +65,8 @@ export function ReportsScreen(props: {
   const [newcomersOpen, setNewcomersOpen] = useState(false);
   // Task 263: "Pokaż, komu pora wrócić" opens the client list with "Pora wrócić" on.
   const [overdueOpen, setOverdueOpen] = useState(false);
+  // Task 265: "Pokaż, kto nie przyszedł" opens the client list with "Nie przyszli" on.
+  const [noShowsOpen, setNoShowsOpen] = useState(false);
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
   const range = reportRange(period, today);
@@ -143,6 +145,20 @@ export function ReportsScreen(props: {
       {sub ? <Text style={styles.small}>{sub}</Text> : null}
     </View>
   );
+
+  if (noShowsOpen) {
+    return (
+      <ClientsScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        timeZone={props.timeZone}
+        noShows
+        onBack={() => setNoShowsOpen(false)}
+      />
+    );
+  }
 
   if (overdueOpen) {
     return (
@@ -688,6 +704,19 @@ export function ReportsScreen(props: {
                 onPress={() => setOverdueOpen(true)}
               />
               <Text style={styles.small}>{r.overdueClientsHint}</Text>
+            </View>
+          ) : null}
+          {shown.scope !== 'own' && shown.noShowClients > 0 ? (
+            <View style={{ gap: 6 }} testID="report-no-shows">
+              <Text style={styles.section}>
+                🚫 {fill(r.noShowClients, { n: String(shown.noShowClients) })}
+              </Text>
+              <Button
+                kind="link"
+                label={r.noShowClientsList}
+                onPress={() => setNoShowsOpen(true)}
+              />
+              <Text style={styles.small}>{r.noShowClientsHint}</Text>
             </View>
           ) : null}
           {shown.scope !== 'own' && shown.marketing.clients > 0 ? (
