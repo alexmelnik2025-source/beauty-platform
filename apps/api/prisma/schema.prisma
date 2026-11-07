@@ -505,6 +505,7 @@ model Location {
   visitPhotos       VisitPhoto[]
   reviewSettings    ReviewSettings?
   reviews           VisitReview[]
+  tillCloses        TillClose[]
 
   @@index([organizationId])
   @@map("location")
@@ -1410,4 +1411,27 @@ model VisitReview {
   @@index([locationId, createdAt])
   @@index([staffId])
   @@map("visit_review")
+}
+
+/// Task 232: "Zamknij kasę" — the cash the owner or a manager counted in the till at the end of
+/// a day, beside what the visits paid in cash that day should have brought. One per salon day;
+/// counting again replaces it. Only a note — no payment systems.
+model TillClose {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  locationId         String   @map("location_id") @db.Uuid
+  /// Local date at the location.
+  date               DateTime @db.Date
+  countedCashGrosze  Int      @map("counted_cash_grosze")
+  /// What the visits paid in cash that day brought when the till was counted.
+  expectedCashGrosze Int      @map("expected_cash_grosze")
+  note               String?
+  closedByUserId     String?  @map("closed_by_user_id") @db.Uuid
+  closedByName       String   @map("closed_by_name")
+  closedAt           DateTime @map("closed_at") @db.Timestamptz(3)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, date])
+  @@map("till_close")
 }

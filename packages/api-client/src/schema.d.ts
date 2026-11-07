@@ -2937,6 +2937,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/till-close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The day's till: what the visits paid in cash brought and the cash counted
+         * @description Task 232. Owners and managers of the location only (a specialist gets 403). close is null until the till of that day is counted.
+         */
+        get: operations["ReportsController_tillClose"];
+        /**
+         * "Zamknij kasę": note the cash counted in the till at the end of a day
+         * @description Task 232. Owners and managers only. Counting the same day again replaces the note. 409 DAY_NOT_STARTED for a day after today (salon time). Only a note — no payment systems.
+         */
+        put: operations["ReportsController_closeTill"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -5666,6 +5690,24 @@ export interface components {
                 staffId: string;
                 durationMinutes: number;
             }[];
+        };
+        TillClose: {
+            date: string;
+            currency: string;
+            /** @description What the visits of the day paid in cash brought, now, in hundredths of the salon currency */
+            expectedCashGrosze: number;
+            /** @description null — the till of that day was not counted yet */
+            close: {
+                /** @description The cash counted in the till, in hundredths of the salon currency */
+                countedCashGrosze: number;
+                /** @description What the cash visits had brought when the till was counted, in hundredths of the salon currency */
+                expectedCashGrosze: number;
+                /** @description Counted minus expected: below zero — cash is missing, above — too much */
+                differenceGrosze: number;
+                note: string | null;
+                closedByName: string;
+                closedAt: string;
+            } | null;
         };
         TimeBlock: {
             id: string;
@@ -11085,6 +11127,58 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+        };
+    };
+    ReportsController_tillClose: {
+        parameters: {
+            query: {
+                date: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TillClose"];
+                };
+            };
+        };
+    };
+    ReportsController_closeTill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    date: string;
+                    countedCashGrosze: number;
+                    note?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TillClose"];
                 };
             };
         };

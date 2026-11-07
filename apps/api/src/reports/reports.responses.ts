@@ -209,3 +209,29 @@ export const salonReportSchema = responseSchema(
 );
 
 export type SalonReport = z.infer<typeof salonReportSchema>;
+
+/** Task 232: the day's till — what the cash visits should have brought and what was counted. */
+export const tillCloseSchema = responseSchema(
+  'TillClose',
+  z.strictObject({
+    date: z.string(),
+    currency: z.string(),
+    expectedCashGrosze: money('What the visits of the day paid in cash brought, now'),
+    close: z
+      .strictObject({
+        countedCashGrosze: money('The cash counted in the till'),
+        expectedCashGrosze: money('What the cash visits had brought when the till was counted'),
+        differenceGrosze: z
+          .number()
+          .int()
+          .describe('Counted minus expected: below zero — cash is missing, above — too much'),
+        note: z.string().nullable(),
+        closedByName: z.string(),
+        closedAt: z.string(),
+      })
+      .nullable()
+      .describe('null — the till of that day was not counted yet'),
+  }),
+);
+
+export type TillCloseResponse = z.infer<typeof tillCloseSchema>;

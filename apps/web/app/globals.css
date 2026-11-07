@@ -2925,6 +2925,19 @@ ul.wish-photos {
   font-weight: 600;
 }
 
+/* Task 232: "Zamknij kasę" inside "Kasa dnia". */
+.till-close {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.till-close__missing {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 @media print {
   .till-strip {
     display: none;

@@ -11342,6 +11342,121 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/till-close": {
+      "get": {
+        "description": "Task 232. Owners and managers of the location only (a specialist gets 403). close is null until the till of that day is counted.",
+        "operationId": "ReportsController_tillClose",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-07"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TillClose"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The day's till: what the visits paid in cash brought and the cash counted",
+        "tags": [
+          "reports"
+        ]
+      },
+      "put": {
+        "description": "Task 232. Owners and managers only. Counting the same day again replaces the note. 409 DAY_NOT_STARTED for a day after today (salon time). Only a note — no payment systems.",
+        "operationId": "ReportsController_closeTill",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string"
+                  },
+                  "countedCashGrosze": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "date",
+                  "countedCashGrosze"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TillClose"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Zamknij kasę\": note the cash counted in the till at the end of a day",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/v1/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -22163,6 +22278,74 @@
         "required": [
           "prices",
           "durations"
+        ],
+        "additionalProperties": false
+      },
+      "TillClose": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "expectedCashGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What the visits of the day paid in cash brought, now, in hundredths of the salon currency"
+          },
+          "close": {
+            "nullable": true,
+            "description": "null — the till of that day was not counted yet",
+            "type": "object",
+            "properties": {
+              "countedCashGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "The cash counted in the till, in hundredths of the salon currency"
+              },
+              "expectedCashGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What the cash visits had brought when the till was counted, in hundredths of the salon currency"
+              },
+              "differenceGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Counted minus expected: below zero — cash is missing, above — too much"
+              },
+              "note": {
+                "nullable": true,
+                "type": "string"
+              },
+              "closedByName": {
+                "type": "string"
+              },
+              "closedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "countedCashGrosze",
+              "expectedCashGrosze",
+              "differenceGrosze",
+              "note",
+              "closedByName",
+              "closedAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "date",
+          "currency",
+          "expectedCashGrosze",
+          "close"
         ],
         "additionalProperties": false
       },

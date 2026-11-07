@@ -25,3 +25,16 @@ export const visitsCsvQuerySchema = periodChecks(
 
 export type ReportQuery = z.infer<typeof reportQuerySchema>;
 export type VisitsCsvQuery = z.infer<typeof visitsCsvQuerySchema>;
+
+/** Task 232: the day whose till is looked at. */
+export const tillCloseQuerySchema = z.object({ date: localDateSchema });
+
+/** Task 232: the cash counted in the till at the end of the day. */
+export const closeTillSchema = z.object({
+  date: localDateSchema,
+  countedCashGrosze: z.number().int().min(0).max(100_000_000),
+  note: z.string().max(500).nullish(),
+});
+
+export type TillCloseQuery = z.infer<typeof tillCloseQuerySchema>;
+export type CloseTillInput = z.infer<typeof closeTillSchema>;

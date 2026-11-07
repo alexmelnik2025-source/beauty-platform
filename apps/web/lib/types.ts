@@ -112,6 +112,7 @@ export type {
   PushPublicKey,
   Role,
   SalonReport,
+  TillClose,
   Service,
   ServiceCategory,
   Slot,

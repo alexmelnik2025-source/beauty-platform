@@ -107,6 +107,8 @@ export type Photo = Schemas['Photo'];
 export type OutboxStats = Schemas['OutboxStats'];
 /** The salon owner's report for a period (task 14). */
 export type SalonReport = Schemas['SalonReport'];
+/** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
+export type TillClose = Schemas['TillClose'];
 export type FailedEmail = Schemas['FailedEmail'];
 /** Public catalogue of salons with its map. */
 export type PublicSalonDirectory = Schemas['PublicSalonDirectory'];

@@ -127,6 +127,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/appointments/:appointmentId/approve')) return { version: 1 };
   if (p.endsWith('/appointments/:appointmentId/payment')) return { version: 1, paid: true };
   if (p.endsWith('/appointments/:appointmentId/tip')) return { version: 1, tipGrosze: 1000 };
+  if (p.endsWith('/reports/till-close')) return { date: DATE, countedCashGrosze: 1000 };
   if (p.endsWith('/loyalty/program')) {
     return {
       version: 0,
@@ -214,6 +215,7 @@ function urlFor(route: Route, ids: Ids): string {
   if (path.endsWith('/availability')) {
     return `${path}?serviceId=${ids.serviceId}&from=${DATE}&to=${DATE}`;
   }
+  if (path.endsWith('/till-close')) return `${path}?date=${DATE}`;
   if (
     ['/appointments', '/time-blocks', '/calendar', '/reports', '/visits-csv'].some((end) =>
       path.endsWith(end),

@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { SalonReport } from '@/lib/types';
+import { TillClose } from './TillClose';
 
 /**
  * Task 228: "Kasa dnia" above the day's calendar — what the paid visits of the day brought, by
@@ -12,6 +13,7 @@ import type { SalonReport } from '@/lib/types';
  * salon report of that one day, so the server decides who sees what: the whole salon for the
  * owner and managers, own visits for a specialist with "own earnings", nothing for others.
  * Task 229: the day's tips too, apart from the money for the visits.
+ * Task 232: "Zamknij kasę" for the owner and managers (the whole salon).
  */
 export function TillStrip({
   base,
@@ -71,6 +73,9 @@ export function TillStrip({
         <span className="till-strip__unpaid">
           {fill(t.calendar.tillUnpaid, { n: String(unpaid) })}
         </span>
+      ) : null}
+      {report.scope === 'location' ? (
+        <TillClose base={base} date={date} currency={currency} refresh={refresh} />
       ) : null}
     </div>
   );

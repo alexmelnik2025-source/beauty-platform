@@ -1,4 +1,16 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Put,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -10,19 +22,29 @@ import {
 import type { Response } from 'express';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
-import { ApiZodResponse } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CurrentMembership, MembershipGuard } from '../organizations/membership.guard';
-import { salonReportSchema, type SalonReport } from './reports.responses';
 import {
+  salonReportSchema,
+  tillCloseSchema,
+  type SalonReport,
+  type TillCloseResponse,
+} from './reports.responses';
+import {
+  closeTillSchema,
   reportQuerySchema,
+  tillCloseQuerySchema,
   visitsCsvQuerySchema,
+  type CloseTillInput,
   type ReportQuery,
+  type TillCloseQuery,
   type VisitsCsvQuery,
 } from './reports.schemas';
 import { CSV_LOCALES } from './visits-csv';
 import { ReportsService } from './reports.service';
+import { TillCloseService } from './till-close.service';
 
 const locationIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Location') });
 
@@ -31,7 +53,10 @@ const locationIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Loc
 @Controller('organizations/:orgId/locations/:locationId/reports')
 @UseGuards(MembershipGuard)
 export class ReportsController {
-  constructor(private readonly reports: ReportsService) {}
+  constructor(
+    private readonly reports: ReportsService,
+    private readonly till: TillCloseService,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -80,5 +105,39 @@ export class ReportsController {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'private, no-store');
     res.send(csv);
+  }
+
+  @Get('till-close')
+  @ApiOperation({
+    summary: "The day's till: what the visits paid in cash brought and the cash counted",
+    description:
+      'Task 232. Owners and managers of the location only (a specialist gets 403). close is null until the till of that day is counted.',
+  })
+  @ApiQuery({ name: 'date', example: '2026-11-07' })
+  @ApiZodResponse(tillCloseSchema)
+  tillClose(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Query(new ZodValidationPipe(tillCloseQuerySchema)) query: TillCloseQuery,
+  ): Promise<TillCloseResponse> {
+    return this.till.get(m, locationId, query.date);
+  }
+
+  @Put('till-close')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Zamknij kasę": note the cash counted in the till at the end of a day',
+    description:
+      'Task 232. Owners and managers only. Counting the same day again replaces the note. 409 DAY_NOT_STARTED for a day after today (salon time). Only a note — no payment systems.',
+  })
+  @ApiZodBody(closeTillSchema)
+  @ApiZodResponse(tillCloseSchema)
+  closeTill(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Body(new ZodValidationPipe(closeTillSchema)) body: CloseTillInput,
+  ): Promise<TillCloseResponse> {
+    return this.till.close(m, auth.userId, locationId, body);
   }
 }
