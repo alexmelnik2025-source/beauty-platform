@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
@@ -22,6 +23,7 @@ import { serveApp } from './mobile-app';
  * Task 264: "Nie przyszli" — clients who did not come in the last year (264, 264-a).
  * Task 265: "Nie przyszli: N" in the report, with a link to that list (265, 265-a).
  * Task 263: "Pora wrócić: N" in the report, with a link to that list (263, 263-a).
+ * Task 269: the owner downloads all clients as CSV in the business app (269).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -439,6 +441,16 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards.nth(0)).toContainText('Adam Nowak');
     await shot(app, '264-a-business-app-no-shows');
     await app.getByRole('switch', { name: /Nie przyszli/ }).click();
+    // Task 269: the owner downloads the cabinet's clients CSV right in the app.
+    const csvButton = app.getByRole('button', { name: 'Pobierz CSV klientów' });
+    await expect(csvButton).toBeVisible();
+    const [clientsCsv] = await Promise.all([app.waitForEvent('download'), csvButton.click()]);
+    expect(clientsCsv.suggestedFilename()).toMatch(/^klienci-\d{4}-\d{2}-\d{2}\.csv$/);
+    const clientsText = await readFile((await clientsCsv.path())!, 'utf8');
+    expect(clientsText).toContain('"Imię i nazwisko"');
+    expect(clientsText).toContain('"Adam Nowak"');
+    await csvButton.scrollIntoViewIfNeeded();
+    await shot(app, '269-business-app-clients-csv');
     await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
     await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();

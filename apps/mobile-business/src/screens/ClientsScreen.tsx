@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,8 +13,10 @@ import type { BusinessApi, CustomerList, CustomerTags, Locale } from '../api';
 import { birthdayText } from '../clients';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
+import { shareCsv } from '../share';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
+import { csvTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
 
 const PAGE = 50;
@@ -57,6 +60,24 @@ export function ClientsScreen(props: {
   const [overdue, setOverdue] = useState(props.overdue ?? false);
   // Task 264: only clients who did not come at least once in the last year.
   const [noShows, setNoShows] = useState(props.noShows ?? false);
+  // Task 269: the owner downloads all clients as the cabinet's CSV.
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvInfo, setCsvInfo] = useState('');
+
+  const downloadCsv = async () => {
+    if (csvBusy) return;
+    setCsvBusy(true);
+    setCsvInfo('');
+    try {
+      const file = await api.clientsCsv(salon.orgId, props.locale);
+      const result = await shareCsv(file, csvTools());
+      setCsvInfo(result === 'failed' ? c.csvFailed : '');
+    } catch (e) {
+      setCsvInfo(errorText(e, t));
+    } finally {
+      setCsvBusy(false);
+    }
+  };
 
   const search = useCallback(
     async (text: string) => {
@@ -245,6 +266,20 @@ export function ClientsScreen(props: {
         </>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {salon.role === 'owner' ? (
+        <View style={styles.csv}>
+          <View style={styles.row}>
+            <Button
+              kind="secondary"
+              label={c.csv}
+              busy={csvBusy}
+              onPress={() => void downloadCsv()}
+            />
+          </View>
+          <Text style={styles.small}>{Platform.OS === 'web' ? c.csvHint : c.csvHintPhone}</Text>
+          {csvInfo ? <ErrorText>{csvInfo}</ErrorText> : null}
+        </View>
+      ) : null}
 
       {list === null ? (
         !error ? (
@@ -321,6 +356,8 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 17, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
+  small: { color: colors.muted, fontSize: 13 },
+  csv: { gap: 6 },
   tags: { color: colors.accent, fontSize: 14, fontWeight: '600' },
   chip: {
     borderWidth: 1,

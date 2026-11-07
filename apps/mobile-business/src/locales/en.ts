@@ -216,6 +216,13 @@ export const en: Dictionary = {
     missedHint:
       'Clients who missed a booked visit at least once in the last 12 months — the most recent no-show first.',
     missedNone: 'Everybody came to their visits in the last 12 months.',
+    // Task 269: the owner downloads all clients.
+    csv: 'Download clients CSV',
+    csvHint:
+      'All clients of the network in a file for Excel: contacts, consents, visits, no-shows, the next visit and what they paid. The download is written to the change history.',
+    csvHintPhone:
+      'All clients of the network (with contacts) — send the file only to yourself: email or notes. The download is written to the change history.',
+    csvFailed: 'Could not save the file.',
     consentedNone: 'No one has agreed to messages from the salon yet.',
     birthdaysNone: 'Nobody has a birthday in the next 7 days.',
     birthday: 'Birthday',
