@@ -228,6 +228,11 @@ export const listCustomersSchema = z.object({
    * the permission to see client contacts.
    */
   marketing: z.enum(['yes']).optional(),
+  /**
+   * Task 248: only clients whose first visit that took place (in the caller's salons) was in the
+   * last N days (7–90), newest first.
+   */
+  newDays: z.coerce.number().int().min(7).max(90).optional(),
 });
 
 export type CreateHoldInput = z.infer<typeof createHoldSchema>;

@@ -1006,6 +1006,10 @@ export const en: Dict = {
     birthdays: 'Birthdays in the next 7 days',
     consented: 'Consent to messages',
     consentedHint: 'Only clients who agreed to messages from the salon (and did not unsubscribe).',
+    newcomers: 'New (30 days)',
+    newcomersHint:
+      'Clients whose first visit at the salon was in the last 30 days — newest first. Worth making sure they come back.',
+    newcomersNone: 'No new clients in the last 30 days.',
     consentedNone: 'No one has agreed to messages from the salon yet.',
     birthdaysNone: 'Nobody has a birthday in the next 7 days.',
     birthdayToday: 'today',

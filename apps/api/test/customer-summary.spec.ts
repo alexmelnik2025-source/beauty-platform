@@ -313,3 +313,56 @@ describe('"Haven\'t been for a while" (task 140)', () => {
     await ctx.http().get(`${customersBase}?inactiveDays=1000`).set(owner.auth).expect(400);
   });
 });
+
+describe('"Nowi klienci" (task 248)', () => {
+  const names = async (query: string, auth = owner.auth) =>
+    (await ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200)).body.map(
+      (c: { name: string }) => c.name,
+    );
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  it('lists clients whose first visit was in the last N days, newest first', async () => {
+    // Jan: first came 5 days ago.
+    await pastVisit(kasiaId, 5);
+    // Ewa: first came 40 days ago, again 3 days ago — not new for 30 days.
+    customerId = await client('Ewa Stała', '+48600000003');
+    await pastVisit(kasiaId, 40);
+    await pastVisit(kasiaId, 3);
+    // Olek: first came 2 days ago and has booked again.
+    customerId = await client('Olek Nowy', '+48600000004');
+    await pastVisit(tomekId, 2);
+    await futureVisit(tomekId, 2);
+    // Adam has only a booked visit; Bez Wizyt never came.
+    customerId = await client('Adam Zapisany', '+48600000005');
+    await futureVisit(kasiaId, 3);
+    await client('Bez Wizyt', '+48600000006');
+
+    expect(await names('newDays=30')).toEqual(['Olek Nowy', 'Jan Nowak']);
+    expect(await names('newDays=60')).toEqual(['Olek Nowy', 'Jan Nowak', 'Ewa Stała']);
+    expect(await names('newDays=30&search=jan')).toEqual(['Jan Nowak']);
+    expect(await names('newDays=60&limit=1')).toEqual(['Olek Nowy']);
+    // The manager sees the same in the salon.
+    expect(await names('newDays=30', manager.auth)).toEqual(['Olek Nowy', 'Jan Nowak']);
+    // Without the filter, everyone.
+    expect(await names('limit=100')).toHaveLength(5);
+    await ctx.http().get(`${customersBase}?newDays=3`).set(owner.auth).expect(400);
+    await ctx.http().get(`${customersBase}?newDays=365`).set(owner.auth).expect(400);
+  });
+
+  it("another organization's clients do not leak", async () => {
+    await pastVisit(kasiaId, 5);
+    const stranger = await signUp(ctx, 'stranger@example.com');
+    const other = await createOrgWithLocation(ctx, stranger, 'Inny');
+    const theirs = await ctx
+      .http()
+      .get(`/v1/organizations/${other.orgId}/customers?newDays=30`)
+      .set(stranger.auth)
+      .expect(200);
+    expect(theirs.body).toEqual([]);
+    expect(await names('newDays=30')).toEqual(['Jan Nowak']);
+  });
+});

@@ -6277,6 +6277,13 @@
         "operationId": "CustomersController_list",
         "parameters": [
           {
+            "name": "newDays",
+            "required": false,
+            "in": "query",
+            "description": "Task 248: only clients whose first visit that took place was in the last N days (7–90), newest first",
+            "schema": {}
+          },
+          {
             "name": "marketing",
             "required": false,
             "in": "query",

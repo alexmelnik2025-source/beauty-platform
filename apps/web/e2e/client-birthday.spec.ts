@@ -15,6 +15,7 @@ import { serveApp } from './mobile-app';
  * ciągu 7 dni" above the client list — soonest first, with the date. Screenshots 240 and 240-a; the
  * business app shows the same list and the birthday in the card (240-b).
  * Task 245: "Zgoda na wiadomości" — only clients who agreed to the salon messages (245, 245-a).
+ * Task 248: "Nowi (30 dni)" — clients whose first visit was in the last 30 days (248, 248-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -207,6 +208,36 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await block.click();
   await expect(page.getByRole('dialog').getByText('🎂 Urodziny w dniu wizyty')).toBeVisible();
   await shot(page, '243-birthday-visit');
+  await page.keyboard.press('Escape');
+
+  // Task 248: Jan came for the first time today — "Nowi (30 dni)" lists only him.
+  const [jan] = await json<{ id: string }[]>(
+    await request.get(`/v1/organizations/${org.id}/customers?search=Jan%20Kowalski`, {
+      headers: owner,
+    }),
+  );
+  const firstVisit = new Date(Math.floor((Date.now() - 3 * 60 * 60_000) / 300_000) * 300_000);
+  await json(
+    await request.post(`${salon}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: service.id,
+        staffId: staff.id,
+        start: firstVisit.toISOString(),
+        customerId: jan!.id,
+        alreadyHappened: true,
+        allowOutsideHours: true,
+      },
+    }),
+  );
+  await page.goto('/pl/app/clients');
+  await expect(rows).toHaveCount(5);
+  const newcomers = page.getByRole('button', { name: /Nowi \(30 dni\)/ });
+  await newcomers.click();
+  await expect(newcomers).toHaveAttribute('aria-pressed', 'true');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText('Jan Kowalski');
+  await shot(page, '248-clients-newcomers');
   await context.close();
 
   // Business app (task 240b).
@@ -243,6 +274,12 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await expect(cards.nth(0)).toContainText('Jan Kowalski');
     await shot(app, '245-a-business-app-consented');
     await app.getByRole('switch', { name: /Zgoda na wiadomości/ }).click();
+    // Task 248 in the app: only Jan is a new client.
+    await app.getByRole('switch', { name: /Nowi \(30 dni\)/ }).click();
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText('Jan Kowalski');
+    await shot(app, '248-a-business-app-newcomers');
+    await app.getByRole('switch', { name: /Nowi \(30 dni\)/ }).click();
     await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' }).click();
     await expect(app.getByText('🎂 Urodziny: 15 marca')).toBeVisible();

@@ -45,6 +45,8 @@ export function ClientsScreen(props: {
   const [birthdays, setBirthdays] = useState(false);
   // Task 245: only clients who agreed to the salon messages.
   const [consented, setConsented] = useState(false);
+  // Task 248: only clients whose first visit was in the last 30 days, newest first.
+  const [newcomers, setNewcomers] = useState(false);
 
   const search = useCallback(
     async (text: string) => {
@@ -59,6 +61,7 @@ export function ClientsScreen(props: {
             tag,
             birthdays ? 7 : 0,
             consented,
+            newcomers ? 30 : 0,
           ),
         );
         setSearched(text.trim());
@@ -69,7 +72,7 @@ export function ClientsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, inactiveDays, tag, birthdays, consented],
+    [api, salon, t, inactiveDays, tag, birthdays, consented, newcomers],
   );
 
   const loadTags = useCallback(async () => {
@@ -175,7 +178,17 @@ export function ClientsScreen(props: {
         >
           <Text style={[styles.chipText, consented && styles.chipTextOn]}>✉️ {c.consented}</Text>
         </Pressable>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: newcomers }}
+          accessibilityHint={c.newcomersHint}
+          onPress={() => setNewcomers(!newcomers)}
+          style={[styles.chip, newcomers && styles.chipOn]}
+        >
+          <Text style={[styles.chipText, newcomers && styles.chipTextOn]}>🌱 {c.newcomers}</Text>
+        </Pressable>
       </View>
+      {newcomers ? <Text style={styles.muted}>{c.newcomersHint}</Text> : null}
       {tags.length > 0 ? (
         <>
           <Text style={styles.muted}>{c.tagFilter}</Text>
@@ -209,11 +222,13 @@ export function ClientsScreen(props: {
         <Text style={styles.muted}>
           {birthdays
             ? c.birthdaysNone
-            : consented
-              ? c.consentedNone
-              : inactiveDays
-                ? c.inactiveNone
-                : c.none}
+            : newcomers
+              ? c.newcomersNone
+              : consented
+                ? c.consentedNone
+                : inactiveDays
+                  ? c.inactiveNone
+                  : c.none}
         </Text>
       ) : (
         <>

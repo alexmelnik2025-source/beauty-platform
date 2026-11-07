@@ -47,6 +47,8 @@ export class CustomersService {
   async list(m: MembershipContext, query: ListCustomersQuery): Promise<CustomerResponse[]> {
     if (query.marketing && !m.permissions.viewClientContacts) return [];
     if (query.birthdayDays) return this.birthdays(m, query);
+    // Task 248: the newest clients first, by their first visit.
+    const newcomers = query.newDays ? await this.newcomers(m, query.newDays) : null;
     const search = query.search
       ? {
           OR: [
@@ -67,12 +69,40 @@ export class CustomersService {
           query.inactiveDays ? this.inactiveSince(m, query.inactiveDays) : {},
           query.tag ? { tags: { has: query.tag } } : {},
           query.marketing ? { id: { in: await this.consented(m.organizationId) } } : {},
+          newcomers ? { id: { in: [...newcomers.keys()] } } : {},
         ],
       },
       orderBy: { name: 'asc' },
-      take: query.limit,
+      take: newcomers ? undefined : query.limit,
     });
-    return rows.map((c) => toCustomer(c, m));
+    if (newcomers) {
+      rows.sort((a, b) => newcomers.get(b.id)!.getTime() - newcomers.get(a.id)!.getTime());
+    }
+    return rows.slice(0, query.limit).map((c) => toCustomer(c, m));
+  }
+
+  /**
+   * Task 248: clients whose first visit that took place — in the salons the caller works in —
+   * was in the last `days` days, with that first visit's start.
+   */
+  private async newcomers(m: MembershipContext, days: number): Promise<Map<string, Date>> {
+    const since = new Date(Date.now() - days * 24 * 60 * 60_000);
+    const firsts = await this.prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: {
+        status: 'completed',
+        customerId: { not: null },
+        location: { organizationId: m.organizationId },
+        ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
+      },
+      _min: { startAt: true },
+      having: { startAt: { _min: { gte: since } } },
+    });
+    return new Map(
+      firsts
+        .filter((f) => f.customerId && f._min.startAt)
+        .map((f) => [f.customerId!, f._min.startAt!]),
+    );
   }
 
   /**

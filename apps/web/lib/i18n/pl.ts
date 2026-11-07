@@ -1005,6 +1005,10 @@ export const pl = {
     consented: 'Zgoda na wiadomości',
     consentedHint:
       'Tylko klienci, którzy zgodzili się na wiadomości od salonu (i się nie wypisali).',
+    newcomers: 'Nowi (30 dni)',
+    newcomersHint:
+      'Klienci, których pierwsza wizyta w salonie była w ostatnich 30 dniach — najnowsi na górze. Warto zadbać, żeby wrócili.',
+    newcomersNone: 'W ostatnich 30 dniach nie było nowych klientów.',
     consentedNone: 'Nikt jeszcze nie zgodził się na wiadomości od salonu.',
     birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',
     birthdayToday: 'dziś',

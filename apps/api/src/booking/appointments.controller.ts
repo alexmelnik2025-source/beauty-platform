@@ -379,6 +379,12 @@ export class CustomersController {
     description:
       'Task 245: only clients whose latest answer about the salon messages is "yes" (empty without the permission to see client contacts)',
   })
+  @ApiQuery({
+    name: 'newDays',
+    required: false,
+    description:
+      'Task 248: only clients whose first visit that took place was in the last N days (7–90), newest first',
+  })
   @ApiZodResponse(customerListSchema)
   list(
     @CurrentMembership() m: MembershipContext,

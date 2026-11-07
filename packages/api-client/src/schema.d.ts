@@ -8843,6 +8843,8 @@ export interface operations {
     CustomersController_list: {
         parameters: {
             query?: {
+                /** @description Task 248: only clients whose first visit that took place was in the last N days (7–90), newest first */
+                newDays?: unknown;
                 /** @description Task 245: only clients whose latest answer about the salon messages is "yes" (empty without the permission to see client contacts) */
                 marketing?: "yes";
                 /** @description Task 224: only clients with this label (exactly as written in the card) */
