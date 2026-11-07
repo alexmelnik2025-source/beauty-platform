@@ -11,6 +11,8 @@ export interface Till {
   own: boolean;
   methods: SalonReport['payments'];
   unpaid: number;
+  /** Task 229: the day's tips, apart from the money for the visits. */
+  tipsGrosze: number;
 }
 
 /** Null when the report is for another day, or nobody came yet. */
@@ -24,5 +26,6 @@ export function tillOf(report: SalonReport | null, date: string): Till | null {
     own: report.scope === 'own',
     methods: report.payments,
     unpaid,
+    tipsGrosze: report.tips.totalGrosze,
   };
 }

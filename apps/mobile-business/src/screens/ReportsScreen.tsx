@@ -288,6 +288,22 @@ export function ReportsScreen(props: {
               ))}
             </View>
           ) : null}
+          {shown.tips.totalGrosze > 0 ? (
+            <View style={{ gap: 6 }} testID="report-tips">
+              <Text style={styles.section}>
+                {fill(r.tips, { amount: money(shown.tips.totalGrosze) })}
+              </Text>
+              {shown.tips.staff.map((row) => (
+                <View key={row.id} style={styles.cardTop}>
+                  <Text style={styles.name}>{row.displayName}</Text>
+                  <Text style={styles.muted}>
+                    {fill(r.tipsRow, { amount: money(row.tipsGrosze), n: String(row.visits) })}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.muted}>{r.tipsHint}</Text>
+            </View>
+          ) : null}
           {shown.busyHours.length > 0 ? (
             <View style={{ gap: 6 }} testID="report-busy-hours">
               <Text style={styles.section}>{r.busyHours}</Text>

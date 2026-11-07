@@ -37,6 +37,7 @@ export const en: Dictionary = {
     onlyMine: 'Only mine',
     everyone: 'All visits',
     till: 'Till: {amount}',
+    tillTips: 'Tips {amount}',
     tillOwn: 'your visits only',
     tillUnpaid: 'came, not paid: {n}',
     status: { confirmed: 'Confirmed', completed: 'Completed', no_show: 'No-show' },
@@ -97,6 +98,12 @@ export const en: Dictionary = {
     paidHint: 'A paid visit earns the client loyalty stamps or points.',
     paymentMethod: 'Payment method',
     paymentMethodHint: 'How the client paid — for the report and the till total. You can skip it.',
+    tip: 'Tip ({currency})',
+    tipSave: 'Save tip',
+    tipHint:
+      'Only for the report and the day’s till — not part of the visit price. An empty field removes the tip.',
+    tipInvalid: 'Enter an amount, e.g. 15 or 15.50.',
+    tipShown: 'Tip: {amount}',
     paymentMethods: {
       cash: 'Cash',
       card: 'Card',
@@ -403,6 +410,9 @@ export const en: Dictionary = {
     busyHoursHint:
       'The hours most visits start at (cancelled ones left out). The full table is in “Reports” in the cabinet.',
     payments: 'Payment methods',
+    tips: 'Tips: {amount}',
+    tipsRow: '{amount} · visits with a tip: {n}',
+    tipsHint: 'They are not part of the salon’s revenue — the salon decides how to share them.',
     paymentsUnknown: 'Not given',
     paymentsRow: '{amount} · visits: {n}',
   },

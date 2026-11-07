@@ -381,6 +381,20 @@ export class BusinessApi {
     );
   }
 
+  /** Task 229: the tip the client left on a visit that took place (0 = none). */
+  setTip(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    tipGrosze: number,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>('PUT', `${appointmentPath(orgId, locationId, id)}/tip`, {
+      version,
+      tipGrosze,
+    });
+  }
+
   /** Paid (earns loyalty stamps or points) or not paid (a refund takes them back). */
   setPaid(
     orgId: string,

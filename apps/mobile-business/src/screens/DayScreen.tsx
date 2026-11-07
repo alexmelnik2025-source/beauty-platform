@@ -683,6 +683,13 @@ export function DayScreen(props: {
                     .join(' · ')}
                 </Text>
               ) : null}
+              {till.tipsGrosze > 0 ? (
+                <Text style={styles.muted} testID="till-tips">
+                  {fill(t.day.tillTips, {
+                    amount: formatPrice(till.tipsGrosze, till.currency, props.locale),
+                  })}
+                </Text>
+              ) : null}
               {till.unpaid > 0 ? (
                 <Text style={styles.tillUnpaid}>
                   {fill(t.day.tillUnpaid, { n: String(till.unpaid) })}

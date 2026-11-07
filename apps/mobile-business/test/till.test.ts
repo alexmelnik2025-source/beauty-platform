@@ -10,6 +10,7 @@ const report = (over: Partial<SalonReport['totals']>, extra: Partial<SalonReport
     scope: 'location',
     totals: { completed: 0, paid: 0, revenueGrosze: 0, ...over },
     payments: [],
+    tips: { totalGrosze: 0, visits: 0, staff: [] },
     ...extra,
   }) as unknown as SalonReport;
 
@@ -36,6 +37,7 @@ describe('"Kasa dnia" (task 228)', () => {
         { method: 'unknown', paid: 1, revenueGrosze: 6000 },
       ],
       unpaid: 1,
+      tipsGrosze: 0,
     });
   });
 

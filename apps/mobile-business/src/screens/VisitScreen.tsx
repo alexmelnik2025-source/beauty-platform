@@ -33,6 +33,7 @@ import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import type { PaymentMethod } from '../payment';
+import { parseTip, tipInput } from '../tip';
 import type { NewVisitPreset } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -62,6 +63,8 @@ export function VisitScreen(props: {
   const [clientOpen, setClientOpen] = useState(false);
   /** Task 227: how the client paid, chosen before "Opłacono". */
   const [method, setMethod] = useState<PaymentMethod | null>(null);
+  /** Task 229: the tip field, as typed. */
+  const [tipText, setTipText] = useState<string | null>(null);
   // Move / cancel (task 17b).
   const [mode, setMode] = useState<'move' | 'cancel' | null>(null);
   const [moveDate, setMoveDate] = useState('');
@@ -169,6 +172,7 @@ export function VisitScreen(props: {
   const phone = visit.customer?.phone ?? null;
   const setStatus = (status: 'completed' | 'no_show') =>
     run((a) => api.setStatus(salon.orgId, salon.locationId, a.id, a.version, status));
+  const tipValue = parseTip(tipText ?? tipInput(visit.tipGrosze));
   const setPaid = (paid: boolean, method?: PaymentMethod | null) =>
     run((a) => api.setPaid(salon.orgId, salon.locationId, a.id, a.version, paid, method));
 
@@ -350,6 +354,43 @@ export function VisitScreen(props: {
           busy={busy}
           onPress={() => void setPaid(false)}
         />
+      ) : null}
+      {props.canChange && visit.status === 'completed' ? (
+        // Task 229: the tip — only a note for the report and "Kasa dnia".
+        <View style={{ gap: 6 }} testID="tip-field">
+          <Text style={styles.label}>{fill(v.tip, { currency: salon.currency })}</Text>
+          <View style={styles.row}>
+            <TextInput
+              accessibilityLabel={fill(v.tip, { currency: salon.currency })}
+              placeholder="0"
+              keyboardType="decimal-pad"
+              value={tipText ?? tipInput(visit.tipGrosze)}
+              onChangeText={setTipText}
+              style={[styles.input, { minWidth: 120 }]}
+            />
+            <Button
+              kind="secondary"
+              label={v.tipSave}
+              busy={busy}
+              disabled={tipValue === null || tipValue === visit.tipGrosze}
+              onPress={() => {
+                if (tipValue === null) return;
+                void run((a) =>
+                  api.setTip(salon.orgId, salon.locationId, a.id, a.version, tipValue),
+                ).then((ok) => {
+                  if (ok) setTipText(null);
+                });
+              }}
+            />
+          </View>
+          <Text style={styles.muted}>{tipValue === null ? v.tipInvalid : v.tipHint}</Text>
+        </View>
+      ) : visit.tipGrosze > 0 ? (
+        <Text style={styles.value}>
+          {fill(v.tipShown, {
+            amount: formatPrice(visit.tipGrosze, salon.currency, props.locale),
+          })}
+        </Text>
       ) : null}
 
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
