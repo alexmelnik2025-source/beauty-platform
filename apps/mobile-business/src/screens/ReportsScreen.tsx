@@ -25,6 +25,7 @@ import {
   type ReportPeriod,
 } from '../reports';
 import { shareCsv, type CsvShareTools } from '../share';
+import { signed } from '../tillClose';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
 import type { SalonChoice } from './SalonsScreen';
@@ -302,6 +303,27 @@ export function ReportsScreen(props: {
                 </View>
               ))}
               <Text style={styles.muted}>{r.tipsHint}</Text>
+            </View>
+          ) : null}
+          {shown.tillCloses.days.length > 0 ? (
+            // Task 235: the days of the period whose till was counted ("Zamknij kasę", task 232).
+            <View style={{ gap: 6 }} testID="report-till-closes">
+              <Text style={styles.section}>
+                {fill(r.tillCloses, { sum: signed(shown.tillCloses.differenceGrosze, money) })}
+              </Text>
+              {shown.tillCloses.days.map((d) => (
+                <View key={d.date} style={styles.cardTop}>
+                  <Text style={styles.name}>{dayTitle(d.date, props.locale)}</Text>
+                  <Text style={styles.muted}>
+                    {fill(r.tillClosesRow, {
+                      counted: money(d.countedCashGrosze),
+                      expected: money(d.expectedCashGrosze),
+                      difference: signed(d.differenceGrosze, money),
+                    })}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.muted}>{r.tillClosesHint}</Text>
             </View>
           ) : null}
           {shown.busyHours.length > 0 ? (

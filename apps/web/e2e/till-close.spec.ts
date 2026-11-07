@@ -14,7 +14,8 @@ import { serveApp } from './mobile-app';
  * Task 232: "Zamknij kasę". A visit paid in cash (90 zł) yesterday; in "Kasa dnia" the owner
  * types the cash counted in the till — 80 zł — and sees "brakuje 10,00 zł" (screenshot 232),
  * then counts again and it matches (232-a). The business app shows the closed till under
- * "Kasa dnia" and counts it again (232-b). Task 233: the report lists the counted day (233).
+ * "Kasa dnia" and counts it again (232-b). Task 233: the report lists the counted day (233),
+ * and the business app's report too (235).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -209,6 +210,15 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     await expect(appTill).toContainText('Klient nie wziął reszty');
     await appTill.scrollIntoViewIfNeeded();
     await shot(app, '232-b-business-app-till-close');
+
+    // Task 235: "Zamknięcia kasy" in the business app's report.
+    await app.getByRole('button', { name: 'Raporty' }).click();
+    await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+    const appCloses = app.getByTestId('report-till-closes');
+    await appCloses.scrollIntoViewIfNeeded();
+    await expect(appCloses).toContainText(/Zamknięcia kasy · różnica razem: \+10,00\s*zł/);
+    await expect(appCloses).toContainText(/policzono 100,00\s*zł · za wizyty gotówką 90,00\s*zł/);
+    await shot(app, '235-business-app-report-till-closes');
   } finally {
     businessApp.server.close();
   }

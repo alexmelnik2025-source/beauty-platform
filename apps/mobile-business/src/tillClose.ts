@@ -34,3 +34,8 @@ export function parseCash(text: string): number | null {
   const value = Math.round(Number(compact) * 100);
   return value <= 100_000_000 ? value : null;
 }
+
+/** Task 235: "+10,00 zł" / "−10,00 zł" / "0,00 zł" — a difference with its sign. */
+export function signed(hundredths: number, format: (positive: number) => string): string {
+  return `${hundredths > 0 ? '+' : hundredths < 0 ? '−' : ''}${format(Math.abs(hundredths))}`;
+}

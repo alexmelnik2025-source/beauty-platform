@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TillClose } from '../src/api';
-import { cashInput, changedSinceClose, parseCash, tillDifference } from '../src/tillClose';
+import { cashInput, changedSinceClose, parseCash, signed, tillDifference } from '../src/tillClose';
 
 const closed = (counted: number, expected: number, now = expected): TillClose => ({
   date: '2026-11-06',
@@ -39,5 +39,12 @@ describe('"Zamknij kasę" (task 232)', () => {
     expect(cashInput(15000)).toBe('150');
     expect(cashInput(15005)).toBe('150,05');
     expect(parseCash(cashInput(15005))).toBe(15005);
+  });
+
+  it('writes a difference with its sign (task 235)', () => {
+    const zl = (n: number) => `${(n / 100).toFixed(2)} zł`;
+    expect(signed(1000, zl)).toBe('+10.00 zł');
+    expect(signed(-550, zl)).toBe('−5.50 zł');
+    expect(signed(0, zl)).toBe('0.00 zł');
   });
 });
