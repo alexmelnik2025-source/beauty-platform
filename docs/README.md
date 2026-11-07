@@ -2036,3 +2036,21 @@ poza godzinami pracy» (владельцу, менеджеру и мастеру
 обычной записи. Код: `AppointmentSheet.tsx`, `NewItemSheet.tsx` (web), `presetFromVisit`/`mayBookAgain` в
 `apps/mobile-business/src/newVisit.ts` (тесты Vitest); e2e `calendar-drag.spec.ts` (скриншот 223) и
 `book-again-app.spec.ts` (скриншот 223-a).
+
+## Теги клиентов: фильтр и подсказки (задачи 224, 226)
+
+Над списком «Klienci» в кабинете и бизнес-приложении — теги салона с числом клиентов («broda 3»), самые частые
+первыми; тап оставляет только клиентов с этим тегом (работает вместе с поиском и «Kto dawno nie był»), «Wszystkie» —
+снова все. В карточке клиента под полем «Tagi» — теги салона, которых у клиента ещё нет: «+ broda» добавляет тег одним
+тапом, чтобы один и тот же тег не писали по-разному. API: `GET /v1/organizations/:orgId/customers/tags` (владелец и
+менеджер; до 50 тегов; менеджер считает только клиентов своих салонов; клиенты с удалёнными по RODO данными не
+считаются) и `tag=` в `GET …/customers` (точное совпадение). Код: `CustomersService.tags`, `clients/page.tsx` (web),
+`ClientsScreen.tsx`, `ClientScreen.tsx`, `suggestTags`/`addTag` в `apps/mobile-business/src/clients.ts`; тесты
+`apps/api/test/client-tags.spec.ts`, e2e `client-tags.spec.ts` (скриншоты 224, 224-a, 226, 226-a).
+
+## «Drukuj» в отчёте (задача 225)
+
+Кнопка «Drukuj» в «Raporty» кабинета открывает окно печати браузера: на лист A4 (или в PDF — «Zapisz jako PDF»)
+попадает только отчёт — заголовок «Raporty · <салон>», период и все блоки; кнопки и переключатель периода не
+печатаются (`html.print-report` в `globals.css`, как «Drukuj plan dnia»). e2e: `reports.spec.ts`, скриншот 225 — вид
+при печати.
