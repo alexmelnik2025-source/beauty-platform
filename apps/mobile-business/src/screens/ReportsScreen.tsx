@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -22,6 +24,7 @@ import {
   weekdayLong,
   type ReportPeriod,
 } from '../reports';
+import { shareCsv, type CsvShareTools } from '../share';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
 import type { SalonChoice } from './SalonsScreen';
@@ -47,6 +50,8 @@ export function ReportsScreen(props: {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvInfo, setCsvInfo] = useState('');
   const range = reportRange(period, today);
 
   const load = useCallback(async () => {
@@ -64,6 +69,28 @@ export function ReportsScreen(props: {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Task 220: the accountant's CSV of the period — saved in a browser, shared on a phone.
+  const downloadCsv = async () => {
+    if (csvBusy) return;
+    setCsvBusy(true);
+    setCsvInfo('');
+    try {
+      const file = await api.visitsCsv(
+        salon.orgId,
+        salon.locationId,
+        range.from,
+        range.to,
+        props.locale,
+      );
+      const result = await shareCsv(file, csvTools());
+      setCsvInfo(result === 'failed' ? r.csvFailed : '');
+    } catch (e) {
+      setCsvInfo(errorText(e, t));
+    } finally {
+      setCsvBusy(false);
+    }
+  };
 
   // Android "back" closes the reports instead of the app (a client card handles it itself).
   useEffect(() => {
@@ -191,6 +218,21 @@ export function ReportsScreen(props: {
             </Text>
           ) : null}
           <Text style={styles.small}>{r.note}</Text>
+          {totals.visits > 0 ? (
+            <View style={{ gap: 4 }}>
+              <Button
+                kind="secondary"
+                label={csvBusy ? t.loading : r.csv}
+                onPress={() => void downloadCsv()}
+              />
+              <Text style={styles.small}>{Platform.OS === 'web' ? r.csvHint : r.csvHintPhone}</Text>
+              {csvInfo ? (
+                <Text role="status" style={styles.small}>
+                  {csvInfo}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
 
           {totals.visits === 0 ? (
             <Text style={styles.muted}>{r.empty}</Text>
@@ -407,6 +449,25 @@ export function ReportsScreen(props: {
       ) : null}
     </ScrollView>
   );
+}
+
+/** What this platform can do with the CSV: save the file in a browser, the share sheet on a phone. */
+function csvTools(): CsvShareTools {
+  if (Platform.OS !== 'web') {
+    return { native: (c) => Share.share({ message: c.message, title: c.title }) };
+  }
+  return {
+    download: (fileName, csv) => {
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+  };
 }
 
 const styles = StyleSheet.create({

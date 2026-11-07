@@ -61,3 +61,43 @@ export async function shareLink(content: ShareMessage, tools: ShareTools): Promi
   }
   return 'failed';
 }
+
+export type CsvShareResult = 'downloaded' | 'shared' | 'cancelled' | 'failed';
+
+export interface CsvShareTools {
+  /** In the browser (web preview): save the file (a Blob link). */
+  download?: (fileName: string, csv: string) => void;
+  /** On a phone: the share sheet with the file's text (mail, a messenger, notes). */
+  native?: (content: { title: string; message: string }) => Promise<{ action: string }>;
+}
+
+/**
+ * Task 220: "Pobierz CSV" in the business app. The browser saves the file; a phone shares its
+ * text through the share sheet (saving a real file there would need extra Expo modules).
+ */
+export async function shareCsv(
+  file: { fileName: string; csv: string },
+  tools: CsvShareTools,
+): Promise<CsvShareResult> {
+  if (tools.download) {
+    try {
+      tools.download(file.fileName, file.csv);
+      return 'downloaded';
+    } catch {
+      return 'failed';
+    }
+  }
+  if (tools.native) {
+    try {
+      // The byte order mark is for spreadsheet programs opening a file, not for a message.
+      const result = await tools.native({
+        title: file.fileName,
+        message: file.csv.replace(/^\uFEFF/, ''),
+      });
+      return result.action === 'dismissedAction' ? 'cancelled' : 'shared';
+    } catch {
+      return 'failed';
+    }
+  }
+  return 'failed';
+}

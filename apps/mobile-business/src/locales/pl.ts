@@ -355,6 +355,11 @@ export const pl = {
     byService: 'Usługi',
     row: 'odbyte: {completed} · nie przyszli: {noShow}',
     rowCancelled: 'odwołane: {n} ({split})',
+    csv: 'Pobierz CSV',
+    csvHint: 'Wszystkie wizyty z tego okresu dla księgowej (bez danych kontaktowych klientów).',
+    csvHintPhone:
+      'Wszystkie wizyty z tego okresu dla księgowej (bez kontaktów klientów) — wyślij je e-mailem lub zapisz w notatkach.',
+    csvFailed: 'Nie udało się zapisać pliku.',
     empty: 'Brak wizyt w tym okresie.',
     note: 'Przychód to opłacone wizyty po rabatach z programu lojalnościowego.',
     byWeekday: 'Dni tygodnia',

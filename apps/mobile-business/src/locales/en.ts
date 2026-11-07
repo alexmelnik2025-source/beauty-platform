@@ -357,6 +357,11 @@ export const en: Dictionary = {
     byService: 'Services',
     row: 'completed: {completed} · no-shows: {noShow}',
     rowCancelled: 'cancelled: {n} ({split})',
+    csv: 'Download CSV',
+    csvHint: 'Every visit of this period for the accountant (no client contact details).',
+    csvHintPhone:
+      'Every visit of this period for the accountant (no client contacts) — send it by e-mail or save it to notes.',
+    csvFailed: 'Could not save the file.',
     empty: 'No visits in this period.',
     note: 'Revenue is paid visits after loyalty discounts.',
     byWeekday: 'Days of the week',

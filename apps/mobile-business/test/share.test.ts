@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DICTIONARIES, fill } from '../src/i18n';
-import { bookingLink, shareLink } from '../src/share';
+import { bookingLink, shareCsv, shareLink } from '../src/share';
 
 const url = bookingLink('https://app.example.com/', {
   slug: 'gestalt-barbershop',
@@ -45,5 +45,33 @@ describe('booking link (task 152)', () => {
     expect(await shareLink(content, { copy })).toBe('copied');
     expect(copy).toHaveBeenCalledWith(url);
     expect(await shareLink(content, {})).toBe('failed');
+  });
+});
+
+describe('the report as CSV (task 220)', () => {
+  const file = { fileName: 'visits-2026-11-01-2026-11-30.csv', csv: '\uFEFFData;Godzina\n' };
+
+  it('in a browser the file is saved', async () => {
+    const download = vi.fn();
+    expect(await shareCsv(file, { download })).toBe('downloaded');
+    expect(download).toHaveBeenCalledWith(file.fileName, file.csv);
+    expect(
+      await shareCsv(file, {
+        download: () => {
+          throw new Error('blocked');
+        },
+      }),
+    ).toBe('failed');
+  });
+
+  it('on a phone its text goes to the share sheet, without the byte order mark', async () => {
+    const native = vi.fn().mockResolvedValue({ action: 'sharedAction' });
+    expect(await shareCsv(file, { native })).toBe('shared');
+    expect(native).toHaveBeenCalledWith({ title: file.fileName, message: 'Data;Godzina\n' });
+    native.mockResolvedValue({ action: 'dismissedAction' });
+    expect(await shareCsv(file, { native })).toBe('cancelled');
+    native.mockRejectedValue(new Error('no'));
+    expect(await shareCsv(file, { native })).toBe('failed');
+    expect(await shareCsv(file, {})).toBe('failed');
   });
 });

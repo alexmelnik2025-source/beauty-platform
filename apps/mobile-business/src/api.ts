@@ -152,6 +152,12 @@ export function parseContact(input: string): Contact | null {
   return /^\+[1-9]\d{6,14}$/.test(phone) ? { phone } : null;
 }
 
+/** Task 220: the accountant's CSV of a period, as the server named it. */
+export interface CsvFile {
+  fileName: string;
+  csv: string;
+}
+
 type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
 export class BusinessApi {
@@ -739,6 +745,49 @@ export class BusinessApi {
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports?${query}`,
     );
+  }
+
+  /**
+   * Task 220: every visit of the period as the accountant's CSV (the same file as "Pobierz CSV"
+   * in the cabinet; no client contacts). Same access as the report.
+   */
+  async visitsCsv(
+    orgId: string,
+    locationId: string,
+    from: string,
+    to: string,
+    locale: Locale,
+  ): Promise<CsvFile> {
+    const query = new URLSearchParams({ from, to, locale }).toString();
+    const path = `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/visits-csv?${query}`;
+    if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
+    let res = await this.fetchCsv(path);
+    if (res.status === 401 && (await this.refresh())) res = await this.fetchCsv(path);
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as {
+        error?: { code?: unknown; message?: unknown };
+      } | null;
+      throw new ApiError(
+        res.status,
+        typeof data?.error?.message === 'string' ? data.error.message : `HTTP ${res.status}`,
+        typeof data?.error?.code === 'string' ? data.error.code : undefined,
+      );
+    }
+    const disposition = res.headers.get('content-disposition') ?? '';
+    const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? `visits-${from}-${to}.csv`;
+    // Spreadsheet programs need the byte order mark to read UTF-8 (fetch may drop it).
+    const csv = await res.text();
+    return { fileName, csv: csv.startsWith('\uFEFF') ? csv : `\uFEFF${csv}` };
+  }
+
+  private fetchCsv(path: string): Promise<Response> {
+    return this.fetchFn(`${this.baseUrl}${path}`, {
+      method: 'GET',
+      headers: {
+        accept: 'text/csv',
+        ...(this.accessToken ? { authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
   }
 
   private async keep(tokens: Tokens): Promise<void> {

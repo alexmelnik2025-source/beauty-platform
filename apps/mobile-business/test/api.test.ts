@@ -304,4 +304,40 @@ describe('visit photos (task 80b)', () => {
     );
     expect(api.absoluteUrl('https://cdn.test/x.jpg')).toBe('https://cdn.test/x.jpg');
   });
+
+  it('downloads the report CSV with the access token and the server’s file name (task 220)', async () => {
+    const seen: { url: string; auth?: string; accept?: string }[] = [];
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      seen.push({ url, auth: headers.authorization, accept: headers.accept });
+      if (url.endsWith('/v1/auth/refresh')) {
+        return new Response(JSON.stringify(tokens('a2', 'r2-refresh-token-0123456789')), {
+          status: 200,
+        });
+      }
+      if (headers.authorization !== 'Bearer a2') return new Response('{}', { status: 401 });
+      return new Response('\uFEFFData;Godzina\n', {
+        status: 200,
+        headers: {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': 'attachment; filename="visits-2026-11-01-2026-11-30.csv"',
+        },
+      });
+    };
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('r1-refresh-token-0123456789'),
+      fetchFn,
+    );
+    const file = await api.visitsCsv('o1', 'l1', '2026-11-01', '2026-11-30', 'pl');
+    expect(file).toEqual({
+      fileName: 'visits-2026-11-01-2026-11-30.csv',
+      csv: '\uFEFFData;Godzina\n',
+    });
+    const csvCall = seen.find((c) => c.url.includes('visits-csv'))!;
+    expect(csvCall.url).toBe(
+      'https://api.test/v1/organizations/o1/locations/l1/reports/visits-csv?from=2026-11-01&to=2026-11-30&locale=pl',
+    );
+    expect(csvCall).toMatchObject({ auth: 'Bearer a2', accept: 'text/csv' });
+  });
 });

@@ -24,6 +24,7 @@ import { serveApp } from './mobile-app';
  * A top client's name opens their card (task 217): 74h, app 75h.
  * "Kolejna wizyta" — clients of the period who booked again, by specialist (task 218): 74i, app 75i.
  * Cancellations by specialist and service, no-show share (task 219): 74j, app 75.
+ * "Pobierz CSV" in the business app — the accountant's file of the period (task 220): 75j.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -383,6 +384,18 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByText(/150,00\s*zł/).first()).toBeVisible();
     await expect(app.getByText('odwołane: 1 (klient: 1 · salon: 0)').first()).toBeVisible();
     await shot(app, '75-business-app-reports');
+    // "Pobierz CSV" in the app: the same file for the accountant, no client contacts (task 220).
+    const [appCsv] = await Promise.all([
+      app.waitForEvent('download'),
+      app.getByRole('button', { name: 'Pobierz CSV' }).click(),
+    ]);
+    expect(appCsv.suggestedFilename()).toMatch(/^visits-.+\.csv$/);
+    const appFile = readFileSync((await appCsv.path())!, 'utf8');
+    expect(appFile.charCodeAt(0)).toBe(0xfeff);
+    expect(appFile).toContain(';Ilian;Strzyżenie męskie;Jan;Odbyła się;Salon;90,00;0,00;90,00;tak');
+    expect(appFile).not.toContain('@example.com');
+    await app.getByRole('button', { name: 'Pobierz CSV' }).scrollIntoViewIfNeeded();
+    await shot(app, '75j-business-app-reports-csv');
     // Monday to Sunday in the app too (task 32).
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
     await expect(app.getByText('poniedziałek', { exact: true })).toBeVisible();
