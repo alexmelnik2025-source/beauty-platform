@@ -210,10 +210,10 @@ export const pl = {
     overdueHint:
       'Klienci, którzy przychodzą regularnie (co najmniej 3 wizyty), a ich zwykły odstęp między wizytami już minął i nie mają kolejnej rezerwacji — najświeższe na górze.',
     overdueNone: 'Nikt nie spóźnia się ze swoją zwykłą wizytą.',
-    noShows: 'Nie przyszli',
-    noShowsHint:
+    missed: 'Nie przyszli',
+    missedHint:
       'Klienci, którzy w ostatnich 12 miesiącach co najmniej raz nie przyszli na umówioną wizytę — ostatnia nieobecność na górze.',
-    noShowsNone: 'W ostatnich 12 miesiącach wszyscy przychodzili na wizyty.',
+    missedNone: 'W ostatnich 12 miesiącach wszyscy przychodzili na wizyty.',
     consentedNone: 'Nikt jeszcze nie zgodził się na wiadomości od salonu.',
     birthdaysNone: 'W najbliższych 7 dniach nikt nie ma urodzin.',
     birthday: 'Urodziny',

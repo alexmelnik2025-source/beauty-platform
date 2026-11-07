@@ -209,16 +209,16 @@ export function ClientsScreen(props: {
         <Pressable
           accessibilityRole="switch"
           accessibilityState={{ checked: noShows }}
-          accessibilityHint={c.noShowsHint}
+          accessibilityHint={c.missedHint}
           onPress={() => setNoShows(!noShows)}
           style={[styles.chip, noShows && styles.chipOn]}
         >
-          <Text style={[styles.chipText, noShows && styles.chipTextOn]}>🚫 {c.noShows}</Text>
+          <Text style={[styles.chipText, noShows && styles.chipTextOn]}>🚫 {c.missed}</Text>
         </Pressable>
       </View>
       {newcomers ? <Text style={styles.muted}>{c.newcomersHint}</Text> : null}
       {overdue ? <Text style={styles.muted}>{c.overdueHint}</Text> : null}
-      {noShows ? <Text style={styles.muted}>{c.noShowsHint}</Text> : null}
+      {noShows ? <Text style={styles.muted}>{c.missedHint}</Text> : null}
       {tags.length > 0 ? (
         <>
           <Text style={styles.muted}>{c.tagFilter}</Text>
@@ -257,7 +257,7 @@ export function ClientsScreen(props: {
               : overdue
                 ? c.overdueNone
                 : noShows
-                  ? c.noShowsNone
+                  ? c.missedNone
                   : consented
                     ? c.consentedNone
                     : inactiveDays
