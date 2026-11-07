@@ -2246,3 +2246,19 @@ e2e и скриншоты 245, 245-a — `client-birthday.spec.ts`.
 `PUT /v1/organizations/:orgId/locations/:locationId/services/order` с `serviceIds` — каждая услуга салона ровно один раз
 (как порядок мастеров, задача 13); только владелец и менеджер. Новая услуга встаёт в конец заданного порядка. Тест:
 `apps/api/test/service-order.spec.ts`; e2e и скриншоты 252 (`service-copy.spec.ts`) и 253 (`services-app.spec.ts`).
+
+## «Pokaż nowych klientów» из отчёта (задача 249)
+
+В блоке «Nowi klienci — wrócili» отчёта (кабинет и бизнес-приложение) — ссылка «Pokaż nowych klientów»: открывает
+«Klienci» с включённым фильтром «Nowi (30 dni)» (в кабинете — `/app/clients?new=1`; в приложении «Wróć» возвращает в
+отчёт). В отчёте мастера ссылки нет — список клиентов только у владельца и менеджера. e2e и скриншоты 249, 249-a —
+`reports.spec.ts`.
+
+## «Wraca zwykle co N dni» в карточке клиента (задача 250)
+
+В сводке карточки клиента (кабинет) — плитка «Wraca zwykle»: «co N dni · następna ok. <дата>», в бизнес-приложении —
+отметка «wraca zwykle co N dni». N — медиана дней между визитами клиента, которые состоялись (визиты в один день — один),
+если таких визитов хотя бы три; дата — последний визит + N дней. Считается по тем же визитам, что история в карточке
+(мастер без права на историю — только по своим). Только подсказка, без рассылок. API: `summary.rhythmDays` в
+`GET …/customers/:id`. Тест: `apps/api/test/customer-summary.spec.ts`; e2e и скриншоты 250, 250-a —
+`client-birthday.spec.ts`.
