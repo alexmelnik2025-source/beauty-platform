@@ -27,6 +27,7 @@ import { serveApp } from './mobile-app';
  * "Pobierz CSV" in the business app — the accountant's file of the period (task 220): 75j.
  * "Nowi klienci — wrócili" — new clients who came again or booked (task 246): 246, app 246-a.
  * "Co ile dni wracają klienci" — days between visits in a row (task 247): 247, app 247-a.
+ * "Pokaż nowych klientów" — from the report to the new clients in "Klienci" (task 249): 249, 249-a.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -432,6 +433,18 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await page.waitForURL(/\/pl\/app\/clients\?open=/);
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Jan' })).toBeVisible();
   await shot(page, '74h-owner-reports-client-card');
+  // "Pokaż nowych klientów" opens "Klienci" with "Nowi (30 dni)" on: only Jan (task 249).
+  await page.goto('/pl/app/reports');
+  await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+  await page.getByRole('link', { name: 'Pokaż nowych klientów' }).click();
+  await page.waitForURL(/\/pl\/app\/clients\?new=1/);
+  await expect(page.getByRole('button', { name: /Nowi \(30 dni\)/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.locator('.list .list-row')).toHaveCount(1);
+  await expect(page.locator('.list .list-row').first()).toContainText('Jan');
+  await shot(page, '249-owner-report-to-new-clients');
   await context.close();
 
   // ── Business app (web preview of apps/mobile-business): "Raporty" next to the calendar ──
@@ -498,6 +511,17 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
       'nowi: 1 · wrócili: 0 · mają wizytę: 1',
     );
     await shot(app, '246-a-business-app-reports-newcomers');
+    // "Pokaż nowych klientów" in the app: the client list with "Nowi (30 dni)" on (task 249).
+    await app.getByRole('button', { name: 'Pokaż nowych klientów' }).click();
+    await expect(app.getByRole('switch', { name: /Nowi \(30 dni\)/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(app.getByRole('button', { name: /^Karta klienta: / })).toHaveCount(1);
+    await expect(app.getByRole('button', { name: /^Karta klienta: Jan/ })).toBeVisible();
+    await shot(app, '249-a-business-app-report-to-new-clients');
+    await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(app.getByText('Nowi klienci — wrócili: 100%')).toBeVisible();
     // "Co ile dni wracają klienci" in the app too (task 247).
     await app.getByText('Co ile dni wracają klienci').scrollIntoViewIfNeeded();
     await expect(app.getByTestId('report-return-interval')).toContainText(

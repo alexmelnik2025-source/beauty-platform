@@ -40,8 +40,11 @@ export default function ClientsPage() {
 
   // Task 217: "/app/clients?open=<id>" (from "Najlepsi klienci" in the report) opens that card.
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get('open');
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('open');
     if (id) setOpen(id);
+    // Task 249: "/app/clients?new=1" (from "Nowi klienci" in the report) shows the new clients.
+    if (params.get('new') === '1') setNewcomers(true);
   }, []);
 
   const load = useCallback(async () => {
