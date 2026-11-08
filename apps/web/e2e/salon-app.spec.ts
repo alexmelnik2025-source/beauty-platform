@@ -12,6 +12,8 @@ import { serveApp } from './mobile-app';
  * Task 321: "Miejsce na mapie katalogu" — coordinates pasted from Google Maps (screenshot 321).
  * Task 322: "Języki w salonie" — Polish and Ukrainian at the salon (screenshot 322).
  * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — Czechia and koruna (screenshot 323).
+ * Task 324: "Regulamin i prywatność" — the template over the written terms, own privacy words
+ * (screenshot 324).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -240,6 +242,37 @@ test('the owner changes the salon from the business app (task 131)', async ({
         json<{ timezone: string; currency: string }>(await request.get(path, { headers: owner })),
       )
       .toMatchObject({ timezone: 'Europe/Prague', currency: 'CZK' });
+
+    // ── Task 324: terms and privacy ─────────────────────────────────────────
+    await expect(app.getByLabel('Regulamin rezerwacji', { exact: true })).toHaveValue(
+      /Wizyta jest bezpłatna/,
+    );
+    await app.getByRole('button', { name: 'Wstaw szablon: Regulamin rezerwacji' }).click();
+    await expect(app.getByText('Zastąpić obecny tekst szablonem?')).toBeVisible();
+    await app.getByRole('button', { name: 'Zastąp', exact: true }).click();
+    await expect(app.getByLabel('Regulamin rezerwacji', { exact: true })).toHaveValue(
+      /^# Regulamin rezerwacji online — Gestalt Barbershop/,
+    );
+    await expect(app.getByText(/^Wstawiono szablon z danymi salonu/)).toBeVisible();
+    await expect(app.getByText(/^Do uzupełnienia: .*\{NAZWA_FIRMY\}/)).toBeVisible();
+    await app
+      .getByLabel('Polityka prywatności', { exact: true })
+      .fill('# Prywatność\n\nAdministratorem danych jest GESTALT sp. z o.o.');
+    await app.getByText('Regulamin i prywatność', { exact: true }).scrollIntoViewIfNeeded();
+    await shot(app, '324-business-app-salon-legal');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText(/^Wstawiono szablon z danymi salonu/)).toBeHidden();
+    await expect
+      .poll(async () => {
+        const legal = await json<{ bookingTerms: string; privacyPolicy: string }>(
+          await request.get(path, { headers: owner }),
+        );
+        return [legal.bookingTerms.split('\n')[0], legal.privacyPolicy];
+      })
+      .toEqual([
+        '# Regulamin rezerwacji online — Gestalt Barbershop',
+        '# Prywatność\n\nAdministratorem danych jest GESTALT sp. z o.o.',
+      ]);
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');

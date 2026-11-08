@@ -9,7 +9,8 @@ import { OFFERED_DRINKS, type OfferedDrink } from './wishes';
  * rules (how early and how far ahead clients book, until when they change a visit, the step of
  * the times offered), task 320 the questions on the last booking step (mood, drink, a note),
  * task 321 the salon's place on the catalogue map, task 322 the languages spoken at the salon,
- * task 323 the country (time zone) and the currency of the prices.
+ * task 323 the country (time zone) and the currency of the prices, task 324 the booking terms and
+ * the privacy policy (without them online booking cannot be switched on).
  * No React Native here — tested in Vitest (test/salon.test.ts). The server checks the right again (owner, or the
  * salon's manager) and refuses online booking without terms and a privacy policy.
  */
@@ -39,6 +40,20 @@ export interface SalonForm {
   /** Task 323: "Kraj i strefa czasowa" and "Waluta cen", chosen from the lists in country.ts. */
   timezone: string;
   currency: string;
+  /** Task 324: "Regulamin i prywatność" — Markdown, as on the salon's pages. */
+  bookingTerms: string;
+  privacyPolicy: string;
+}
+
+/** Task 324: the two texts every salon needs before it takes bookings online. */
+export const LEGAL_KEYS = ['bookingTerms', 'privacyPolicy'] as const;
+export type LegalKey = (typeof LEGAL_KEYS)[number];
+/** The most the server keeps of one text. */
+const LEGAL_MAX = 50_000;
+
+/** Task 324: placeholders like {KRS} the salon still has to replace, each once, in order. */
+export function placeholders(...texts: string[]): string[] {
+  return [...new Set(texts.join('\n').match(/\{[A-Z_]+\}/g) ?? [])];
 }
 
 /** Task 319: the steps the booking page offers times in — the server allows only these. */
@@ -68,6 +83,8 @@ export function salonForm(location: Location): SalonForm {
     languages: [...location.languages],
     timezone: location.timezone,
     currency: location.currency,
+    bookingTerms: location.bookingTerms ?? '',
+    privacyPolicy: location.privacyPolicy ?? '',
   };
 }
 
@@ -80,7 +97,8 @@ export type SalonProblem =
   | 'lead'
   | 'horizon'
   | 'deadline'
-  | 'coordinates';
+  | 'coordinates'
+  | 'legalTooLong';
 
 export interface SalonChanges {
   name?: string;
@@ -103,6 +121,8 @@ export interface SalonChanges {
   languages?: SpokenLanguage[];
   timezone?: string;
   currency?: string;
+  bookingTerms?: string;
+  privacyPolicy?: string;
 }
 
 /** Task 321: the salon's place as one line of text; empty when it has none. */
@@ -167,6 +187,9 @@ export function salonChanges(
   if (clientCancelDeadlineMinutes === null) return { problem: 'deadline' };
   const point = parseCoordinates(form.coordinates);
   if (point === 'invalid') return { problem: 'coordinates' };
+  if (LEGAL_KEYS.some((key) => form[key].trim().length > LEGAL_MAX)) {
+    return { problem: 'legalTooLong' };
+  }
 
   const changes: SalonChanges = {};
   if (name !== location.name) changes.name = name;
@@ -203,6 +226,12 @@ export function salonChanges(
   if (languagesChanged(location.languages, form.languages)) changes.languages = form.languages;
   if (form.timezone !== location.timezone) changes.timezone = form.timezone;
   if (form.currency !== location.currency) changes.currency = form.currency;
+  // Only when changed: a salon that took bookings before the texts existed still saves the rest.
+  // An emptied text is sent as '' — the server removes it.
+  for (const key of LEGAL_KEYS) {
+    const text = form[key].trim();
+    if (text !== (location[key] ?? '').trim()) changes[key] = text;
+  }
   return { changes };
 }
 

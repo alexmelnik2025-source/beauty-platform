@@ -14,11 +14,14 @@ import { CURRENCIES, currencyName, matching, salonTimeZones } from '../country';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
+  LEGAL_KEYS,
+  placeholders,
   SLOT_STEPS,
   salonChanges,
   salonForm,
   saveProblem,
   toggleDrink,
+  type LegalKey,
   type SalonForm,
   type SalonProblem,
 } from '../salon';
@@ -36,6 +39,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 321: "Miejsce na mapie katalogu" — the coordinates as Google Maps gives them.
  * Task 322: "Języki w salonie" — the languages shown on the booking page.
  * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — chosen from the cabinet's lists.
+ * Task 324: "Regulamin i prywatność" — the two texts, with the server's template to start from.
  */
 export function SalonScreen(props: {
   api: BusinessApi;
@@ -53,6 +57,9 @@ export function SalonScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Task 324: the text whose template waits for "replace?"; a template was put in (not saved). */
+  const [replacing, setReplacing] = useState<LegalKey | null>(null);
+  const [templated, setTemplated] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -87,7 +94,26 @@ export function SalonScreen(props: {
     horizon: s.badHorizon,
     deadline: s.badDeadline,
     coordinates: s.badCoordinates,
+    legalTooLong: s.legalTooLong,
   };
+
+  /** Task 324: the template replaces the text (asked first when something is written). */
+  async function insertTemplate(key: LegalKey, confirmed = false) {
+    if (!form) return;
+    if (form[key].trim() && !confirmed) {
+      setReplacing(key);
+      return;
+    }
+    setReplacing(null);
+    setError('');
+    try {
+      const templates = await api.legalTemplates(salon.orgId, salon.locationId);
+      setForm((current) => (current ? { ...current, [key]: templates[key] } : current));
+      setTemplated(true);
+    } catch (e) {
+      setError(errorText(e, t));
+    }
+  }
 
   async function save() {
     if (!location || !form || busy) return;
@@ -112,6 +138,7 @@ export function SalonScreen(props: {
       );
       setLocation(saved);
       setForm(salonForm(saved));
+      setTemplated(false);
       setInfo(s.saved);
       if (saved.name !== location.name) onRenamed(saved.name);
     } catch (e) {
@@ -340,6 +367,60 @@ export function SalonScreen(props: {
             ) : null}
             {question('askNote', `✍️ ${s.askNote}`, s.askNote)}
           </Card>
+          <Card>
+            <Text style={styles.section}>{s.legal}</Text>
+            <Text style={styles.small}>{s.legalHint}</Text>
+            {LEGAL_KEYS.map((key) => {
+              const label = key === 'bookingTerms' ? s.terms : s.privacy;
+              return (
+                <View key={key} style={[styles.field, { marginTop: 10 }]}>
+                  <Text style={styles.label}>{label}</Text>
+                  <TextInput
+                    accessibilityLabel={label}
+                    value={form[key]}
+                    maxLength={50000}
+                    multiline
+                    numberOfLines={8}
+                    onChangeText={(value) => setForm({ ...form, [key]: value })}
+                    style={[styles.input, styles.legal]}
+                  />
+                  {replacing === key ? (
+                    <View style={styles.row}>
+                      <Text style={[styles.small, { flexBasis: '100%' }]}>{s.replaceAsk}</Text>
+                      <Button
+                        kind="secondary"
+                        label={s.replaceYes}
+                        onPress={() => void insertTemplate(key, true)}
+                      />
+                      <Button kind="link" label={s.replaceNo} onPress={() => setReplacing(null)} />
+                    </View>
+                  ) : (
+                    <View style={styles.row}>
+                      <Button
+                        kind="link"
+                        label={s.useTemplate}
+                        a11yLabel={`${s.useTemplate}: ${label}`}
+                        onPress={() => void insertTemplate(key)}
+                      />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+            <Text style={styles.small}>{s.markdownHint}</Text>
+            {templated ? (
+              <Text role="note" style={[styles.note, { marginTop: 10 }]}>
+                {s.templateNote}
+              </Text>
+            ) : null}
+            {placeholders(form.bookingTerms, form.privacyPolicy).length > 0 ? (
+              <Text role="status" style={[styles.note, { marginTop: 10 }]}>
+                {fill(s.missing, {
+                  list: placeholders(form.bookingTerms, form.privacyPolicy).join(', '),
+                })}
+              </Text>
+            ) : null}
+          </Card>
           <Button label={s.save} busy={busy} onPress={() => void save()} />
         </>
       ) : !error ? (
@@ -467,6 +548,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   multiline: { minHeight: 96, textAlignVertical: 'top' },
+  legal: { minHeight: 180, maxHeight: 360, textAlignVertical: 'top', fontSize: 14 },
   note: {
     color: colors.ink,
     fontSize: 14,

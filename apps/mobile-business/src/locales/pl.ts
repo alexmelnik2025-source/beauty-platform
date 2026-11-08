@@ -667,8 +667,22 @@ export const pl = {
     choiceSearch: 'Szukaj: {what}',
     choiceSearchPlaceholder: 'Wpisz kilka liter',
     choiceNone: 'Nic nie znaleziono.',
+    legal: 'Regulamin i prywatność',
+    legalHint:
+      'Klienci akceptują te teksty przy rezerwacji. Bez nich nie można włączyć rezerwacji online.',
+    terms: 'Regulamin rezerwacji',
+    privacy: 'Polityka prywatności',
+    markdownHint: 'Nagłówki: # Tytuł, ## Rozdział. Listy: 1. lub -. Pusta linia — nowy akapit.',
+    useTemplate: 'Wstaw szablon',
+    replaceAsk: 'Zastąpić obecny tekst szablonem?',
+    replaceYes: 'Zastąp',
+    replaceNo: 'Anuluj',
+    templateNote:
+      'Wstawiono szablon z danymi salonu. Uzupełnij pola w nawiasach { } i sprawdź treść z prawnikiem — to nie jest porada prawna. Tekst zapisze się po „Zapisz”.',
+    missing: 'Do uzupełnienia: {list}',
+    legalTooLong: 'Tekst jest za długi — najwyżej 50 000 znaków.',
     legalTexts:
-      'Aby włączyć rezerwację online, salon potrzebuje regulaminu i polityki prywatności — dodaj je w panelu salonu: Ustawienia → Regulamin i prywatność.',
+      'Aby włączyć rezerwację online, salon potrzebuje regulaminu i polityki prywatności — dodaj je niżej w „Regulamin i prywatność”.',
     changedMeanwhile:
       'Ktoś inny właśnie zmienił dane salonu. Pokazujemy aktualne — wprowadź zmiany jeszcze raz.',
   },

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiError, type Location } from '../src/api';
 import {
   formatCoordinates,
+  placeholders,
   maySeeSalon,
   parseCoordinates,
   SLOT_STEPS,
@@ -63,6 +64,8 @@ describe('salonForm', () => {
       languages: ['pl'],
       timezone: 'Europe/Warsaw',
       currency: 'PLN',
+      bookingTerms: '',
+      privacyPolicy: '',
     });
   });
 });
@@ -246,6 +249,40 @@ describe('salonChanges — country and currency (task 323)', () => {
     const form = { ...salonForm(salon()), timezone: 'Europe/Prague', phone: '601 123 456' };
     const checked = salonChanges(salon(), form);
     expect(checked).toMatchObject({ changes: { phone: '+420601123456' } });
+  });
+});
+
+describe('salonChanges — terms and privacy (task 324)', () => {
+  const written = salon({ bookingTerms: '# Regulamin', privacyPolicy: '# Prywatność' });
+
+  it('sends a text only when it changed, an emptied one as empty', () => {
+    expect(salonChanges(written, { ...salonForm(written), bookingTerms: '# Regulamin  ' })).toEqual(
+      { changes: {} },
+    );
+    expect(
+      salonChanges(written, { ...salonForm(written), bookingTerms: '# Regulamin\n\nNowy punkt' }),
+    ).toEqual({ changes: { bookingTerms: '# Regulamin\n\nNowy punkt' } });
+    expect(salonChanges(written, { ...salonForm(written), privacyPolicy: ' ' })).toEqual({
+      changes: { privacyPolicy: '' },
+    });
+  });
+
+  it('starts empty when the salon has no texts yet and refuses a text over 50 000 characters', () => {
+    expect(salonForm(salon({ bookingTerms: null }))).toMatchObject({ bookingTerms: '' });
+    expect(
+      salonChanges(salon(), { ...salonForm(salon()), privacyPolicy: 'a'.repeat(50_001) }),
+    ).toEqual({ problem: 'legalTooLong' });
+  });
+});
+
+describe('placeholders', () => {
+  it('lists each {FIELD} still to fill in once, in order', () => {
+    expect(placeholders('Firma {NAZWA_FIRMY}, KRS {KRS}', 'NIP {NIP}, {KRS}')).toEqual([
+      '{NAZWA_FIRMY}',
+      '{KRS}',
+      '{NIP}',
+    ]);
+    expect(placeholders('# Regulamin', '')).toEqual([]);
   });
 });
 

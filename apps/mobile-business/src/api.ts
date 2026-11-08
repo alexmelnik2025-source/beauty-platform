@@ -2,6 +2,7 @@ import type {
   AppointmentDetail,
   Calendar,
   CustomerDetail,
+  LegalTemplates,
   Location,
   LoginCodeSent,
   Me,
@@ -287,6 +288,14 @@ export class BusinessApi {
     return this.authed<Location>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}`,
+    );
+  }
+
+  /** Task 324: Polish templates of the terms and the privacy policy with the salon's data; nothing is saved. */
+  legalTemplates(orgId: string, locationId: string): Promise<LegalTemplates> {
+    return this.authed<LegalTemplates>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/legal-templates`,
     );
   }
 

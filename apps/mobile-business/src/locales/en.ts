@@ -667,8 +667,23 @@ export const en: Dictionary = {
     choiceSearch: 'Search: {what}',
     choiceSearchPlaceholder: 'Type a few letters',
     choiceNone: 'Nothing found.',
+    legal: 'Terms and privacy',
+    legalHint:
+      'Clients accept these texts when booking. Online booking cannot be switched on without them.',
+    terms: 'Booking terms',
+    privacy: 'Privacy policy',
+    markdownHint:
+      'Headings: # Title, ## Section. Lists: 1. or -. An empty line starts a new paragraph.',
+    useTemplate: 'Insert template',
+    replaceAsk: 'Replace the current text with the template?',
+    replaceYes: 'Replace',
+    replaceNo: 'Cancel',
+    templateNote:
+      'A template with the salon details was inserted (in Polish). Fill in the fields in { } brackets and check the text with a lawyer — this is not legal advice. The text is saved when you tap “Save”.',
+    missing: 'Still to fill in: {list}',
+    legalTooLong: 'The text is too long — 50,000 characters at most.',
     legalTexts:
-      'To switch online booking on, the salon needs booking terms and a privacy policy — add them in the salon dashboard: Settings → Terms and privacy.',
+      'To switch online booking on, the salon needs booking terms and a privacy policy — add them below in “Terms and privacy”.',
     changedMeanwhile:
       'Someone else has just changed the salon details. Here are the current ones — make your changes again.',
   },
