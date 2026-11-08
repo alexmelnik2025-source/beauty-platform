@@ -450,7 +450,6 @@ describe('client app: my visits in all salons', () => {
     const b = await book(first, at(day, 12));
     const c = await book(second, at(day, 11));
     const cancelled = await book(first, at(day, 14));
-    await book(second, at(day, 15)); // still to come: not counted
     await book(first, at(day, 16), BOB);
     await ctx.prisma.location.update({
       where: { id: second.locationId },
@@ -460,8 +459,9 @@ describe('client app: my visits in all salons', () => {
       where: { id: { in: [a, b, c] } },
       data: { status: 'completed' },
     });
-    // Paid: a with a coupon (−10 zł), c in euro; b is not paid yet. A paid visit that was
-    // cancelled afterwards does not count; Bob's visit is not Anna's.
+    // Five bookings — the most one address may hold at once. Paid: a with a coupon (−10 zł), c in
+    // euro; b is not paid yet. A paid visit that was cancelled afterwards does not count; Bob's
+    // visit is not Anna's.
     await ctx.prisma.appointment.update({
       where: { id: a },
       data: { paidAt: new Date(), discountGrosze: 1000 },
