@@ -2804,3 +2804,18 @@ pieczątek» / «Punkty za kwotę»), pieczątki за визит или punkty �
 без срока), минимальная сумма визиты, максимальная скидка и можно ли łączyć скидки. Включение программы и marketplace
 остаются как были. Poziomy klientów, punkty za отдельные услуги и dodatkowe zasady — пока в кабинете (задачи 345,
 346). Логика `rulesForm` / `rulesToSave` в `src/loyalty.ts`, e2e `app-loyalty-rules.spec.ts`, скриншоты 344, 344a.
+
+## Бизнес-приложение: poziomy klientów (задача 345)
+
+В «Program lojalnościowy» раздел «Poziomy klientów»: уровни кратко («Gold · od 10 wizyt · −10%», «Liczone z ostatnich
+365 dni») и «Zmień poziomy» — считать «Z liczby wizyt» или «Z zapłaconej kwoty», за сколько дней (30–1095), до 8 строк
+(название, порог, rabat %). Одинаковый порог у двух уровней и другие ошибки называются с номером строки. Сохраняется
+весь список. API: `GET/PUT …/loyalty/tiers`. Логика `src/tiers.ts`, e2e `app-loyalty-tiers.spec.ts`, скриншот 345.
+
+## Бизнес-приложение: dodatkowe pieczątki i punkty (задача 346)
+
+Там же раздел «Dodatkowe pieczątki i punkty»: правила кратко («Spokojne dni · ×2», «pon., wt. · Kasia») и «Zmień
+zasady dodatkowe» — название, mnożnik ×, dodatkowo +, дни недели и специалисты (ничего не выбрано = все), «gdy wraca
+w ciągu N dni». Правило, которое ничего не даёт, не сохраняется. До 20 правил, сохраняется весь список. API: `GET/PUT
+…/loyalty/bonus-rules`. Логика `src/bonusRules.ts`, e2e `app-loyalty-bonus.spec.ts`, скриншот 346. В кабинете остаются
+только punkty za konkretne usługi.
