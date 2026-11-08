@@ -34,6 +34,7 @@ import {
   type RulesForm,
 } from '../loyalty';
 import { formatPrice } from '../day';
+import { TiersSection } from './TiersSection';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -304,6 +305,11 @@ export function LoyaltyScreen(props: {
               />
             </Card>
           )}
+
+          <Text style={styles.section} role="heading">
+            {l.tiers}
+          </Text>
+          <TiersSection api={api} t={t} locale={props.locale} salon={salon} />
 
           <Text style={styles.section} role="heading">
             {l.rewards}

@@ -1,3 +1,4 @@
+import type { TiersSave } from './tiers';
 import type {
   AppointmentDetail,
   Calendar,
@@ -39,6 +40,7 @@ export type CustomerTags = components['schemas']['CustomerTags'];
 export type CustomerSegments = components['schemas']['CustomerSegments'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type VisitCoupons = components['schemas']['VisitCoupons'];
+export type LoyaltyTiers = components['schemas']['LoyaltyTiers'];
 /** Task 206: the salon's loyalty program, its rewards and operations. */
 export type LoyaltyProgram = components['schemas']['LoyaltyProgram'];
 export type LoyaltyReward = components['schemas']['LoyaltyReward'];
@@ -1062,6 +1064,16 @@ export class BusinessApi {
   /** Saves the whole settings with the version read; 409 VERSION_CONFLICT when changed meanwhile. */
   saveLoyaltyProgram(orgId: string, body: LoyaltyProgramSave): Promise<LoyaltyProgram> {
     return this.authed<LoyaltyProgram>('PUT', `${loyaltyPath(orgId)}/program`, body);
+  }
+
+  /** Task 345, owner or manager only (the server checks): the salon's customer tiers. */
+  loyaltyTiers(orgId: string): Promise<LoyaltyTiers> {
+    return this.authed<LoyaltyTiers>('GET', `${loyaltyPath(orgId)}/tiers`);
+  }
+
+  /** Replaces the whole list (lowest threshold first in the answer). */
+  saveLoyaltyTiers(orgId: string, body: TiersSave): Promise<LoyaltyTiers> {
+    return this.authed<LoyaltyTiers>('PUT', `${loyaltyPath(orgId)}/tiers`, body);
   }
 
   /** The reward catalogue (removed rewards left out). */
