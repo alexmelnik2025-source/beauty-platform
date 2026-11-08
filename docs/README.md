@@ -2772,3 +2772,35 @@ wykonuje» (сервер принимает цены только тех, кто
 API: `POST …/loyalty/accounts/:id/redemptions`, `…/adjustments`, `POST …/loyalty/coupons/:id/cancel`. Логика —
 `apps/mobile-business/src/clientBonus.ts` (тесты `test/clientBonus.test.ts`), e2e `app-client-bonus.spec.ts`,
 скриншоты 340, 340a.
+
+## Бизнес-приложение: настройки отзывов (задача 341)
+
+В «Opinie» у владельца и менеджера сверху карточка «Ustawienia opinii»: «Zbieraj opinie» / «Nie zbieraj» и через
+сколько часов после визита просить отзыв (1–72 ч, как в кабинете). «Zapisz ustawienia» активна, только если что-то
+изменилось; при одновременном изменении (409) показываются актуальные настройки. Специалист видит прежнюю подсказку.
+API: `GET/PUT …/locations/:id/review-settings`. Тесты `test/reviews.test.ts`, e2e `app-review-settings.spec.ts`,
+скриншот 341.
+
+## Бизнес-приложение: блокировка «co tydzień» (задача 342)
+
+В «Zablokuj czas» выбор «Tylko ten dzień» / «Powtarzaj co tydzień» и число недель (2–26, по умолчанию 8). Дни, где
+уже есть визиты, остаются свободными — после сохранения приложение называет эти даты. У блокировки из серии видно
+«Co tydzień» и есть «Usuń całą serię» с вопросом. API: `POST …/time-blocks/series`, `DELETE …/time-blocks/series/:id`.
+Тесты `test/blocks.test.ts`, e2e `app-block-series.spec.ts`, скриншоты 342, 342a.
+
+## Бизнес-приложение: купон и rabat poziomu на визите (задача 343)
+
+В карточке неоплаченной визиты (запланированной или «przyszedł») тот, кто может её менять, видит «Kupony i rabat
+klienta»: rabat poziomu клиента («Użyj» / «Zdejmij»), использованные купоны («Zdejmij») и другие неиспользованные
+купоны клиента — сколько снимут или почему нельзя (po terminie, не на эту услугу, salon nie łączy rabatów, maks.
+rabat); поле «Kod kuponu od klienta». После использования — «Do zapłaty». Ошибки сервера — понятными словами. Если у
+клиента нет ни купонов, ни уровня, карточки нет. API: `…/appointments/:id/coupons`, `…/coupons/:couponId/remove`,
+`…/tier-discount(/remove)`. Логика `src/visitCoupons.ts`, e2e `app-visit-coupon.spec.ts`, скриншот 343.
+
+## Бизнес-приложение: правила программы лояльности (задача 344)
+
+В «Program lojalnościowy» карточка «Zasady programu»: кратко текущие правила и «Zmień zasady» — вид («Karta
+pieczątek» / «Punkty za kwotę»), pieczątki за визит или punkty за каждые N (валюта салона), срок punktów (пусто —
+без срока), минимальная сумма визиты, максимальная скидка и можно ли łączyć скидки. Включение программы и marketplace
+остаются как были. Poziomy klientów, punkty za отдельные услуги и dodatkowe zasady — пока в кабинете (задачи 345,
+346). Логика `rulesForm` / `rulesToSave` в `src/loyalty.ts`, e2e `app-loyalty-rules.spec.ts`, скриншоты 344, 344a.
