@@ -658,6 +658,7 @@ export class CustomersService {
         favoriteService: null,
         favoriteStaff: null,
         paid: m.role === 'staff' ? null : [],
+        tips: m.role === 'staff' ? null : [],
       },
     };
   }
