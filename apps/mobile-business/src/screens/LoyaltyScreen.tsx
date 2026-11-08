@@ -276,9 +276,6 @@ export function LoyaltyScreen(props: {
             </Card>
           ) : (
             <Card>
-              <Text style={styles.text}>
-                {programRule(program, t, props.locale, salon.currency)}
-              </Text>
               <Text style={styles.muted}>
                 {[
                   program.minSpendGrosze > 0
