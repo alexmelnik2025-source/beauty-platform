@@ -11,7 +11,8 @@ import { serveApp } from './mobile-app';
  * Task 281: "Najbliższa zaplanowana wizyta" — Basia is booked tomorrow, Zenon in two days
  * (screenshot 281); task 282: the same chip in the business app (screenshot 282).
  * Task 283: "Zapłacili najwięcej" — only Adam's visit is paid: Adam first, then the others by
- * name (screenshots 283, 283-a).
+ * name (screenshots 283, 283-a). Task 285: Adam's card shows "Średnio za wizytę" (screenshot 285);
+ * task 286: the same in the business app (screenshot 286).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -184,6 +185,15 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await expect(page).toHaveURL(/sort=paid/);
   await shot(page, '283-clients-sort-paid');
 
+  // Task 285: what one paid visit brings on average, in the client card.
+  await page.getByRole('button', { name: /Adam Świeży/ }).click();
+  const summary = page.getByTestId('client-summary');
+  await summary.scrollIntoViewIfNeeded();
+  await expect(summary).toContainText('Średnio za wizytę');
+  await expect(summary).toContainText(/Średnio za wizytę\s*80,00/);
+  await shot(page, '285-client-average-visit');
+  await page.keyboard.press('Escape');
+
   // A filter with its own order hides the choice.
   await page.getByRole('button', { name: /Nowi \(30 dni\)/ }).click();
   await expect(order).toHaveCount(0);
@@ -231,6 +241,10 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     await expect(cards.nth(1)).toContainText('Basia Bez Wizyt');
     await expect(cards.nth(2)).toContainText('Zenon Stały');
     await shot(app, '283-a-business-app-clients-sort-paid');
+    // Task 286: the average paid visit in the client card.
+    await app.getByRole('button', { name: 'Karta klienta: Adam Świeży' }).click();
+    await expect(app.getByText(/^Średnio za wizytę: 80,00/)).toBeVisible();
+    await shot(app, '286-business-app-client-average-visit');
     await phone.close();
   } finally {
     businessApp.server.close();

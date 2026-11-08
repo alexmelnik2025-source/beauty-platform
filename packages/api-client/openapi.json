@@ -16305,11 +16305,18 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991,
                       "description": "Paid visits after coupons, in hundredths of the currency"
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Task 285: how many paid visits make up the sum (for \"Średnio za wizytę\")"
                     }
                   },
                   "required": [
                     "currency",
-                    "amountGrosze"
+                    "amountGrosze",
+                    "visits"
                   ],
                   "additionalProperties": false
                 }

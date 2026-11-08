@@ -269,6 +269,12 @@ export const customerDetailSchema = responseSchema(
                 .number()
                 .int()
                 .describe('Paid visits after coupons, in hundredths of the currency'),
+              visits: z
+                .number()
+                .int()
+                .describe(
+                  'Task 285: how many paid visits make up the sum (for "Średnio za wizytę")',
+                ),
             }),
           )
           .nullable()

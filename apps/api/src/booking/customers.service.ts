@@ -502,6 +502,7 @@ export class CustomersService {
             by: ['locationId'],
             where: { AND: [where, { paidAt: { not: null }, status: { not: 'cancelled' } }] },
             _sum: { priceGrosze: true, discountGrosze: true },
+            _count: { _all: true },
           })
         : null,
       this.prisma.appointment.findMany({
@@ -524,14 +525,19 @@ export class CustomersService {
         select: { id: true, currency: true },
       });
       const currencyOf = new Map(locations.map((l) => [l.id, l.currency]));
-      const totals = new Map<string, number>();
+      // Task 285: with the number of paid visits, for the average per visit.
+      const totals = new Map<string, { amountGrosze: number; visits: number }>();
       for (const row of paid) {
         const currency = currencyOf.get(row.locationId) ?? 'PLN';
         const amount = (row._sum.priceGrosze ?? 0) - (row._sum.discountGrosze ?? 0);
-        totals.set(currency, (totals.get(currency) ?? 0) + amount);
+        const sum = totals.get(currency) ?? { amountGrosze: 0, visits: 0 };
+        totals.set(currency, {
+          amountGrosze: sum.amountGrosze + amount,
+          visits: sum.visits + row._count._all,
+        });
       }
       money = [...totals]
-        .map(([currency, amountGrosze]) => ({ currency, amountGrosze }))
+        .map(([currency, sum]) => ({ currency, ...sum }))
         .sort((a, b) => b.amountGrosze - a.amountGrosze);
     }
     return {

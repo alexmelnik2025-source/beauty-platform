@@ -953,6 +953,16 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
         ? '—'
         : summary.paid.map((p) => formatPrice(p.amountGrosze, p.currency, tag)).join(' + '),
     ]);
+    // Task 285: what one paid visit brings on average (per currency).
+    const paidVisits = summary.paid.filter((p) => p.visits > 0);
+    if (paidVisits.length > 0) {
+      tiles.push([
+        t.clients.summary.average,
+        paidVisits
+          .map((p) => formatPrice(Math.round(p.amountGrosze / p.visits), p.currency, tag))
+          .join(' + '),
+      ]);
+    }
   }
   return (
     <section className="section" data-testid="client-summary">

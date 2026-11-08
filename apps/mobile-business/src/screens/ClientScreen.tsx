@@ -277,6 +277,19 @@ export function ClientScreen(props: {
             })}
           </Text>
         ) : null}
+        {/* Task 286: what one paid visit brings on average (per currency). */}
+        {client.summary.paid && client.summary.paid.some((p) => p.visits > 0) ? (
+          <Text style={styles.chip}>
+            {fill(c.average, {
+              amount: client.summary.paid
+                .filter((p) => p.visits > 0)
+                .map((p) =>
+                  formatPrice(Math.round(p.amountGrosze / p.visits), p.currency, props.locale),
+                )
+                .join(' + '),
+            })}
+          </Text>
+        ) : null}
         {(client.tags ?? []).map((tag) => (
           <Text key={tag} style={[styles.chip, styles.tag]}>
             {tag}

@@ -4244,6 +4244,8 @@ export interface components {
                     currency: string;
                     /** @description Paid visits after coupons, in hundredths of the currency */
                     amountGrosze: number;
+                    /** @description Task 285: how many paid visits make up the sum (for "Średnio za wizytę") */
+                    visits: number;
                 }[] | null;
             };
         };

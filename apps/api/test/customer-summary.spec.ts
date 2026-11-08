@@ -217,7 +217,8 @@ describe('client summary on the card (task 98)', () => {
       // Task 261: three haircuts, two of them at Kasia's.
       favoriteService: { name: 'Strzyżenie', visits: 3 },
       favoriteStaff: { name: 'Kasia', visits: 2 },
-      paid: [{ currency: 'PLN', amountGrosze: 6000 + 8000 }],
+      // Task 285: two paid visits (the third is not paid yet).
+      paid: [{ currency: 'PLN', amountGrosze: 6000 + 8000, visits: 2 }],
     });
     // The manager of the salon sees the same, money included.
     expect((await card(manager.auth)).body.summary).toEqual(body.summary);
@@ -283,8 +284,8 @@ describe('client summary on the card (task 98)', () => {
     });
     const { body } = await card(owner.auth);
     expect(body.summary.paid).toEqual([
-      { currency: 'CZK', amountGrosze: 50000 },
-      { currency: 'PLN', amountGrosze: 8000 },
+      { currency: 'CZK', amountGrosze: 50000, visits: 1 },
+      { currency: 'PLN', amountGrosze: 8000, visits: 1 },
     ]);
     expect(body.summary.completed).toBe(2);
   });
