@@ -22,6 +22,7 @@ import {
   type Team,
 } from '../team';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { PermissionsScreen } from './PermissionsScreen';
 import type { SalonChoice } from './SalonsScreen';
 
 /** Whom the open invitation form is for: a specialist profile without an account, or someone new. */
@@ -31,6 +32,7 @@ type Form = { staffMemberId: string | null; name: string | null };
  * Task 92: "Zespół" — the owner gives access right from the phone (email + phone + role, the
  * person signs in with a code); sees who has access, who is invited, cancels invitations and
  * removes people. A manager invites specialists only; a specialist does not see this screen.
+ * Task 330: "Uprawnienia" — what specialists with an account may do (PermissionsScreen).
  */
 export function TeamScreen(props: {
   api: BusinessApi;
@@ -51,6 +53,8 @@ export function TeamScreen(props: {
   const [role, setRole] = useState<'staff' | 'manager'>('staff');
   const [busy, setBusy] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
+  /** Task 330: "Uprawnienia" is open. */
+  const [rights, setRights] = useState(false);
   const roles = rolesToInvite(salon.role);
 
   const load = useCallback(async () => {
@@ -72,12 +76,13 @@ export function TeamScreen(props: {
   }, [load]);
 
   useEffect(() => {
+    if (rights) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       onBack();
       return true;
     });
     return () => sub.remove();
-  }, [onBack]);
+  }, [onBack, rights]);
 
   function openForm(next: Form) {
     setForm(next);
@@ -162,12 +167,36 @@ export function TeamScreen(props: {
 
   const roleName = (r: 'owner' | 'manager' | 'staff') => z.roles[r];
 
+  if (rights) {
+    return (
+      <PermissionsScreen
+        api={api}
+        t={t}
+        salon={salon}
+        onBack={() => {
+          setRights(false);
+          void load();
+        }}
+      />
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={styles.row}>
         <Button kind="link" label={z.back} onPress={onBack} />
       </View>
       <Heading>{z.title}</Heading>
+      <View style={styles.row}>
+        <Button
+          kind="secondary"
+          label={t.rights.open}
+          onPress={() => {
+            setInfo('');
+            setRights(true);
+          }}
+        />
+      </View>
       {info ? (
         <Text role="status" style={styles.info}>
           {info}

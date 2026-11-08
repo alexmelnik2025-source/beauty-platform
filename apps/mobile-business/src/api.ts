@@ -15,6 +15,7 @@ import type {
 import type { MessagesChanges } from './messages';
 import type { SalonChanges } from './salon';
 import type { StaffChange } from './staffProfile';
+import type { PermissionMap } from './rights';
 import { paymentBody, type PaymentMethod } from './payment';
 
 /**
@@ -105,6 +106,8 @@ export interface NewService {
 export type StaffPrices = components['schemas']['StaffPrices'];
 /** Task 92: the team — people with access and the invitations of the last 30 days. */
 export type MemberList = components['schemas']['MemberList'];
+/** Task 331: categories of specialists with their rights. */
+export type StaffCategoryList = components['schemas']['StaffCategoryList'];
 export type Invitation = components['schemas']['Invitation'];
 export type InvitationList = components['schemas']['InvitationList'];
 /** What the owner (or a manager, for specialists) sends to give someone access. */
@@ -660,6 +663,64 @@ export class BusinessApi {
   /** The invitation link stops working. */
   cancelInvitation(orgId: string, id: string): Promise<void> {
     return this.authed<void>('DELETE', `/v1/organizations/${enc(orgId)}/invitations/${enc(id)}`);
+  }
+
+  /** Task 331: owner or manager — categories of specialists ("Starszy barber") and their rights. */
+  staffCategories(orgId: string): Promise<StaffCategoryList> {
+    return this.authed<StaffCategoryList>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/staff-categories`,
+    );
+  }
+
+  /** Task 331: owner only — a new category; missing permissions mean "the default". */
+  createStaffCategory(
+    orgId: string,
+    body: { name: string; permissions: PermissionMap },
+  ): Promise<StaffCategoryList[number]> {
+    return this.authed<StaffCategoryList[number]>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/staff-categories`,
+      body,
+    );
+  }
+
+  /** Task 331: owner only — rename or change the rights (the whole map); send the version read. */
+  updateStaffCategory(
+    orgId: string,
+    id: string,
+    version: number,
+    change: { name?: string; permissions?: PermissionMap },
+  ): Promise<StaffCategoryList[number]> {
+    return this.authed<StaffCategoryList[number]>(
+      'PATCH',
+      `/v1/organizations/${enc(orgId)}/staff-categories/${enc(id)}`,
+      { ...change, version },
+    );
+  }
+
+  /** Task 331: owner only — its people fall back to the default rights. */
+  deleteStaffCategory(orgId: string, id: string): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/staff-categories/${enc(id)}`,
+    );
+  }
+
+  /**
+   * Task 330: owner only — a specialist's category and personal exceptions (the whole map; a
+   * missing key = as in the category). Works on their next request, without signing in again.
+   */
+  setMemberPermissions(
+    orgId: string,
+    membershipId: string,
+    body: { version: number; staffCategoryId: string | null; overrides: PermissionMap },
+  ): Promise<MemberList[number]> {
+    return this.authed<MemberList[number]>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/members/${enc(membershipId)}/permissions`,
+      body,
+    );
   }
 
   /** Owner only: access ends at once; the profile and visits stay in the calendar. */

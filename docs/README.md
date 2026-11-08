@@ -2674,3 +2674,19 @@ wykonuje» (сервер принимает цены только тех, кто
 
 Логика — `apps/mobile-business/src/staffProfile.ts` (тесты `test/staffProfile.test.ts`), экраны
 `TeamHoursScreen.tsx` и `StaffProfileSection.tsx`; e2e и скриншоты 326–329 — `apps/web/e2e/app-staff-profile.spec.ts`.
+
+## Бизнес-приложение: «Uprawnienia» (задачи 330–331)
+
+В «Zespół» кнопка «Uprawnienia» — как «Dostęp i uprawnienia» в кабинете. Владелец и менеджеры могут всё, поэтому
+здесь только специалисты с аккаунтом в этом салоне.
+
+- **Права человека** (330): у каждого — категория прав (или «Uprawnienia domyślne») и исключения. «Zmień»: выбор
+  категории кнопками и для каждого права три варианта — «Jak w kategorii», «Tak», «Nie»; рядом с названием видно, что
+  получится. Отправляется версия, при чужом сохранении — «Ktoś inny zmienił…» и свежие данные
+  (`PUT /v1/organizations/:org/members/:id/permissions`). Действует со следующего шага специалиста, без перелогина.
+- **Категории** (331): «Starszy barber» и т. п. — сколько людей, «+ Nowa kategoria» (галочки начинаются с прав по
+  умолчанию), «Zmień» (название и галочки), «Usuń kategorię» с подтверждением — её люди получают права по умолчанию.
+- Менять может только владелец (сервер отвечает 403 остальным); менеджер видит экран без кнопок.
+
+Логика — `apps/mobile-business/src/rights.ts` (тесты `test/rights.test.ts`), экран `PermissionsScreen.tsx`; e2e и
+скриншоты 330–331a — `apps/web/e2e/app-permissions.spec.ts`.
