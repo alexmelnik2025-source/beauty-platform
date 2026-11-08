@@ -117,13 +117,13 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
 
   // ── a wrong time first, then 09:00–13:00 in three days ────────────────
   const soon = warsawDate(3);
-  await special.getByLabel('Dzień').fill(soon);
-  await special.getByLabel('Od').fill('14:00');
-  await special.getByLabel('Do').fill('10:00');
+  await special.getByLabel('Dzień', { exact: true }).fill(soon);
+  await special.getByLabel('Od', { exact: true }).fill('14:00');
+  await special.getByLabel('Do', { exact: true }).fill('10:00');
   await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
   await expect(page.getByText('Godzina „Do” musi być późniejsza niż „Od”.')).toBeVisible();
-  await special.getByLabel('Od').fill('09:00');
-  await special.getByLabel('Do').fill('13:00');
+  await special.getByLabel('Od', { exact: true }).fill('09:00');
+  await special.getByLabel('Do', { exact: true }).fill('13:00');
   await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
   await expect(special.getByText('Dzień specjalny zapisany.')).toBeVisible();
   await expect(special.getByText(/09:00–13:00/)).toBeVisible();
