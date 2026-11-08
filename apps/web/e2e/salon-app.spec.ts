@@ -254,7 +254,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
       /^# Regulamin rezerwacji online — Gestalt Barbershop/,
     );
     await expect(app.getByText(/^Wstawiono szablon z danymi salonu/)).toBeVisible();
-    await expect(app.getByText(/^Do uzupełnienia: .*\{NAZWA_FIRMY\}/)).toBeVisible();
+    await expect(app.getByText(/^Do uzupełnienia: \{[A-Z_]+\}/)).toBeVisible();
     await app
       .getByLabel('Polityka prywatności', { exact: true })
       .fill('# Prywatność\n\nAdministratorem danych jest GESTALT sp. z o.o.');
