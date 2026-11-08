@@ -2615,3 +2615,12 @@ przed» (сюда же отмены после начала визита), «2�
 Отправляется только изменённое (`PATCH …/services/:id`: `bufferMinutes`, `wishPhotos`). Цвет в календаре — пока в
 кабинете. Логика — `parseBuffer`, `serviceChange`, `newService` в `apps/mobile-business/src/services.ts`; e2e и
 скриншот 317 — `apps/web/e2e/services-app.spec.ts`.
+
+## Бизнес-приложение: своя цена и своё время мастера (задача 318)
+
+В «Zmień» услуги под каждым отмеченным мастером — два поля: своя цена и своё время (пусто = как в услуге, в подсказке
+видно цену и время услуги). Как «Ceny specjalistów» в кабинете (задачи 62, 70). Сохраняется после списка «Kto
+wykonuje» (сервер принимает цены только тех, кто выполняет услугу): `PUT …/services/:id/staff-prices` и
+`…/staff-durations`, только если список изменился. Цена или время, равные услуге, своими не сохраняются. Логика —
+`ratesForm`, `ratesChange` в `apps/mobile-business/src/services.ts`; e2e и скриншот 318 —
+`apps/web/e2e/services-app.spec.ts`.
