@@ -1,3 +1,4 @@
+import type { BonusRulesSave } from './bonusRules';
 import type { TiersSave } from './tiers';
 import type {
   AppointmentDetail,
@@ -41,6 +42,7 @@ export type CustomerSegments = components['schemas']['CustomerSegments'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type VisitCoupons = components['schemas']['VisitCoupons'];
 export type LoyaltyTiers = components['schemas']['LoyaltyTiers'];
+export type LoyaltyBonusRules = components['schemas']['LoyaltyBonusRules'];
 /** Task 206: the salon's loyalty program, its rewards and operations. */
 export type LoyaltyProgram = components['schemas']['LoyaltyProgram'];
 export type LoyaltyReward = components['schemas']['LoyaltyReward'];
@@ -1074,6 +1076,16 @@ export class BusinessApi {
   /** Replaces the whole list (lowest threshold first in the answer). */
   saveLoyaltyTiers(orgId: string, body: TiersSave): Promise<LoyaltyTiers> {
     return this.authed<LoyaltyTiers>('PUT', `${loyaltyPath(orgId)}/tiers`, body);
+  }
+
+  /** Task 346, owner or manager only (the server checks): extra stamps or points rules. */
+  loyaltyBonusRules(orgId: string): Promise<LoyaltyBonusRules> {
+    return this.authed<LoyaltyBonusRules>('GET', `${loyaltyPath(orgId)}/bonus-rules`);
+  }
+
+  /** Replaces the whole list. */
+  saveLoyaltyBonusRules(orgId: string, body: BonusRulesSave): Promise<LoyaltyBonusRules> {
+    return this.authed<LoyaltyBonusRules>('PUT', `${loyaltyPath(orgId)}/bonus-rules`, body);
   }
 
   /** The reward catalogue (removed rewards left out). */
