@@ -212,6 +212,7 @@ export function ServicesScreen(props: {
                 accessibilityRole="radio"
                 accessibilityLabel={option.name}
                 accessibilityState={{ checked: on }}
+                aria-checked={on}
                 onPress={() => onChange(option.id)}
                 style={[styles.chip, on && styles.chipOn]}
               >
