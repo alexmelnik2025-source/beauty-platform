@@ -1,5 +1,6 @@
 import type { PermissionCatalog, StaffList, TimeBlockList } from './api';
 import { timeIn } from './day';
+import { fill, type Dictionary } from './i18n';
 
 /** Blocked time of the day calendar (a break, a meeting, the salon closed) — plain functions. */
 
@@ -11,6 +12,8 @@ export type DayBlock = {
   staffId: string | null;
   staff: string | null;
   reason: string | null;
+  /** Task 342: blocks made together as "every week"; null = a single block. */
+  seriesId: string | null;
 };
 
 /** Blocks that touch this day, in time order; a block over midnight shows its local times. */
@@ -32,6 +35,7 @@ export function blocksOfDay(
       staffId: b.staffId,
       staff: b.staffId ? (names.get(b.staffId) ?? null) : null,
       reason: b.reason,
+      seriesId: b.seriesId,
     }));
 }
 
@@ -125,4 +129,22 @@ function localDate(iso: string, timeZone: string): string {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date(iso));
+}
+
+/** Task 342: how many weeks a weekly block may repeat (the server's limits) and the start value. */
+export const SERIES_WEEKS = { min: 2, max: 26, start: 8 } as const;
+
+/**
+ * Task 342: what to say after a weekly block was saved — "8 blocked", or which days stayed free
+ * because visits were already there ("12.11, 19.11").
+ */
+export function seriesDoneText(
+  made: { items: unknown[]; skippedDates: string[] },
+  t: Dictionary,
+): string {
+  if (made.skippedDates.length === 0) {
+    return fill(t.blocks.seriesAdded, { count: String(made.items.length) });
+  }
+  const dates = made.skippedDates.map((d) => `${d.slice(8, 10)}.${d.slice(5, 7)}`).join(', ');
+  return fill(t.blocks.seriesSkipped, { count: String(made.items.length), dates });
 }

@@ -11,8 +11,11 @@ import {
   canRemoveBlock,
   localToIso,
   nextFullHour,
+  seriesDoneText,
+  SERIES_WEEKS,
   shiftTime,
 } from '../src/blocks';
+import { DICTIONARIES } from '../src/i18n';
 
 type Me = PermissionCatalog['me'];
 const staff = [
@@ -58,7 +61,10 @@ describe('blocked time', () => {
 
   it('lists the blocks of the day with names; over midnight shows 00:00 / 24:00', () => {
     const list = [
-      block('b2', '2026-11-04T13:00:00.000Z', '2026-11-04T14:00:00.000Z', 's1', '2026-11-04'),
+      {
+        ...block('b2', '2026-11-04T13:00:00.000Z', '2026-11-04T14:00:00.000Z', 's1', '2026-11-04'),
+        seriesId: 'ser-1',
+      },
       block('b1', '2026-11-04T08:00:00.000Z', '2026-11-04T09:00:00.000Z', null, '2026-11-04'),
       block('night', '2026-11-03T22:00:00.000Z', '2026-11-04T07:00:00.000Z', 's2', '2026-11-03'),
       block('ends', '2026-11-03T20:00:00.000Z', '2026-11-03T23:00:00.000Z', 's2', '2026-11-03'),
@@ -74,9 +80,33 @@ describe('blocked time', () => {
       },
     ] as TimeBlockList;
     expect(blocksOfDay(list, staff, '2026-11-04', 'Europe/Warsaw')).toEqual([
-      { id: 'night', start: '00:00', end: '08:00', staffId: 's2', staff: 'Marek', reason: null },
-      { id: 'b1', start: '09:00', end: '10:00', staffId: null, staff: null, reason: null },
-      { id: 'b2', start: '14:00', end: '15:00', staffId: 's1', staff: 'Kasia', reason: null },
+      {
+        id: 'night',
+        start: '00:00',
+        end: '08:00',
+        staffId: 's2',
+        staff: 'Marek',
+        reason: null,
+        seriesId: null,
+      },
+      {
+        id: 'b1',
+        start: '09:00',
+        end: '10:00',
+        staffId: null,
+        staff: null,
+        reason: null,
+        seriesId: null,
+      },
+      {
+        id: 'b2',
+        start: '14:00',
+        end: '15:00',
+        staffId: 's1',
+        staff: 'Kasia',
+        reason: null,
+        seriesId: 'ser-1',
+      },
     ]);
     expect(
       blocksOfDay(list, staff, '2026-11-03', 'Europe/Warsaw').map((b) => [b.id, b.end]),
@@ -107,7 +137,7 @@ describe('BusinessApi time blocks', () => {
     const fetchFn = async (url: string, init?: RequestInit) => {
       const key = `${init?.method} ${url.replace('https://api.test', '')}`;
       calls.push([key, init?.body ? JSON.parse(String(init.body)) : undefined]);
-      if (key === 'DELETE /v1/organizations/o1/locations/l1/time-blocks/b1') {
+      if (key.startsWith('DELETE /v1/organizations/o1/locations/l1/time-blocks/')) {
         return new Response(null, { status: 204 });
       }
       const data = key.startsWith('POST /v1/auth/refresh')
@@ -128,6 +158,13 @@ describe('BusinessApi time blocks', () => {
       reason: 'Przerwa',
     });
     await expect(api.removeTimeBlock('o1', 'l1', 'b1')).resolves.toBeUndefined();
+    await api.addTimeBlockSeries('o1', 'l1', {
+      staffId: null,
+      start: '2026-11-04T14:00:00+01:00',
+      end: '2026-11-04T15:00:00+01:00',
+      weeks: 8,
+    });
+    await expect(api.removeTimeBlockSeries('o1', 'l1', 'ser-1')).resolves.toBeUndefined();
     const base = '/v1/organizations/o1/locations/l1/time-blocks';
     expect(calls.slice(1)).toEqual([
       [`GET ${base}?from=2026-11-04&to=2026-11-04`, undefined],
@@ -141,6 +178,32 @@ describe('BusinessApi time blocks', () => {
         },
       ],
       [`DELETE ${base}/b1`, undefined],
+      [
+        `POST ${base}/series`,
+        {
+          staffId: null,
+          start: '2026-11-04T14:00:00+01:00',
+          end: '2026-11-04T15:00:00+01:00',
+          weeks: 8,
+        },
+      ],
+      [`DELETE ${base}/series/ser-1`, undefined],
     ]);
+  });
+});
+
+describe('weekly blocks (task 342)', () => {
+  const pl = DICTIONARIES.pl;
+  it('2–26 weeks, 8 to start with, as in the cabinet', () => {
+    expect(SERIES_WEEKS).toEqual({ min: 2, max: 26, start: 8 });
+  });
+
+  it('says how many were blocked and which days stayed free', () => {
+    expect(seriesDoneText({ items: [1, 2, 3], skippedDates: [] }, pl)).toBe(
+      'Zablokowano 3 razy, co tydzień.',
+    );
+    expect(seriesDoneText({ items: [1, 2], skippedDates: ['2026-11-12', '2026-11-19'] }, pl)).toBe(
+      'Zablokowano 2 razy. Te dni zostały wolne, bo są w nich wizyty: 12.11, 19.11.',
+    );
   });
 });
