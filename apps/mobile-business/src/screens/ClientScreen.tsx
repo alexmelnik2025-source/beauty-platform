@@ -301,6 +301,16 @@ export function ClientScreen(props: {
             })}
           </Text>
         ) : null}
+        {/* Task 308: what the client saved — coupons, the tier discount and happy hours. */}
+        {client.summary.discounts && client.summary.discounts.length > 0 ? (
+          <Text style={styles.chip}>
+            {fill(c.discounts, {
+              amount: client.summary.discounts
+                .map((p) => formatPrice(p.amountGrosze, p.currency, props.locale))
+                .join(' + '),
+            })}
+          </Text>
+        ) : null}
         {/* Task 291: how the client usually pays. */}
         {client.summary.usualPayment ? (
           <Text style={styles.chip}>

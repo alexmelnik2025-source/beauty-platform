@@ -170,6 +170,7 @@ describe('client summary on the card (task 98)', () => {
       favoriteStaff: null,
       paid: [],
       tips: [],
+      discounts: [],
       usualPayment: null,
       ratings: null,
     });
@@ -186,6 +187,13 @@ describe('client summary on the card (task 98)', () => {
     });
     // A 20 zł coupon on the first visit: it brought 60 zł.
     await ctx.prisma.appointment.update({ where: { id: first }, data: { discountGrosze: 2000 } });
+    // Task 307: happy hours took 10 zł off the second visit; a coupon on the unpaid one does not
+    // count yet.
+    await ctx.prisma.appointment.update({
+      where: { id: second },
+      data: { listPriceGrosze: 9000, happyHourPercent: 10 },
+    });
+    await ctx.prisma.appointment.update({ where: { id: latest }, data: { discountGrosze: 500 } });
     const missed = await futureVisit(kasiaId, 3);
     await ctx.prisma.appointment.update({
       where: { id: missed },
@@ -234,6 +242,8 @@ describe('client summary on the card (task 98)', () => {
       paid: [{ currency: 'PLN', amountGrosze: 6000 + 8000, visits: 2 }],
       // Task 287: 10 zł + 5,50 zł on two visits.
       tips: [{ currency: 'PLN', amountGrosze: 1550, visits: 2 }],
+      // Task 307: the 20 zł coupon and 10 zł of happy hours.
+      discounts: [{ currency: 'PLN', amountGrosze: 3000, visits: 2 }],
       usualPayment: { method: 'card', visits: 2 },
       ratings: null,
     });
@@ -262,6 +272,7 @@ describe('client summary on the card (task 98)', () => {
       upcoming: 0,
       paid: null,
       tips: null,
+      discounts: null,
       usualPayment: null,
       // Task 261: one own visit is not a habit.
       favoriteService: null,

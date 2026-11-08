@@ -1063,6 +1063,7 @@ export const uk: Dict = {
       paid: 'Оплачено разом',
       average: 'У середньому за візит',
       tips: 'Чайові разом',
+      discounts: 'Знижки разом',
       usualPayment: 'Зазвичай платить',
       ratings: 'Оцінки візитів',
       ratingsValue: '★ {stars} · відгуків: {n}',

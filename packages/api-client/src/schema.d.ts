@@ -4292,6 +4292,15 @@ export interface components {
                     /** @description How many visits had a tip */
                     visits: number;
                 }[] | null;
+                /** @description Task 307: what the client saved on paid visits — loyalty coupons, the tier discount and happy hours — one row per currency; empty when none; null for staff members */
+                discounts: {
+                    /** @description ISO 4217 code of the salon */
+                    currency: string;
+                    /** @description What the discounts took off, in hundredths of the currency */
+                    amountGrosze: number;
+                    /** @description How many paid visits had a discount */
+                    visits: number;
+                }[] | null;
                 /** @description Task 290: how the client usually pays — the most frequent payment method on the paid visits that have one (the latest wins a tie); null below 2 such visits and for staff members */
                 usualPayment: {
                     /** @enum {string} */

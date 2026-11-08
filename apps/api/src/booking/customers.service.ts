@@ -483,79 +483,102 @@ export class CustomersService {
     where: Prisma.AppointmentWhereInput,
     withMoney: boolean,
   ): Promise<CustomerDetailResponse['summary']> {
-    const [byStatus, upcoming, dates, paid, starts, tipped, methods, reviews] = await Promise.all([
-      this.prisma.appointment.groupBy({
-        by: ['status', 'cancelledBy'],
-        where,
-        _count: { _all: true },
-      }),
-      this.prisma.appointment.count({
-        where: { AND: [where, { status: 'confirmed', startAt: { gte: new Date() } }] },
-      }),
-      this.prisma.appointment.aggregate({
-        where: { AND: [where, { status: 'completed' }] },
-        _min: { startAt: true },
-        _max: { startAt: true },
-      }),
-      withMoney
-        ? this.prisma.appointment.groupBy({
-            by: ['locationId'],
-            where: { AND: [where, { paidAt: { not: null }, status: { not: 'cancelled' } }] },
-            _sum: { priceGrosze: true, discountGrosze: true },
-            _count: { _all: true },
-          })
-        : null,
-      this.prisma.appointment.findMany({
-        where: { AND: [where, { status: 'completed' }] },
-        orderBy: { startAt: 'asc' },
-        select: {
-          startAt: true,
-          service: { select: { name: true } },
-          staff: { select: { displayName: true } },
-        },
-        take: 500,
-      }),
-      // Task 287: tips are noted on visits that took place, paid or not.
-      withMoney
-        ? this.prisma.appointment.groupBy({
-            by: ['locationId'],
-            where: { AND: [where, { status: 'completed', tipGrosze: { gt: 0 } }] },
-            _sum: { tipGrosze: true },
-            _count: { _all: true },
-          })
-        : null,
-      // Task 290: how the client paid, oldest first (for "Zwykle płaci").
-      withMoney
-        ? this.prisma.appointment.findMany({
-            where: {
-              AND: [
-                where,
-                {
-                  paidAt: { not: null },
-                  status: { not: 'cancelled' },
-                  paymentMethod: { not: null },
-                },
-              ],
-            },
-            orderBy: { startAt: 'asc' },
-            select: { paymentMethod: true },
-            take: 500,
-          })
-        : null,
-      // Task 301: the reviews the client left for the visits counted here.
-      this.prisma.visitReview.aggregate({
-        where: { appointment: where },
-        _count: { _all: true },
-        _avg: { rating: true },
-      }),
-    ]);
+    const [byStatus, upcoming, dates, paid, starts, tipped, methods, reviews, discounted] =
+      await Promise.all([
+        this.prisma.appointment.groupBy({
+          by: ['status', 'cancelledBy'],
+          where,
+          _count: { _all: true },
+        }),
+        this.prisma.appointment.count({
+          where: { AND: [where, { status: 'confirmed', startAt: { gte: new Date() } }] },
+        }),
+        this.prisma.appointment.aggregate({
+          where: { AND: [where, { status: 'completed' }] },
+          _min: { startAt: true },
+          _max: { startAt: true },
+        }),
+        withMoney
+          ? this.prisma.appointment.groupBy({
+              by: ['locationId'],
+              where: { AND: [where, { paidAt: { not: null }, status: { not: 'cancelled' } }] },
+              _sum: { priceGrosze: true, discountGrosze: true },
+              _count: { _all: true },
+            })
+          : null,
+        this.prisma.appointment.findMany({
+          where: { AND: [where, { status: 'completed' }] },
+          orderBy: { startAt: 'asc' },
+          select: {
+            startAt: true,
+            service: { select: { name: true } },
+            staff: { select: { displayName: true } },
+          },
+          take: 500,
+        }),
+        // Task 287: tips are noted on visits that took place, paid or not.
+        withMoney
+          ? this.prisma.appointment.groupBy({
+              by: ['locationId'],
+              where: { AND: [where, { status: 'completed', tipGrosze: { gt: 0 } }] },
+              _sum: { tipGrosze: true },
+              _count: { _all: true },
+            })
+          : null,
+        // Task 290: how the client paid, oldest first (for "Zwykle płaci").
+        withMoney
+          ? this.prisma.appointment.findMany({
+              where: {
+                AND: [
+                  where,
+                  {
+                    paidAt: { not: null },
+                    status: { not: 'cancelled' },
+                    paymentMethod: { not: null },
+                  },
+                ],
+              },
+              orderBy: { startAt: 'asc' },
+              select: { paymentMethod: true },
+              take: 500,
+            })
+          : null,
+        // Task 301: the reviews the client left for the visits counted here.
+        this.prisma.visitReview.aggregate({
+          where: { appointment: where },
+          _count: { _all: true },
+          _avg: { rating: true },
+        }),
+        // Task 307: paid visits with a coupon, a tier discount or happy hours.
+        withMoney
+          ? this.prisma.appointment.findMany({
+              where: {
+                AND: [
+                  where,
+                  { paidAt: { not: null }, status: { not: 'cancelled' } },
+                  { OR: [{ discountGrosze: { gt: 0 } }, { listPriceGrosze: { not: null } }] },
+                ],
+              },
+              select: {
+                locationId: true,
+                priceGrosze: true,
+                discountGrosze: true,
+                listPriceGrosze: true,
+              },
+              take: 2000,
+            })
+          : null,
+      ]);
     const count = (match: (row: (typeof byStatus)[number]) => boolean): number =>
       byStatus.filter(match).reduce((sum, row) => sum + row._count._all, 0);
     let money: CustomerDetailResponse['summary']['paid'] = null;
     let tips: CustomerDetailResponse['summary']['tips'] = null;
-    if (paid && tipped) {
+    let discounts: CustomerDetailResponse['summary']['discounts'] = null;
+    if (paid && tipped && discounted) {
       const locations = await this.prisma.location.findMany({
-        where: { id: { in: [...paid, ...tipped].map((p) => p.locationId) } },
+        where: {
+          id: { in: [...paid, ...tipped, ...discounted].map((p) => p.locationId) },
+        },
         select: { id: true, currency: true },
       });
       const currencyOf = new Map(locations.map((l) => [l.id, l.currency]));
@@ -585,6 +608,21 @@ export class CustomersService {
       tips = [...tipTotals]
         .map(([currency, sum]) => ({ currency, ...sum }))
         .sort((a, b) => b.amountGrosze - a.amountGrosze);
+      // Task 307: coupons and the tier are in discountGrosze; happy hours are already in the
+      // price (listPriceGrosze is the price before them).
+      const saved = new Map<string, { amountGrosze: number; visits: number }>();
+      for (const a of discounted) {
+        const amount =
+          a.discountGrosze +
+          (a.listPriceGrosze === null ? 0 : Math.max(0, a.listPriceGrosze - a.priceGrosze));
+        if (amount <= 0) continue;
+        const currency = currencyOf.get(a.locationId) ?? 'PLN';
+        const sum = saved.get(currency) ?? { amountGrosze: 0, visits: 0 };
+        saved.set(currency, { amountGrosze: sum.amountGrosze + amount, visits: sum.visits + 1 });
+      }
+      discounts = [...saved]
+        .map(([currency, sum]) => ({ currency, ...sum }))
+        .sort((a, b) => b.amountGrosze - a.amountGrosze);
     }
     return {
       completed: count((r) => r.status === 'completed'),
@@ -599,6 +637,7 @@ export class CustomersService {
       favoriteStaff: favorite(starts.map((a) => a.staff.displayName)),
       paid: money,
       tips,
+      discounts,
       usualPayment: usualPayment(methods),
       ratings:
         reviews._count._all > 0 && reviews._avg.rating !== null
@@ -691,6 +730,7 @@ export class CustomersService {
         favoriteStaff: null,
         paid: m.role === 'staff' ? null : [],
         tips: m.role === 'staff' ? null : [],
+        discounts: m.role === 'staff' ? null : [],
         usualPayment: null,
         ratings: null,
       },

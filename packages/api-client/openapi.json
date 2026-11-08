@@ -16440,6 +16440,38 @@
                   "additionalProperties": false
                 }
               },
+              "discounts": {
+                "nullable": true,
+                "description": "Task 307: what the client saved on paid visits — loyalty coupons, the tier discount and happy hours — one row per currency; empty when none; null for staff members",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string",
+                      "description": "ISO 4217 code of the salon"
+                    },
+                    "amountGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "What the discounts took off, in hundredths of the currency"
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "How many paid visits had a discount"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "amountGrosze",
+                    "visits"
+                  ],
+                  "additionalProperties": false
+                }
+              },
               "usualPayment": {
                 "nullable": true,
                 "description": "Task 290: how the client usually pays — the most frequent payment method on the paid visits that have one (the latest wins a tie); null below 2 such visits and for staff members",
@@ -16503,6 +16535,7 @@
               "favoriteStaff",
               "paid",
               "tips",
+              "discounts",
               "usualPayment",
               "ratings"
             ],

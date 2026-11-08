@@ -1068,6 +1068,7 @@ export const en: Dict = {
       paid: 'Paid in total',
       average: 'Average per visit',
       tips: 'Tips in total',
+      discounts: 'Discounts in total',
       usualPayment: 'Usually pays by',
       ratings: 'Visit ratings',
       ratingsValue: '★ {stars} · reviews: {n}',

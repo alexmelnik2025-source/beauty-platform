@@ -294,6 +294,21 @@ export const customerDetailSchema = responseSchema(
           .describe(
             'Task 287: tips the client left on visits that took place (not part of the revenue), one row per currency; empty when none; null for staff members',
           ),
+        discounts: z
+          .array(
+            z.strictObject({
+              currency: z.string().describe('ISO 4217 code of the salon'),
+              amountGrosze: z
+                .number()
+                .int()
+                .describe('What the discounts took off, in hundredths of the currency'),
+              visits: z.number().int().describe('How many paid visits had a discount'),
+            }),
+          )
+          .nullable()
+          .describe(
+            'Task 307: what the client saved on paid visits — loyalty coupons, the tier discount and happy hours — one row per currency; empty when none; null for staff members',
+          ),
         usualPayment: z
           .strictObject({ method: paymentMethodSchema, visits: z.number().int() })
           .nullable()

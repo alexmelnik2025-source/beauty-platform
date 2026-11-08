@@ -1070,6 +1070,7 @@ export const ru: Dict = {
       paid: 'Оплачено всего',
       average: 'В среднем за визит',
       tips: 'Чаевые всего',
+      discounts: 'Скидки всего',
       usualPayment: 'Обычно платит',
       ratings: 'Оценки визитов',
       ratingsValue: '★ {stars} · отзывов: {n}',

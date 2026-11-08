@@ -971,6 +971,13 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
       summary.tips.map((p) => formatPrice(p.amountGrosze, p.currency, tag)).join(' + '),
     ]);
   }
+  // Task 307: what the client saved — coupons, the tier discount and happy hours.
+  if (summary.discounts && summary.discounts.length > 0) {
+    tiles.push([
+      t.clients.summary.discounts,
+      summary.discounts.map((p) => formatPrice(p.amountGrosze, p.currency, tag)).join(' + '),
+    ]);
+  }
   // Task 290: how the client usually pays (at least two paid visits with the method marked).
   if (summary.usualPayment) {
     tiles.push([

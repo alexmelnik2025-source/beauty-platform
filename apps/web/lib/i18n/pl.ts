@@ -1066,6 +1066,7 @@ export const pl = {
       paid: 'Zapłacono łącznie',
       average: 'Średnio za wizytę',
       tips: 'Napiwki łącznie',
+      discounts: 'Rabaty łącznie',
       usualPayment: 'Zwykle płaci',
       ratings: 'Oceny wizyt',
       ratingsValue: '★ {stars} · opinie: {n}',

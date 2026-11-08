@@ -15,6 +15,8 @@ import { serveApp } from './mobile-app';
  * name (screenshots 283, 283-a). Task 285: Adam's card shows "Średnio za wizytę" (screenshot 285);
  * task 286: the same in the business app (screenshot 286). Task 287: Adam's 12,50 zł tip as
  * "Napiwki łącznie" in the card (same screenshots); task 288: "Napiwki" in the business app.
+ * Task 307: happy hours on Adam's visit as "Rabaty łącznie" (same screenshots); task 308: "Rabaty"
+ * in the business app.
  * Task 290: both of Adam's visits were paid by card — "Zwykle płaci: Karta · 2×" in the card;
  * task 291: the same in the business app (same screenshots).
  * Task 301: Adam rated his visits 5 and 4 stars — "Oceny wizyt: ★ 4,5 · opinie: 2" in the card;
@@ -134,6 +136,9 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     'ON_ERROR_STOP=1',
     '-c',
     `INSERT INTO visit_review (id, appointment_id, location_id, staff_id, rating, updated_at) SELECT gen_random_uuid(), id, location_id, staff_id, CASE WHEN id = '${adamFirst.id}' THEN 5 ELSE 4 END, now() FROM appointment WHERE id IN ('${adamFirst.id}', '${adamVisit.id}')`,
+    // Task 307: happy hours took 15 zł off Adam's second visit (it still cost 80 zł).
+    '-c',
+    `UPDATE appointment SET list_price_grosze = price_grosze + 1500, happy_hour_percent = 15 WHERE id = '${adamVisit.id}'`,
   ]);
   // Task 281: booked ahead — Basia tomorrow, Zenon in two days.
   const book = (customerId: string, hoursAhead: number) =>
@@ -216,6 +221,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await expect(summary).toContainText(/Średnio za wizytę\s*80,00/);
   // Task 287: the tips Adam left.
   await expect(summary).toContainText(/Napiwki łącznie\s*12,50/);
+  // Task 307: what Adam saved.
+  await expect(summary).toContainText(/Rabaty łącznie\s*15,00/);
   // Task 290: how Adam usually pays.
   await expect(summary).toContainText(/Zwykle płaci\s*Karta · 2×/);
   // Task 301: how Adam rated his visits.
@@ -275,6 +282,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     await expect(app.getByText(/^Średnio za wizytę: 80,00/)).toBeVisible();
     // Task 288: the tips in the business app's card.
     await expect(app.getByText(/^Napiwki: 12,50/)).toBeVisible();
+    // Task 308: the same in the business app's card.
+    await expect(app.getByText(/^Rabaty: 15,00/)).toBeVisible();
     // Task 291: how Adam usually pays.
     await expect(app.getByText('Zwykle płaci: Karta')).toBeVisible();
     // Task 302: the ratings in the business app's card.

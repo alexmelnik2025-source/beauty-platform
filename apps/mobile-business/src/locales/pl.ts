@@ -273,6 +273,7 @@ export const pl = {
     paid: 'Zapłacono: {amount}',
     average: 'Średnio za wizytę: {amount}',
     tips: 'Napiwki: {amount}',
+    discounts: 'Rabaty: {amount}',
     usualPayment: 'Zwykle płaci: {method}',
     ratings: 'Oceny: ★ {stars} · opinie: {n}',
     upcoming: 'Najbliższe wizyty',
