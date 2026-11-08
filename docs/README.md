@@ -2690,3 +2690,16 @@ wykonuje» (сервер принимает цены только тех, кто
 
 Логика — `apps/mobile-business/src/rights.ts` (тесты `test/rights.test.ts`), экран `PermissionsScreen.tsx`; e2e и
 скриншоты 330–331a — `apps/web/e2e/app-permissions.spec.ts`.
+
+## Бизнес-приложение: новый клиент и «Zmień dane» (задачи 332–333)
+
+- **«+ Dodaj klienta»** (332) вверху «Klienci» (владелец или менеджер): имя, телефон (номер без кода получает код страны
+  салона), e-mail по желанию и язык сообщений клиента (польский, украинский, русский, английский). Если такой телефон
+  или e-mail уже есть у другого клиента, сервер отвечает 409 с id его карточки — приложение показывает «Otwórz jego
+  kartę», а для телефона ещё «Dodaj mimo to» (`allowDuplicatePhone`). Новая карточка открывается сразу.
+- **«✎ Zmień dane»** (333) в карточке клиента (владелец или менеджер, контакты видны, данные не стёрты): те же поля;
+  отправляются только изменения с версией (`PATCH …/customers/:id`), пустой e-mail убирается.
+- `ApiError` приложения теперь хранит `details` ответа сервера (например, `customerId` существующего клиента).
+
+Логика — `apps/mobile-business/src/clientContacts.ts` (тесты `test/clientContacts.test.ts`), поля —
+`ClientContactsFields.tsx`; e2e и скриншоты 332–333 — `apps/web/e2e/app-client-add.spec.ts`.

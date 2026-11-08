@@ -16,6 +16,7 @@ import type { MessagesChanges } from './messages';
 import type { SalonChanges } from './salon';
 import type { StaffChange } from './staffProfile';
 import type { PermissionMap } from './rights';
+import type { ContactsChange, NewCustomer } from './clientContacts';
 import { paymentBody, type PaymentMethod } from './payment';
 
 /**
@@ -167,6 +168,8 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly code?: string,
+    /** What the server added, e.g. { path: 'customerId', message: '<id>' } (task 332). */
+    readonly details: { path: string; message: string }[] = [],
   ) {
     super(message);
     this.name = 'ApiError';
@@ -789,6 +792,24 @@ export class BusinessApi {
     return this.authed<CustomerDetail>('GET', customerPath(orgId, id));
   }
 
+  /**
+   * Task 332: owner or manager — a new client card. 409 CUSTOMER_PHONE_EXISTS (send
+   * `allowDuplicatePhone` to add anyway) or CUSTOMER_EMAIL_EXISTS, with the existing card's id.
+   */
+  createCustomer(orgId: string, body: NewCustomer): Promise<CustomerDetail> {
+    return this.authed<CustomerDetail>('POST', `/v1/organizations/${enc(orgId)}/customers`, body);
+  }
+
+  /** Task 333: owner or manager — the client's name, phone, email and language (only what changed). */
+  updateCustomerContacts(
+    orgId: string,
+    id: string,
+    version: number,
+    change: ContactsChange,
+  ): Promise<CustomerDetail> {
+    return this.authed<CustomerDetail>('PATCH', customerPath(orgId, id), { ...change, version });
+  }
+
   /** The client's note and tags (a specialist needs the permission). Send the version that was read. */
   updateCustomerNotes(
     orgId: string,
@@ -1335,11 +1356,21 @@ export class BusinessApi {
     const data: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       // The API answers errors as { error: { code, message, requestId } }.
-      const error = (data as { error?: { code?: unknown; message?: unknown } } | null)?.error;
+      const error = (
+        data as { error?: { code?: unknown; message?: unknown; details?: unknown } } | null
+      )?.error;
+      const details = Array.isArray(error?.details)
+        ? (error.details as unknown[]).filter(
+            (d): d is { path: string; message: string } =>
+              typeof (d as { path?: unknown })?.path === 'string' &&
+              typeof (d as { message?: unknown })?.message === 'string',
+          )
+        : [];
       throw new ApiError(
         res.status,
         typeof error?.message === 'string' ? error.message : `HTTP ${res.status}`,
         typeof error?.code === 'string' ? error.code : undefined,
+        details,
       );
     }
     return data as T;

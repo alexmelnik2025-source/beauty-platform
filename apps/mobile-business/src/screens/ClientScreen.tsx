@@ -34,8 +34,12 @@ import {
 import { formatPrice } from '../day';
 import { starsText } from '../reports';
 import { errorText } from '../errors';
+import { contactsChange, contactsForm, type ContactsForm } from '../clientContacts';
+import type { ClientProblem } from '../newVisit';
+import { dialForTimeZone } from '../phone';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { ClientContactsFields } from './ClientContactsFields';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -50,6 +54,8 @@ export function ClientScreen(props: {
   salon: SalonChoice;
   id: string;
   timeZone: string;
+  /** Task 332: shown at the top when the card opens (the client was just added). */
+  notice?: string;
   onBack: () => void;
 }) {
   const { api, t, salon, id, onBack } = props;
@@ -63,8 +69,11 @@ export function ClientScreen(props: {
   /** Task 226: the salon's labels, offered while editing (owners and managers). */
   const [knownTags, setKnownTags] = useState<string[]>([]);
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+  const [info, setInfo] = useState(props.notice ?? '');
   const [busy, setBusy] = useState(false);
+  /** Task 333: the name, phone, email and language being changed, and what to fix. */
+  const [contacts, setContacts] = useState<ContactsForm | null>(null);
+  const [contactsProblem, setContactsProblem] = useState<ClientProblem | null>(null);
   const [account, setAccount] = useState<LoyaltyAccount | null>(null);
   /** Task 161c: the cancellation-protection mark (owners and managers). */
   const [guard, setGuard] = useState<GuardedClient | null>(null);
@@ -175,6 +184,38 @@ export function ClientScreen(props: {
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
         setError(c.conflict);
         setBirthdayEdit(null);
+        await load();
+      } else {
+        setError(errorText(e, t));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveContacts() {
+    if (!client || !contacts) return;
+    const checked = contactsChange(client, contacts, dialForTimeZone(props.timeZone));
+    if (!checked.ok) return setContactsProblem(checked.problem);
+    setContactsProblem(null);
+    if (!checked.change) {
+      setContacts(null);
+      setInfo(t.clientCard.nothing);
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      setClient(
+        await api.updateCustomerContacts(salon.orgId, client.id, client.version, checked.change),
+      );
+      setContacts(null);
+      setInfo(t.clientCard.saved);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
+        setError(c.conflict);
+        setContacts(null);
         await load();
       } else {
         setError(errorText(e, t));
@@ -428,6 +469,47 @@ export function ClientScreen(props: {
         ) : null}
         {!client.phone && !client.email ? (
           <Text style={styles.muted}>{c.contactsHidden}</Text>
+        ) : null}
+        {/* Task 333: owners and managers change the name, phone, email and language. */}
+        {salon.role !== 'staff' && client.phone !== null && !client.anonymizedAt ? (
+          contacts ? (
+            <View style={styles.form}>
+              <ClientContactsFields
+                t={t}
+                form={contacts}
+                onChange={setContacts}
+                problem={contactsProblem}
+                timeZone={props.timeZone}
+              />
+              <View style={styles.row}>
+                <Button
+                  label={t.clientCard.saveEdit}
+                  busy={busy}
+                  onPress={() => void saveContacts()}
+                />
+                <Button
+                  kind="secondary"
+                  label={c.cancel}
+                  disabled={busy}
+                  onPress={() => {
+                    setContacts(null);
+                    setContactsProblem(null);
+                  }}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.row}>
+              <Button
+                kind="link"
+                label={t.clientCard.edit}
+                onPress={() => {
+                  setInfo('');
+                  setContacts(contactsForm(client));
+                }}
+              />
+            </View>
+          )
         ) : null}
         {client.marketingConsent !== null ? (
           <Text style={styles.muted}>

@@ -19,10 +19,19 @@ import type {
   Locale,
 } from '../api';
 import { birthdayText } from '../clients';
+import {
+  emptyContacts,
+  existingClient,
+  newCustomerBody,
+  type ContactsForm,
+} from '../clientContacts';
+import type { ClientProblem } from '../newVisit';
+import { dialForTimeZone } from '../phone';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { shareCsv } from '../share';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { ClientContactsFields } from './ClientContactsFields';
 import { ClientScreen } from './ClientScreen';
 import { csvTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
@@ -63,6 +72,16 @@ export function ClientsScreen(props: {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  /** Task 332: the new client being written, what to fix, and a client already there. */
+  const [adding, setAdding] = useState<ContactsForm | null>(null);
+  const [addProblem, setAddProblem] = useState<ClientProblem | null>(null);
+  const [exists, setExists] = useState<{ field: 'phone' | 'email'; id: string | null } | null>(
+    null,
+  );
+  const [addError, setAddError] = useState('');
+  const [addBusy, setAddBusy] = useState(false);
+  /** Shown at the top of the card that opens (a client was just added). */
+  const [notice, setNotice] = useState('');
   const [inactiveDays, setInactiveDays] = useState(0);
   // Task 280: A–Z, the latest visit first or the most visits first.
   const [sort, setSort] = useState<ClientSort>('name');
@@ -246,6 +265,31 @@ export function ClientsScreen(props: {
     return () => sub.remove();
   }, [onBack, openId]);
 
+  async function addClient(allowDuplicatePhone = false) {
+    if (!adding || addBusy) return;
+    const checked = newCustomerBody(adding, dialForTimeZone(props.timeZone));
+    if (!checked.ok) return setAddProblem(checked.problem);
+    setAddProblem(null);
+    setAddError('');
+    setAddBusy(true);
+    try {
+      const created = await api.createCustomer(salon.orgId, {
+        ...checked.body,
+        ...(allowDuplicatePhone ? { allowDuplicatePhone: true } : {}),
+      });
+      setAdding(null);
+      setExists(null);
+      setNotice(t.clientCard.created);
+      setOpenId(created.id);
+    } catch (e) {
+      const there = existingClient(e);
+      if (there) setExists(there);
+      else setAddError(errorText(e, t));
+    } finally {
+      setAddBusy(false);
+    }
+  }
+
   if (openId) {
     return (
       <ClientScreen
@@ -255,8 +299,10 @@ export function ClientsScreen(props: {
         salon={salon}
         id={openId}
         timeZone={props.timeZone}
+        notice={notice}
         onBack={() => {
           setOpenId(null);
+          setNotice('');
           void search(searched);
           void loadTags();
           void loadSegments();
@@ -271,6 +317,73 @@ export function ClientsScreen(props: {
         <Button kind="link" label={c.back} onPress={onBack} />
       </View>
       <Heading>{c.title}</Heading>
+      {adding ? (
+        <Card>
+          <Text role="heading" aria-level={2} style={styles.addTitle}>
+            {t.clientCard.addTitle}
+          </Text>
+          <ClientContactsFields
+            t={t}
+            form={adding}
+            onChange={(next) => {
+              setAdding(next);
+              setExists(null);
+            }}
+            problem={addProblem}
+            timeZone={props.timeZone}
+          />
+          {addError ? <ErrorText>{addError}</ErrorText> : null}
+          {exists ? (
+            <View style={{ gap: 8 }}>
+              <Text role="alert" style={styles.warn}>
+                {exists.field === 'phone' ? t.clientCard.phoneExists : t.clientCard.emailExists}
+              </Text>
+              <View style={styles.row}>
+                {exists.id ? (
+                  <Button
+                    kind="secondary"
+                    label={t.clientCard.openExisting}
+                    onPress={() => {
+                      setAdding(null);
+                      setExists(null);
+                      setOpenId(exists.id);
+                    }}
+                  />
+                ) : null}
+                {exists.field === 'phone' ? (
+                  <Button
+                    kind="secondary"
+                    label={t.clientCard.addAnyway}
+                    busy={addBusy}
+                    onPress={() => void addClient(true)}
+                  />
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+          <View style={styles.row}>
+            <Button label={t.clientCard.create} busy={addBusy} onPress={() => void addClient()} />
+            <Button
+              kind="link"
+              label={t.clientCard.cancel}
+              onPress={() => {
+                setAdding(null);
+                setExists(null);
+                setAddProblem(null);
+                setAddError('');
+              }}
+            />
+          </View>
+        </Card>
+      ) : (
+        <View style={styles.row}>
+          <Button
+            kind="secondary"
+            label={t.clientCard.add}
+            onPress={() => setAdding(emptyContacts(props.locale))}
+          />
+        </View>
+      )}
       <View style={styles.searchRow}>
         <TextInput
           accessibilityLabel={c.search}
@@ -529,6 +642,8 @@ const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  addTitle: { fontSize: 16, fontWeight: '700', color: colors.ink, marginBottom: 10 },
+  warn: { color: colors.danger, fontSize: 15 },
   input: {
     flex: 1,
     backgroundColor: colors.card,
