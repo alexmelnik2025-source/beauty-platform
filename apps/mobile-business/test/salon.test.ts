@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError, type Location } from '../src/api';
 import {
+  formatCoordinates,
   maySeeSalon,
+  parseCoordinates,
   SLOT_STEPS,
   salonChanges,
   salonForm,
@@ -32,6 +34,8 @@ const salon = (over: Partial<Location> = {}) =>
     askDrink: true,
     drinks: ['coffee', 'water'],
     askNote: false,
+    latitude: null,
+    longitude: null,
     version: 3,
     ...over,
   }) as Location;
@@ -54,6 +58,7 @@ describe('salonForm', () => {
       askDrink: true,
       drinks: ['coffee', 'water'],
       askNote: false,
+      coordinates: '',
     });
   });
 });
@@ -168,6 +173,44 @@ describe('salonChanges — questions on booking (task 320)', () => {
     expect(salonChanges(salon(), withTea)).toEqual({
       changes: { drinks: ['coffee', 'tea', 'water'] },
     });
+  });
+});
+
+describe('salonChanges — place on the map (task 321)', () => {
+  it('sends both numbers as pasted from Google Maps', () => {
+    const form = { ...salonForm(salon()), coordinates: ' 52.23251, 20.95634 ' };
+    expect(salonChanges(salon(), form)).toEqual({
+      changes: { latitude: 52.23251, longitude: 20.95634 },
+    });
+  });
+
+  it('sends nothing when the place is the same, and removes it when emptied', () => {
+    const placed = salon({ latitude: 52.23251, longitude: 20.95634 });
+    expect(salonForm(placed).coordinates).toBe('52.23251, 20.95634');
+    expect(salonChanges(placed, salonForm(placed))).toEqual({ changes: {} });
+    expect(salonChanges(placed, { ...salonForm(placed), coordinates: '' })).toEqual({
+      changes: { latitude: null, longitude: null },
+    });
+  });
+
+  it('names a place that is not two numbers in range', () => {
+    const form = salonForm(salon());
+    expect(salonChanges(salon(), { ...form, coordinates: '52.2' })).toEqual({
+      problem: 'coordinates',
+    });
+    expect(salonChanges(salon(), { ...form, coordinates: '95, 20' })).toEqual({
+      problem: 'coordinates',
+    });
+  });
+});
+
+describe('parseCoordinates / formatCoordinates', () => {
+  it('reads a comma, a semicolon or spaces between the numbers', () => {
+    expect(parseCoordinates('52.1;21.0')).toEqual({ latitude: 52.1, longitude: 21 });
+    expect(parseCoordinates('52.1 21.0')).toEqual({ latitude: 52.1, longitude: 21 });
+    expect(parseCoordinates('  ')).toBeNull();
+    expect(parseCoordinates('abc, 21')).toBe('invalid');
+    expect(formatCoordinates(null, 21)).toBe('');
   });
 });
 

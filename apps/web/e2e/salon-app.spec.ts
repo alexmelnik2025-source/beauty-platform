@@ -9,6 +9,7 @@ import { serveApp } from './mobile-app';
  * data and the second try goes through. Screenshots 131, 131a. Task 319: "Zasady rezerwacji" —
  * the lead time, how far ahead, the change deadline and the step of the times (screenshot 319).
  * Task 320: "Pytania przy rezerwacji" — mood off, a drink with what the salon has (screenshot 320).
+ * Task 321: "Miejsce na mapie katalogu" — coordinates pasted from Google Maps (screenshot 321).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -184,6 +185,24 @@ test('the owner changes the salon from the business app (task 131)', async ({
         askNote: true,
       }),
     );
+
+    // ── Task 321: the salon's place on the catalogue map ────────────────────
+    await expect(app.getByText(/Salonu nie ma jeszcze na mapie katalogu/)).toBeVisible();
+    await app.getByLabel('Miejsce na mapie katalogu').fill('52.23251');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(
+      app.getByText('Wpisz dwie liczby oddzielone przecinkiem, np. 52.23251, 20.95634.'),
+    ).toBeVisible();
+    await app.getByLabel('Miejsce na mapie katalogu').fill('52.23251, 20.95634');
+    await app.getByLabel('Miejsce na mapie katalogu').scrollIntoViewIfNeeded();
+    await shot(app, '321-business-app-salon-map');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano.')).toBeVisible();
+    await expect(app.getByText(/Salonu nie ma jeszcze na mapie katalogu/)).toBeHidden();
+    const place = await json<{ latitude: number; longitude: number }>(
+      await request.get(path, { headers: owner }),
+    );
+    expect(place).toMatchObject({ latitude: 52.23251, longitude: 20.95634 });
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');

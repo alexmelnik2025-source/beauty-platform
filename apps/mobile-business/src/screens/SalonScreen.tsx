@@ -31,6 +31,7 @@ import type { SalonChoice } from './SalonsScreen';
  * terms stay in their own places (the team's schedule, "Usługi", the salon dashboard).
  * Task 319: "Zasady rezerwacji" — the lead time, how far ahead, the change deadline, the step.
  * Task 320: "Pytania przy rezerwacji" — mood, a drink (and which ones the salon has), a note.
+ * Task 321: "Miejsce na mapie katalogu" — the coordinates as Google Maps gives them.
  */
 export function SalonScreen(props: {
   api: BusinessApi;
@@ -80,6 +81,7 @@ export function SalonScreen(props: {
     lead: s.badLead,
     horizon: s.badHorizon,
     deadline: s.badDeadline,
+    coordinates: s.badCoordinates,
   };
 
   async function save() {
@@ -128,9 +130,15 @@ export function SalonScreen(props: {
       | 'phone'
       | 'minLeadMinutes'
       | 'bookingHorizonDays'
-      | 'clientCancelDeadlineMinutes',
+      | 'clientCancelDeadlineMinutes'
+      | 'coordinates',
     label: string,
-    options: { maxLength: number; keyboardType?: 'phone-pad' | 'number-pad'; hint?: string },
+    options: {
+      maxLength: number;
+      keyboardType?: 'phone-pad' | 'number-pad' | 'numbers-and-punctuation';
+      hint?: string;
+      placeholder?: string;
+    },
   ) =>
     form ? (
       <View style={styles.field}>
@@ -140,6 +148,8 @@ export function SalonScreen(props: {
           value={form[key]}
           maxLength={options.maxLength}
           keyboardType={options.keyboardType}
+          placeholder={options.placeholder}
+          placeholderTextColor={colors.placeholder}
           onChangeText={(value) => setForm({ ...form, [key]: value })}
           style={styles.input}
         />
@@ -211,6 +221,17 @@ export function SalonScreen(props: {
               />
               <Text style={styles.small}>{s.descriptionHint}</Text>
             </View>
+            {location && (location.latitude === null || location.longitude === null) ? (
+              <Text role="note" style={styles.note}>
+                {s.notOnMap}
+              </Text>
+            ) : null}
+            {field('coordinates', s.map, {
+              maxLength: 60,
+              keyboardType: 'numbers-and-punctuation',
+              hint: s.mapHint,
+              placeholder: '52.23251, 20.95634',
+            })}
           </Card>
           <Card>
             <Text style={styles.section}>{s.rules}</Text>
@@ -309,6 +330,14 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   multiline: { minHeight: 96, textAlignVertical: 'top' },
+  note: {
+    color: colors.ink,
+    fontSize: 14,
+    backgroundColor: colors.soft,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
   section: { fontSize: 16, color: colors.ink, fontWeight: '700', marginBottom: 10 },
   chip: {
     borderWidth: 1,

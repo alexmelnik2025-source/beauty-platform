@@ -641,6 +641,12 @@ export const en: Dictionary = {
     badLead: 'Enter a number of minutes from 0 to 10080 (a week).',
     badHorizon: 'Enter a number of days from 1 to 365.',
     badDeadline: 'Enter a number of minutes from 0 to 10080 (a week).',
+    map: 'Place on the catalogue map',
+    mapHint:
+      'Optional. In Google Maps, press and hold on the salon — the coordinates appear in the search box (e.g. 52.23251, 20.95634). Copy them here.',
+    notOnMap:
+      'The salon is not on the catalogue map yet — without coordinates clients see it only in the list.',
+    badCoordinates: 'Enter two numbers separated by a comma, e.g. 52.23251, 20.95634.',
     questions: 'Questions when booking',
     questionsHint:
       'The last, optional booking step — the client answers with one tap or skips it. The specialist sees the answers on the visit.',

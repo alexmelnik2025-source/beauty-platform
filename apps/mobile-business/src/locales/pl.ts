@@ -641,6 +641,12 @@ export const pl = {
     badLead: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
     badHorizon: 'Wpisz liczbę dni od 1 do 365.',
     badDeadline: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
+    map: 'Miejsce na mapie katalogu',
+    mapHint:
+      'Nieobowiązkowe. W Mapach Google przytrzymaj palec na salonie — współrzędne pojawią się w polu wyszukiwania (np. 52.23251, 20.95634). Skopiuj je tutaj.',
+    notOnMap:
+      'Salonu nie ma jeszcze na mapie katalogu — bez współrzędnych klienci widzą go tylko na liście.',
+    badCoordinates: 'Wpisz dwie liczby oddzielone przecinkiem, np. 52.23251, 20.95634.',
     questions: 'Pytania przy rezerwacji',
     questionsHint:
       'Ostatni, nieobowiązkowy krok rezerwacji — klient odpowiada jednym dotknięciem albo pomija. Odpowiedzi widzi specjalista w wizycie.',

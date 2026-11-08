@@ -6,7 +6,8 @@ import { OFFERED_DRINKS, type OfferedDrink } from './wishes';
  * "Salon" in the business app (task 131): the owner or a manager changes the salon's name,
  * address, phone, description and switches online booking on or off; task 319 adds the booking
  * rules (how early and how far ahead clients book, until when they change a visit, the step of
- * the times offered), task 320 the questions on the last booking step (mood, drink, a note).
+ * the times offered), task 320 the questions on the last booking step (mood, drink, a note),
+ * task 321 the salon's place on the catalogue map.
  * No React Native here — tested in Vitest (test/salon.test.ts). The server checks the right again (owner, or the
  * salon's manager) and refuses online booking without terms and a privacy policy.
  */
@@ -29,6 +30,8 @@ export interface SalonForm {
   askDrink: boolean;
   drinks: OfferedDrink[];
   askNote: boolean;
+  /** Task 321, "Miejsce na mapie katalogu": "52.23251, 20.95634" as Google Maps gives it. */
+  coordinates: string;
 }
 
 /** Task 319: the steps the booking page offers times in — the server allows only these. */
@@ -54,6 +57,7 @@ export function salonForm(location: Location): SalonForm {
     askDrink: location.askDrink,
     drinks: [...location.drinks],
     askNote: location.askNote,
+    coordinates: formatCoordinates(location.latitude, location.longitude),
   };
 }
 
@@ -76,6 +80,27 @@ export interface SalonChanges {
   askDrink?: boolean;
   drinks?: OfferedDrink[];
   askNote?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/** Task 321: the salon's place as one line of text; empty when it has none. */
+export function formatCoordinates(latitude: number | null, longitude: number | null): string {
+  return latitude === null || longitude === null ? '' : `${latitude}, ${longitude}`;
+}
+
+/** Task 321: null = empty (not on the map); 'invalid' = not two numbers in range. */
+export function parseCoordinates(
+  text: string,
+): { latitude: number; longitude: number } | null | 'invalid' {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(/[\s,;]+/).filter(Boolean);
+  if (parts.length !== 2) return 'invalid';
+  const [latitude, longitude] = parts.map(Number) as [number, number];
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return 'invalid';
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return 'invalid';
+  return { latitude, longitude };
 }
 
 /** Task 320: a drink ticked or unticked; the list keeps the order the salon sees it in. */
@@ -119,6 +144,8 @@ export function salonChanges(
   if (bookingHorizonDays === null) return { problem: 'horizon' };
   const clientCancelDeadlineMinutes = whole(form.clientCancelDeadlineMinutes, 0, WEEK_MINUTES);
   if (clientCancelDeadlineMinutes === null) return { problem: 'deadline' };
+  const point = parseCoordinates(form.coordinates);
+  if (point === 'invalid') return { problem: 'coordinates' };
 
   const changes: SalonChanges = {};
   if (name !== location.name) changes.name = name;
@@ -146,6 +173,12 @@ export function salonChanges(
   const same = (a: readonly string[], b: readonly string[]) =>
     a.length === b.length && a.every((d) => b.includes(d));
   if (!same(form.drinks, location.drinks)) changes.drinks = form.drinks;
+  const latitude = point?.latitude ?? null;
+  const longitude = point?.longitude ?? null;
+  if (latitude !== location.latitude || longitude !== location.longitude) {
+    changes.latitude = latitude;
+    changes.longitude = longitude;
+  }
   return { changes };
 }
 
