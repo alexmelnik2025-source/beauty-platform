@@ -119,7 +119,7 @@ test('the owner orders and renames the categories of the price list', async ({
   await cabinet.getByRole('button', { name: 'Wyżej: Włosy' }).click();
   await expect(cabinet.getByRole('button', { name: 'Wyżej: Włosy' })).toBeDisabled();
   await expect(headings).toHaveText(['Włosy', 'Broda']);
-  expect(await categories()).toEqual(['Włosy', 'Broda']);
+  await expect.poll(categories).toEqual(['Włosy', 'Broda']);
 
   // Rename "Broda" in place.
   await cabinet.getByRole('button', { name: 'Zmień nazwę' }).nth(1).click();
@@ -134,6 +134,6 @@ test('the owner orders and renames the categories of the price list', async ({
   await cabinet.getByRole('button', { name: 'Nowa kategoria' }).click();
   await expect(headings).toHaveText(['Włosy', 'Broda i golenie', 'Dzieci']);
   await shot(cabinet, '254-category-order');
-  expect(await categories()).toEqual(['Włosy', 'Broda i golenie', 'Dzieci']);
+  await expect.poll(categories).toEqual(['Włosy', 'Broda i golenie', 'Dzieci']);
   await desk.close();
 });
