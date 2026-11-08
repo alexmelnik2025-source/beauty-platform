@@ -9,6 +9,16 @@
     "ios": { "bundleIdentifier": "dev.beautyplatform.business", "supportsTablet": true },
     "android": { "package": "dev.beautyplatform.business" },
     "web": { "output": "single", "bundler": "metro" },
-    "plugins": ["expo-secure-store"]
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app lets the salon add photos of the salon to its booking page.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

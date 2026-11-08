@@ -14,6 +14,8 @@ import { serveApp } from './mobile-app';
  * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — Czechia and koruna (screenshot 323).
  * Task 324: "Regulamin i prywatność" — the template over the written terms, own privacy words
  * (screenshot 324). Task 325: "Zdjęcia salonu" — two photos, one removed (screenshot 325).
+ * Task 337: a new photo from the phone's gallery (the browser's file chooser here; screenshot
+ * 337).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -315,6 +317,26 @@ test('the owner changes the salon from the business app (task 131)', async ({
       await request.get(`${path}/photos`, { headers: owner }),
     );
     expect(left).toHaveLength(1);
+
+    // ── Task 337: a photo from the gallery (the file chooser in the web preview) ──
+    const chooser = app.waitForEvent('filechooser', { timeout: 15_000 });
+    await app.getByRole('button', { name: '+ Dodaj zdjęcie' }).click();
+    await (
+      await chooser
+    ).setFiles({
+      name: 'krzeslo.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await drawnPhoto(app, 'NOWE'),
+    });
+    await expect(app.getByText('Zdjęcie dodane', { exact: false })).toBeVisible();
+    await expect(app.getByLabel('Zdjęcie 2', { exact: true })).toBeVisible();
+    await app.getByText('Zdjęcia salonu', { exact: true }).scrollIntoViewIfNeeded();
+    await shot(app, '337-business-app-salon-photo-added');
+    const now = await json<{ contentType: string }[]>(
+      await request.get(`${path}/photos`, { headers: owner }),
+    );
+    expect(now).toHaveLength(2);
+    expect(now[1]!.contentType).toBe('image/jpeg');
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');
