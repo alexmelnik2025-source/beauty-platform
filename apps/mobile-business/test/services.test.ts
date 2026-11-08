@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { ServiceCategoryList, ServiceList } from '../src/api';
 import {
   bookingProblem,
+  copiedRates,
+  copyForm,
+  copyName,
   durationText,
   movedCategoryOrder,
   movedOrder,
@@ -10,6 +13,7 @@ import {
   priceInput,
   priceList,
   serviceChange,
+  serviceCopy,
 } from '../src/services';
 
 const service = (over: Partial<ServiceList[number]> & { id: string; name: string }) =>
@@ -180,5 +184,79 @@ describe('movedCategoryOrder (task 255)', () => {
     // The empty category is not on the screen: "Broda" is the last one there.
     expect(movedCategoryOrder(categories, groups, 'c-beard', 1)).toBeNull();
     expect(movedCategoryOrder(categories, groups, 'c-empty', -1)).toBeNull();
+  });
+});
+
+describe('"Duplikuj" (task 310)', () => {
+  const source = service({
+    id: 'a',
+    name: 'Strzyżenie męskie',
+    categoryId: 'c-hair',
+    priceGrosze: 9050,
+    durationMinutes: 45,
+    active: false,
+    staffIds: ['s1', 's2'],
+    description: 'Z myciem',
+    bufferMinutes: 10,
+    color: '#112233',
+    wishPhotos: true,
+  });
+
+  it('fills the form as the source, with "(kopia)" in the name', () => {
+    expect(copyForm(source, '{name} (kopia)')).toEqual({
+      name: 'Strzyżenie męskie (kopia)',
+      price: '90,50',
+      duration: '45',
+      active: false,
+    });
+    expect(copyName('{name} (kopia)', 'x'.repeat(100))).toHaveLength(100);
+  });
+
+  it('keeps everything else of the source', () => {
+    const form = { name: ' Strzyżenie dzieci ', price: '60', duration: '30', active: true };
+    expect(serviceCopy(source, form)).toEqual({
+      ok: true,
+      service: {
+        name: 'Strzyżenie dzieci',
+        description: 'Z myciem',
+        durationMinutes: 30,
+        bufferMinutes: 10,
+        priceGrosze: 6000,
+        active: true,
+        categoryId: 'c-hair',
+        color: '#112233',
+        wishPhotos: true,
+        staffIds: ['s1', 's2'],
+      },
+    });
+  });
+
+  it('says what is wrong in the form', () => {
+    const form = { name: 'Kopia', price: '60', duration: '30', active: true };
+    expect(serviceCopy(source, { ...form, name: '  ' })).toEqual({ ok: false, problem: 'name' });
+    expect(serviceCopy(source, { ...form, price: 'abc' })).toEqual({ ok: false, problem: 'price' });
+    expect(serviceCopy(source, { ...form, duration: '7' })).toEqual({
+      ok: false,
+      problem: 'duration',
+    });
+  });
+
+  it('copies own prices and durations of the source for the specialists of the copy', () => {
+    const rates = {
+      prices: [
+        { serviceId: 'a', staffId: 's1', priceGrosze: 12000 },
+        { serviceId: 'a', staffId: 's9', priceGrosze: 1 },
+        { serviceId: 'b', staffId: 's2', priceGrosze: 2 },
+      ],
+      durations: [
+        { serviceId: 'a', staffId: 's2', durationMinutes: 60 },
+        { serviceId: 'b', staffId: 's1', durationMinutes: 5 },
+      ],
+    };
+    expect(copiedRates(rates, 'a', ['s1', 's2'])).toEqual({
+      prices: [{ staffId: 's1', priceGrosze: 12000 }],
+      durations: [{ staffId: 's2', durationMinutes: 60 }],
+    });
+    expect(copiedRates(rates, 'c', ['s1'])).toEqual({ prices: [], durations: [] });
   });
 });

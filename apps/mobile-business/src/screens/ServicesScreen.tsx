@@ -14,12 +14,16 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
   bookingProblem,
+  copiedRates,
+  copyForm,
   durationText,
   movedCategoryOrder,
   movedOrder,
   priceInput,
   priceList,
   serviceChange,
+  serviceCopy,
+  type CopyForm,
   type Service,
   type ServiceGroup,
 } from '../services';
@@ -29,8 +33,9 @@ import type { SalonChoice } from './SalonsScreen';
 /**
  * Task 93: "Usługi" — the owner or a manager sees the price list by category and changes a
  * service's price, duration and "bookable online" from the phone; ↑ / ↓ set the order clients
- * see (task 253), and the categories' order too (task 255). New services, categories and
- * who performs a service stay in the cabinet (one line says so).
+ * see (task 253), and the categories' order too (task 255). "Duplikuj" makes a new service as a
+ * copy of one (task 310). New categories and who performs a service stay in the cabinet (one
+ * line says so).
  */
 export function ServicesScreen(props: {
   api: BusinessApi;
@@ -48,6 +53,9 @@ export function ServicesScreen(props: {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ price: '', duration: '', active: true });
   const [busy, setBusy] = useState(false);
+  /** Task 310: the service being copied, and the copy's name, price, duration, online. */
+  const [copyId, setCopyId] = useState<string | null>(null);
+  const [copy, setCopy] = useState<CopyForm>({ name: '', price: '', duration: '', active: true });
 
   const load = useCallback(async () => {
     try {
@@ -76,6 +84,7 @@ export function ServicesScreen(props: {
   }, [onBack]);
 
   function edit(service: Service) {
+    setCopyId(null);
     setEditId(service.id);
     setForm({
       price: priceInput(service.priceGrosze),
@@ -108,6 +117,44 @@ export function ServicesScreen(props: {
       } else {
         setError(errorText(e, t));
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Task 310: "Duplikuj" — the copy's form, filled as the service. Nothing is created yet. */
+  function duplicate(service: Service) {
+    setEditId(null);
+    setCopyId(service.id);
+    setCopy(copyForm(service, u.copyName));
+    setError('');
+    setInfo('');
+  }
+
+  /**
+   * Task 310: creates the copy (as the cabinet's "Duplikuj", task 251) with the specialists'
+   * own prices and durations of the source; it lands at the end of its category.
+   */
+  async function saveCopy(source: Service) {
+    const checked = serviceCopy(source, copy);
+    if (!checked.ok) return setError(u.problem[checked.problem]);
+    setBusy(true);
+    try {
+      const rates = await api.staffPrices(salon.orgId, salon.locationId);
+      const created = await api.createService(salon.orgId, salon.locationId, checked.service);
+      const own = copiedRates(rates, source.id, created.staffIds);
+      if (own.prices.length > 0) {
+        await api.saveStaffPrices(salon.orgId, salon.locationId, created.id, own.prices);
+      }
+      if (own.durations.length > 0) {
+        await api.saveStaffDurations(salon.orgId, salon.locationId, created.id, own.durations);
+      }
+      setCopyId(null);
+      setInfo(fill(u.copied, { name: created.name }));
+      setError('');
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
     } finally {
       setBusy(false);
     }
@@ -206,6 +253,7 @@ export function ServicesScreen(props: {
               {group.services.map((service, index) => {
                 const problem = bookingProblem(service);
                 const open = editId === service.id;
+                const copying = copyId === service.id;
                 return (
                   <Card key={service.id}>
                     <Text style={[styles.name, !service.active && { color: colors.muted }]}>
@@ -258,6 +306,63 @@ export function ServicesScreen(props: {
                           />
                         </View>
                       </View>
+                    ) : copying ? (
+                      <View style={{ gap: 10, marginTop: 6 }}>
+                        <Text role="heading" aria-level={3} style={styles.label}>
+                          {u.copyTitle}
+                        </Text>
+                        <Text style={styles.muted}>{u.copyHint}</Text>
+                        <Text style={styles.label}>{u.name}</Text>
+                        <TextInput
+                          accessibilityLabel={u.name}
+                          value={copy.name}
+                          onChangeText={(name) => setCopy((f) => ({ ...f, name }))}
+                          maxLength={100}
+                          style={styles.input}
+                        />
+                        <Text style={styles.label}>
+                          {fill(u.price, { currency: salon.currency })}
+                        </Text>
+                        <TextInput
+                          accessibilityLabel={fill(u.price, { currency: salon.currency })}
+                          value={copy.price}
+                          onChangeText={(price) => setCopy((f) => ({ ...f, price }))}
+                          keyboardType="decimal-pad"
+                          style={styles.input}
+                        />
+                        <Text style={styles.label}>{u.duration}</Text>
+                        <TextInput
+                          accessibilityLabel={u.duration}
+                          value={copy.duration}
+                          onChangeText={(duration) => setCopy((f) => ({ ...f, duration }))}
+                          keyboardType="number-pad"
+                          style={styles.input}
+                        />
+                        <Pressable
+                          accessibilityRole="checkbox"
+                          accessibilityLabel={u.active}
+                          accessibilityState={{ checked: copy.active }}
+                          onPress={() => setCopy((f) => ({ ...f, active: !f.active }))}
+                          style={styles.check}
+                        >
+                          <Text style={[styles.box, copy.active && styles.boxOn]}>
+                            {copy.active ? '✓' : ''}
+                          </Text>
+                          <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
+                        </Pressable>
+                        <View style={styles.row}>
+                          <Button
+                            label={u.save}
+                            busy={busy}
+                            onPress={() => void saveCopy(service)}
+                          />
+                          <Button
+                            kind="secondary"
+                            label={u.cancel}
+                            onPress={() => setCopyId(null)}
+                          />
+                        </View>
+                      </View>
                     ) : (
                       <View style={styles.row}>
                         <Button
@@ -265,6 +370,12 @@ export function ServicesScreen(props: {
                           label={u.edit}
                           a11yLabel={`${u.edit}: ${service.name}`}
                           onPress={() => edit(service)}
+                        />
+                        <Button
+                          kind="link"
+                          label={u.duplicate}
+                          a11yLabel={`${u.duplicate}: ${service.name}`}
+                          onPress={() => duplicate(service)}
                         />
                         {index > 0 ? (
                           <Button

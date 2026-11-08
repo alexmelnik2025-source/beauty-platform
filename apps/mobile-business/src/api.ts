@@ -76,6 +76,21 @@ export interface ServiceChange {
   durationMinutes?: number;
   active?: boolean;
 }
+/** Task 310: a new service as the server takes it (the copy of one — "Duplikuj"). */
+export interface NewService {
+  name: string;
+  description: string | null;
+  durationMinutes: number;
+  bufferMinutes: number;
+  priceGrosze: number;
+  active: boolean;
+  categoryId: string | null;
+  color: string | null;
+  wishPhotos: boolean;
+  staffIds: string[];
+}
+/** Task 310: own prices and durations of specialists (only the ones that differ). */
+export type StaffPrices = components['schemas']['StaffPrices'];
 /** Task 92: the team — people with access and the invitations of the last 30 days. */
 export type MemberList = components['schemas']['MemberList'];
 export type Invitation = components['schemas']['Invitation'];
@@ -778,6 +793,51 @@ export class BusinessApi {
       'PATCH',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services/${enc(id)}`,
       change,
+    );
+  }
+
+  /** Task 310: owner or manager — a new service (a copy made with "Duplikuj"). */
+  createService(orgId: string, locationId: string, body: NewService): Promise<ServiceList[number]> {
+    return this.authed<ServiceList[number]>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services`,
+      body,
+    );
+  }
+
+  /** Task 310: own prices and durations of the specialists, for every service of the salon. */
+  staffPrices(orgId: string, locationId: string): Promise<StaffPrices> {
+    return this.authed<StaffPrices>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff-prices`,
+    );
+  }
+
+  /** Task 310: replaces the own prices of one service (owner or manager). */
+  saveStaffPrices(
+    orgId: string,
+    locationId: string,
+    serviceId: string,
+    prices: { staffId: string; priceGrosze: number }[],
+  ): Promise<StaffPrices> {
+    return this.authed<StaffPrices>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services/${enc(serviceId)}/staff-prices`,
+      { prices },
+    );
+  }
+
+  /** Task 310: replaces the own durations of one service (owner or manager). */
+  saveStaffDurations(
+    orgId: string,
+    locationId: string,
+    serviceId: string,
+    durations: { staffId: string; durationMinutes: number }[],
+  ): Promise<StaffPrices> {
+    return this.authed<StaffPrices>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services/${enc(serviceId)}/staff-durations`,
+      { durations },
     );
   }
 

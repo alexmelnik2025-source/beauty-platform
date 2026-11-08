@@ -1,4 +1,10 @@
-import type { ServiceCategoryList, ServiceChange, ServiceList } from './api';
+import type {
+  NewService,
+  ServiceCategoryList,
+  ServiceChange,
+  ServiceList,
+  StaffPrices,
+} from './api';
 
 /**
  * "Usługi" in the business app (task 93): the price list by category, and the owner's quick
@@ -126,4 +132,81 @@ export function serviceChange(
   if (duration !== service.durationMinutes) change.durationMinutes = duration;
   if (form.active !== service.active) change.active = form.active;
   return { ok: true, change: Object.keys(change).length > 1 ? change : null };
+}
+
+/** Task 310: what "Duplikuj" asks for — the rest is taken from the service being copied. */
+export interface CopyForm {
+  name: string;
+  price: string;
+  duration: string;
+  active: boolean;
+}
+
+/** "Strzyżenie (kopia)" from the dictionary's template, cut to the 100 letters the server takes. */
+export function copyName(template: string, name: string): string {
+  return template.replace('{name}', name).slice(0, 100);
+}
+
+/** The form of a copy, filled as the source (the owner checks it before "Zapisz"). */
+export function copyForm(source: Service, template: string): CopyForm {
+  return {
+    name: copyName(template, source.name),
+    price: priceInput(source.priceGrosze),
+    duration: String(source.durationMinutes),
+    active: source.active,
+  };
+}
+
+/**
+ * Task 310: the new service — as the source (description, break, category, colour, example
+ * photos, who performs it) with the name, price, duration and "bookable online" from the form.
+ */
+export function serviceCopy(
+  source: Service,
+  form: CopyForm,
+): { ok: true; service: NewService } | { ok: false; problem: ServiceProblem | 'name' } {
+  const name = form.name.trim();
+  if (name.length === 0 || name.length > 100) return { ok: false, problem: 'name' };
+  const price = parsePrice(form.price);
+  if (price === null) return { ok: false, problem: 'price' };
+  const duration = parseDuration(form.duration);
+  if (duration === null) return { ok: false, problem: 'duration' };
+  return {
+    ok: true,
+    service: {
+      name,
+      description: source.description,
+      durationMinutes: duration,
+      bufferMinutes: source.bufferMinutes,
+      priceGrosze: price,
+      active: form.active,
+      categoryId: source.categoryId,
+      color: source.color,
+      wishPhotos: source.wishPhotos,
+      staffIds: [...source.staffIds],
+    },
+  };
+}
+
+/**
+ * Task 310: the specialists' own prices and durations of the source, for the copy — only of
+ * the specialists who perform the copy (as the cabinet's "Duplikuj", task 251).
+ */
+export function copiedRates(
+  rates: StaffPrices,
+  sourceId: string,
+  staffIds: string[],
+): {
+  prices: { staffId: string; priceGrosze: number }[];
+  durations: { staffId: string; durationMinutes: number }[];
+} {
+  const performs = new Set(staffIds);
+  return {
+    prices: rates.prices
+      .filter((p) => p.serviceId === sourceId && performs.has(p.staffId))
+      .map((p) => ({ staffId: p.staffId, priceGrosze: p.priceGrosze })),
+    durations: rates.durations
+      .filter((d) => d.serviceId === sourceId && performs.has(d.staffId))
+      .map((d) => ({ staffId: d.staffId, durationMinutes: d.durationMinutes })),
+  };
 }
