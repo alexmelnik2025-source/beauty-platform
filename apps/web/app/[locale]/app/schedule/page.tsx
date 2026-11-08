@@ -10,7 +10,10 @@ import type { Staff, WorkingHours } from '@/lib/types';
 
 type Hours = WorkingHours;
 
-/** A staff member's own hours and time off (read only: the owner or a manager changes them). */
+/**
+ * A staff member's own hours, special days (task 336) and time off (read only: the owner or a
+ * manager changes them).
+ */
 export default function MySchedulePage() {
   const { t, locale } = useI18n();
   const session = useSession();
@@ -75,6 +78,14 @@ export default function MySchedulePage() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(`${local}:00Z`));
+  /** Task 336: special days (other hours on one date) are shown too. */
+  const dayName = (date: string) =>
+    new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+      timeZone: 'UTC',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(new Date(`${date}T12:00:00Z`));
 
   return (
     <>
@@ -127,6 +138,23 @@ export default function MySchedulePage() {
                 })}
               </div>
             </section>
+            {hours.overrides.length > 0 ? (
+              <section className="section">
+                <h2>{t.team.special}</h2>
+                <div>
+                  {hours.overrides.map((d) => (
+                    <div key={d.date} className="day-row">
+                      <span>{dayName(d.date)}</span>
+                      <span className={d.intervals.length ? '' : 'muted'}>
+                        {d.intervals.length
+                          ? d.intervals.map((i) => `${i.start}–${i.end}`).join(', ')
+                          : t.team.dayOff}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
             <section className="section">
               <h2>{t.team.timeOff}</h2>
               {timeOff.length === 0 ? <p className="small muted">{t.team.noTimeOff}</p> : null}

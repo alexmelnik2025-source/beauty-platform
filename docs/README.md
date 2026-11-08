@@ -2725,3 +2725,13 @@ wykonuje» (сервер принимает цены только тех, кто
   Специалист видит особые дни, но не меняет (права проверяет сервер).
 - Код: `specialBody`/`specialInput` в `apps/mobile-business/src/hours.ts` (тест `test/hours.test.ts`), раздел в
   `ScheduleScreen.tsx`; e2e и скриншоты 335, 335a — `apps/web/e2e/app-special-day.spec.ts`.
+
+## Кабинет: «Dni specjalne» (задача 336)
+
+- В карточке специалиста («Zespół» → специалист) раздел «Dni specjalne»: список особых дней с часами и «Usuń»
+  (`DELETE …/working-hours/overrides/:date` — дата снова по обычным часам), форма «Dzień» + «Od»/«Do» →
+  `PUT …/working-hours/overrides/:date`. «Do» раньше «Od» — подсказка до отправки. Целый выходной — через
+  «Nieobecności», как и раньше.
+- «Mój grafik» показывает особые дни специалисту (только чтение).
+- Код: `apps/web/components/team/StaffSheet.tsx`, `apps/web/app/[locale]/app/schedule/page.tsx`; e2e и скриншоты
+  336, 336a — `apps/web/e2e/special-days.spec.ts`.

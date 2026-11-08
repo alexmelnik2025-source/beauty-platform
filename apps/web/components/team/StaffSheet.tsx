@@ -19,8 +19,14 @@ interface Interval {
 
 type TimeOff = TimeOffEntry;
 
+/** Task 336: a date with its own hours instead of the weekly ones (location-local). */
+interface SpecialDay {
+  date: string;
+  intervals: Interval[];
+}
+
 /**
- * One specialist: profile, services, weekly hours and time off.
+ * One specialist: profile, services, weekly hours, special days (task 336) and time off.
  * `memberEmail` is the email of the account linked to this profile, if any.
  */
 export function StaffSheet({
@@ -60,6 +66,9 @@ export function StaffSheet({
   const [week, setWeek] = useState<Interval[][] | null>(staff ? null : defaultWeek());
   const [timeOff, setTimeOff] = useState<TimeOff[]>([]);
   const [absence, setAbsence] = useState({ start: '', end: '', note: '' });
+  const [specials, setSpecials] = useState<SpecialDay[]>([]);
+  const [special, setSpecial] = useState({ date: '', start: '10:00', end: '14:00' });
+  const [specialNote, setSpecialNote] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
@@ -72,7 +81,7 @@ export function StaffSheet({
   const loadSchedule = useCallback(async () => {
     if (!staff) return;
     const [hours, off] = await Promise.all([
-      api<{ weekly: { weekday: number; intervals: Interval[] }[] }>(
+      api<{ weekly: { weekday: number; intervals: Interval[] }[]; overrides: SpecialDay[] }>(
         `${base}/staff/${staff.id}/working-hours`,
       ),
       api<TimeOff[]>(`${base}/staff/${staff.id}/time-off`),
@@ -83,6 +92,7 @@ export function StaffSheet({
         (_, i) => hours.weekly.find((d) => d.weekday === i + 1)?.intervals ?? [],
       ),
     );
+    setSpecials(hours.overrides);
     setTimeOff(off);
   }, [base, staff]);
 
@@ -165,6 +175,45 @@ export function StaffSheet({
     }
   }
 
+  /** Task 336: special hours for one date (`PUT …/working-hours/overrides/:date`). */
+  async function addSpecial(e: FormEvent) {
+    e.preventDefault();
+    if (!staff) return;
+    setError('');
+    setSpecialNote('');
+    if (special.end <= special.start) {
+      setError(t.team.specialBadTime);
+      return;
+    }
+    try {
+      await api(`${base}/staff/${staff.id}/working-hours/overrides/${special.date}`, {
+        method: 'PUT',
+        body: { intervals: [{ start: special.start, end: special.end }] },
+      });
+      setSpecial({ date: '', start: '10:00', end: '14:00' });
+      setSpecialNote(t.team.specialSaved);
+      await loadSchedule();
+    } catch (err) {
+      setError(errorText(t, err));
+    }
+  }
+
+  /** Task 336: the date gets the usual weekly hours back. */
+  async function removeSpecial(date: string) {
+    if (!staff) return;
+    setError('');
+    setSpecialNote('');
+    try {
+      await api(`${base}/staff/${staff.id}/working-hours/overrides/${date}`, {
+        method: 'DELETE',
+      });
+      setSpecialNote(t.team.specialRemoved);
+      await loadSchedule();
+    } catch (err) {
+      setError(errorText(t, err));
+    }
+  }
+
   async function removeAbsence(id: string) {
     if (!staff) return;
     try {
@@ -218,6 +267,14 @@ export function StaffSheet({
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(`${local}:00Z`));
+  /** Task 336: "środa, 24 grudnia" for a YYYY-MM-DD date. */
+  const dayName = (date: string) =>
+    new Intl.DateTimeFormat(tag, {
+      timeZone: 'UTC',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(new Date(`${date}T12:00:00Z`));
 
   return (
     <Sheet title={staff ? staff.displayName : t.team.addStaff} onClose={onClose}>
@@ -406,6 +463,74 @@ export function StaffSheet({
       </form>
 
       {staff ? (
+        <section className="section" aria-labelledby="special-days">
+          <h3 id="special-days">{t.team.special}</h3>
+          <p className="small muted">{t.team.specialHint}</p>
+          {specials.length === 0 ? <p className="small muted">{t.team.specialNone}</p> : null}
+          <ul className="history">
+            {specials.map((d) => (
+              <li key={d.date}>
+                <span>
+                  {dayName(d.date)} ·{' '}
+                  {d.intervals.length
+                    ? d.intervals.map((i) => `${i.start}–${i.end}`).join(', ')
+                    : t.team.dayOff}
+                </span>
+                <button
+                  type="button"
+                  className="link-btn small"
+                  aria-label={`${t.actions.delete}: ${dayName(d.date)}`}
+                  onClick={() => void removeSpecial(d.date)}
+                >
+                  {t.actions.delete}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {specialNote ? (
+            <p className="note" role="status">
+              {specialNote}
+            </p>
+          ) : null}
+          <form className="form" onSubmit={addSpecial}>
+            <div className="row">
+              <label className="field">
+                <span>{t.team.specialDate}</span>
+                <input
+                  type="date"
+                  required
+                  min={today()}
+                  value={special.date}
+                  onChange={(e) => setSpecial({ ...special, date: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>{t.team.start}</span>
+                <input
+                  type="time"
+                  step={300}
+                  required
+                  value={special.start}
+                  onChange={(e) => setSpecial({ ...special, start: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>{t.team.end}</span>
+                <input
+                  type="time"
+                  step={300}
+                  required
+                  value={special.end}
+                  onChange={(e) => setSpecial({ ...special, end: e.target.value })}
+                />
+              </label>
+            </div>
+            <button className="btn btn--quiet">{t.team.specialSave}</button>
+          </form>
+        </section>
+      ) : null}
+
+      {staff ? (
         <section className="section">
           <h3>{t.team.timeOff}</h3>
           {timeOff.length === 0 ? <p className="small muted">{t.team.noTimeOff}</p> : null}
@@ -497,4 +622,9 @@ export function StaffSheet({
 
 function defaultWeek(): Interval[][] {
   return Array.from({ length: 7 }, (_, i) => (i < 5 ? [{ start: '09:00', end: '18:00' }] : []));
+}
+
+/** Today in this browser, YYYY-MM-DD — special days start from today (task 336). */
+function today(): string {
+  return new Intl.DateTimeFormat('en-CA').format(new Date());
 }
