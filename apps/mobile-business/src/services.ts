@@ -121,7 +121,7 @@ export type ServiceProblem = 'price' | 'duration';
 /** Only what changed (and the version that was read); `null` change = nothing to save. */
 export function serviceChange(
   service: Service,
-  form: { price: string; duration: string; active: boolean },
+  form: { price: string; duration: string; active: boolean; categoryId?: string | null },
 ): { ok: true; change: ServiceChange | null } | { ok: false; problem: ServiceProblem } {
   const price = parsePrice(form.price);
   if (price === null) return { ok: false, problem: 'price' };
@@ -131,6 +131,10 @@ export function serviceChange(
   if (price !== service.priceGrosze) change.priceGrosze = price;
   if (duration !== service.durationMinutes) change.durationMinutes = duration;
   if (form.active !== service.active) change.active = form.active;
+  // Task 311: another category (undefined = the form does not change it).
+  if (form.categoryId !== undefined && form.categoryId !== service.categoryId) {
+    change.categoryId = form.categoryId;
+  }
   return { ok: true, change: Object.keys(change).length > 1 ? change : null };
 }
 
@@ -140,6 +144,8 @@ export interface CopyForm {
   price: string;
   duration: string;
   active: boolean;
+  /** Task 311: the copy's category; null = without a category. */
+  categoryId: string | null;
 }
 
 /** "Strzyżenie (kopia)" from the dictionary's template, cut to the 100 letters the server takes. */
@@ -154,12 +160,13 @@ export function copyForm(source: Service, template: string): CopyForm {
     price: priceInput(source.priceGrosze),
     duration: String(source.durationMinutes),
     active: source.active,
+    categoryId: source.categoryId,
   };
 }
 
 /**
- * Task 310: the new service — as the source (description, break, category, colour, example
- * photos, who performs it) with the name, price, duration and "bookable online" from the form.
+ * Task 310: the new service — as the source (description, break, colour, example photos, who
+ * performs it) with the name, price, duration, "bookable online" and category from the form.
  */
 export function serviceCopy(
   source: Service,
@@ -180,7 +187,7 @@ export function serviceCopy(
       bufferMinutes: source.bufferMinutes,
       priceGrosze: price,
       active: form.active,
-      categoryId: source.categoryId,
+      categoryId: form.categoryId,
       color: source.color,
       wishPhotos: source.wishPhotos,
       staffIds: [...source.staffIds],
@@ -209,4 +216,18 @@ export function copiedRates(
       .filter((d) => d.serviceId === sourceId && performs.has(d.staffId))
       .map((d) => ({ staffId: d.staffId, durationMinutes: d.durationMinutes })),
   };
+}
+
+/**
+ * Task 311: the categories to choose from, in the salon's order (also the empty ones — a new
+ * category has no services yet).
+ */
+export function categoryChoices(categories: ServiceCategoryList): ServiceCategoryList {
+  return [...categories].sort(byCategoryOrder);
+}
+
+/** Task 311: the name of a new category, trimmed; null when it is not 1–60 letters. */
+export function categoryName(name: string): string | null {
+  const trimmed = name.trim();
+  return trimmed.length === 0 || trimmed.length > 60 ? null : trimmed;
 }

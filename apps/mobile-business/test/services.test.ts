@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { ServiceCategoryList, ServiceList } from '../src/api';
 import {
   bookingProblem,
+  categoryChoices,
+  categoryName,
   copiedRates,
   copyForm,
   copyName,
@@ -208,12 +210,19 @@ describe('"Duplikuj" (task 310)', () => {
       price: '90,50',
       duration: '45',
       active: false,
+      categoryId: 'c-hair',
     });
     expect(copyName('{name} (kopia)', 'x'.repeat(100))).toHaveLength(100);
   });
 
   it('keeps everything else of the source', () => {
-    const form = { name: ' Strzyżenie dzieci ', price: '60', duration: '30', active: true };
+    const form = {
+      name: ' Strzyżenie dzieci ',
+      price: '60',
+      duration: '30',
+      active: true,
+      categoryId: 'c-beard',
+    };
     expect(serviceCopy(source, form)).toEqual({
       ok: true,
       service: {
@@ -223,7 +232,7 @@ describe('"Duplikuj" (task 310)', () => {
         bufferMinutes: 10,
         priceGrosze: 6000,
         active: true,
-        categoryId: 'c-hair',
+        categoryId: 'c-beard',
         color: '#112233',
         wishPhotos: true,
         staffIds: ['s1', 's2'],
@@ -232,7 +241,7 @@ describe('"Duplikuj" (task 310)', () => {
   });
 
   it('says what is wrong in the form', () => {
-    const form = { name: 'Kopia', price: '60', duration: '30', active: true };
+    const form = { name: 'Kopia', price: '60', duration: '30', active: true, categoryId: null };
     expect(serviceCopy(source, { ...form, name: '  ' })).toEqual({ ok: false, problem: 'name' });
     expect(serviceCopy(source, { ...form, price: 'abc' })).toEqual({ ok: false, problem: 'price' });
     expect(serviceCopy(source, { ...form, duration: '7' })).toEqual({
@@ -258,5 +267,34 @@ describe('"Duplikuj" (task 310)', () => {
       durations: [{ staffId: 's2', durationMinutes: 60 }],
     });
     expect(copiedRates(rates, 'c', ['s1'])).toEqual({ prices: [], durations: [] });
+  });
+});
+
+describe('categories in the app (task 311)', () => {
+  it('offers every category in the salon order, also the empty ones', () => {
+    expect(categoryChoices(categories).map((c) => c.name)).toEqual(['Włosy', 'Broda', 'Pusta']);
+  });
+
+  it('checks the name of a new category', () => {
+    expect(categoryName('  Koloryzacja ')).toBe('Koloryzacja');
+    expect(categoryName('   ')).toBeNull();
+    expect(categoryName('x'.repeat(61))).toBeNull();
+  });
+
+  it('moves a service to another category, or out of every one', () => {
+    const cut = service({ id: 'a', name: 'Strzyżenie', categoryId: 'c-hair' });
+    const form = { price: '90', duration: '45', active: true };
+    expect(serviceChange(cut, { ...form, categoryId: 'c-beard' })).toEqual({
+      ok: true,
+      change: { version: 3, categoryId: 'c-beard' },
+    });
+    expect(serviceChange(cut, { ...form, categoryId: null })).toEqual({
+      ok: true,
+      change: { version: 3, categoryId: null },
+    });
+    expect(serviceChange(cut, { ...form, categoryId: 'c-hair' })).toEqual({
+      ok: true,
+      change: null,
+    });
   });
 });

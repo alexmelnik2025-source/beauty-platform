@@ -75,6 +75,8 @@ export interface ServiceChange {
   priceGrosze?: number;
   durationMinutes?: number;
   active?: boolean;
+  /** Task 311: another category; null = without a category. */
+  categoryId?: string | null;
 }
 /** Task 310: a new service as the server takes it (the copy of one — "Duplikuj"). */
 export interface NewService {
@@ -802,6 +804,19 @@ export class BusinessApi {
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services`,
       body,
+    );
+  }
+
+  /** Task 311: owner or manager — a new category; the server puts it at the end (task 254). */
+  createServiceCategory(
+    orgId: string,
+    locationId: string,
+    name: string,
+  ): Promise<ServiceCategoryList[number]> {
+    return this.authed<ServiceCategoryList[number]>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/service-categories`,
+      { name },
     );
   }
 

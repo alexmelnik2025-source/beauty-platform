@@ -14,6 +14,8 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
   bookingProblem,
+  categoryChoices,
+  categoryName,
   copiedRates,
   copyForm,
   durationText,
@@ -34,8 +36,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 93: "Usługi" — the owner or a manager sees the price list by category and changes a
  * service's price, duration and "bookable online" from the phone; ↑ / ↓ set the order clients
  * see (task 253), and the categories' order too (task 255). "Duplikuj" makes a new service as a
- * copy of one (task 310). New categories and who performs a service stay in the cabinet (one
- * line says so).
+ * copy of one (task 310); a service moves to another category, and a new category is added
+ * at the end (task 311). Who performs a service stays in the cabinet (one line says so).
  */
 export function ServicesScreen(props: {
   api: BusinessApi;
@@ -51,11 +53,24 @@ export function ServicesScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ price: '', duration: '', active: true });
+  const [form, setForm] = useState<{
+    price: string;
+    duration: string;
+    active: boolean;
+    categoryId: string | null;
+  }>({ price: '', duration: '', active: true, categoryId: null });
+  /** Task 311: the name of a new category, as typed. */
+  const [newCategory, setNewCategory] = useState('');
   const [busy, setBusy] = useState(false);
   /** Task 310: the service being copied, and the copy's name, price, duration, online. */
   const [copyId, setCopyId] = useState<string | null>(null);
-  const [copy, setCopy] = useState<CopyForm>({ name: '', price: '', duration: '', active: true });
+  const [copy, setCopy] = useState<CopyForm>({
+    name: '',
+    price: '',
+    duration: '',
+    active: true,
+    categoryId: null,
+  });
 
   const load = useCallback(async () => {
     try {
@@ -90,6 +105,7 @@ export function ServicesScreen(props: {
       price: priceInput(service.priceGrosze),
       duration: String(service.durationMinutes),
       active: service.active,
+      categoryId: service.categoryId,
     });
     setError('');
     setInfo('');
@@ -158,6 +174,54 @@ export function ServicesScreen(props: {
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Task 311: a new category at the end of the order; the owner then puts services in it. */
+  async function addCategory() {
+    const name = categoryName(newCategory);
+    if (!name) return setError(u.problem.category);
+    setBusy(true);
+    try {
+      await api.createServiceCategory(salon.orgId, salon.locationId, name);
+      setNewCategory('');
+      setInfo(fill(u.categoryAdded, { name }));
+      setError('');
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Task 311: the category of a service (or of its copy) — radio chips, "Bez kategorii" last. */
+  function categoryPicker(value: string | null, onChange: (id: string | null) => void) {
+    const options = [
+      ...categoryChoices(categories).map((c) => ({ id: c.id as string | null, name: c.name })),
+      { id: null, name: u.other },
+    ];
+    return (
+      <>
+        <Text style={styles.label}>{u.category}</Text>
+        <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={u.category}>
+          {options.map((option) => {
+            const on = option.id === value;
+            return (
+              <Pressable
+                key={option.id ?? '-'}
+                accessibilityRole="radio"
+                accessibilityLabel={option.name}
+                accessibilityState={{ checked: on }}
+                onPress={() => onChange(option.id)}
+                style={[styles.chip, on && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, on && styles.chipTextOn]}>{option.name}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </>
+    );
   }
 
   /** Task 253: a place up or down within the category — clients see the price list so. */
@@ -297,6 +361,9 @@ export function ServicesScreen(props: {
                           </Text>
                           <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
                         </Pressable>
+                        {categoryPicker(form.categoryId, (categoryId) =>
+                          setForm((f) => ({ ...f, categoryId })),
+                        )}
                         <View style={styles.row}>
                           <Button label={u.save} busy={busy} onPress={() => void save(service)} />
                           <Button
@@ -350,6 +417,9 @@ export function ServicesScreen(props: {
                           </Text>
                           <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
                         </Pressable>
+                        {categoryPicker(copy.categoryId, (categoryId) =>
+                          setCopy((f) => ({ ...f, categoryId })),
+                        )}
                         <View style={styles.row}>
                           <Button
                             label={u.save}
@@ -402,6 +472,24 @@ export function ServicesScreen(props: {
           );
         })
       )}
+      {groups !== null ? (
+        <View style={{ gap: 10 }}>
+          <Text role="heading" aria-level={2} style={styles.section}>
+            {u.newCategory}
+          </Text>
+          <TextInput
+            accessibilityLabel={u.newCategory}
+            value={newCategory}
+            onChangeText={setNewCategory}
+            maxLength={60}
+            placeholder={u.newCategoryPlaceholder}
+            style={styles.input}
+          />
+          <View style={styles.row}>
+            <Button label={u.addCategory} busy={busy} onPress={() => void addCategory()} />
+          </View>
+        </View>
+      ) : null}
       {groups && groups.length > 0 ? <Text style={styles.muted}>{u.hint}</Text> : null}
     </ScrollView>
   );
@@ -440,4 +528,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   boxOn: { backgroundColor: colors.ink },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.card,
+  },
+  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipText: { color: colors.ink, fontSize: 14 },
+  chipTextOn: { color: '#fff', fontWeight: '600' },
 });

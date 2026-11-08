@@ -13,8 +13,9 @@ import { serveApp } from './mobile-app';
  * the price list by category with a warning on a service nobody performs, changes a price and a
  * duration, and takes a service off online booking. Task 253: "↑" puts the combo first in its
  * category — the order clients see. Task 255: "↑" by "Broda" puts the category first.
- * Task 310: "Duplikuj" makes a copy of the combo with Kasia's own price. Screenshots 93–93b,
- * 253, 255, 310.
+ * Task 310: "Duplikuj" makes a copy of the combo with Kasia's own price. Task 311: a new
+ * category "Koloryzacja", and the beard trim moves into it. Screenshots 93–93b, 253, 255, 310,
+ * 311.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -210,6 +211,21 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(
       app.getByRole('button', { name: 'Zmień: Strzyżenie + broda junior' }),
     ).toBeVisible();
+
+    // ── Task 311: a new category, and a service moves into it ─────────────
+    await app.getByLabel('Nowa kategoria').fill('Koloryzacja');
+    await app.getByRole('button', { name: 'Dodaj kategorię' }).click();
+    await expect(app.getByText(/^Dodano kategorię: Koloryzacja\./)).toBeVisible();
+    await app.getByRole('button', { name: 'Zmień: Trymowanie brody' }).click();
+    await expect(app.getByRole('radio', { name: 'Broda', exact: true })).toBeChecked();
+    await app.getByRole('radio', { name: 'Koloryzacja' }).click();
+    await expect(app.getByRole('radio', { name: 'Koloryzacja' })).toBeChecked();
+    await shot(app, '311-business-app-service-category');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano: Trymowanie brody.')).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Koloryzacja', exact: true })).toBeVisible();
+    // "Broda" has no services now — the price list leaves it out.
+    await expect(app.getByRole('heading', { name: 'Broda', exact: true })).toHaveCount(0);
     await context.close();
   } finally {
     businessApp.server.close();
@@ -226,7 +242,9 @@ test('the owner changes prices, durations and online booking in the business app
   const categories = await json<{ id: string }[]>(
     await request.get(`${base}/service-categories`, { headers: owner }),
   );
-  expect(categories.map((c) => c.id)).toEqual([beard.id, hair.id]);
+  // Task 311: "Koloryzacja" was added at the end.
+  expect(categories.map((c) => c.id).slice(0, 2)).toEqual([beard.id, hair.id]);
+  expect(categories).toHaveLength(3);
 
   // Task 310: the copy — at the end of "Włosy", as the combo, with Kasia's own price.
   const copied = await json<
@@ -239,6 +257,8 @@ test('the owner changes prices, durations and online booking in the business app
       staffIds: string[];
     }[]
   >(await request.get(`${base}/services`, { headers: owner }));
+  // Task 311: the beard trim is in "Koloryzacja" now.
+  expect(copied.find((s) => s.name === 'Trymowanie brody')?.categoryId).toBe(categories[2]!.id);
   const junior = copied.find((s) => s.name === 'Strzyżenie + broda junior');
   expect(junior).toMatchObject({
     categoryId: hair.id,
