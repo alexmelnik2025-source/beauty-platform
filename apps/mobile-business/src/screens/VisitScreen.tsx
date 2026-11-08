@@ -32,6 +32,8 @@ import { wishLines } from '../wishes';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
+import { VisitCouponsSection } from './VisitCouponsSection';
+import { mayUseCoupons } from '../visitCoupons';
 import type { PaymentMethod } from '../payment';
 import { parseTip, tipInput } from '../tip';
 import type { NewVisitPreset } from '../waitlist';
@@ -329,6 +331,19 @@ export function VisitScreen(props: {
         </View>
       ) : props.canChange && visit.status === 'confirmed' ? (
         <Text style={styles.muted}>{v.notStarted}</Text>
+      ) : null}
+      {mayUseCoupons(visit, props.canChange) ? (
+        <VisitCouponsSection
+          api={api}
+          t={t}
+          locale={props.locale}
+          salon={salon}
+          visit={visit}
+          onVisit={(next) => {
+            setVisit(next);
+            props.onChanged();
+          }}
+        />
       ) : null}
       {actions.pay ? (
         <>

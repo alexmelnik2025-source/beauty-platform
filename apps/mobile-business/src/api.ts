@@ -38,6 +38,7 @@ export type CustomerTags = components['schemas']['CustomerTags'];
 /** Task 273: how many clients each quick filter of the client list would show. */
 export type CustomerSegments = components['schemas']['CustomerSegments'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
+export type VisitCoupons = components['schemas']['VisitCoupons'];
 /** Task 206: the salon's loyalty program, its rewards and operations. */
 export type LoyaltyProgram = components['schemas']['LoyaltyProgram'];
 export type LoyaltyReward = components['schemas']['LoyaltyReward'];
@@ -614,6 +615,60 @@ export class BusinessApi {
       version,
       tipGrosze,
     });
+  }
+
+  /**
+   * Task 343: the client's coupons on a visit that is not paid yet — what is used, the other unused
+   * coupons with what each would take off (or why not), and the tier discount. Whoever may
+   * change the visit (the server checks).
+   */
+  visitCoupons(orgId: string, locationId: string, id: string): Promise<VisitCoupons> {
+    return this.authed<VisitCoupons>('GET', `${appointmentPath(orgId, locationId, id)}/coupons`);
+  }
+
+  /** Uses a coupon from the list, or the code the client shows; the salon's rules → 409 COUPON_…. */
+  applyVisitCoupon(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    coupon: { couponId: string } | { code: string },
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/coupons`,
+      { version, ...coupon },
+    );
+  }
+
+  /** Takes a coupon off; the client can use it again. */
+  removeVisitCoupon(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    couponId: string,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/coupons/${enc(couponId)}/remove`,
+      { version },
+    );
+  }
+
+  /** Task 343: the client's tier discount on the visit (on) or off again. */
+  setTierDiscount(
+    orgId: string,
+    locationId: string,
+    id: string,
+    version: number,
+    on: boolean,
+  ): Promise<AppointmentDetail> {
+    return this.authed<AppointmentDetail>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/tier-discount${on ? '' : '/remove'}`,
+      { version },
+    );
   }
 
   /** Paid (earns loyalty stamps or points) or not paid (a refund takes them back). */
