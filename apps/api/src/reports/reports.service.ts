@@ -1064,6 +1064,8 @@ export class ReportsService {
         startAt: true,
         priceGrosze: true,
         discountGrosze: true,
+        tierDiscountGrosze: true,
+        listPriceGrosze: true,
         paidAt: true,
         paymentMethod: true,
         tipGrosze: true,
@@ -1098,6 +1100,9 @@ export class ReportsService {
           tipGrosze: a.tipGrosze,
           category: a.service.category?.name ?? null,
           cancelledAt: cancelled ? `${cancelled.date} ${cancelled.time}` : null,
+          tierDiscountGrosze: a.tierDiscountGrosze,
+          happyHourGrosze:
+            a.listPriceGrosze === null ? 0 : Math.max(0, a.listPriceGrosze - a.priceGrosze),
         };
       }),
       locale,

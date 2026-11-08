@@ -29,6 +29,9 @@ interface CsvTexts {
     tip: string,
     category: string,
     cancelledAt: string,
+    coupon: string,
+    tier: string,
+    happyHours: string,
   ];
   /** Task 227: how the client paid. */
   method: Record<PaymentMethod, string>;
@@ -59,6 +62,9 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Napiwek',
       'Kategoria',
       'Odwołano (kiedy)',
+      'Kupony',
+      'Rabat poziomu',
+      'Happy hours',
     ],
     method: {
       cash: 'gotówka',
@@ -97,6 +103,9 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Чайові',
       'Категорія',
       'Скасовано (коли)',
+      'Купони',
+      'Знижка рівня',
+      'Happy hours',
     ],
     method: {
       cash: 'готівка',
@@ -135,6 +144,9 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Чаевые',
       'Категория',
       'Отменён (когда)',
+      'Купоны',
+      'Скидка уровня',
+      'Happy hours',
     ],
     method: {
       cash: 'наличные',
@@ -173,6 +185,9 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Tip',
       'Category',
       'Cancelled at',
+      'Coupons',
+      'Tier discount',
+      'Happy hours',
     ],
     method: {
       cash: 'cash',
@@ -216,6 +231,10 @@ export interface CsvVisit {
   category: string | null;
   /** Task 296: when the visit was cancelled, "YYYY-MM-DD HH:MM" in the salon's time; null = not. */
   cancelledAt: string | null;
+  /** Task 306: the part of discountGrosze that is the client's tier discount (0 = none). */
+  tierDiscountGrosze: number;
+  /** Task 306: the happy-hour discount already in priceGrosze (0 = none). */
+  happyHourGrosze: number;
 }
 
 /** One cell: quoted when it holds the separator, a quote or a line break; no formula injection. */
@@ -229,6 +248,10 @@ export function amount(hundredths: number, locale: CsvLocale): string {
   const text = (hundredths / 100).toFixed(2);
   return locale === 'en' ? text : text.replace('.', ',');
 }
+
+/** Task 306: an amount, or an empty cell when it is zero. */
+const optional = (hundredths: number, locale: CsvLocale): string =>
+  hundredths > 0 ? amount(hundredths, locale) : '';
 
 export function visitsCsv(visits: CsvVisit[], locale: CsvLocale): string {
   const t = TEXTS[locale];
@@ -255,6 +278,10 @@ export function visitsCsv(visits: CsvVisit[], locale: CsvLocale): string {
         amount(v.tipGrosze, locale),
         v.category ?? '',
         v.cancelledAt ?? '',
+        // Task 306: where the discount came from; empty cells when there was none.
+        optional(v.discountGrosze - v.tierDiscountGrosze, locale),
+        optional(v.tierDiscountGrosze, locale),
+        optional(v.happyHourGrosze, locale),
       ]
         .map(cell)
         .join(';'),

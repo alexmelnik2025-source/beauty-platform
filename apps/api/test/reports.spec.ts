@@ -1147,7 +1147,7 @@ describe('salon report', () => {
 
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {
     const d1 = addDays(today, -3);
-    await visit({
+    const first = await visit({
       date: d1,
       status: 'completed',
       paid: true,
@@ -1155,6 +1155,18 @@ describe('salon report', () => {
       discountGrosze: 1550,
       tipGrosze: 1000,
       online: true,
+    });
+    // Task 306: 4 zł of the discount is the client's tier, 11,50 zł coupons; happy hours took
+    // 20 zł off the price before them.
+    await ctx.prisma.appointment.update({
+      where: { id: first },
+      data: {
+        tierDiscountGrosze: 400,
+        tierName: 'Gold',
+        tierDiscountPercent: 5,
+        listPriceGrosze: 10000,
+        happyHourPercent: 20,
+      },
     });
     await visit({
       date: d1,
@@ -1201,18 +1213,22 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     const lines = text.slice(1).trimEnd().split('\r\n');
     expect(lines).toEqual([
-      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności;Napiwek;Kategoria;Odwołano (kiedy)',
-      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta;10,00;Włosy;`,
-      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;;0,00;;${addDays(d1, -1)} 18:30`,
-      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;;0,00;Włosy;`,
+      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności;Napiwek;Kategoria;Odwołano (kiedy);Kupony;Rabat poziomu;Happy hours',
+      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta;10,00;Włosy;;11,50;4,00;20,00`,
+      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;;0,00;;${addDays(d1, -1)} 18:30;;;`,
+      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;;0,00;Włosy;;;;`,
     ]);
     expect(text).not.toContain('+48600000002');
     expect(text).not.toContain('@example.com');
 
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
     expect(english).toContain('Date;Time;Specialist;Service;Client;Status;Booked;Price');
-    expect(english).toContain('To pay;Paid;Payment method;Tip;Category;Cancelled at');
-    expect(english).toContain(';Completed;Online;80.00;15.50;64.50;yes;card;10.00;Włosy;');
+    expect(english).toContain(
+      'To pay;Paid;Payment method;Tip;Category;Cancelled at;Coupons;Tier discount;Happy hours',
+    );
+    expect(english).toContain(
+      ';Completed;Online;80.00;15.50;64.50;yes;card;10.00;Włosy;;11.50;4.00;20.00',
+    );
 
     // The same access as the report.
     await csv({}, kasiaUser.auth).expect(403);
@@ -1244,9 +1260,11 @@ describe('salon report', () => {
       tipGrosze: 0,
       category: '-Hair',
       cancelledAt: null,
+      tierDiscountGrosze: 0,
+      happyHourGrosze: 0,
     };
     expect(visitsCsv([row], 'pl').split('\r\n')[1]).toBe(
-      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;;0,00;'-Hair;`,
+      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;;0,00;'-Hair;;;;`,
     );
   });
 });
