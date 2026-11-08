@@ -1,3 +1,4 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
@@ -11,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import type { BusinessApi, Locale, Location, SalonPhoto } from '../api';
+import { photosLeft, photoType, uploadErrorText } from '../salonPhotos';
 import { CURRENCIES, currencyName, matching, salonTimeZones } from '../country';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -42,7 +44,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — chosen from the cabinet's lists.
  * Task 324: "Regulamin i prywatność" — the two texts, with the server's template to start from.
  * Task 325: "Zdjęcia salonu" — the photos on the booking page; one is removed at once (after
- * "Usunąć?"). Adding them stays in the cabinet for now (the app has no photo picker yet).
+ * "Usunąć?"). Task 337: "+ Dodaj zdjęcie" — from the phone's gallery (several at once, up to 10).
  */
 export function SalonScreen(props: {
   api: BusinessApi;
@@ -66,6 +68,8 @@ export function SalonScreen(props: {
   /** Task 325: the salon's photos (null while loading) and the one waiting for "remove?". */
   const [photos, setPhotos] = useState<SalonPhoto[] | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  /** Task 337: photos are being sent. */
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -98,6 +102,41 @@ export function SalonScreen(props: {
       setInfo(s.photoRemoved);
     } catch (e) {
       setError(errorText(e, t));
+    }
+  }
+
+  /** Task 337: photos from the gallery, one after another, as many as still fit. */
+  async function addPhotos() {
+    const left = photosLeft(photos?.length ?? 0);
+    setError('');
+    setInfo('');
+    if (left === 0) return setError(s.photosFull);
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: left > 1,
+      selectionLimit: left,
+      // Smaller files: the API takes at most 3 MB per photo.
+      quality: 0.7,
+    }).catch(() => null);
+    if (!picked) return setError(s.photoNoAccess);
+    if (picked.canceled || picked.assets.length === 0) return;
+    setUploading(true);
+    try {
+      for (const asset of picked.assets) {
+        const blob = await (await fetch(asset.uri)).blob();
+        const saved = await api.addSalonPhoto(
+          salon.orgId,
+          salon.locationId,
+          blob,
+          photoType(asset.mimeType, blob.type),
+        );
+        setPhotos((list) => [...(list ?? []), saved]);
+      }
+      setInfo(s.photoAdded);
+    } catch (e) {
+      setError(uploadErrorText(e, t) ?? errorText(e, t));
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -487,6 +526,19 @@ export function SalonScreen(props: {
                 );
               })}
             </View>
+            {photos ? (
+              <View style={[styles.row, { marginTop: 10 }]}>
+                <Button
+                  kind="secondary"
+                  label={uploading ? s.photoUploading : s.photoAdd}
+                  disabled={uploading || photosLeft(photos.length) === 0}
+                  onPress={() => void addPhotos()}
+                />
+              </View>
+            ) : null}
+            {photos && photosLeft(photos.length) === 0 ? (
+              <Text style={styles.small}>{s.photosFull}</Text>
+            ) : null}
           </Card>
           <Button label={s.save} busy={busy} onPress={() => void save()} />
         </>

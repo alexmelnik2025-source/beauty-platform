@@ -832,8 +832,7 @@ export const en: Dictionary = {
     missing: 'Still to fill in: {list}',
     legalTooLong: 'The text is too long — 50,000 characters at most.',
     photos: 'Salon photos',
-    photosHint:
-      'Up to 10 photos of the interior and your work on the booking page. Add new ones in the salon dashboard: Settings → Salon photos.',
+    photosHint: 'Up to 10 photos of the salon and your work on the booking page.',
     photosNone: 'The salon has no photos yet.',
     photo: 'Photo {n}',
     photoRemove: 'Remove',
@@ -844,6 +843,13 @@ export const en: Dictionary = {
       'To switch online booking on, the salon needs booking terms and a privacy policy — add them below in “Terms and privacy”.',
     changedMeanwhile:
       'Someone else has just changed the salon details. Here are the current ones — make your changes again.',
+    photoAdd: '+ Add a photo',
+    photoUploading: 'Uploading…',
+    photoAdded: 'Photo added — clients see it on the booking page.',
+    photosFull: 'The salon already has 10 photos — remove one to add a new one.',
+    photoTooLarge: 'The photo is too large (at most 3 MB).',
+    photoBadType: 'This is not a JPEG, PNG or WebP photo.',
+    photoNoAccess: 'No access to photos — allow the app in the phone’s settings.',
   },
   services: {
     open: 'Services',

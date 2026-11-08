@@ -833,8 +833,7 @@ export const pl = {
     missing: 'Do uzupełnienia: {list}',
     legalTooLong: 'Tekst jest za długi — najwyżej 50 000 znaków.',
     photos: 'Zdjęcia salonu',
-    photosHint:
-      'Do 10 zdjęć wnętrza i pracy na stronie rezerwacji. Nowe dodasz w panelu salonu: Ustawienia → Zdjęcia salonu.',
+    photosHint: 'Do 10 zdjęć wnętrza i pracy na stronie rezerwacji.',
     photosNone: 'Salon nie ma jeszcze zdjęć.',
     photo: 'Zdjęcie {n}',
     photoRemove: 'Usuń',
@@ -845,6 +844,13 @@ export const pl = {
       'Aby włączyć rezerwację online, salon potrzebuje regulaminu i polityki prywatności — dodaj je niżej w „Regulamin i prywatność”.',
     changedMeanwhile:
       'Ktoś inny właśnie zmienił dane salonu. Pokazujemy aktualne — wprowadź zmiany jeszcze raz.',
+    photoAdd: '+ Dodaj zdjęcie',
+    photoUploading: 'Wysyłanie…',
+    photoAdded: 'Zdjęcie dodane — klienci widzą je na stronie rezerwacji.',
+    photosFull: 'Salon ma już 10 zdjęć — usuń jedno, aby dodać nowe.',
+    photoTooLarge: 'Zdjęcie jest za duże (najwyżej 3 MB).',
+    photoBadType: 'To nie jest zdjęcie JPEG, PNG ani WebP.',
+    photoNoAccess: 'Brak dostępu do zdjęć — zezwól aplikacji w ustawieniach telefonu.',
   },
   services: {
     open: 'Usługi',

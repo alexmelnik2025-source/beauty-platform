@@ -318,6 +318,23 @@ export class BusinessApi {
     );
   }
 
+  /**
+   * Task 337: a new photo of the salon (owner or manager), the picture itself as the body
+   * (JPEG, PNG or WebP, at most 3 MB; at most 10 photos — 409 TOO_MANY_PHOTOS).
+   */
+  addSalonPhoto(
+    orgId: string,
+    locationId: string,
+    photo: Blob,
+    contentType: string,
+  ): Promise<SalonPhoto> {
+    return this.authedUpload<SalonPhoto>(
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/photos`,
+      photo,
+      contentType,
+    );
+  }
+
   /** Task 325: removes one photo of the salon at once (owner or manager). */
   removeSalonPhoto(orgId: string, locationId: string, photoId: string): Promise<void> {
     return this.authed<void>(
@@ -1388,14 +1405,29 @@ export class BusinessApi {
     }
   }
 
+  /** Task 337: POST of a file (not JSON), signed in, with one retry after a refresh. */
+  private async authedUpload<T>(path: string, file: Blob, contentType: string): Promise<T> {
+    if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
+    const send = () => this.call<T>('POST', path, new Upload(file, contentType), true);
+    try {
+      return await send();
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 401) throw error;
+      if (!(await this.refresh())) throw error;
+      return send();
+    }
+  }
+
   private async call<T>(method: string, path: string, body?: unknown, auth = false): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json' };
-    if (body !== undefined) headers['content-type'] = 'application/json';
+    const upload = isUpload(body) ? body : null;
+    if (upload) headers['content-type'] = upload.contentType;
+    else if (body !== undefined) headers['content-type'] = 'application/json';
     if (auth && this.accessToken) headers.authorization = `Bearer ${this.accessToken}`;
     const res = await this.fetchFn(`${this.baseUrl}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: upload ? upload.file : body === undefined ? undefined : JSON.stringify(body),
     });
     if (res.status === 204) return undefined as T;
     const data: unknown = await res.json().catch(() => null);
@@ -1431,6 +1463,15 @@ const guardPath = (orgId: string, locationId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/cancellation-guard`;
 const guardClientPath = (orgId: string, locationId: string, customerId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/cancellation-guard/clients/${enc(customerId)}`;
+/** Task 337: a file sent as it is (the body of `authedUpload`), not as JSON. */
+class Upload {
+  constructor(
+    readonly file: Blob,
+    readonly contentType: string,
+  ) {}
+}
+const isUpload = (body: unknown): body is Upload => body instanceof Upload;
+
 const customerPath = (orgId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/customers/${enc(id)}`;
 const blocksPath = (orgId: string, locationId: string) =>

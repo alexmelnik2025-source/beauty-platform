@@ -2735,3 +2735,13 @@ wykonuje» (сервер принимает цены только тех, кто
 - «Mój grafik» показывает особые дни специалисту (только чтение).
 - Код: `apps/web/components/team/StaffSheet.tsx`, `apps/web/app/[locale]/app/schedule/page.tsx`; e2e и скриншоты
   336, 336a — `apps/web/e2e/special-days.spec.ts`.
+
+## Бизнес-приложение: фото салона с телефона (задача 337)
+
+- «Salon» → «Zdjęcia salonu» → «+ Dodaj zdjęcie» (владелец или менеджер): галерея телефона (`expo-image-picker`, как в
+  клиентском приложении; в веб-превью — выбор файла), можно несколько сразу, сколько ещё влезает до 10. Каждое фото
+  уходит как есть (`POST …/locations/:id/photos`, тип JPEG/PNG/WebP, другие форматы телефон отдаёт как JPEG,
+  качество 0.7 — меньше 3 МБ). Ошибки сервера (10 фото, слишком большое, не картинка) — понятным текстом.
+- `BusinessApi.addSalonPhoto` — первый запрос приложения не в JSON (`authedUpload`, с повтором после обновления
+  токена). Код: `apps/mobile-business/src/salonPhotos.ts` (тест `test/salonPhotos.test.ts`), `SalonScreen.tsx`; e2e и
+  скриншот 337 — в `apps/web/e2e/salon-app.spec.ts`.
