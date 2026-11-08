@@ -641,6 +641,8 @@ export const pl = {
     badLead: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
     badHorizon: 'Wpisz liczbę dni od 1 do 365.',
     badDeadline: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
+    languages: 'Języki w salonie',
+    languagesHint: 'W jakich językach rozmawiacie z klientami. Pokażemy je na stronie rezerwacji.',
     map: 'Miejsce na mapie katalogu',
     mapHint:
       'Nieobowiązkowe. W Mapach Google przytrzymaj palec na salonie — współrzędne pojawią się w polu wyszukiwania (np. 52.23251, 20.95634). Skopiuj je tutaj.',

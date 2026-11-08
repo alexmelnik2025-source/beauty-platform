@@ -10,6 +10,7 @@ import { serveApp } from './mobile-app';
  * the lead time, how far ahead, the change deadline and the step of the times (screenshot 319).
  * Task 320: "Pytania przy rezerwacji" — mood off, a drink with what the salon has (screenshot 320).
  * Task 321: "Miejsce na mapie katalogu" — coordinates pasted from Google Maps (screenshot 321).
+ * Task 322: "Języki w salonie" — Polish and Ukrainian at the salon (screenshot 322).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -203,6 +204,19 @@ test('the owner changes the salon from the business app (task 131)', async ({
       await request.get(path, { headers: owner }),
     );
     expect(place).toMatchObject({ latitude: 52.23251, longitude: 20.95634 });
+
+    // ── Task 322: languages at the salon ────────────────────────────────────
+    await app.getByRole('checkbox', { name: 'Українська' }).click();
+    await expect(app.getByRole('checkbox', { name: 'Українська' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await app.getByText('Języki w salonie').scrollIntoViewIfNeeded();
+    await shot(app, '322-business-app-salon-languages');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano.')).toBeVisible();
+    const spoken = await json<{ languages: string[] }>(await request.get(path, { headers: owner }));
+    expect(spoken.languages).toContain('uk');
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');

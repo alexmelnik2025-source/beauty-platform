@@ -1,5 +1,6 @@
 import { ApiError, type Location } from './api';
 import { dialForTimeZone, normalizePhone } from './phone';
+import { languagesChanged, type SpokenLanguage } from './profile';
 import { OFFERED_DRINKS, type OfferedDrink } from './wishes';
 
 /**
@@ -7,7 +8,7 @@ import { OFFERED_DRINKS, type OfferedDrink } from './wishes';
  * address, phone, description and switches online booking on or off; task 319 adds the booking
  * rules (how early and how far ahead clients book, until when they change a visit, the step of
  * the times offered), task 320 the questions on the last booking step (mood, drink, a note),
- * task 321 the salon's place on the catalogue map.
+ * task 321 the salon's place on the catalogue map, task 322 the languages spoken at the salon.
  * No React Native here — tested in Vitest (test/salon.test.ts). The server checks the right again (owner, or the
  * salon's manager) and refuses online booking without terms and a privacy policy.
  */
@@ -32,6 +33,8 @@ export interface SalonForm {
   askNote: boolean;
   /** Task 321, "Miejsce na mapie katalogu": "52.23251, 20.95634" as Google Maps gives it. */
   coordinates: string;
+  /** Task 322, "Języki w salonie": shown on the booking page. */
+  languages: SpokenLanguage[];
 }
 
 /** Task 319: the steps the booking page offers times in — the server allows only these. */
@@ -58,6 +61,7 @@ export function salonForm(location: Location): SalonForm {
     drinks: [...location.drinks],
     askNote: location.askNote,
     coordinates: formatCoordinates(location.latitude, location.longitude),
+    languages: [...location.languages],
   };
 }
 
@@ -90,6 +94,7 @@ export interface SalonChanges {
   askNote?: boolean;
   latitude?: number | null;
   longitude?: number | null;
+  languages?: SpokenLanguage[];
 }
 
 /** Task 321: the salon's place as one line of text; empty when it has none. */
@@ -187,6 +192,7 @@ export function salonChanges(
     changes.latitude = latitude;
     changes.longitude = longitude;
   }
+  if (languagesChanged(location.languages, form.languages)) changes.languages = form.languages;
   return { changes };
 }
 

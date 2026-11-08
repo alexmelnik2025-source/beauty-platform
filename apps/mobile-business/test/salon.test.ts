@@ -36,6 +36,7 @@ const salon = (over: Partial<Location> = {}) =>
     askNote: false,
     latitude: null,
     longitude: null,
+    languages: ['pl'],
     version: 3,
     ...over,
   }) as Location;
@@ -59,6 +60,7 @@ describe('salonForm', () => {
       drinks: ['coffee', 'water'],
       askNote: false,
       coordinates: '',
+      languages: ['pl'],
     });
   });
 });
@@ -211,6 +213,21 @@ describe('parseCoordinates / formatCoordinates', () => {
     expect(parseCoordinates('  ')).toBeNull();
     expect(parseCoordinates('abc, 21')).toBe('invalid');
     expect(formatCoordinates(null, 21)).toBe('');
+  });
+});
+
+describe('salonChanges — languages at the salon (task 322)', () => {
+  it('sends the languages only when the set changed', () => {
+    const saved = salon({ languages: ['pl', 'en'] });
+    expect(salonChanges(saved, { ...salonForm(saved), languages: ['en', 'pl'] })).toEqual({
+      changes: {},
+    });
+    expect(salonChanges(saved, { ...salonForm(saved), languages: ['pl', 'uk', 'en'] })).toEqual({
+      changes: { languages: ['pl', 'uk', 'en'] },
+    });
+    expect(salonChanges(saved, { ...salonForm(saved), languages: [] })).toEqual({
+      changes: { languages: [] },
+    });
   });
 });
 

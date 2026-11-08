@@ -22,6 +22,7 @@ import {
   type SalonProblem,
 } from '../salon';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { SPOKEN, toggleLanguage } from '../profile';
 import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '../wishes';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -32,6 +33,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 319: "Zasady rezerwacji" — the lead time, how far ahead, the change deadline, the step.
  * Task 320: "Pytania przy rezerwacji" — mood, a drink (and which ones the salon has), a note.
  * Task 321: "Miejsce na mapie katalogu" — the coordinates as Google Maps gives them.
+ * Task 322: "Języki w salonie" — the languages shown on the booking page.
  */
 export function SalonScreen(props: {
   api: BusinessApi;
@@ -232,6 +234,32 @@ export function SalonScreen(props: {
               hint: s.mapHint,
               placeholder: '52.23251, 20.95634',
             })}
+          </Card>
+          <Card>
+            <Text style={styles.section}>{s.languages}</Text>
+            <Text style={styles.small}>{s.languagesHint}</Text>
+            <View style={[styles.row, { marginTop: 10 }]}>
+              {SPOKEN.map((l) => {
+                const on = form.languages.includes(l.code);
+                return (
+                  <Pressable
+                    key={l.code}
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={l.name}
+                    accessibilityState={{ checked: on }}
+                    aria-checked={on}
+                    onPress={() =>
+                      setForm({ ...form, languages: toggleLanguage(form.languages, l.code) })
+                    }
+                    style={[styles.chip, on && styles.chipOn]}
+                  >
+                    <Text style={[styles.chipText, on && { color: '#fff' }]}>
+                      {l.flag} {l.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </Card>
           <Card>
             <Text style={styles.section}>{s.rules}</Text>
