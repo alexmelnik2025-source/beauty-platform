@@ -1131,6 +1131,17 @@ export const en: Dictionary = {
       'Everyone sees the reply on the booking page, and the client sees it under their review.',
     replySave: 'Publish reply',
     replyCancel: 'Cancel',
+    settings: 'Review settings',
+    settingsHint:
+      'The client rates the specialist (1–5 stars) and may add a few words — only after a visit that took place. Reviews are shown on the booking page without clients’ names. We ask by email clients who agreed to messages.',
+    collect: 'Collect reviews',
+    dontCollect: 'Do not collect',
+    askAfter: 'Ask for a review after',
+    hours: '{n} h',
+    hoursLabel: 'Ask {n} h after the visit ends',
+    save: 'Save settings',
+    saved: 'Review settings saved.',
+    conflict: 'Someone has just changed the settings — showing the current ones.',
   },
   history: {
     open: 'Change log',

@@ -128,6 +128,7 @@ export interface NewInvitation {
 export type AuditLog = components['schemas']['AuditLog'];
 /** Task 201: the salon's reviews (task 165b) in the app. */
 export type SalonReviews = components['schemas']['SalonReviews'];
+export type ReviewSettings = components['schemas']['ReviewSettings'];
 export type Availability = components['schemas']['Availability'];
 /** Task 94: clients waiting for a free time (owner and manager only). */
 export type SalonWaitlist = components['schemas']['SalonWaitlist'];
@@ -687,6 +688,27 @@ export class BusinessApi {
     return this.authed<SalonReviews>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews${query}`,
+    );
+  }
+
+  /** Task 341, owner or manager only (the server checks): whether and when clients are asked. */
+  reviewSettings(orgId: string, locationId: string): Promise<ReviewSettings> {
+    return this.authed<ReviewSettings>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/review-settings`,
+    );
+  }
+
+  /** Saves with the version read (0 = never saved); 409 VERSION_CONFLICT when changed meanwhile. */
+  saveReviewSettings(
+    orgId: string,
+    locationId: string,
+    settings: ReviewSettings,
+  ): Promise<ReviewSettings> {
+    return this.authed<ReviewSettings>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/review-settings`,
+      { version: settings.version, enabled: settings.enabled, requestHours: settings.requestHours },
     );
   }
 

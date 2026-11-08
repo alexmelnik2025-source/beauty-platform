@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { BusinessApi, type SalonReviews, type TokenStore } from '../src/api';
 import { DICTIONARIES } from '../src/i18n';
-import { appendReviews, reviewLine, reviewSummary, stars, type Review } from '../src/reviews';
+import {
+  appendReviews,
+  reviewHoursChoices,
+  reviewLine,
+  reviewSettingsChanged,
+  reviewSummary,
+  stars,
+  type Review,
+} from '../src/reviews';
 
 const review = (id: string, patch: Partial<Review> = {}): Review => ({
   id,
@@ -109,3 +117,59 @@ function memoryStore(value: string | null): TokenStore {
     },
   };
 }
+
+describe('review settings (task 341)', () => {
+  const settings = { enabled: true, requestHours: 24, version: 2 };
+
+  it('offers the cabinet’s hours and keeps a value saved elsewhere in its place', () => {
+    expect(reviewHoursChoices(24)).toEqual([1, 2, 3, 6, 12, 24, 48, 72]);
+    expect(reviewHoursChoices(5)).toEqual([1, 2, 3, 5, 6, 12, 24, 48, 72]);
+  });
+
+  it('notices a change of the switch or of the hours only', () => {
+    expect(reviewSettingsChanged(settings, { ...settings })).toBe(false);
+    expect(reviewSettingsChanged(settings, { ...settings, enabled: false })).toBe(true);
+    expect(reviewSettingsChanged(settings, { ...settings, requestHours: 2 })).toBe(true);
+    expect(reviewSettingsChanged(settings, { ...settings, version: 3 })).toBe(false);
+  });
+
+  it('reads and saves the settings with the version read', async () => {
+    const calls: { key: string; body: unknown }[] = [];
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      calls.push({
+        key: `${init?.method} ${url.replace('https://api.test', '')}`,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      const body = url.endsWith('/v1/auth/refresh')
+        ? {
+            accessToken: 'access-1',
+            expiresIn: 900,
+            refreshToken: 'refresh-1-0123456789abcdefghij',
+            user: {
+              id: 'u1',
+              email: 'k@example.com',
+              name: 'K',
+              locale: 'pl',
+              emailVerified: true,
+            },
+          }
+        : settings;
+      return new Response(JSON.stringify(body), { status: 200 });
+    };
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('saved-refresh-0123456789'),
+      fetchFn,
+    );
+    expect(await api.restore()).toBe(true);
+    await api.reviewSettings('org-1', 'loc-1');
+    await api.saveReviewSettings('org-1', 'loc-1', { ...settings, requestHours: 2 });
+    expect(calls.slice(1)).toEqual([
+      { key: 'GET /v1/organizations/org-1/locations/loc-1/review-settings', body: undefined },
+      {
+        key: 'PUT /v1/organizations/org-1/locations/loc-1/review-settings',
+        body: { version: 2, enabled: true, requestHours: 2 },
+      },
+    ]);
+  });
+});
