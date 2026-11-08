@@ -394,6 +394,7 @@ export function ServicesScreen(props: {
                               accessibilityRole="checkbox"
                               accessibilityLabel={member.displayName}
                               accessibilityState={{ checked: on }}
+                              aria-checked={on}
                               onPress={() =>
                                 setForm((f) => ({ ...f, staffIds: toggled(f.staffIds, member.id) }))
                               }
