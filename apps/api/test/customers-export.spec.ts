@@ -147,6 +147,11 @@ describe('clients CSV export', () => {
       where: { id: booked.body.id },
       data: { paidAt: past, discountGrosze: 500, tipGrosze: 1250 },
     });
+    // Task 309: happy hours took 10 zł off the price as well (90 zł before them).
+    await ctx.prisma.appointment.update({
+      where: { id: booked.body.id },
+      data: { listPriceGrosze: 9000, happyHourPercent: 10 },
+    });
     // Task 303: Żaneta gave the visit five stars.
     await ctx.prisma.visitReview.create({
       data: {
@@ -241,6 +246,7 @@ describe('clients CSV export', () => {
         'Zapłacono łącznie',
         'Napiwki łącznie',
         'Średnia ocena',
+        'Rabaty łącznie',
         'Notatka',
       ],
       [
@@ -259,6 +265,7 @@ describe('clients CSV export', () => {
         '0,00',
         '0,00',
         '',
+        '0,00',
         "'=1+1",
       ],
       [
@@ -277,6 +284,7 @@ describe('clients CSV export', () => {
         '75,00',
         '12,50',
         '5,0',
+        '15,00',
         '',
       ],
     ]);
@@ -293,6 +301,8 @@ describe('clients CSV export', () => {
     expect(rows(english.text)[2]![13]).toBe('12.50');
     expect(rows(english.text)[0]![14]).toBe('Average rating');
     expect(rows(english.text)[2]![14]).toBe('5.0');
+    expect(rows(english.text)[0]![15]).toBe('Discounts in total');
+    expect(rows(english.text)[2]![15]).toBe('15.00');
     await ctx.http().get(`${exportUrl()}?lang=xx`).set(owner.auth).expect(400);
 
     const audit = await ctx.prisma.auditLog.findMany({
@@ -364,6 +374,8 @@ describe('clients CSV export', () => {
     expect(petr![header!.indexOf('Zapłacono łącznie')]).toBe('750,50 CZK + 80,00 PLN');
     expect(petr![header!.indexOf('Następna wizyta')]).toBe('');
     expect(petr![header!.indexOf('Napiwki łącznie')]).toBe('20,00 CZK');
+    // Task 309: no discounts — an empty cell when the salons use several currencies.
+    expect(petr![header!.indexOf('Rabaty łącznie')]).toBe('');
   });
 
   it('only the clients the filtered list shows, in its order (task 275)', async () => {

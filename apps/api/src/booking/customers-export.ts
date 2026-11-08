@@ -52,6 +52,7 @@ const HEADERS = {
       'Zapłacono łącznie',
       'Napiwki łącznie',
       'Średnia ocena',
+      'Rabaty łącznie',
       'Notatka',
     ],
     yes: 'tak',
@@ -74,6 +75,7 @@ const HEADERS = {
       'Сплачено разом',
       'Чайові разом',
       'Середня оцінка',
+      'Знижки разом',
       'Нотатка',
     ],
     yes: 'так',
@@ -96,6 +98,7 @@ const HEADERS = {
       'Оплачено всего',
       'Чаевые всего',
       'Средняя оценка',
+      'Скидки всего',
       'Заметка',
     ],
     yes: 'да',
@@ -118,6 +121,7 @@ const HEADERS = {
       'Paid in total',
       'Tips in total',
       'Average rating',
+      'Discounts in total',
       'Note',
     ],
     yes: 'yes',
@@ -158,83 +162,111 @@ export class CustomersExportService {
     );
     const filtered = Object.keys(filters).length > 0;
     const ids = filtered ? await this.customersService.matchingIds(m, query) : null;
-    const [found, consents, visits, location, missed, upcoming, paid, locations, tipped, reviews] =
-      await Promise.all([
-        this.prisma.customer.findMany({
-          where: { organizationId, ...(ids ? { id: { in: ids } } : {}) },
-          orderBy: [{ name: 'asc' }, { id: 'asc' }],
-        }),
-        this.prisma.consentRecord.findMany({
-          where: { type: 'marketing', customer: { organizationId } },
-          orderBy: [{ customerId: 'asc' }, { createdAt: 'desc' }],
-          distinct: ['customerId'],
-          select: { customerId: true, granted: true },
-        }),
-        this.prisma.appointment.groupBy({
-          by: ['customerId'],
-          where: { status: 'completed', location: { organizationId }, customerId: { not: null } },
-          _count: { _all: true },
-          _max: { startAt: true },
-        }),
-        this.prisma.location.findFirst({
-          where: { organizationId },
-          orderBy: { createdAt: 'asc' },
-          select: { timezone: true },
-        }),
-        // Task 266: visits marked "did not come" in the last 365 days.
-        this.prisma.appointment.groupBy({
-          by: ['customerId'],
-          where: {
-            status: 'no_show',
-            location: { organizationId },
-            customerId: { not: null },
-            startAt: { gte: new Date(Date.now() - 365 * 86_400_000) },
-          },
-          _count: { _all: true },
-        }),
-        // Task 267: the nearest booked visit from now on.
-        this.prisma.appointment.groupBy({
-          by: ['customerId'],
-          where: {
-            status: 'confirmed',
-            location: { organizationId },
-            customerId: { not: null },
-            startAt: { gte: new Date() },
-          },
-          _min: { startAt: true },
-        }),
-        // Task 268: what the client paid — the same rule as "Zapłacono" in the client card.
-        this.prisma.appointment.groupBy({
-          by: ['customerId', 'locationId'],
-          where: {
-            location: { organizationId },
-            customerId: { not: null },
-            paidAt: { not: null },
-            status: { not: 'cancelled' },
-          },
-          _sum: { priceGrosze: true, discountGrosze: true },
-        }),
-        this.prisma.location.findMany({
-          where: { organizationId },
-          select: { id: true, currency: true },
-        }),
-        // Task 289: the tips the client left — the same rule as "Napiwki łącznie" in the card.
-        this.prisma.appointment.groupBy({
-          by: ['customerId', 'locationId'],
-          where: {
-            location: { organizationId },
-            customerId: { not: null },
-            status: 'completed',
-            tipGrosze: { gt: 0 },
-          },
-          _sum: { tipGrosze: true },
-        }),
-        // Task 303: the stars the client gave the visits — as "Oceny wizyt" in the card.
-        this.prisma.visitReview.findMany({
-          where: { location: { organizationId }, appointment: { customerId: { not: null } } },
-          select: { rating: true, appointment: { select: { customerId: true } } },
-        }),
-      ]);
+    const [
+      found,
+      consents,
+      visits,
+      location,
+      missed,
+      upcoming,
+      paid,
+      locations,
+      tipped,
+      reviews,
+      discounted,
+    ] = await Promise.all([
+      this.prisma.customer.findMany({
+        where: { organizationId, ...(ids ? { id: { in: ids } } : {}) },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.consentRecord.findMany({
+        where: { type: 'marketing', customer: { organizationId } },
+        orderBy: [{ customerId: 'asc' }, { createdAt: 'desc' }],
+        distinct: ['customerId'],
+        select: { customerId: true, granted: true },
+      }),
+      this.prisma.appointment.groupBy({
+        by: ['customerId'],
+        where: { status: 'completed', location: { organizationId }, customerId: { not: null } },
+        _count: { _all: true },
+        _max: { startAt: true },
+      }),
+      this.prisma.location.findFirst({
+        where: { organizationId },
+        orderBy: { createdAt: 'asc' },
+        select: { timezone: true },
+      }),
+      // Task 266: visits marked "did not come" in the last 365 days.
+      this.prisma.appointment.groupBy({
+        by: ['customerId'],
+        where: {
+          status: 'no_show',
+          location: { organizationId },
+          customerId: { not: null },
+          startAt: { gte: new Date(Date.now() - 365 * 86_400_000) },
+        },
+        _count: { _all: true },
+      }),
+      // Task 267: the nearest booked visit from now on.
+      this.prisma.appointment.groupBy({
+        by: ['customerId'],
+        where: {
+          status: 'confirmed',
+          location: { organizationId },
+          customerId: { not: null },
+          startAt: { gte: new Date() },
+        },
+        _min: { startAt: true },
+      }),
+      // Task 268: what the client paid — the same rule as "Zapłacono" in the client card.
+      this.prisma.appointment.groupBy({
+        by: ['customerId', 'locationId'],
+        where: {
+          location: { organizationId },
+          customerId: { not: null },
+          paidAt: { not: null },
+          status: { not: 'cancelled' },
+        },
+        _sum: { priceGrosze: true, discountGrosze: true },
+      }),
+      this.prisma.location.findMany({
+        where: { organizationId },
+        select: { id: true, currency: true },
+      }),
+      // Task 289: the tips the client left — the same rule as "Napiwki łącznie" in the card.
+      this.prisma.appointment.groupBy({
+        by: ['customerId', 'locationId'],
+        where: {
+          location: { organizationId },
+          customerId: { not: null },
+          status: 'completed',
+          tipGrosze: { gt: 0 },
+        },
+        _sum: { tipGrosze: true },
+      }),
+      // Task 303: the stars the client gave the visits — as "Oceny wizyt" in the card.
+      this.prisma.visitReview.findMany({
+        where: { location: { organizationId }, appointment: { customerId: { not: null } } },
+        select: { rating: true, appointment: { select: { customerId: true } } },
+      }),
+      // Task 309: what the client saved — the same rule as "Rabaty łącznie" in the card.
+      this.prisma.appointment.findMany({
+        where: {
+          location: { organizationId },
+          customerId: { not: null },
+          paidAt: { not: null },
+          status: { not: 'cancelled' },
+          OR: [{ discountGrosze: { gt: 0 } }, { listPriceGrosze: { not: null } }],
+        },
+        select: {
+          customerId: true,
+          locationId: true,
+          priceGrosze: true,
+          discountGrosze: true,
+          listPriceGrosze: true,
+        },
+      }),
+    ]);
     // Task 275: the filtered list keeps its own order (e.g. the most recently due first).
     const position = new Map((ids ?? []).map((id, index) => [id, index]));
     const customers = ids
@@ -273,6 +305,16 @@ export class CustomersExportService {
         customerId: row.customerId,
         locationId: row.locationId,
         grosze: row._sum.tipGrosze ?? 0,
+      })),
+    );
+    // Task 309: coupons and the tier are in discountGrosze; happy hours are already in the price.
+    const discountsBy = byCurrency(
+      discounted.map((row) => ({
+        customerId: row.customerId,
+        locationId: row.locationId,
+        grosze:
+          row.discountGrosze +
+          (row.listPriceGrosze === null ? 0 : Math.max(0, row.listPriceGrosze - row.priceGrosze)),
       })),
     );
     // One currency in the network: a plain number the spreadsheet can add up ("80,00");
@@ -322,6 +364,7 @@ export class CustomersExportService {
           moneyCell(paidBy, c.id),
           moneyCell(tipsBy, c.id),
           ratingCell(c.id),
+          moneyCell(discountsBy, c.id),
           c.note ?? '',
         ]
           .map(csvCell)
