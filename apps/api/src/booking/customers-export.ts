@@ -51,6 +51,7 @@ const HEADERS = {
       'Następna wizyta',
       'Zapłacono łącznie',
       'Napiwki łącznie',
+      'Średnia ocena',
       'Notatka',
     ],
     yes: 'tak',
@@ -72,6 +73,7 @@ const HEADERS = {
       'Наступний візит',
       'Сплачено разом',
       'Чайові разом',
+      'Середня оцінка',
       'Нотатка',
     ],
     yes: 'так',
@@ -93,6 +95,7 @@ const HEADERS = {
       'Следующий визит',
       'Оплачено всего',
       'Чаевые всего',
+      'Средняя оценка',
       'Заметка',
     ],
     yes: 'да',
@@ -114,6 +117,7 @@ const HEADERS = {
       'Next visit',
       'Paid in total',
       'Tips in total',
+      'Average rating',
       'Note',
     ],
     yes: 'yes',
@@ -154,7 +158,7 @@ export class CustomersExportService {
     );
     const filtered = Object.keys(filters).length > 0;
     const ids = filtered ? await this.customersService.matchingIds(m, query) : null;
-    const [found, consents, visits, location, missed, upcoming, paid, locations, tipped] =
+    const [found, consents, visits, location, missed, upcoming, paid, locations, tipped, reviews] =
       await Promise.all([
         this.prisma.customer.findMany({
           where: { organizationId, ...(ids ? { id: { in: ids } } : {}) },
@@ -225,6 +229,11 @@ export class CustomersExportService {
           },
           _sum: { tipGrosze: true },
         }),
+        // Task 303: the stars the client gave the visits — as "Oceny wizyt" in the card.
+        this.prisma.visitReview.findMany({
+          where: { location: { organizationId }, appointment: { customerId: { not: null } } },
+          select: { rating: true, appointment: { select: { customerId: true } } },
+        }),
       ]);
     // Task 275: the filtered list keeps its own order (e.g. the most recently due first).
     const position = new Map((ids ?? []).map((id, index) => [id, index]));
@@ -274,6 +283,20 @@ export class CustomersExportService {
       if (oneCurrency) return amount(sums[0]![1], query.lang);
       return sums.map(([currency, sum]) => `${amount(sum, query.lang)} ${currency}`).join(' + ');
     };
+    const stars = new Map<string, { sum: number; count: number }>();
+    for (const r of reviews) {
+      const id = r.appointment.customerId;
+      if (!id) continue;
+      const s = stars.get(id) ?? { sum: 0, count: 0 };
+      stars.set(id, { sum: s.sum + r.rating, count: s.count + 1 });
+    }
+    // "4,5" (one decimal, a comma except in English); empty without reviews.
+    const ratingCell = (customerId: string): string => {
+      const s = stars.get(customerId);
+      if (!s) return '';
+      const text = (Math.round((s.sum / s.count) * 10) / 10).toFixed(1);
+      return query.lang === 'en' ? text : text.replace('.', ',');
+    };
     const words = HEADERS[query.lang];
     const day = (d: Date | null | undefined) =>
       d ? instantToLocal(d.getTime(), timeZone).date : '';
@@ -298,6 +321,7 @@ export class CustomersExportService {
           day(next.get(c.id)),
           moneyCell(paidBy, c.id),
           moneyCell(tipsBy, c.id),
+          ratingCell(c.id),
           c.note ?? '',
         ]
           .map(csvCell)

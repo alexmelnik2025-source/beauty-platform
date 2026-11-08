@@ -147,6 +147,17 @@ describe('clients CSV export', () => {
       where: { id: booked.body.id },
       data: { paidAt: past, discountGrosze: 500, tipGrosze: 1250 },
     });
+    // Task 303: Żaneta gave the visit five stars.
+    await ctx.prisma.visitReview.create({
+      data: {
+        appointmentId: booked.body.id,
+        locationId: (
+          await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: booked.body.id } })
+        ).locationId,
+        staffId: staff.body.id,
+        rating: 5,
+      },
+    });
     // Task 267: Żaneta is booked again in two days.
     await ctx
       .http()
@@ -229,6 +240,7 @@ describe('clients CSV export', () => {
         'Następna wizyta',
         'Zapłacono łącznie',
         'Napiwki łącznie',
+        'Średnia ocena',
         'Notatka',
       ],
       [
@@ -246,6 +258,7 @@ describe('clients CSV export', () => {
         '',
         '0,00',
         '0,00',
+        '',
         "'=1+1",
       ],
       [
@@ -263,6 +276,7 @@ describe('clients CSV export', () => {
         addDays(today, 2),
         '75,00',
         '12,50',
+        '5,0',
         '',
       ],
     ]);
@@ -277,6 +291,8 @@ describe('clients CSV export', () => {
     ]);
     expect(rows(english.text)[2]![12]).toBe('75.00');
     expect(rows(english.text)[2]![13]).toBe('12.50');
+    expect(rows(english.text)[0]![14]).toBe('Average rating');
+    expect(rows(english.text)[2]![14]).toBe('5.0');
     await ctx.http().get(`${exportUrl()}?lang=xx`).set(owner.auth).expect(400);
 
     const audit = await ctx.prisma.auditLog.findMany({
