@@ -405,6 +405,33 @@ describe('"Zamknij kasę" (task 232)', () => {
   });
 });
 
+describe('salon photos (task 325)', () => {
+  it('lists the salon photos and removes one', async () => {
+    const path = '/v1/organizations/o1/locations/l1/photos';
+    const photo = {
+      id: 'p1',
+      url: '/v1/public/photos/p1',
+      contentType: 'image/jpeg',
+      sizeBytes: 1000,
+      createdAt: '2026-11-08T09:00:00.000Z',
+    };
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a8', 'refresh-token-0123456789xyz')],
+      [`GET ${path}`]: () => [200, [photo]],
+      [`DELETE ${path}/p1`]: () => [204],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('refresh-token-0123456789abc'),
+      fetchFn,
+    );
+    await api.restore();
+    await expect(api.salonPhotos('o1', 'l1')).resolves.toEqual([photo]);
+    await expect(api.removeSalonPhoto('o1', 'l1', 'p1')).resolves.toBeUndefined();
+    expect(calls.map((c) => c.key)).toContain(`DELETE ${path}/p1`);
+  });
+});
+
 describe('visit photos (task 80b)', () => {
   it('turns the signed picture links into full addresses for the phone', () => {
     const api = new BusinessApi('https://api.test/', memoryStore(), fakeServer({}).fetchFn);

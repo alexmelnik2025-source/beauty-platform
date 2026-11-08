@@ -13,7 +13,7 @@ import { serveApp } from './mobile-app';
  * Task 322: "Języki w salonie" — Polish and Ukrainian at the salon (screenshot 322).
  * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — Czechia and koruna (screenshot 323).
  * Task 324: "Regulamin i prywatność" — the template over the written terms, own privacy words
- * (screenshot 324).
+ * (screenshot 324). Task 325: "Zdjęcia salonu" — two photos, one removed (screenshot 325).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -23,6 +23,23 @@ const PHONE = { width: 390, height: 844 };
 // A sign-up address of its own (reserved for tests, RFC 2544): the API allows 10 sign-ups an hour from one.
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.18.${n >> 8}.${n & 255}` };
+
+/** A small photo drawn in the browser (like the one the cabinet sends after shrinking). */
+async function drawnPhoto(page: Page, text: string): Promise<Buffer> {
+  const base64 = await page.evaluate((label) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#1d1d1b';
+    ctx.fillRect(0, 0, 400, 300);
+    ctx.fillStyle = '#c8a46a';
+    ctx.font = '48px sans-serif';
+    ctx.fillText(label, 60, 170);
+    return canvas.toDataURL('image/jpeg', 0.9).split(',')[1]!;
+  }, text);
+  return Buffer.from(base64, 'base64');
+}
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -86,6 +103,15 @@ test('the owner changes the salon from the business app (task 131)', async ({
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // Task 325: two photos added in the cabinet.
+    for (const text of ['FOTEL', 'LUSTRO']) {
+      await json(
+        await request.post(`${path}/photos`, {
+          headers: { ...owner, 'Content-Type': 'image/jpeg' },
+          data: await drawnPhoto(app, text),
+        }),
+      );
+    }
 
     // ── "Salon": phone without the country code, a description ──────────────
     await app.getByRole('button', { name: 'Salon', exact: true }).click();
@@ -273,6 +299,22 @@ test('the owner changes the salon from the business app (task 131)', async ({
         '# Regulamin rezerwacji online — Gestalt Barbershop',
         '# Prywatność\n\nAdministratorem danych jest GESTALT sp. z o.o.',
       ]);
+
+    // ── Task 325: the salon's photos — one removed at once ──────────────────
+    await expect(app.getByLabel('Zdjęcie 1', { exact: true })).toBeVisible();
+    await expect(app.getByLabel('Zdjęcie 2', { exact: true })).toBeVisible();
+    await app.getByRole('button', { name: 'Usuń: Zdjęcie 1' }).click();
+    await expect(app.getByText('Usunąć to zdjęcie ze strony rezerwacji?')).toBeVisible();
+    await app.getByText('Zdjęcia salonu', { exact: true }).scrollIntoViewIfNeeded();
+    await shot(app, '325-business-app-salon-photos');
+    await app.getByRole('button', { name: 'Tak, usuń: Zdjęcie 1' }).click();
+    await expect(app.getByText('Zdjęcie usunięte.')).toBeVisible();
+    await expect(app.getByLabel('Zdjęcie 2', { exact: true })).toBeHidden();
+    await expect(app.getByLabel('Zdjęcie 1', { exact: true })).toBeVisible();
+    const left = await json<{ id: string }[]>(
+      await request.get(`${path}/photos`, { headers: owner }),
+    );
+    expect(left).toHaveLength(1);
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');

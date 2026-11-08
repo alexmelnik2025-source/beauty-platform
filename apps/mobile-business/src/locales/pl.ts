@@ -681,6 +681,15 @@ export const pl = {
       'Wstawiono szablon z danymi salonu. Uzupełnij pola w nawiasach { } i sprawdź treść z prawnikiem — to nie jest porada prawna. Tekst zapisze się po „Zapisz”.',
     missing: 'Do uzupełnienia: {list}',
     legalTooLong: 'Tekst jest za długi — najwyżej 50 000 znaków.',
+    photos: 'Zdjęcia salonu',
+    photosHint:
+      'Do 10 zdjęć wnętrza i pracy na stronie rezerwacji. Nowe dodasz w panelu salonu: Ustawienia → Zdjęcia salonu.',
+    photosNone: 'Salon nie ma jeszcze zdjęć.',
+    photo: 'Zdjęcie {n}',
+    photoRemove: 'Usuń',
+    photoRemoveAsk: 'Usunąć to zdjęcie ze strony rezerwacji?',
+    photoRemoveYes: 'Tak, usuń',
+    photoRemoved: 'Zdjęcie usunięte.',
     legalTexts:
       'Aby włączyć rezerwację online, salon potrzebuje regulaminu i polityki prywatności — dodaj je niżej w „Regulamin i prywatność”.',
     changedMeanwhile:

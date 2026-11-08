@@ -682,6 +682,15 @@ export const en: Dictionary = {
       'A template with the salon details was inserted (in Polish). Fill in the fields in { } brackets and check the text with a lawyer — this is not legal advice. The text is saved when you tap “Save”.',
     missing: 'Still to fill in: {list}',
     legalTooLong: 'The text is too long — 50,000 characters at most.',
+    photos: 'Salon photos',
+    photosHint:
+      'Up to 10 photos of the interior and your work on the booking page. Add new ones in the salon dashboard: Settings → Salon photos.',
+    photosNone: 'The salon has no photos yet.',
+    photo: 'Photo {n}',
+    photoRemove: 'Remove',
+    photoRemoveAsk: 'Remove this photo from the booking page?',
+    photoRemoveYes: 'Yes, remove',
+    photoRemoved: 'Photo removed.',
     legalTexts:
       'To switch online booking on, the salon needs booking terms and a privacy policy — add them below in “Terms and privacy”.',
     changedMeanwhile:

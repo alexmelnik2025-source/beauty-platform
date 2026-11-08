@@ -56,6 +56,8 @@ export type TimeBlockList = components['schemas']['TimeBlockList'];
 export type NotificationList = components['schemas']['NotificationList'];
 /** Task 80b: the client's example photos for a visit (signed links, valid for an hour). */
 export type VisitPhotoList = components['schemas']['VisitPhotoList'];
+/** Task 325: the salon's photos on the booking page. */
+export type SalonPhoto = components['schemas']['Photo'];
 export type ServiceList = components['schemas']['ServiceList'];
 /** Task 99: cheaper hours of the salon (happy hours). */
 export type HappyHours = components['schemas']['HappyHours'];
@@ -296,6 +298,22 @@ export class BusinessApi {
     return this.authed<LegalTemplates>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/legal-templates`,
+    );
+  }
+
+  /** Task 325: the salon's photos on the booking page, oldest first. */
+  salonPhotos(orgId: string, locationId: string): Promise<SalonPhoto[]> {
+    return this.authed<SalonPhoto[]>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/photos`,
+    );
+  }
+
+  /** Task 325: removes one photo of the salon at once (owner or manager). */
+  removeSalonPhoto(orgId: string, locationId: string, photoId: string): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/photos/${enc(photoId)}`,
     );
   }
 

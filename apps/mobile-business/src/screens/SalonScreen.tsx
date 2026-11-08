@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { BusinessApi, Locale, Location } from '../api';
+import type { BusinessApi, Locale, Location, SalonPhoto } from '../api';
 import { CURRENCIES, currencyName, matching, salonTimeZones } from '../country';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -40,6 +41,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 322: "Języki w salonie" — the languages shown on the booking page.
  * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — chosen from the cabinet's lists.
  * Task 324: "Regulamin i prywatność" — the two texts, with the server's template to start from.
+ * Task 325: "Zdjęcia salonu" — the photos on the booking page; one is removed at once (after
+ * "Usunąć?"). Adding them stays in the cabinet for now (the app has no photo picker yet).
  */
 export function SalonScreen(props: {
   api: BusinessApi;
@@ -60,6 +63,9 @@ export function SalonScreen(props: {
   /** Task 324: the text whose template waits for "replace?"; a template was put in (not saved). */
   const [replacing, setReplacing] = useState<LegalKey | null>(null);
   const [templated, setTemplated] = useState(false);
+  /** Task 325: the salon's photos (null while loading) and the one waiting for "remove?". */
+  const [photos, setPhotos] = useState<SalonPhoto[] | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -74,6 +80,26 @@ export function SalonScreen(props: {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    api
+      .salonPhotos(salon.orgId, salon.locationId)
+      .then(setPhotos)
+      .catch((e: unknown) => setError(errorText(e, t)));
+  }, [api, salon, t]);
+
+  async function removePhoto(id: string) {
+    setRemoving(null);
+    setError('');
+    setInfo('');
+    try {
+      await api.removeSalonPhoto(salon.orgId, salon.locationId, id);
+      setPhotos((list) => list && list.filter((p) => p.id !== id));
+      setInfo(s.photoRemoved);
+    } catch (e) {
+      setError(errorText(e, t));
+    }
+  }
 
   // Android "back" closes the salon's settings instead of the app.
   useEffect(() => {
@@ -421,6 +447,47 @@ export function SalonScreen(props: {
               </Text>
             ) : null}
           </Card>
+          <Card>
+            <Text style={styles.section}>{s.photos}</Text>
+            <Text style={styles.small}>{s.photosHint}</Text>
+            {photos && photos.length === 0 ? (
+              <Text style={[styles.small, { marginTop: 10 }]}>{s.photosNone}</Text>
+            ) : null}
+            <View style={[styles.row, { marginTop: 10 }]}>
+              {(photos ?? []).map((photo, i) => {
+                const name = fill(s.photo, { n: String(i + 1) });
+                return (
+                  <View key={photo.id} style={styles.photoBox}>
+                    <Image
+                      source={{ uri: api.absoluteUrl(photo.url) }}
+                      accessibilityLabel={name}
+                      accessibilityIgnoresInvertColors
+                      style={styles.photo}
+                    />
+                    {removing === photo.id ? (
+                      <View style={{ gap: 4 }}>
+                        <Text style={styles.small}>{s.photoRemoveAsk}</Text>
+                        <Button
+                          kind="secondary"
+                          label={s.photoRemoveYes}
+                          a11yLabel={`${s.photoRemoveYes}: ${name}`}
+                          onPress={() => void removePhoto(photo.id)}
+                        />
+                        <Button kind="link" label={s.replaceNo} onPress={() => setRemoving(null)} />
+                      </View>
+                    ) : (
+                      <Button
+                        kind="link"
+                        label={s.photoRemove}
+                        a11yLabel={`${s.photoRemove}: ${name}`}
+                        onPress={() => setRemoving(photo.id)}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </Card>
           <Button label={s.save} busy={busy} onPress={() => void save()} />
         </>
       ) : !error ? (
@@ -548,6 +615,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   multiline: { minHeight: 96, textAlignVertical: 'top' },
+  photoBox: { width: 140, gap: 4 },
+  photo: { width: 140, height: 105, borderRadius: 10, backgroundColor: colors.soft },
   legal: { minHeight: 180, maxHeight: 360, textAlignVertical: 'top', fontSize: 14 },
   note: {
     color: colors.ink,
