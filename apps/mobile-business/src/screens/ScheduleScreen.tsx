@@ -403,28 +403,30 @@ export function ScheduleScreen(props: {
                   onPress={() => setForm({ ...form, to: form.from, part: form.part ?? '' })}
                 />
               </View>
-              {(form.part !== null ? (['from'] as const) : (['from', 'to'] as const)).map((key) => (
-                <View key={key} style={styles.dateRow}>
-                  <Text style={styles.label}>
-                    {form.part !== null ? s.specialDay : key === 'from' ? s.from : s.to}
-                  </Text>
-                  <View style={styles.row}>
-                    <Button
-                      kind="secondary"
-                      label="‹"
-                      a11yLabel={`${key === 'from' ? s.from : s.to}: ${s.earlier}`}
-                      onPress={() => shift(key, -1)}
-                    />
-                    <Text style={styles.value}>{dayTitle(form[key], props.locale)}</Text>
-                    <Button
-                      kind="secondary"
-                      label="›"
-                      a11yLabel={`${key === 'from' ? s.from : s.to}: ${s.later}`}
-                      onPress={() => shift(key, 1)}
-                    />
+              {(form.part !== null ? (['from'] as const) : (['from', 'to'] as const)).map((key) => {
+                // Task 338: one day ("Dzień") for a part of a day, "Od"/"Do" for whole days.
+                const label = form.part !== null ? s.specialDay : key === 'from' ? s.from : s.to;
+                return (
+                  <View key={key} style={styles.dateRow}>
+                    <Text style={styles.label}>{label}</Text>
+                    <View style={styles.row}>
+                      <Button
+                        kind="secondary"
+                        label="‹"
+                        a11yLabel={`${label}: ${s.earlier}`}
+                        onPress={() => shift(key, -1)}
+                      />
+                      <Text style={styles.value}>{dayTitle(form[key], props.locale)}</Text>
+                      <Button
+                        kind="secondary"
+                        label="›"
+                        a11yLabel={`${label}: ${s.later}`}
+                        onPress={() => shift(key, 1)}
+                      />
+                    </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
               {form.part !== null ? (
                 <View style={styles.dateRow}>
                   <Text style={styles.label}>{s.offHours}</Text>
