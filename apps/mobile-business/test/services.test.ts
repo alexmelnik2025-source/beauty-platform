@@ -12,6 +12,7 @@ import {
   movedOrder,
   newService,
   newServiceForm,
+  parseBuffer,
   parseDuration,
   parsePrice,
   priceInput,
@@ -346,6 +347,8 @@ describe('"Nowa usługa" (task 313)', () => {
       active: true,
       categoryId: 'c-hair',
       staffIds: ['s2', 's1'],
+      buffer: '0',
+      wishPhotos: false,
     });
     expect(newServiceForm([], []).categoryId).toBeNull();
   });
@@ -409,5 +412,40 @@ describe('name and description in "Zmień" (task 314)', () => {
       ok: false,
       problem: 'description',
     });
+  });
+});
+
+describe('break and example photos (task 317)', () => {
+  const cut = service({ id: 'a', name: 'Strzyżenie', bufferMinutes: 0, wishPhotos: false });
+  const form = { price: '90', duration: '45', active: true };
+
+  it('reads the break: empty is none, 0–120 in 5-minute steps', () => {
+    expect(parseBuffer('')).toBe(0);
+    expect(parseBuffer(' 15 ')).toBe(15);
+    expect(parseBuffer('120')).toBe(120);
+    expect(parseBuffer('7')).toBeNull();
+    expect(parseBuffer('125')).toBeNull();
+    expect(parseBuffer('-5')).toBeNull();
+  });
+
+  it('sends only a new break or a new photos choice', () => {
+    expect(serviceChange(cut, { ...form, buffer: '0', wishPhotos: false })).toEqual({
+      ok: true,
+      change: null,
+    });
+    expect(serviceChange(cut, { ...form, buffer: '10', wishPhotos: true })).toEqual({
+      ok: true,
+      change: { version: 3, bufferMinutes: 10, wishPhotos: true },
+    });
+    expect(serviceChange(cut, { ...form, buffer: '3' })).toEqual({ ok: false, problem: 'buffer' });
+  });
+
+  it('gives a new service its break and photos choice', () => {
+    const fresh = { ...newServiceForm([], []), name: 'Koloryzacja', price: '200' };
+    expect(newService({ ...fresh, buffer: '15', wishPhotos: true })).toMatchObject({
+      ok: true,
+      service: { bufferMinutes: 15, wishPhotos: true },
+    });
+    expect(newService({ ...fresh, buffer: 'x' })).toEqual({ ok: false, problem: 'buffer' });
   });
 });

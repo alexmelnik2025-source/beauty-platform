@@ -16,9 +16,10 @@ import { serveApp } from './mobile-app';
  * Task 310: "Duplikuj" makes a copy of the combo with Kasia's own price. Task 311: a new
  * category "Koloryzacja", and the beard trim moves into it. Task 312: Kasia now performs the
  * beard trim too. Task 314: the haircut gets a new name and a description. Task 313: a new
- * service "Golenie brzytwą" from scratch, in "Broda". Task 316: "Pielęgnacja" is renamed, then
- * deleted — its head massage stays, without a category. Task 315: the head massage, never booked,
- * is deleted. Screenshots 93–93b, 253, 255, 310–316.
+ * service "Golenie brzytwą" from scratch, in "Broda" — with a 5-minute break and example photos
+ * (task 317). Task 316: "Pielęgnacja" is renamed, then deleted — its head massage stays, without
+ * a category. Task 315: the head massage, never booked, is deleted. Screenshots 93–93b, 253, 255,
+ * 310–317.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -285,6 +286,15 @@ test('the owner changes prices, durations and online booking in the business app
     await app.getByLabel('Nazwa').fill('Golenie brzytwą');
     await app.getByLabel('Cena (PLN)').fill('70');
     await shot(app, '313-business-app-new-service');
+    // Task 317: a break after it, and clients may add example photos.
+    await app.getByLabel('Przerwa po usłudze (min)').fill('7');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Przerwa: od 0 do 120 minut, co 5 minut.')).toBeVisible();
+    await app.getByLabel('Przerwa po usłudze (min)').fill('5');
+    await app
+      .getByRole('checkbox', { name: 'Klient może dodać zdjęcia-inspiracje (do 3)' })
+      .click();
+    await shot(app, '317-business-app-service-break');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Dodano usługę: Golenie brzytwą.')).toBeVisible();
     await expect(app.getByRole('heading', { name: 'Broda', exact: true })).toBeVisible();
@@ -362,6 +372,9 @@ test('the owner changes prices, durations and online booking in the business app
     categoryId: beard.id,
     priceGrosze: 7000,
     durationMinutes: 30,
+    // Task 317.
+    bufferMinutes: 5,
+    wishPhotos: true,
     staffIds: [kasia.id],
   });
   // Tasks 315, 316: the head massage and its category are gone.

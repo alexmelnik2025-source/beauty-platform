@@ -2607,3 +2607,11 @@ przed» (сюда же отмены после начала визита), «2�
 Права проверяет сервер. Логика — `apps/mobile-business/src/services.ts` (`newServiceForm`, `newService`,
 `serviceChange`), тесты `apps/mobile-business/test/services.test.ts`; e2e и скриншоты 313–316 —
 `apps/web/e2e/services-app.spec.ts`.
+
+## Бизнес-приложение: перерыв после услуги и фото-примеры (задача 317)
+
+В «Zmień» услуги и в «Dodaj usługę» бизнес-приложения — «Przerwa po usłudze (min)» (0–120, кратно 5; клиент её не
+видит, мастер занят) и галочка «Klient może dodać zdjęcia-inspiracje (do 3)» (задача 80b) — как в кабинете.
+Отправляется только изменённое (`PATCH …/services/:id`: `bufferMinutes`, `wishPhotos`). Цвет в календаре — пока в
+кабинете. Логика — `parseBuffer`, `serviceChange`, `newService` в `apps/mobile-business/src/services.ts`; e2e и
+скриншот 317 — `apps/web/e2e/services-app.spec.ts`.

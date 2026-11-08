@@ -80,6 +80,9 @@ export interface ServiceChange {
   active?: boolean;
   /** Task 311: another category; null = without a category. */
   categoryId?: string | null;
+  /** Task 317: the break after it (not shown to clients) and example photos when booking. */
+  bufferMinutes?: number;
+  wishPhotos?: boolean;
 }
 /** Task 310: a new service as the server takes it (a copy — "Duplikuj" — or task 313's new one). */
 export interface NewService {

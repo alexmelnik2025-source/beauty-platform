@@ -119,6 +119,14 @@ export function parseDuration(text: string): number | null {
 
 export type ServiceProblem = 'price' | 'duration';
 
+/** Task 317: the break after the service, 0–120 minutes in 5-minute steps; null otherwise. */
+export function parseBuffer(text: string): number | null {
+  const trimmed = text.trim();
+  const value = trimmed === '' ? 0 : Number(trimmed);
+  if (!Number.isInteger(value) || value < 0 || value > 120 || value % 5 !== 0) return null;
+  return value;
+}
+
 /** Task 314: a name of 1–100 letters, trimmed; null otherwise. */
 export function serviceName(text: string): string | null {
   const name = text.trim();
@@ -143,10 +151,13 @@ export function serviceChange(
     /** Task 314: undefined = the form does not change the name or the description. */
     name?: string;
     description?: string;
+    /** Task 317: the break after it, and whether clients may add example photos. */
+    buffer?: string;
+    wishPhotos?: boolean;
   },
 ):
   | { ok: true; change: ServiceChange | null }
-  | { ok: false; problem: ServiceProblem | 'name' | 'description' } {
+  | { ok: false; problem: ServiceProblem | 'name' | 'description' | 'buffer' } {
   const name = form.name === undefined ? undefined : serviceName(form.name);
   if (name === null) return { ok: false, problem: 'name' };
   const description =
@@ -156,6 +167,8 @@ export function serviceChange(
   if (price === null) return { ok: false, problem: 'price' };
   const duration = parseDuration(form.duration);
   if (duration === null) return { ok: false, problem: 'duration' };
+  const buffer = form.buffer === undefined ? undefined : parseBuffer(form.buffer);
+  if (buffer === null) return { ok: false, problem: 'buffer' };
   const change: ServiceChange = { version: service.version };
   if (name !== undefined && name !== service.name) change.name = name;
   if (description !== undefined && description !== (service.description ?? null)) {
@@ -164,6 +177,10 @@ export function serviceChange(
   if (price !== service.priceGrosze) change.priceGrosze = price;
   if (duration !== service.durationMinutes) change.durationMinutes = duration;
   if (form.active !== service.active) change.active = form.active;
+  if (buffer !== undefined && buffer !== service.bufferMinutes) change.bufferMinutes = buffer;
+  if (form.wishPhotos !== undefined && form.wishPhotos !== service.wishPhotos) {
+    change.wishPhotos = form.wishPhotos;
+  }
   // Task 311: another category (undefined = the form does not change it).
   if (form.categoryId !== undefined && form.categoryId !== service.categoryId) {
     change.categoryId = form.categoryId;
@@ -292,6 +309,9 @@ export function toggled(staffIds: string[], id: string): string[] {
 export interface NewServiceForm extends CopyForm {
   description: string;
   staffIds: string[];
+  /** Task 317: the break after it (minutes, as typed) and example photos when booking. */
+  buffer: string;
+  wishPhotos: boolean;
 }
 
 /**
@@ -307,15 +327,17 @@ export function newServiceForm(categories: ServiceCategoryList, staff: StaffList
     active: true,
     categoryId: categoryChoices(categories)[0]?.id ?? null,
     staffIds: staffChoices(staff, []).map((m) => m.id),
+    buffer: '0',
+    wishPhotos: false,
   };
 }
 
-/** Task 313: the new service as the server takes it (no break, colour or example photos yet). */
+/** Task 313: the new service as the server takes it (no colour yet — that is in the cabinet). */
 export function newService(
   form: NewServiceForm,
 ):
   | { ok: true; service: NewService }
-  | { ok: false; problem: ServiceProblem | 'name' | 'description' } {
+  | { ok: false; problem: ServiceProblem | 'name' | 'description' | 'buffer' } {
   const name = serviceName(form.name);
   if (name === null) return { ok: false, problem: 'name' };
   const description = serviceDescription(form.description);
@@ -324,18 +346,20 @@ export function newService(
   if (price === null) return { ok: false, problem: 'price' };
   const duration = parseDuration(form.duration);
   if (duration === null) return { ok: false, problem: 'duration' };
+  const buffer = parseBuffer(form.buffer);
+  if (buffer === null) return { ok: false, problem: 'buffer' };
   return {
     ok: true,
     service: {
       name,
       description,
       durationMinutes: duration,
-      bufferMinutes: 0,
+      bufferMinutes: buffer,
       priceGrosze: price,
       active: form.active,
       categoryId: form.categoryId,
       color: null,
-      wishPhotos: false,
+      wishPhotos: form.wishPhotos,
       staffIds: [...form.staffIds],
     },
   };

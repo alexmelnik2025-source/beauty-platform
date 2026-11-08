@@ -672,8 +672,7 @@ export const pl = {
     descriptionPlaceholder: 'np. Mycie, strzyżenie, stylizacja',
     newService: 'Nowa usługa',
     addService: 'Dodaj usługę',
-    newServiceHint:
-      'Przerwę po usłudze, kolor w kalendarzu i zdjęcia-przykłady ustawisz w kabinecie.',
+    newServiceHint: 'Kolor w kalendarzu ustawisz w kabinecie.',
     remove: 'Usuń',
     removeConfirm: 'Tak, usuń: {name}',
     removeAsk: 'Usunąć „{name}”? Tego nie da się cofnąć.',
@@ -685,10 +684,16 @@ export const pl = {
     categoryRemove: 'Usuń kategorię',
     categoryRemoveHint: 'Usługi z tej kategorii ({count}) zostaną — trafią do „Bez kategorii”.',
     categoryRemoved: 'Usunięto kategorię: {name}.',
+    buffer: 'Przerwa po usłudze (min)',
+    bufferHint: 'Czas na przygotowanie stanowiska; klient go nie widzi.',
+    photosAsk: 'Klient może dodać zdjęcia-inspiracje (do 3)',
+    photosAskHint:
+      'Przy rezerwacji: „Pokaż, co chcesz” — np. fryzura ze zdjęcia. Zdjęcia widzi specjalista w wizycie; usuwamy je 90 dni po wizycie.',
     performers: 'Kto wykonuje',
     inactive: 'nieaktywny',
     units: { h: 'g', min: 'min' },
     problem: {
+      buffer: 'Przerwa: od 0 do 120 minut, co 5 minut.',
       description: 'Opis: do 500 znaków.',
       category: 'Nazwa kategorii: od 1 do 60 znaków.',
       name: 'Wpisz nazwę (do 100 znaków).',

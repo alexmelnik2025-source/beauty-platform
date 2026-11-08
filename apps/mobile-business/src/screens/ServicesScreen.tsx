@@ -52,7 +52,8 @@ import type { SalonChoice } from './SalonsScreen';
  * at the end (task 311); who performs it is ticked in "Zmień" (task 312). "Nowa usługa" adds a
  * service from scratch (task 313); "Zmień" changes the name and the description too (task 314).
  * "Usuń" deletes a service that was never used (task 315); a category is renamed or deleted
- * from its heading (task 316).
+ * from its heading (task 316). The break after a service and example photos when booking are set
+ * in "Zmień" and in a new service (task 317).
  */
 export function ServicesScreen(props: {
   api: BusinessApi;
@@ -71,6 +72,8 @@ export function ServicesScreen(props: {
   const [form, setForm] = useState<{
     name: string;
     description: string;
+    buffer: string;
+    wishPhotos: boolean;
     price: string;
     duration: string;
     active: boolean;
@@ -79,6 +82,8 @@ export function ServicesScreen(props: {
   }>({
     name: '',
     description: '',
+    buffer: '0',
+    wishPhotos: false,
     price: '',
     duration: '',
     active: true,
@@ -141,6 +146,8 @@ export function ServicesScreen(props: {
     setForm({
       name: service.name,
       description: service.description ?? '',
+      buffer: String(service.bufferMinutes),
+      wishPhotos: service.wishPhotos,
       price: priceInput(service.priceGrosze),
       duration: String(service.durationMinutes),
       active: service.active,
@@ -383,6 +390,42 @@ export function ServicesScreen(props: {
     );
   }
 
+  /** Task 317: the break after the service and example photos (also of a new one). */
+  function extraFields(
+    value: { buffer: string; wishPhotos: boolean },
+    onChange: (change: { buffer?: string; wishPhotos?: boolean }) => void,
+  ) {
+    return (
+      <>
+        <Text style={styles.label}>{u.buffer}</Text>
+        <TextInput
+          accessibilityLabel={u.buffer}
+          value={value.buffer}
+          onChangeText={(buffer) => onChange({ buffer })}
+          keyboardType="number-pad"
+          style={styles.input}
+        />
+        <Text style={styles.muted}>{u.bufferHint}</Text>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel={u.photosAsk}
+          accessibilityState={{ checked: value.wishPhotos }}
+          aria-checked={value.wishPhotos}
+          onPress={() => onChange({ wishPhotos: !value.wishPhotos })}
+          style={styles.check}
+        >
+          <Text style={[styles.box, value.wishPhotos && styles.boxOn]}>
+            {value.wishPhotos ? '✓' : ''}
+          </Text>
+          <View style={{ flexShrink: 1 }}>
+            <Text style={styles.text}>{u.photosAsk}</Text>
+            <Text style={styles.muted}>{u.photosAskHint}</Text>
+          </View>
+        </Pressable>
+      </>
+    );
+  }
+
   /** Task 311: a new category at the end of the order; the owner then puts services in it. */
   async function addCategory() {
     const name = categoryName(newCategory);
@@ -603,6 +646,7 @@ export function ServicesScreen(props: {
                           keyboardType="number-pad"
                           style={styles.input}
                         />
+                        {extraFields(form, (change) => setForm((f) => ({ ...f, ...change })))}
                         <Pressable
                           accessibilityRole="checkbox"
                           accessibilityLabel={u.active}
@@ -784,6 +828,7 @@ export function ServicesScreen(props: {
                   keyboardType="number-pad"
                   style={styles.input}
                 />
+                {extraFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityLabel={u.active}

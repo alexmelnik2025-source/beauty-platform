@@ -672,8 +672,7 @@ export const en: Dictionary = {
     descriptionPlaceholder: 'e.g. Wash, cut, styling',
     newService: 'New service',
     addService: 'Add service',
-    newServiceHint:
-      'Set the break after the service, the calendar colour and example photos in the web cabinet.',
+    newServiceHint: 'Set the calendar colour in the web cabinet.',
     remove: 'Delete',
     removeConfirm: 'Yes, delete: {name}',
     removeAsk: 'Delete “{name}”? This cannot be undone.',
@@ -685,10 +684,16 @@ export const en: Dictionary = {
     categoryRemove: 'Delete category',
     categoryRemoveHint: 'Its services ({count}) stay — they move to “No category”.',
     categoryRemoved: 'Deleted category: {name}.',
+    buffer: 'Break after the service (min)',
+    bufferHint: 'Time to get the chair ready; clients do not see it.',
+    photosAsk: 'Clients can add inspiration photos (up to 3)',
+    photosAskHint:
+      'When booking: “Show what you want” — e.g. a haircut from a photo. The specialist sees them in the visit; they are deleted 90 days after it.',
     performers: 'Who performs it',
     inactive: 'inactive',
     units: { h: 'h', min: 'min' },
     problem: {
+      buffer: 'Break: 0 to 120 minutes, in 5-minute steps.',
       description: 'Description: up to 500 characters.',
       category: 'Category name: 1 to 60 characters.',
       name: 'Type a name (up to 100 characters).',
