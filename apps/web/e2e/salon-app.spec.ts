@@ -6,7 +6,8 @@ import { serveApp } from './mobile-app';
  * Task 131: "Salon" in the business app (web preview of apps/mobile-business). The owner changes
  * the salon's phone and description from the phone; online booking cannot be switched on
  * without booking terms; when someone else saved the salon meanwhile, the app shows the current
- * data and the second try goes through. Screenshots 131, 131a.
+ * data and the second try goes through. Screenshots 131, 131a. Task 319: "Zasady rezerwacji" —
+ * the lead time, how far ahead, the change deadline and the step of the times (screenshot 319).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -123,6 +124,36 @@ test('the owner changes the salon from the business app (task 131)', async ({
       await request.get(path, { headers: owner }),
     );
     expect(online).toMatchObject({ onlineBookingEnabled: true, phone: '+48221234567' });
+
+    // ── Task 319: booking rules ─────────────────────────────────────────────
+    await expect(app.getByText('Zasady rezerwacji')).toBeVisible();
+    await app.getByLabel('Najdalej: dni naprzód').fill('400');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Wpisz liczbę dni od 1 do 365.')).toBeVisible();
+    await app.getByLabel('Najwcześniej: minut przed wizytą').fill('30');
+    await app.getByLabel('Najdalej: dni naprzód').fill('90');
+    await app.getByLabel('Klient może zmienić wizytę do: minut przed').fill('240');
+    await app.getByRole('button', { name: '30 min', exact: true }).click();
+    await expect(app.getByRole('button', { name: '30 min', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await app.getByText('Zasady rezerwacji').scrollIntoViewIfNeeded();
+    await shot(app, '319-business-app-booking-rules');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano.')).toBeVisible();
+    const rules = await json<{
+      minLeadMinutes: number;
+      bookingHorizonDays: number;
+      clientCancelDeadlineMinutes: number;
+      slotStepMinutes: number;
+    }>(await request.get(path, { headers: owner }));
+    expect(rules).toMatchObject({
+      minLeadMinutes: 30,
+      bookingHorizonDays: 90,
+      clientCancelDeadlineMinutes: 240,
+      slotStepMinutes: 30,
+    });
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');

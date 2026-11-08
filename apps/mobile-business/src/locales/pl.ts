@@ -627,6 +627,20 @@ export const pl = {
     badCity: 'Wpisz miasto.',
     badPostalCode: 'Wpisz kod pocztowy.',
     badPhone: 'Wpisz numer telefonu, np. 600 100 200.',
+    rules: 'Zasady rezerwacji',
+    lead: 'Najwcześniej: minut przed wizytą',
+    leadHint:
+      'Np. 60 — nikt nie umówi się na mniej niż godzinę przed wizytą. 0 — do ostatniej chwili.',
+    horizon: 'Najdalej: dni naprzód',
+    deadline: 'Klient może zmienić wizytę do: minut przed',
+    deadlineHint:
+      'Później klient może już tylko zadzwonić do salonu. 0 — do samego początku wizyty.',
+    step: 'Godziny co',
+    stepMinutes: '{n} min',
+    stepHint: 'Co ile minut strona rezerwacji pokazuje wolne godziny.',
+    badLead: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
+    badHorizon: 'Wpisz liczbę dni od 1 do 365.',
+    badDeadline: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
     legalTexts:
       'Aby włączyć rezerwację online, salon potrzebuje regulaminu i polityki prywatności — dodaj je w panelu salonu: Ustawienia → Regulamin i prywatność.',
     changedMeanwhile:

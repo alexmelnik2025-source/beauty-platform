@@ -1,9 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import {
+  BackHandler,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import type { BusinessApi, Location } from '../api';
 import { errorText } from '../errors';
-import type { Dictionary } from '../i18n';
-import { salonChanges, salonForm, saveProblem, type SalonForm, type SalonProblem } from '../salon';
+import { fill, type Dictionary } from '../i18n';
+import {
+  SLOT_STEPS,
+  salonChanges,
+  salonForm,
+  saveProblem,
+  type SalonForm,
+  type SalonProblem,
+} from '../salon';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -11,6 +27,7 @@ import type { SalonChoice } from './SalonsScreen';
  * "Salon" (task 131): the owner or a manager changes the salon's name, address, phone and
  * description and switches online booking on or off. Opening hours, prices and the booking
  * terms stay in their own places (the team's schedule, "Usługi", the salon dashboard).
+ * Task 319: "Zasady rezerwacji" — the lead time, how far ahead, the change deadline, the step.
  */
 export function SalonScreen(props: {
   api: BusinessApi;
@@ -57,6 +74,9 @@ export function SalonScreen(props: {
     city: s.badCity,
     postalCode: s.badPostalCode,
     phone: s.badPhone,
+    lead: s.badLead,
+    horizon: s.badHorizon,
+    deadline: s.badDeadline,
   };
 
   async function save() {
@@ -97,9 +117,17 @@ export function SalonScreen(props: {
   }
 
   const field = (
-    key: 'name' | 'addressLine' | 'city' | 'postalCode' | 'phone',
+    key:
+      | 'name'
+      | 'addressLine'
+      | 'city'
+      | 'postalCode'
+      | 'phone'
+      | 'minLeadMinutes'
+      | 'bookingHorizonDays'
+      | 'clientCancelDeadlineMinutes',
     label: string,
-    options: { maxLength: number; keyboardType?: 'phone-pad'; hint?: string },
+    options: { maxLength: number; keyboardType?: 'phone-pad' | 'number-pad'; hint?: string },
   ) =>
     form ? (
       <View style={styles.field}>
@@ -167,12 +195,54 @@ export function SalonScreen(props: {
               <Text style={styles.small}>{s.descriptionHint}</Text>
             </View>
           </Card>
+          <Card>
+            <Text style={styles.section}>{s.rules}</Text>
+            {field('minLeadMinutes', s.lead, {
+              maxLength: 5,
+              keyboardType: 'number-pad',
+              hint: s.leadHint,
+            })}
+            {field('bookingHorizonDays', s.horizon, { maxLength: 3, keyboardType: 'number-pad' })}
+            {field('clientCancelDeadlineMinutes', s.deadline, {
+              maxLength: 5,
+              keyboardType: 'number-pad',
+              hint: s.deadlineHint,
+            })}
+            <View style={styles.field}>
+              <Text style={styles.label}>{s.step}</Text>
+              <View style={styles.row}>
+                {SLOT_STEPS.map((minutes) => (
+                  <Chip
+                    key={minutes}
+                    label={fill(s.stepMinutes, { n: String(minutes) })}
+                    on={form.slotStepMinutes === minutes}
+                    onPress={() => setForm({ ...form, slotStepMinutes: minutes })}
+                  />
+                ))}
+              </View>
+              <Text style={styles.small}>{s.stepHint}</Text>
+            </View>
+          </Card>
           <Button label={s.save} busy={busy} onPress={() => void save()} />
         </>
       ) : !error ? (
         <Text style={styles.muted}>{t.loading}</Text>
       ) : null}
     </ScrollView>
+  );
+}
+
+function Chip(props: { label: string; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      aria-pressed={props.on}
+      accessibilityState={{ selected: props.on }}
+      onPress={props.onPress}
+      style={[styles.chip, props.on && styles.chipOn]}
+    >
+      <Text style={[styles.chipText, props.on && { color: '#fff' }]}>{props.label}</Text>
+    </Pressable>
   );
 }
 
@@ -196,4 +266,15 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   multiline: { minHeight: 96, textAlignVertical: 'top' },
+  section: { fontSize: 16, color: colors.ink, fontWeight: '700', marginBottom: 10 },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: colors.card,
+  },
+  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipText: { fontSize: 15, color: colors.ink },
 });

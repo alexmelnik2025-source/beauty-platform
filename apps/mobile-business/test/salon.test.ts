@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError, type Location } from '../src/api';
-import { maySeeSalon, salonChanges, salonForm, saveProblem } from '../src/salon';
+import { maySeeSalon, SLOT_STEPS, salonChanges, salonForm, saveProblem } from '../src/salon';
 
 const salon = (over: Partial<Location> = {}) =>
   ({
@@ -17,6 +17,10 @@ const salon = (over: Partial<Location> = {}) =>
     email: null,
     description: null,
     onlineBookingEnabled: false,
+    minLeadMinutes: 60,
+    bookingHorizonDays: 60,
+    clientCancelDeadlineMinutes: 120,
+    slotStepMinutes: 15,
     version: 3,
     ...over,
   }) as Location;
@@ -31,6 +35,10 @@ describe('salonForm', () => {
       phone: '',
       description: '',
       onlineBookingEnabled: false,
+      minLeadMinutes: '60',
+      bookingHorizonDays: '60',
+      clientCancelDeadlineMinutes: '120',
+      slotStepMinutes: 15,
     });
   });
 });
@@ -80,6 +88,53 @@ describe('salonChanges', () => {
     expect(salonChanges(salon(), { ...form, city: '' })).toEqual({ problem: 'city' });
     expect(salonChanges(salon(), { ...form, postalCode: '1' })).toEqual({ problem: 'postalCode' });
     expect(salonChanges(salon(), { ...form, phone: '12' })).toEqual({ problem: 'phone' });
+  });
+});
+
+describe('salonChanges — booking rules (task 319)', () => {
+  it('sends only the rules that changed, as numbers', () => {
+    const form = {
+      ...salonForm(salon()),
+      minLeadMinutes: ' 30 ',
+      bookingHorizonDays: '90',
+      slotStepMinutes: 30,
+    };
+    expect(salonChanges(salon(), form)).toEqual({
+      changes: { minLeadMinutes: 30, bookingHorizonDays: 90, slotStepMinutes: 30 },
+    });
+  });
+
+  it('allows 0 minutes (book and change until the last moment) and a whole week', () => {
+    const form = {
+      ...salonForm(salon()),
+      minLeadMinutes: '0',
+      clientCancelDeadlineMinutes: '10080',
+    };
+    expect(salonChanges(salon(), form)).toEqual({
+      changes: { minLeadMinutes: 0, clientCancelDeadlineMinutes: 10080 },
+    });
+  });
+
+  it('names a rule outside what the server allows', () => {
+    const form = salonForm(salon());
+    expect(salonChanges(salon(), { ...form, minLeadMinutes: '' })).toEqual({ problem: 'lead' });
+    expect(salonChanges(salon(), { ...form, minLeadMinutes: '10081' })).toEqual({
+      problem: 'lead',
+    });
+    expect(salonChanges(salon(), { ...form, minLeadMinutes: '1.5' })).toEqual({ problem: 'lead' });
+    expect(salonChanges(salon(), { ...form, bookingHorizonDays: '0' })).toEqual({
+      problem: 'horizon',
+    });
+    expect(salonChanges(salon(), { ...form, bookingHorizonDays: '366' })).toEqual({
+      problem: 'horizon',
+    });
+    expect(salonChanges(salon(), { ...form, clientCancelDeadlineMinutes: '-5' })).toEqual({
+      problem: 'deadline',
+    });
+  });
+
+  it('offers the steps the server accepts', () => {
+    expect([...SLOT_STEPS]).toEqual([5, 10, 15, 30]);
   });
 });
 

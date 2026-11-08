@@ -628,6 +628,19 @@ export const en: Dictionary = {
     badCity: 'Enter the city.',
     badPostalCode: 'Enter the postal code.',
     badPhone: 'Enter a phone number, e.g. 600 100 200.',
+    rules: 'Booking rules',
+    lead: 'At the earliest: minutes before the visit',
+    leadHint:
+      'E.g. 60 — nobody books less than an hour before the visit. 0 — until the last moment.',
+    horizon: 'At the latest: days ahead',
+    deadline: 'The client may change a visit until: minutes before',
+    deadlineHint: 'After that the client can only call the salon. 0 — until the visit starts.',
+    step: 'Times every',
+    stepMinutes: '{n} min',
+    stepHint: 'How many minutes apart the booking page shows free times.',
+    badLead: 'Enter a number of minutes from 0 to 10080 (a week).',
+    badHorizon: 'Enter a number of days from 1 to 365.',
+    badDeadline: 'Enter a number of minutes from 0 to 10080 (a week).',
     legalTexts:
       'To switch online booking on, the salon needs booking terms and a privacy policy — add them in the salon dashboard: Settings → Terms and privacy.',
     changedMeanwhile:
