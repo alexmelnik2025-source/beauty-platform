@@ -27,16 +27,22 @@ import {
   programRule,
   programToSave,
   rewardLabel,
+  rulesForm,
+  rulesToSave,
   sortedRewards,
   type RewardForm,
+  type RulesForm,
 } from '../loyalty';
+import { formatPrice } from '../day';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
  * Task 206: "Program lojalnościowy" — the owner or a manager switches the program on or off,
  * adds a reward (a discount in % or a free service for N stamps or points), removes one and sees
- * the latest operations. The detailed rules stay in the cabinet (a hint says so).
+ * the latest operations. Task 344: "Zasady programu" — stamps or points, how much a visit earns,
+ * the minimum amount, how long points last, the maximum discount and combining discounts. Tiers,
+ * points per service and bonus rules stay in the cabinet (a hint says so).
  */
 export function LoyaltyScreen(props: {
   api: BusinessApi;
@@ -58,6 +64,7 @@ export function LoyaltyScreen(props: {
   const [askOff, setAskOff] = useState(false);
   const [form, setForm] = useState<RewardForm | null>(null);
   const [removeId, setRemoveId] = useState<string | null>(null);
+  const [rules, setRules] = useState<RulesForm | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -120,6 +127,16 @@ export function LoyaltyScreen(props: {
     );
   }
 
+  function saveRules() {
+    if (!program || !rules) return;
+    const checked = rulesToSave(program, rules);
+    if (!checked.ok) return setError(l.rulesProblem[checked.problem]);
+    void run(async () => {
+      setProgram(await api.saveLoyaltyProgram(salon.orgId, checked.save));
+      setRules(null);
+    }, l.rulesSaved);
+  }
+
   function add() {
     if (!form) return;
     const checked = newReward(form);
@@ -180,6 +197,113 @@ export function LoyaltyScreen(props: {
             )}
             <Text style={styles.muted}>{l.cabinetHint}</Text>
           </Card>
+
+          <Text style={styles.section} role="heading">
+            {l.rules}
+          </Text>
+          {rules ? (
+            <Card>
+              <View style={styles.row}>
+                <Chip
+                  label={l.modeStamps}
+                  on={rules.mode === 'stamps'}
+                  onPress={() => setRules({ ...rules, mode: 'stamps' })}
+                />
+                <Chip
+                  label={l.modePoints}
+                  on={rules.mode === 'points'}
+                  onPress={() => setRules({ ...rules, mode: 'points' })}
+                />
+              </View>
+              <Text style={styles.muted}>
+                {rules.mode === 'stamps' ? l.stampsHint : l.pointsHint}
+              </Text>
+              {rules.mode === 'stamps' ? (
+                <Field
+                  label={l.stampsPerVisit}
+                  value={rules.stampsPerVisit}
+                  onChange={(stampsPerVisit) => setRules({ ...rules, stampsPerVisit })}
+                />
+              ) : (
+                <>
+                  <Field
+                    label={l.pointsPerUnit}
+                    value={rules.pointsPerUnit}
+                    onChange={(pointsPerUnit) => setRules({ ...rules, pointsPerUnit })}
+                  />
+                  <Field
+                    label={fill(l.spendUnit, { currency: salon.currency })}
+                    value={rules.spendUnit}
+                    decimal
+                    onChange={(spendUnit) => setRules({ ...rules, spendUnit })}
+                  />
+                  <Field
+                    label={l.validityDays}
+                    value={rules.validityDays}
+                    onChange={(validityDays) => setRules({ ...rules, validityDays })}
+                  />
+                </>
+              )}
+              <Field
+                label={fill(l.minSpend, { currency: salon.currency })}
+                value={rules.minSpend}
+                decimal
+                onChange={(minSpend) => setRules({ ...rules, minSpend })}
+              />
+              <Field
+                label={l.maxDiscount}
+                value={rules.maxDiscountPercent}
+                onChange={(maxDiscountPercent) => setRules({ ...rules, maxDiscountPercent })}
+              />
+              <View style={styles.row}>
+                <Chip
+                  label={l.noStacking}
+                  on={!rules.allowStacking}
+                  onPress={() => setRules({ ...rules, allowStacking: false })}
+                />
+                <Chip
+                  label={l.stacking}
+                  on={rules.allowStacking}
+                  onPress={() => setRules({ ...rules, allowStacking: true })}
+                />
+              </View>
+              <View style={styles.row}>
+                <Button label={l.rulesSave} busy={busy} onPress={saveRules} />
+                <Button kind="secondary" label={l.cancel} onPress={() => setRules(null)} />
+              </View>
+            </Card>
+          ) : (
+            <Card>
+              <Text style={styles.text}>
+                {programRule(program, t, props.locale, salon.currency)}
+              </Text>
+              <Text style={styles.muted}>
+                {[
+                  program.minSpendGrosze > 0
+                    ? fill(l.minSpendRule, {
+                        amount: formatPrice(program.minSpendGrosze, salon.currency, props.locale),
+                      })
+                    : null,
+                  program.mode === 'points' && program.pointsValidityDays !== null
+                    ? fill(l.validityRule, { days: String(program.pointsValidityDays) })
+                    : null,
+                  fill(l.maxDiscountRule, { percent: String(program.maxDiscountPercent) }),
+                  program.allowStacking ? l.stacking : l.noStacking,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+              <Button
+                kind="secondary"
+                label={l.rulesChange}
+                onPress={() => {
+                  setRules(rulesForm(program));
+                  setInfo('');
+                  setError('');
+                }}
+              />
+            </Card>
+          )}
 
           <Text style={styles.section} role="heading">
             {l.rewards}
@@ -309,6 +433,26 @@ export function LoyaltyScreen(props: {
         </>
       )}
     </ScrollView>
+  );
+}
+
+function Field(props: {
+  label: string;
+  value: string;
+  decimal?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={styles.label}>{props.label}</Text>
+      <TextInput
+        accessibilityLabel={props.label}
+        value={props.value}
+        onChangeText={props.onChange}
+        keyboardType={props.decimal ? 'decimal-pad' : 'number-pad'}
+        style={styles.input}
+      />
+    </View>
   );
 }
 
