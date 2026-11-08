@@ -1190,7 +1190,7 @@ export const pl = {
     discountLabel: 'Zniżka {percent}%',
     freeLabel: 'Gratis: {service}',
     otherService: 'usługa innego salonu',
-    validityDays: 'Kupon ważny (dni), puste — bez terminu',
+    couponValidityDays: 'Kupon ważny (dni), puste — bez terminu',
     onlyServices: 'Kupon tylko na usługi (nic nie zaznaczone = każda)',
     validityLine: 'kupon ważny {days} dni',
     onlyLine: 'tylko: {services}',

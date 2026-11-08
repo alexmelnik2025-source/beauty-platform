@@ -260,8 +260,8 @@ export function LoyaltyScreen(props: {
         style={styles.input}
       />
       <TextInput
-        accessibilityLabel={l.validityDays}
-        placeholder={l.validityDays}
+        accessibilityLabel={l.couponValidityDays}
+        placeholder={l.couponValidityDays}
         placeholderTextColor={colors.placeholder}
         value={form.validityDays}
         onChangeText={(validityDays) => setForm({ ...form, validityDays })}

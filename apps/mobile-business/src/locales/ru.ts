@@ -1190,7 +1190,7 @@ export const ru: Dictionary = {
     discountLabel: 'Скидка {percent}%',
     freeLabel: 'Бесплатно: {service}',
     otherService: 'услуга другого салона',
-    validityDays: 'Купон действует (дней), пусто — без срока',
+    couponValidityDays: 'Купон действует (дней), пусто — без срока',
     onlyServices: 'Купон только на услуги (ничего не отмечено = любая)',
     validityLine: 'купон действует {days} дн.',
     onlyLine: 'только: {services}',

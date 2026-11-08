@@ -1190,7 +1190,7 @@ export const en: Dictionary = {
     discountLabel: '{percent}% off',
     freeLabel: 'Free: {service}',
     otherService: 'a service of another salon',
-    validityDays: 'Coupon valid (days), empty — no limit',
+    couponValidityDays: 'Coupon valid (days), empty — no limit',
     onlyServices: 'Coupon only for services (nothing ticked = any)',
     validityLine: 'coupon valid {days} days',
     onlyLine: 'only: {services}',
