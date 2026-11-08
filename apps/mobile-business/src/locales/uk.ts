@@ -390,6 +390,10 @@ export const uk: Dictionary = {
     specialRemoveAsk: 'Повернути звичайні години цього дня?',
     specialRemove: 'Видалити',
     specialRemoved: 'Звичайні години цього дня повернуто.',
+    wholeDays: 'Цілі дні',
+    partDay: 'Частина дня',
+    offHours: 'Години відсутності',
+    badOffHours: 'Введіть години відсутності, напр. 12:00–15:00.',
   },
   staffProfile: {
     title: 'Профіль',

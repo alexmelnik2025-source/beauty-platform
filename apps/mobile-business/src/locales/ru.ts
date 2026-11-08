@@ -391,6 +391,10 @@ export const ru: Dictionary = {
     specialRemoveAsk: 'Вернуть обычные часы в этот день?',
     specialRemove: 'Удалить',
     specialRemoved: 'Обычные часы этого дня возвращены.',
+    wholeDays: 'Целые дни',
+    partDay: 'Часть дня',
+    offHours: 'Часы отсутствия',
+    badOffHours: 'Введите часы отсутствия, напр. 12:00–15:00.',
   },
   staffProfile: {
     title: 'Профиль',

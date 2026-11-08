@@ -12,7 +12,8 @@ import { serveApp } from './mobile-app';
  * Task 335: "Dzień specjalny" in a specialist's schedule of the business app (web preview of
  * apps/mobile-business). The owner sets special hours for one date (an empty field is pointed
  * out: a whole day off is time off) and removes another date's special hours, which gets the
- * usual weekly hours back. Screenshots 335, 335a.
+ * usual weekly hours back. Screenshots 335, 335a. Task 338: time off for a part of one day
+ * (tomorrow 12:00–15:00; a wrong time is pointed out). Screenshot 338.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -149,6 +150,23 @@ test('business app: the owner sets and removes a specialist’s special day', as
     await expect(phone.getByText('Przywrócono zwykłe godziny tego dnia.')).toBeVisible();
     await expect(phone.getByText('12:00–16:00')).toHaveCount(0);
     await shot(phone, '335a-business-app-special-day-removed');
+
+    // ── 338: time off for a few hours of tomorrow ──────────────────────────
+    await phone.getByRole('button', { name: 'Dodaj wolne' }).click();
+    await phone.getByRole('button', { name: 'Część dnia' }).click();
+    await expect(phone.getByRole('button', { name: 'Dzień: Dzień później' })).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Do: Dzień później' })).toHaveCount(0);
+    await phone.getByRole('button', { name: 'Dzień: Dzień później' }).click();
+    await phone.getByLabel('Godziny wolnego').fill('15-12');
+    await phone.getByRole('button', { name: 'Zapisz wolne' }).click();
+    await expect(phone.getByText('Wpisz godziny wolnego, np. 12:00–15:00.')).toBeVisible();
+    await phone.getByLabel('Godziny wolnego').fill('12-15');
+    await phone.getByLabel('Powód (np. urlop)').fill('Lekarz');
+    await shot(phone, '338-business-app-time-off-hours');
+    await phone.getByRole('button', { name: 'Zapisz wolne' }).click();
+    await expect(phone.getByText('Wolne zapisane.', { exact: false })).toBeVisible();
+    await expect(phone.getByText(/12:00–15:00/)).toBeVisible();
+    await expect(phone.getByText('Lekarz', { exact: true })).toBeVisible();
     await context.close();
   } finally {
     businessApp.server.close();
@@ -159,5 +177,15 @@ test('business app: the owner sets and removes a specialist’s special day', as
   }>(await request.get(`${base}/staff/${kasia.id}/working-hours`, { headers: owner }));
   expect(hours.overrides).toEqual([
     { date: warsawDate(2), intervals: [{ start: '10:00', end: '14:00' }] },
+  ]);
+  const off = await json<{ start: string; end: string; note: string | null }[]>(
+    await request.get(`${base}/staff/${kasia.id}/time-off`, { headers: owner }),
+  );
+  expect(off).toEqual([
+    expect.objectContaining({
+      start: `${warsawDate(1)}T12:00`,
+      end: `${warsawDate(1)}T15:00`,
+      note: 'Lekarz',
+    }),
   ]);
 });

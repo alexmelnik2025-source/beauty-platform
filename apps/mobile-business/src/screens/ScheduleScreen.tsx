@@ -4,7 +4,7 @@ import type { BusinessApi, Locale, TimeOffList, WorkingHours } from '../api';
 import { addDays, dayTitle, daysOff, timeOffText, weekRows } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { specialBody, specialInput, weeklyBody, weekInputs } from '../hours';
+import { hoursOff, specialBody, specialInput, weeklyBody, weekInputs } from '../hours';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { StaffProfileSection } from './StaffProfileSection';
@@ -39,7 +39,13 @@ export function ScheduleScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState(props.notice ?? '');
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState<{ from: string; to: string; note: string } | null>(null);
+  /** Time off being added; task 338: `part` = the hours of one day ("12:00–15:00"), null = whole days. */
+  const [form, setForm] = useState<{
+    from: string;
+    to: string;
+    note: string;
+    part: string | null;
+  } | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [week, setWeek] = useState<Record<number, string> | null>(null);
   const [badDay, setBadDay] = useState<number | null>(null);
@@ -93,9 +99,9 @@ export function ScheduleScreen(props: {
 
   async function save() {
     if (!form) return;
-    const range = daysOff(form.from, form.to);
+    const range = form.part !== null ? hoursOff(form.from, form.part) : daysOff(form.from, form.to);
     if (!range) {
-      setError(s.badRange);
+      setError(form.part !== null ? s.badOffHours : s.badRange);
       return;
     }
     const note = form.note.trim();
@@ -378,15 +384,30 @@ export function ScheduleScreen(props: {
               label={s.add}
               onPress={() => {
                 setInfo('');
-                setForm({ from: props.today, to: props.today, note: '' });
+                setForm({ from: props.today, to: props.today, note: '', part: null });
               }}
             />
           ) : null}
           {canEdit && form ? (
             <Card>
-              {(['from', 'to'] as const).map((key) => (
+              {/* Task 338: whole days, or a few hours of one day. */}
+              <View style={[styles.row, { marginBottom: 8 }]}>
+                <Button
+                  kind={form.part === null ? 'primary' : 'secondary'}
+                  label={s.wholeDays}
+                  onPress={() => setForm({ ...form, part: null })}
+                />
+                <Button
+                  kind={form.part !== null ? 'primary' : 'secondary'}
+                  label={s.partDay}
+                  onPress={() => setForm({ ...form, to: form.from, part: form.part ?? '' })}
+                />
+              </View>
+              {(form.part !== null ? (['from'] as const) : (['from', 'to'] as const)).map((key) => (
                 <View key={key} style={styles.dateRow}>
-                  <Text style={styles.label}>{key === 'from' ? s.from : s.to}</Text>
+                  <Text style={styles.label}>
+                    {form.part !== null ? s.specialDay : key === 'from' ? s.from : s.to}
+                  </Text>
                   <View style={styles.row}>
                     <Button
                       kind="secondary"
@@ -404,6 +425,19 @@ export function ScheduleScreen(props: {
                   </View>
                 </View>
               ))}
+              {form.part !== null ? (
+                <View style={styles.dateRow}>
+                  <Text style={styles.label}>{s.offHours}</Text>
+                  <TextInput
+                    accessibilityLabel={s.offHours}
+                    placeholder="12:00–15:00"
+                    value={form.part}
+                    maxLength={20}
+                    onChangeText={(part) => setForm({ ...form, part })}
+                    style={styles.input}
+                  />
+                </View>
+              ) : null}
               <TextInput
                 accessibilityLabel={s.note}
                 placeholder={s.note}

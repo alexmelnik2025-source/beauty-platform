@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BusinessApi, type StaffList, type TokenStore } from '../src/api';
 import {
   hoursInput,
+  hoursOff,
   parseDayHours,
   specialBody,
   specialInput,
@@ -102,6 +103,25 @@ describe('a special day (task 335)', () => {
     };
     expect(specialInput(hours, '2026-12-24')).toBe('09:00–13:00');
     expect(specialInput(hours, '2026-12-23')).toBe('');
+  });
+});
+
+describe('time off for a part of a day (task 338)', () => {
+  it('one interval on that date; 24:00 ends at the next midnight', () => {
+    expect(hoursOff('2026-12-24', '12-15')).toEqual({
+      start: '2026-12-24T12:00',
+      end: '2026-12-24T15:00',
+    });
+    expect(hoursOff('2026-12-31', '20:00–24:00')).toEqual({
+      start: '2026-12-31T20:00',
+      end: '2027-01-01T00:00',
+    });
+  });
+
+  it('nothing, two intervals or a wrong time cannot be read', () => {
+    expect(hoursOff('2026-12-24', '')).toBeNull();
+    expect(hoursOff('2026-12-24', '9-10, 12-13')).toBeNull();
+    expect(hoursOff('2026-12-24', '15-12')).toBeNull();
   });
 });
 

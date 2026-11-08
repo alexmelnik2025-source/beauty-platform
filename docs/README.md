@@ -2745,3 +2745,11 @@ wykonuje» (сервер принимает цены только тех, кто
 - `BusinessApi.addSalonPhoto` — первый запрос приложения не в JSON (`authedUpload`, с повтором после обновления
   токена). Код: `apps/mobile-business/src/salonPhotos.ts` (тест `test/salonPhotos.test.ts`), `SalonScreen.tsx`; e2e и
   скриншот 337 — в `apps/web/e2e/salon-app.spec.ts`.
+
+## Бизнес-приложение: «Dodaj wolne» на часть дня (задача 338)
+
+- В графике специалиста форма «Dodaj wolne» теперь с выбором «Całe dni» / «Część dnia». «Część dnia» — один день
+  (‹ ›) и «Godziny wolnego» («12:00–15:00», один интервал; «24:00» — до полуночи): уходит как
+  `start/end` 'YYYY-MM-DDTHH:mm' (время салона), как `datetime-local` в кабинете. Неверное время — подсказка.
+- Код: `hoursOff` в `apps/mobile-business/src/hours.ts` (тест `test/hours.test.ts`), форма в `ScheduleScreen.tsx`;
+  e2e и скриншот 338 — в `apps/web/e2e/app-special-day.spec.ts`.
