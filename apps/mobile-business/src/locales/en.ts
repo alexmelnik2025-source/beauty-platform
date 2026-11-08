@@ -551,6 +551,13 @@ export const en: Dictionary = {
     payments: 'Payment methods',
     tips: 'Tips: {amount}',
     tipsRow: '{amount} · visits with a tip: {n}',
+    discountKinds: 'Discounts: {amount}',
+    discountCoupon: 'Loyalty coupons',
+    discountTier: 'Client tier discount',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · visits: {n}',
+    discountHint:
+      'How much the salon gave away in discounts on the paid visits of this period. The revenue in the report is already after them.',
     tipsHint: 'They are not part of the salon’s revenue — the salon decides how to share them.',
     tillCloses: 'Till closes · total difference: {sum}',
     tillClosesRow: 'counted {counted} · should be {expected} · {difference}',

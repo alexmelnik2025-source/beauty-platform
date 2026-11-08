@@ -551,6 +551,13 @@ export const ru: Dictionary = {
     payments: 'Способы оплаты',
     tips: 'Чаевые: {amount}',
     tipsRow: '{amount} · визитов с чаевыми: {n}',
+    discountKinds: 'Скидки: {amount}',
+    discountCoupon: 'Купоны лояльности',
+    discountTier: 'Скидка уровня клиента',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · визиты: {n}',
+    discountHint:
+      'Сколько салон отдал в скидках на оплаченных визитах этого периода. Выручка в отчёте уже после скидок.',
     tipsHint: 'Не входят в выручку салона — как их делить, решает салон.',
     tillCloses: 'Закрытия кассы · разница всего: {sum}',
     tillClosesRow: 'посчитано {counted} · должно быть {expected} · {difference}',

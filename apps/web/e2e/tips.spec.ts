@@ -15,6 +15,8 @@ import { serveApp } from './mobile-app';
  * (screenshot 229); "Kasa dnia" shows it apart from the visit money (229-a) and "Raporty" has
  * "Napiwki" by specialist (229-b). The business app: the tip in the visit and "Kasa dnia"
  * (229-c), "Napiwki" in its report (229-d).
+ * Task 304: "Rabaty" in the report — a coupon, the client's tier discount and happy hours on the
+ * paid visit (screenshot 304), the same in the business app (304-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -153,6 +155,15 @@ test('the owner notes a tip; the till and the report show it apart from the reve
   await expect(till).toContainText(/Kasa dnia: 90,00\s*zł/);
   await expect(till.getByTestId('till-tips')).toHaveText(/Napiwki 15,50\s*zł/);
   await shot(page, '229-a-calendar-till-tips');
+  // Task 304: the visit had a coupon of 10 zł, the tier's 5 zł and happy hours of 10 zł (the
+  // price before them was 100 zł). Set after the till check: the till shows the paid amount.
+  execFileSync('psql', [
+    (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `UPDATE appointment SET discount_grosze = 1500, tier_discount_grosze = 500, tier_name = 'Gold', tier_discount_percent = 5, list_price_grosze = 10000, happy_hour_percent = 10 WHERE id = '${booked.id}'`,
+  ]);
 
   await page.getByRole('link', { name: 'Raporty' }).click();
   await page.waitForURL(/\/pl\/app\/reports$/);
@@ -163,6 +174,18 @@ test('the owner notes a tip; the till and the report show it apart from the reve
   await expect(tips.getByRole('meter', { name: 'Ilian' })).toHaveAttribute('aria-valuenow', '100');
   await expect(tips.getByRole('listitem')).toContainText('wizyty z napiwkiem: 1');
   await shot(page, '229-b-report-tips');
+  const discounts = page.getByTestId('report-discounts');
+  await discounts.scrollIntoViewIfNeeded();
+  await expect(discounts.getByRole('heading')).toHaveText(/Rabaty: 25,00\s*zł/);
+  await expect(discounts.getByRole('listitem')).toHaveCount(3);
+  await expect(discounts.getByRole('listitem').nth(0)).toContainText('Kupony lojalnościowe');
+  await expect(discounts.getByRole('listitem').nth(0)).toContainText(/10,00\s*zł · wizyty: 1/);
+  await expect(discounts.getByRole('meter', { name: 'Rabat poziomu klienta' })).toHaveAttribute(
+    'aria-valuenow',
+    '20',
+  );
+  await expect(discounts.getByRole('listitem').nth(2)).toContainText('Happy hours');
+  await shot(page, '304-report-discounts');
   await context.close();
 
   // The business app (its web preview): the day's tips, the tip in the visit, the report.
@@ -210,6 +233,12 @@ test('the owner notes a tip; the till and the report show it apart from the reve
     await expect(appTips).toContainText(/Ilian/);
     await expect(appTips).toContainText(/20,00\s*zł · wizyty z napiwkiem: 1/);
     await shot(app, '229-d-business-app-report-tips');
+    const appDiscounts = app.getByTestId('report-discounts');
+    await appDiscounts.scrollIntoViewIfNeeded();
+    await expect(appDiscounts).toContainText(/Rabaty: 25,00\s*zł/);
+    await expect(appDiscounts).toContainText('Rabat poziomu klienta');
+    await expect(appDiscounts).toContainText(/5,00\s*zł · wizyty: 1/);
+    await shot(app, '304-a-business-app-report-discounts');
   } finally {
     businessApp.server.close();
   }

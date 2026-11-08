@@ -1484,6 +1484,13 @@ export const en: Dict = {
     tipsHint:
       'Tips noted on visits that took place. They are not part of the salon’s revenue — the salon decides how to share them.',
     tipsVisits: 'visits with a tip: {n}',
+    discountKinds: 'Discounts: {amount}',
+    discountCoupon: 'Loyalty coupons',
+    discountTier: 'Client tier discount',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · visits: {n}',
+    discountHint:
+      'How much the salon gave away in discounts on the paid visits of this period. The revenue in the report is already after them.',
     tillCloses: 'Till closes',
     colDay: 'Day',
     colCashVisits: 'Should be',

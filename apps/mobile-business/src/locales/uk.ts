@@ -550,6 +550,13 @@ export const uk: Dictionary = {
     payments: 'Способи оплати',
     tips: 'Чайові: {amount}',
     tipsRow: '{amount} · візитів із чайовими: {n}',
+    discountKinds: 'Знижки: {amount}',
+    discountCoupon: 'Купони лояльності',
+    discountTier: 'Знижка рівня клієнта',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · візити: {n}',
+    discountHint:
+      'Скільки салон віддав у знижках на оплачених візитах цього періоду. Виторг у звіті вже після знижок.',
     tipsHint: 'Не входять у виторг салону — як їх ділити, вирішує салон.',
     tillCloses: 'Закриття каси · різниця разом: {sum}',
     tillClosesRow: 'пораховано {counted} · має бути {expected} · {difference}',

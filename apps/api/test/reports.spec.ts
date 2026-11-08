@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
 import { occupancy } from '../src/reports/occupancy';
-import { cancelNotice, leadTime } from '../src/reports/reports.service';
+import { cancelNotice, discounts, leadTime } from '../src/reports/reports.service';
 import { visitsCsv } from '../src/reports/visits-csv';
 import { addDays, isoWeekday, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
@@ -1042,6 +1042,72 @@ describe('salon report', () => {
         { key: 'day', cancelled: 0 },
         { key: 'threeDays', cancelled: 0 },
         { key: 'later', cancelled: 0 },
+      ],
+    });
+  });
+
+  it('"Rabaty": coupons, tier discounts and happy hours on the paid visits (task 304)', async () => {
+    const d1 = addDays(today, -3);
+    const discounted = async (
+      data: { discountGrosze?: number; tierDiscountGrosze?: number; listPriceGrosze?: number },
+      o: Partial<VisitOptions> = {},
+    ) => {
+      const id = await visit({ date: d1, status: 'completed', paid: true, ...o });
+      await ctx.prisma.appointment.update({
+        where: { id },
+        data: {
+          ...data,
+          ...(data.tierDiscountGrosze ? { tierName: 'Gold', tierDiscountPercent: 5 } : {}),
+          ...(data.listPriceGrosze ? { happyHourPercent: 10 } : {}),
+        },
+      });
+    };
+    // A coupon of 10 zł; a tier discount of 5 zł; a coupon of 3 zł and the tier's 2 zł on one visit.
+    await discounted({ discountGrosze: 1000 });
+    await discounted({ discountGrosze: 500, tierDiscountGrosze: 500 });
+    await discounted({ discountGrosze: 500, tierDiscountGrosze: 200 });
+    // Happy hours: the price before them was 20 zł more than the visit price (Ola's visit).
+    const { priceGrosze } = await ctx.prisma.service.findUniqueOrThrow({
+      where: { id: haircutId },
+    });
+    await discounted({ listPriceGrosze: priceGrosze + 2000 }, { staffId: olaId });
+    // Not counted: a visit not marked paid, a no-show and a visit without any discount.
+    await discounted({ discountGrosze: 700 }, { paid: false });
+    await discounted({ discountGrosze: 700 }, { status: 'no_show', paid: false });
+    await visit({ date: d1, status: 'completed', paid: true });
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.discounts).toEqual({
+      totalGrosze: 4000,
+      visits: 4,
+      kinds: [
+        { key: 'coupon', visits: 2, grosze: 1300 },
+        { key: 'tier', visits: 2, grosze: 700 },
+        { key: 'happyHours', visits: 1, grosze: 2000 },
+      ],
+    });
+    // The revenue is already after the coupons and the tier (task 14).
+    expect(res.body.totals.discountGrosze).toBe(2000);
+
+    // Kasia's own report: only her visits (Ola's happy hour is not there).
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.discounts.totalGrosze).toBe(2000);
+    expect(own.body.discounts.kinds[2]).toEqual({ key: 'happyHours', visits: 0, grosze: 0 });
+
+    expect(discounts([])).toEqual({
+      totalGrosze: 0,
+      visits: 0,
+      kinds: [
+        { key: 'coupon', visits: 0, grosze: 0 },
+        { key: 'tier', visits: 0, grosze: 0 },
+        { key: 'happyHours', visits: 0, grosze: 0 },
       ],
     });
   });

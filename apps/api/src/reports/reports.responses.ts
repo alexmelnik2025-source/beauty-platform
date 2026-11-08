@@ -289,6 +289,23 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 294: "Kiedy klienci odwołują" — how long before the visit clients cancelled; cancellations by the salon do not count',
       ),
+    discounts: z
+      .strictObject({
+        totalGrosze: money('All the discounts on the paid visits of the period'),
+        visits: z.number().int().describe('Paid visits with any discount'),
+        kinds: z
+          .array(
+            z.strictObject({
+              key: z.enum(['coupon', 'tier', 'happyHours']),
+              visits: z.number().int().describe('Paid visits with this discount'),
+              grosze: money('What this discount took off'),
+            }),
+          )
+          .describe("Loyalty coupons, the client's tier discount, happy hours — always all three"),
+      })
+      .describe(
+        'Task 304: "Rabaty" — what the salon gave away on the paid visits of the period, by kind; the revenue is already after them',
+      ),
     unbookedServices: z
       .array(
         z.strictObject({

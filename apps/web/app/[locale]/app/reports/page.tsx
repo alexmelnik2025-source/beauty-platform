@@ -52,6 +52,13 @@ const LEAD_LABELS = {
   later: 'leadLater',
 } as const;
 
+/** Task 304: the label of each kind of discount. */
+const DISCOUNT_LABELS = {
+  coupon: 'discountCoupon',
+  tier: 'discountTier',
+  happyHours: 'discountHappyHours',
+} as const;
+
 /** Task 294: the label of each "how long before the visit" bucket of cancellations. */
 const NOTICE_LABELS = {
   twoHours: 'noticeTwoHours',
@@ -468,6 +475,45 @@ export default function ReportsPage() {
                   })}
                 </ol>
                 <p className="small muted">{t.reports.tipsHint}</p>
+              </section>
+            ) : null}
+
+            {report.discounts.totalGrosze > 0 ? (
+              // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
+              <section className="section" data-testid="report-discounts">
+                <h2>
+                  {fill(t.reports.discountKinds, { amount: money(report.discounts.totalGrosze) })}
+                </h2>
+                <ol className="report-days">
+                  {report.discounts.kinds
+                    .filter((k) => k.visits > 0)
+                    .map((k) => {
+                      const name = t.reports[DISCOUNT_LABELS[k.key]];
+                      const share = Math.round((k.grosze / report.discounts.totalGrosze) * 100);
+                      return (
+                        <li key={k.key}>
+                          <span className="small">{name}</span>
+                          <span
+                            className="report-bar"
+                            role="meter"
+                            aria-label={name}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={share}
+                          >
+                            <span style={{ width: `${share}%` }} />
+                          </span>
+                          <span className="small">
+                            {fill(t.reports.discountRow, {
+                              amount: money(k.grosze),
+                              n: String(k.visits),
+                            })}
+                          </span>
+                        </li>
+                      );
+                    })}
+                </ol>
+                <p className="small muted">{t.reports.discountHint}</p>
               </section>
             ) : null}
 

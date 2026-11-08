@@ -1481,6 +1481,13 @@ export const pl = {
     tipsHint:
       'Napiwki zapisane przy wizytach, które się odbyły. Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
     tipsVisits: 'wizyty z napiwkiem: {n}',
+    discountKinds: 'Rabaty: {amount}',
+    discountCoupon: 'Kupony lojalnościowe',
+    discountTier: 'Rabat poziomu klienta',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · wizyty: {n}',
+    discountHint:
+      'Ile salon oddał w rabatach na opłaconych wizytach z tego okresu. Przychód w raporcie jest już po rabatach.',
     tillCloses: 'Zamknięcia kasy',
     colDay: 'Dzień',
     colCashVisits: 'Powinno być',

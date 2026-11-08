@@ -550,6 +550,13 @@ export const pl = {
     payments: 'Sposoby płatności',
     tips: 'Napiwki: {amount}',
     tipsRow: '{amount} · wizyty z napiwkiem: {n}',
+    discountKinds: 'Rabaty: {amount}',
+    discountCoupon: 'Kupony lojalnościowe',
+    discountTier: 'Rabat poziomu klienta',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · wizyty: {n}',
+    discountHint:
+      'Ile salon oddał w rabatach na opłaconych wizytach z tego okresu. Przychód w raporcie jest już po rabatach.',
     tipsHint: 'Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
     tillCloses: 'Zamknięcia kasy · różnica razem: {sum}',
     tillClosesRow: 'policzono {counted} · powinno być {expected} · {difference}',

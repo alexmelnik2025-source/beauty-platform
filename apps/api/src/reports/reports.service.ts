@@ -116,6 +116,51 @@ export function cancelNotice(
   return { cancelled, buckets: [...buckets.values()] };
 }
 
+const DISCOUNT_KINDS = ['coupon', 'tier', 'happyHours'] as const;
+
+/**
+ * Task 304: "Rabaty" — what the salon gave away on the paid visits of the period, by kind: the
+ * client's loyalty coupons, the client's tier discount and the salon's happy hours. Coupons and
+ * the tier are part of discountGrosze (tierDiscountGrosze is the tier's part); happy hours are
+ * already in the visit price (listPriceGrosze is the price before them).
+ */
+export function discounts(
+  rows: {
+    status: string;
+    paidAt: Date | null;
+    priceGrosze: number;
+    discountGrosze: number;
+    tierDiscountGrosze: number;
+    listPriceGrosze: number | null;
+  }[],
+): SalonReport['discounts'] {
+  const kinds = new Map<
+    (typeof DISCOUNT_KINDS)[number],
+    { key: (typeof DISCOUNT_KINDS)[number]; visits: number; grosze: number }
+  >(DISCOUNT_KINDS.map((key) => [key, { key, visits: 0, grosze: 0 }]));
+  let totalGrosze = 0;
+  let visits = 0;
+  for (const a of rows) {
+    if (a.status !== 'completed' || !a.paidAt) continue;
+    const parts = {
+      coupon: Math.max(0, a.discountGrosze - a.tierDiscountGrosze),
+      tier: Math.max(0, a.tierDiscountGrosze),
+      happyHours: a.listPriceGrosze === null ? 0 : Math.max(0, a.listPriceGrosze - a.priceGrosze),
+    };
+    let any = false;
+    for (const key of DISCOUNT_KINDS) {
+      if (parts[key] <= 0) continue;
+      const kind = kinds.get(key)!;
+      kind.visits++;
+      kind.grosze += parts[key];
+      totalGrosze += parts[key];
+      any = true;
+    }
+    if (any) visits++;
+  }
+  return { totalGrosze, visits, kinds: [...kinds.values()] };
+}
+
 const byRevenue = <T extends Counts & { name: string | null }>(a: T, b: T): number =>
   b.revenueGrosze - a.revenueGrosze ||
   b.completed - a.completed ||
@@ -163,6 +208,8 @@ export class ReportsService {
         createdAt: true,
         priceGrosze: true,
         discountGrosze: true,
+        tierDiscountGrosze: true,
+        listPriceGrosze: true,
         paidAt: true,
         paymentMethod: true,
         tipGrosze: true,
@@ -438,6 +485,7 @@ export class ReportsService {
       unbookedServices: own ? [] : await this.unbookedServices(locationId, rows, rangeEnd),
       leadTime: leadTime(rows, tz),
       cancelNotice: cancelNotice(rows),
+      discounts: discounts(rows),
       marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
       newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),

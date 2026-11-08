@@ -44,6 +44,13 @@ const LEAD_LABELS = {
   later: 'leadLater',
 } as const;
 
+/** Task 304: the label of each kind of discount. */
+const DISCOUNT_LABELS = {
+  coupon: 'discountCoupon',
+  tier: 'discountTier',
+  happyHours: 'discountHappyHours',
+} as const;
+
 /** Task 294: the label of each "how long before the visit" bucket of cancellations. */
 const NOTICE_LABELS = {
   twoHours: 'noticeTwoHours',
@@ -409,6 +416,25 @@ export function ReportsScreen(props: {
                 </View>
               ))}
               <Text style={styles.muted}>{r.tipsHint}</Text>
+            </View>
+          ) : null}
+          {shown.discounts.totalGrosze > 0 ? (
+            // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
+            <View style={{ gap: 6 }} testID="report-discounts">
+              <Text style={styles.section}>
+                {fill(r.discountKinds, { amount: money(shown.discounts.totalGrosze) })}
+              </Text>
+              {shown.discounts.kinds
+                .filter((k) => k.visits > 0)
+                .map((k) => (
+                  <View key={k.key} style={styles.cardTop}>
+                    <Text style={styles.name}>{r[DISCOUNT_LABELS[k.key]]}</Text>
+                    <Text style={styles.muted}>
+                      {fill(r.discountRow, { amount: money(k.grosze), n: String(k.visits) })}
+                    </Text>
+                  </View>
+                ))}
+              <Text style={styles.muted}>{r.discountHint}</Text>
             </View>
           ) : null}
           {shown.tillCloses.days.length > 0 ? (

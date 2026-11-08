@@ -1485,6 +1485,13 @@ export const ru: Dict = {
     tipsHint:
       'Чаевые, записанные в состоявшихся визитах. Не входят в выручку салона — как их делить, решает салон.',
     tipsVisits: 'визитов с чаевыми: {n}',
+    discountKinds: 'Скидки: {amount}',
+    discountCoupon: 'Купоны лояльности',
+    discountTier: 'Скидка уровня клиента',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · визиты: {n}',
+    discountHint:
+      'Сколько салон отдал в скидках на оплаченных визитах этого периода. Выручка в отчёте уже после скидок.',
     tillCloses: 'Закрытия кассы',
     colDay: 'День',
     colCashVisits: 'Должно быть',

@@ -22149,6 +22149,65 @@
             "additionalProperties": false,
             "description": "Task 294: \"Kiedy klienci odwołują\" — how long before the visit clients cancelled; cancellations by the salon do not count"
           },
+          "discounts": {
+            "type": "object",
+            "properties": {
+              "totalGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "All the discounts on the paid visits of the period, in hundredths of the salon currency"
+              },
+              "visits": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Paid visits with any discount"
+              },
+              "kinds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "coupon",
+                        "tier",
+                        "happyHours"
+                      ]
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Paid visits with this discount"
+                    },
+                    "grosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "What this discount took off, in hundredths of the salon currency"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "visits",
+                    "grosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Loyalty coupons, the client's tier discount, happy hours — always all three"
+              }
+            },
+            "required": [
+              "totalGrosze",
+              "visits",
+              "kinds"
+            ],
+            "additionalProperties": false,
+            "description": "Task 304: \"Rabaty\" — what the salon gave away on the paid visits of the period, by kind; the revenue is already after them"
+          },
           "unbookedServices": {
             "type": "array",
             "items": {
@@ -22444,6 +22503,7 @@
           "topClients",
           "leadTime",
           "cancelNotice",
+          "discounts",
           "unbookedServices",
           "busyHours",
           "marketing",

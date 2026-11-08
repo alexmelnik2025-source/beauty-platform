@@ -5706,6 +5706,22 @@ export interface components {
                     cancelled: number;
                 }[];
             };
+            /** @description Task 304: "Rabaty" — what the salon gave away on the paid visits of the period, by kind; the revenue is already after them */
+            discounts: {
+                /** @description All the discounts on the paid visits of the period, in hundredths of the salon currency */
+                totalGrosze: number;
+                /** @description Paid visits with any discount */
+                visits: number;
+                /** @description Loyalty coupons, the client's tier discount, happy hours — always all three */
+                kinds: {
+                    /** @enum {string} */
+                    key: "coupon" | "tier" | "happyHours";
+                    /** @description Paid visits with this discount */
+                    visits: number;
+                    /** @description What this discount took off, in hundredths of the salon currency */
+                    grosze: number;
+                }[];
+            };
             /** @description Task 259: "Usługi bez wizyt" — bookable services nobody booked in the period (cancelled visits do not count), in price-list order; empty in a specialist's own report */
             unbookedServices: {
                 id: string;

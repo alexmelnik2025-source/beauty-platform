@@ -1477,6 +1477,13 @@ export const uk: Dict = {
     tipsHint:
       'Чайові, записані у візитах, що відбулися. Не входять у виторг салону — як їх ділити, вирішує салон.',
     tipsVisits: 'візитів із чайовими: {n}',
+    discountKinds: 'Знижки: {amount}',
+    discountCoupon: 'Купони лояльності',
+    discountTier: 'Знижка рівня клієнта',
+    discountHappyHours: 'Happy hours',
+    discountRow: '{amount} · візити: {n}',
+    discountHint:
+      'Скільки салон віддав у знижках на оплачених візитах цього періоду. Виторг у звіті вже після знижок.',
     tillCloses: 'Закриття каси',
     colDay: 'День',
     colCashVisits: 'Має бути',
