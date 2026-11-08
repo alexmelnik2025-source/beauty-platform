@@ -16352,6 +16352,33 @@
                   ],
                   "additionalProperties": false
                 }
+              },
+              "usualPayment": {
+                "nullable": true,
+                "description": "Task 290: how the client usually pays — the most frequent payment method on the paid visits that have one (the latest wins a tie); null below 2 such visits and for staff members",
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "card",
+                      "blik",
+                      "transfer",
+                      "other"
+                    ]
+                  },
+                  "visits": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "method",
+                  "visits"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -16366,7 +16393,8 @@
               "favoriteService",
               "favoriteStaff",
               "paid",
-              "tips"
+              "tips",
+              "usualPayment"
             ],
             "additionalProperties": false,
             "description": "Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)"

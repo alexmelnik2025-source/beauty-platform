@@ -273,6 +273,7 @@ export const uk: Dictionary = {
     paid: 'Оплачено: {amount}',
     average: 'У середньому за візит: {amount}',
     tips: 'Чайові: {amount}',
+    usualPayment: 'Зазвичай платить: {method}',
     upcoming: 'Найближчі візити',
     history: 'Історія візитів',
     noVisits: 'У цьому салоні візитів немає.',

@@ -5,15 +5,17 @@ import { serveApp } from './mobile-app';
 
 /**
  * Task 279: "Kolejność" above the cabinet's client list — A–Z (the default), the latest visit
- * first, or the most visits first. Zenon came three times, Adam once (the latest), Basia never.
+ * first, or the most visits first. Zenon came three times, Adam twice (the latest), Basia never.
  * The chosen order stays in the address (a reload keeps it). Screenshot 279.
  * Task 280: the same choice in the business app's "Klienci" (screenshot 280).
  * Task 281: "Najbliższa zaplanowana wizyta" — Basia is booked tomorrow, Zenon in two days
  * (screenshot 281); task 282: the same chip in the business app (screenshot 282).
- * Task 283: "Zapłacili najwięcej" — only Adam's visit is paid: Adam first, then the others by
+ * Task 283: "Zapłacili najwięcej" — only Adam's visits are paid: Adam first, then the others by
  * name (screenshots 283, 283-a). Task 285: Adam's card shows "Średnio za wizytę" (screenshot 285);
  * task 286: the same in the business app (screenshot 286). Task 287: Adam's 12,50 zł tip as
  * "Napiwki łącznie" in the card (same screenshots); task 288: "Napiwki" in the business app.
+ * Task 290: both of Adam's visits were paid by card — "Zwykle płaci: Karta · 2×" in the card;
+ * task 291: the same in the business app (same screenshots).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -91,7 +93,7 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   const adam = await client('Adam Świeży', '+48600000792');
   const basia = await client('Basia Bez Wizyt', '+48600000793');
   // Visits entered afterwards as "came", on 5-minute marks a few hours ago.
-  const visit = (customerId: string, hoursAgo: number, paid = false) =>
+  const visit = (customerId: string, hoursAgo: number, paid = false, paymentMethod?: string) =>
     request
       .post(`${salon}/appointments`, {
         headers: owner,
@@ -104,6 +106,7 @@ test('the owner sorts the clients by the latest visit and by the number of visit
           customerId,
           alreadyHappened: true,
           paid,
+          paymentMethod,
           allowOutsideHours: true,
         },
       })
@@ -111,8 +114,9 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await visit(zenon, 6);
   await visit(zenon, 5);
   await visit(zenon, 4);
-  // Task 283: only Adam's visit is paid.
-  const adamVisit = (await visit(adam, 2, true)) as { id: string; version: number };
+  // Task 283: only Adam's visits are paid — task 290: both by card.
+  await visit(adam, 3, true, 'card');
+  const adamVisit = (await visit(adam, 2, true, 'card')) as { id: string; version: number };
   // Task 287: Adam left a 12,50 zł tip.
   await json(
     await request.put(`${salon}/appointments/${adamVisit.id}/tip`, {
@@ -201,6 +205,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await expect(summary).toContainText(/Średnio za wizytę\s*80,00/);
   // Task 287: the tips Adam left.
   await expect(summary).toContainText(/Napiwki łącznie\s*12,50/);
+  // Task 290: how Adam usually pays.
+  await expect(summary).toContainText(/Zwykle płaci\s*Karta · 2×/);
   await shot(page, '285-client-average-visit');
   await page.keyboard.press('Escape');
 
@@ -256,6 +262,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     await expect(app.getByText(/^Średnio za wizytę: 80,00/)).toBeVisible();
     // Task 288: the tips in the business app's card.
     await expect(app.getByText(/^Napiwki: 12,50/)).toBeVisible();
+    // Task 291: how Adam usually pays.
+    await expect(app.getByText('Zwykle płaci: Karta')).toBeVisible();
     await shot(app, '286-business-app-client-average-visit');
     await phone.close();
   } finally {

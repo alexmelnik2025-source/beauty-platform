@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, forbidden, notFound } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
-import type { Customer, Prisma } from '../generated/prisma/client';
+import type { Customer, PaymentMethod, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { instantToLocal } from '../scheduling/time';
 import type {
@@ -483,7 +483,7 @@ export class CustomersService {
     where: Prisma.AppointmentWhereInput,
     withMoney: boolean,
   ): Promise<CustomerDetailResponse['summary']> {
-    const [byStatus, upcoming, dates, paid, starts, tipped] = await Promise.all([
+    const [byStatus, upcoming, dates, paid, starts, tipped, methods] = await Promise.all([
       this.prisma.appointment.groupBy({
         by: ['status', 'cancelledBy'],
         where,
@@ -522,6 +522,24 @@ export class CustomersService {
             where: { AND: [where, { status: 'completed', tipGrosze: { gt: 0 } }] },
             _sum: { tipGrosze: true },
             _count: { _all: true },
+          })
+        : null,
+      // Task 290: how the client paid, oldest first (for "Zwykle płaci").
+      withMoney
+        ? this.prisma.appointment.findMany({
+            where: {
+              AND: [
+                where,
+                {
+                  paidAt: { not: null },
+                  status: { not: 'cancelled' },
+                  paymentMethod: { not: null },
+                },
+              ],
+            },
+            orderBy: { startAt: 'asc' },
+            select: { paymentMethod: true },
+            take: 500,
           })
         : null,
     ]);
@@ -575,6 +593,7 @@ export class CustomersService {
       favoriteStaff: favorite(starts.map((a) => a.staff.displayName)),
       paid: money,
       tips,
+      usualPayment: usualPayment(methods),
     };
   }
 
@@ -659,6 +678,7 @@ export class CustomersService {
         favoriteStaff: null,
         paid: m.role === 'staff' ? null : [],
         tips: m.role === 'staff' ? null : [],
+        usualPayment: null,
       },
     };
   }
@@ -956,6 +976,18 @@ export function rhythm(starts: Date[]): number | null {
  * Task 261: the name that comes up most often among the visits that took place (oldest first);
  * the latest wins a tie. Null below two visits with that name — one visit is not a habit.
  */
+/**
+ * Task 290: the way the client usually pays — the most frequent payment method on the paid
+ * visits that have one (the latest wins a tie); null below 2 such visits or without the money.
+ */
+export function usualPayment(
+  rows: { paymentMethod: PaymentMethod | null }[] | null,
+): { method: PaymentMethod; visits: number } | null {
+  if (!rows) return null;
+  const best = favorite(rows.flatMap((r) => (r.paymentMethod ? [r.paymentMethod] : [])));
+  return best ? { method: best.name as PaymentMethod, visits: best.visits } : null;
+}
+
 export function favorite(names: string[]): { name: string; visits: number } | null {
   const counts = new Map<string, { visits: number; last: number }>();
   names.forEach((name, i) => {

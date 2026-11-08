@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
-import { favorite, rhythm } from '../src/booking/customers.service';
+import { favorite, rhythm, usualPayment } from '../src/booking/customers.service';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -170,13 +170,19 @@ describe('client summary on the card (task 98)', () => {
       favoriteStaff: null,
       paid: [],
       tips: [],
+      usualPayment: null,
     });
   });
 
   it('counts visits, no-shows and cancellations; the paid sum is after coupons', async () => {
     const first = await pastVisit(kasiaId, 30);
-    await pastVisit(tomekId, 10);
+    const second = await pastVisit(tomekId, 10);
     const latest = await pastVisit(kasiaId, 2, false);
+    // Task 290: both paid visits by card; the unpaid one has no method.
+    await ctx.prisma.appointment.updateMany({
+      where: { id: { in: [first, second] } },
+      data: { paymentMethod: 'card' },
+    });
     // A 20 zł coupon on the first visit: it brought 60 zł.
     await ctx.prisma.appointment.update({ where: { id: first }, data: { discountGrosze: 2000 } });
     const missed = await futureVisit(kasiaId, 3);
@@ -227,6 +233,7 @@ describe('client summary on the card (task 98)', () => {
       paid: [{ currency: 'PLN', amountGrosze: 6000 + 8000, visits: 2 }],
       // Task 287: 10 zł + 5,50 zł on two visits.
       tips: [{ currency: 'PLN', amountGrosze: 1550, visits: 2 }],
+      usualPayment: { method: 'card', visits: 2 },
     });
     // The manager of the salon sees the same, money included.
     expect((await card(manager.auth)).body.summary).toEqual(body.summary);
@@ -253,6 +260,7 @@ describe('client summary on the card (task 98)', () => {
       upcoming: 0,
       paid: null,
       tips: null,
+      usualPayment: null,
       // Task 261: one own visit is not a habit.
       favoriteService: null,
       favoriteStaff: null,
@@ -312,6 +320,21 @@ describe('"Wraca zwykle co N dni" (task 250)', () => {
     expect(rhythm([at(1), at(1, 13), at(29)])).toBeNull();
     expect(rhythm([at(1), at(29), at(29, 13), at(31)])).toBe(15);
     expect(rhythm([at(1), at(22), at(29), at(31)])).toBe(7);
+  });
+});
+
+describe('"Zwykle płaci" (task 290)', () => {
+  it('the most frequent method; the latest wins a tie; below two visits — none', () => {
+    const rows = (...methods: ('cash' | 'card' | 'blik')[]) =>
+      methods.map((paymentMethod) => ({ paymentMethod }));
+    expect(usualPayment(rows('cash', 'card', 'cash'))).toEqual({ method: 'cash', visits: 2 });
+    expect(usualPayment(rows('cash', 'card', 'card', 'cash'))).toEqual({
+      method: 'cash',
+      visits: 2,
+    });
+    expect(usualPayment(rows('blik'))).toBeNull();
+    expect(usualPayment([{ paymentMethod: null }, { paymentMethod: null }])).toBeNull();
+    expect(usualPayment(null)).toBeNull();
   });
 });
 

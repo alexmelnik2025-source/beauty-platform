@@ -4256,6 +4256,12 @@ export interface components {
                     /** @description How many visits had a tip */
                     visits: number;
                 }[] | null;
+                /** @description Task 290: how the client usually pays — the most frequent payment method on the paid visits that have one (the latest wins a tie); null below 2 such visits and for staff members */
+                usualPayment: {
+                    /** @enum {string} */
+                    method: "cash" | "card" | "blik" | "transfer" | "other";
+                    visits: number;
+                } | null;
             };
         };
         CustomerExport: {

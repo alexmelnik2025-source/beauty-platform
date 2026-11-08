@@ -275,6 +275,7 @@ export const en: Dictionary = {
     paid: 'Paid: {amount}',
     average: 'Average per visit: {amount}',
     tips: 'Tips: {amount}',
+    usualPayment: 'Usually pays by: {method}',
     upcoming: 'Upcoming visits',
     history: 'Visit history',
     noVisits: 'No visits in this salon.',

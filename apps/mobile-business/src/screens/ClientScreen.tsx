@@ -300,6 +300,14 @@ export function ClientScreen(props: {
             })}
           </Text>
         ) : null}
+        {/* Task 291: how the client usually pays. */}
+        {client.summary.usualPayment ? (
+          <Text style={styles.chip}>
+            {fill(c.usualPayment, {
+              method: t.visit.paymentMethods[client.summary.usualPayment.method],
+            })}
+          </Text>
+        ) : null}
         {(client.tags ?? []).map((tag) => (
           <Text key={tag} style={[styles.chip, styles.tag]}>
             {tag}

@@ -1063,6 +1063,7 @@ export const ru: Dict = {
       paid: 'Оплачено всего',
       average: 'В среднем за визит',
       tips: 'Чаевые всего',
+      usualPayment: 'Обычно платит',
       rhythm: 'Обычно возвращается',
       rhythmValue: 'каждые {days} дн. · следующий ок. {date}',
       favoriteService: 'Любимая услуга',

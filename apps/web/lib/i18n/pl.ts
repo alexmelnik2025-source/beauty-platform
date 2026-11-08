@@ -1059,6 +1059,7 @@ export const pl = {
       paid: 'Zapłacono łącznie',
       average: 'Średnio za wizytę',
       tips: 'Napiwki łącznie',
+      usualPayment: 'Zwykle płaci',
       rhythm: 'Wraca zwykle',
       rhythmValue: 'co {days} dni · następna ok. {date}',
       favoriteService: 'Ulubiona usługa',

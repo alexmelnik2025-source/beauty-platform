@@ -971,6 +971,16 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
       summary.tips.map((p) => formatPrice(p.amountGrosze, p.currency, tag)).join(' + '),
     ]);
   }
+  // Task 290: how the client usually pays (at least two paid visits with the method marked).
+  if (summary.usualPayment) {
+    tiles.push([
+      t.clients.summary.usualPayment,
+      fill(t.clients.summary.favoriteValue, {
+        name: t.appointment.paymentMethods[summary.usualPayment.method],
+        n: String(summary.usualPayment.visits),
+      }),
+    ]);
+  }
   return (
     <section className="section" data-testid="client-summary">
       <h3>{t.clients.summary.title}</h3>
