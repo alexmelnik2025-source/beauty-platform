@@ -11,6 +11,8 @@ import {
   programRule,
   programToSave,
   rewardLabel,
+  rulesForm,
+  rulesToSave,
   sortedRewards,
 } from '../src/loyalty';
 
@@ -182,5 +184,74 @@ describe('newReward', () => {
         cost: 8,
       },
     });
+  });
+});
+
+describe('program rules (task 344)', () => {
+  it('shows the saved rules as typed amounts', () => {
+    expect(
+      rulesForm(program({ spendUnitGrosze: 5050, minSpendGrosze: 3000, pointsValidityDays: 365 })),
+    ).toEqual({
+      mode: 'stamps',
+      stampsPerVisit: '1',
+      pointsPerUnit: '10',
+      spendUnit: '50,50',
+      minSpend: '30',
+      validityDays: '365',
+      maxDiscountPercent: '50',
+      allowStacking: false,
+    });
+  });
+
+  it('turns a points program into the whole settings, the switch and version as read', () => {
+    const p = program({ enabled: true });
+    const checked = rulesToSave(p, {
+      ...rulesForm(p),
+      mode: 'points',
+      pointsPerUnit: '5',
+      spendUnit: '10,5',
+      minSpend: '',
+      validityDays: '180',
+      maxDiscountPercent: '30',
+      allowStacking: true,
+    });
+    expect(checked).toEqual({
+      ok: true,
+      save: {
+        ...programToSave(p, true),
+        mode: 'points',
+        pointsPerUnit: 5,
+        spendUnitGrosze: 1050,
+        minSpendGrosze: 0,
+        pointsValidityDays: 180,
+        maxDiscountPercent: 30,
+        allowStacking: true,
+      },
+    });
+  });
+
+  it('empty validity = no limit; stamps keep the points fields as saved', () => {
+    const p = program({ pointsValidityDays: 90 });
+    const points = rulesToSave(p, { ...rulesForm(p), mode: 'points', validityDays: ' ' });
+    expect(points.ok && points.save.pointsValidityDays).toBeNull();
+    const stamps = rulesToSave(p, { ...rulesForm(p), stampsPerVisit: '2', validityDays: 'x' });
+    expect(stamps.ok && stamps.save).toMatchObject({ stampsPerVisit: 2, pointsValidityDays: 90 });
+  });
+
+  it('points out what is wrong', () => {
+    const p = program();
+    const form = rulesForm(p);
+    const problem = (over: Partial<typeof form>) => {
+      const r = rulesToSave(p, { ...form, ...over });
+      return r.ok ? null : r.problem;
+    };
+    expect(problem({ stampsPerVisit: '101' })).toBe('stampsPerVisit');
+    expect(problem({ stampsPerVisit: '1.5' })).toBe('stampsPerVisit');
+    expect(problem({ mode: 'points', pointsPerUnit: '' })).toBe('pointsPerUnit');
+    expect(problem({ mode: 'points', spendUnit: '0' })).toBe('spendUnit');
+    expect(problem({ mode: 'points', validityDays: '0' })).toBe('validityDays');
+    expect(problem({ minSpend: 'abc' })).toBe('minSpend');
+    expect(problem({ maxDiscountPercent: '101' })).toBe('maxDiscountPercent');
+    expect(problem({})).toBeNull();
   });
 });
