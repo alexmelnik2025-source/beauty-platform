@@ -87,16 +87,17 @@ test('business app: the owner uses a client’s coupon on a visit, from the list
       data: { displayName: 'Ilian', serviceIds: [service.id] },
     }),
   );
-  const tomorrow = new Date(Date.now() + 86_400_000);
+  // Tomorrow in Warsaw (the app's "Następny dzień"), also after 23:00 UTC.
+  const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+    new Date(Date.now() + 86_400_000),
+  );
   const booked = await json<{ id: string; customer: { id: string } }>(
     await request.post(`${base}/appointments`, {
       headers: owner,
       data: {
         serviceId: service.id,
         staffId: staff.id,
-        start: new Date(
-          Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 10),
-        ).toISOString(),
+        start: `${tomorrow}T10:00:00.000Z`,
         allowOutsideHours: true,
         customer: { name: 'Jan Kowalski', phone: '+48600000343' },
       },
