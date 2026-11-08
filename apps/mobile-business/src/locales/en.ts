@@ -379,6 +379,19 @@ export const en: Dictionary = {
     teamHint: 'Choose a specialist to change their profile, working hours and time off.',
     staffTitle: 'Schedule: {name}',
     noStaff: 'The salon has no specialists yet.',
+    specialAdd: '+ Special day',
+    specialDay: 'Day',
+    specialHours: 'Hours on that day',
+    specialHint:
+      'E.g. 10:00–14:00. They replace the usual hours on this day only. A whole day off — “Add time off”.',
+    specialSave: 'Save the day',
+    specialSaved: 'Special day saved. Clients see these hours.',
+    specialEmpty:
+      'Enter the working hours of that day. A whole day off is added with “Add time off”.',
+    specialBad: 'Check the hours. Enter e.g. 10:00–14:00.',
+    specialRemoveAsk: 'Bring back the usual hours on this day?',
+    specialRemove: 'Remove',
+    specialRemoved: 'The usual hours of that day are back.',
   },
   staffProfile: {
     title: 'Profile',

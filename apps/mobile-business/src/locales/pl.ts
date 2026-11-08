@@ -377,6 +377,19 @@ export const pl = {
     teamHint: 'Wybierz specjalistę, aby zmienić jego profil, godziny pracy i wolne.',
     staffTitle: 'Grafik: {name}',
     noStaff: 'Salon nie ma jeszcze specjalistów.',
+    specialAdd: '+ Dzień specjalny',
+    specialDay: 'Dzień',
+    specialHours: 'Godziny tego dnia',
+    specialHint:
+      'Np. 10:00–14:00. Zastąpią zwykłe godziny tylko w tym dniu. Cały dzień wolny — „Dodaj wolne”.',
+    specialSave: 'Zapisz dzień',
+    specialSaved: 'Dzień specjalny zapisany. Klienci widzą te godziny.',
+    specialEmpty:
+      'Wpisz godziny pracy tego dnia. Cały dzień wolny dodasz przyciskiem „Dodaj wolne”.',
+    specialBad: 'Sprawdź godziny. Wpisz np. 10:00–14:00.',
+    specialRemoveAsk: 'Przywrócić zwykłe godziny tego dnia?',
+    specialRemove: 'Usuń',
+    specialRemoved: 'Przywrócono zwykłe godziny tego dnia.',
   },
   staffProfile: {
     title: 'Profil',

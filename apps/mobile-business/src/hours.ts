@@ -81,3 +81,21 @@ export function teamForHours(staff: StaffList): StaffList {
     .filter((s) => s.active)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.displayName.localeCompare(b.displayName));
 }
+
+/**
+ * Task 335: "Dzień specjalny" — the hours of one date replace the weekly hours that day
+ * ("10:00–14:00"). The server needs at least one interval: a whole day off is "Dodaj wolne".
+ */
+export function specialBody(
+  text: string,
+): { ok: true; intervals: Interval[] } | { ok: false; problem: 'empty' | 'bad' } {
+  const intervals = parseDayHours(text);
+  if (intervals === null) return { ok: false, problem: 'bad' };
+  if (intervals.length === 0) return { ok: false, problem: 'empty' };
+  return { ok: true, intervals };
+}
+
+/** The field for a date: its special hours if it already has them, otherwise empty. */
+export function specialInput(hours: Pick<WorkingHours, 'overrides'>, date: string): string {
+  return hoursInput(hours.overrides.find((o) => o.date === date)?.intervals ?? []);
+}

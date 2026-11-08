@@ -466,6 +466,34 @@ export class BusinessApi {
     );
   }
 
+  /** Task 335, owner or manager only: special hours for one date (location-local YYYY-MM-DD). */
+  setSpecialDay(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    date: string,
+    intervals: { start: string; end: string }[],
+  ): Promise<WorkingHours> {
+    return this.authed<WorkingHours>(
+      'PUT',
+      `${staffPath(orgId, locationId, staffId)}/working-hours/overrides/${enc(date)}`,
+      { intervals },
+    );
+  }
+
+  /** Task 335, owner or manager only: the date gets the usual weekly hours back. */
+  removeSpecialDay(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    date: string,
+  ): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `${staffPath(orgId, locationId, staffId)}/working-hours/overrides/${enc(date)}`,
+    );
+  }
+
   /** Current and future time off of a specialist. */
   timeOff(orgId: string, locationId: string, staffId: string): Promise<TimeOffList> {
     return this.authed<TimeOffList>('GET', `${staffPath(orgId, locationId, staffId)}/time-off`);

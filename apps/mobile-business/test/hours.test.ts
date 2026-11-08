@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { BusinessApi, type StaffList, type TokenStore } from '../src/api';
-import { hoursInput, parseDayHours, teamForHours, weekInputs, weeklyBody } from '../src/hours';
+import {
+  hoursInput,
+  parseDayHours,
+  specialBody,
+  specialInput,
+  teamForHours,
+  weekInputs,
+  weeklyBody,
+} from '../src/hours';
 
 describe('one day of working hours', () => {
   it('reads short and full times, dashes and commas; empty is a day off', () => {
@@ -78,6 +86,25 @@ describe('the week', () => {
   });
 });
 
+describe('a special day (task 335)', () => {
+  it('needs at least one interval: a whole day off is time off', () => {
+    expect(specialBody('10-14')).toEqual({
+      ok: true,
+      intervals: [{ start: '10:00', end: '14:00' }],
+    });
+    expect(specialBody('  ')).toEqual({ ok: false, problem: 'empty' });
+    expect(specialBody('14-10')).toEqual({ ok: false, problem: 'bad' });
+  });
+
+  it('shows the hours the date already has', () => {
+    const hours = {
+      overrides: [{ date: '2026-12-24', intervals: [{ start: '09:00', end: '13:00' }] }],
+    };
+    expect(specialInput(hours, '2026-12-24')).toBe('09:00–13:00');
+    expect(specialInput(hours, '2026-12-23')).toBe('');
+  });
+});
+
 describe('BusinessApi working hours', () => {
   it('replaces the weekly hours of a specialist', async () => {
     const calls: { key: string; body: unknown }[] = [];
@@ -99,6 +126,33 @@ describe('BusinessApi working hours', () => {
     await api.setWorkingHours('o1', 'l1', 's1', days);
     expect(calls.slice(1)).toEqual([
       { key: 'PUT /v1/organizations/o1/locations/l1/staff/s1/working-hours', body: { days } },
+    ]);
+  });
+
+  it('sets and removes the special hours of a date', async () => {
+    const calls: { key: string; body: unknown }[] = [];
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      const key = `${init?.method} ${url.replace('https://api.test', '')}`;
+      calls.push({ key, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+      if (init?.method === 'DELETE') return new Response(null, { status: 204 });
+      const data = key.startsWith('POST /v1/auth/refresh')
+        ? { accessToken: 'a9', expiresIn: 900, refreshToken: 'refresh-token-0123456789new' }
+        : { timezone: 'Europe/Warsaw', weekly: [], overrides: [] };
+      return new Response(JSON.stringify(data), { status: 200 });
+    };
+    const store: TokenStore = {
+      get: async () => 'refresh-token-0123456789abc',
+      set: async () => undefined,
+    };
+    const api = new BusinessApi('https://api.test', store, fetchFn);
+    await api.restore();
+    const intervals = [{ start: '10:00', end: '14:00' }];
+    await api.setSpecialDay('o1', 'l1', 's1', '2026-12-24', intervals);
+    await api.removeSpecialDay('o1', 'l1', 's1', '2026-12-24');
+    const path = '/v1/organizations/o1/locations/l1/staff/s1/working-hours/overrides/2026-12-24';
+    expect(calls.slice(1)).toEqual([
+      { key: `PUT ${path}`, body: { intervals } },
+      { key: `DELETE ${path}`, body: undefined },
     ]);
   });
 });

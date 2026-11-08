@@ -4,7 +4,7 @@ import type { BusinessApi, Locale, TimeOffList, WorkingHours } from '../api';
 import { addDays, dayTitle, daysOff, timeOffText, weekRows } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { weeklyBody, weekInputs } from '../hours';
+import { specialBody, specialInput, weeklyBody, weekInputs } from '../hours';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { StaffProfileSection } from './StaffProfileSection';
@@ -12,7 +12,8 @@ import { StaffProfileSection } from './StaffProfileSection';
 /**
  * A specialist's schedule: weekly hours, special days and time off — the signed-in person's own,
  * or (task 95) anyone's from "Grafik zespołu". The owner or a manager changes the weekly hours
- * and time off here; a specialist only reads them (the server checks). Task 326: from "Grafik
+ * and time off here; a specialist only reads them (the server checks). Task 335: they also set
+ * special hours for one date ("Dzień specjalny") and remove them. Task 326: from "Grafik
  * zespołu" the page starts with the specialist's profile (StaffProfileSection).
  */
 export function ScheduleScreen(props: {
@@ -42,6 +43,10 @@ export function ScheduleScreen(props: {
   const [removing, setRemoving] = useState<string | null>(null);
   const [week, setWeek] = useState<Record<number, string> | null>(null);
   const [badDay, setBadDay] = useState<number | null>(null);
+  /** Task 335: "Dzień specjalny" — the date and the hours being typed, and what to fix. */
+  const [special, setSpecial] = useState<{ date: string; text: string } | null>(null);
+  const [specialProblem, setSpecialProblem] = useState<'empty' | 'bad' | null>(null);
+  const [removingSpecial, setRemovingSpecial] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -116,6 +121,26 @@ export function ScheduleScreen(props: {
     );
     if (ok) setWeek(null);
   }
+
+  async function saveSpecial() {
+    if (!special) return;
+    const body = specialBody(special.text);
+    if (!body.ok) return setSpecialProblem(body.problem);
+    setSpecialProblem(null);
+    const ok = await run(
+      () => api.setSpecialDay(salon.orgId, salon.locationId, staffId, special.date, body.intervals),
+      s.specialSaved,
+    );
+    if (ok) setSpecial(null);
+  }
+
+  /** ‹ › move the special day; never before today. The field shows that day's hours, if any. */
+  const shiftSpecial = (days: number) => {
+    if (!special || !hours) return;
+    let date = addDays(special.date, days);
+    if (date < props.today) date = props.today;
+    setSpecial({ date, text: specialInput(hours, date) || special.text });
+  };
 
   const shift = (key: 'from' | 'to', days: number) => {
     if (!form) return;
@@ -202,12 +227,14 @@ export function ScheduleScreen(props: {
             />
           ) : null}
 
+          {hours.overrides.length > 0 || canEdit ? (
+            <Text style={styles.section}>{s.special}</Text>
+          ) : null}
           {hours.overrides.length > 0 ? (
-            <>
-              <Text style={styles.section}>{s.special}</Text>
-              <Card>
-                {hours.overrides.map((o) => (
-                  <View key={o.date} style={styles.dayRow}>
+            <Card>
+              {hours.overrides.map((o) => (
+                <View key={o.date} style={styles.specialRow}>
+                  <View style={styles.dayRow}>
                     <Text style={styles.dayName}>{dayTitle(o.date, props.locale)}</Text>
                     <Text style={o.intervals.length ? styles.value : styles.muted}>
                       {o.intervals.length
@@ -215,9 +242,105 @@ export function ScheduleScreen(props: {
                         : s.dayOff}
                     </Text>
                   </View>
-                ))}
-              </Card>
-            </>
+                  {/* Task 335: the date gets the usual weekly hours back. */}
+                  {canEdit && removingSpecial === o.date ? (
+                    <View style={styles.row}>
+                      <Text style={styles.muted}>{s.specialRemoveAsk}</Text>
+                      <Button
+                        kind="secondary"
+                        label={s.no}
+                        onPress={() => setRemovingSpecial(null)}
+                      />
+                      <Button
+                        label={s.yes}
+                        busy={busy}
+                        onPress={() =>
+                          void run(
+                            () =>
+                              api.removeSpecialDay(salon.orgId, salon.locationId, staffId, o.date),
+                            s.specialRemoved,
+                          ).then(() => setRemovingSpecial(null))
+                        }
+                      />
+                    </View>
+                  ) : canEdit ? (
+                    <View style={styles.row}>
+                      <Button
+                        kind="link"
+                        label={s.specialRemove}
+                        a11yLabel={`${s.specialRemove}: ${dayTitle(o.date, props.locale)}`}
+                        onPress={() => {
+                          setInfo('');
+                          setRemovingSpecial(o.date);
+                        }}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ))}
+            </Card>
+          ) : null}
+          {canEdit && !special ? (
+            <Button
+              kind="secondary"
+              label={s.specialAdd}
+              onPress={() => {
+                setInfo('');
+                setSpecialProblem(null);
+                setSpecial({ date: props.today, text: specialInput(hours, props.today) });
+              }}
+            />
+          ) : null}
+          {canEdit && special ? (
+            <Card>
+              <View style={styles.dateRow}>
+                <Text style={styles.label}>{s.specialDay}</Text>
+                <View style={styles.row}>
+                  <Button
+                    kind="secondary"
+                    label="‹"
+                    a11yLabel={`${s.specialDay}: ${s.earlier}`}
+                    disabled={special.date <= props.today}
+                    onPress={() => shiftSpecial(-1)}
+                  />
+                  <Text style={styles.value}>{dayTitle(special.date, props.locale)}</Text>
+                  <Button
+                    kind="secondary"
+                    label="›"
+                    a11yLabel={`${s.specialDay}: ${s.later}`}
+                    onPress={() => shiftSpecial(1)}
+                  />
+                </View>
+              </View>
+              <View style={styles.dateRow}>
+                <Text style={styles.label}>{s.specialHours}</Text>
+                <TextInput
+                  accessibilityLabel={s.specialHours}
+                  placeholder="10:00–14:00"
+                  value={special.text}
+                  maxLength={80}
+                  onChangeText={(text) => setSpecial({ ...special, text })}
+                  style={styles.input}
+                />
+                <Text style={styles.small}>{s.specialHint}</Text>
+                {specialProblem ? (
+                  <ErrorText>
+                    {specialProblem === 'empty' ? s.specialEmpty : s.specialBad}
+                  </ErrorText>
+                ) : null}
+              </View>
+              <View style={styles.row}>
+                <Button label={s.specialSave} busy={busy} onPress={() => void saveSpecial()} />
+                <Button
+                  kind="link"
+                  label={s.cancel}
+                  onPress={() => {
+                    setSpecial(null);
+                    setSpecialProblem(null);
+                  }}
+                />
+              </View>
+            </Card>
           ) : null}
 
           <Text style={styles.section}>{s.timeOff}</Text>
@@ -315,6 +438,7 @@ const styles = StyleSheet.create({
   },
   dayName: { fontSize: 15, color: colors.ink, textTransform: 'capitalize' },
   dateRow: { gap: 4, marginBottom: 8 },
+  specialRow: { paddingVertical: 2 },
   label: { fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   value: { fontSize: 15, color: colors.ink, flexShrink: 1 },
   muted: { color: colors.muted, fontSize: 15 },

@@ -2714,3 +2714,14 @@ wykonuje» (сервер принимает цены только тех, кто
   отменить. После удаления в карточке — «Dane klienta usunięte (RODO) <дата>».
 - Код: `apps/mobile-business/src/clientPrivacy.ts` (тест `test/clientPrivacy.test.ts`), раздел в `ClientScreen.tsx`;
   e2e и скриншоты 334, 334a — `apps/web/e2e/app-client-privacy.spec.ts`.
+
+## Бизнес-приложение: «Dzień specjalny» в графике специалиста (задача 335)
+
+- В графике специалиста (свой у владельца или менеджера и любой из «Grafik zespołu») раздел «Dni specjalne»:
+  «+ Dzień specjalny» — дата (‹ ›, не раньше сегодня) и часы этого дня («10:00–14:00», можно несколько через
+  запятую). Они заменяют обычные часы недели только в эту дату (`PUT …/working-hours/overrides/:date`). Пустое поле —
+  подсказка: целый выходной добавляется через «Dodaj wolne» (сервер требует хотя бы один интервал).
+- У каждого особого дня — «Usuń» с вопросом (`DELETE …/working-hours/overrides/:date`): дата снова по обычным часам.
+  Специалист видит особые дни, но не меняет (права проверяет сервер).
+- Код: `specialBody`/`specialInput` в `apps/mobile-business/src/hours.ts` (тест `test/hours.test.ts`), раздел в
+  `ScheduleScreen.tsx`; e2e и скриншоты 335, 335a — `apps/web/e2e/app-special-day.spec.ts`.
