@@ -5,8 +5,8 @@ import { fill, type Dictionary } from './i18n';
 /**
  * "Ochrona przed odwołaniami" in the business app (task 207; in the cabinet — task 161): the
  * owner or a manager sees the salon's rules, switches the protection on or off and lifts a
- * client's mark. The rules themselves are changed in the cabinet. No React Native here —
- * tested in Vitest (test/guard.test.ts).
+ * client's mark. Task 349: the rules themselves and "what then" are changed here too. No React
+ * Native here — tested in Vitest (test/guard.test.ts).
  */
 
 export type MarkedClient = GuardedClients['items'][number];
@@ -79,4 +79,81 @@ export function clientReasons(
     parts.push(fill(c.owes, { sum: formatPrice(client.noShowAmountGrosze, currency, locale) }));
   }
   return parts.join(' · ');
+}
+
+export const GUARD_ACTIONS: CancellationGuard['action'][] = ['approval', 'phone_only', 'prepay'];
+
+/** Task 349: "Zmień zasady" — every rule keeps its number even while it is switched off. */
+export interface GuardForm {
+  changesOn: boolean;
+  changes: string;
+  windowDays: string;
+  lateOn: boolean;
+  lateMinutes: string;
+  noShowsOn: boolean;
+  noShows: string;
+  action: CancellationGuard['action'];
+}
+
+/** The form of the saved settings (the cabinet's defaults for rules never set). */
+export function guardForm(settings: CancellationGuard): GuardForm {
+  return {
+    changesOn: settings.maxChanges !== null,
+    changes: String(settings.maxChanges ?? 3),
+    windowDays: String(Math.max(1, Math.round(settings.windowHours / 24))),
+    lateOn: settings.lateCancelMinutes !== null,
+    lateMinutes: String(settings.lateCancelMinutes ?? 120),
+    noShowsOn: settings.maxNoShows !== null,
+    noShows: String(settings.maxNoShows ?? 2),
+    action: settings.action,
+  };
+}
+
+/** A whole number in [min, max] as typed, or null. */
+function whole(value: string, min: number, max: number): number | null {
+  const v = value.trim();
+  if (!/^\d{1,6}$/.test(v)) return null;
+  const n = Number(v);
+  return n >= min && n <= max ? n : null;
+}
+
+export type GuardProblem = 'changes' | 'windowDays' | 'lateMinutes' | 'noShows' | 'needRule';
+
+/**
+ * Checks the form (the server's limits) and returns the whole settings for `PUT`. A period typed
+ * as the same number of days keeps a period the cabinet saved in hours (e.g. 36 h).
+ */
+export function guardRulesToSave(
+  settings: CancellationGuard,
+  form: GuardForm,
+): { ok: true; save: CancellationGuard } | { ok: false; problem: GuardProblem } {
+  let maxChanges: number | null = null;
+  let windowHours = settings.windowHours;
+  if (form.changesOn) {
+    maxChanges = whole(form.changes, 1, 50);
+    if (maxChanges === null) return { ok: false, problem: 'changes' };
+    const days = whole(form.windowDays, 1, 365);
+    if (days === null) return { ok: false, problem: 'windowDays' };
+    if (days !== Math.max(1, Math.round(settings.windowHours / 24))) windowHours = days * 24;
+  }
+  let lateCancelMinutes: number | null = null;
+  if (form.lateOn) {
+    lateCancelMinutes = whole(form.lateMinutes, 1, 60 * 24 * 7);
+    if (lateCancelMinutes === null) return { ok: false, problem: 'lateMinutes' };
+  }
+  let maxNoShows: number | null = null;
+  if (form.noShowsOn) {
+    maxNoShows = whole(form.noShows, 1, 20);
+    if (maxNoShows === null) return { ok: false, problem: 'noShows' };
+  }
+  const save: CancellationGuard = {
+    ...settings,
+    maxChanges,
+    windowHours,
+    lateCancelMinutes,
+    maxNoShows,
+    action: form.action,
+  };
+  if (save.enabled && !hasRule(save)) return { ok: false, problem: 'needRule' };
+  return { ok: true, save };
 }

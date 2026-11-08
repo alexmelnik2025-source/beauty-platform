@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  BackHandler,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -8,7 +16,17 @@ import {
   type Locale,
 } from '../api';
 import { errorText } from '../errors';
-import { actionLine, clientReasons, guardToSave, hasRule, ruleLines } from '../guard';
+import {
+  actionLine,
+  clientReasons,
+  GUARD_ACTIONS,
+  guardForm,
+  guardRulesToSave,
+  guardToSave,
+  hasRule,
+  ruleLines,
+  type GuardForm,
+} from '../guard';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
@@ -16,7 +34,8 @@ import type { SalonChoice } from './SalonsScreen';
 /**
  * Task 207: "Ochrona przed odwołaniami" — the owner or a manager sees the salon's rules,
  * switches the protection on or off (switching off asks first) and lifts a marked client's
- * block with an optional note. The rules are changed in the cabinet (a hint says so).
+ * block with an optional note. Task 349: "Zmień zasady" — which rules count (often cancels or
+ * moves within N days, cancels late, misses visits) and what happens then.
  */
 export function GuardScreen(props: {
   api: BusinessApi;
@@ -35,6 +54,7 @@ export function GuardScreen(props: {
   const [releaseId, setReleaseId] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState<GuardForm | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -91,6 +111,16 @@ export function GuardScreen(props: {
       },
       enabled ? g.turnedOn : g.turnedOff,
     );
+  }
+
+  function saveRules() {
+    if (!settings || !form) return;
+    const checked = guardRulesToSave(settings, form);
+    if (!checked.ok) return setError(g.problem[checked.problem]);
+    void run(async () => {
+      await api.saveGuardSettings(salon.orgId, salon.locationId, checked.save);
+      setForm(null);
+    }, g.rulesSaved);
   }
 
   function release(customerId: string) {
@@ -150,8 +180,88 @@ export function GuardScreen(props: {
             ) : (
               <Button label={g.turnOn} busy={busy} onPress={() => switchTo(true)} />
             )}
-            <Text style={styles.muted}>{g.cabinetHint}</Text>
+            {!form ? (
+              <Button
+                kind="secondary"
+                label={g.rulesChange}
+                onPress={() => {
+                  setForm(guardForm(settings));
+                  setInfo('');
+                  setError('');
+                }}
+              />
+            ) : null}
           </Card>
+
+          {form ? (
+            <Card>
+              <Text style={styles.label}>{g.rules}</Text>
+              <Toggle
+                label={g.changesOn}
+                on={form.changesOn}
+                onPress={() => setForm({ ...form, changesOn: !form.changesOn })}
+              />
+              {form.changesOn ? (
+                <View style={styles.pair}>
+                  <Field
+                    label={g.changes}
+                    value={form.changes}
+                    onChange={(changes) => setForm({ ...form, changes })}
+                  />
+                  <Field
+                    label={g.windowDays}
+                    value={form.windowDays}
+                    onChange={(windowDays) => setForm({ ...form, windowDays })}
+                  />
+                </View>
+              ) : null}
+              <Toggle
+                label={g.lateOn}
+                on={form.lateOn}
+                onPress={() => setForm({ ...form, lateOn: !form.lateOn })}
+              />
+              {form.lateOn ? (
+                <Field
+                  label={g.lateMinutes}
+                  value={form.lateMinutes}
+                  onChange={(lateMinutes) => setForm({ ...form, lateMinutes })}
+                />
+              ) : null}
+              <Toggle
+                label={g.noShowsOn}
+                on={form.noShowsOn}
+                onPress={() => setForm({ ...form, noShowsOn: !form.noShowsOn })}
+              />
+              {form.noShowsOn ? (
+                <Field
+                  label={g.noShows}
+                  value={form.noShows}
+                  onChange={(noShows) => setForm({ ...form, noShows })}
+                />
+              ) : null}
+              <Text style={styles.label}>{g.actionLabel}</Text>
+              <View role="radiogroup" accessibilityLabel={g.actionLabel} style={{ gap: 8 }}>
+                {GUARD_ACTIONS.map((action) => (
+                  <Pressable
+                    key={action}
+                    role="radio"
+                    aria-checked={form.action === action}
+                    accessibilityState={{ checked: form.action === action }}
+                    onPress={() => setForm({ ...form, action })}
+                    style={[styles.choice, form.action === action && styles.choiceOn]}
+                  >
+                    <Text style={[styles.text, form.action === action && { color: '#fff' }]}>
+                      {g.actions[action]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.row}>
+                <Button label={g.rulesSave} busy={busy} onPress={saveRules} />
+                <Button kind="secondary" label={g.cancel} onPress={() => setForm(null)} />
+              </View>
+            </Card>
+          ) : null}
 
           <Text style={styles.section} role="heading">
             {g.clients}
@@ -207,7 +317,61 @@ export function GuardScreen(props: {
   );
 }
 
+function Toggle(props: { label: string; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      role="checkbox"
+      aria-checked={props.on}
+      accessibilityState={{ checked: props.on }}
+      onPress={props.onPress}
+      style={styles.toggle}
+    >
+      <View style={[styles.box, props.on && styles.boxOn]}>
+        {props.on ? <Text style={{ color: '#fff', fontWeight: '700' }}>✓</Text> : null}
+      </View>
+      <Text style={styles.text}>{props.label}</Text>
+    </Pressable>
+  );
+}
+
+function Field(props: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <View style={{ gap: 4, flex: 1, minWidth: 140 }}>
+      <Text style={styles.label}>{props.label}</Text>
+      <TextInput
+        accessibilityLabel={props.label}
+        value={props.value}
+        onChangeText={props.onChange}
+        keyboardType="number-pad"
+        style={styles.input}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  pair: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  toggle: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 6 },
+  box: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+  },
+  boxOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  choice: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: colors.card,
+  },
+  choiceOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   name: { fontSize: 17, fontWeight: '600', color: colors.ink },

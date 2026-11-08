@@ -2837,3 +2837,12 @@ panelu salonu» убрана — вся программа лояльности 
 tylko: Strzyżenie». Сохраняется вся nagroda с её местом в списке и версией (`PUT …/loyalty/rewards/:id`); если кто-то
 изменил её одновременно — сообщение и свежий каталог. Логика `src/rewardEdit.ts`, e2e `app-reward-edit.spec.ts`,
 скриншот 348.
+
+## Бизнес-приложение: правила защиты от отмен (задача 349)
+
+В «Ochrona przed odwołaniami» под правилами — «Zmień zasady»: три флажка (Częste odwołania i przeniesienia — сколько
+раз и за сколько дней; Późne odwołanie — минуты до визита; Nieobecności — сколько) и «Co wtedy» (три варианта). Числа
+выключенного правила не проверяются и сохраняются как «нет правила». Включённая защита без правил не сохраняется;
+«Włącz ochronę» без правил подсказывает «Zmień zasady». Период, сохранённый в кабинете в часах (не кратный суткам),
+не меняется, если дни не трогали. API: `PUT …/locations/:id/cancellation-guard` (вся настройка с версией). Логика
+`guardForm` / `guardRulesToSave` в `src/guard.ts`, e2e `app-guard-rules.spec.ts`, скриншот 349.

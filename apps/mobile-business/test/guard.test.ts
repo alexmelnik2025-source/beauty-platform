@@ -3,6 +3,8 @@ import type { CancellationGuard } from '../src/api';
 import {
   actionLine,
   clientReasons,
+  guardForm,
+  guardRulesToSave,
   guardToSave,
   hasRule,
   mayManageGuard,
@@ -76,6 +78,81 @@ describe('cancellation protection in the business app', () => {
       for (const action of ['approval', 'phone_only', 'prepay'] as const) {
         expect(actionLine(action, t)).not.toContain('{action}');
       }
+    }
+  });
+});
+
+describe('changing the protection rules (task 349)', () => {
+  it('gives the form back with defaults for rules never set', () => {
+    expect(guardForm(settings())).toEqual({
+      changesOn: true,
+      changes: '3',
+      windowDays: '30',
+      lateOn: true,
+      lateMinutes: '120',
+      noShowsOn: true,
+      noShows: '2',
+      action: 'phone_only',
+    });
+    expect(
+      guardForm(settings({ maxChanges: null, lateCancelMinutes: null, maxNoShows: null })),
+    ).toMatchObject({ changesOn: false, changes: '3', lateOn: false, noShowsOn: false });
+  });
+
+  it('saves the whole settings; switched-off rules become null', () => {
+    const form = {
+      ...guardForm(settings()),
+      lateOn: false,
+      windowDays: '14',
+      action: 'prepay' as const,
+    };
+    expect(guardRulesToSave(settings(), form)).toEqual({
+      ok: true,
+      save: settings({ lateCancelMinutes: null, windowHours: 14 * 24, action: 'prepay' }),
+    });
+  });
+
+  it('keeps a period saved in hours when the days are not changed', () => {
+    const s = settings({ windowHours: 36 });
+    expect(guardRulesToSave(s, guardForm(s))).toMatchObject({
+      ok: true,
+      save: { windowHours: 36 },
+    });
+  });
+
+  it('points out the wrong number and a protection without rules', () => {
+    const form = guardForm(settings());
+    expect(guardRulesToSave(settings(), { ...form, changes: '51' })).toEqual({
+      ok: false,
+      problem: 'changes',
+    });
+    expect(guardRulesToSave(settings(), { ...form, windowDays: '0' })).toMatchObject({
+      problem: 'windowDays',
+    });
+    expect(guardRulesToSave(settings(), { ...form, lateMinutes: '1,5' })).toMatchObject({
+      problem: 'lateMinutes',
+    });
+    expect(guardRulesToSave(settings(), { ...form, noShows: '21' })).toMatchObject({
+      problem: 'noShows',
+    });
+    // A switched-off rule is not checked.
+    expect(guardRulesToSave(settings(), { ...form, noShowsOn: false, noShows: 'x' })).toMatchObject(
+      { ok: true },
+    );
+    const none = { ...form, changesOn: false, lateOn: false, noShowsOn: false };
+    expect(guardRulesToSave(settings({ enabled: true }), none)).toEqual({
+      ok: false,
+      problem: 'needRule',
+    });
+    expect(guardRulesToSave(settings(), none)).toMatchObject({ ok: true });
+    for (const dict of Object.values(DICTIONARIES)) {
+      expect(Object.keys(dict.guard.problem).sort()).toEqual([
+        'changes',
+        'lateMinutes',
+        'needRule',
+        'noShows',
+        'windowDays',
+      ]);
     }
   });
 });
