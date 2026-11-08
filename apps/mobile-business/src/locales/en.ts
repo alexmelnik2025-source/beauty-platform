@@ -1192,6 +1192,7 @@ export const en: Dictionary = {
     otherService: 'a service of another salon',
     couponValidityDays: 'Coupon valid (days), empty — no limit',
     onlyServices: 'Coupon only for services (nothing ticked = any)',
+    onlyOne: 'Coupon only for: {service}',
     validityLine: 'coupon valid {days} days',
     onlyLine: 'only: {services}',
     edit: 'Change',

@@ -1192,6 +1192,7 @@ export const ru: Dictionary = {
     otherService: 'услуга другого салона',
     couponValidityDays: 'Купон действует (дней), пусто — без срока',
     onlyServices: 'Купон только на услуги (ничего не отмечено = любая)',
+    onlyOne: 'Купон только на: {service}',
     validityLine: 'купон действует {days} дн.',
     onlyLine: 'только: {services}',
     edit: 'Изменить',

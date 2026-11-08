@@ -276,6 +276,7 @@ export function LoyaltyScreen(props: {
               <Chip
                 key={s.id}
                 label={s.name}
+                a11yLabel={fill(l.onlyOne, { service: s.name })}
                 on={form.serviceIds.includes(s.id)}
                 onPress={() =>
                   setForm({ ...form, serviceIds: toggledService(form.serviceIds, s.id) })
@@ -565,10 +566,11 @@ function Field(props: {
   );
 }
 
-function Chip(props: { label: string; on: boolean; onPress: () => void }) {
+function Chip(props: { label: string; on: boolean; onPress: () => void; a11yLabel?: string }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={props.a11yLabel ?? props.label}
       aria-pressed={props.on}
       accessibilityState={{ selected: props.on }}
       onPress={props.onPress}

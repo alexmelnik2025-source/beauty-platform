@@ -116,7 +116,7 @@ test('business app: the owner changes a reward', async ({ browser, request }) =>
     await phone.getByRole('button', { name: 'Zapisz', exact: true }).click();
     await expect(phone.getByText('Ważność kuponu: od 1 do 3650 dni albo puste.')).toBeVisible();
     await phone.getByLabel('Kupon ważny (dni), puste — bez terminu').fill('30');
-    await phone.getByRole('button', { name: 'Strzyżenie', exact: true }).click();
+    await phone.getByRole('button', { name: 'Kupon tylko na: Strzyżenie' }).click();
     await shot(phone, '348-business-app-reward-edit');
     await phone.getByRole('button', { name: 'Zapisz', exact: true }).click();
     await expect(phone.getByText('Nagroda zmieniona.')).toBeVisible();

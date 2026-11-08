@@ -1192,6 +1192,7 @@ export const pl = {
     otherService: 'usługa innego salonu',
     couponValidityDays: 'Kupon ważny (dni), puste — bez terminu',
     onlyServices: 'Kupon tylko na usługi (nic nie zaznaczone = każda)',
+    onlyOne: 'Kupon tylko na: {service}',
     validityLine: 'kupon ważny {days} dni',
     onlyLine: 'tylko: {services}',
     edit: 'Zmień',
