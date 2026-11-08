@@ -6,6 +6,7 @@ import {
   type ClientAppointment,
   type ClientLoyaltyCard,
   type ClientPerson,
+  type ClientVisitSummary,
   type ClientWaitlistEntry,
   type FavoriteSalon,
   type Locale,
@@ -13,7 +14,7 @@ import {
 } from '../api';
 import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
-import { formatDay, formatPrice, groupByDay, salonAddress } from '../format';
+import { formatDay, formatPrice, groupByDay, salonAddress, visitSummaryLines } from '../format';
 import { favoriteSpecialists, type FavoriteSpecialist } from '../favorite';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
@@ -57,6 +58,8 @@ export function VisitsScreen(props: {
   const [waitlist, setWaitlist] = useState<ClientWaitlistEntry[]>([]);
   // Task 165d: the client's specialist in each salon, booked in one tap.
   const [mine, setMine] = useState<FavoriteSpecialist[]>([]);
+  // Task 293: "Twoje wizyty" above the history — all time, every salon.
+  const [summary, setSummary] = useState<ClientVisitSummary | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ClientAppointment | null>(null);
@@ -76,7 +79,11 @@ export function VisitsScreen(props: {
         setItems(visits.items);
         setWaitlist(waiting.items);
         setMine(favoriteSpecialists(past.items));
-      } else setItems((await api.appointments(tab)).items);
+      } else {
+        const [visits, sum] = await Promise.all([api.appointments(tab), api.visitSummary()]);
+        setItems(visits.items);
+        setSummary(sum);
+      }
       setError('');
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
@@ -90,6 +97,7 @@ export function VisitsScreen(props: {
     setItems(null);
     setBonuses(null);
     setFavorites(null);
+    setSummary(null);
     void load();
   }, [load]);
 
@@ -292,6 +300,10 @@ export function VisitsScreen(props: {
         </View>
       ) : null}
 
+      {tab === 'past' && summary && summary.completed > 0 ? (
+        <SummaryCard summary={summary} t={t} locale={locale} />
+      ) : null}
+
       {(tab === 'upcoming' || tab === 'past') && items && items.length === 0 ? (
         <Text style={styles.empty}>
           {tab === 'upcoming' ? t.visits.emptyUpcoming : t.visits.emptyPast}
@@ -326,6 +338,30 @@ export function VisitsScreen(props: {
       <Button kind="link" label={t.visits.signOut} onPress={props.onSignOut} />
       <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
     </ScrollView>
+  );
+}
+
+/** Task 293: how many visits took place, in how many salons, since when, and what they cost. */
+function SummaryCard({
+  summary,
+  t,
+  locale,
+}: {
+  summary: ClientVisitSummary;
+  t: Dictionary;
+  locale: Locale;
+}) {
+  const lines = visitSummaryLines(summary, t.visits, locale);
+  return (
+    <View role="region" aria-label={t.visits.summaryTitle}>
+      <Card>
+        <Text role="heading" aria-level={2} style={styles.service}>
+          {t.visits.summaryTitle}
+        </Text>
+        <Text style={styles.muted}>{lines.visits}</Text>
+        {lines.spent ? <Text style={styles.muted}>{lines.spent}</Text> : null}
+      </Card>
+    </View>
   );
 }
 

@@ -1,4 +1,4 @@
-import type { ClientAppointment, Locale, Slot } from './api';
+import type { ClientAppointment, ClientVisitSummary, Locale, Slot } from './api';
 import { fill } from './i18n';
 
 /** Dates and prices as the client reads them. No React Native here — tested in Vitest. */
@@ -193,4 +193,38 @@ export function ratingText(
     maximumFractionDigits: 1,
   }).format(salon.rating);
   return fill(text, { rating, n: String(salon.reviewCount) });
+}
+
+/**
+ * Task 293: "Twoje wizyty" — "Odbyte wizyty: 3 · w salonach: 2 · od 9 lutego 2027" and
+ * "Zapłacono łącznie: 180,00 zł" (several currencies joined with "+"; null when nothing paid).
+ * The first visit's date is read in the phone's time zone.
+ */
+export function visitSummaryLines(
+  summary: ClientVisitSummary,
+  texts: {
+    summaryVisits: string;
+    summarySalons: string;
+    summarySince: string;
+    summarySpent: string;
+  },
+  locale: Locale,
+  timeZone?: string,
+): { visits: string; spent: string | null } {
+  const parts = [fill(texts.summaryVisits, { n: String(summary.completed) })];
+  if (summary.salons > 1) parts.push(fill(texts.summarySalons, { n: String(summary.salons) }));
+  if (summary.firstVisitAt) {
+    const date = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+      ...(timeZone ? { timeZone } : {}),
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(summary.firstVisitAt));
+    parts.push(fill(texts.summarySince, { date }));
+  }
+  const spent = summary.spent.map((s) => formatPrice(s.amountGrosze, s.currency, locale));
+  return {
+    visits: parts.join(' · '),
+    spent: spent.length ? fill(texts.summarySpent, { amount: spent.join(' + ') }) : null,
+  };
 }

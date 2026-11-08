@@ -8,7 +8,7 @@ import { serveApp } from './mobile-app';
  * Task 165d: "your specialist". A client went to Kasia twice; in the client app "Moje wizyty"
  * shows "Twoi specjaliści" with Kasia, and "Umów u: Kasia" opens her free times at once.
  * Screenshots 165d, 165d-a. Task 292: "Historia" on the site starts with "Twoje wizyty" — 3 visits,
- * the two paid ones in total (screenshot 292).
+ * the two paid ones in total (screenshot 292); the same in the client app (293).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -183,6 +183,13 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     await expect(mine.getByText('Strzyżenie fade · wizyty: 2')).toBeVisible();
     await expect(mine.getByText('Marek', { exact: true })).toHaveCount(0);
     await shot(app, '165d-client-app-my-specialists');
+    // Task 293: "Twoje wizyty" on top of the history in the app.
+    await app.getByRole('tab', { name: 'Historia', exact: true }).click();
+    const summary = app.getByRole('region', { name: 'Twoje wizyty' });
+    await expect(summary.getByText(/^Odbyte wizyty: 3 · od \d{1,2} \S+ \d{4}$/)).toBeVisible();
+    await expect(summary.getByText(/^Zapłacono łącznie: 180,00\s?zł$/)).toBeVisible();
+    await shot(app, '293-client-app-visit-summary');
+    await app.getByRole('tab', { name: 'Nadchodzące', exact: true }).click();
     await mine.getByRole('button', { name: 'Umów u: Kasia' }).click();
     await expect(app.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
     await shot(app, '165d-a-client-app-book-my-specialist');
@@ -234,12 +241,12 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     await expect(mine.getByText('Marek', { exact: true })).toHaveCount(0);
     await shot(page, '203-site-my-specialists');
     // Task 292: "Twoje wizyty" on top of the past visits.
-    await page.getByRole('button', { name: 'Historia' }).click();
+    await page.getByRole('button', { name: 'Historia', exact: true }).click();
     const summary = page.getByRole('region', { name: 'Twoje wizyty' });
     await expect(summary.getByText(/^Odbyte wizyty: 3 · od \d{1,2} \S+ \d{4}/)).toBeVisible();
     await expect(summary.getByText(/^Zapłacono łącznie: 180,00\s?zł$/)).toBeVisible();
     await shot(page, '292-site-visit-summary');
-    await page.getByRole('button', { name: 'Nadchodzące' }).click();
+    await page.getByRole('button', { name: 'Nadchodzące', exact: true }).click();
     await mine.getByRole('link', { name: 'Umów u: Kasia' }).click();
     // The booking page starts on Kasia's free times for the same service.
     await expect(page).toHaveURL(/\/pl\/b\/.+\?service=.+&staff=.+/);

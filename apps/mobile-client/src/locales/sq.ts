@@ -35,6 +35,11 @@ export const sq: Dictionary = {
     mySpecialists: 'Specialistët tuaj',
     bookWith: 'Rezervo te {staff}',
     visitsCount: 'vizita: {n}',
+    summaryTitle: 'Takimet tuaja',
+    summaryVisits: 'Takime të kryera: {n}',
+    summarySalons: 'sallone: {n}',
+    summarySince: 'që nga {date}',
+    summarySpent: 'Paguar gjithsej: {amount}',
     minutes: 'min',
     with: 'me {staff}',
     status: {

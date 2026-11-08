@@ -12,6 +12,7 @@ import type {
   ClientLoyaltyCard,
   ClientPerson,
   ClientSignIn,
+  ClientVisitSummary,
   ClientWaitlist,
   ClientWaitlistEntry,
   PublicFreeToday,
@@ -123,6 +124,7 @@ export type {
   ClientLoyaltyCard,
   ClientPerson,
   ClientSignIn,
+  ClientVisitSummary,
 };
 
 /** Where the session token lives: Keychain/Keystore on phones, browser storage in the web preview. */
@@ -221,6 +223,11 @@ export class ClientApi {
    */
   exportData(): Promise<ClientDataExport> {
     return this.authed<ClientDataExport>('GET', '/v1/client/export');
+  }
+
+  /** Task 293: "Twoje wizyty" — visits that took place in every salon and what they cost. */
+  visitSummary(): Promise<ClientVisitSummary> {
+    return this.authed<ClientVisitSummary>('GET', '/v1/client/me/summary');
   }
 
   /** Visits in all salons: upcoming (soonest first) or past (latest 50). */

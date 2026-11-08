@@ -35,6 +35,11 @@ export const tr: Dictionary = {
     mySpecialists: 'Uzmanlarınız',
     bookWith: '{staff} ile randevu al',
     visitsCount: 'ziyaret: {n}',
+    summaryTitle: 'Ziyaretleriniz',
+    summaryVisits: 'Gerçekleşen ziyaret: {n}',
+    summarySalons: 'salon: {n}',
+    summarySince: '{date} tarihinden beri',
+    summarySpent: 'Toplam ödenen: {amount}',
     minutes: 'dk',
     with: 'uzman: {staff}',
     status: {

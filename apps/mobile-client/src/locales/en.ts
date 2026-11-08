@@ -34,6 +34,11 @@ export const en: Dictionary = {
     mySpecialists: 'Your specialists',
     bookWith: 'Book with {staff}',
     visitsCount: 'visits: {n}',
+    summaryTitle: 'Your visits',
+    summaryVisits: 'Visits so far: {n}',
+    summarySalons: 'salons: {n}',
+    summarySince: 'since {date}',
+    summarySpent: 'Paid in total: {amount}',
     minutes: 'min',
     with: 'with {staff}',
     status: {

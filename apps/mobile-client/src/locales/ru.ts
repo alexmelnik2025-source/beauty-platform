@@ -34,6 +34,11 @@ export const ru: Dictionary = {
     mySpecialists: 'Ваши мастера',
     bookWith: 'Записаться к: {staff}',
     visitsCount: 'визитов: {n}',
+    summaryTitle: 'Ваши визиты',
+    summaryVisits: 'Состоявшихся визитов: {n}',
+    summarySalons: 'салонов: {n}',
+    summarySince: 'с {date}',
+    summarySpent: 'Оплачено всего: {amount}',
     minutes: 'мин',
     with: 'мастер: {staff}',
     status: {

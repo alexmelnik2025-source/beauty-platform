@@ -33,6 +33,11 @@ export const pl = {
     mySpecialists: 'Twoi specjaliści',
     bookWith: 'Umów u: {staff}',
     visitsCount: 'wizyty: {n}',
+    summaryTitle: 'Twoje wizyty',
+    summaryVisits: 'Odbyte wizyty: {n}',
+    summarySalons: 'w salonach: {n}',
+    summarySince: 'od {date}',
+    summarySpent: 'Zapłacono łącznie: {amount}',
     minutes: 'min',
     with: 'u: {staff}',
     status: {

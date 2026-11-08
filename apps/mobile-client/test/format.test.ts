@@ -13,6 +13,7 @@ import {
   salonAddress,
   slotsByDay,
   visitActions,
+  visitSummaryLines,
 } from '../src/format';
 import { DICTIONARIES } from '../src/i18n';
 
@@ -157,5 +158,36 @@ describe('formatDate (task 80j)', () => {
     // 23:30 UTC is already the next day in Warsaw.
     expect(formatDate('2027-02-08T23:30:00.000Z', 'Europe/Warsaw', 'pl')).toBe('9 lutego 2027');
     expect(formatDate('2027-02-08T23:30:00.000Z', 'Europe/Warsaw', 'en')).toBe('9 February 2027');
+  });
+});
+
+describe('"Twoje wizyty" (task 293)', () => {
+  it('visits, salons, since when and what was paid, per currency', () => {
+    const lines = visitSummaryLines(
+      {
+        completed: 3,
+        salons: 2,
+        firstVisitAt: '2027-02-08T23:30:00.000Z',
+        spent: [
+          { currency: 'PLN', amountGrosze: 18000, visits: 2 },
+          { currency: 'EUR', amountGrosze: 2500, visits: 1 },
+        ],
+      },
+      DICTIONARIES.pl.visits,
+      'pl',
+      'Europe/Warsaw',
+    );
+    expect(lines.visits).toBe('Odbyte wizyty: 3 · w salonach: 2 · od 9 lutego 2027');
+    expect(lines.spent).toMatch(/^Zapłacono łącznie: 180,00\s?zł \+ 25,00\s?€$/);
+  });
+
+  it('one salon and nothing paid: no salon count, no total', () => {
+    const lines = visitSummaryLines(
+      { completed: 1, salons: 1, firstVisitAt: '2027-02-08T10:00:00.000Z', spent: [] },
+      DICTIONARIES.en.visits,
+      'en',
+      'Europe/Warsaw',
+    );
+    expect(lines).toEqual({ visits: 'Visits so far: 1 · since 8 February 2027', spent: null });
   });
 });
