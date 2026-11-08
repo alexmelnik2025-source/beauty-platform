@@ -656,6 +656,17 @@ export const en: Dictionary = {
     askDrink: 'Something to drink',
     drinksOffered: 'What do you have in the salon?',
     askNote: 'A note for the specialist (up to 200 characters)',
+    country: 'Country and currency',
+    timeZone: 'Country and time zone',
+    timeZoneHint: 'Working hours, visits and emails use the time of this zone.',
+    currency: 'Price currency',
+    currencyHint:
+      'Service prices and loyalty program amounts are in this currency. Changing it does not convert prices — correct them in “Services”.',
+    choiceChange: 'Change',
+    choiceClose: 'Close',
+    choiceSearch: 'Search: {what}',
+    choiceSearchPlaceholder: 'Type a few letters',
+    choiceNone: 'Nothing found.',
     legalTexts:
       'To switch online booking on, the salon needs booking terms and a privacy policy — add them in the salon dashboard: Settings → Terms and privacy.',
     changedMeanwhile:

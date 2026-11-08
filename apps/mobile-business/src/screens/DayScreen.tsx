@@ -347,6 +347,7 @@ export function DayScreen(props: {
       <SalonScreen
         api={api}
         t={t}
+        locale={props.locale}
         salon={salon}
         onBack={() => setSalonOpen(false)}
         onRenamed={setSalonName}

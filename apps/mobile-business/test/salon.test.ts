@@ -61,6 +61,8 @@ describe('salonForm', () => {
       askNote: false,
       coordinates: '',
       languages: ['pl'],
+      timezone: 'Europe/Warsaw',
+      currency: 'PLN',
     });
   });
 });
@@ -228,6 +230,22 @@ describe('salonChanges — languages at the salon (task 322)', () => {
     expect(salonChanges(saved, { ...salonForm(saved), languages: [] })).toEqual({
       changes: { languages: [] },
     });
+  });
+});
+
+describe('salonChanges — country and currency (task 323)', () => {
+  it('sends the time zone and the currency only when they changed', () => {
+    const form = { ...salonForm(salon()), timezone: 'Europe/Prague', currency: 'CZK' };
+    expect(salonChanges(salon(), form)).toEqual({
+      changes: { timezone: 'Europe/Prague', currency: 'CZK' },
+    });
+    expect(salonChanges(salon(), salonForm(salon()))).toEqual({ changes: {} });
+  });
+
+  it('gives a phone typed without a code the code of the newly chosen country', () => {
+    const form = { ...salonForm(salon()), timezone: 'Europe/Prague', phone: '601 123 456' };
+    const checked = salonChanges(salon(), form);
+    expect(checked).toMatchObject({ changes: { phone: '+420601123456' } });
   });
 });
 

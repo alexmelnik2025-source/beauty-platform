@@ -9,7 +9,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { BusinessApi, Location } from '../api';
+import type { BusinessApi, Locale, Location } from '../api';
+import { CURRENCIES, currencyName, matching, salonTimeZones } from '../country';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
@@ -34,16 +35,18 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 320: "Pytania przy rezerwacji" — mood, a drink (and which ones the salon has), a note.
  * Task 321: "Miejsce na mapie katalogu" — the coordinates as Google Maps gives them.
  * Task 322: "Języki w salonie" — the languages shown on the booking page.
+ * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — chosen from the cabinet's lists.
  */
 export function SalonScreen(props: {
   api: BusinessApi;
   t: Dictionary;
+  locale: Locale;
   salon: SalonChoice;
   onBack: () => void;
   /** The salon's name changed: the calendar's header shows the new one. */
   onRenamed: (name: string) => void;
 }) {
-  const { api, t, salon, onBack, onRenamed } = props;
+  const { api, t, locale, salon, onBack, onRenamed } = props;
   const s = t.salon;
   const [location, setLocation] = useState<Location | null>(null);
   const [form, setForm] = useState<SalonForm | null>(null);
@@ -262,6 +265,28 @@ export function SalonScreen(props: {
             </View>
           </Card>
           <Card>
+            <Text style={styles.section}>{s.country}</Text>
+            <ChoiceList
+              t={t}
+              label={s.timeZone}
+              hint={s.timeZoneHint}
+              value={form.timezone}
+              options={salonTimeZones(locale, location?.timezone).map((z) => ({
+                value: z.timeZone,
+                label: z.label,
+              }))}
+              onChange={(timezone) => setForm({ ...form, timezone })}
+            />
+            <ChoiceList
+              t={t}
+              label={s.currency}
+              hint={s.currencyHint}
+              value={form.currency}
+              options={CURRENCIES.map((c) => ({ value: c, label: currencyName(c, locale) }))}
+              onChange={(currency) => setForm({ ...form, currency })}
+            />
+          </Card>
+          <Card>
             <Text style={styles.section}>{s.rules}</Text>
             {field('minLeadMinutes', s.lead, {
               maxLength: 5,
@@ -324,6 +349,90 @@ export function SalonScreen(props: {
   );
 }
 
+/**
+ * Task 323: the chosen value with "Zmień"; open, a search field and the list to tap one in.
+ * Long lists (50 countries) stay short on a phone this way.
+ */
+function ChoiceList<T extends string>(props: {
+  t: Dictionary;
+  label: string;
+  hint: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  const s = props.t.salon;
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const chosen = props.options.find((o) => o.value === props.value)?.label ?? props.value;
+  const shown = matching(props.options, typed);
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{props.label}</Text>
+      <View style={styles.switchRow}>
+        <Text style={[styles.value, { flex: 1 }]} accessibilityLabel={`${props.label}: ${chosen}`}>
+          {chosen}
+        </Text>
+        <Button
+          kind="link"
+          label={open ? s.choiceClose : s.choiceChange}
+          a11yLabel={`${open ? s.choiceClose : s.choiceChange}: ${props.label}`}
+          onPress={() => {
+            setOpen(!open);
+            setTyped('');
+          }}
+        />
+      </View>
+      {open ? (
+        <View style={{ gap: 6 }}>
+          <TextInput
+            accessibilityLabel={fill(s.choiceSearch, { what: props.label })}
+            placeholder={s.choiceSearchPlaceholder}
+            placeholderTextColor={colors.placeholder}
+            value={typed}
+            onChangeText={setTyped}
+            style={styles.input}
+          />
+          <ScrollView
+            nestedScrollEnabled
+            accessibilityRole="radiogroup"
+            accessibilityLabel={props.label}
+            style={styles.list}
+            contentContainerStyle={{ gap: 2 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {shown.length === 0 ? <Text style={styles.small}>{s.choiceNone}</Text> : null}
+            {shown.map((option) => {
+              const on = option.value === props.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="radio"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ checked: on }}
+                  aria-checked={on}
+                  onPress={() => {
+                    props.onChange(option.value);
+                    setOpen(false);
+                    setTyped('');
+                  }}
+                  style={[styles.option, on && styles.optionOn]}
+                >
+                  <Text style={[styles.chipText, on && { fontWeight: '700' }]}>
+                    {on ? '✓ ' : ''}
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
+      <Text style={styles.small}>{props.hint}</Text>
+    </View>
+  );
+}
+
 function Chip(props: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
@@ -377,4 +486,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   chipText: { fontSize: 15, color: colors.ink },
+  list: { maxHeight: 320 },
+  option: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 },
+  optionOn: { backgroundColor: colors.soft },
 });

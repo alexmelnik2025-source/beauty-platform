@@ -656,6 +656,17 @@ export const pl = {
     askDrink: 'Coś do picia',
     drinksOffered: 'Co macie w salonie?',
     askNote: 'Informacja dla specjalisty (do 200 znaków)',
+    country: 'Kraj i waluta',
+    timeZone: 'Kraj i strefa czasowa',
+    timeZoneHint: 'Godziny pracy, wizyty i e-maile są w czasie tej strefy.',
+    currency: 'Waluta cen',
+    currencyHint:
+      'Ceny usług i kwoty w programie lojalnościowym są w tej walucie. Zmiana waluty nie przelicza cen — popraw je w „Usługi”.',
+    choiceChange: 'Zmień',
+    choiceClose: 'Zamknij',
+    choiceSearch: 'Szukaj: {what}',
+    choiceSearchPlaceholder: 'Wpisz kilka liter',
+    choiceNone: 'Nic nie znaleziono.',
     legalTexts:
       'Aby włączyć rezerwację online, salon potrzebuje regulaminu i polityki prywatności — dodaj je w panelu salonu: Ustawienia → Regulamin i prywatność.',
     changedMeanwhile:

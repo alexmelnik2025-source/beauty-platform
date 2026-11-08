@@ -8,7 +8,8 @@ import { OFFERED_DRINKS, type OfferedDrink } from './wishes';
  * address, phone, description and switches online booking on or off; task 319 adds the booking
  * rules (how early and how far ahead clients book, until when they change a visit, the step of
  * the times offered), task 320 the questions on the last booking step (mood, drink, a note),
- * task 321 the salon's place on the catalogue map, task 322 the languages spoken at the salon.
+ * task 321 the salon's place on the catalogue map, task 322 the languages spoken at the salon,
+ * task 323 the country (time zone) and the currency of the prices.
  * No React Native here — tested in Vitest (test/salon.test.ts). The server checks the right again (owner, or the
  * salon's manager) and refuses online booking without terms and a privacy policy.
  */
@@ -35,6 +36,9 @@ export interface SalonForm {
   coordinates: string;
   /** Task 322, "Języki w salonie": shown on the booking page. */
   languages: SpokenLanguage[];
+  /** Task 323: "Kraj i strefa czasowa" and "Waluta cen", chosen from the lists in country.ts. */
+  timezone: string;
+  currency: string;
 }
 
 /** Task 319: the steps the booking page offers times in — the server allows only these. */
@@ -62,6 +66,8 @@ export function salonForm(location: Location): SalonForm {
     askNote: location.askNote,
     coordinates: formatCoordinates(location.latitude, location.longitude),
     languages: [...location.languages],
+    timezone: location.timezone,
+    currency: location.currency,
   };
 }
 
@@ -95,6 +101,8 @@ export interface SalonChanges {
   latitude?: number | null;
   longitude?: number | null;
   languages?: SpokenLanguage[];
+  timezone?: string;
+  currency?: string;
 }
 
 /** Task 321: the salon's place as one line of text; empty when it has none. */
@@ -148,7 +156,7 @@ export function salonChanges(
   if (!city || city.length > 100) return { problem: 'city' };
   if (postalCode.length < 3 || postalCode.length > 12) return { problem: 'postalCode' };
   const typed = form.phone.trim();
-  const phone = typed ? normalizePhone(typed, dialForTimeZone(location.timezone)) : null;
+  const phone = typed ? normalizePhone(typed, dialForTimeZone(form.timezone)) : null;
   if (phone !== null && !/^\+[1-9]\d{6,14}$/.test(phone)) return { problem: 'phone' };
   const description = form.description.trim().slice(0, 1000);
   const minLeadMinutes = whole(form.minLeadMinutes, 0, WEEK_MINUTES);
@@ -193,6 +201,8 @@ export function salonChanges(
     changes.longitude = longitude;
   }
   if (languagesChanged(location.languages, form.languages)) changes.languages = form.languages;
+  if (form.timezone !== location.timezone) changes.timezone = form.timezone;
+  if (form.currency !== location.currency) changes.currency = form.currency;
   return { changes };
 }
 

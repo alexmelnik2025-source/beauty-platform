@@ -11,6 +11,7 @@ import { serveApp } from './mobile-app';
  * Task 320: "Pytania przy rezerwacji" — mood off, a drink with what the salon has (screenshot 320).
  * Task 321: "Miejsce na mapie katalogu" — coordinates pasted from Google Maps (screenshot 321).
  * Task 322: "Języki w salonie" — Polish and Ukrainian at the salon (screenshot 322).
+ * Task 323: "Kraj i strefa czasowa" and "Waluta cen" — Czechia and koruna (screenshot 323).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -217,6 +218,28 @@ test('the owner changes the salon from the business app (task 131)', async ({
     await expect(app.getByText('Zapisano.')).toBeVisible();
     const spoken = await json<{ languages: string[] }>(await request.get(path, { headers: owner }));
     expect(spoken.languages).toContain('uk');
+
+    // ── Task 323: country (time zone) and currency ──────────────────────────
+    await expect(app.getByLabel('Kraj i strefa czasowa: Polska (Warsaw)')).toBeVisible();
+    await app.getByRole('button', { name: 'Zmień: Kraj i strefa czasowa' }).click();
+    await app.getByLabel('Szukaj: Kraj i strefa czasowa').fill('czech');
+    await expect(app.getByRole('radio')).toHaveCount(1);
+    await app.getByRole('radio', { name: 'Czechy (Prague)' }).click();
+    await expect(app.getByLabel('Kraj i strefa czasowa: Czechy (Prague)')).toBeVisible();
+    await app.getByRole('button', { name: 'Zmień: Waluta cen' }).click();
+    await app.getByLabel('Szukaj: Waluta cen').fill('CZK');
+    await expect(app.getByRole('radio', { name: /^CZK/ })).toBeVisible();
+    await app.getByText('Kraj i waluta').scrollIntoViewIfNeeded();
+    await shot(app, '323-business-app-salon-country');
+    await app.getByRole('radio', { name: /^CZK/ }).click();
+    await expect(app.getByLabel(/^Waluta cen: CZK/)).toBeVisible();
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano.')).toBeVisible();
+    await expect
+      .poll(async () =>
+        json<{ timezone: string; currency: string }>(await request.get(path, { headers: owner })),
+      )
+      .toMatchObject({ timezone: 'Europe/Prague', currency: 'CZK' });
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');
