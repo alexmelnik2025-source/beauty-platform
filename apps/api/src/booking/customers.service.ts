@@ -102,7 +102,8 @@ export class CustomersService {
       : {};
     const ordered = Boolean(newcomers || overdue || noShows || once);
     // Task 279: by the latest visit or by the number of visits (in the caller's salons).
-    // Task 283: who paid the most — only for those who see the money (not specialists).
+    // Task 283: who paid the most — only for those who see the money (the list is for owners and
+    // managers anyway; a specialist would get A–Z).
     const sort = query.sort === 'paid' && m.role === 'staff' ? 'name' : query.sort;
     const visits =
       ordered || sort === 'name'

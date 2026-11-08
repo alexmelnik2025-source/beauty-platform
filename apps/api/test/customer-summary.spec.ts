@@ -909,17 +909,8 @@ describe('who paid the most first (task 283)', () => {
       'Olek Niezapłacony',
       'Zosia Odwołana',
     ]);
-    // A specialist does not see what clients paid, so the order cannot show it: A–Z.
-    await ctx.prisma.membership.updateMany({
-      where: { userId: kasia.userId },
-      data: { permissionOverrides: { viewAllAppointments: true } },
-    });
-    expect(await names('sort=paid', kasia.auth)).toEqual([
-      'Ewa Raz',
-      'Jan Nowak',
-      'Olek Niezapłacony',
-      'Zosia Odwołana',
-    ]);
+    // A specialist has no client list (and does not see what clients paid).
+    await ctx.http().get(`${customersBase}?sort=paid`).set(kasia.auth).expect(403);
   });
 
   it('counts only the salons the manager works in, and only the main currency', async () => {
