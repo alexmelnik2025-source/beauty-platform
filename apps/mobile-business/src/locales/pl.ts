@@ -648,8 +648,8 @@ export const pl = {
     saved: 'Zapisano: {name}.',
     nothing: 'Nic się nie zmieniło.',
     conflict: 'Ktoś właśnie zmienił tę usługę — pokazujemy aktualne dane.',
-    none: 'Brak usług — dodaj je w kabinecie.',
-    hint: 'Nową usługę zrobisz tu przez „Duplikuj” — kopia ma wszystko jak oryginał, a potem zmienisz, co trzeba.',
+    none: 'Brak usług — dodaj pierwszą przez „Dodaj usługę” poniżej.',
+    hint: 'Nową usługę dodasz przez „Dodaj usługę” na dole albo przez „Duplikuj” — kopia ma wszystko jak oryginał, a potem zmienisz, co trzeba.',
     up: 'Wyżej: {name}',
     down: 'Niżej: {name}',
     orderSaved: 'Kolejność zapisana — tak klienci widzą usługi.',
@@ -668,10 +668,17 @@ export const pl = {
     addCategory: 'Dodaj kategorię',
     categoryAdded:
       'Dodano kategorię: {name}. Przenieś do niej usługę przez „Zmień” lub „Duplikuj”.',
+    description: 'Opis (dla klientów, nieobowiązkowo)',
+    descriptionPlaceholder: 'np. Mycie, strzyżenie, stylizacja',
+    newService: 'Nowa usługa',
+    addService: 'Dodaj usługę',
+    newServiceHint:
+      'Przerwę po usłudze, kolor w kalendarzu i zdjęcia-przykłady ustawisz w kabinecie.',
     performers: 'Kto wykonuje',
     inactive: 'nieaktywny',
     units: { h: 'g', min: 'min' },
     problem: {
+      description: 'Opis: do 500 znaków.',
       category: 'Nazwa kategorii: od 1 do 60 znaków.',
       name: 'Wpisz nazwę (do 100 znaków).',
       price: 'Wpisz cenę, np. 90 lub 90,50.',

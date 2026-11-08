@@ -72,13 +72,16 @@ export type ServiceCategoryList = components['schemas']['ServiceCategoryList'];
 /** What the owner or a manager changes in a service from the app. */
 export interface ServiceChange {
   version: number;
+  /** Task 314: the name and the description (null = none). */
+  name?: string;
+  description?: string | null;
   priceGrosze?: number;
   durationMinutes?: number;
   active?: boolean;
   /** Task 311: another category; null = without a category. */
   categoryId?: string | null;
 }
-/** Task 310: a new service as the server takes it (the copy of one — "Duplikuj"). */
+/** Task 310: a new service as the server takes it (a copy — "Duplikuj" — or task 313's new one). */
 export interface NewService {
   name: string;
   description: string | null;

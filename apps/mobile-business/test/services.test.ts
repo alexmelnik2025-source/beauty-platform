@@ -10,6 +10,8 @@ import {
   durationText,
   movedCategoryOrder,
   movedOrder,
+  newService,
+  newServiceForm,
   parseDuration,
   parsePrice,
   priceInput,
@@ -325,5 +327,87 @@ describe('who performs a service (task 312)', () => {
   it('ticks and unticks one specialist', () => {
     expect(toggled(['s1'], 's2')).toEqual(['s1', 's2']);
     expect(toggled(['s1', 's2'], 's1')).toEqual(['s2']);
+  });
+});
+
+describe('"Nowa usługa" (task 313)', () => {
+  const staff = [
+    { id: 's1', displayName: 'Kasia', active: true, sortOrder: 2 },
+    { id: 's2', displayName: 'Ania', active: true, sortOrder: 1 },
+    { id: 's3', displayName: 'Ola', active: false, sortOrder: 0 },
+  ] as StaffList;
+
+  it('starts online, 30 minutes, in the first category, done by everyone who takes visits', () => {
+    expect(newServiceForm(categories, staff)).toEqual({
+      name: '',
+      description: '',
+      price: '',
+      duration: '30',
+      active: true,
+      categoryId: 'c-hair',
+      staffIds: ['s2', 's1'],
+    });
+    expect(newServiceForm([], []).categoryId).toBeNull();
+  });
+
+  it('makes the service as the server takes it', () => {
+    const form = { ...newServiceForm(categories, staff), name: ' Golenie ', price: '50,5' };
+    expect(newService({ ...form, description: '  Brzytwą  ' })).toEqual({
+      ok: true,
+      service: {
+        name: 'Golenie',
+        description: 'Brzytwą',
+        durationMinutes: 30,
+        bufferMinutes: 0,
+        priceGrosze: 5050,
+        active: true,
+        categoryId: 'c-hair',
+        color: null,
+        wishPhotos: false,
+        staffIds: ['s2', 's1'],
+      },
+    });
+    expect(newService(form)).toMatchObject({ ok: true, service: { description: null } });
+  });
+
+  it('says what is wrong in the form', () => {
+    const form = { ...newServiceForm(categories, staff), name: 'Golenie', price: '50' };
+    expect(newService({ ...form, name: ' ' })).toEqual({ ok: false, problem: 'name' });
+    expect(newService({ ...form, description: 'x'.repeat(501) })).toEqual({
+      ok: false,
+      problem: 'description',
+    });
+    expect(newService({ ...form, price: '' })).toEqual({ ok: false, problem: 'price' });
+    expect(newService({ ...form, duration: '0' })).toEqual({ ok: false, problem: 'duration' });
+  });
+});
+
+describe('name and description in "Zmień" (task 314)', () => {
+  const cut = service({ id: 'a', name: 'Strzyżenie', description: null });
+  const form = { price: '90', duration: '45', active: true, name: 'Strzyżenie', description: '' };
+
+  it('sends only a new name or description', () => {
+    expect(serviceChange(cut, form)).toEqual({ ok: true, change: null });
+    expect(serviceChange(cut, { ...form, name: ' Strzyżenie klasyczne ' })).toEqual({
+      ok: true,
+      change: { version: 3, name: 'Strzyżenie klasyczne' },
+    });
+    expect(serviceChange(cut, { ...form, description: 'Z myciem' })).toEqual({
+      ok: true,
+      change: { version: 3, description: 'Z myciem' },
+    });
+  });
+
+  it('clears the description, and checks both', () => {
+    const described = service({ id: 'b', name: 'Broda', description: 'Z olejkiem' });
+    expect(serviceChange(described, { ...form, name: 'Broda', description: '  ' })).toEqual({
+      ok: true,
+      change: { version: 3, description: null },
+    });
+    expect(serviceChange(cut, { ...form, name: '' })).toEqual({ ok: false, problem: 'name' });
+    expect(serviceChange(cut, { ...form, description: 'x'.repeat(501) })).toEqual({
+      ok: false,
+      problem: 'description',
+    });
   });
 });

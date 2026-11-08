@@ -15,7 +15,8 @@ import { serveApp } from './mobile-app';
  * category — the order clients see. Task 255: "↑" by "Broda" puts the category first.
  * Task 310: "Duplikuj" makes a copy of the combo with Kasia's own price. Task 311: a new
  * category "Koloryzacja", and the beard trim moves into it. Task 312: Kasia now performs the
- * beard trim too. Screenshots 93–93b, 253, 255, 310, 311, 312.
+ * beard trim too. Task 314: the haircut gets a new name and a description. Task 313: a new
+ * service "Golenie brzytwą" from scratch, in "Broda". Screenshots 93–93b, 253, 255, 310–314.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -241,6 +242,32 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(
       app.getByText('Nikt jej nie wykonuje — klienci nie zarezerwują jej online'),
     ).toHaveCount(0);
+
+    // ── Task 314: a new name and a description ──────────────────────────
+    await app.getByRole('button', { name: 'Zmień: Strzyżenie męskie' }).click();
+    await expect(app.getByLabel('Nazwa')).toHaveValue('Strzyżenie męskie');
+    await app.getByLabel('Nazwa').fill('Strzyżenie klasyczne');
+    await app.getByLabel('Opis (dla klientów, nieobowiązkowo)').fill('Z myciem i stylizacją');
+    await shot(app, '314-business-app-service-name');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano: Strzyżenie klasyczne.')).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Zmień: Strzyżenie klasyczne' })).toBeVisible();
+
+    // ── Task 313: a new service from scratch ─────────────────────────────
+    await app.getByRole('button', { name: 'Dodaj usługę' }).click();
+    await expect(app.getByLabel('Czas (min)')).toHaveValue('30');
+    // The first category of the price list, done by everyone who takes visits.
+    await expect(app.getByRole('radio', { name: 'Broda', exact: true })).toBeChecked();
+    await expect(app.getByRole('checkbox', { name: 'Kasia' })).toBeChecked();
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Wpisz nazwę (do 100 znaków).')).toBeVisible();
+    await app.getByLabel('Nazwa').fill('Golenie brzytwą');
+    await app.getByLabel('Cena (PLN)').fill('70');
+    await shot(app, '313-business-app-new-service');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Dodano usługę: Golenie brzytwą.')).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Broda', exact: true })).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Zmień: Golenie brzytwą' })).toBeVisible();
     await context.close();
   } finally {
     businessApp.server.close();
@@ -249,7 +276,14 @@ test('the owner changes prices, durations and online booking in the business app
   const saved = await json<{ priceGrosze: number; durationMinutes: number; active: boolean }>(
     await request.get(`${base}/services/${haircut.id}`, { headers: owner }),
   );
-  expect(saved).toMatchObject({ priceGrosze: 9550, durationMinutes: 60, active: false });
+  expect(saved).toMatchObject({
+    priceGrosze: 9550,
+    durationMinutes: 60,
+    active: false,
+    // Task 314.
+    name: 'Strzyżenie klasyczne',
+    description: 'Z myciem i stylizacją',
+  });
   const list = await json<{ id: string }[]>(
     await request.get(`${base}/services`, { headers: owner }),
   );
@@ -275,6 +309,13 @@ test('the owner changes prices, durations and online booking in the business app
   // Task 311: the beard trim is in "Koloryzacja" now; task 312: Kasia performs it.
   expect(copied.find((s) => s.name === 'Trymowanie brody')).toMatchObject({
     categoryId: categories[2]!.id,
+    staffIds: [kasia.id],
+  });
+  // Task 313: the new service — in "Broda", done by Kasia, 30 minutes.
+  expect(copied.find((s) => s.name === 'Golenie brzytwą')).toMatchObject({
+    categoryId: beard.id,
+    priceGrosze: 7000,
+    durationMinutes: 30,
     staffIds: [kasia.id],
   });
   const junior = copied.find((s) => s.name === 'Strzyżenie + broda junior');

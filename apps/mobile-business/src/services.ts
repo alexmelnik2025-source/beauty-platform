@@ -119,16 +119,48 @@ export function parseDuration(text: string): number | null {
 
 export type ServiceProblem = 'price' | 'duration';
 
+/** Task 314: a name of 1–100 letters, trimmed; null otherwise. */
+export function serviceName(text: string): string | null {
+  const name = text.trim();
+  return name.length === 0 || name.length > 100 ? null : name;
+}
+
+/** Task 314: the description, trimmed; empty = none (null); false when over 500 letters. */
+export function serviceDescription(text: string): string | null | false {
+  const description = text.trim();
+  if (description.length > 500) return false;
+  return description.length === 0 ? null : description;
+}
+
 /** Only what changed (and the version that was read); `null` change = nothing to save. */
 export function serviceChange(
   service: Service,
-  form: { price: string; duration: string; active: boolean; categoryId?: string | null },
-): { ok: true; change: ServiceChange | null } | { ok: false; problem: ServiceProblem } {
+  form: {
+    price: string;
+    duration: string;
+    active: boolean;
+    categoryId?: string | null;
+    /** Task 314: undefined = the form does not change the name or the description. */
+    name?: string;
+    description?: string;
+  },
+):
+  | { ok: true; change: ServiceChange | null }
+  | { ok: false; problem: ServiceProblem | 'name' | 'description' } {
+  const name = form.name === undefined ? undefined : serviceName(form.name);
+  if (name === null) return { ok: false, problem: 'name' };
+  const description =
+    form.description === undefined ? undefined : serviceDescription(form.description);
+  if (description === false) return { ok: false, problem: 'description' };
   const price = parsePrice(form.price);
   if (price === null) return { ok: false, problem: 'price' };
   const duration = parseDuration(form.duration);
   if (duration === null) return { ok: false, problem: 'duration' };
   const change: ServiceChange = { version: service.version };
+  if (name !== undefined && name !== service.name) change.name = name;
+  if (description !== undefined && description !== (service.description ?? null)) {
+    change.description = description;
+  }
   if (price !== service.priceGrosze) change.priceGrosze = price;
   if (duration !== service.durationMinutes) change.durationMinutes = duration;
   if (form.active !== service.active) change.active = form.active;
@@ -173,8 +205,8 @@ export function serviceCopy(
   source: Service,
   form: CopyForm,
 ): { ok: true; service: NewService } | { ok: false; problem: ServiceProblem | 'name' } {
-  const name = form.name.trim();
-  if (name.length === 0 || name.length > 100) return { ok: false, problem: 'name' };
+  const name = serviceName(form.name);
+  if (name === null) return { ok: false, problem: 'name' };
   const price = parsePrice(form.price);
   if (price === null) return { ok: false, problem: 'price' };
   const duration = parseDuration(form.duration);
@@ -254,4 +286,57 @@ export function staffChange(service: Service, staffIds: string[]): string[] | nu
 /** Task 312: one specialist ticked or unticked, keeping the order of the others. */
 export function toggled(staffIds: string[], id: string): string[] {
   return staffIds.includes(id) ? staffIds.filter((s) => s !== id) : [...staffIds, id];
+}
+
+/** Task 313: what "Nowa usługa" asks for. */
+export interface NewServiceForm extends CopyForm {
+  description: string;
+  staffIds: string[];
+}
+
+/**
+ * Task 313: an empty form — 30 minutes, online, in the first category of the price list, done
+ * by every specialist who takes visits (the owner unticks who does not do it).
+ */
+export function newServiceForm(categories: ServiceCategoryList, staff: StaffList): NewServiceForm {
+  return {
+    name: '',
+    description: '',
+    price: '',
+    duration: '30',
+    active: true,
+    categoryId: categoryChoices(categories)[0]?.id ?? null,
+    staffIds: staffChoices(staff, []).map((m) => m.id),
+  };
+}
+
+/** Task 313: the new service as the server takes it (no break, colour or example photos yet). */
+export function newService(
+  form: NewServiceForm,
+):
+  | { ok: true; service: NewService }
+  | { ok: false; problem: ServiceProblem | 'name' | 'description' } {
+  const name = serviceName(form.name);
+  if (name === null) return { ok: false, problem: 'name' };
+  const description = serviceDescription(form.description);
+  if (description === false) return { ok: false, problem: 'description' };
+  const price = parsePrice(form.price);
+  if (price === null) return { ok: false, problem: 'price' };
+  const duration = parseDuration(form.duration);
+  if (duration === null) return { ok: false, problem: 'duration' };
+  return {
+    ok: true,
+    service: {
+      name,
+      description,
+      durationMinutes: duration,
+      bufferMinutes: 0,
+      priceGrosze: price,
+      active: form.active,
+      categoryId: form.categoryId,
+      color: null,
+      wishPhotos: false,
+      staffIds: [...form.staffIds],
+    },
+  };
 }

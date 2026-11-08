@@ -27,6 +27,8 @@ import {
   durationText,
   movedCategoryOrder,
   movedOrder,
+  newService,
+  newServiceForm,
   priceInput,
   priceList,
   serviceChange,
@@ -35,6 +37,7 @@ import {
   staffChoices,
   toggled,
   type CopyForm,
+  type NewServiceForm,
   type Service,
   type ServiceGroup,
 } from '../services';
@@ -46,7 +49,8 @@ import type { SalonChoice } from './SalonsScreen';
  * service's price, duration and "bookable online" from the phone; ↑ / ↓ set the order clients
  * see (task 253), and the categories' order too (task 255). "Duplikuj" makes a new service as a
  * copy of one (task 310); a service moves to another category, and a new category is added
- * at the end (task 311); who performs it is ticked in "Zmień" (task 312).
+ * at the end (task 311); who performs it is ticked in "Zmień" (task 312). "Nowa usługa" adds a
+ * service from scratch (task 313); "Zmień" changes the name and the description too (task 314).
  */
 export function ServicesScreen(props: {
   api: BusinessApi;
@@ -63,12 +67,24 @@ export function ServicesScreen(props: {
   const [info, setInfo] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<{
+    name: string;
+    description: string;
     price: string;
     duration: string;
     active: boolean;
     categoryId: string | null;
     staffIds: string[];
-  }>({ price: '', duration: '', active: true, categoryId: null, staffIds: [] });
+  }>({
+    name: '',
+    description: '',
+    price: '',
+    duration: '',
+    active: true,
+    categoryId: null,
+    staffIds: [],
+  });
+  /** Task 313: the form of a new service; null = closed. */
+  const [fresh, setFresh] = useState<NewServiceForm | null>(null);
   /** Task 312: the salon's specialists (who performs a service). */
   const [staff, setStaff] = useState<StaffList>([]);
   /** Task 311: the name of a new category, as typed. */
@@ -114,8 +130,11 @@ export function ServicesScreen(props: {
 
   function edit(service: Service) {
     setCopyId(null);
+    setFresh(null);
     setEditId(service.id);
     setForm({
+      name: service.name,
+      description: service.description ?? '',
       price: priceInput(service.priceGrosze),
       duration: String(service.durationMinutes),
       active: service.active,
@@ -142,7 +161,7 @@ export function ServicesScreen(props: {
       // Task 312: who performs it — a list of its own, saved after the rest.
       if (people) await api.setServiceStaff(salon.orgId, salon.locationId, service.id, people);
       setEditId(null);
-      setInfo(fill(u.saved, { name: service.name }));
+      setInfo(fill(u.saved, { name: checked.change?.name ?? service.name }));
       setError('');
       await load();
     } catch (e) {
@@ -161,6 +180,7 @@ export function ServicesScreen(props: {
   /** Task 310: "Duplikuj" — the copy's form, filled as the service. Nothing is created yet. */
   function duplicate(service: Service) {
     setEditId(null);
+    setFresh(null);
     setCopyId(service.id);
     setCopy(copyForm(service, u.copyName));
     setError('');
@@ -194,6 +214,92 @@ export function ServicesScreen(props: {
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Task 313: an empty form of a new service at the end of the screen. */
+  function startNew() {
+    setEditId(null);
+    setCopyId(null);
+    setFresh(newServiceForm(categories, staff));
+    setError('');
+    setInfo('');
+  }
+
+  /** Task 313: creates the service; it lands at the end of its category. */
+  async function saveNew() {
+    if (!fresh) return;
+    const checked = newService(fresh);
+    if (!checked.ok) return setError(u.problem[checked.problem]);
+    setBusy(true);
+    try {
+      const created = await api.createService(salon.orgId, salon.locationId, checked.service);
+      setFresh(null);
+      setInfo(fill(u.copied, { name: created.name }));
+      setError('');
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Task 312: ticks of who performs a service (also of a new one, task 313). */
+  function performersPicker(staffIds: string[], onChange: (staffIds: string[]) => void) {
+    return (
+      <>
+        <Text style={styles.label}>{u.performers}</Text>
+        {staffChoices(staff, staffIds).map((member) => {
+          const on = staffIds.includes(member.id);
+          return (
+            <Pressable
+              key={member.id}
+              accessibilityRole="checkbox"
+              accessibilityLabel={member.displayName}
+              accessibilityState={{ checked: on }}
+              aria-checked={on}
+              onPress={() => onChange(toggled(staffIds, member.id))}
+              style={styles.check}
+            >
+              <Text style={[styles.box, on && styles.boxOn]}>{on ? '✓' : ''}</Text>
+              <Text style={[styles.text, { flexShrink: 1 }]}>
+                {member.active ? member.displayName : `${member.displayName} · ${u.inactive}`}
+              </Text>
+            </Pressable>
+          );
+        })}
+        {staffIds.length === 0 ? <Text style={styles.warn}>{u.nobody}</Text> : null}
+      </>
+    );
+  }
+
+  /** Task 314: the name and the description of a service (also of a new one, task 313). */
+  function nameFields(
+    value: { name: string; description: string },
+    onChange: (change: { name?: string; description?: string }) => void,
+  ) {
+    return (
+      <>
+        <Text style={styles.label}>{u.name}</Text>
+        <TextInput
+          accessibilityLabel={u.name}
+          value={value.name}
+          onChangeText={(name) => onChange({ name })}
+          maxLength={100}
+          style={styles.input}
+        />
+        <Text style={styles.label}>{u.description}</Text>
+        <TextInput
+          accessibilityLabel={u.description}
+          value={value.description}
+          onChangeText={(description) => onChange({ description })}
+          maxLength={500}
+          multiline
+          placeholder={u.descriptionPlaceholder}
+          style={[styles.input, { minHeight: 72, textAlignVertical: 'top' }]}
+        />
+      </>
+    );
   }
 
   /** Task 311: a new category at the end of the order; the owner then puts services in it. */
@@ -352,6 +458,7 @@ export function ServicesScreen(props: {
                     ) : null}
                     {open ? (
                       <View style={{ gap: 10, marginTop: 6 }}>
+                        {nameFields(form, (change) => setForm((f) => ({ ...f, ...change })))}
                         <Text style={styles.label}>
                           {fill(u.price, { currency: salon.currency })}
                         </Text>
@@ -385,33 +492,9 @@ export function ServicesScreen(props: {
                         {categoryPicker(form.categoryId, (categoryId) =>
                           setForm((f) => ({ ...f, categoryId })),
                         )}
-                        <Text style={styles.label}>{u.performers}</Text>
-                        {staffChoices(staff, form.staffIds).map((member) => {
-                          const on = form.staffIds.includes(member.id);
-                          return (
-                            <Pressable
-                              key={member.id}
-                              accessibilityRole="checkbox"
-                              accessibilityLabel={member.displayName}
-                              accessibilityState={{ checked: on }}
-                              aria-checked={on}
-                              onPress={() =>
-                                setForm((f) => ({ ...f, staffIds: toggled(f.staffIds, member.id) }))
-                              }
-                              style={styles.check}
-                            >
-                              <Text style={[styles.box, on && styles.boxOn]}>{on ? '✓' : ''}</Text>
-                              <Text style={[styles.text, { flexShrink: 1 }]}>
-                                {member.active
-                                  ? member.displayName
-                                  : `${member.displayName} · ${u.inactive}`}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                        {form.staffIds.length === 0 ? (
-                          <Text style={styles.warn}>{u.nobody}</Text>
-                        ) : null}
+                        {performersPicker(form.staffIds, (staffIds) =>
+                          setForm((f) => ({ ...f, staffIds })),
+                        )}
                         <View style={styles.row}>
                           <Button label={u.save} busy={busy} onPress={() => void save(service)} />
                           <Button
@@ -522,6 +605,61 @@ export function ServicesScreen(props: {
       )}
       {groups !== null ? (
         <View style={{ gap: 10 }}>
+          <Text role="heading" aria-level={2} style={styles.section}>
+            {u.newService}
+          </Text>
+          {fresh ? (
+            <Card>
+              <View style={{ gap: 10 }}>
+                {nameFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
+                <Text style={styles.label}>{fill(u.price, { currency: salon.currency })}</Text>
+                <TextInput
+                  accessibilityLabel={fill(u.price, { currency: salon.currency })}
+                  value={fresh.price}
+                  onChangeText={(price) => setFresh((f) => (f ? { ...f, price } : f))}
+                  keyboardType="decimal-pad"
+                  placeholder="90"
+                  style={styles.input}
+                />
+                <Text style={styles.label}>{u.duration}</Text>
+                <TextInput
+                  accessibilityLabel={u.duration}
+                  value={fresh.duration}
+                  onChangeText={(duration) => setFresh((f) => (f ? { ...f, duration } : f))}
+                  keyboardType="number-pad"
+                  style={styles.input}
+                />
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={u.active}
+                  accessibilityState={{ checked: fresh.active }}
+                  aria-checked={fresh.active}
+                  onPress={() => setFresh((f) => (f ? { ...f, active: !f.active } : f))}
+                  style={styles.check}
+                >
+                  <Text style={[styles.box, fresh.active && styles.boxOn]}>
+                    {fresh.active ? '✓' : ''}
+                  </Text>
+                  <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
+                </Pressable>
+                {categoryPicker(fresh.categoryId, (categoryId) =>
+                  setFresh((f) => (f ? { ...f, categoryId } : f)),
+                )}
+                {performersPicker(fresh.staffIds, (staffIds) =>
+                  setFresh((f) => (f ? { ...f, staffIds } : f)),
+                )}
+                <Text style={styles.muted}>{u.newServiceHint}</Text>
+                <View style={styles.row}>
+                  <Button label={u.save} busy={busy} onPress={() => void saveNew()} />
+                  <Button kind="secondary" label={u.cancel} onPress={() => setFresh(null)} />
+                </View>
+              </View>
+            </Card>
+          ) : (
+            <View style={styles.row}>
+              <Button label={u.addService} onPress={startNew} />
+            </View>
+          )}
           <Text role="heading" aria-level={2} style={styles.section}>
             {u.newCategory}
           </Text>
