@@ -1457,6 +1457,14 @@ export const en: Dict = {
     leadTwoWeeks: '8–14 days',
     leadLater: 'Over 14 days',
     leadOnline: 'online: {n}',
+    cancelNotice: 'When clients cancel',
+    noticeTwoHours: 'Under 2 hours before',
+    noticeDay: '2–24 hours before',
+    noticeThreeDays: '1–3 days before',
+    noticeLater: 'Earlier',
+    noticeCancelled: 'cancelled: {n}',
+    noticeHint:
+      'How long before the visit clients cancelled the visits of this period (cancellations by the salon do not count). Many last-minute cancellations — consider turning on “Cancellation protection” in the settings.',
     leadHint:
       'How many days before the visit clients booked (visits that were not cancelled). Helps decide how far ahead to open the schedule. Visits written down after the fact do not count.',
     topClientsHint:

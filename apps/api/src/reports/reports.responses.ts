@@ -257,6 +257,26 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 260: "Z jakim wyprzedzeniem rezerwują" — how far ahead visits are booked; entries made after the visit began do not count',
       ),
+    cancelNotice: z
+      .strictObject({
+        cancelled: z
+          .number()
+          .int()
+          .describe('Visits of the period the client cancelled (with a cancellation time)'),
+        buckets: z
+          .array(
+            z.strictObject({
+              key: z.enum(['twoHours', 'day', 'threeDays', 'later']),
+              cancelled: z.number().int(),
+            }),
+          )
+          .describe(
+            'Under 2 hours before the visit (or after its start), 2–24 hours, 1–3 days, earlier — always all four',
+          ),
+      })
+      .describe(
+        'Task 294: "Kiedy klienci odwołują" — how long before the visit clients cancelled; cancellations by the salon do not count',
+      ),
     unbookedServices: z
       .array(
         z.strictObject({

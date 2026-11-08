@@ -44,6 +44,14 @@ const LEAD_LABELS = {
   later: 'leadLater',
 } as const;
 
+/** Task 294: the label of each "how long before the visit" bucket of cancellations. */
+const NOTICE_LABELS = {
+  twoHours: 'noticeTwoHours',
+  day: 'noticeDay',
+  threeDays: 'noticeThreeDays',
+  later: 'noticeLater',
+} as const;
+
 export function ReportsScreen(props: {
   api: BusinessApi;
   t: Dictionary;
@@ -507,6 +515,28 @@ export function ReportsScreen(props: {
                 </View>
               ))}
               <Text style={styles.small}>{r.leadHint}</Text>
+            </View>
+          ) : null}
+          {shown.cancelNotice.cancelled > 0 ? (
+            <View style={{ gap: 6 }} testID="report-cancel-notice">
+              <Text style={styles.section}>{r.cancelNotice}</Text>
+              {shown.cancelNotice.buckets.map((b) => (
+                <View key={b.key} style={styles.weekday}>
+                  <Text style={styles.weekdayName}>{r[NOTICE_LABELS[b.key]]}</Text>
+                  <View style={styles.bar}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        { width: `${(b.cancelled / shown.cancelNotice.cancelled) * 100}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.small}>
+                    {fill(r.noticeCancelled, { n: String(b.cancelled) })}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.small}>{r.noticeHint}</Text>
             </View>
           ) : null}
           {totals.visits > 0 ? (

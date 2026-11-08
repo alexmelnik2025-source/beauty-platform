@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
 import { occupancy } from '../src/reports/occupancy';
-import { leadTime } from '../src/reports/reports.service';
+import { cancelNotice, leadTime } from '../src/reports/reports.service';
 import { visitsCsv } from '../src/reports/visits-csv';
 import { addDays, isoWeekday, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
@@ -975,6 +975,63 @@ describe('salon report', () => {
     expect(late).toMatchObject({ visits: 1, medianDays: 1 });
     expect(late.buckets[1]).toEqual({ key: 'nextDay', visits: 1, online: 1 });
     expect(leadTime([], TZ)).toMatchObject({ visits: 0, medianDays: null });
+  });
+
+  it('"Kiedy klienci odwołują": hours between the cancellation and the visit, by bucket (task 294)', async () => {
+    const d1 = addDays(today, -3);
+    const cancelled = async (hoursBefore: number | null, o: Partial<VisitOptions> = {}) => {
+      const id = await visit({ date: d1, status: 'cancelled', ...o });
+      const { startAt } = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id } });
+      await ctx.prisma.appointment.update({
+        where: { id },
+        data: {
+          cancelledAt:
+            hoursBefore === null ? null : new Date(startAt.getTime() - hoursBefore * 3_600_000),
+        },
+      });
+    };
+    await cancelled(1);
+    await cancelled(-1); // after the start: the last moment too
+    await cancelled(5);
+    await cancelled(30, { staffId: olaId });
+    await cancelled(100);
+    // Not counted: cancelled by the salon, without a cancellation time, and visits that took place.
+    await cancelled(1, { cancelledBy: 'salon' });
+    await cancelled(null);
+    await visit({ date: d1, status: 'completed' });
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.cancelNotice).toEqual({
+      cancelled: 5,
+      buckets: [
+        { key: 'twoHours', cancelled: 2 },
+        { key: 'day', cancelled: 1 },
+        { key: 'threeDays', cancelled: 1 },
+        { key: 'later', cancelled: 1 },
+      ],
+    });
+
+    // Kasia's own report: only her visits (Ola's cancellation 30 hours before is not there).
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.cancelNotice.cancelled).toBe(4);
+    expect(own.body.cancelNotice.buckets[2]).toEqual({ key: 'threeDays', cancelled: 0 });
+
+    expect(cancelNotice([])).toEqual({
+      cancelled: 0,
+      buckets: [
+        { key: 'twoHours', cancelled: 0 },
+        { key: 'day', cancelled: 0 },
+        { key: 'threeDays', cancelled: 0 },
+        { key: 'later', cancelled: 0 },
+      ],
+    });
   });
 
   it('"Napiwki": tips of the visits that took place, by specialist, not in the revenue (task 229)', async () => {

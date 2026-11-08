@@ -5684,6 +5684,17 @@ export interface components {
                     online: number;
                 }[];
             };
+            /** @description Task 294: "Kiedy klienci odwołują" — how long before the visit clients cancelled; cancellations by the salon do not count */
+            cancelNotice: {
+                /** @description Visits of the period the client cancelled (with a cancellation time) */
+                cancelled: number;
+                /** @description Under 2 hours before the visit (or after its start), 2–24 hours, 1–3 days, earlier — always all four */
+                buckets: {
+                    /** @enum {string} */
+                    key: "twoHours" | "day" | "threeDays" | "later";
+                    cancelled: number;
+                }[];
+            };
             /** @description Task 259: "Usługi bez wizyt" — bookable services nobody booked in the period (cancelled visits do not count), in price-list order; empty in a specialist's own report */
             unbookedServices: {
                 id: string;

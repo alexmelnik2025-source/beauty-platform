@@ -90,6 +90,32 @@ export function leadTime(
   };
 }
 
+const NOTICE_BUCKETS = ['twoHours', 'day', 'threeDays', 'later'] as const;
+
+/**
+ * Task 294: "Kiedy klienci odwołują" — how long before the visit the clients cancelled the visits
+ * of the period: under 2 hours (or after the start), 2–24 hours, 1–3 days, earlier. Only
+ * cancellations by the client; the salon's own ones and visits without a cancellation time do not
+ * count.
+ */
+export function cancelNotice(
+  rows: { status: string; cancelledBy: string | null; cancelledAt: Date | null; startAt: Date }[],
+): SalonReport['cancelNotice'] {
+  const buckets = new Map<
+    (typeof NOTICE_BUCKETS)[number],
+    { key: (typeof NOTICE_BUCKETS)[number]; cancelled: number }
+  >(NOTICE_BUCKETS.map((key) => [key, { key, cancelled: 0 }]));
+  let cancelled = 0;
+  for (const a of rows) {
+    if (a.status !== 'cancelled' || a.cancelledBy !== 'customer' || !a.cancelledAt) continue;
+    const hours = (a.startAt.getTime() - a.cancelledAt.getTime()) / 3_600_000;
+    const key = hours < 2 ? 'twoHours' : hours < 24 ? 'day' : hours < 72 ? 'threeDays' : 'later';
+    buckets.get(key)!.cancelled++;
+    cancelled++;
+  }
+  return { cancelled, buckets: [...buckets.values()] };
+}
+
 const byRevenue = <T extends Counts & { name: string | null }>(a: T, b: T): number =>
   b.revenueGrosze - a.revenueGrosze ||
   b.completed - a.completed ||
@@ -141,6 +167,7 @@ export class ReportsService {
         paymentMethod: true,
         tipGrosze: true,
         cancelledBy: true,
+        cancelledAt: true,
         customerId: true,
         staff: { select: { id: true, displayName: true } },
         service: {
@@ -406,6 +433,7 @@ export class ReportsService {
       topClients: own ? [] : await this.topClients(byClient),
       unbookedServices: own ? [] : await this.unbookedServices(locationId, rows, rangeEnd),
       leadTime: leadTime(rows, tz),
+      cancelNotice: cancelNotice(rows),
       marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
       newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),

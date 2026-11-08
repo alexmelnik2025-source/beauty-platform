@@ -1454,6 +1454,14 @@ export const pl = {
     leadTwoWeeks: '8–14 dni',
     leadLater: 'Ponad 14 dni',
     leadOnline: 'online: {n}',
+    cancelNotice: 'Kiedy klienci odwołują',
+    noticeTwoHours: 'Mniej niż 2 godz. przed',
+    noticeDay: '2–24 godz. przed',
+    noticeThreeDays: '1–3 dni przed',
+    noticeLater: 'Wcześniej',
+    noticeCancelled: 'odwołane: {n}',
+    noticeHint:
+      'Na ile przed wizytą klienci odwołali wizyty z tego okresu (odwołania przez salon się nie liczą). Dużo odwołań w ostatniej chwili — warto włączyć „Ochronę przed odwołaniami” w ustawieniach.',
     leadHint:
       'Ile dni przed wizytą klienci się zapisali (wizyty, które nie zostały odwołane). Pomaga zdecydować, na ile dni naprzód otwierać grafik. Wizyty wpisane już po fakcie się nie liczą.',
     topClientsHint:

@@ -52,6 +52,14 @@ const LEAD_LABELS = {
   later: 'leadLater',
 } as const;
 
+/** Task 294: the label of each "how long before the visit" bucket of cancellations. */
+const NOTICE_LABELS = {
+  twoHours: 'noticeTwoHours',
+  day: 'noticeDay',
+  threeDays: 'noticeThreeDays',
+  later: 'noticeLater',
+} as const;
+
 export default function ReportsPage() {
   const { t, locale } = useI18n();
   const session = useSession();
@@ -897,6 +905,30 @@ export default function ReportsPage() {
                       ))}
                     </ol>
                     <p className="small muted">{t.reports.leadHint}</p>
+                  </section>
+                ) : null}
+
+                {report.cancelNotice.cancelled > 0 ? (
+                  <section className="section" data-testid="report-cancel-notice">
+                    <h2>{t.reports.cancelNotice}</h2>
+                    <ol className="report-days">
+                      {report.cancelNotice.buckets.map((b) => (
+                        <li key={b.key}>
+                          <span className="small">{t.reports[NOTICE_LABELS[b.key]]}</span>
+                          <span className="report-bar" aria-hidden="true">
+                            <span
+                              style={{
+                                width: `${(b.cancelled / report.cancelNotice.cancelled) * 100}%`,
+                              }}
+                            />
+                          </span>
+                          <span className="small">
+                            {fill(t.reports.noticeCancelled, { n: String(b.cancelled) })}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="small muted">{t.reports.noticeHint}</p>
                   </section>
                 ) : null}
 

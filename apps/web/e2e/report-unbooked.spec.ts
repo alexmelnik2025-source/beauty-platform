@@ -15,6 +15,7 @@ import { serveApp } from './mobile-app';
  * in price-list order, with a link to "Usługi" (screenshot 259); the same in the business app's
  * "Raporty" (259-a).
  * Task 260: "Z jakim wyprzedzeniem rezerwują" — how far ahead the visits were booked (260, 260-a).
+ * Task 294: "Kiedy klienci odwołują" — how long before the visit clients cancelled (294, 294-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -120,12 +121,29 @@ test('the report lists the services nobody booked', async ({ browser, request })
     );
     ids.push(booked.id);
   }
+  // Task 294: a third haircut the client cancelled an hour before (it is not "booked" either).
+  const late = await json<{ id: string }>(
+    await request.post(`${base}/appointments`, {
+      headers: owner,
+      data: {
+        serviceId: haircut.id,
+        staffId: staff.id,
+        start: new Date(
+          Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 12),
+        ).toISOString(),
+        allowOutsideHours: true,
+        customer: { name: 'Jan Kowalski', phone: '+48600000259', email: `jan-${run}@example.com` },
+      },
+    }),
+  );
   execFileSync('psql', [
     (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
     '-v',
     'ON_ERROR_STOP=1',
     '-c',
     `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days', status = 'completed', created_at = start_at - interval '2 days' - interval '5 days' WHERE id IN ('${ids.join("','")}')`,
+    '-c',
+    `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days', status = 'cancelled', cancelled_by = 'customer', cancelled_at = start_at - interval '2 days' - interval '1 hour' WHERE id = '${late.id}'`,
   ]);
 
   const context = await browser.newContext({ viewport: DESKTOP, locale: 'pl-PL' });
@@ -159,6 +177,13 @@ test('the report lists the services nobody booked', async ({ browser, request })
   await expect(lead.getByRole('listitem').nth(2)).toContainText('2–7 dni');
   await expect(lead.getByRole('listitem').nth(2)).toContainText('wizyty: 2');
   await shot(page, '260-report-lead-time');
+  const notice = page.getByTestId('report-cancel-notice');
+  await notice.scrollIntoViewIfNeeded();
+  await expect(notice.getByRole('heading')).toHaveText('Kiedy klienci odwołują');
+  await expect(notice.getByRole('listitem').nth(0)).toContainText('Mniej niż 2 godz. przed');
+  await expect(notice.getByRole('listitem').nth(0)).toContainText('odwołane: 1');
+  await expect(notice.getByRole('listitem').nth(3)).toContainText('odwołane: 0');
+  await shot(page, '294-report-cancel-notice');
   await unbooked.getByRole('link', { name: 'Otwórz usługi' }).click();
   await page.waitForURL(/\/pl\/app\/services/);
   await context.close();
@@ -193,6 +218,11 @@ test('the report lists the services nobody booked', async ({ browser, request })
       lead.getByText('Z jakim wyprzedzeniem rezerwują · zwykle 5 dni', { exact: true }),
     ).toBeVisible();
     await shot(app, '260-a-business-app-report-lead-time');
+    const notice = app.getByTestId('report-cancel-notice');
+    await notice.scrollIntoViewIfNeeded();
+    await expect(notice.getByText('Kiedy klienci odwołują', { exact: true })).toBeVisible();
+    await expect(notice.getByText('odwołane: 1', { exact: true })).toBeVisible();
+    await shot(app, '294-a-business-app-report-cancel-notice');
   } finally {
     businessApp.server.close();
   }

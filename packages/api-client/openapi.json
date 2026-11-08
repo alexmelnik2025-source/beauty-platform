@@ -22065,6 +22065,51 @@
             "additionalProperties": false,
             "description": "Task 260: \"Z jakim wyprzedzeniem rezerwują\" — how far ahead visits are booked; entries made after the visit began do not count"
           },
+          "cancelNotice": {
+            "type": "object",
+            "properties": {
+              "cancelled": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits of the period the client cancelled (with a cancellation time)"
+              },
+              "buckets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "twoHours",
+                        "day",
+                        "threeDays",
+                        "later"
+                      ]
+                    },
+                    "cancelled": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "cancelled"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Under 2 hours before the visit (or after its start), 2–24 hours, 1–3 days, earlier — always all four"
+              }
+            },
+            "required": [
+              "cancelled",
+              "buckets"
+            ],
+            "additionalProperties": false,
+            "description": "Task 294: \"Kiedy klienci odwołują\" — how long before the visit clients cancelled; cancellations by the salon do not count"
+          },
           "unbookedServices": {
             "type": "array",
             "items": {
@@ -22359,6 +22404,7 @@
           "rebooking",
           "topClients",
           "leadTime",
+          "cancelNotice",
           "unbookedServices",
           "busyHours",
           "marketing",

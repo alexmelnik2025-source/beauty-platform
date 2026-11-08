@@ -2502,3 +2502,12 @@ API: `summary.tips` (`[{ currency, amountGrosze, visits }]`) в `GET …/custome
 клиента у салона), по валютам через «+». Только визиты карточек салонов с подтверждённым e-mail клиента. Нет
 состоявшихся визитов — карточки нет. API: `GET /v1/client/me/summary` (`completed`, `salons`, `firstVisitAt`, `spent`).
 Тест `apps/api/test/client-app.spec.ts`; e2e `favorite-specialist.spec.ts` (скриншоты 292, 293).
+
+## «Kiedy klienci odwołują» в отчёте (задачи 294, 295)
+
+В «Raporty» (кабинет и бизнес-приложение) — за сколько до визита клиенты отменили визиты периода: «Mniej niż 2 godz.
+przed» (сюда же отмены после начала визита), «2–24 godz. przed», «1–3 dni przed», «Wcześniej» — полоски и число отмен.
+Считаются только отмены клиентом с известным временем отмены; отмены салоном не считаются. Блок виден, только если
+были отмены клиентом; подсказка советует включить «Ochrona przed odwołaniami», если много поздних отмен. API: поле
+`cancelNotice` (`cancelled`, `buckets` — всегда все четыре) в `GET …/reports`; у мастера — только свои визиты. Тест:
+`apps/api/test/reports.spec.ts`; e2e и скриншоты 294, 294-a — `report-unbooked.spec.ts`.
