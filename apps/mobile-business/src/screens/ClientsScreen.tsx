@@ -30,8 +30,8 @@ import type { SalonChoice } from './SalonsScreen';
 const PAGE = 50;
 /** Task 140: "who hasn't been for a while" — 0 = everyone. */
 const INACTIVE = [0, 30, 60, 90, 180] as const;
-/** Task 280: the orders of the list. */
-const SORTS = ['name', 'recent', 'visits', 'next'] as const satisfies readonly ClientSort[];
+/** Task 280: the orders of the list (283: `paid` — who paid the most; owner and managers only). */
+const SORTS = ['name', 'recent', 'visits', 'next', 'paid'] as const satisfies readonly ClientSort[];
 
 /** Task 273: " · 3" after a quick filter's name — how many clients it would show. */
 function segmentCount(value: number | null | undefined): string {
@@ -310,7 +310,7 @@ export function ClientsScreen(props: {
         <>
           <Text style={styles.muted}>{c.sort}</Text>
           <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={c.sort}>
-            {SORTS.map((value) => (
+            {SORTS.filter((value) => value !== 'paid' || salon.role !== 'staff').map((value) => (
               <Pressable
                 key={value}
                 accessibilityRole="radio"
@@ -328,6 +328,7 @@ export function ClientsScreen(props: {
                       recent: c.sortRecent,
                       visits: c.sortVisits,
                       next: c.sortNext,
+                      paid: c.sortPaid,
                     }[value]
                   }
                 </Text>

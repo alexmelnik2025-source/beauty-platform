@@ -202,6 +202,7 @@ export const uk: Dictionary = {
     sortRecent: 'Останній візит',
     sortVisits: 'Найбільше візитів',
     sortNext: 'Найближчий візит',
+    sortPaid: 'Заплатили найбільше',
     tagFilter: 'Теги',
     allTags: 'Усі',
     addTag: 'Додати тег',

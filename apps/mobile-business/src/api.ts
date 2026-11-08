@@ -193,8 +193,8 @@ export function setClientFilters(query: URLSearchParams, f: ClientFilters): void
 }
 
 /** Task 279: the order of the client list. */
-/** Task 279 (281: `next` — the nearest booked visit first). */
-export type ClientSort = 'name' | 'recent' | 'visits' | 'next';
+/** Task 279 (281: `next` — the nearest booked visit first; 283: `paid` — who paid the most). */
+export type ClientSort = 'name' | 'recent' | 'visits' | 'next' | 'paid';
 
 export interface CsvFile {
   fileName: string;

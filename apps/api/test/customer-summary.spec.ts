@@ -860,3 +860,109 @@ describe('the nearest booked visit first (task 281)', () => {
     expect(await names('sort=next', manager.auth)).toEqual(['Jan Nowak', 'Ewa Dwa Salony']);
   });
 });
+
+describe('who paid the most first (task 283)', () => {
+  const names = async (query: string, auth = owner.auth) =>
+    (await ctx.http().get(`${customersBase}?${query}`).set(auth).expect(200)).body.map(
+      (c: { name: string }) => c.name,
+    );
+
+  async function client(name: string, phone: string): Promise<string> {
+    return (await ctx.http().post(customersBase).set(owner.auth).send({ name, phone }).expect(201))
+      .body.id;
+  }
+
+  it('paid visits after discounts, the most first; then everyone else by name', async () => {
+    // Jan: two paid visits, one with a 20 zł discount — 80 + 60 = 140 zł.
+    const first = await pastVisit(kasiaId, 20);
+    await ctx.prisma.appointment.update({ where: { id: first }, data: { discountGrosze: 2000 } });
+    await pastVisit(kasiaId, 10);
+    // Ewa: one paid visit (80 zł) and one that took place but is not paid yet.
+    customerId = await client('Ewa Raz', '+48600000003');
+    await pastVisit(tomekId, 5);
+    await pastVisit(tomekId, 3, false);
+    // Olek: three visits that took place, none paid — more visits, but nothing paid.
+    customerId = await client('Olek Niezapłacony', '+48600000004');
+    for (const days of [30, 25, 15]) await pastVisit(tomekId, days, false);
+    // Zosia: a paid visit that was cancelled afterwards does not count.
+    customerId = await client('Zosia Odwołana', '+48600000005');
+    const cancelled = await pastVisit(kasiaId, 2);
+    await ctx.prisma.appointment.update({
+      where: { id: cancelled },
+      data: { status: 'cancelled', cancelledBy: 'salon' },
+    });
+    await client('Adam Nikt', '+48600000006');
+
+    expect(await names('sort=paid')).toEqual([
+      'Jan Nowak',
+      'Ewa Raz',
+      'Adam Nikt',
+      'Olek Niezapłacony',
+      'Zosia Odwołana',
+    ]);
+    // Pages keep the order.
+    expect(await names('sort=paid&limit=2&offset=1')).toEqual(['Ewa Raz', 'Adam Nikt']);
+    // The manager sees the money too: the same order for the salon's clients.
+    expect(await names('sort=paid', manager.auth)).toEqual([
+      'Jan Nowak',
+      'Ewa Raz',
+      'Olek Niezapłacony',
+      'Zosia Odwołana',
+    ]);
+    // A specialist does not see what clients paid, so the order cannot show it: A–Z.
+    await ctx.prisma.membership.updateMany({
+      where: { userId: kasia.userId },
+      data: { permissionOverrides: { viewAllAppointments: true } },
+    });
+    expect(await names('sort=paid', kasia.auth)).toEqual([
+      'Ewa Raz',
+      'Jan Nowak',
+      'Olek Niezapłacony',
+      'Zosia Odwołana',
+    ]);
+  });
+
+  it('counts only the salons the manager works in, and only the main currency', async () => {
+    const other = await ctx.prisma.location.create({
+      data: {
+        organizationId: orgId,
+        name: 'Drugi',
+        slug: 'drugi-283',
+        addressLine: 'Prosta 1',
+        city: 'Warszawa',
+        postalCode: '00-001',
+      },
+    });
+    // Jan: 80 zł here. Ewa: 80 zł here and 160 zł in the other salon.
+    await pastVisit(kasiaId, 5);
+    customerId = await client('Ewa Dwa Salony', '+48600000003');
+    await pastVisit(tomekId, 15);
+    for (const days of [40, 30]) {
+      const id = await pastVisit(tomekId, days);
+      await ctx.prisma.appointment.update({ where: { id }, data: { locationId: other.id } });
+    }
+    // Celina: a big sum, but only in a Prague salon (CZK) — not comparable with złoty.
+    const prague = await ctx.prisma.location.create({
+      data: {
+        organizationId: orgId,
+        name: 'Praha',
+        slug: 'praha-283',
+        addressLine: 'Václavské náměstí 1',
+        city: 'Praha',
+        postalCode: '110 00',
+        currency: 'CZK',
+      },
+    });
+    customerId = await client('Celina Praga', '+48600000004');
+    const there = await pastVisit(tomekId, 8);
+    await ctx.prisma.appointment.update({
+      where: { id: there },
+      data: { locationId: prague.id, priceGrosze: 500000 },
+    });
+
+    expect(await names('sort=paid')).toEqual(['Ewa Dwa Salony', 'Jan Nowak', 'Celina Praga']);
+    // The manager works only in the first salon: 80 zł each there, then by name (Celina has no
+    // visit there, so she is not on the manager's list at all).
+    expect(await names('sort=paid', manager.auth)).toEqual(['Ewa Dwa Salony', 'Jan Nowak']);
+  });
+});

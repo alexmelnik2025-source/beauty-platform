@@ -1046,6 +1046,7 @@ export const pl = {
       recent: 'Ostatnia wizyta — najnowsze',
       visits: 'Najwięcej wizyt',
       next: 'Najbliższa zaplanowana wizyta',
+      paid: 'Zapłacili najwięcej',
     },
     summary: {
       completed: 'Odbyte wizyty',

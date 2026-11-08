@@ -202,6 +202,7 @@ export const pl = {
     sortRecent: 'Ostatnia wizyta',
     sortVisits: 'Najwięcej wizyt',
     sortNext: 'Najbliższa wizyta',
+    sortPaid: 'Zapłacili najwięcej',
     tagFilter: 'Tagi',
     allTags: 'Wszystkie',
     addTag: 'Dodaj tag',

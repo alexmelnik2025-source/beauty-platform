@@ -102,12 +102,16 @@ export class CustomersService {
       : {};
     const ordered = Boolean(newcomers || overdue || noShows || once);
     // Task 279: by the latest visit or by the number of visits (in the caller's salons).
+    // Task 283: who paid the most — only for those who see the money (not specialists).
+    const sort = query.sort === 'paid' && m.role === 'staff' ? 'name' : query.sort;
     const visits =
-      ordered || query.sort === 'name'
+      ordered || sort === 'name'
         ? null
-        : query.sort === 'next'
+        : sort === 'next'
           ? await this.nextVisits(m)
-          : await this.visitStats(m);
+          : sort === 'paid'
+            ? await this.paidTotals(m)
+            : await this.visitStats(m);
     const rows = await this.prisma.customer.findMany({
       // Erased clients (task 21) are not listed; their visits still show in the calendar.
       where: {
@@ -133,8 +137,8 @@ export class CustomersService {
         const v = visits.get(id);
         if (!v) return Number.MIN_SAFE_INTEGER;
         // Task 281: the nearest booked visit first — the earlier, the higher.
-        if (query.sort === 'next') return -v.latest.getTime();
-        return query.sort === 'recent' ? v.latest.getTime() : v.count;
+        if (sort === 'next') return -v.latest.getTime();
+        return sort === 'recent' ? v.latest.getTime() : v.count;
       };
       // Stable: equal keys stay in name order (and clients without visits come last).
       rows.sort((a, b) => key(b.id) - key(a.id));
@@ -178,6 +182,54 @@ export class CustomersService {
       groups
         .filter((g) => g.customerId && g._min.startAt)
         .map((g) => [g.customerId!, { count: g._count._all, latest: g._min.startAt! }]),
+    );
+  }
+
+  /**
+   * Task 283: per client, what the paid visits brought in the salons the caller works in — the
+   * same rule as "Zapłacono" in the client card (price minus discount, cancelled visits left
+   * out), in `count` so the list sorts it like "Najwięcej wizyt". With salons in several
+   * currencies only the main one counts (the currency most of the caller's salons use, the
+   * oldest salon's on a tie): sums in different currencies cannot be compared.
+   */
+  private async paidTotals(
+    m: MembershipContext,
+  ): Promise<Map<string, { count: number; latest: Date }>> {
+    const salons = await this.prisma.location.findMany({
+      where: {
+        organizationId: m.organizationId,
+        ...(m.role === 'owner' ? {} : { id: { in: m.locationIds } }),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, currency: true },
+    });
+    const uses = new Map<string, number>();
+    for (const l of salons) uses.set(l.currency, (uses.get(l.currency) ?? 0) + 1);
+    const main = [...uses].reduce<[string, number] | null>(
+      (best, entry) => (!best || entry[1] > best[1] ? entry : best),
+      null,
+    )?.[0];
+    const groups = await this.prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: {
+        paidAt: { not: null },
+        status: { not: 'cancelled' },
+        customerId: { not: null },
+        locationId: { in: salons.filter((l) => l.currency === main).map((l) => l.id) },
+      },
+      _sum: { priceGrosze: true, discountGrosze: true },
+      _max: { startAt: true },
+    });
+    return new Map(
+      groups
+        .filter((g) => g.customerId && g._max.startAt)
+        .map((g) => [
+          g.customerId!,
+          {
+            count: (g._sum.priceGrosze ?? 0) - (g._sum.discountGrosze ?? 0),
+            latest: g._max.startAt!,
+          },
+        ]),
     );
   }
 

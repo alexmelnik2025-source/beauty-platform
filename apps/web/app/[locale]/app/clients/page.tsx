@@ -18,8 +18,11 @@ type ClientRow = Customer;
 const INACTIVE_DAYS = [30, 60, 90, 180];
 /** Task 277: clients per page of the list (the most the API gives at once). */
 const PAGE = 100;
-/** Task 279: the orders of the list; task 281: the nearest booked visit first. */
-const SORTS = ['name', 'recent', 'visits', 'next'] as const;
+/**
+ * Task 279: the orders of the list; task 281: the nearest booked visit first; task 283: who paid
+ * the most first (owners and managers only — specialists do not see the money).
+ */
+const SORTS = ['name', 'recent', 'visits', 'next', 'paid'] as const;
 type Sort = (typeof SORTS)[number];
 
 type ClientDetail = CustomerDetail;
@@ -291,7 +294,7 @@ export default function ClientsPage() {
               value={sort}
               onChange={(e) => setSort(e.target.value as Sort)}
             >
-              {SORTS.map((order) => (
+              {SORTS.filter((order) => order !== 'paid' || role !== 'staff').map((order) => (
                 <option key={order} value={order}>
                   {t.clients.sort[order]}
                 </option>

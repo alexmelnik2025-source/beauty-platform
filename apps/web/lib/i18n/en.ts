@@ -1048,6 +1048,7 @@ export const en: Dict = {
       recent: 'Latest visit first',
       visits: 'Most visits first',
       next: 'Nearest booked visit',
+      paid: 'Paid the most',
     },
     summary: {
       completed: 'Visits that took place',

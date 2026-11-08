@@ -203,6 +203,7 @@ export const ru: Dictionary = {
     sortRecent: 'Последний визит',
     sortVisits: 'Больше визитов',
     sortNext: 'Ближайший визит',
+    sortPaid: 'Заплатили больше',
     tagFilter: 'Теги',
     allTags: 'Все',
     addTag: 'Добавить тег',

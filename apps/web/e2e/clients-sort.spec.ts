@@ -10,6 +10,8 @@ import { serveApp } from './mobile-app';
  * Task 280: the same choice in the business app's "Klienci" (screenshot 280).
  * Task 281: "Najbliższa zaplanowana wizyta" — Basia is booked tomorrow, Zenon in two days
  * (screenshot 281); task 282: the same chip in the business app (screenshot 282).
+ * Task 283: "Zapłacili najwięcej" — only Adam's visit is paid: Adam first, then the others by
+ * name (screenshots 283, 283-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -87,7 +89,7 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   const adam = await client('Adam Świeży', '+48600000792');
   const basia = await client('Basia Bez Wizyt', '+48600000793');
   // Visits entered afterwards as "came", on 5-minute marks a few hours ago.
-  const visit = (customerId: string, hoursAgo: number) =>
+  const visit = (customerId: string, hoursAgo: number, paid = false) =>
     request
       .post(`${salon}/appointments`, {
         headers: owner,
@@ -99,6 +101,7 @@ test('the owner sorts the clients by the latest visit and by the number of visit
           ).toISOString(),
           customerId,
           alreadyHappened: true,
+          paid,
           allowOutsideHours: true,
         },
       })
@@ -106,7 +109,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await visit(zenon, 6);
   await visit(zenon, 5);
   await visit(zenon, 4);
-  await visit(adam, 2);
+  // Task 283: only Adam's visit is paid.
+  await visit(adam, 2, true);
   // Task 281: booked ahead — Basia tomorrow, Zenon in two days.
   const book = (customerId: string, hoursAhead: number) =>
     request
@@ -172,6 +176,14 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await expect(page).toHaveURL(/sort=next/);
   await shot(page, '281-clients-sort-next');
 
+  // Task 283: who paid the most first, then the others by name.
+  await order.selectOption({ label: 'Zapłacili najwięcej' });
+  await expect(rows.nth(0)).toContainText('Adam Świeży');
+  await expect(rows.nth(1)).toContainText('Basia Bez Wizyt');
+  await expect(rows.nth(2)).toContainText('Zenon Stały');
+  await expect(page).toHaveURL(/sort=paid/);
+  await shot(page, '283-clients-sort-paid');
+
   // A filter with its own order hides the choice.
   await page.getByRole('button', { name: /Nowi \(30 dni\)/ }).click();
   await expect(order).toHaveCount(0);
@@ -213,6 +225,12 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     await expect(cards.nth(1)).toContainText('Zenon Stały');
     await expect(cards.nth(2)).toContainText('Adam Świeży');
     await shot(app, '282-business-app-clients-sort-next');
+    // Task 283: who paid the most first.
+    await app.getByRole('radio', { name: 'Zapłacili najwięcej' }).click();
+    await expect(cards.nth(0)).toContainText('Adam Świeży');
+    await expect(cards.nth(1)).toContainText('Basia Bez Wizyt');
+    await expect(cards.nth(2)).toContainText('Zenon Stały');
+    await shot(app, '283-a-business-app-clients-sort-paid');
     await phone.close();
   } finally {
     businessApp.server.close();
