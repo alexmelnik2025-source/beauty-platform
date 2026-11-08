@@ -51,6 +51,8 @@ import type { SalonChoice } from './SalonsScreen';
  * copy of one (task 310); a service moves to another category, and a new category is added
  * at the end (task 311); who performs it is ticked in "Zmień" (task 312). "Nowa usługa" adds a
  * service from scratch (task 313); "Zmień" changes the name and the description too (task 314).
+ * "Usuń" deletes a service that was never used (task 315); a category is renamed or deleted
+ * from its heading (task 316).
  */
 export function ServicesScreen(props: {
   api: BusinessApi;
@@ -83,6 +85,10 @@ export function ServicesScreen(props: {
     categoryId: null,
     staffIds: [],
   });
+  /** Task 315: the service whose "Usuń" waits for a confirmation. */
+  const [removeId, setRemoveId] = useState<string | null>(null);
+  /** Task 316: the category being renamed (or deleted), with the name as typed. */
+  const [categoryEdit, setCategoryEdit] = useState<{ id: string; name: string } | null>(null);
   /** Task 313: the form of a new service; null = closed. */
   const [fresh, setFresh] = useState<NewServiceForm | null>(null);
   /** Task 312: the salon's specialists (who performs a service). */
@@ -207,6 +213,81 @@ export function ServicesScreen(props: {
       }
       setCopyId(null);
       setInfo(fill(u.copied, { name: created.name }));
+      setError('');
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Task 315: deletes a service that was never used. With visits, a reward or a coupon the server
+   * keeps it (SERVICE_IN_USE) — the owner hides it from online booking instead.
+   */
+  async function remove(service: Service) {
+    setBusy(true);
+    try {
+      await api.deleteService(salon.orgId, salon.locationId, service.id);
+      setRemoveId(null);
+      setInfo(fill(u.removed, { name: service.name }));
+      setError('');
+      await load();
+    } catch (e) {
+      setRemoveId(null);
+      setError(
+        e instanceof ApiError && e.code === 'SERVICE_IN_USE'
+          ? fill(u.inUse, { name: service.name })
+          : errorText(e, t),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Task 316: the category's new name (the server checks the version that was read). */
+  async function renameCategory() {
+    if (!categoryEdit) return;
+    const category = categories.find((c) => c.id === categoryEdit.id);
+    const name = categoryName(categoryEdit.name);
+    if (!category) return setCategoryEdit(null);
+    if (!name) return setError(u.problem.category);
+    if (name === category.name) {
+      setCategoryEdit(null);
+      return setInfo(u.nothing);
+    }
+    setBusy(true);
+    try {
+      await api.renameServiceCategory(
+        salon.orgId,
+        salon.locationId,
+        category.id,
+        name,
+        category.version,
+      );
+      setCategoryEdit(null);
+      setInfo(fill(u.saved, { name }));
+      setError('');
+      await load();
+    } catch (e) {
+      setCategoryEdit(null);
+      setError(
+        e instanceof ApiError && e.code === 'VERSION_CONFLICT' ? u.conflict : errorText(e, t),
+      );
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Task 316: deletes the category; its services stay, in "Bez kategorii". */
+  async function removeCategory(id: string, name: string) {
+    setBusy(true);
+    try {
+      await api.deleteServiceCategory(salon.orgId, salon.locationId, id);
+      setCategoryEdit(null);
+      setInfo(fill(u.categoryRemoved, { name }));
       setError('');
       await load();
     } catch (e) {
@@ -440,7 +521,52 @@ export function ServicesScreen(props: {
                     onPress={() => void moveCategory(id, 1)}
                   />
                 ) : null}
+                {id && categoryEdit?.id !== id ? (
+                  <Button
+                    kind="link"
+                    label={u.edit}
+                    a11yLabel={fill(u.categoryEdit, { name: group.name ?? '' })}
+                    onPress={() => {
+                      setCategoryEdit({ id, name: group.name ?? '' });
+                      setError('');
+                      setInfo('');
+                    }}
+                  />
+                ) : null}
               </View>
+              {id && categoryEdit?.id === id ? (
+                <Card>
+                  <View style={{ gap: 10 }}>
+                    <Text style={styles.label}>{u.categoryNameLabel}</Text>
+                    <TextInput
+                      accessibilityLabel={u.categoryNameLabel}
+                      value={categoryEdit.name}
+                      onChangeText={(name) => setCategoryEdit({ id, name })}
+                      maxLength={60}
+                      style={styles.input}
+                    />
+                    <View style={styles.row}>
+                      <Button label={u.save} busy={busy} onPress={() => void renameCategory()} />
+                      <Button
+                        kind="secondary"
+                        label={u.cancel}
+                        onPress={() => setCategoryEdit(null)}
+                      />
+                    </View>
+                    <Text style={styles.muted}>
+                      {fill(u.categoryRemoveHint, { count: String(group.services.length) })}
+                    </Text>
+                    <View style={styles.row}>
+                      <Button
+                        kind="secondary"
+                        label={u.categoryRemove}
+                        busy={busy}
+                        onPress={() => void removeCategory(id, group.name ?? '')}
+                      />
+                    </View>
+                  </View>
+                </Card>
+              ) : null}
               {group.services.map((service, index) => {
                 const problem = bookingProblem(service);
                 const open = editId === service.id;
@@ -564,6 +690,23 @@ export function ServicesScreen(props: {
                           />
                         </View>
                       </View>
+                    ) : removeId === service.id ? (
+                      <View style={{ gap: 10, marginTop: 6 }}>
+                        <Text style={styles.text}>{fill(u.removeAsk, { name: service.name })}</Text>
+                        <View style={styles.row}>
+                          <Button
+                            label={u.remove}
+                            a11yLabel={fill(u.removeConfirm, { name: service.name })}
+                            busy={busy}
+                            onPress={() => void remove(service)}
+                          />
+                          <Button
+                            kind="secondary"
+                            label={u.cancel}
+                            onPress={() => setRemoveId(null)}
+                          />
+                        </View>
+                      </View>
                     ) : (
                       <View style={styles.row}>
                         <Button
@@ -577,6 +720,18 @@ export function ServicesScreen(props: {
                           label={u.duplicate}
                           a11yLabel={`${u.duplicate}: ${service.name}`}
                           onPress={() => duplicate(service)}
+                        />
+                        <Button
+                          kind="link"
+                          label={u.remove}
+                          a11yLabel={`${u.remove}: ${service.name}`}
+                          onPress={() => {
+                            setEditId(null);
+                            setCopyId(null);
+                            setRemoveId(service.id);
+                            setError('');
+                            setInfo('');
+                          }}
                         />
                         {index > 0 ? (
                           <Button

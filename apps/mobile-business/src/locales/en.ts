@@ -674,6 +674,17 @@ export const en: Dictionary = {
     addService: 'Add service',
     newServiceHint:
       'Set the break after the service, the calendar colour and example photos in the web cabinet.',
+    remove: 'Delete',
+    removeConfirm: 'Yes, delete: {name}',
+    removeAsk: 'Delete “{name}”? This cannot be undone.',
+    removed: 'Deleted: {name}.',
+    inUse:
+      '“{name}” already has visits, rewards or coupons — it cannot be deleted. Hide it instead: “Change” and untick “Bookable online”.',
+    categoryEdit: 'Change category: {name}',
+    categoryNameLabel: 'Category name',
+    categoryRemove: 'Delete category',
+    categoryRemoveHint: 'Its services ({count}) stay — they move to “No category”.',
+    categoryRemoved: 'Deleted category: {name}.',
     performers: 'Who performs it',
     inactive: 'inactive',
     units: { h: 'h', min: 'min' },

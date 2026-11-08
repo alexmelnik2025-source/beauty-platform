@@ -674,6 +674,17 @@ export const pl = {
     addService: 'Dodaj usługę',
     newServiceHint:
       'Przerwę po usłudze, kolor w kalendarzu i zdjęcia-przykłady ustawisz w kabinecie.',
+    remove: 'Usuń',
+    removeConfirm: 'Tak, usuń: {name}',
+    removeAsk: 'Usunąć „{name}”? Tego nie da się cofnąć.',
+    removed: 'Usunięto: {name}.',
+    inUse:
+      '„{name}” ma już wizyty, nagrody lub kupony — nie da się jej usunąć. Ukryj ją: „Zmień” i odznacz „Dostępna do rezerwacji online”.',
+    categoryEdit: 'Zmień kategorię: {name}',
+    categoryNameLabel: 'Nazwa kategorii',
+    categoryRemove: 'Usuń kategorię',
+    categoryRemoveHint: 'Usługi z tej kategorii ({count}) zostaną — trafią do „Bez kategorii”.',
+    categoryRemoved: 'Usunięto kategorię: {name}.',
     performers: 'Kto wykonuje',
     inactive: 'nieaktywny',
     units: { h: 'g', min: 'min' },

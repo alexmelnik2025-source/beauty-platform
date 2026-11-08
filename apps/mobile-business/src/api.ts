@@ -837,6 +837,40 @@ export class BusinessApi {
     );
   }
 
+  /**
+   * Task 315: owner or manager — deletes a service that was never used; 409 SERVICE_IN_USE
+   * when it has visits or is in a reward or coupon (hide it instead).
+   */
+  deleteService(orgId: string, locationId: string, serviceId: string): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services/${enc(serviceId)}`,
+    );
+  }
+
+  /** Task 316: owner or manager — a category's new name (send the version you read). */
+  renameServiceCategory(
+    orgId: string,
+    locationId: string,
+    categoryId: string,
+    name: string,
+    version: number,
+  ): Promise<ServiceCategoryList[number]> {
+    return this.authed<ServiceCategoryList[number]>(
+      'PATCH',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/service-categories/${enc(categoryId)}`,
+      { name, version },
+    );
+  }
+
+  /** Task 316: owner or manager — deletes a category; its services stay, without a category. */
+  deleteServiceCategory(orgId: string, locationId: string, categoryId: string): Promise<void> {
+    return this.authed<void>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/service-categories/${enc(categoryId)}`,
+    );
+  }
+
   /** Task 310: own prices and durations of the specialists, for every service of the salon. */
   staffPrices(orgId: string, locationId: string): Promise<StaffPrices> {
     return this.authed<StaffPrices>(

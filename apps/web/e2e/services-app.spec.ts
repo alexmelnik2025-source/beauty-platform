@@ -16,7 +16,9 @@ import { serveApp } from './mobile-app';
  * Task 310: "Duplikuj" makes a copy of the combo with Kasia's own price. Task 311: a new
  * category "Koloryzacja", and the beard trim moves into it. Task 312: Kasia now performs the
  * beard trim too. Task 314: the haircut gets a new name and a description. Task 313: a new
- * service "Golenie brzytwą" from scratch, in "Broda". Screenshots 93–93b, 253, 255, 310–314.
+ * service "Golenie brzytwą" from scratch, in "Broda". Task 316: "Pielęgnacja" is renamed, then
+ * deleted — its head massage stays, without a category. Task 315: the head massage, never booked,
+ * is deleted. Screenshots 93–93b, 253, 255, 310–316.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -89,6 +91,25 @@ test('the owner changes prices, durations and online booking in the business app
     await request.post(`${base}/service-categories`, {
       headers: owner,
       data: { name: 'Broda', sortOrder: 1 },
+    }),
+  );
+  // Tasks 315, 316: a category with a service nobody has booked yet.
+  const care = await json<{ id: string }>(
+    await request.post(`${base}/service-categories`, {
+      headers: owner,
+      data: { name: 'Pielęgnacja', sortOrder: 2 },
+    }),
+  );
+  await json(
+    await request.post(`${base}/services`, {
+      headers: owner,
+      data: {
+        name: 'Masaż głowy',
+        durationMinutes: 15,
+        priceGrosze: 3000,
+        categoryId: care.id,
+        staffIds: [kasia.id],
+      },
     }),
   );
   const haircut = await json<{ id: string }>(
@@ -268,6 +289,31 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(app.getByText('Dodano usługę: Golenie brzytwą.')).toBeVisible();
     await expect(app.getByRole('heading', { name: 'Broda', exact: true })).toBeVisible();
     await expect(app.getByRole('button', { name: 'Zmień: Golenie brzytwą' })).toBeVisible();
+
+    // ── Task 316: rename a category, then delete it ─────────────────────
+    await app.getByRole('button', { name: 'Zmień kategorię: Pielęgnacja' }).click();
+    await expect(app.getByLabel('Nazwa kategorii')).toHaveValue('Pielęgnacja');
+    await app.getByLabel('Nazwa kategorii').fill('Pielęgnacja głowy');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano: Pielęgnacja głowy.')).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Pielęgnacja głowy' })).toBeVisible();
+    await app.getByRole('button', { name: 'Zmień kategorię: Pielęgnacja głowy' }).click();
+    await expect(
+      app.getByText('Usługi z tej kategorii (1) zostaną — trafią do „Bez kategorii”.'),
+    ).toBeVisible();
+    await shot(app, '316-business-app-category-edit');
+    await app.getByRole('button', { name: 'Usuń kategorię' }).click();
+    await expect(app.getByText('Usunięto kategorię: Pielęgnacja głowy.')).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Pielęgnacja głowy' })).toHaveCount(0);
+    await expect(app.getByRole('heading', { name: 'Bez kategorii' })).toBeVisible();
+
+    // ── Task 315: delete a service nobody has booked ─────────────────────
+    await app.getByRole('button', { name: 'Usuń: Masaż głowy' }).click();
+    await expect(app.getByText('Usunąć „Masaż głowy”? Tego nie da się cofnąć.')).toBeVisible();
+    await shot(app, '315-business-app-service-remove');
+    await app.getByRole('button', { name: 'Tak, usuń: Masaż głowy' }).click();
+    await expect(app.getByText('Usunięto: Masaż głowy.')).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Bez kategorii' })).toHaveCount(0);
     await context.close();
   } finally {
     businessApp.server.close();
@@ -318,6 +364,9 @@ test('the owner changes prices, durations and online booking in the business app
     durationMinutes: 30,
     staffIds: [kasia.id],
   });
+  // Tasks 315, 316: the head massage and its category are gone.
+  expect(copied.find((s) => s.name === 'Masaż głowy')).toBeUndefined();
+  expect(categories.find((c) => c.id === care.id)).toBeUndefined();
   const junior = copied.find((s) => s.name === 'Strzyżenie + broda junior');
   expect(junior).toMatchObject({
     categoryId: hair.id,
