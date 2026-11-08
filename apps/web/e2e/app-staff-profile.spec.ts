@@ -12,7 +12,8 @@ import { serveApp } from './mobile-app';
  * Tasks 326–329: specialists in "Grafik zespołu" of the business app (web preview of
  * apps/mobile-business). The owner puts Kasia first (329), changes her profile — name,
  * description, specialties, services (326–327) — switches her off (she stays on the list, marked)
- * and adds a new specialist without an account (328). Screenshots 326–329.
+ * and adds a new specialist without an account (328). Screenshots 326–329. Task 339: her photo
+ * from the gallery (the file chooser in the web preview), then removed. Screenshot 339.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -21,6 +22,23 @@ const OWNER = `app-staff-owner-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 // An address of this test only (sign-ups and codes are limited per address).
 const OWNER_IP = { 'x-forwarded-for': '198.51.100.98' };
+
+/** A small square photo drawn in the browser (task 339). */
+async function drawnPhoto(page: Page, text: string): Promise<Buffer> {
+  const base64 = await page.evaluate((label) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#1d1d1b';
+    ctx.fillRect(0, 0, 300, 300);
+    ctx.fillStyle = '#c8a46a';
+    ctx.font = '72px sans-serif';
+    ctx.fillText(label, 80, 175);
+    return canvas.toDataURL('image/jpeg', 0.9).split(',')[1]!;
+  }, text);
+  return Buffer.from(base64, 'base64');
+}
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -63,6 +81,7 @@ type Staff = {
   active: boolean;
   sortOrder: number;
   serviceIds: string[];
+  photoUrl: string | null;
 };
 
 test('business app: the owner orders, edits, switches off and adds specialists', async ({
@@ -158,6 +177,28 @@ test('business app: the owner orders, edits, switches off and adds specialists',
     await expect(phone.getByText('Usługi: 1 z 2')).toBeVisible();
     await shot(phone, '327-business-app-staff-profile-saved');
 
+    // ── 339: Kasia's photo from the gallery, then removed ─────────────────
+    const chooser = phone.waitForEvent('filechooser', { timeout: 15_000 });
+    await phone.getByRole('button', { name: '+ Dodaj zdjęcie' }).click();
+    await (
+      await chooser
+    ).setFiles({
+      name: 'kasia.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await drawnPhoto(phone, 'KN'),
+    });
+    await expect(phone.getByText('Zdjęcie zapisane', { exact: false })).toBeVisible();
+    await expect(phone.getByLabel('Zdjęcie: Kasia Nowak')).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Zmień zdjęcie' })).toBeVisible();
+    await shot(phone, '339-business-app-staff-photo');
+    const withPhoto = await json<Staff[]>(await request.get(`${base}/staff`, { headers: owner }));
+    expect(withPhoto.find((x) => x.id === kasia.id)?.photoUrl).toBeTruthy();
+    await phone.getByRole('button', { name: 'Usuń zdjęcie' }).click();
+    await expect(phone.getByText('Usunąć zdjęcie? Klienci zobaczą inicjały.')).toBeVisible();
+    await phone.getByRole('button', { name: 'Tak, usuń' }).click();
+    await expect(phone.getByText('Zdjęcie usunięte.')).toBeVisible();
+    await expect(phone.getByRole('button', { name: '+ Dodaj zdjęcie' })).toBeVisible();
+
     // ── 326: Kasia does not take clients for now — she stays on the list ──
     await phone.getByRole('button', { name: 'Zmień profil' }).click();
     await phone.getByLabel('Przyjmuje klientów').click();
@@ -194,6 +235,7 @@ test('business app: the owner orders, edits, switches off and adds specialists',
     active: false,
     sortOrder: 0,
     serviceIds: [haircut.id],
+    photoUrl: null,
   });
   expect(byName['Ilian']).toMatchObject({ sortOrder: 10, active: true });
   expect(byName['Marek']).toMatchObject({ sortOrder: 20, active: true });

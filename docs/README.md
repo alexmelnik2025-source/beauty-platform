@@ -2753,3 +2753,11 @@ wykonuje» (сервер принимает цены только тех, кто
   `start/end` 'YYYY-MM-DDTHH:mm' (время салона), как `datetime-local` в кабинете. Неверное время — подсказка.
 - Код: `hoursOff` в `apps/mobile-business/src/hours.ts` (тест `test/hours.test.ts`), форма в `ScheduleScreen.tsx`;
   e2e и скриншот 338 — в `apps/web/e2e/app-special-day.spec.ts`.
+
+## Бизнес-приложение: фото специалиста (задача 339)
+
+- В профиле специалиста («Grafik zespołu» → специалист, владелец или менеджер) сверху фото или инициалы: «+ Dodaj
+  zdjęcie» / «Zmień zdjęcie» — галерея с квадратной обрезкой (`PUT …/staff/:id/photo`, файл как есть), «Usuń zdjęcie» —
+  с вопросом (`DELETE`). Клиенты видят фото при записи.
+- Код: `setStaffPhoto`/`removeStaffPhoto` в `apps/mobile-business/src/api.ts` (тест `test/salonPhotos.test.ts`),
+  `StaffProfileSection.tsx`; e2e и скриншот 339 — в `apps/web/e2e/app-staff-profile.spec.ts`.

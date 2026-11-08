@@ -1,5 +1,6 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type ServiceList, type StaffList } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -11,6 +12,7 @@ import {
   toggleSpecialty,
   type StaffProfileForm,
 } from '../staffProfile';
+import { photoType, uploadErrorText } from '../salonPhotos';
 import { toggled } from '../services';
 import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
@@ -19,7 +21,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 326: the top of a specialist's page in "Grafik zespołu" (owner or manager) — the name
  * clients see, a description, the specialties and "Przyjmuje klientów"; task 327: which services
  * they perform. Like the specialist's card in the cabinet's "Zespół". The server checks the rights
- * and the version (someone else may have saved the profile meanwhile).
+ * and the version (someone else may have saved the profile meanwhile). Task 339: the photo
+ * clients see — from the phone's gallery (square), or removed.
  */
 export function StaffProfileSection(props: {
   api: BusinessApi;
@@ -37,6 +40,8 @@ export function StaffProfileSection(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Task 339: "Usunąć zdjęcie?" is open. */
+  const [removingPhoto, setRemovingPhoto] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -104,6 +109,54 @@ export function StaffProfileSection(props: {
     }
   }
 
+  /** Task 339: a square photo from the gallery replaces the old one. */
+  async function pickPhoto() {
+    setError('');
+    setInfo('');
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    }).catch(() => null);
+    if (!picked) return setError(t.salon.photoNoAccess);
+    if (picked.canceled || picked.assets.length === 0) return;
+    const asset = picked.assets[0]!;
+    setBusy(true);
+    try {
+      const blob = await (await fetch(asset.uri)).blob();
+      await api.setStaffPhoto(
+        salon.orgId,
+        salon.locationId,
+        staffId,
+        blob,
+        photoType(asset.mimeType, blob.type),
+      );
+      await load();
+      setInfo(p.photoSaved);
+    } catch (e) {
+      setError(uploadErrorText(e, t) ?? errorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removePhoto() {
+    setRemovingPhoto(false);
+    setError('');
+    setInfo('');
+    setBusy(true);
+    try {
+      await api.removeStaffPhoto(salon.orgId, salon.locationId, staffId);
+      await load();
+      setInfo(p.photoRemoved);
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!staff) return error ? <ErrorText>{error}</ErrorText> : null;
 
   const offered = services.filter((s) => s.active);
@@ -120,6 +173,53 @@ export function StaffProfileSection(props: {
       {!form ? (
         <>
           <Card>
+            {/* Task 339: the photo clients see next to the name. */}
+            <View style={styles.photoRow}>
+              {staff.photoUrl ? (
+                <Image
+                  source={{ uri: api.absoluteUrl(staff.photoUrl) }}
+                  accessibilityLabel={fill(p.photoAlt, { name: staff.displayName })}
+                  accessibilityIgnoresInvertColors
+                  style={styles.photo}
+                />
+              ) : (
+                <View style={[styles.photo, styles.initials]}>
+                  <Text style={styles.initialsText}>{initials(staff.displayName)}</Text>
+                </View>
+              )}
+              <View style={{ gap: 4, flexShrink: 1 }}>
+                <Button
+                  kind="secondary"
+                  label={staff.photoUrl ? p.photoChange : p.photoAdd}
+                  busy={busy && !removingPhoto}
+                  onPress={() => void pickPhoto()}
+                />
+                {staff.photoUrl && !removingPhoto ? (
+                  <Button
+                    kind="link"
+                    label={p.photoRemove}
+                    disabled={busy}
+                    onPress={() => {
+                      setInfo('');
+                      setRemovingPhoto(true);
+                    }}
+                  />
+                ) : null}
+              </View>
+            </View>
+            {removingPhoto ? (
+              <View style={{ gap: 4 }}>
+                <Text style={styles.muted}>{p.photoRemoveAsk}</Text>
+                <View style={styles.photoRow}>
+                  <Button label={p.photoYes} busy={busy} onPress={() => void removePhoto()} />
+                  <Button
+                    kind="secondary"
+                    label={p.photoNo}
+                    onPress={() => setRemovingPhoto(false)}
+                  />
+                </View>
+              </View>
+            ) : null}
             <Text style={styles.value}>{specialtyText || p.noSpecialty}</Text>
             <Text style={styles.muted}>{staff.bio ?? p.noBio}</Text>
             <Text style={styles.muted}>
@@ -252,7 +352,21 @@ export function StaffProfileSection(props: {
   );
 }
 
+/** "Kasia Nowak" → "KN" — shown when there is no photo. */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
+}
+
 const styles = StyleSheet.create({
+  photoRow: { flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap' },
+  photo: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.soft },
+  initials: { alignItems: 'center', justifyContent: 'center' },
+  initialsText: { fontSize: 22, fontWeight: '700', color: colors.muted },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   switchRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 12 },

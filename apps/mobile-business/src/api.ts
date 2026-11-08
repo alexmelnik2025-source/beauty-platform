@@ -329,10 +329,32 @@ export class BusinessApi {
     contentType: string,
   ): Promise<SalonPhoto> {
     return this.authedUpload<SalonPhoto>(
+      'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/photos`,
       photo,
       contentType,
     );
+  }
+
+  /** Task 339: the specialist's photo for clients (owner or manager); replaces the old one. */
+  setStaffPhoto(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    photo: Blob,
+    contentType: string,
+  ): Promise<SalonPhoto> {
+    return this.authedUpload<SalonPhoto>(
+      'PUT',
+      `${staffPath(orgId, locationId, staffId)}/photo`,
+      photo,
+      contentType,
+    );
+  }
+
+  /** Task 339: removes the specialist's photo (clients see the initials again). */
+  removeStaffPhoto(orgId: string, locationId: string, staffId: string): Promise<void> {
+    return this.authed<void>('DELETE', `${staffPath(orgId, locationId, staffId)}/photo`);
   }
 
   /** Task 325: removes one photo of the salon at once (owner or manager). */
@@ -1405,10 +1427,15 @@ export class BusinessApi {
     }
   }
 
-  /** Task 337: POST of a file (not JSON), signed in, with one retry after a refresh. */
-  private async authedUpload<T>(path: string, file: Blob, contentType: string): Promise<T> {
+  /** Task 337: a file (not JSON), signed in, with one retry after a refresh (339: PUT too). */
+  private async authedUpload<T>(
+    method: 'POST' | 'PUT',
+    path: string,
+    file: Blob,
+    contentType: string,
+  ): Promise<T> {
     if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
-    const send = () => this.call<T>('POST', path, new Upload(file, contentType), true);
+    const send = () => this.call<T>(method, path, new Upload(file, contentType), true);
     try {
       return await send();
     } catch (error) {
