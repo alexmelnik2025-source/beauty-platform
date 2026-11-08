@@ -1016,6 +1016,7 @@ export class ReportsService {
         paymentMethod: true,
         tipGrosze: true,
         cancelledBy: true,
+        cancelledAt: true,
         customer: { select: { name: true } },
         staff: { select: { displayName: true } },
         service: { select: { name: true, category: { select: { name: true } } } },
@@ -1025,6 +1026,10 @@ export class ReportsService {
     const csv = visitsCsv(
       rows.map((a) => {
         const local = instantToLocal(a.startAt.getTime(), location.timezone);
+        const cancelled =
+          a.status === 'cancelled' && a.cancelledAt
+            ? instantToLocal(a.cancelledAt.getTime(), location.timezone)
+            : null;
         return {
           date: local.date,
           time: local.time,
@@ -1040,6 +1045,7 @@ export class ReportsService {
           method: a.paymentMethod,
           tipGrosze: a.tipGrosze,
           category: a.service.category?.name ?? null,
+          cancelledAt: cancelled ? `${cancelled.date} ${cancelled.time}` : null,
         };
       }),
       locale,
