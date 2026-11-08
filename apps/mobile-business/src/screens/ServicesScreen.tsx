@@ -8,7 +8,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ApiError, type BusinessApi, type Locale, type ServiceCategoryList } from '../api';
+import {
+  ApiError,
+  type BusinessApi,
+  type Locale,
+  type ServiceCategoryList,
+  type StaffList,
+} from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -25,6 +31,9 @@ import {
   priceList,
   serviceChange,
   serviceCopy,
+  staffChange,
+  staffChoices,
+  toggled,
   type CopyForm,
   type Service,
   type ServiceGroup,
@@ -37,7 +46,7 @@ import type { SalonChoice } from './SalonsScreen';
  * service's price, duration and "bookable online" from the phone; ↑ / ↓ set the order clients
  * see (task 253), and the categories' order too (task 255). "Duplikuj" makes a new service as a
  * copy of one (task 310); a service moves to another category, and a new category is added
- * at the end (task 311). Who performs a service stays in the cabinet (one line says so).
+ * at the end (task 311); who performs it is ticked in "Zmień" (task 312).
  */
 export function ServicesScreen(props: {
   api: BusinessApi;
@@ -58,7 +67,10 @@ export function ServicesScreen(props: {
     duration: string;
     active: boolean;
     categoryId: string | null;
-  }>({ price: '', duration: '', active: true, categoryId: null });
+    staffIds: string[];
+  }>({ price: '', duration: '', active: true, categoryId: null, staffIds: [] });
+  /** Task 312: the salon's specialists (who performs a service). */
+  const [staff, setStaff] = useState<StaffList>([]);
   /** Task 311: the name of a new category, as typed. */
   const [newCategory, setNewCategory] = useState('');
   const [busy, setBusy] = useState(false);
@@ -74,12 +86,14 @@ export function ServicesScreen(props: {
 
   const load = useCallback(async () => {
     try {
-      const [services, categories] = await Promise.all([
+      const [services, categories, staff] = await Promise.all([
         api.services(salon.orgId, salon.locationId),
         api.serviceCategories(salon.orgId, salon.locationId),
+        api.staff(salon.orgId, salon.locationId),
       ]);
       setGroups(priceList(services, categories));
       setCategories(categories);
+      setStaff(staff);
       setError('');
     } catch (e) {
       setError(errorText(e, t));
@@ -106,6 +120,7 @@ export function ServicesScreen(props: {
       duration: String(service.durationMinutes),
       active: service.active,
       categoryId: service.categoryId,
+      staffIds: [...service.staffIds],
     });
     setError('');
     setInfo('');
@@ -114,13 +129,18 @@ export function ServicesScreen(props: {
   async function save(service: Service) {
     const checked = serviceChange(service, form);
     if (!checked.ok) return setError(u.problem[checked.problem]);
-    if (!checked.change) {
+    const people = staffChange(service, form.staffIds);
+    if (!checked.change && !people) {
       setEditId(null);
       return setInfo(u.nothing);
     }
     setBusy(true);
     try {
-      await api.updateService(salon.orgId, salon.locationId, service.id, checked.change);
+      if (checked.change) {
+        await api.updateService(salon.orgId, salon.locationId, service.id, checked.change);
+      }
+      // Task 312: who performs it — a list of its own, saved after the rest.
+      if (people) await api.setServiceStaff(salon.orgId, salon.locationId, service.id, people);
       setEditId(null);
       setInfo(fill(u.saved, { name: service.name }));
       setError('');
@@ -365,6 +385,32 @@ export function ServicesScreen(props: {
                         {categoryPicker(form.categoryId, (categoryId) =>
                           setForm((f) => ({ ...f, categoryId })),
                         )}
+                        <Text style={styles.label}>{u.performers}</Text>
+                        {staffChoices(staff, form.staffIds).map((member) => {
+                          const on = form.staffIds.includes(member.id);
+                          return (
+                            <Pressable
+                              key={member.id}
+                              accessibilityRole="checkbox"
+                              accessibilityLabel={member.displayName}
+                              accessibilityState={{ checked: on }}
+                              onPress={() =>
+                                setForm((f) => ({ ...f, staffIds: toggled(f.staffIds, member.id) }))
+                              }
+                              style={styles.check}
+                            >
+                              <Text style={[styles.box, on && styles.boxOn]}>{on ? '✓' : ''}</Text>
+                              <Text style={[styles.text, { flexShrink: 1 }]}>
+                                {member.active
+                                  ? member.displayName
+                                  : `${member.displayName} · ${u.inactive}`}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                        {form.staffIds.length === 0 ? (
+                          <Text style={styles.warn}>{u.nobody}</Text>
+                        ) : null}
                         <View style={styles.row}>
                           <Button label={u.save} busy={busy} onPress={() => void save(service)} />
                           <Button

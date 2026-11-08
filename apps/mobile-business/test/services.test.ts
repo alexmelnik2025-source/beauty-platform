@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ServiceCategoryList, ServiceList } from '../src/api';
+import type { ServiceCategoryList, ServiceList, StaffList } from '../src/api';
 import {
   bookingProblem,
   categoryChoices,
@@ -16,6 +16,9 @@ import {
   priceList,
   serviceChange,
   serviceCopy,
+  staffChange,
+  staffChoices,
+  toggled,
 } from '../src/services';
 
 const service = (over: Partial<ServiceList[number]> & { id: string; name: string }) =>
@@ -296,5 +299,31 @@ describe('categories in the app (task 311)', () => {
       ok: true,
       change: null,
     });
+  });
+});
+
+describe('who performs a service (task 312)', () => {
+  const staff = [
+    { id: 's1', displayName: 'Kasia', active: true, sortOrder: 2 },
+    { id: 's2', displayName: 'Ania', active: true, sortOrder: 1 },
+    { id: 's3', displayName: 'Ola', active: false, sortOrder: 0 },
+    { id: 's4', displayName: 'Ewa', active: false, sortOrder: 3 },
+  ] as StaffList;
+
+  it('offers who takes visits, and an inactive one only while still ticked', () => {
+    expect(staffChoices(staff, ['s4']).map((m) => m.id)).toEqual(['s2', 's1', 's4']);
+    expect(staffChoices(staff, []).map((m) => m.id)).toEqual(['s2', 's1']);
+  });
+
+  it('saves only a different list', () => {
+    const cut = service({ id: 'a', name: 'Strzyżenie', staffIds: ['s1', 's2'] });
+    expect(staffChange(cut, ['s2', 's1'])).toBeNull();
+    expect(staffChange(cut, ['s1'])).toEqual(['s1']);
+    expect(staffChange(cut, [])).toEqual([]);
+  });
+
+  it('ticks and unticks one specialist', () => {
+    expect(toggled(['s1'], 's2')).toEqual(['s1', 's2']);
+    expect(toggled(['s1', 's2'], 's1')).toEqual(['s2']);
   });
 });

@@ -650,7 +650,7 @@ export const en: Dictionary = {
     nothing: 'Nothing changed.',
     conflict: 'Someone has just changed this service — showing the current data.',
     none: 'No services yet — add them in the cabinet.',
-    hint: 'Who performs a service is set in the cabinet. A new service can be made here with “Duplicate”.',
+    hint: 'Make a new service here with “Duplicate” — the copy is like the original, then change what you need.',
     up: 'Move up: {name}',
     down: 'Move down: {name}',
     orderSaved: 'Order saved — this is how clients see the services.',
@@ -668,6 +668,8 @@ export const en: Dictionary = {
     newCategoryPlaceholder: 'e.g. Colouring',
     addCategory: 'Add category',
     categoryAdded: 'Category added: {name}. Move a service into it with “Change” or “Duplicate”.',
+    performers: 'Who performs it',
+    inactive: 'inactive',
     units: { h: 'h', min: 'min' },
     problem: {
       category: 'Category name: 1 to 60 characters.',

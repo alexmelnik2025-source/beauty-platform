@@ -649,7 +649,7 @@ export const pl = {
     nothing: 'Nic się nie zmieniło.',
     conflict: 'Ktoś właśnie zmienił tę usługę — pokazujemy aktualne dane.',
     none: 'Brak usług — dodaj je w kabinecie.',
-    hint: 'To, kto wykonuje usługę, ustawiasz w kabinecie. Nową usługę zrobisz tu przez „Duplikuj”.',
+    hint: 'Nową usługę zrobisz tu przez „Duplikuj” — kopia ma wszystko jak oryginał, a potem zmienisz, co trzeba.',
     up: 'Wyżej: {name}',
     down: 'Niżej: {name}',
     orderSaved: 'Kolejność zapisana — tak klienci widzą usługi.',
@@ -668,6 +668,8 @@ export const pl = {
     addCategory: 'Dodaj kategorię',
     categoryAdded:
       'Dodano kategorię: {name}. Przenieś do niej usługę przez „Zmień” lub „Duplikuj”.',
+    performers: 'Kto wykonuje',
+    inactive: 'nieaktywny',
     units: { h: 'g', min: 'min' },
     problem: {
       category: 'Nazwa kategorii: od 1 do 60 znaków.',

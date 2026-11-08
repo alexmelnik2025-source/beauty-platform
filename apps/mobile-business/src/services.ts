@@ -1,5 +1,6 @@
 import type {
   NewService,
+  StaffList,
   ServiceCategoryList,
   ServiceChange,
   ServiceList,
@@ -230,4 +231,27 @@ export function categoryChoices(categories: ServiceCategoryList): ServiceCategor
 export function categoryName(name: string): string | null {
   const trimmed = name.trim();
   return trimmed.length === 0 || trimmed.length > 60 ? null : trimmed;
+}
+
+/**
+ * Task 312: who can be ticked for a service — specialists who take visits, in the salon's
+ * order, and anyone inactive still linked to it (so they can be unticked).
+ */
+export function staffChoices(staff: StaffList, staffIds: string[]): StaffList {
+  return staff
+    .filter((m) => m.active || staffIds.includes(m.id))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.displayName.localeCompare(b.displayName));
+}
+
+/** Task 312: the new list when the specialist was changed; null = the same people. */
+export function staffChange(service: Service, staffIds: string[]): string[] | null {
+  const same =
+    staffIds.length === service.staffIds.length &&
+    staffIds.every((id) => service.staffIds.includes(id));
+  return same ? null : staffIds;
+}
+
+/** Task 312: one specialist ticked or unticked, keeping the order of the others. */
+export function toggled(staffIds: string[], id: string): string[] {
+  return staffIds.includes(id) ? staffIds.filter((s) => s !== id) : [...staffIds, id];
 }

@@ -807,6 +807,20 @@ export class BusinessApi {
     );
   }
 
+  /** Task 312: owner or manager — who performs the service (replaces the list). */
+  setServiceStaff(
+    orgId: string,
+    locationId: string,
+    serviceId: string,
+    staffIds: string[],
+  ): Promise<ServiceList[number]> {
+    return this.authed<ServiceList[number]>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services/${enc(serviceId)}/staff`,
+      { staffIds },
+    );
+  }
+
   /** Task 311: owner or manager — a new category; the server puts it at the end (task 254). */
   createServiceCategory(
     orgId: string,

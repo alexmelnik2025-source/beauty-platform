@@ -14,8 +14,8 @@ import { serveApp } from './mobile-app';
  * duration, and takes a service off online booking. Task 253: "↑" puts the combo first in its
  * category — the order clients see. Task 255: "↑" by "Broda" puts the category first.
  * Task 310: "Duplikuj" makes a copy of the combo with Kasia's own price. Task 311: a new
- * category "Koloryzacja", and the beard trim moves into it. Screenshots 93–93b, 253, 255, 310,
- * 311.
+ * category "Koloryzacja", and the beard trim moves into it. Task 312: Kasia now performs the
+ * beard trim too. Screenshots 93–93b, 253, 255, 310, 311, 312.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -226,6 +226,21 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(app.getByRole('heading', { name: 'Koloryzacja', exact: true })).toBeVisible();
     // "Broda" has no services now — the price list leaves it out.
     await expect(app.getByRole('heading', { name: 'Broda', exact: true })).toHaveCount(0);
+
+    // ── Task 312: Kasia performs the beard trim too ─────────────────────────
+    await expect(
+      app.getByText('Nikt jej nie wykonuje — klienci nie zarezerwują jej online'),
+    ).toBeVisible();
+    await app.getByRole('button', { name: 'Zmień: Trymowanie brody' }).click();
+    await expect(app.getByRole('checkbox', { name: 'Kasia' })).not.toBeChecked();
+    await app.getByRole('checkbox', { name: 'Kasia' }).click();
+    await expect(app.getByRole('checkbox', { name: 'Kasia' })).toBeChecked();
+    await shot(app, '312-business-app-service-staff');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano: Trymowanie brody.')).toBeVisible();
+    await expect(
+      app.getByText('Nikt jej nie wykonuje — klienci nie zarezerwują jej online'),
+    ).toHaveCount(0);
     await context.close();
   } finally {
     businessApp.server.close();
@@ -257,8 +272,11 @@ test('the owner changes prices, durations and online booking in the business app
       staffIds: string[];
     }[]
   >(await request.get(`${base}/services`, { headers: owner }));
-  // Task 311: the beard trim is in "Koloryzacja" now.
-  expect(copied.find((s) => s.name === 'Trymowanie brody')?.categoryId).toBe(categories[2]!.id);
+  // Task 311: the beard trim is in "Koloryzacja" now; task 312: Kasia performs it.
+  expect(copied.find((s) => s.name === 'Trymowanie brody')).toMatchObject({
+    categoryId: categories[2]!.id,
+    staffIds: [kasia.id],
+  });
   const junior = copied.find((s) => s.name === 'Strzyżenie + broda junior');
   expect(junior).toMatchObject({
     categoryId: hair.id,
