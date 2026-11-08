@@ -3,8 +3,11 @@ import type { Dictionary } from './i18n';
 
 type Wishes = AppointmentDetail['wishes'];
 
-const MOOD_ICON = { chat: '😄', quiet: '🤫', relax: '😌' } as const;
-const DRINK_ICON = { coffee: '☕', tea: '🍵', water: '💧', none: '🙅' } as const;
+export const MOOD_ICON = { chat: '😄', quiet: '🤫', relax: '😌' } as const;
+export const DRINK_ICON = { coffee: '☕', tea: '🍵', water: '💧', none: '🙅' } as const;
+/** Task 320: what a salon may have to drink — the server allows only these. */
+export const OFFERED_DRINKS = ['coffee', 'tea', 'water'] as const;
+export type OfferedDrink = (typeof OFFERED_DRINKS)[number];
 
 /**
  * Task 80: the client's wishes in the visit card, one line each — "🤫 Woli ciszę",

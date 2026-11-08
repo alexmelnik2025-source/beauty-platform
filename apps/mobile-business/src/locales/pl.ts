@@ -641,6 +641,13 @@ export const pl = {
     badLead: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
     badHorizon: 'Wpisz liczbę dni od 1 do 365.',
     badDeadline: 'Wpisz liczbę minut od 0 do 10080 (tydzień).',
+    questions: 'Pytania przy rezerwacji',
+    questionsHint:
+      'Ostatni, nieobowiązkowy krok rezerwacji — klient odpowiada jednym dotknięciem albo pomija. Odpowiedzi widzi specjalista w wizycie.',
+    askMood: 'Jak klient chce spędzić wizytę (rozmowa, cisza, odpoczynek)',
+    askDrink: 'Coś do picia',
+    drinksOffered: 'Co macie w salonie?',
+    askNote: 'Informacja dla specjalisty (do 200 znaków)',
     legalTexts:
       'Aby włączyć rezerwację online, salon potrzebuje regulaminu i polityki prywatności — dodaj je w panelu salonu: Ustawienia → Regulamin i prywatność.',
     changedMeanwhile:

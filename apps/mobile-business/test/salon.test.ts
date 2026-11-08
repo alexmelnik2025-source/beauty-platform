@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError, type Location } from '../src/api';
-import { maySeeSalon, SLOT_STEPS, salonChanges, salonForm, saveProblem } from '../src/salon';
+import {
+  maySeeSalon,
+  SLOT_STEPS,
+  salonChanges,
+  salonForm,
+  saveProblem,
+  toggleDrink,
+} from '../src/salon';
 
 const salon = (over: Partial<Location> = {}) =>
   ({
@@ -21,6 +28,10 @@ const salon = (over: Partial<Location> = {}) =>
     bookingHorizonDays: 60,
     clientCancelDeadlineMinutes: 120,
     slotStepMinutes: 15,
+    askMood: true,
+    askDrink: true,
+    drinks: ['coffee', 'water'],
+    askNote: false,
     version: 3,
     ...over,
   }) as Location;
@@ -39,6 +50,10 @@ describe('salonForm', () => {
       bookingHorizonDays: '60',
       clientCancelDeadlineMinutes: '120',
       slotStepMinutes: 15,
+      askMood: true,
+      askDrink: true,
+      drinks: ['coffee', 'water'],
+      askNote: false,
     });
   });
 });
@@ -135,6 +150,32 @@ describe('salonChanges — booking rules (task 319)', () => {
 
   it('offers the steps the server accepts', () => {
     expect([...SLOT_STEPS]).toEqual([5, 10, 15, 30]);
+  });
+});
+
+describe('salonChanges — questions on booking (task 320)', () => {
+  it('sends only the questions that changed', () => {
+    const form = { ...salonForm(salon()), askMood: false, askNote: true };
+    expect(salonChanges(salon(), form)).toEqual({ changes: { askMood: false, askNote: true } });
+  });
+
+  it('sends the drinks only when the set changed, not the order', () => {
+    const reordered = { ...salonForm(salon()), drinks: ['water', 'coffee'] as const };
+    expect(salonChanges(salon(), { ...reordered, drinks: [...reordered.drinks] })).toEqual({
+      changes: {},
+    });
+    const withTea = { ...salonForm(salon()), drinks: toggleDrink(['coffee', 'water'], 'tea') };
+    expect(salonChanges(salon(), withTea)).toEqual({
+      changes: { drinks: ['coffee', 'tea', 'water'] },
+    });
+  });
+});
+
+describe('toggleDrink', () => {
+  it('ticks a drink in the order of the list and unticks it', () => {
+    expect(toggleDrink([], 'water')).toEqual(['water']);
+    expect(toggleDrink(['water'], 'coffee')).toEqual(['coffee', 'water']);
+    expect(toggleDrink(['coffee', 'water'], 'coffee')).toEqual(['water']);
   });
 });
 

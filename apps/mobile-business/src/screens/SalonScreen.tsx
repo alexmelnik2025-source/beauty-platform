@@ -17,10 +17,12 @@ import {
   salonChanges,
   salonForm,
   saveProblem,
+  toggleDrink,
   type SalonForm,
   type SalonProblem,
 } from '../salon';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '../wishes';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -28,6 +30,7 @@ import type { SalonChoice } from './SalonsScreen';
  * description and switches online booking on or off. Opening hours, prices and the booking
  * terms stay in their own places (the team's schedule, "Usługi", the salon dashboard).
  * Task 319: "Zasady rezerwacji" — the lead time, how far ahead, the change deadline, the step.
+ * Task 320: "Pytania przy rezerwacji" — mood, a drink (and which ones the salon has), a note.
  */
 export function SalonScreen(props: {
   api: BusinessApi;
@@ -144,6 +147,20 @@ export function SalonScreen(props: {
       </View>
     ) : null;
 
+  /** Task 320: one question on the last booking step, switched on or off. */
+  const question = (key: 'askMood' | 'askDrink' | 'askNote', text: string, label: string) =>
+    form ? (
+      <View style={[styles.switchRow, { marginTop: 10 }]}>
+        <Text style={[styles.value, { flex: 1, fontWeight: '400' }]}>{text}</Text>
+        <Switch
+          accessibilityLabel={label}
+          value={form[key]}
+          onValueChange={(on) => setForm({ ...form, [key]: on })}
+          trackColor={{ true: colors.accent, false: colors.line }}
+        />
+      </View>
+    ) : null;
+
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={styles.row}>
@@ -222,6 +239,32 @@ export function SalonScreen(props: {
               </View>
               <Text style={styles.small}>{s.stepHint}</Text>
             </View>
+          </Card>
+          <Card>
+            <Text style={styles.section}>{s.questions}</Text>
+            <Text style={styles.small}>{s.questionsHint}</Text>
+            {question(
+              'askMood',
+              `${MOOD_ICON.chat} ${MOOD_ICON.quiet} ${MOOD_ICON.relax} ${s.askMood}`,
+              s.askMood,
+            )}
+            {question('askDrink', `${DRINK_ICON.coffee} ${s.askDrink}`, s.askDrink)}
+            {form.askDrink ? (
+              <View style={[styles.field, { paddingLeft: 12 }]}>
+                <Text style={styles.label}>{s.drinksOffered}</Text>
+                <View style={styles.row}>
+                  {OFFERED_DRINKS.map((drink) => (
+                    <Chip
+                      key={drink}
+                      label={`${DRINK_ICON[drink]} ${t.visit.drink[drink]}`}
+                      on={form.drinks.includes(drink)}
+                      onPress={() => setForm({ ...form, drinks: toggleDrink(form.drinks, drink) })}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            {question('askNote', `✍️ ${s.askNote}`, s.askNote)}
           </Card>
           <Button label={s.save} busy={busy} onPress={() => void save()} />
         </>

@@ -641,6 +641,13 @@ export const en: Dictionary = {
     badLead: 'Enter a number of minutes from 0 to 10080 (a week).',
     badHorizon: 'Enter a number of days from 1 to 365.',
     badDeadline: 'Enter a number of minutes from 0 to 10080 (a week).',
+    questions: 'Questions when booking',
+    questionsHint:
+      'The last, optional booking step — the client answers with one tap or skips it. The specialist sees the answers on the visit.',
+    askMood: 'How the client wants to spend the visit (chat, quiet, rest)',
+    askDrink: 'Something to drink',
+    drinksOffered: 'What do you have in the salon?',
+    askNote: 'A note for the specialist (up to 200 characters)',
     legalTexts:
       'To switch online booking on, the salon needs booking terms and a privacy policy — add them in the salon dashboard: Settings → Terms and privacy.',
     changedMeanwhile:

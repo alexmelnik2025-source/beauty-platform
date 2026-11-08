@@ -8,6 +8,7 @@ import { serveApp } from './mobile-app';
  * without booking terms; when someone else saved the salon meanwhile, the app shows the current
  * data and the second try goes through. Screenshots 131, 131a. Task 319: "Zasady rezerwacji" —
  * the lead time, how far ahead, the change deadline and the step of the times (screenshot 319).
+ * Task 320: "Pytania przy rezerwacji" — mood off, a drink with what the salon has (screenshot 320).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -154,6 +155,35 @@ test('the owner changes the salon from the business app (task 131)', async ({
       clientCancelDeadlineMinutes: 240,
       slotStepMinutes: 30,
     });
+
+    // ── Task 320: questions on the last booking step ────────────────────────
+    await expect(app.getByText('Pytania przy rezerwacji')).toBeVisible();
+    await app.getByLabel('Jak klient chce spędzić wizytę (rozmowa, cisza, odpoczynek)').click();
+    await app.getByLabel('Coś do picia').click();
+    await app.getByRole('button', { name: '☕ Kawa' }).click();
+    await app.getByRole('button', { name: '🍵 Herbata' }).click();
+    await expect(app.getByRole('button', { name: '☕ Kawa' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await app.getByText('Pytania przy rezerwacji').scrollIntoViewIfNeeded();
+    await shot(app, '320-business-app-booking-questions');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano.')).toBeVisible();
+    const questions = await json<{
+      askMood: boolean;
+      askDrink: boolean;
+      drinks: string[];
+      askNote: boolean;
+    }>(await request.get(path, { headers: owner }));
+    expect(questions).toEqual(
+      expect.objectContaining({
+        askMood: false,
+        askDrink: true,
+        drinks: ['coffee', 'tea'],
+        askNote: true,
+      }),
+    );
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');

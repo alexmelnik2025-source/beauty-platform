@@ -1,12 +1,13 @@
 import { ApiError, type Location } from './api';
 import { dialForTimeZone, normalizePhone } from './phone';
+import { OFFERED_DRINKS, type OfferedDrink } from './wishes';
 
 /**
  * "Salon" in the business app (task 131): the owner or a manager changes the salon's name,
  * address, phone, description and switches online booking on or off; task 319 adds the booking
  * rules (how early and how far ahead clients book, until when they change a visit, the step of
- * the times offered). No React Native here —
- * tested in Vitest (test/salon.test.ts). The server checks the right again (owner, or the
+ * the times offered), task 320 the questions on the last booking step (mood, drink, a note).
+ * No React Native here — tested in Vitest (test/salon.test.ts). The server checks the right again (owner, or the
  * salon's manager) and refuses online booking without terms and a privacy policy.
  */
 
@@ -23,6 +24,11 @@ export interface SalonForm {
   bookingHorizonDays: string;
   clientCancelDeadlineMinutes: string;
   slotStepMinutes: number;
+  /** Task 320, "Pytania przy rezerwacji" — the questions on the last booking step. */
+  askMood: boolean;
+  askDrink: boolean;
+  drinks: OfferedDrink[];
+  askNote: boolean;
 }
 
 /** Task 319: the steps the booking page offers times in — the server allows only these. */
@@ -44,6 +50,10 @@ export function salonForm(location: Location): SalonForm {
     bookingHorizonDays: String(location.bookingHorizonDays),
     clientCancelDeadlineMinutes: String(location.clientCancelDeadlineMinutes),
     slotStepMinutes: location.slotStepMinutes,
+    askMood: location.askMood,
+    askDrink: location.askDrink,
+    drinks: [...location.drinks],
+    askNote: location.askNote,
   };
 }
 
@@ -62,6 +72,17 @@ export interface SalonChanges {
   bookingHorizonDays?: number;
   clientCancelDeadlineMinutes?: number;
   slotStepMinutes?: number;
+  askMood?: boolean;
+  askDrink?: boolean;
+  drinks?: OfferedDrink[];
+  askNote?: boolean;
+}
+
+/** Task 320: a drink ticked or unticked; the list keeps the order the salon sees it in. */
+export function toggleDrink(drinks: OfferedDrink[], drink: OfferedDrink): OfferedDrink[] {
+  return drinks.includes(drink)
+    ? drinks.filter((d) => d !== drink)
+    : OFFERED_DRINKS.filter((d) => d === drink || drinks.includes(d));
 }
 
 /** A whole number typed by the person within [min, max], or null. */
@@ -119,6 +140,12 @@ export function salonChanges(
   if (form.slotStepMinutes !== location.slotStepMinutes) {
     changes.slotStepMinutes = form.slotStepMinutes;
   }
+  if (form.askMood !== location.askMood) changes.askMood = form.askMood;
+  if (form.askDrink !== location.askDrink) changes.askDrink = form.askDrink;
+  if (form.askNote !== location.askNote) changes.askNote = form.askNote;
+  const same = (a: readonly string[], b: readonly string[]) =>
+    a.length === b.length && a.every((d) => b.includes(d));
+  if (!same(form.drinks, location.drinks)) changes.drinks = form.drinks;
   return { changes };
 }
 
