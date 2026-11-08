@@ -1,4 +1,4 @@
-import type { SalonReviews } from './api';
+import type { ReviewSettings, SalonReviews } from './api';
 import type { DayLocale } from './day';
 import { fill, type Dictionary } from './i18n';
 
@@ -60,4 +60,19 @@ export function reviewLine(
     fill(t.reviews.service, { service: review.serviceName, staff: review.staffName }),
     day,
   ].join(' · ');
+}
+
+/** Task 341: when the client is asked, hours after the visit ends (as in the cabinet). */
+export const REVIEW_HOURS = [1, 2, 3, 6, 12, 24, 48, 72] as const;
+
+/** The choices, with a value saved elsewhere (any 1–72) kept in its place. */
+export function reviewHoursChoices(current: number): number[] {
+  const list: number[] = [...REVIEW_HOURS];
+  if (!list.includes(current)) list.push(current);
+  return list.sort((a, b) => a - b);
+}
+
+/** Whether "Zapisz" would change anything. */
+export function reviewSettingsChanged(saved: ReviewSettings, form: ReviewSettings): boolean {
+  return saved.enabled !== form.enabled || saved.requestHours !== form.requestHours;
 }

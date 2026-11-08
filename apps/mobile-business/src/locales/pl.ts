@@ -1098,6 +1098,17 @@ export const pl = {
     replyHint: 'Odpowiedź zobaczą wszyscy na stronie rezerwacji i klient przy swojej opinii.',
     replySave: 'Opublikuj odpowiedź',
     replyCancel: 'Anuluj',
+    settings: 'Ustawienia opinii',
+    settingsHint:
+      'Klient ocenia specjalistę (1–5 gwiazdek) i może dodać kilka słów — tylko po wizycie, która się odbyła. Opinie widać na stronie rezerwacji, bez imion klientów. Prośbę wysyłamy e-mailem klientom, którzy zgodzili się na wiadomości.',
+    collect: 'Zbieraj opinie',
+    dontCollect: 'Nie zbieraj',
+    askAfter: 'Poproś o opinię po',
+    hours: '{n} godz.',
+    hoursLabel: 'Poproś po {n} godz. od końca wizyty',
+    save: 'Zapisz ustawienia',
+    saved: 'Ustawienia opinii zapisane.',
+    conflict: 'Ktoś właśnie zmienił ustawienia — pokazujemy aktualne.',
   },
   history: {
     open: 'Dziennik zmian',
