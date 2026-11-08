@@ -7,11 +7,13 @@ import { fill, type Dictionary } from '../i18n';
 import { weeklyBody, weekInputs } from '../hours';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+import { StaffProfileSection } from './StaffProfileSection';
 
 /**
  * A specialist's schedule: weekly hours, special days and time off — the signed-in person's own,
  * or (task 95) anyone's from "Grafik zespołu". The owner or a manager changes the weekly hours
- * and time off here; a specialist only reads them (the server checks).
+ * and time off here; a specialist only reads them (the server checks). Task 326: from "Grafik
+ * zespołu" the page starts with the specialist's profile (StaffProfileSection).
  */
 export function ScheduleScreen(props: {
   api: BusinessApi;
@@ -21,6 +23,10 @@ export function ScheduleScreen(props: {
   staffId: string;
   /** Task 95: someone else's schedule, opened from "Grafik zespołu" (owner or manager). */
   staffName?: string;
+  /** Task 326: the specialist's name was changed in their profile. */
+  onRenamed?: (name: string) => void;
+  /** Task 328: shown at the top when the page opens (a specialist was just added). */
+  notice?: string;
   today: string;
   onBack: () => void;
 }) {
@@ -30,7 +36,7 @@ export function ScheduleScreen(props: {
   const [hours, setHours] = useState<WorkingHours | null>(null);
   const [offs, setOffs] = useState<TimeOffList>([]);
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+  const [info, setInfo] = useState(props.notice ?? '');
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<{ from: string; to: string; note: string } | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -127,6 +133,15 @@ export function ScheduleScreen(props: {
       </View>
       <Heading>{props.staffName ? fill(s.staffTitle, { name: props.staffName }) : s.title}</Heading>
       <Text style={styles.muted}>{salon.locationName}</Text>
+      {props.staffName && canEdit ? (
+        <StaffProfileSection
+          api={api}
+          t={t}
+          salon={salon}
+          staffId={staffId}
+          onRenamed={(name) => props.onRenamed?.(name)}
+        />
+      ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
 

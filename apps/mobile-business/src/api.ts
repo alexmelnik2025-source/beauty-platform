@@ -14,6 +14,7 @@ import type {
 } from '@beauty/api-client';
 import type { MessagesChanges } from './messages';
 import type { SalonChanges } from './salon';
+import type { StaffChange } from './staffProfile';
 import { paymentBody, type PaymentMethod } from './payment';
 
 /**
@@ -359,6 +360,62 @@ export class BusinessApi {
     return this.authed<StaffList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff`,
+    );
+  }
+
+  /**
+   * Task 326: owner or manager — a specialist's profile (name, description, specialties, taking
+   * clients). Send the version read; VERSION_CONFLICT when someone saved it meanwhile.
+   */
+  updateStaff(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    version: number,
+    change: StaffChange,
+  ): Promise<StaffList[number]> {
+    return this.authed<StaffList[number]>('PATCH', staffPath(orgId, locationId, staffId), {
+      ...change,
+      version,
+    });
+  }
+
+  /** Task 327: owner or manager — which services the specialist performs (replaces the list). */
+  setStaffServices(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    serviceIds: string[],
+  ): Promise<StaffList[number]> {
+    return this.authed<StaffList[number]>(
+      'PUT',
+      `${staffPath(orgId, locationId, staffId)}/services`,
+      { serviceIds },
+    );
+  }
+
+  /**
+   * Task 328: owner or manager — a new specialist profile (no account needed) with the services
+   * they perform. Invited to the app later in "Zespół".
+   */
+  createStaff(
+    orgId: string,
+    locationId: string,
+    body: { displayName: string; sortOrder: number; serviceIds: string[] },
+  ): Promise<StaffList[number]> {
+    return this.authed<StaffList[number]>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff`,
+      body,
+    );
+  }
+
+  /** Task 329: owner or manager — every specialist once, first to last (as clients see them). */
+  reorderStaff(orgId: string, locationId: string, staffIds: string[]): Promise<StaffList> {
+    return this.authed<StaffList>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff/order`,
+      { staffIds },
     );
   }
 
