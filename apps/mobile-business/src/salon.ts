@@ -62,7 +62,15 @@ export function salonForm(location: Location): SalonForm {
 }
 
 export type SalonProblem =
-  'name' | 'address' | 'city' | 'postalCode' | 'phone' | 'lead' | 'horizon' | 'deadline';
+  | 'name'
+  | 'address'
+  | 'city'
+  | 'postalCode'
+  | 'phone'
+  | 'lead'
+  | 'horizon'
+  | 'deadline'
+  | 'coordinates';
 
 export interface SalonChanges {
   name?: string;
