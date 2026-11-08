@@ -2477,3 +2477,10 @@ tylko raz, Urodziny) его сохраняют — пока они включе�
 (менеджер — по своим салонам), у мастера — `null`. В бизнес-приложении — строка «Napiwki: …» в карточке клиента.
 API: `summary.tips` (`[{ currency, amountGrosze, visits }]`) в `GET …/customers/:id`. Тест
 `apps/api/test/customer-summary.spec.ts`; e2e `clients-sort.spec.ts` (скриншоты 285, 286).
+
+## «Napiwki łącznie» в CSV клиентов (задача 289)
+
+В «Pobierz CSV» списка клиентов (кабинет и бизнес-приложение, только владелец) — колонка «Napiwki łącznie» после
+«Zapłacono łącznie»: чаевые клиента по тому же правилу, что в карточке (задача 287). Одна валюта в сети — просто число
+(«12,50»), несколько — с валютой («20,00 CZK + 12,50 PLN»). Работает и для CSV отфильтрованного списка. Тест
+`apps/api/test/customers-export.spec.ts`.
