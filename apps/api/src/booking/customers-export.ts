@@ -50,6 +50,7 @@ const HEADERS = {
       'Nieobecności (12 mies.)',
       'Następna wizyta',
       'Zapłacono łącznie',
+      'Napiwki łącznie',
       'Notatka',
     ],
     yes: 'tak',
@@ -70,6 +71,7 @@ const HEADERS = {
       'Неявки (12 міс.)',
       'Наступний візит',
       'Сплачено разом',
+      'Чайові разом',
       'Нотатка',
     ],
     yes: 'так',
@@ -90,6 +92,7 @@ const HEADERS = {
       'Неявки (12 мес.)',
       'Следующий визит',
       'Оплачено всего',
+      'Чаевые всего',
       'Заметка',
     ],
     yes: 'да',
@@ -110,6 +113,7 @@ const HEADERS = {
       'No-shows (12 months)',
       'Next visit',
       'Paid in total',
+      'Tips in total',
       'Note',
     ],
     yes: 'yes',
@@ -150,7 +154,7 @@ export class CustomersExportService {
     );
     const filtered = Object.keys(filters).length > 0;
     const ids = filtered ? await this.customersService.matchingIds(m, query) : null;
-    const [found, consents, visits, location, missed, upcoming, paid, locations] =
+    const [found, consents, visits, location, missed, upcoming, paid, locations, tipped] =
       await Promise.all([
         this.prisma.customer.findMany({
           where: { organizationId, ...(ids ? { id: { in: ids } } : {}) },
@@ -210,6 +214,17 @@ export class CustomersExportService {
           where: { organizationId },
           select: { id: true, currency: true },
         }),
+        // Task 289: the tips the client left — the same rule as "Napiwki łącznie" in the card.
+        this.prisma.appointment.groupBy({
+          by: ['customerId', 'locationId'],
+          where: {
+            location: { organizationId },
+            customerId: { not: null },
+            status: 'completed',
+            tipGrosze: { gt: 0 },
+          },
+          _sum: { tipGrosze: true },
+        }),
       ]);
     // Task 275: the filtered list keeps its own order (e.g. the most recently due first).
     const position = new Map((ids ?? []).map((id, index) => [id, index]));
@@ -223,19 +238,38 @@ export class CustomersExportService {
     const next = new Map(upcoming.map((v) => [v.customerId, v._min.startAt]));
     const currencyOf = new Map(locations.map((l) => [l.id, l.currency]));
     const oneCurrency = new Set(locations.map((l) => l.currency)).size <= 1;
-    const paidBy = new Map<string, Map<string, number>>();
-    for (const row of paid) {
-      if (!row.customerId) continue;
-      const currency = currencyOf.get(row.locationId) ?? 'PLN';
-      const sums = paidBy.get(row.customerId) ?? new Map<string, number>();
-      const sum = (row._sum.priceGrosze ?? 0) - (row._sum.discountGrosze ?? 0);
-      sums.set(currency, (sums.get(currency) ?? 0) + sum);
-      paidBy.set(row.customerId, sums);
-    }
+    // Per client and currency (task 268: paid visits; task 289: tips).
+    const byCurrency = (
+      rows: { customerId: string | null; locationId: string; grosze: number }[],
+    ): Map<string, Map<string, number>> => {
+      const result = new Map<string, Map<string, number>>();
+      for (const row of rows) {
+        if (!row.customerId) continue;
+        const currency = currencyOf.get(row.locationId) ?? 'PLN';
+        const sums = result.get(row.customerId) ?? new Map<string, number>();
+        sums.set(currency, (sums.get(currency) ?? 0) + row.grosze);
+        result.set(row.customerId, sums);
+      }
+      return result;
+    };
+    const paidBy = byCurrency(
+      paid.map((row) => ({
+        customerId: row.customerId,
+        locationId: row.locationId,
+        grosze: (row._sum.priceGrosze ?? 0) - (row._sum.discountGrosze ?? 0),
+      })),
+    );
+    const tipsBy = byCurrency(
+      tipped.map((row) => ({
+        customerId: row.customerId,
+        locationId: row.locationId,
+        grosze: row._sum.tipGrosze ?? 0,
+      })),
+    );
     // One currency in the network: a plain number the spreadsheet can add up ("80,00");
     // several: each with its currency ("80,00 PLN + 20,00 EUR"), the biggest first.
-    const paidCell = (customerId: string): string => {
-      const sums = [...(paidBy.get(customerId) ?? [])].sort((a, b) => b[1] - a[1]);
+    const moneyCell = (by: Map<string, Map<string, number>>, customerId: string): string => {
+      const sums = [...(by.get(customerId) ?? [])].sort((a, b) => b[1] - a[1]);
       if (sums.length === 0) return oneCurrency ? amount(0, query.lang) : '';
       if (oneCurrency) return amount(sums[0]![1], query.lang);
       return sums.map(([currency, sum]) => `${amount(sum, query.lang)} ${currency}`).join(' + ');
@@ -262,7 +296,8 @@ export class CustomersExportService {
           c.birthday ? `${c.birthday.slice(3)}.${c.birthday.slice(0, 2)}` : '',
           String(noShows.get(c.id) ?? 0),
           day(next.get(c.id)),
-          paidCell(c.id),
+          moneyCell(paidBy, c.id),
+          moneyCell(tipsBy, c.id),
           c.note ?? '',
         ]
           .map(csvCell)

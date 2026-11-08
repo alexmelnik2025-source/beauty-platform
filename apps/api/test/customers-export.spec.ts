@@ -145,7 +145,7 @@ describe('clients CSV export', () => {
     // Task 268: the completed visit was paid (80 zł, 5 zł off); a cancelled paid one never counts.
     await ctx.prisma.appointment.update({
       where: { id: booked.body.id },
-      data: { paidAt: past, discountGrosze: 500 },
+      data: { paidAt: past, discountGrosze: 500, tipGrosze: 1250 },
     });
     // Task 267: Żaneta is booked again in two days.
     await ctx
@@ -174,7 +174,8 @@ describe('clients CSV export', () => {
       .expect(201);
     await ctx.prisma.appointment.update({
       where: { id: later.body.id },
-      data: { status: 'cancelled', paidAt: new Date() },
+      // Task 289: a tip on a cancelled visit never counts either.
+      data: { status: 'cancelled', paidAt: new Date(), tipGrosze: 9900 },
     });
 
     await ctx.prisma.consentRecord.create({
@@ -227,6 +228,7 @@ describe('clients CSV export', () => {
         'Nieobecności (12 mies.)',
         'Następna wizyta',
         'Zapłacono łącznie',
+        'Napiwki łącznie',
         'Notatka',
       ],
       [
@@ -242,6 +244,7 @@ describe('clients CSV export', () => {
         '05.03',
         '0',
         '',
+        '0,00',
         '0,00',
         "'=1+1",
       ],
@@ -259,6 +262,7 @@ describe('clients CSV export', () => {
         '2',
         addDays(today, 2),
         '75,00',
+        '12,50',
         '',
       ],
     ]);
@@ -266,8 +270,13 @@ describe('clients CSV export', () => {
     const english = await ctx.http().get(`${exportUrl()}?lang=en`).set(owner.auth).expect(200);
     expect(rows(english.text)[0]![0]).toBe('Name');
     expect(rows(english.text)[2]![5]).toBe('yes');
-    expect(rows(english.text)[0]!.slice(11, 13)).toEqual(['Next visit', 'Paid in total']);
+    expect(rows(english.text)[0]!.slice(11, 14)).toEqual([
+      'Next visit',
+      'Paid in total',
+      'Tips in total',
+    ]);
     expect(rows(english.text)[2]![12]).toBe('75.00');
+    expect(rows(english.text)[2]![13]).toBe('12.50');
     await ctx.http().get(`${exportUrl()}?lang=xx`).set(owner.auth).expect(400);
 
     const audit = await ctx.prisma.auditLog.findMany({
@@ -330,12 +339,15 @@ describe('clients CSV export', () => {
     };
     await visit(home.id, 8000, 3);
     await visit(praha.id, 50000, 5);
-    await visit(praha.id, 25050, 7);
+    const tipped = await visit(praha.id, 25050, 7);
+    // Task 289: a 20 crown tip in Prague.
+    await ctx.prisma.appointment.update({ where: { id: tipped.id }, data: { tipGrosze: 2000 } });
 
     const res = await ctx.http().get(exportUrl()).set(owner.auth).expect(200);
     const [header, petr] = rows(res.text);
     expect(petr![header!.indexOf('Zapłacono łącznie')]).toBe('750,50 CZK + 80,00 PLN');
     expect(petr![header!.indexOf('Następna wizyta')]).toBe('');
+    expect(petr![header!.indexOf('Napiwki łącznie')]).toBe('20,00 CZK');
   });
 
   it('only the clients the filtered list shows, in its order (task 275)', async () => {
