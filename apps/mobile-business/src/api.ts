@@ -58,6 +58,10 @@ export interface NewLoyaltyReward {
   discountPercent: number | null;
   freeServiceId: string | null;
   cost: number;
+  /** Task 348: days the coupon is valid after it was taken; null = no limit (the default). */
+  couponValidityDays?: number | null;
+  /** Task 348: the coupon works only for these services; empty = any service (the default). */
+  serviceIds?: string[];
 }
 export type GuardedClient = components['schemas']['GuardedClient'];
 /** Task 207: the salon's cancellation protection and the clients it marks now. */
@@ -1112,6 +1116,22 @@ export class BusinessApi {
 
   addLoyaltyReward(orgId: string, reward: NewLoyaltyReward): Promise<LoyaltyReward> {
     return this.authed<LoyaltyReward>('POST', `${loyaltyPath(orgId)}/rewards`, reward);
+  }
+
+  /**
+   * Task 348, "Zmień nagrodę": the whole reward with its place in the list and the version read;
+   * 409 VERSION_CONFLICT when someone changed it meanwhile.
+   */
+  updateLoyaltyReward(
+    orgId: string,
+    rewardId: string,
+    reward: Required<NewLoyaltyReward> & { sortOrder: number; version: number },
+  ): Promise<LoyaltyReward> {
+    return this.authed<LoyaltyReward>(
+      'PUT',
+      `${loyaltyPath(orgId)}/rewards/${enc(rewardId)}`,
+      reward,
+    );
   }
 
   /** "Usuń z katalogu": coupons clients already took stay valid. */

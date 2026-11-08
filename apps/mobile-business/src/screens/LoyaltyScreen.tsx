@@ -20,8 +20,6 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
   costText,
-  EMPTY_REWARD,
-  newReward,
   operationLine,
   operationTitle,
   programRule,
@@ -30,10 +28,18 @@ import {
   rulesForm,
   rulesToSave,
   sortedRewards,
-  type RewardForm,
   type RulesForm,
 } from '../loyalty';
 import { formatPrice } from '../day';
+import {
+  EMPTY_REWARD_FULL,
+  rewardForm,
+  rewardLimits,
+  rewardToSave,
+  rewardUpdate,
+  toggledService,
+  type RewardFormFull,
+} from '../rewardEdit';
 import { BonusRulesSection } from './BonusRulesSection';
 import { EarnRulesSection } from './EarnRulesSection';
 import { TiersSection } from './TiersSection';
@@ -65,7 +71,9 @@ export function LoyaltyScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [askOff, setAskOff] = useState(false);
-  const [form, setForm] = useState<RewardForm | null>(null);
+  const [form, setForm] = useState<RewardFormFull | null>(null);
+  /** Task 348: the reward being changed (null = the form adds a new one). */
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [rules, setRules] = useState<RulesForm | null>(null);
   const [busy, setBusy] = useState(false);
@@ -140,16 +148,46 @@ export function LoyaltyScreen(props: {
     }, l.rulesSaved);
   }
 
-  function add() {
-    if (!form) return;
-    const checked = newReward(form);
-    if (!checked.ok) return setError(l.problem[checked.problem]);
-    void run(async () => {
-      await api.addLoyaltyReward(salon.orgId, checked.reward);
-      setForm(null);
-      await load();
-    }, l.added);
+  function closeForm() {
+    setForm(null);
+    setEditingId(null);
   }
+
+  /** Adds a reward, or with "Zmień" saves the changed one (task 348). */
+  function saveReward() {
+    if (!form) return;
+    const checked = rewardToSave(form);
+    if (!checked.ok) return setError(l.problem[checked.problem]);
+    const saved = editingId ? rewards.find((r) => r.id === editingId) : undefined;
+    setBusy(true);
+    void (async () => {
+      try {
+        if (saved) {
+          await api.updateLoyaltyReward(salon.orgId, saved.id, rewardUpdate(saved, checked.reward));
+        } else {
+          await api.addLoyaltyReward(salon.orgId, checked.reward);
+        }
+        closeForm();
+        setInfo(saved ? l.updated : l.added);
+        setError('');
+        await load();
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 409) {
+          setInfo('');
+          setError(l.rewardConflict);
+          closeForm();
+          await load();
+        } else {
+          setError(errorText(e, t));
+        }
+      } finally {
+        setBusy(false);
+      }
+    })();
+  }
+
+  /** "kupon ważny 30 dni · tylko: Broda" or null. */
+  const limitsOf = (reward: LoyaltyReward) => rewardLimits(reward, serviceNames, l, fill);
 
   function remove(id: string) {
     setRemoveId(null);
@@ -160,6 +198,99 @@ export function LoyaltyScreen(props: {
   }
 
   const mode = program?.mode ?? 'stamps';
+
+  const editor = form ? (
+    <Card>
+      <TextInput
+        accessibilityLabel={l.name}
+        placeholder={l.name}
+        placeholderTextColor={colors.placeholder}
+        value={form.name}
+        onChangeText={(name) => setForm({ ...form, name })}
+        style={styles.input}
+      />
+      <View style={styles.row}>
+        <Chip
+          label={l.kindDiscount}
+          on={form.kind === 'discount_percent'}
+          onPress={() => setForm({ ...form, kind: 'discount_percent' })}
+        />
+        <Chip
+          label={l.kindFree}
+          on={form.kind === 'free_service'}
+          onPress={() => setForm({ ...form, kind: 'free_service' })}
+        />
+      </View>
+      {form.kind === 'discount_percent' ? (
+        <TextInput
+          accessibilityLabel={l.percent}
+          placeholder={l.percent}
+          placeholderTextColor={colors.placeholder}
+          value={form.percent}
+          onChangeText={(percent) => setForm({ ...form, percent })}
+          keyboardType="number-pad"
+          style={styles.input}
+        />
+      ) : (
+        <>
+          <Text style={styles.label}>{l.service}</Text>
+          {services.length === 0 ? (
+            <Text style={styles.muted}>{l.noServices}</Text>
+          ) : (
+            <View style={styles.row}>
+              {services.map((s) => (
+                <Chip
+                  key={s.id}
+                  label={s.name}
+                  on={form.serviceId === s.id}
+                  onPress={() => setForm({ ...form, serviceId: s.id })}
+                />
+              ))}
+            </View>
+          )}
+        </>
+      )}
+      <TextInput
+        accessibilityLabel={mode === 'stamps' ? l.costStamps : l.costPoints}
+        placeholder={mode === 'stamps' ? l.costStamps : l.costPoints}
+        placeholderTextColor={colors.placeholder}
+        value={form.cost}
+        onChangeText={(cost) => setForm({ ...form, cost })}
+        keyboardType="number-pad"
+        style={styles.input}
+      />
+      <TextInput
+        accessibilityLabel={l.validityDays}
+        placeholder={l.validityDays}
+        placeholderTextColor={colors.placeholder}
+        value={form.validityDays}
+        onChangeText={(validityDays) => setForm({ ...form, validityDays })}
+        keyboardType="number-pad"
+        style={styles.input}
+      />
+      {services.length > 0 ? (
+        <>
+          <Text style={styles.label}>{l.onlyServices}</Text>
+          <View style={styles.row}>
+            {services.map((s) => (
+              <Chip
+                key={s.id}
+                label={s.name}
+                on={form.serviceIds.includes(s.id)}
+                onPress={() =>
+                  setForm({ ...form, serviceIds: toggledService(form.serviceIds, s.id) })
+                }
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
+      <View style={styles.row}>
+        <Button label={l.save} busy={busy} onPress={saveReward} />
+        <Button kind="secondary" label={l.cancel} onPress={closeForm} />
+      </View>
+    </Card>
+  ) : null;
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -330,77 +461,15 @@ export function LoyaltyScreen(props: {
             {l.rewards}
           </Text>
           <Text style={styles.muted}>{l.rewardsHint}</Text>
-          {form ? (
-            <Card>
-              <TextInput
-                accessibilityLabel={l.name}
-                placeholder={l.name}
-                placeholderTextColor={colors.placeholder}
-                value={form.name}
-                onChangeText={(name) => setForm({ ...form, name })}
-                style={styles.input}
-              />
-              <View style={styles.row}>
-                <Chip
-                  label={l.kindDiscount}
-                  on={form.kind === 'discount_percent'}
-                  onPress={() => setForm({ ...form, kind: 'discount_percent' })}
-                />
-                <Chip
-                  label={l.kindFree}
-                  on={form.kind === 'free_service'}
-                  onPress={() => setForm({ ...form, kind: 'free_service' })}
-                />
-              </View>
-              {form.kind === 'discount_percent' ? (
-                <TextInput
-                  accessibilityLabel={l.percent}
-                  placeholder={l.percent}
-                  placeholderTextColor={colors.placeholder}
-                  value={form.percent}
-                  onChangeText={(percent) => setForm({ ...form, percent })}
-                  keyboardType="number-pad"
-                  style={styles.input}
-                />
-              ) : (
-                <>
-                  <Text style={styles.label}>{l.service}</Text>
-                  {services.length === 0 ? (
-                    <Text style={styles.muted}>{l.noServices}</Text>
-                  ) : (
-                    <View style={styles.row}>
-                      {services.map((s) => (
-                        <Chip
-                          key={s.id}
-                          label={s.name}
-                          on={form.serviceId === s.id}
-                          onPress={() => setForm({ ...form, serviceId: s.id })}
-                        />
-                      ))}
-                    </View>
-                  )}
-                </>
-              )}
-              <TextInput
-                accessibilityLabel={mode === 'stamps' ? l.costStamps : l.costPoints}
-                placeholder={mode === 'stamps' ? l.costStamps : l.costPoints}
-                placeholderTextColor={colors.placeholder}
-                value={form.cost}
-                onChangeText={(cost) => setForm({ ...form, cost })}
-                keyboardType="number-pad"
-                style={styles.input}
-              />
-              <View style={styles.row}>
-                <Button label={l.save} busy={busy} onPress={add} />
-                <Button kind="secondary" label={l.cancel} onPress={() => setForm(null)} />
-              </View>
-            </Card>
+          {form && editingId === null ? (
+            editor
           ) : (
             <Button
               kind="secondary"
               label={l.add}
               onPress={() => {
-                setForm(EMPTY_REWARD);
+                setEditingId(null);
+                setForm(EMPTY_REWARD_FULL);
                 setInfo('');
                 setError('');
               }}
@@ -409,30 +478,49 @@ export function LoyaltyScreen(props: {
           {rewards.length === 0 ? (
             <Text style={styles.muted}>{l.noRewards}</Text>
           ) : (
-            rewards.map((reward) => (
-              <Card key={reward.id}>
-                <Text style={styles.name}>{reward.name}</Text>
-                <Text style={styles.text}>
-                  {`${rewardLabel(reward, serviceNames, t)} · ${costText(reward.cost, mode, t)}`}
-                </Text>
-                {removeId === reward.id ? (
-                  <View style={{ gap: 8 }}>
-                    <Text style={styles.text}>{l.removeAsk}</Text>
-                    <View style={styles.row}>
-                      <Button label={l.removeYes} busy={busy} onPress={() => remove(reward.id)} />
-                      <Button kind="secondary" label={l.no} onPress={() => setRemoveId(null)} />
+            rewards.map((reward) =>
+              editingId === reward.id && editor ? (
+                <View key={reward.id}>{editor}</View>
+              ) : (
+                <Card key={reward.id}>
+                  <Text style={styles.name}>{reward.name}</Text>
+                  <Text style={styles.text}>
+                    {`${rewardLabel(reward, serviceNames, t)} · ${costText(reward.cost, mode, t)}`}
+                  </Text>
+                  {limitsOf(reward) ? <Text style={styles.muted}>{limitsOf(reward)}</Text> : null}
+                  {removeId === reward.id ? (
+                    <View style={{ gap: 8 }}>
+                      <Text style={styles.text}>{l.removeAsk}</Text>
+                      <View style={styles.row}>
+                        <Button label={l.removeYes} busy={busy} onPress={() => remove(reward.id)} />
+                        <Button kind="secondary" label={l.no} onPress={() => setRemoveId(null)} />
+                      </View>
                     </View>
-                  </View>
-                ) : (
-                  <Button
-                    kind="link"
-                    label={l.remove}
-                    a11yLabel={fill(l.removeOne, { name: reward.name })}
-                    onPress={() => setRemoveId(reward.id)}
-                  />
-                )}
-              </Card>
-            ))
+                  ) : (
+                    <View style={styles.row}>
+                      <Button
+                        kind="link"
+                        label={l.edit}
+                        a11yLabel={fill(l.editOne, { name: reward.name })}
+                        onPress={() => {
+                          setRemoveId(null);
+                          setEditingId(reward.id);
+                          setForm(rewardForm(reward));
+                          setInfo('');
+                          setError('');
+                        }}
+                      />
+                      <Button
+                        kind="link"
+                        label={l.remove}
+                        a11yLabel={fill(l.removeOne, { name: reward.name })}
+                        onPress={() => setRemoveId(reward.id)}
+                      />
+                    </View>
+                  )}
+                </Card>
+              ),
+            )
           )}
 
           <Text style={styles.section} role="heading">

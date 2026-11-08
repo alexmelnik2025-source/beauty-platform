@@ -1129,11 +1129,10 @@
 - [x] **347. Бизнес-приложение: «Pieczątki i punkty za usługi»** — готово 08.11.2026 (скриншот 347) — в «Program
       lojalnościowy»: своё число pieczątek/punktów для услуги (пусто — общее правило, 0 — ничего),
       `PUT …/locations/:id/loyalty/earn-rules`, как в кабинете. Ветка `agent/347-app-earn-rules`.
-- [ ] **348. Кабинет: «Zmień nagrodę»** — у nagrody в каталоге изменить название, стоимость, ważność kuponu (dni) и
-      usługi, на которые действует купон (`PUT …/loyalty/rewards/:id`; поля `couponValidityDays`, `serviceIds` уже
-      есть в API, но в кабинете их нельзя задать). Тест, e2e + скриншот 348.
-- [ ] **349. Бизнес-приложение: «Zmień nagrodę»** — то же в приложении, плюс ważność kuponu и usługi при добавлении
-      nagrody. Тест, e2e + скриншот 349.
+- [x] **348. Бизнес-приложение: «Zmień nagrodę»** — готово 08.11.2026 (скриншот 348) — у nagrody в каталоге «Zmień»:
+      название, вид, стоимость, ważność kuponu (dni) и usługi, на которые действует купон (`PUT …/loyalty/rewards/:id`
+      с версией); ważność и usługi — и при добавлении. В кабинете это уже было (RewardSheet). Ветка
+      `agent/348-app-reward-edit`.
 
 ## Вопросы владельцу
 

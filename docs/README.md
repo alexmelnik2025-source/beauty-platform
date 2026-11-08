@@ -2828,3 +2828,12 @@ pieczątki») и «Zmień pieczątki i punkty za usługi» — поле на к�
 стёрло. Ошибка называет услугу. API: `PUT …/locations/:id/loyalty/earn-rules` (заменяет список этого салона, ответ —
 вся программа). Логика `src/earnRules.ts`, e2e `app-loyalty-earn.spec.ts`, скриншот 347. Подсказка «zmienisz w
 panelu salonu» убрана — вся программа лояльности теперь есть и в приложении.
+
+## Бизнес-приложение: «Zmień nagrodę» (задача 348)
+
+В «Program lojalnościowy» у каждой nagrody рядом с «Usuń z katalogu» — «Zmień»: форма открывается на месте карточки
+с текущими значениями (название, вид, стоимость). В форме (и при добавлении) новые поля: «Kupon ważny (dni)» (пусто —
+без срока, 1–3650) и «Kupon tylko na usługi» (ничего не отмечено — любая). На карточке видно «kupon ważny 30 dni ·
+tylko: Strzyżenie». Сохраняется вся nagroda с её местом в списке и версией (`PUT …/loyalty/rewards/:id`); если кто-то
+изменил её одновременно — сообщение и свежий каталог. Логика `src/rewardEdit.ts`, e2e `app-reward-edit.spec.ts`,
+скриншот 348.
