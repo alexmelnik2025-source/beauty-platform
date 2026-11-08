@@ -58,6 +58,7 @@ export type CancellationGuard = components['schemas']['CancellationGuard'];
 export type GuardedClients = components['schemas']['GuardedClients'];
 export type TimeBlock = components['schemas']['TimeBlock'];
 export type TimeBlockList = components['schemas']['TimeBlockList'];
+export type TimeBlockSeries = components['schemas']['TimeBlockSeries'];
 export type NotificationList = components['schemas']['NotificationList'];
 /** Task 80b: the client's example photos for a visit (signed links, valid for an hour). */
 export type VisitPhotoList = components['schemas']['VisitPhotoList'];
@@ -664,6 +665,23 @@ export class BusinessApi {
     body: { staffId: string | null; start: string; end: string; reason?: string },
   ): Promise<TimeBlock> {
     return this.authed<TimeBlock>('POST', blocksPath(orgId, locationId), body);
+  }
+
+  /**
+   * Task 342: the same time every week for `weeks` weeks (2–26). Days with visits in the way are
+   * left free and listed in `skippedDates` (location-local dates).
+   */
+  addTimeBlockSeries(
+    orgId: string,
+    locationId: string,
+    body: { staffId: string | null; start: string; end: string; reason?: string; weeks: number },
+  ): Promise<TimeBlockSeries> {
+    return this.authed<TimeBlockSeries>('POST', `${blocksPath(orgId, locationId)}/series`, body);
+  }
+
+  /** Task 342: "Usuń całą serię" — every block made together as "every week". */
+  removeTimeBlockSeries(orgId: string, locationId: string, seriesId: string): Promise<void> {
+    return this.authed<void>('DELETE', `${blocksPath(orgId, locationId)}/series/${enc(seriesId)}`);
   }
 
   removeTimeBlock(orgId: string, locationId: string, id: string): Promise<void> {

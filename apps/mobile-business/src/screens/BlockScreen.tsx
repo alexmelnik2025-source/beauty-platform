@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type Locale } from '../api';
-import { localToIso, nextFullHour, shiftTime } from '../blocks';
+import { localToIso, nextFullHour, seriesDoneText, SERIES_WEEKS, shiftTime } from '../blocks';
 import { dayTitle } from '../day';
 import { errorText } from '../errors';
-import type { Dictionary } from '../i18n';
+import { fill, type Dictionary } from '../i18n';
 import { Button, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -13,6 +13,8 @@ const STEP = 15;
 /**
  * Block time on one day: whose time (a specialist, or the whole salon for an owner or manager),
  * from–to in 15-minute steps and a reason. The server refuses when visits are in the way.
+ * Task 342: "Powtarzaj co tydzień" — the same time for 2–26 weeks; days with visits stay free
+ * and are named after saving.
  */
 export function BlockScreen(props: {
   api: BusinessApi;
@@ -24,7 +26,8 @@ export function BlockScreen(props: {
   timeZone: string;
   targets: { staffId: string | null; name: string | null }[];
   onBack: () => void;
-  onSaved: () => void;
+  /** What to tell the person on the day screen. */
+  onSaved: (message: string) => void;
 }) {
   const { api, t, salon, date, onBack } = props;
   const b = t.blocks;
@@ -35,6 +38,8 @@ export function BlockScreen(props: {
   const [from, setFrom] = useState(startAt);
   const [to, setTo] = useState(shiftTime(startAt, 60));
   const [reason, setReason] = useState('');
+  const [weekly, setWeekly] = useState(false);
+  const [weeks, setWeeks] = useState<number>(SERIES_WEEKS.start);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -55,13 +60,22 @@ export function BlockScreen(props: {
     setError('');
     try {
       const text = reason.trim();
-      await api.addTimeBlock(salon.orgId, salon.locationId, {
+      const body = {
         staffId,
         start: localToIso(date, from, props.timeZone),
         end: localToIso(date, to, props.timeZone),
         ...(text ? { reason: text } : {}),
-      });
-      props.onSaved();
+      };
+      if (weekly) {
+        const made = await api.addTimeBlockSeries(salon.orgId, salon.locationId, {
+          ...body,
+          weeks,
+        });
+        props.onSaved(seriesDoneText(made, t));
+      } else {
+        await api.addTimeBlock(salon.orgId, salon.locationId, body);
+        props.onSaved(b.added);
+      }
     } catch (e) {
       setError(
         e instanceof ApiError && e.code === 'APPOINTMENTS_IN_THE_WAY'
@@ -130,6 +144,42 @@ export function BlockScreen(props: {
 
       {stepper(b.from, from, setFrom, '00:00', '23:45')}
       {stepper(b.to, to, setTo, '00:15', '24:00')}
+
+      <View style={styles.row}>
+        <Button
+          kind={weekly ? 'secondary' : 'primary'}
+          label={b.once}
+          onPress={() => setWeekly(false)}
+        />
+        <Button
+          kind={weekly ? 'primary' : 'secondary'}
+          label={b.repeat}
+          onPress={() => setWeekly(true)}
+        />
+      </View>
+      {weekly ? (
+        <View style={styles.stepper}>
+          <Text style={styles.label}>{b.weeks}</Text>
+          <View style={styles.row}>
+            <Button
+              kind="secondary"
+              label="‹"
+              a11yLabel={b.fewerWeeks}
+              disabled={weeks <= SERIES_WEEKS.min}
+              onPress={() => setWeeks(weeks - 1)}
+            />
+            <Text style={styles.time}>{fill(b.weeksCount, { count: String(weeks) })}</Text>
+            <Button
+              kind="secondary"
+              label="›"
+              a11yLabel={b.moreWeeks}
+              disabled={weeks >= SERIES_WEEKS.max}
+              onPress={() => setWeeks(weeks + 1)}
+            />
+          </View>
+          <Text style={styles.muted}>{b.repeatHint}</Text>
+        </View>
+      ) : null}
 
       <TextInput
         accessibilityLabel={b.reason}

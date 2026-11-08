@@ -333,9 +333,9 @@ export function DayScreen(props: {
         timeZone={props.timeZone}
         targets={targets}
         onBack={() => setBlockOpen(false)}
-        onSaved={() => {
+        onSaved={(message) => {
           setBlockOpen(false);
-          setInfo(t.blocks.added);
+          setInfo(message);
           void load();
         }}
       />
@@ -493,11 +493,12 @@ export function DayScreen(props: {
   const dayBlocks =
     blocks && blocks.date === date ? blocksOfDay(blocks.list, staffList, date, props.timeZone) : [];
 
-  async function unblock(id: string) {
+  async function unblock(id: string, seriesId?: string) {
     setRemoveId(null);
     try {
-      await api.removeTimeBlock(salon.orgId, salon.locationId, id);
-      setInfo(t.blocks.removed);
+      if (seriesId) await api.removeTimeBlockSeries(salon.orgId, salon.locationId, seriesId);
+      else await api.removeTimeBlock(salon.orgId, salon.locationId, id);
+      setInfo(seriesId ? t.blocks.seriesRemoved : t.blocks.removed);
       await load();
     } catch (e) {
       setError(errorText(e, t));
@@ -642,11 +643,25 @@ export function DayScreen(props: {
                 {block.start}–{block.end} · {block.staff ?? t.blocks.wholeSalon}
               </Text>
               {block.reason ? <Text style={styles.muted}>{block.reason}</Text> : null}
+              {block.seriesId ? <Text style={styles.muted}>{t.blocks.weekly}</Text> : null}
               {canRemoveBlock(block, targets) ? (
                 removeId === block.id ? (
                   <View style={styles.row}>
                     <Text style={styles.muted}>{t.blocks.removeAsk}</Text>
                     <Button label={t.blocks.yes} onPress={() => void unblock(block.id)} />
+                    <Button
+                      kind="secondary"
+                      label={t.blocks.no}
+                      onPress={() => setRemoveId(null)}
+                    />
+                  </View>
+                ) : block.seriesId && removeId === `series:${block.id}` ? (
+                  <View style={styles.row}>
+                    <Text style={styles.muted}>{t.blocks.removeSeriesAsk}</Text>
+                    <Button
+                      label={t.blocks.removeSeriesYes}
+                      onPress={() => void unblock(block.id, block.seriesId ?? undefined)}
+                    />
                     <Button
                       kind="secondary"
                       label={t.blocks.no}
@@ -661,6 +676,14 @@ export function DayScreen(props: {
                       a11yLabel={`${t.blocks.remove} ${block.start}–${block.end}`}
                       onPress={() => setRemoveId(block.id)}
                     />
+                    {block.seriesId ? (
+                      <Button
+                        kind="link"
+                        label={t.blocks.removeSeries}
+                        a11yLabel={`${t.blocks.removeSeries} ${block.start}–${block.end}`}
+                        onPress={() => setRemoveId(`series:${block.id}`)}
+                      />
+                    ) : null}
                   </View>
                 )
               ) : null}
