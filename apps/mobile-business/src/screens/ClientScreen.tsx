@@ -19,7 +19,6 @@ import {
 } from '../api';
 import {
   birthdayText,
-  bonusSummary,
   canEditNotes,
   completedCount,
   parseBirthday,
@@ -39,6 +38,7 @@ import type { ClientProblem } from '../newVisit';
 import { dialForTimeZone } from '../phone';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { ClientBonusSection } from './ClientBonusSection';
 import { ClientContactsFields } from './ClientContactsFields';
 import { csvTools } from './csvTools';
 import { eraseErrorText, shareExport } from '../clientPrivacy';
@@ -300,7 +300,6 @@ export function ClientScreen(props: {
   }
 
   const { upcoming, past } = splitVisits(client.visits, salon.locationId);
-  const bonus = account ? bonusSummary(account) : null;
   const notesVisible = client.note !== null || client.tags !== null;
   const visitRow = (v: ClientVisit) => (
     <View key={v.id} style={styles.visit}>
@@ -626,35 +625,17 @@ export function ClientScreen(props: {
         )}
       </Card>
 
-      {bonus ? (
-        <Card>
-          <Text style={styles.label}>{c.bonuses}</Text>
-          <Text style={styles.value}>
-            {fill(bonus.mode === 'stamps' ? c.stamps : c.points, { count: String(bonus.balance) })}
-          </Text>
-          {bonus.tier ? (
-            <Text style={styles.value}>{fill(c.tier, { tier: bonus.tier })}</Text>
-          ) : null}
-          {bonus.coupons.length > 0 ? (
-            <>
-              <Text style={styles.label}>{c.coupons}</Text>
-              {bonus.coupons.map((coupon) => (
-                <Text key={coupon.id} style={styles.value}>
-                  {coupon.name} · {coupon.code}
-                  {coupon.expiresAt ? (
-                    <Text style={styles.muted}>
-                      {' '}
-                      ·{' '}
-                      {fill(c.until, {
-                        date: dateIn(coupon.expiresAt, props.timeZone, props.locale),
-                      })}
-                    </Text>
-                  ) : null}
-                </Text>
-              ))}
-            </>
-          ) : null}
-        </Card>
+      {account ? (
+        <ClientBonusSection
+          api={api}
+          t={t}
+          locale={props.locale}
+          salon={salon}
+          customerId={id}
+          timeZone={props.timeZone}
+          account={account}
+          onAccount={setAccount}
+        />
       ) : null}
 
       {guard && (guard.enabled || guard.history.length > 0) ? (

@@ -42,6 +42,7 @@ export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type LoyaltyProgram = components['schemas']['LoyaltyProgram'];
 export type LoyaltyReward = components['schemas']['LoyaltyReward'];
 export type LoyaltyTransaction = components['schemas']['LoyaltyTransaction'];
+export type LoyaltyCoupon = components['schemas']['LoyaltyCoupon'];
 /** What PUT …/loyalty/program takes: every setting plus the version read. */
 export type LoyaltyProgramSave = Omit<LoyaltyProgram, 'earnRules'>;
 /** A new reward as the server takes it: a discount in % or a free service, for stamps or points. */
@@ -920,6 +921,41 @@ export class BusinessApi {
     return this.authed<LoyaltyAccount>(
       'GET',
       `/v1/organizations/${enc(orgId)}/loyalty/accounts/${enc(customerId)}`,
+    );
+  }
+
+  /**
+   * Task 340, owner or manager only (the server checks): exchanges the client's stamps or points
+   * for a reward; returns the coupon. 409 LOYALTY_NOT_ENOUGH, 409 LOYALTY_DISABLED.
+   */
+  redeemLoyaltyReward(orgId: string, customerId: string, rewardId: string): Promise<LoyaltyCoupon> {
+    return this.authed<LoyaltyCoupon>(
+      'POST',
+      `${loyaltyPath(orgId)}/accounts/${enc(customerId)}/redemptions`,
+      { rewardId },
+    );
+  }
+
+  /** Task 340: a manual change (+ adds, − takes away) with a reason shown in the history. */
+  adjustLoyaltyBalance(
+    orgId: string,
+    customerId: string,
+    points: number,
+    reason: string,
+  ): Promise<LoyaltyAccount> {
+    return this.authed<LoyaltyAccount>(
+      'POST',
+      `${loyaltyPath(orgId)}/accounts/${enc(customerId)}/adjustments`,
+      { points, reason },
+    );
+  }
+
+  /** Task 340: an unused coupon is withdrawn, its stamps or points go back. 409 COUPON_NOT_ACTIVE. */
+  cancelLoyaltyCoupon(orgId: string, couponId: string, version: number): Promise<LoyaltyCoupon> {
+    return this.authed<LoyaltyCoupon>(
+      'POST',
+      `${loyaltyPath(orgId)}/coupons/${enc(couponId)}/cancel`,
+      { version },
     );
   }
 

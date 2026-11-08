@@ -2761,3 +2761,14 @@ wykonuje» (сервер принимает цены только тех, кто
   с вопросом (`DELETE`). Клиенты видят фото при записи.
 - Код: `setStaffPhoto`/`removeStaffPhoto` в `apps/mobile-business/src/api.ts` (тест `test/salonPhotos.test.ts`),
   `StaffProfileSection.tsx`; e2e и скриншот 339 — в `apps/web/e2e/app-staff-profile.spec.ts`.
+
+## Бизнес-приложение: бонусы в карточке клиента (задача 340)
+
+В карточке клиента владелец или менеджер теперь делает с телефона то же, что в «Bonusy» кабинета: видит баланс
+(pieczątki или punkty), сколько собрано всего и уровень; «Zmień saldo» — ± число с причиной (причина видна в истории);
+«Wymień na nagrodę» — с вопросом, клиент получает купон с кодом (кнопка неактивна, если не хватает); «Anuluj kupon» —
+с вопросом, pieczątki/punkty возвращаются; «Historia programu» — последние операции клиента. Если программа выключена,
+карточка показывает только то, что у клиента уже есть, и подсказку. Специалист этого не видит (сервер тоже не даёт).
+API: `POST …/loyalty/accounts/:id/redemptions`, `…/adjustments`, `POST …/loyalty/coupons/:id/cancel`. Логика —
+`apps/mobile-business/src/clientBonus.ts` (тесты `test/clientBonus.test.ts`), e2e `app-client-bonus.spec.ts`,
+скриншоты 340, 340a.
