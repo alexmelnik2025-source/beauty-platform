@@ -17,6 +17,8 @@ import {
   parsePrice,
   priceInput,
   priceList,
+  ratesChange,
+  ratesForm,
   serviceChange,
   serviceCopy,
   staffChange,
@@ -447,5 +449,58 @@ describe('break and example photos (task 317)', () => {
       service: { bufferMinutes: 15, wishPhotos: true },
     });
     expect(newService({ ...fresh, buffer: 'x' })).toEqual({ ok: false, problem: 'buffer' });
+  });
+});
+
+describe('own prices and durations in "Zmień" (task 318)', () => {
+  const rates = {
+    prices: [
+      { serviceId: 'a', staffId: 's1', priceGrosze: 14050 },
+      { serviceId: 'b', staffId: 's1', priceGrosze: 1 },
+    ],
+    durations: [{ serviceId: 'a', staffId: 's2', durationMinutes: 60 }],
+  };
+  const combo = { id: 'a', priceGrosze: 13000, durationMinutes: 75 };
+
+  it('fills the form with the own ones of this service', () => {
+    expect(ratesForm(rates, 'a')).toEqual({
+      s1: { price: '140,50', duration: '' },
+      s2: { price: '', duration: '60' },
+    });
+    expect(ratesForm(rates, 'c')).toEqual({});
+  });
+
+  it('sends nothing when nothing changed', () => {
+    expect(ratesChange(rates, combo, ratesForm(rates, 'a'), ['s1', 's2'])).toEqual({
+      ok: true,
+      prices: null,
+      durations: null,
+    });
+  });
+
+  it('sends the new lists, only of who performs it, without ones equal to the service', () => {
+    const form = {
+      s1: { price: '150', duration: '75' },
+      s2: { price: '', duration: '' },
+      s3: { price: '99', duration: '30' },
+    };
+    expect(ratesChange(rates, combo, form, ['s1', 's2'])).toEqual({
+      ok: true,
+      prices: [{ staffId: 's1', priceGrosze: 15000 }],
+      durations: [],
+    });
+  });
+
+  it('says whose price or duration is wrong', () => {
+    expect(ratesChange(rates, combo, { s2: { price: 'x', duration: '' } }, ['s2'])).toEqual({
+      ok: false,
+      problem: 'staffPrice',
+      staffId: 's2',
+    });
+    expect(ratesChange(rates, combo, { s2: { price: '', duration: '7' } }, ['s2'])).toEqual({
+      ok: false,
+      problem: 'staffDuration',
+      staffId: 's2',
+    });
   });
 });

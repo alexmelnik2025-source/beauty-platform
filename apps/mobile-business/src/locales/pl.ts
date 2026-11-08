@@ -689,10 +689,15 @@ export const pl = {
     photosAsk: 'Klient może dodać zdjęcia-inspiracje (do 3)',
     photosAskHint:
       'Przy rezerwacji: „Pokaż, co chcesz” — np. fryzura ze zdjęcia. Zdjęcia widzi specjalista w wizycie; usuwamy je 90 dni po wizycie.',
+    ownPrice: 'Własna cena — {name} ({currency})',
+    ownDuration: 'Własny czas — {name} (min)',
+    ownHint: '{name}: własna cena i czas (puste = jak w usłudze)',
     performers: 'Kto wykonuje',
     inactive: 'nieaktywny',
     units: { h: 'g', min: 'min' },
     problem: {
+      staffPrice: 'Cena — {name}: wpisz np. 90 lub 90,50.',
+      staffDuration: 'Czas — {name}: w minutach, co 5 minut (5–480).',
       buffer: 'Przerwa: od 0 do 120 minut, co 5 minut.',
       description: 'Opis: do 500 znaków.',
       category: 'Nazwa kategorii: od 1 do 60 znaków.',

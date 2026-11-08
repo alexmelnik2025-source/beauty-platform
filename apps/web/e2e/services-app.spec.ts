@@ -18,8 +18,8 @@ import { serveApp } from './mobile-app';
  * beard trim too. Task 314: the haircut gets a new name and a description. Task 313: a new
  * service "Golenie brzytwą" from scratch, in "Broda" — with a 5-minute break and example photos
  * (task 317). Task 316: "Pielęgnacja" is renamed, then deleted — its head massage stays, without
- * a category. Task 315: the head massage, never booked, is deleted. Screenshots 93–93b, 253, 255,
- * 310–317.
+ * a category. Task 315: the head massage, never booked, is deleted. Task 318: Kasia's own price
+ * and duration of the combo. Screenshots 93–93b, 253, 255, 310–318.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -300,6 +300,19 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(app.getByRole('heading', { name: 'Broda', exact: true })).toBeVisible();
     await expect(app.getByRole('button', { name: 'Zmień: Golenie brzytwą' })).toBeVisible();
 
+    // ── Task 318: Kasia's own price and duration of the combo ─────────────
+    await app.getByRole('button', { name: 'Zmień: Strzyżenie + broda', exact: true }).click();
+    await expect(app.getByLabel('Własna cena — Kasia (PLN)')).toHaveValue('140');
+    await expect(app.getByLabel('Własny czas — Kasia (min)')).toHaveValue('');
+    await app.getByLabel('Własna cena — Kasia (PLN)').fill('150');
+    await app.getByLabel('Własny czas — Kasia (min)').fill('92');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Czas — Kasia: w minutach, co 5 minut (5–480).')).toBeVisible();
+    await app.getByLabel('Własny czas — Kasia (min)').fill('90');
+    await shot(app, '318-business-app-staff-rates');
+    await app.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(app.getByText('Zapisano: Strzyżenie + broda.')).toBeVisible();
+
     // ── Task 316: rename a category, then delete it ─────────────────────
     await app.getByRole('button', { name: 'Zmień kategorię: Pielęgnacja' }).click();
     await expect(app.getByLabel('Nazwa kategorii')).toHaveValue('Pielęgnacja');
@@ -389,7 +402,15 @@ test('the owner changes prices, durations and online booking in the business app
   });
   const rates = await json<{
     prices: { serviceId: string; staffId: string; priceGrosze: number }[];
+    durations: { serviceId: string; staffId: string; durationMinutes: number }[];
   }>(await request.get(`${base}/staff-prices`, { headers: owner }));
+  // Task 318: Kasia's own price and duration of the combo, from the app.
+  expect(rates.prices.filter((p) => p.serviceId === combo.id)).toEqual([
+    { serviceId: combo.id, staffId: kasia.id, priceGrosze: 15000 },
+  ]);
+  expect(rates.durations.filter((d) => d.serviceId === combo.id)).toEqual([
+    { serviceId: combo.id, staffId: kasia.id, durationMinutes: 90 },
+  ]);
   expect(rates.prices.filter((p) => p.serviceId === junior!.id)).toEqual([
     { serviceId: junior!.id, staffId: kasia.id, priceGrosze: 14000 },
   ]);

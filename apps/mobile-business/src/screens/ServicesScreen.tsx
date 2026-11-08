@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   BackHandler,
   Pressable,
@@ -14,6 +14,7 @@ import {
   type Locale,
   type ServiceCategoryList,
   type StaffList,
+  type StaffPrices,
 } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
@@ -31,6 +32,8 @@ import {
   newServiceForm,
   priceInput,
   priceList,
+  ratesChange,
+  ratesForm,
   serviceChange,
   serviceCopy,
   staffChange,
@@ -38,6 +41,7 @@ import {
   toggled,
   type CopyForm,
   type NewServiceForm,
+  type RatesForm,
   type Service,
   type ServiceGroup,
 } from '../services';
@@ -53,7 +57,8 @@ import type { SalonChoice } from './SalonsScreen';
  * service from scratch (task 313); "Zmień" changes the name and the description too (task 314).
  * "Usuń" deletes a service that was never used (task 315); a category is renamed or deleted
  * from its heading (task 316). The break after a service and example photos when booking are set
- * in "Zmień" and in a new service (task 317).
+ * in "Zmień" and in a new service (task 317). A specialist's own price and duration are set under
+ * their tick in "Zmień" (task 318).
  */
 export function ServicesScreen(props: {
   api: BusinessApi;
@@ -90,6 +95,9 @@ export function ServicesScreen(props: {
     categoryId: null,
     staffIds: [],
   });
+  /** Task 318: the specialists' own prices and durations, and the ones typed in "Zmień". */
+  const [rates, setRates] = useState<StaffPrices>({ prices: [], durations: [] });
+  const [rateForm, setRateForm] = useState<RatesForm>({});
   /** Task 315: the service whose "Usuń" waits for a confirmation. */
   const [removeId, setRemoveId] = useState<string | null>(null);
   /** Task 316: the category being renamed (or deleted), with the name as typed. */
@@ -113,14 +121,16 @@ export function ServicesScreen(props: {
 
   const load = useCallback(async () => {
     try {
-      const [services, categories, staff] = await Promise.all([
+      const [services, categories, staff, rates] = await Promise.all([
         api.services(salon.orgId, salon.locationId),
         api.serviceCategories(salon.orgId, salon.locationId),
         api.staff(salon.orgId, salon.locationId),
+        api.staffPrices(salon.orgId, salon.locationId),
       ]);
       setGroups(priceList(services, categories));
       setCategories(categories);
       setStaff(staff);
+      setRates(rates);
       setError('');
     } catch (e) {
       setError(errorText(e, t));
@@ -154,6 +164,7 @@ export function ServicesScreen(props: {
       categoryId: service.categoryId,
       staffIds: [...service.staffIds],
     });
+    setRateForm(ratesForm(rates, service.id));
     setError('');
     setInfo('');
   }
@@ -162,7 +173,22 @@ export function ServicesScreen(props: {
     const checked = serviceChange(service, form);
     if (!checked.ok) return setError(u.problem[checked.problem]);
     const people = staffChange(service, form.staffIds);
-    if (!checked.change && !people) {
+    // Task 318: own prices and durations — checked against the new price and duration.
+    const own = ratesChange(
+      rates,
+      {
+        id: service.id,
+        priceGrosze: checked.change?.priceGrosze ?? service.priceGrosze,
+        durationMinutes: checked.change?.durationMinutes ?? service.durationMinutes,
+      },
+      rateForm,
+      form.staffIds,
+    );
+    if (!own.ok) {
+      const who = staff.find((m) => m.id === own.staffId)?.displayName ?? '';
+      return setError(fill(u.problem[own.problem], { name: who }));
+    }
+    if (!checked.change && !people && !own.prices && !own.durations) {
       setEditId(null);
       return setInfo(u.nothing);
     }
@@ -173,6 +199,13 @@ export function ServicesScreen(props: {
       }
       // Task 312: who performs it — a list of its own, saved after the rest.
       if (people) await api.setServiceStaff(salon.orgId, salon.locationId, service.id, people);
+      // Task 318: only of who performs it, so after the list of who performs it.
+      if (own.prices) {
+        await api.saveStaffPrices(salon.orgId, salon.locationId, service.id, own.prices);
+      }
+      if (own.durations) {
+        await api.saveStaffDurations(salon.orgId, salon.locationId, service.id, own.durations);
+      }
       setEditId(null);
       setInfo(fill(u.saved, { name: checked.change?.name ?? service.name }));
       setError('');
@@ -333,31 +366,73 @@ export function ServicesScreen(props: {
   }
 
   /** Task 312: ticks of who performs a service (also of a new one, task 313). */
-  function performersPicker(staffIds: string[], onChange: (staffIds: string[]) => void) {
+  function performersPicker(
+    staffIds: string[],
+    onChange: (staffIds: string[]) => void,
+    /** Task 318: what is shown under a ticked specialist (own price and duration in "Zmień"). */
+    under?: (staffId: string, name: string) => ReactNode,
+  ) {
     return (
       <>
         <Text style={styles.label}>{u.performers}</Text>
         {staffChoices(staff, staffIds).map((member) => {
           const on = staffIds.includes(member.id);
           return (
-            <Pressable
-              key={member.id}
-              accessibilityRole="checkbox"
-              accessibilityLabel={member.displayName}
-              accessibilityState={{ checked: on }}
-              aria-checked={on}
-              onPress={() => onChange(toggled(staffIds, member.id))}
-              style={styles.check}
-            >
-              <Text style={[styles.box, on && styles.boxOn]}>{on ? '✓' : ''}</Text>
-              <Text style={[styles.text, { flexShrink: 1 }]}>
-                {member.active ? member.displayName : `${member.displayName} · ${u.inactive}`}
-              </Text>
-            </Pressable>
+            <View key={member.id} style={{ gap: 6 }}>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={member.displayName}
+                accessibilityState={{ checked: on }}
+                aria-checked={on}
+                onPress={() => onChange(toggled(staffIds, member.id))}
+                style={styles.check}
+              >
+                <Text style={[styles.box, on && styles.boxOn]}>{on ? '✓' : ''}</Text>
+                <Text style={[styles.text, { flexShrink: 1 }]}>
+                  {member.active ? member.displayName : `${member.displayName} · ${u.inactive}`}
+                </Text>
+              </Pressable>
+              {on && under ? under(member.id, member.displayName) : null}
+            </View>
           );
         })}
         {staffIds.length === 0 ? <Text style={styles.warn}>{u.nobody}</Text> : null}
       </>
+    );
+  }
+
+  /**
+   * Task 318: a ticked specialist's own price and duration; empty = the service's (shown as the
+   * placeholder).
+   */
+  function ownRates(service: Service, staffId: string, name: string) {
+    const row = rateForm[staffId] ?? { price: '', duration: '' };
+    const set = (change: { price?: string; duration?: string }) =>
+      setRateForm((r) => ({ ...r, [staffId]: { ...row, ...r[staffId], ...change } }));
+    const priceLabel = fill(u.ownPrice, { name, currency: salon.currency });
+    const durationLabel = fill(u.ownDuration, { name });
+    return (
+      <View style={{ gap: 6, paddingLeft: 34 }}>
+        <Text style={styles.muted}>{fill(u.ownHint, { name })}</Text>
+        <View style={styles.row}>
+          <TextInput
+            accessibilityLabel={priceLabel}
+            value={row.price}
+            onChangeText={(price) => set({ price })}
+            keyboardType="decimal-pad"
+            placeholder={`${priceInput(service.priceGrosze)} ${salon.currency}`}
+            style={[styles.input, styles.small]}
+          />
+          <TextInput
+            accessibilityLabel={durationLabel}
+            value={row.duration}
+            onChangeText={(duration) => set({ duration })}
+            keyboardType="number-pad"
+            placeholder={`${service.durationMinutes} ${u.units.min}`}
+            style={[styles.input, styles.small]}
+          />
+        </View>
+      </View>
     );
   }
 
@@ -662,8 +737,10 @@ export function ServicesScreen(props: {
                         {categoryPicker(form.categoryId, (categoryId) =>
                           setForm((f) => ({ ...f, categoryId })),
                         )}
-                        {performersPicker(form.staffIds, (staffIds) =>
-                          setForm((f) => ({ ...f, staffIds })),
+                        {performersPicker(
+                          form.staffIds,
+                          (staffIds) => setForm((f) => ({ ...f, staffIds })),
+                          (staffId, name) => ownRates(service, staffId, name),
                         )}
                         <View style={styles.row}>
                           <Button label={u.save} busy={busy} onPress={() => void save(service)} />
@@ -902,6 +979,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   check: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  small: { minWidth: 110, flexGrow: 1, flexBasis: 110, paddingVertical: 8 },
   box: {
     width: 24,
     height: 24,

@@ -364,3 +364,69 @@ export function newService(
     },
   };
 }
+
+/** Task 318: a specialist's own price and duration in "Zmień", as typed; empty = the service's. */
+export type RatesForm = Record<string, { price: string; duration: string }>;
+
+/** Task 318: the own prices and durations of one service, for the form. */
+export function ratesForm(rates: StaffPrices, serviceId: string): RatesForm {
+  const form: RatesForm = {};
+  const row = (staffId: string) => {
+    const found = form[staffId] ?? { price: '', duration: '' };
+    form[staffId] = found;
+    return found;
+  };
+  for (const p of rates.prices)
+    if (p.serviceId === serviceId) row(p.staffId).price = priceInput(p.priceGrosze);
+  for (const d of rates.durations) {
+    if (d.serviceId === serviceId) row(d.staffId).duration = String(d.durationMinutes);
+  }
+  return form;
+}
+
+const sameRows = <T extends { staffId: string }>(a: T[], b: T[], key: (row: T) => number) =>
+  a.length === b.length &&
+  a.every((row) => b.some((other) => other.staffId === row.staffId && key(other) === key(row)));
+
+/**
+ * Task 318: the lists to send — only of the specialists who perform the service (the server
+ * takes no one else); null = the same as now. A price or a duration equal to the service's is
+ * not kept as an own one.
+ */
+export function ratesChange(
+  rates: StaffPrices,
+  service: { id: string; priceGrosze: number; durationMinutes: number },
+  form: RatesForm,
+  staffIds: string[],
+):
+  | {
+      ok: true;
+      prices: { staffId: string; priceGrosze: number }[] | null;
+      durations: { staffId: string; durationMinutes: number }[] | null;
+    }
+  | { ok: false; problem: 'staffPrice' | 'staffDuration'; staffId: string } {
+  const prices: { staffId: string; priceGrosze: number }[] = [];
+  const durations: { staffId: string; durationMinutes: number }[] = [];
+  for (const staffId of staffIds) {
+    const row = form[staffId];
+    if (!row) continue;
+    if (row.price.trim() !== '') {
+      const price = parsePrice(row.price);
+      if (price === null) return { ok: false, problem: 'staffPrice', staffId };
+      if (price !== service.priceGrosze) prices.push({ staffId, priceGrosze: price });
+    }
+    if (row.duration.trim() !== '') {
+      const duration = parseDuration(row.duration);
+      if (duration === null) return { ok: false, problem: 'staffDuration', staffId };
+      if (duration !== service.durationMinutes)
+        durations.push({ staffId, durationMinutes: duration });
+    }
+  }
+  const nowPrices = rates.prices.filter((p) => p.serviceId === service.id);
+  const nowDurations = rates.durations.filter((d) => d.serviceId === service.id);
+  return {
+    ok: true,
+    prices: sameRows(prices, nowPrices, (r) => r.priceGrosze) ? null : prices,
+    durations: sameRows(durations, nowDurations, (r) => r.durationMinutes) ? null : durations,
+  };
+}

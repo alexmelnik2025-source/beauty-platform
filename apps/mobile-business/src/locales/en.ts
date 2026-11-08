@@ -689,10 +689,15 @@ export const en: Dictionary = {
     photosAsk: 'Clients can add inspiration photos (up to 3)',
     photosAskHint:
       'When booking: “Show what you want” — e.g. a haircut from a photo. The specialist sees them in the visit; they are deleted 90 days after it.',
+    ownPrice: 'Own price — {name} ({currency})',
+    ownDuration: 'Own duration — {name} (min)',
+    ownHint: '{name}: own price and duration (empty = as the service)',
     performers: 'Who performs it',
     inactive: 'inactive',
     units: { h: 'h', min: 'min' },
     problem: {
+      staffPrice: 'Price — {name}: enter e.g. 90 or 90.50.',
+      staffDuration: 'Duration — {name}: minutes, in 5-minute steps (5–480).',
       buffer: 'Break: 0 to 120 minutes, in 5-minute steps.',
       description: 'Description: up to 500 characters.',
       category: 'Category name: 1 to 60 characters.',
