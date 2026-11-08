@@ -228,3 +228,10 @@ export function visitSummaryLines(
     spent: spent.length ? fill(texts.summarySpent, { amount: spent.join(' + ') }) : null,
   };
 }
+
+/** Task 298: every salon of the visits once, in the order they come (the latest visit first). */
+export function salonsOf(items: ClientAppointment[]): { slug: string; name: string }[] {
+  const seen = new Map<string, string>();
+  for (const a of items) if (!seen.has(a.salon.slug)) seen.set(a.salon.slug, a.salon.name);
+  return [...seen].map(([slug, name]) => ({ slug, name }));
+}

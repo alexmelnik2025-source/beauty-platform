@@ -318,6 +318,8 @@ export const tr: Dict = {
     summarySalons: 'salon: {n}',
     summarySince: '{date} tarihinden beri',
     summarySpent: 'Toplam ödenen: {amount}',
+    salonFilter: 'Salonlar',
+    allSalons: 'Tümü',
     allVisits: 'Tüm randevularım',
     signedInAs: '{email} olarak giriş yapıldı',
     downloadData: 'Verilerimi indir',

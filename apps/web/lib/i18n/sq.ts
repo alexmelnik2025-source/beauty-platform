@@ -319,6 +319,8 @@ export const sq: Dict = {
     summarySalons: 'sallone: {n}',
     summarySince: 'që nga {date}',
     summarySpent: 'Paguar gjithsej: {amount}',
+    salonFilter: 'Sallonet',
+    allSalons: 'Të gjitha',
     allVisits: 'Të gjitha takimet e mia',
     signedInAs: 'Jeni identifikuar si {email}',
     downloadData: 'Shkarko të dhënat e mia',

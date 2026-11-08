@@ -14,7 +14,14 @@ import {
 } from '../api';
 import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
-import { formatDay, formatPrice, groupByDay, salonAddress, visitSummaryLines } from '../format';
+import {
+  formatDay,
+  formatPrice,
+  groupByDay,
+  salonAddress,
+  salonsOf,
+  visitSummaryLines,
+} from '../format';
 import { favoriteSpecialists, type FavoriteSpecialist } from '../favorite';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
@@ -60,6 +67,8 @@ export function VisitsScreen(props: {
   const [mine, setMine] = useState<FavoriteSpecialist[]>([]);
   // Task 293: "Twoje wizyty" above the history — all time, every salon.
   const [summary, setSummary] = useState<ClientVisitSummary | null>(null);
+  // Task 298: the history of one salon only (its slug); null = every salon.
+  const [salon, setSalon] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ClientAppointment | null>(null);
@@ -98,6 +107,7 @@ export function VisitsScreen(props: {
     setBonuses(null);
     setFavorites(null);
     setSummary(null);
+    setSalon(null);
     void load();
   }, [load]);
 
@@ -181,6 +191,9 @@ export function VisitsScreen(props: {
       />
     );
   }
+
+  // Task 298: the salons of the history; the filter shows only when there are two or more.
+  const salons = tab === 'past' && items ? salonsOf(items) : [];
 
   return (
     <ScrollView
@@ -310,8 +323,26 @@ export function VisitsScreen(props: {
         </Text>
       ) : null}
 
+      {salons.length > 1 ? (
+        <View style={styles.salonChips} role="group" aria-label={t.visits.salonFilter}>
+          {[{ slug: null, name: t.visits.allSalons }, ...salons].map((s) => (
+            <Pressable
+              key={s.slug ?? ''}
+              accessibilityRole="button"
+              aria-pressed={salon === s.slug}
+              onPress={() => setSalon(s.slug)}
+              style={[styles.salonChip, salon === s.slug && styles.tabActive]}
+            >
+              <Text style={[styles.tabText, salon === s.slug && styles.tabTextActive]}>
+                {s.name}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
       {(tab === 'upcoming' || tab === 'past') && items
-        ? groupByDay(items).map((group) => (
+        ? groupByDay(items.filter((a) => salon === null || a.salon.slug === salon)).map((group) => (
             <View key={group.date} style={{ gap: 8 }}>
               <Text style={styles.day}>{formatDay(group.date, locale)}</Text>
               {group.items.map((visit) => (
@@ -436,6 +467,15 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.ink },
   tabText: { color: colors.ink, fontSize: 14, fontWeight: '600', textAlign: 'center' },
   tabTextActive: { color: '#fff' },
+  salonChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  salonChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+  },
   notified: { color: '#1e6b3a', fontSize: 14, lineHeight: 20, fontWeight: '600' },
   waitActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 32 },

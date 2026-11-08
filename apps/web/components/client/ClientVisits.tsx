@@ -198,12 +198,15 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   const [mine, setMine] = useState<FavoriteSpecialist[]>([]);
   // Task 292: "Twoje wizyty" above the past visits — all time, every salon.
   const [summary, setSummary] = useState<ClientVisitSummary | null>(null);
+  // Task 297: the history of one salon only (its slug); null = every salon.
+  const [salon, setSalon] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setItems(null);
     setMine([]);
     setSummary(null);
+    setSalon(null);
     setError('');
     if (scope === 'bonuses') return;
     try {
@@ -258,6 +261,12 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
     }
   }
 
+  // Task 297: the salons of the history, in the order of the latest visit; the filter shows
+  // only when there are two or more.
+  const salons =
+    scope === 'past' && items ? salonsOf(items) : ([] as { slug: string; name: string }[]);
+  const shown = (items ?? []).filter((a) => salon === null || a.salon.slug === salon);
+
   async function signOut() {
     try {
       await api('/v1/client/auth/logout', { method: 'POST', auth: false });
@@ -300,6 +309,20 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
       {scope === 'past' && summary && summary.completed > 0 ? (
         <VisitSummary summary={summary} />
       ) : null}
+      {scope === 'past' && salons.length > 1 ? (
+        <div className="tabs" role="group" aria-label={t.visits.salonFilter}>
+          {[{ slug: null, name: t.visits.allSalons }, ...salons].map((s) => (
+            <button
+              key={s.slug ?? ''}
+              type="button"
+              aria-pressed={salon === s.slug}
+              onClick={() => setSalon(s.slug)}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {scope === 'bonuses' ? (
         <ClientBonuses onSignedOut={onSignedOut} />
       ) : items === null ? (
@@ -308,7 +331,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
         <p className="note">{scope === 'upcoming' ? t.visits.emptyUpcoming : t.visits.emptyPast}</p>
       ) : (
         <ul className="list">
-          {items.map((a) => {
+          {shown.map((a) => {
             const again = scope === 'past' ? bookAgainHref(locale, a) : null;
             return (
               <li key={a.id}>
@@ -381,4 +404,11 @@ function VisitSummary({ summary }: { summary: ClientVisitSummary }) {
       ) : null}
     </section>
   );
+}
+
+/** Task 297: every salon of the visits once, in the order they come (the latest visit first). */
+function salonsOf(items: ClientAppointment[]): { slug: string; name: string }[] {
+  const seen = new Map<string, string>();
+  for (const a of items) if (!seen.has(a.salon.slug)) seen.set(a.salon.slug, a.salon.name);
+  return [...seen].map(([slug, name]) => ({ slug, name }));
 }

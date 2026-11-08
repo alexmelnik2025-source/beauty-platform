@@ -40,6 +40,8 @@ export const sq: Dictionary = {
     summarySalons: 'sallone: {n}',
     summarySince: 'që nga {date}',
     summarySpent: 'Paguar gjithsej: {amount}',
+    salonFilter: 'Sallonet',
+    allSalons: 'Të gjitha',
     minutes: 'min',
     with: 'me {staff}',
     status: {

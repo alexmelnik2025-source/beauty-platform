@@ -588,6 +588,8 @@ export const ru: Dict = {
     summarySalons: 'салонов: {n}',
     summarySince: 'с {date}',
     summarySpent: 'Оплачено всего: {amount}',
+    salonFilter: 'Салоны',
+    allSalons: 'Все',
     allVisits: 'Все мои визиты',
     signedInAs: 'Вы вошли как {email}',
     downloadData: 'Скачать мои данные',

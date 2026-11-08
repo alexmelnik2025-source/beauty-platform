@@ -582,6 +582,8 @@ export const uk: Dict = {
     summarySalons: 'салонів: {n}',
     summarySince: 'з {date}',
     summarySpent: 'Сплачено загалом: {amount}',
+    salonFilter: 'Салони',
+    allSalons: 'Усі',
     allVisits: 'Усі мої візити',
     signedInAs: 'Ви увійшли як {email}',
     downloadData: 'Завантажити мої дані',

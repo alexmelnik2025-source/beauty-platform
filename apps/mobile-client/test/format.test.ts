@@ -11,6 +11,7 @@ import {
   nearestByStaff,
   nearestText,
   salonAddress,
+  salonsOf,
   slotsByDay,
   visitActions,
   visitSummaryLines,
@@ -189,5 +190,23 @@ describe('"Twoje wizyty" (task 293)', () => {
       'Europe/Warsaw',
     );
     expect(lines).toEqual({ visits: 'Visits so far: 1 · since 8 February 2027', spent: null });
+  });
+});
+
+describe('history by salon (task 298)', () => {
+  it('every salon once, in the order of the visits', () => {
+    const at = (id: string, slug: string, name: string) =>
+      ({ id, salon: { slug, name } }) as ClientAppointment;
+    expect(
+      salonsOf([
+        at('a', 'bema', 'Barber Bema'),
+        at('b', 'mokotow', 'Mokotów'),
+        at('c', 'bema', 'X'),
+      ]),
+    ).toEqual([
+      { slug: 'bema', name: 'Barber Bema' },
+      { slug: 'mokotow', name: 'Mokotów' },
+    ]);
+    expect(salonsOf([])).toEqual([]);
   });
 });

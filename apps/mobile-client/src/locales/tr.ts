@@ -40,6 +40,8 @@ export const tr: Dictionary = {
     summarySalons: 'salon: {n}',
     summarySince: '{date} tarihinden beri',
     summarySpent: 'Toplam ödenen: {amount}',
+    salonFilter: 'Salonlar',
+    allSalons: 'Tümü',
     minutes: 'dk',
     with: 'uzman: {staff}',
     status: {

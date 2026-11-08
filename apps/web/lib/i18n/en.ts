@@ -583,6 +583,8 @@ export const en: Dict = {
     summarySalons: 'salons: {n}',
     summarySince: 'since {date}',
     summarySpent: 'Paid in total: {amount}',
+    salonFilter: 'Salons',
+    allSalons: 'All',
     allVisits: 'All my visits',
     signedInAs: 'Signed in as {email}',
     downloadData: 'Download my data',

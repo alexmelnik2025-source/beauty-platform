@@ -39,6 +39,8 @@ export const ru: Dictionary = {
     summarySalons: 'салонов: {n}',
     summarySince: 'с {date}',
     summarySpent: 'Оплачено всего: {amount}',
+    salonFilter: 'Салоны',
+    allSalons: 'Все',
     minutes: 'мин',
     with: 'мастер: {staff}',
     status: {

@@ -582,6 +582,8 @@ export const pl = {
     summarySalons: 'w salonach: {n}',
     summarySince: 'od {date}',
     summarySpent: 'Zapłacono łącznie: {amount}',
+    salonFilter: 'Salony',
+    allSalons: 'Wszystkie',
     allVisits: 'Wszystkie moje wizyty',
     signedInAs: 'Zalogowano jako {email}',
     downloadData: 'Pobierz moje dane',

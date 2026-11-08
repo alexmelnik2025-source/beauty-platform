@@ -38,6 +38,8 @@ export const pl = {
     summarySalons: 'w salonach: {n}',
     summarySince: 'od {date}',
     summarySpent: 'Zapłacono łącznie: {amount}',
+    salonFilter: 'Salony',
+    allSalons: 'Wszystkie',
     minutes: 'min',
     with: 'u: {staff}',
     status: {

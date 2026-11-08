@@ -9,6 +9,8 @@ import { serveApp } from './mobile-app';
  * shows "Twoi specjaliści" with Kasia, and "Umów u: Kasia" opens her free times at once.
  * Screenshots 165d, 165d-a. Task 292: "Historia" on the site starts with "Twoje wizyty" — 3 visits,
  * the two paid ones in total (screenshot 292); the same in the client app (293).
+ * Tasks 297, 298: the client also went to a second salon once — "Historia" gets a salon filter
+ * (screenshots 297, 298).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -16,6 +18,7 @@ const run = Date.now().toString(36);
 const OWNER = `fav-owner-${run}@example.com`;
 const CLIENT = `fav-client-${run}@example.com`;
 const SALON = `Ulubiony Barber ${run}`;
+const SALON2 = `Drugi Barber ${run}`;
 const PHONE = { width: 390, height: 844 };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
@@ -64,69 +67,76 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     }),
   );
   const owner = { Authorization: `Bearer ${login.accessToken}` };
-  const org = await json<{ id: string }>(
-    await request.post('/v1/organizations', { headers: owner, data: { name: SALON } }),
-  );
-  const location = await json<{ id: string; slug: string }>(
-    await request.post(`/v1/organizations/${org.id}/locations`, {
-      headers: owner,
-      data: {
-        name: SALON,
-        addressLine: 'ul. Józefa Bema 91',
-        city: 'Warszawa',
-        postalCode: '01-233',
-        onlineBookingEnabled: true,
-        bookingTerms: '# Regulamin\n\nWizyta jest bezpłatna do odwołania.',
-        privacyPolicy: '# Prywatność\n\nAdministratorem danych jest salon.',
-      },
-    }),
-  );
-  const base = `/v1/organizations/${org.id}/locations/${location.id}`;
-  const service = await json<{ id: string }>(
-    await request.post(`${base}/services`, {
-      headers: owner,
-      data: { name: 'Strzyżenie fade', durationMinutes: 45, priceGrosze: 9000 },
-    }),
-  );
-  for (const name of ['Kasia', 'Marek']) {
-    const staff = await json<{ id: string }>(
-      await request.post(`${base}/staff`, {
-        headers: owner,
-        data: { displayName: name, serviceIds: [service.id] },
-      }),
+  /** A salon with online booking, one service and specialists who work every day. */
+  async function openSalon(name: string, staffNames: string[]) {
+    const org = await json<{ id: string }>(
+      await request.post('/v1/organizations', { headers: owner, data: { name } }),
     );
-    await json(
-      await request.put(`${base}/staff/${staff.id}/working-hours`, {
+    const location = await json<{ id: string; slug: string }>(
+      await request.post(`/v1/organizations/${org.id}/locations`, {
         headers: owner,
         data: {
-          days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
-            weekday,
-            intervals: [{ start: '08:00', end: '21:00' }],
-          })),
+          name,
+          addressLine: 'ul. Józefa Bema 91',
+          city: 'Warszawa',
+          postalCode: '01-233',
+          onlineBookingEnabled: true,
+          bookingTerms: '# Regulamin\n\nWizyta jest bezpłatna do odwołania.',
+          privacyPolicy: '# Prywatność\n\nAdministratorem danych jest salon.',
         },
       }),
     );
+    const base = `/v1/organizations/${org.id}/locations/${location.id}`;
+    const service = await json<{ id: string }>(
+      await request.post(`${base}/services`, {
+        headers: owner,
+        data: { name: 'Strzyżenie fade', durationMinutes: 45, priceGrosze: 9000 },
+      }),
+    );
+    for (const staffName of staffNames) {
+      const staff = await json<{ id: string }>(
+        await request.post(`${base}/staff`, {
+          headers: owner,
+          data: { displayName: staffName, serviceIds: [service.id] },
+        }),
+      );
+      await json(
+        await request.put(`${base}/staff/${staff.id}/working-hours`, {
+          headers: owner,
+          data: {
+            days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+              weekday,
+              intervals: [{ start: '08:00', end: '21:00' }],
+            })),
+          },
+        }),
+      );
+    }
+    const salon = await json<{ staff: { id: string; displayName: string }[] }>(
+      await request.get(`/v1/public/locations/${location.slug}`),
+    );
+    return { slug: location.slug, serviceId: service.id, staff: salon.staff };
   }
-  const salon = await json<{ staff: { id: string; displayName: string }[] }>(
-    await request.get(`/v1/public/locations/${location.slug}`),
-  );
-  const kasia = salon.staff.find((s) => s.displayName === 'Kasia')!.id;
-  const marek = salon.staff.find((s) => s.displayName === 'Marek')!.id;
+  const first = await openSalon(SALON, ['Kasia', 'Marek']);
+  const second = await openSalon(SALON2, ['Ilian']);
+  const kasia = first.staff.find((s) => s.displayName === 'Kasia')!.id;
+  const marek = first.staff.find((s) => s.displayName === 'Marek')!.id;
 
   // Two visits with Kasia and one with Marek, booked by the client, then in the past.
   const clientIp = freshAddress();
   const day = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
-  async function book(staffId: string, index: number): Promise<string> {
+  let codes = 0;
+  async function book(staffId: string, index: number, at = first): Promise<string> {
     const free = await json<{ slots: { start: string }[] }>(
-      await request.get(`/v1/public/locations/${location.slug}/availability`, {
+      await request.get(`/v1/public/locations/${at.slug}/availability`, {
         headers: clientIp,
-        params: { serviceId: service.id, staffId, from: day, to: day },
+        params: { serviceId: at.serviceId, staffId, from: day, to: day },
       }),
     );
     const hold = await json<{ holdId: string; holdToken: string }>(
-      await request.post(`/v1/public/locations/${location.slug}/holds`, {
+      await request.post(`/v1/public/locations/${at.slug}/holds`, {
         headers: clientIp,
-        data: { serviceId: service.id, staffId, start: free.slots[index]!.start },
+        data: { serviceId: at.serviceId, staffId, start: free.slots[index]!.start },
       }),
     );
     await json(
@@ -147,7 +157,7 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
         async () =>
           (await listTo(CLIENT)).filter((m) => /Kod potwierdzenia/.test(m.Subject)).length,
       )
-      .toBeGreaterThan(index);
+      .toBeGreaterThan(codes++);
     const codeMail = await waitForEmail(CLIENT, /Kod potwierdzenia/);
     const confirmed = await json<{ appointment: { id: string } }>(
       await request.post(`/v1/public/holds/${hold.holdId}/confirm`, {
@@ -160,6 +170,8 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
   tookPlace(await book(kasia, 0), 40, true);
   tookPlace(await book(marek, 1), 20, true);
   tookPlace(await book(kasia, 2), 10);
+  // Tasks 297, 298: once in a second salon, the latest visit.
+  tookPlace(await book(second.staff[0]!.id, 0, second), 5);
 
   // ── The client app ───────────────────────────────────────────────────
   const clientApp = await serveApp('mobile-client');
@@ -186,9 +198,19 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     // Task 293: "Twoje wizyty" on top of the history in the app.
     await app.getByRole('tab', { name: 'Historia', exact: true }).click();
     const summary = app.getByRole('region', { name: 'Twoje wizyty' });
-    await expect(summary.getByText(/^Odbyte wizyty: 3 · od \d{1,2} \S+ \d{4}$/)).toBeVisible();
+    await expect(
+      summary.getByText(/^Odbyte wizyty: 4 · w salonach: 2 · od \d{1,2} \S+ \d{4}$/),
+    ).toBeVisible();
     await expect(summary.getByText(/^Zapłacono łącznie: 180,00\s?zł$/)).toBeVisible();
     await shot(app, '293-client-app-visit-summary');
+    // Task 298: only the second salon's visit.
+    const salons = app.getByRole('group', { name: 'Salony' });
+    await salons.getByRole('button', { name: SALON2 }).click();
+    await expect(app.getByText(/^u: Ilian ·/)).toBeVisible();
+    await expect(app.getByText(/^u: Kasia ·/)).toHaveCount(0);
+    await shot(app, '298-client-app-history-salon');
+    await salons.getByRole('button', { name: 'Wszystkie' }).click();
+    await expect(app.getByText(/^u: Kasia ·/).first()).toBeVisible();
     await app.getByRole('tab', { name: 'Nadchodzące', exact: true }).click();
     await mine.getByRole('button', { name: 'Umów u: Kasia' }).click();
     await expect(app.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
@@ -243,9 +265,18 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     // Task 292: "Twoje wizyty" on top of the past visits.
     await page.getByRole('button', { name: 'Historia', exact: true }).click();
     const summary = page.getByRole('region', { name: 'Twoje wizyty' });
-    await expect(summary.getByText(/^Odbyte wizyty: 3 · od \d{1,2} \S+ \d{4}/)).toBeVisible();
+    await expect(
+      summary.getByText(/^Odbyte wizyty: 4 · w salonach: 2 · od \d{1,2} \S+ \d{4}/),
+    ).toBeVisible();
     await expect(summary.getByText(/^Zapłacono łącznie: 180,00\s?zł$/)).toBeVisible();
     await shot(page, '292-site-visit-summary');
+    // Task 297: only the second salon's visit.
+    const salons = page.getByRole('group', { name: 'Salony' });
+    await salons.getByRole('button', { name: SALON2 }).click();
+    await expect(page.getByText('Strzyżenie fade · Ilian', { exact: false })).toBeVisible();
+    await expect(page.getByText(/Strzyżenie fade · Kasia/)).toHaveCount(0);
+    await shot(page, '297-site-history-salon');
+    await salons.getByRole('button', { name: 'Wszystkie' }).click();
     await page.getByRole('button', { name: 'Nadchodzące', exact: true }).click();
     await mine.getByRole('link', { name: 'Umów u: Kasia' }).click();
     // The booking page starts on Kasia's free times for the same service.
