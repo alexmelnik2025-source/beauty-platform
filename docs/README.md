@@ -2493,3 +2493,12 @@ API: `summary.tips` (`[{ currency, amountGrosze, visits }]`) в `GET …/custome
 В бизнес-приложении — строка «Zwykle płaci: Karta» в карточке клиента. API: `summary.usualPayment`
 (`{ method, visits }` или `null`) в `GET …/customers/:id`. Тест `apps/api/test/customer-summary.spec.ts`; e2e
 `clients-sort.spec.ts` (скриншоты 285, 286).
+
+## «Twoje wizyty» — сводка клиента (задачи 292, 293)
+
+В «Moje wizyty» клиента, вкладка «Historia» (сайт и клиентское приложение), сверху — карточка «Twoje wizyty»: сколько
+визитов состоялось за всё время во всех салонах, в скольких салонах (если больше одного), с какой даты, и «Zapłacono
+łącznie» — оплаченные визиты минус скидки купонов, отменённые не считаются (то же правило, что «Zapłacono» в карточке
+клиента у салона), по валютам через «+». Только визиты карточек салонов с подтверждённым e-mail клиента. Нет
+состоявшихся визитов — карточки нет. API: `GET /v1/client/me/summary` (`completed`, `salons`, `firstVisitAt`, `spent`).
+Тест `apps/api/test/client-app.spec.ts`; e2e `favorite-specialist.spec.ts` (скриншоты 292, 293).
