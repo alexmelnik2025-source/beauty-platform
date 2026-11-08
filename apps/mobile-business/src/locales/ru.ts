@@ -275,6 +275,7 @@ export const ru: Dictionary = {
     average: 'В среднем за визит: {amount}',
     tips: 'Чаевые: {amount}',
     usualPayment: 'Обычно платит: {method}',
+    ratings: 'Оценки: ★ {stars} · отзывов: {n}',
     upcoming: 'Ближайшие визиты',
     history: 'История визитов',
     noVisits: 'В этом салоне визитов нет.',

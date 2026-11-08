@@ -981,6 +981,19 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
       }),
     ]);
   }
+  // Task 301: how the client rated the visits (the reviews of the visits counted here).
+  if (summary.ratings) {
+    tiles.push([
+      t.clients.summary.ratings,
+      fill(t.clients.summary.ratingsValue, {
+        stars: new Intl.NumberFormat(tag, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }).format(summary.ratings.average),
+        n: String(summary.ratings.reviews),
+      }),
+    ]);
+  }
   return (
     <section className="section" data-testid="client-summary">
       <h3>{t.clients.summary.title}</h3>

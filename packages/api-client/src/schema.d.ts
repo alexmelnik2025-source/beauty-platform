@@ -4298,6 +4298,13 @@ export interface components {
                     method: "cash" | "card" | "blik" | "transfer" | "other";
                     visits: number;
                 } | null;
+                /** @description Task 301: how the client rated the visits ("Oceny") — reviews of the visits counted here; null without reviews */
+                ratings: {
+                    /** @description Reviews the client left */
+                    reviews: number;
+                    /** @description Average stars (1–5, one decimal) */
+                    average: number;
+                } | null;
             };
         };
         CustomerExport: {

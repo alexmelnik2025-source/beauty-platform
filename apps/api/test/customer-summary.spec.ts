@@ -171,6 +171,7 @@ describe('client summary on the card (task 98)', () => {
       paid: [],
       tips: [],
       usualPayment: null,
+      ratings: null,
     });
   });
 
@@ -234,6 +235,7 @@ describe('client summary on the card (task 98)', () => {
       // Task 287: 10 zł + 5,50 zł on two visits.
       tips: [{ currency: 'PLN', amountGrosze: 1550, visits: 2 }],
       usualPayment: { method: 'card', visits: 2 },
+      ratings: null,
     });
     // The manager of the salon sees the same, money included.
     expect((await card(manager.auth)).body.summary).toEqual(body.summary);
@@ -265,6 +267,48 @@ describe('client summary on the card (task 98)', () => {
       favoriteService: null,
       favoriteStaff: null,
     });
+  });
+
+  it('"Oceny": the reviews the client left, as far as the caller sees the visits (task 301)', async () => {
+    const atKasia = await pastVisit(kasiaId, 30);
+    const atTomek = await pastVisit(tomekId, 10);
+    const later = await pastVisit(tomekId, 5);
+    await ctx.prisma.visitReview.createMany({
+      data: [
+        { appointmentId: atKasia, locationId, staffId: kasiaId, rating: 5 },
+        { appointmentId: atTomek, locationId, staffId: tomekId, rating: 4 },
+        { appointmentId: later, locationId, staffId: tomekId, rating: 4 },
+      ],
+    });
+    // A review by another client does not count.
+    const other = (
+      await ctx
+        .http()
+        .post(customersBase)
+        .set(owner.auth)
+        .send({ name: 'Ewa', phone: '+48600000003' })
+        .expect(201)
+    ).body.id as string;
+    const keep = customerId;
+    customerId = other;
+    const hers = await pastVisit(kasiaId, 3);
+    customerId = keep;
+    await ctx.prisma.visitReview.create({
+      data: { appointmentId: hers, locationId, staffId: kasiaId, rating: 1 },
+    });
+
+    const { body } = await card(owner.auth);
+    expect(registeredResponseSchema('CustomerDetail').safeParse(body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(body.summary.ratings).toEqual({ reviews: 3, average: 4.3 });
+    expect((await card(manager.auth)).body.summary.ratings).toEqual({ reviews: 3, average: 4.3 });
+    // A specialist without the client history sees only the review of her own visit.
+    await ctx.prisma.membership.updateMany({
+      where: { userId: kasia.userId },
+      data: { permissionOverrides: { viewClientHistory: false } },
+    });
+    expect((await card(kasia.auth)).body.summary.ratings).toEqual({ reviews: 1, average: 5 });
   });
 
   it('salons in other currencies are summed separately', async () => {

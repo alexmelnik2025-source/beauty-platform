@@ -1,4 +1,5 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
@@ -16,6 +17,8 @@ import { serveApp } from './mobile-app';
  * "Napiwki łącznie" in the card (same screenshots); task 288: "Napiwki" in the business app.
  * Task 290: both of Adam's visits were paid by card — "Zwykle płaci: Karta · 2×" in the card;
  * task 291: the same in the business app (same screenshots).
+ * Task 301: Adam rated his visits 5 and 4 stars — "Oceny wizyt: ★ 4,5 · opinie: 2" in the card;
+ * task 302: the same in the business app (same screenshots).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -115,7 +118,7 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await visit(zenon, 5);
   await visit(zenon, 4);
   // Task 283: only Adam's visits are paid — task 290: both by card.
-  await visit(adam, 3, true, 'card');
+  const adamFirst = (await visit(adam, 3, true, 'card')) as { id: string };
   const adamVisit = (await visit(adam, 2, true, 'card')) as { id: string; version: number };
   // Task 287: Adam left a 12,50 zł tip.
   await json(
@@ -124,6 +127,14 @@ test('the owner sorts the clients by the latest visit and by the number of visit
       data: { version: adamVisit.version, tipGrosze: 1250 },
     }),
   );
+  // Task 301: Adam rated his two visits 5 and 4 stars.
+  execFileSync('psql', [
+    (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `INSERT INTO visit_review (id, appointment_id, location_id, staff_id, rating, updated_at) SELECT gen_random_uuid(), id, location_id, staff_id, CASE WHEN id = '${adamFirst.id}' THEN 5 ELSE 4 END, now() FROM appointment WHERE id IN ('${adamFirst.id}', '${adamVisit.id}')`,
+  ]);
   // Task 281: booked ahead — Basia tomorrow, Zenon in two days.
   const book = (customerId: string, hoursAhead: number) =>
     request
@@ -207,6 +218,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await expect(summary).toContainText(/Napiwki łącznie\s*12,50/);
   // Task 290: how Adam usually pays.
   await expect(summary).toContainText(/Zwykle płaci\s*Karta · 2×/);
+  // Task 301: how Adam rated his visits.
+  await expect(summary).toContainText(/Oceny wizyt\s*★ 4,5 · opinie: 2/);
   await shot(page, '285-client-average-visit');
   await page.keyboard.press('Escape');
 
@@ -264,6 +277,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     await expect(app.getByText(/^Napiwki: 12,50/)).toBeVisible();
     // Task 291: how Adam usually pays.
     await expect(app.getByText('Zwykle płaci: Karta')).toBeVisible();
+    // Task 302: the ratings in the business app's card.
+    await expect(app.getByText('Oceny: ★ 4,5 · opinie: 2')).toBeVisible();
     await shot(app, '286-business-app-client-average-visit');
     await phone.close();
   } finally {

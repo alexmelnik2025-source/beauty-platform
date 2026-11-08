@@ -274,6 +274,7 @@ export const pl = {
     average: 'Średnio za wizytę: {amount}',
     tips: 'Napiwki: {amount}',
     usualPayment: 'Zwykle płaci: {method}',
+    ratings: 'Oceny: ★ {stars} · opinie: {n}',
     upcoming: 'Najbliższe wizyty',
     history: 'Historia wizyt',
     noVisits: 'Brak wizyt w tym salonie.',

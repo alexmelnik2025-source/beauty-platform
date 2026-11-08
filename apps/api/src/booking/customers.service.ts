@@ -483,7 +483,7 @@ export class CustomersService {
     where: Prisma.AppointmentWhereInput,
     withMoney: boolean,
   ): Promise<CustomerDetailResponse['summary']> {
-    const [byStatus, upcoming, dates, paid, starts, tipped, methods] = await Promise.all([
+    const [byStatus, upcoming, dates, paid, starts, tipped, methods, reviews] = await Promise.all([
       this.prisma.appointment.groupBy({
         by: ['status', 'cancelledBy'],
         where,
@@ -542,6 +542,12 @@ export class CustomersService {
             take: 500,
           })
         : null,
+      // Task 301: the reviews the client left for the visits counted here.
+      this.prisma.visitReview.aggregate({
+        where: { appointment: where },
+        _count: { _all: true },
+        _avg: { rating: true },
+      }),
     ]);
     const count = (match: (row: (typeof byStatus)[number]) => boolean): number =>
       byStatus.filter(match).reduce((sum, row) => sum + row._count._all, 0);
@@ -594,6 +600,13 @@ export class CustomersService {
       paid: money,
       tips,
       usualPayment: usualPayment(methods),
+      ratings:
+        reviews._count._all > 0 && reviews._avg.rating !== null
+          ? {
+              reviews: reviews._count._all,
+              average: Math.round(reviews._avg.rating * 10) / 10,
+            }
+          : null,
     };
   }
 
@@ -679,6 +692,7 @@ export class CustomersService {
         paid: m.role === 'staff' ? null : [],
         tips: m.role === 'staff' ? null : [],
         usualPayment: null,
+        ratings: null,
       },
     };
   }

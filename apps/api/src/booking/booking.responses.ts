@@ -300,6 +300,15 @@ export const customerDetailSchema = responseSchema(
           .describe(
             'Task 290: how the client usually pays — the most frequent payment method on the paid visits that have one (the latest wins a tie); null below 2 such visits and for staff members',
           ),
+        ratings: z
+          .strictObject({
+            reviews: z.number().int().describe('Reviews the client left'),
+            average: z.number().describe('Average stars (1–5, one decimal)'),
+          })
+          .nullable()
+          .describe(
+            'Task 301: how the client rated the visits ("Oceny") — reviews of the visits counted here; null without reviews',
+          ),
       })
       .describe(
         'Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)',

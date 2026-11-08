@@ -1067,6 +1067,8 @@ export const pl = {
       average: 'Średnio za wizytę',
       tips: 'Napiwki łącznie',
       usualPayment: 'Zwykle płaci',
+      ratings: 'Oceny wizyt',
+      ratingsValue: '★ {stars} · opinie: {n}',
       rhythm: 'Wraca zwykle',
       rhythmValue: 'co {days} dni · następna ok. {date}',
       favoriteService: 'Ulubiona usługa',

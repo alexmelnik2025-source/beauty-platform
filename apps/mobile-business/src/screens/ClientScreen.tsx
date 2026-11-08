@@ -32,6 +32,7 @@ import {
   type ClientVisit,
 } from '../clients';
 import { formatPrice } from '../day';
+import { starsText } from '../reports';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
@@ -305,6 +306,15 @@ export function ClientScreen(props: {
           <Text style={styles.chip}>
             {fill(c.usualPayment, {
               method: t.visit.paymentMethods[client.summary.usualPayment.method],
+            })}
+          </Text>
+        ) : null}
+        {/* Task 302: how the client rated the visits. */}
+        {client.summary.ratings ? (
+          <Text style={styles.chip}>
+            {fill(c.ratings, {
+              stars: starsText(client.summary.ratings.average, props.locale),
+              n: String(client.summary.ratings.reviews),
             })}
           </Text>
         ) : null}
