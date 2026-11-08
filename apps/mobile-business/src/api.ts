@@ -1,4 +1,5 @@
 import type { BonusRulesSave } from './bonusRules';
+import type { EarnRulesSave } from './earnRules';
 import type { TiersSave } from './tiers';
 import type {
   AppointmentDetail,
@@ -1086,6 +1087,22 @@ export class BusinessApi {
   /** Replaces the whole list. */
   saveLoyaltyBonusRules(orgId: string, body: BonusRulesSave): Promise<LoyaltyBonusRules> {
     return this.authed<LoyaltyBonusRules>('PUT', `${loyaltyPath(orgId)}/bonus-rules`, body);
+  }
+
+  /**
+   * Task 347: stamps or points per service of one salon (replaces that salon's list; a service
+   * left out follows the general rule). Answers with the whole program.
+   */
+  saveLoyaltyEarnRules(
+    orgId: string,
+    locationId: string,
+    body: EarnRulesSave,
+  ): Promise<LoyaltyProgram> {
+    return this.authed<LoyaltyProgram>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/loyalty/earn-rules`,
+      body,
+    );
   }
 
   /** The reward catalogue (removed rewards left out). */

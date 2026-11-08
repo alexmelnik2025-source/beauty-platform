@@ -2819,3 +2819,12 @@ zasady dodatkowe» — название, mnożnik ×, dodatkowo +, дни нед
 w ciągu N dni». Правило, которое ничего не даёт, не сохраняется. До 20 правил, сохраняется весь список. API: `GET/PUT
 …/loyalty/bonus-rules`. Логика `src/bonusRules.ts`, e2e `app-loyalty-bonus.spec.ts`, скриншот 346. В кабинете остаются
 только punkty za konkretne usługi.
+
+## Бизнес-приложение: pieczątki i punkty za usługi (задача 347)
+
+В «Program lojalnościowy» раздел «Pieczątki i punkty za usługi»: услуги со своим числом кратко («Broda · 2
+pieczątki») и «Zmień pieczątki i punkty za usługi» — поле на каждую услугу этого салона (пусто — общее правило, 0 —
+услуга ничего не даёт). Выключенная услуга, у которой уже есть своё число, тоже показывается, чтобы сохранение её не
+стёрло. Ошибка называет услугу. API: `PUT …/locations/:id/loyalty/earn-rules` (заменяет список этого салона, ответ —
+вся программа). Логика `src/earnRules.ts`, e2e `app-loyalty-earn.spec.ts`, скриншот 347. Подсказка «zmienisz w
+panelu salonu» убрана — вся программа лояльности теперь есть и в приложении.

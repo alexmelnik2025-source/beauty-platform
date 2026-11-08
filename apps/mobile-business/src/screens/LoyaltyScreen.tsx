@@ -35,6 +35,7 @@ import {
 } from '../loyalty';
 import { formatPrice } from '../day';
 import { BonusRulesSection } from './BonusRulesSection';
+import { EarnRulesSection } from './EarnRulesSection';
 import { TiersSection } from './TiersSection';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
@@ -43,8 +44,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 206: "Program lojalnościowy" — the owner or a manager switches the program on or off,
  * adds a reward (a discount in % or a free service for N stamps or points), removes one and sees
  * the latest operations. Task 344: "Zasady programu" — stamps or points, how much a visit earns,
- * the minimum amount, how long points last, the maximum discount and combining discounts. Tiers,
- * points per service and bonus rules stay in the cabinet (a hint says so).
+ * the minimum amount, how long points last, the maximum discount and combining discounts. Tasks
+ * 345–347: tiers, extra stamps and points, and stamps or points per service.
  */
 export function LoyaltyScreen(props: {
   api: BusinessApi;
@@ -197,7 +198,6 @@ export function LoyaltyScreen(props: {
             ) : (
               <Button label={l.turnOn} busy={busy} onPress={() => switchTo(true)} />
             )}
-            <Text style={styles.muted}>{l.cabinetHint}</Text>
           </Card>
 
           <Text style={styles.section} role="heading">
@@ -303,6 +303,18 @@ export function LoyaltyScreen(props: {
               />
             </Card>
           )}
+
+          <Text style={styles.section} role="heading">
+            {l.earn}
+          </Text>
+          <EarnRulesSection
+            api={api}
+            t={t}
+            salon={salon}
+            program={program}
+            services={services}
+            onSaved={setProgram}
+          />
 
           <Text style={styles.section} role="heading">
             {l.tiers}
