@@ -6401,13 +6401,14 @@
             "name": "sort",
             "required": false,
             "in": "query",
-            "description": "Task 279: A–Z (default), the latest visit first, or the most visits first; task 281: the nearest booked visit first. Filters with their own order keep it",
+            "description": "Task 279: A–Z (default), the latest visit first, or the most visits first; task 281: the nearest booked visit first; task 283: who paid the most first (owners and managers; A–Z for specialists). Filters with their own order keep it",
             "schema": {
               "enum": [
                 "name",
                 "recent",
                 "visits",
-                "next"
+                "next",
+                "paid"
               ],
               "type": "string"
             }
