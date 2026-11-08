@@ -2703,3 +2703,14 @@ wykonuje» (сервер принимает цены только тех, кто
 
 Логика — `apps/mobile-business/src/clientContacts.ts` (тесты `test/clientContacts.test.ts`), поля —
 `ClientContactsFields.tsx`; e2e и скриншоты 332–333 — `apps/web/e2e/app-client-add.spec.ts`.
+
+## Бизнес-приложение: «Dane osobowe (RODO)» в карточке клиента (задача 334)
+
+- Внизу карточки клиента у **владельца** (менеджер и специалист раздела не видят; сервер тоже пускает только владельца):
+  «Pobierz dane klienta» — всё, что салон хранит о клиенте (`GET …/customers/:id/export`), в браузере сохраняется файл
+  `client-<id>.json`, на телефоне открывается «Поделиться» с текстом файла.
+- «Usuń dane klienta» — сначала вопрос, затем `POST …/anonymize` с версией карточки: имя становится «—», телефон,
+  e-mail, заметки и теги удаляются, визиты остаются в статистике. Если есть будущие визиты — подсказка сначала их
+  отменить. После удаления в карточке — «Dane klienta usunięte (RODO) <дата>».
+- Код: `apps/mobile-business/src/clientPrivacy.ts` (тест `test/clientPrivacy.test.ts`), раздел в `ClientScreen.tsx`;
+  e2e и скриншоты 334, 334a — `apps/web/e2e/app-client-privacy.spec.ts`.

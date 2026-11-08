@@ -40,6 +40,8 @@ import { dialForTimeZone } from '../phone';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientContactsFields } from './ClientContactsFields';
+import { csvTools } from './csvTools';
+import { eraseErrorText, shareExport } from '../clientPrivacy';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -81,6 +83,10 @@ export function ClientScreen(props: {
   const [releaseNote, setReleaseNote] = useState('');
   /** Task 241: the birthday editor (owners and managers), day and month as typed. */
   const [birthdayEdit, setBirthdayEdit] = useState<{ day: string; month: string } | null>(null);
+  /** Task 334: "Usuń dane klienta" asks first. */
+  const [erasing, setErasing] = useState(false);
+  /** Task 334: what happened, shown inside the card (it is at the bottom of a long screen). */
+  const [privacyNote, setPrivacyNote] = useState<{ text: string; bad: boolean } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -220,6 +226,49 @@ export function ClientScreen(props: {
       } else {
         setError(errorText(e, t));
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadData() {
+    if (!client) return;
+    const p = t.clientPrivacy;
+    setBusy(true);
+    setPrivacyNote(null);
+    try {
+      const data = await api.exportCustomer(salon.orgId, client.id);
+      const result = await shareExport(client.id, data, csvTools('application/json'));
+      if (result === 'failed') setPrivacyNote({ text: p.failed, bad: true });
+      else if (result !== 'cancelled') {
+        setPrivacyNote({ text: result === 'shared' ? p.shared : p.downloaded, bad: false });
+      }
+    } catch (e) {
+      setPrivacyNote({ text: eraseErrorText(e, t) ?? errorText(e, t), bad: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function eraseData() {
+    if (!client) return;
+    setBusy(true);
+    setPrivacyNote(null);
+    try {
+      const result = await api.anonymizeCustomer(salon.orgId, client.id, client.version);
+      setErasing(false);
+      setEditing(false);
+      setContacts(null);
+      setBirthdayEdit(null);
+      await load();
+      setPrivacyNote({
+        text: fill(t.clientPrivacy.erased, { n: String(result.visitsKept) }),
+        bad: false,
+      });
+    } catch (e) {
+      setErasing(false);
+      setPrivacyNote({ text: eraseErrorText(e, t) ?? errorText(e, t), bad: true });
+      if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') await load();
     } finally {
       setBusy(false);
     }
@@ -680,6 +729,69 @@ export function ClientScreen(props: {
               {h.note ? ` · ${h.note}` : ''}
             </Text>
           ))}
+        </Card>
+      ) : null}
+
+      {/* Task 334: the client's GDPR requests — the salon owner only (the server checks too). */}
+      {salon.role === 'owner' ? (
+        <Card>
+          <Text style={styles.label}>{t.clientPrivacy.title}</Text>
+          {client.anonymizedAt ? (
+            <Text style={styles.muted}>
+              {fill(t.clientPrivacy.anonymized, {
+                date: dateIn(client.anonymizedAt, props.timeZone, props.locale),
+              })}
+            </Text>
+          ) : (
+            <>
+              <Text style={styles.small}>{t.clientPrivacy.hint}</Text>
+              <View style={styles.row}>
+                <Button
+                  kind="secondary"
+                  label={t.clientPrivacy.download}
+                  disabled={busy}
+                  onPress={() => void downloadData()}
+                />
+              </View>
+              {erasing ? (
+                <View style={styles.form}>
+                  <Text style={styles.value}>{t.clientPrivacy.confirm}</Text>
+                  <View style={styles.row}>
+                    <Button
+                      label={t.clientPrivacy.yes}
+                      busy={busy}
+                      onPress={() => void eraseData()}
+                    />
+                    <Button
+                      kind="secondary"
+                      label={t.clientPrivacy.no}
+                      disabled={busy}
+                      onPress={() => setErasing(false)}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.row}>
+                  <Button
+                    kind="link"
+                    label={t.clientPrivacy.erase}
+                    disabled={busy}
+                    onPress={() => {
+                      setPrivacyNote(null);
+                      setErasing(true);
+                    }}
+                  />
+                </View>
+              )}
+            </>
+          )}
+          {privacyNote ? (
+            privacyNote.bad ? (
+              <ErrorText>{privacyNote.text}</ErrorText>
+            ) : (
+              <Text style={styles.info}>{privacyNote.text}</Text>
+            )
+          ) : null}
         </Card>
       ) : null}
 

@@ -28,6 +28,8 @@ import { paymentBody, type PaymentMethod } from './payment';
 export type Locale = 'pl' | 'uk' | 'ru' | 'en';
 export type LocationList = components['schemas']['LocationList'];
 export type StaffList = components['schemas']['StaffList'];
+export type CustomerExport = components['schemas']['CustomerExport'];
+export type AnonymizedCustomer = components['schemas']['AnonymizedCustomer'];
 export type WorkingHours = components['schemas']['WorkingHours'];
 export type TimeOff = components['schemas']['TimeOff'];
 export type TimeOffList = components['schemas']['TimeOffList'];
@@ -808,6 +810,21 @@ export class BusinessApi {
     change: ContactsChange,
   ): Promise<CustomerDetail> {
     return this.authed<CustomerDetail>('PATCH', customerPath(orgId, id), { ...change, version });
+  }
+
+  /** Task 334: owner only — everything kept about the client (GDPR access request). */
+  exportCustomer(orgId: string, id: string): Promise<CustomerExport> {
+    return this.authed<CustomerExport>('GET', `${customerPath(orgId, id)}/export`);
+  }
+
+  /**
+   * Task 334: owner only — erase the client's personal data; visits stay without them.
+   * 409 CUSTOMER_HAS_UPCOMING_VISITS (details: upcoming = how many), CUSTOMER_ANONYMIZED.
+   */
+  anonymizeCustomer(orgId: string, id: string, version: number): Promise<AnonymizedCustomer> {
+    return this.authed<AnonymizedCustomer>('POST', `${customerPath(orgId, id)}/anonymize`, {
+      version,
+    });
   }
 
   /** The client's note and tags (a specialist needs the permission). Send the version that was read. */
