@@ -5617,6 +5617,8 @@ export interface components {
                 bookedMinutes: number;
                 /** @description bookedMinutes of workMinutes, 0–100 */
                 percent: number;
+                /** @description Task 299: revenue of the period for one hour of working time ("na godzinę pracy"), in hundredths; null without working time */
+                revenuePerHourGrosze: number | null;
                 /** @description Specialists with working time or visits in the period, busiest first */
                 staff: {
                     id: string;
@@ -5624,6 +5626,8 @@ export interface components {
                     workMinutes: number;
                     bookedMinutes: number;
                     percent: number;
+                    /** @description Task 299: revenue of this specialist for one hour of her working time */
+                    revenuePerHourGrosze: number | null;
                 }[];
             };
             /** @description Task 213: how clients rated the visits of the period ("Oceny") */

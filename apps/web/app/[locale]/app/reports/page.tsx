@@ -366,12 +366,31 @@ export default function ReportsPage() {
                             booked: hours(s.bookedMinutes),
                             work: hours(s.workMinutes),
                           })}
+                          {s.revenuePerHourGrosze !== null ? (
+                            <>
+                              {' '}
+                              ·{' '}
+                              <span data-testid="report-occupancy-per-hour">
+                                {fill(t.reports.occupancyPerHour, {
+                                  money: money(s.revenuePerHourGrosze),
+                                })}
+                              </span>
+                            </>
+                          ) : null}
                         </span>
                       </span>
                     </li>
                   ))}
                 </ol>
+                {occupancy.revenuePerHourGrosze !== null ? (
+                  <p data-testid="report-occupancy-per-hour-total">
+                    {fill(t.reports.occupancyPerHour, {
+                      money: money(occupancy.revenuePerHourGrosze),
+                    })}
+                  </p>
+                ) : null}
                 <p className="small muted">{t.reports.occupancyHint}</p>
+                <p className="small muted">{t.reports.occupancyPerHourHint}</p>
               </section>
             ) : null}
 

@@ -1408,6 +1408,9 @@ export const en: Dict = {
       'Change in % — compared with the same number of days before ({from} – {to}: {revenue}, completed visits: {visits}).',
     occupancy: 'Occupancy',
     occupancyHours: '{booked} of {work} h booked',
+    occupancyPerHour: '{money} per working hour',
+    occupancyPerHourHint:
+      'Per working hour — what paid visits of the period brought, divided by the hours of the schedule.',
     occupancyHint:
       'Occupancy is the share of scheduled working hours (without time off and blocked time) taken by visits, including ones the client did not come to. Cancelled visits do not count.',
     ratings: 'Client ratings',

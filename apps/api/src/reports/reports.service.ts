@@ -427,7 +427,11 @@ export class ReportsService {
       weekdays,
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
-      occupancy: await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
+      occupancy: revenuePerHour(
+        await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
+        totals.revenueGrosze,
+        staff,
+      ),
       ratings: await this.ratings(locationId, staffIds, rangeStart, rangeEnd),
       rebooking: await this.rebooking(locationId, lastVisit),
       topClients: own ? [] : await this.topClients(byClient),
@@ -842,7 +846,7 @@ export class ReportsService {
     query: ReportQuery,
     rangeStart: Date,
     rangeEnd: Date,
-  ): Promise<SalonReport['occupancy']> {
+  ): Promise<OccupancyBase> {
     const visits = await this.prisma.appointment.findMany({
       where: {
         locationId,
@@ -1124,4 +1128,32 @@ export class ReportsService {
       rangeEnd: new Date(zonedToInstant(addDays(query.to, 1), 0, location.timezone)),
     };
   }
+}
+
+/** Revenue for one hour of working time; null when there was no working time. */
+function perHour(revenueGrosze: number, workMinutes: number): number | null {
+  return workMinutes > 0 ? Math.round((revenueGrosze * 60) / workMinutes) : null;
+}
+
+/**
+ * Task 299: "na godzinę pracy" — what paid visits brought for one hour of working time by the
+ * schedule, for the salon and for each specialist (revenue of the period, as in "Specjaliści").
+ */
+type OccupancyBase = Omit<SalonReport['occupancy'], 'revenuePerHourGrosze' | 'staff'> & {
+  staff: Omit<SalonReport['occupancy']['staff'][number], 'revenuePerHourGrosze'>[];
+};
+
+function revenuePerHour(
+  occ: OccupancyBase,
+  revenueGrosze: number,
+  staff: Map<string, { revenueGrosze: number }>,
+): SalonReport['occupancy'] {
+  return {
+    ...occ,
+    revenuePerHourGrosze: perHour(revenueGrosze, occ.workMinutes),
+    staff: occ.staff.map((s) => ({
+      ...s,
+      revenuePerHourGrosze: perHour(staff.get(s.id)?.revenueGrosze ?? 0, s.workMinutes),
+    })),
+  };
 }

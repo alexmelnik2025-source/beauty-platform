@@ -1405,6 +1405,9 @@ export const pl = {
       'Zmiana w % — w porównaniu z tyloma samymi dniami wcześniej ({from} – {to}: {revenue}, odbyte wizyty: {visits}).',
     occupancy: 'Obłożenie',
     occupancyHours: 'zajęte {booked} z {work} godz.',
+    occupancyPerHour: '{money} na godzinę pracy',
+    occupancyPerHourHint:
+      'Na godzinę pracy — ile przyniosły opłacone wizyty okresu w przeliczeniu na godzinę pracy z grafiku.',
     occupancyHint:
       'Obłożenie — jaka część godzin pracy z grafiku (bez urlopów i zablokowanego czasu) była zajęta wizytami, także tymi, na które klient nie przyszedł. Odwołane wizyty się nie liczą.',
     ratings: 'Oceny klientów',

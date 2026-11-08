@@ -500,6 +500,9 @@ export const en: Dictionary = {
     weekdayVisits: 'visits: {n}',
     occupancy: 'Occupancy: {n}%',
     occupancyHours: '{booked} of {work} h booked',
+    occupancyPerHour: '{money} per working hour',
+    occupancyPerHourHint:
+      'Per working hour — what paid visits of the period brought, divided by the hours of the schedule.',
     occupancyHint:
       'The share of scheduled working hours (without time off and blocked time) taken by visits. Cancelled visits do not count.',
     compared: '% — compared with {from} – {to}',

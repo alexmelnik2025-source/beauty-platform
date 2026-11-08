@@ -583,10 +583,21 @@ export function ReportsScreen(props: {
                       booked: hours(s.bookedMinutes),
                       work: hours(s.workMinutes),
                     })}
+                    {s.revenuePerHourGrosze !== null
+                      ? ` · ${fill(r.occupancyPerHour, { money: money(s.revenuePerHourGrosze) })}`
+                      : ''}
                   </Text>
                 </View>
               ))}
+              {shown.occupancy.revenuePerHourGrosze !== null ? (
+                <Text style={styles.name} testID="report-occupancy-per-hour">
+                  {fill(r.occupancyPerHour, {
+                    money: money(shown.occupancy.revenuePerHourGrosze),
+                  })}
+                </Text>
+              ) : null}
               <Text style={styles.small}>{r.occupancyHint}</Text>
+              <Text style={styles.small}>{r.occupancyPerHourHint}</Text>
             </View>
           ) : null}
           {ratings && ratings.average !== null ? (

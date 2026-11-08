@@ -601,7 +601,7 @@ describe('salon report', () => {
     expect((await report(kasiaUser.auth).expect(200)).body.onceClients).toBe(0);
   });
 
-  it('"Obłożenie": working time by the schedule and the part visits took (task 141)', async () => {
+  it('"Obłożenie": working time by the schedule, the part visits took and revenue an hour (tasks 141, 299)', async () => {
     const d1 = addDays(today, -5);
     const d2 = addDays(today, -2);
     // Kasia works 10:00–18:00 every day; on d2 only 12:00–14:00 (special day).
@@ -650,10 +650,13 @@ describe('salon report', () => {
     );
     // 11 days: 10 × 8 h + 2 h (special day) − 8 h (vacation) − 1 h (blocked) = 73 h.
     const work = (10 * 8 + 2 - 8 - 1) * 60;
+    // Task 299: the paid haircut (80 zł) for 73 working hours ≈ 1,10 zł an hour.
+    const perHour = Math.round((8000 * 60) / work);
     expect(res.body.occupancy).toEqual({
       workMinutes: work,
       bookedMinutes: 60,
       percent: Math.round((60 / work) * 100),
+      revenuePerHourGrosze: perHour,
       staff: [
         {
           id: kasiaId,
@@ -661,8 +664,16 @@ describe('salon report', () => {
           workMinutes: work,
           bookedMinutes: 60,
           percent: Math.round((60 / work) * 100),
+          revenuePerHourGrosze: perHour,
         },
-        { id: olaId, displayName: 'Ola', workMinutes: 0, bookedMinutes: 0, percent: 0 },
+        {
+          id: olaId,
+          displayName: 'Ola',
+          workMinutes: 0,
+          bookedMinutes: 0,
+          percent: 0,
+          revenuePerHourGrosze: null,
+        },
       ],
     });
 
@@ -674,6 +685,7 @@ describe('salon report', () => {
     const own = await report(kasiaUser.auth).expect(200);
     expect(own.body.occupancy.staff.map((s: { id: string }) => s.id)).toEqual([kasiaId]);
     expect(own.body.occupancy.workMinutes).toBe(work);
+    expect(own.body.occupancy.revenuePerHourGrosze).toBe(perHour);
   });
 
   it('ratings: reviews of the period by stars and specialist; a specialist sees only own', async () => {

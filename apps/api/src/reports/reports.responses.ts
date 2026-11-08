@@ -154,6 +154,13 @@ export const salonReportSchema = responseSchema(
           .int()
           .describe('Part of the working time taken by visits that were not cancelled'),
         percent: z.number().int().describe('bookedMinutes of workMinutes, 0–100'),
+        revenuePerHourGrosze: z
+          .number()
+          .int()
+          .nullable()
+          .describe(
+            'Task 299: revenue of the period for one hour of working time ("na godzinę pracy"), in hundredths; null without working time',
+          ),
         staff: z
           .array(
             z.strictObject({
@@ -162,6 +169,11 @@ export const salonReportSchema = responseSchema(
               workMinutes: z.number().int(),
               bookedMinutes: z.number().int(),
               percent: z.number().int(),
+              revenuePerHourGrosze: z
+                .number()
+                .int()
+                .nullable()
+                .describe('Task 299: revenue of this specialist for one hour of her working time'),
             }),
           )
           .describe('Specialists with working time or visits in the period, busiest first'),

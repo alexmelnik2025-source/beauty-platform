@@ -21787,6 +21787,13 @@
                 "maximum": 9007199254740991,
                 "description": "bookedMinutes of workMinutes, 0–100"
               },
+              "revenuePerHourGrosze": {
+                "nullable": true,
+                "description": "Task 299: revenue of the period for one hour of working time (\"na godzinę pracy\"), in hundredths; null without working time",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
               "staff": {
                 "type": "array",
                 "items": {
@@ -21812,6 +21819,13 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "revenuePerHourGrosze": {
+                      "nullable": true,
+                      "description": "Task 299: revenue of this specialist for one hour of her working time",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
@@ -21819,7 +21833,8 @@
                     "displayName",
                     "workMinutes",
                     "bookedMinutes",
-                    "percent"
+                    "percent",
+                    "revenuePerHourGrosze"
                   ],
                   "additionalProperties": false
                 },
@@ -21830,6 +21845,7 @@
               "workMinutes",
               "bookedMinutes",
               "percent",
+              "revenuePerHourGrosze",
               "staff"
             ],
             "additionalProperties": false,

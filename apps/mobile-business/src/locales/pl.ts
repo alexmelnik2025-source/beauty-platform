@@ -497,6 +497,9 @@ export const pl = {
     weekdayVisits: 'wizyty: {n}',
     occupancy: 'Obłożenie: {n}%',
     occupancyHours: 'zajęte {booked} z {work} godz.',
+    occupancyPerHour: '{money} na godzinę pracy',
+    occupancyPerHourHint:
+      'Na godzinę pracy — ile przyniosły opłacone wizyty okresu w przeliczeniu na godzinę pracy z grafiku.',
     occupancyHint:
       'Część godzin pracy z grafiku (bez urlopów i zablokowanego czasu) zajęta wizytami. Odwołane się nie liczą.',
     compared: '% — w porównaniu z: {from} – {to}',

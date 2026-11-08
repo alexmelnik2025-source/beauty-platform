@@ -498,6 +498,9 @@ export const ru: Dictionary = {
     weekdayVisits: 'визитов: {n}',
     occupancy: 'Загрузка: {n}%',
     occupancyHours: 'занято {booked} из {work} ч',
+    occupancyPerHour: '{money} за час работы',
+    occupancyPerHourHint:
+      'За час работы — сколько принесли оплаченные визиты периода в пересчёте на час работы по графику.',
     occupancyHint:
       'Часть рабочих часов по графику (без отпусков и заблокированного времени), занятая визитами. Отменённые не учитываются.',
     compared: '% — по сравнению с: {from} – {to}',

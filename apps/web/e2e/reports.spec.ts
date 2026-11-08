@@ -18,6 +18,7 @@ import { serveApp } from './mobile-app';
  * "Pobierz CSV" downloads every visit of the period for the accountant (task 30).
  * The same report in the business app for iPhone and Android (task 15; its web preview): 75.
  * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d, app 75c.
+ * Revenue for one hour of working time, for the salon and each specialist (task 299): 74d, 75c.
  * "Oceny klientów" — the reviews of the period by stars and specialist (task 213): 74e, app 75d.
  * "Najlepsi klienci" — the clients who brought the most, names only (task 215): 74f, app 75f.
  * "Godziny szczytu" — when visits start, by weekday and hour (task 216): 74g, app 75g.
@@ -331,6 +332,13 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(occupancy.getByRole('listitem').filter({ hasText: 'Marek' })).toContainText(
     'zajęte 1,5 z 360 godz.',
   );
+  // Task 299: Ilian brought 150 zł for 360 working hours — 0,42 zł an hour; the salon 240 zł for 720.
+  await expect(occupancy.getByRole('listitem').filter({ hasText: 'Ilian' })).toContainText(
+    /0,42\s*zł na godzinę pracy/,
+  );
+  await expect(occupancy.getByTestId('report-occupancy-per-hour-total')).toHaveText(
+    /^0,33\s*zł na godzinę pracy$/,
+  );
   await shot(page, '74d-owner-reports-occupancy');
   // "Oceny klientów": 3 reviews, ★ 4,7; Marek 5,0 first, then Ilian 4,5 (task 213).
   const ratings = page.getByTestId('report-ratings');
@@ -495,6 +503,9 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     // "Obłożenie" in the app too (task 141).
     await app.getByText(/^Obłożenie: \d+%$/).scrollIntoViewIfNeeded();
     await expect(app.getByText('zajęte 1,5 z 360 godz.').first()).toBeVisible();
+    await expect(app.getByTestId('report-occupancy-per-hour')).toHaveText(
+      /^0,33\s*zł na godzinę pracy$/,
+    );
     await shot(app, '75c-business-app-reports-occupancy');
     // "Oceny klientów" in the app too (task 213).
     await app.getByText('Oceny klientów: ★ 4,7').scrollIntoViewIfNeeded();
