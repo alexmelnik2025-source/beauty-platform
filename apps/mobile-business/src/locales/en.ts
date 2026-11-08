@@ -392,6 +392,10 @@ export const en: Dictionary = {
     specialRemoveAsk: 'Bring back the usual hours on this day?',
     specialRemove: 'Remove',
     specialRemoved: 'The usual hours of that day are back.',
+    wholeDays: 'Whole days',
+    partDay: 'Part of a day',
+    offHours: 'Hours off',
+    badOffHours: 'Enter the hours off, e.g. 12:00–15:00.',
   },
   staffProfile: {
     title: 'Profile',

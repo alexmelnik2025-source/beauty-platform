@@ -99,3 +99,21 @@ export function specialBody(
 export function specialInput(hours: Pick<WorkingHours, 'overrides'>, date: string): string {
   return hoursInput(hours.overrides.find((o) => o.date === date)?.intervals ?? []);
 }
+
+/**
+ * Task 338: time off for a part of one day ("12:00–15:00" on 2026-12-24) as the API wants it,
+ * location-local. Exactly one interval; null when it cannot be read.
+ */
+export function hoursOff(date: string, text: string): { start: string; end: string } | null {
+  const intervals = parseDayHours(text);
+  if (!intervals || intervals.length !== 1) return null;
+  const [only] = intervals as [Interval];
+  // "24:00" is the end of the day: the next day's midnight.
+  const end = only.end === '24:00' ? `${nextDay(date)}T00:00` : `${date}T${only.end}`;
+  return { start: `${date}T${only.start}`, end };
+}
+
+function nextDay(date: string): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}

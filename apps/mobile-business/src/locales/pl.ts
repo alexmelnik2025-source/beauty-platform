@@ -390,6 +390,10 @@ export const pl = {
     specialRemoveAsk: 'Przywrócić zwykłe godziny tego dnia?',
     specialRemove: 'Usuń',
     specialRemoved: 'Przywrócono zwykłe godziny tego dnia.',
+    wholeDays: 'Całe dni',
+    partDay: 'Część dnia',
+    offHours: 'Godziny wolnego',
+    badOffHours: 'Wpisz godziny wolnego, np. 12:00–15:00.',
   },
   staffProfile: {
     title: 'Profil',
