@@ -9515,6 +9515,34 @@
         ]
       }
     },
+    "/v1/client/me/summary": {
+      "get": {
+        "description": "Visits that took place, in how many salons, since when, and what the paid visits cost per currency.",
+        "operationId": "ClientController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientVisitSummary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How my visits went, in all salons (task 292)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/holds/{holdId}/confirm": {
       "post": {
         "description": "For a client signed in to \"My visits\": the session proved the email, so no code is sent. The email comes from the session. Same rules as the code step (salon terms, cancellation guard, wishes, emails); signedIn is always true.",
@@ -15819,6 +15847,65 @@
         "required": [
           "person",
           "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "ClientVisitSummary": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Visits that took place, in every salon"
+          },
+          "salons": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Salons where at least one visit took place"
+          },
+          "firstVisitAt": {
+            "nullable": true,
+            "description": "Start of the first visit that took place; null when none",
+            "type": "string"
+          },
+          "spent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "currency": {
+                  "type": "string"
+                },
+                "amountGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Paid visits: price minus loyalty discounts"
+                },
+                "visits": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Paid visits in this currency"
+                }
+              },
+              "required": [
+                "currency",
+                "amountGrosze",
+                "visits"
+              ],
+              "additionalProperties": false
+            },
+            "description": "What the paid visits cost, per currency, most first; empty when none"
+          }
+        },
+        "required": [
+          "completed",
+          "salons",
+          "firstVisitAt",
+          "spent"
         ],
         "additionalProperties": false
       },

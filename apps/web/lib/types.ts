@@ -69,6 +69,7 @@ export type {
   ClientLoyaltyCard,
   ClientContact,
   ClientPerson,
+  ClientVisitSummary,
   FailedEmail,
   HappyHours,
   Hold,

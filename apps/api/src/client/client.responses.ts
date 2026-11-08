@@ -77,3 +77,26 @@ export const clientAppointmentListSchema = responseSchema(
   'ClientAppointmentList',
   z.strictObject({ items: z.array(clientAppointmentSchema) }),
 );
+
+/** Task 292: "Twoje wizyty" — how the client has been coming, over all salons and all time. */
+export const clientVisitSummarySchema = responseSchema(
+  'ClientVisitSummary',
+  z.strictObject({
+    completed: z.number().int().describe('Visits that took place, in every salon'),
+    salons: z.number().int().describe('Salons where at least one visit took place'),
+    firstVisitAt: z
+      .string()
+      .nullable()
+      .describe('Start of the first visit that took place; null when none'),
+    spent: z
+      .array(
+        z.strictObject({
+          currency: z.string(),
+          amountGrosze: z.number().int().describe('Paid visits: price minus loyalty discounts'),
+          visits: z.number().int().describe('Paid visits in this currency'),
+        }),
+      )
+      .describe('What the paid visits cost, per currency, most first; empty when none'),
+  }),
+);
+export type ClientVisitSummaryResponse = z.infer<typeof clientVisitSummarySchema>;

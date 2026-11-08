@@ -440,6 +440,57 @@ describe('client app: my visits in all salons', () => {
     const res = await ctx.http().get(`/v1/client/appointments/${id}`).set(auth).expect(200);
     expect(res.body.bookAgain).toBeNull();
   });
+
+  it('"Twoje wizyty": visits that took place and what the paid ones cost, only my own (task 292)', async () => {
+    const auth = await signIn(ANNA);
+    const empty = await ctx.http().get('/v1/client/me/summary').set(auth).expect(200);
+    expect(empty.body).toEqual({ completed: 0, salons: 0, firstVisitAt: null, spent: [] });
+
+    const a = await book(first, at(day, 10));
+    const b = await book(first, at(day, 12));
+    const c = await book(second, at(day, 11));
+    const cancelled = await book(first, at(day, 14));
+    await book(second, at(day, 15)); // still to come: not counted
+    await book(first, at(day, 16), BOB);
+    await ctx.prisma.location.update({
+      where: { id: second.locationId },
+      data: { currency: 'EUR' },
+    });
+    await ctx.prisma.appointment.updateMany({
+      where: { id: { in: [a, b, c] } },
+      data: { status: 'completed' },
+    });
+    // Paid: a with a coupon (−10 zł), c in euro; b is not paid yet. A paid visit that was
+    // cancelled afterwards does not count; Bob's visit is not Anna's.
+    await ctx.prisma.appointment.update({
+      where: { id: a },
+      data: { paidAt: new Date(), discountGrosze: 1000 },
+    });
+    await ctx.prisma.appointment.updateMany({
+      where: { id: { in: [c, cancelled] } },
+      data: { paidAt: new Date() },
+    });
+    await ctx.prisma.appointment.update({
+      where: { id: cancelled },
+      data: { status: 'cancelled', cancelledBy: 'customer' },
+    });
+    await ctx.prisma.appointment.updateMany({
+      where: { customer: { email: BOB } },
+      data: { status: 'completed', paidAt: new Date() },
+    });
+
+    const res = await ctx.http().get('/v1/client/me/summary').set(auth).expect(200);
+    expect(res.body).toEqual({
+      completed: 3,
+      salons: 2,
+      firstVisitAt: at(day, 10),
+      spent: [
+        { currency: 'EUR', amountGrosze: 8000, visits: 1 },
+        { currency: 'PLN', amountGrosze: 7000, visits: 1 },
+      ],
+    });
+    await ctx.http().get('/v1/client/me/summary').expect(401);
+  });
 });
 
 describe('client app: signed in right after booking online', () => {

@@ -24,6 +24,7 @@ import { createClientSession } from './client-session';
 import type {
   ClientAppointmentResponse,
   ClientContactResponse,
+  ClientVisitSummaryResponse,
   PersonResponse,
 } from './client.responses';
 import { renderClientCodeEmail } from './client-templates';
@@ -219,6 +220,56 @@ export class ClientService {
           });
     const coupons = await this.visitCoupons.usedOn(this.prisma, items);
     return { items: items.map((a) => this.toClient(a, coupons.get(a.id) ?? [])) };
+  }
+
+  /**
+   * Task 292: how many visits took place, in how many salons, since when, and what the paid
+   * visits cost — the same rule as "Zapłacono" in the salon's client card (price minus discount,
+   * cancelled visits left out), per currency.
+   */
+  async summary(auth: ClientAuth): Promise<ClientVisitSummaryResponse> {
+    const mine = await this.mineWhere(auth);
+    const [done, paid] = await Promise.all([
+      this.prisma.appointment.groupBy({
+        by: ['locationId'],
+        where: { ...mine, status: 'completed' },
+        _count: { _all: true },
+        _min: { startAt: true },
+      }),
+      this.prisma.appointment.groupBy({
+        by: ['locationId'],
+        where: { ...mine, paidAt: { not: null }, status: { not: 'cancelled' } },
+        _sum: { priceGrosze: true, discountGrosze: true },
+        _count: { _all: true },
+      }),
+    ]);
+    const locations = await this.prisma.location.findMany({
+      where: { id: { in: paid.map((p) => p.locationId) } },
+      select: { id: true, currency: true },
+    });
+    const currencyOf = new Map(locations.map((l) => [l.id, l.currency]));
+    const totals = new Map<string, { amountGrosze: number; visits: number }>();
+    for (const row of paid) {
+      const currency = currencyOf.get(row.locationId) ?? 'PLN';
+      const sum = totals.get(currency) ?? { amountGrosze: 0, visits: 0 };
+      totals.set(currency, {
+        amountGrosze:
+          sum.amountGrosze + (row._sum.priceGrosze ?? 0) - (row._sum.discountGrosze ?? 0),
+        visits: sum.visits + row._count._all,
+      });
+    }
+    const first = done
+      .map((row) => row._min.startAt)
+      .filter((d): d is Date => d !== null)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    return {
+      completed: done.reduce((sum, row) => sum + row._count._all, 0),
+      salons: done.length,
+      firstVisitAt: first?.toISOString() ?? null,
+      spent: [...totals]
+        .map(([currency, sum]) => ({ currency, ...sum }))
+        .sort((a, b) => b.amountGrosze - a.amountGrosze),
+    };
   }
 
   async get(auth: ClientAuth, id: string): Promise<ClientAppointmentResponse> {

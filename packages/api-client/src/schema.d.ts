@@ -2290,6 +2290,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/me/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How my visits went, in all salons (task 292)
+         * @description Visits that took place, in how many salons, since when, and what the paid visits cost per currency.
+         */
+        get: operations["ClientController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/holds/{holdId}/confirm": {
         parameters: {
             query?: never;
@@ -4109,6 +4129,22 @@ export interface components {
             expiresAt: string;
             /** @description Mobile only: keep it in the Keychain/Keystore and send as `Authorization: Bearer` */
             token?: string;
+        };
+        ClientVisitSummary: {
+            /** @description Visits that took place, in every salon */
+            completed: number;
+            /** @description Salons where at least one visit took place */
+            salons: number;
+            /** @description Start of the first visit that took place; null when none */
+            firstVisitAt: string | null;
+            /** @description What the paid visits cost, per currency, most first; empty when none */
+            spent: {
+                currency: string;
+                /** @description Paid visits: price minus loyalty discounts */
+                amountGrosze: number;
+                /** @description Paid visits in this currency */
+                visits: number;
+            }[];
         };
         ClientWaitlist: {
             items: {
@@ -10478,6 +10514,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientContact"];
+                };
+            };
+        };
+    };
+    ClientController_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientVisitSummary"];
                 };
             };
         };

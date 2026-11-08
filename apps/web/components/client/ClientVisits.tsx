@@ -6,7 +6,12 @@ import { api, ApiError } from '@/lib/api';
 import { bookWithHref, favoriteSpecialists, type FavoriteSpecialist } from '@/lib/favorite';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
-import type { ClientAppointment, ClientDataExport, ClientPerson } from '@/lib/types';
+import type {
+  ClientAppointment,
+  ClientDataExport,
+  ClientPerson,
+  ClientVisitSummary,
+} from '@/lib/types';
 import { InstallApp } from '../InstallApp';
 import { ClientBonuses } from './ClientBonuses';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
@@ -191,11 +196,14 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   const [items, setItems] = useState<ClientAppointment[] | null>(null);
   // Task 203: "Twoi specjaliści" above the coming visits, from the client's own history.
   const [mine, setMine] = useState<FavoriteSpecialist[]>([]);
+  // Task 292: "Twoje wizyty" above the past visits — all time, every salon.
+  const [summary, setSummary] = useState<ClientVisitSummary | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setItems(null);
     setMine([]);
+    setSummary(null);
     setError('');
     if (scope === 'bonuses') return;
     try {
@@ -204,12 +212,16 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
           auth: false,
           query: { scope: which },
         });
-      const [res, past] = await Promise.all([
+      const [res, past, sum] = await Promise.all([
         list(scope),
         scope === 'upcoming' ? list('past') : Promise.resolve(null),
+        scope === 'past'
+          ? api<ClientVisitSummary>('/v1/client/me/summary', { auth: false })
+          : Promise.resolve(null),
       ]);
       setItems(res.items);
       if (past) setMine(favoriteSpecialists(past.items));
+      setSummary(sum);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onSignedOut();
       else setError(errorText(t, err));
@@ -285,6 +297,9 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
           </ul>
         </section>
       ) : null}
+      {scope === 'past' && summary && summary.completed > 0 ? (
+        <VisitSummary summary={summary} />
+      ) : null}
       {scope === 'bonuses' ? (
         <ClientBonuses onSignedOut={onSignedOut} />
       ) : items === null ? (
@@ -338,5 +353,32 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
         {t.common.signOut}
       </button>
     </>
+  );
+}
+
+/** Task 292: how many visits took place, in how many salons, since when, and what they cost. */
+function VisitSummary({ summary }: { summary: ClientVisitSummary }) {
+  const { t, locale } = useI18n();
+  const tag = LOCALE_TAGS[locale];
+  const since = summary.firstVisitAt
+    ? new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'long', year: 'numeric' }).format(
+        new Date(summary.firstVisitAt),
+      )
+    : null;
+  const spent = summary.spent.map((s) => formatPrice(s.amountGrosze, s.currency, tag)).join(' + ');
+  return (
+    <section className="summary" aria-label={t.visits.summaryTitle} data-testid="visit-summary">
+      <h2 className="big">{t.visits.summaryTitle}</h2>
+      <span>
+        {fill(t.visits.summaryVisits, { n: String(summary.completed) })}
+        {summary.salons > 1
+          ? ` · ${fill(t.visits.summarySalons, { n: String(summary.salons) })}`
+          : ''}
+        {since ? ` · ${fill(t.visits.summarySince, { date: since })}` : ''}
+      </span>
+      {spent ? (
+        <span className="small">{fill(t.visits.summarySpent, { amount: spent })}</span>
+      ) : null}
+    </section>
   );
 }

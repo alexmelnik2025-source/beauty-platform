@@ -63,9 +63,11 @@ import {
   clientContactSchema,
   clientPersonSchema,
   clientSignInSchema,
+  clientVisitSummarySchema,
   type ClientAppointmentResponse,
   type ClientContactResponse,
   type ClientSignInResponse,
+  type ClientVisitSummaryResponse,
   type PersonResponse,
 } from './client.responses';
 import { ClientService, type ClientAuth } from './client.service';
@@ -172,6 +174,19 @@ export class ClientController {
   @ApiZodResponse(clientContactSchema)
   contact(@CurrentClient() client: ClientAuth): Promise<ClientContactResponse> {
     return this.clients.contact(client);
+  }
+
+  @Get('me/summary')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'How my visits went, in all salons (task 292)',
+    description:
+      'Visits that took place, in how many salons, since when, and what the paid visits cost per currency.',
+  })
+  @ApiZodResponse(clientVisitSummarySchema)
+  summary(@CurrentClient() client: ClientAuth): Promise<ClientVisitSummaryResponse> {
+    return this.clients.summary(client);
   }
 
   @Patch('me')

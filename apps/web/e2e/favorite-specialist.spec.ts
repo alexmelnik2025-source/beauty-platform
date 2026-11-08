@@ -7,7 +7,8 @@ import { serveApp } from './mobile-app';
 /**
  * Task 165d: "your specialist". A client went to Kasia twice; in the client app "Moje wizyty"
  * shows "Twoi specjaliści" with Kasia, and "Umów u: Kasia" opens her free times at once.
- * Screenshots 165d, 165d-a.
+ * Screenshots 165d, 165d-a. Task 292: "Historia" on the site starts with "Twoje wizyty" — 3 visits,
+ * the two paid ones in total (screenshot 292).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -25,15 +26,16 @@ async function json<T>(res: APIResponse): Promise<T> {
 }
 
 /** Visits can't be booked in the past: book ahead, then move them back and mark them done. */
-function tookPlace(appointmentId: string, daysAgo: number) {
+function tookPlace(appointmentId: string, daysAgo: number, paid = false) {
   const url = (process.env.DATABASE_URL ?? '').replace(/\?.*$/, '');
   const shift = `interval '${daysAgo + 3} days'`;
+  const paidAt = paid ? ', paid_at = now()' : '';
   execFileSync('psql', [
     url,
     '-v',
     'ON_ERROR_STOP=1',
     '-c',
-    `UPDATE appointment SET status = 'completed', start_at = start_at - ${shift}, end_at = end_at - ${shift}, blocked_until = blocked_until - ${shift} WHERE id = '${appointmentId}'`,
+    `UPDATE appointment SET status = 'completed', start_at = start_at - ${shift}, end_at = end_at - ${shift}, blocked_until = blocked_until - ${shift}${paidAt} WHERE id = '${appointmentId}'`,
   ]);
 }
 
@@ -155,8 +157,8 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     );
     return confirmed.appointment.id;
   }
-  tookPlace(await book(kasia, 0), 40);
-  tookPlace(await book(marek, 1), 20);
+  tookPlace(await book(kasia, 0), 40, true);
+  tookPlace(await book(marek, 1), 20, true);
   tookPlace(await book(kasia, 2), 10);
 
   // ── The client app ───────────────────────────────────────────────────
@@ -231,6 +233,13 @@ test('"Twoi specjaliści" in the client app books the usual specialist in one ta
     await expect(mine.getByText('Strzyżenie fade · wizyty: 2')).toBeVisible();
     await expect(mine.getByText('Marek', { exact: true })).toHaveCount(0);
     await shot(page, '203-site-my-specialists');
+    // Task 292: "Twoje wizyty" on top of the past visits.
+    await page.getByRole('button', { name: 'Historia' }).click();
+    const summary = page.getByRole('region', { name: 'Twoje wizyty' });
+    await expect(summary.getByText(/^Odbyte wizyty: 3 · od \d{1,2} \S+ \d{4}/)).toBeVisible();
+    await expect(summary.getByText(/^Zapłacono łącznie: 180,00\s?zł$/)).toBeVisible();
+    await shot(page, '292-site-visit-summary');
+    await page.getByRole('button', { name: 'Nadchodzące' }).click();
     await mine.getByRole('link', { name: 'Umów u: Kasia' }).click();
     // The booking page starts on Kasia's free times for the same service.
     await expect(page).toHaveURL(/\/pl\/b\/.+\?service=.+&staff=.+/);

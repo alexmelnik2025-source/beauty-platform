@@ -35,6 +35,8 @@ export type PublicAppointment = Schemas['PublicAppointment'];
 /** "My visits" client app. */
 export type ClientPerson = Schemas['ClientPerson'];
 export type ClientContact = Schemas['ClientContact'];
+/** Task 292: "Twoje wizyty" — how my visits went, in all salons. */
+export type ClientVisitSummary = Schemas['ClientVisitSummary'];
 export type ClientSignIn = Schemas['ClientSignIn'];
 export type ClientCodeSent = Schemas['ClientCodeSent'];
 export type ClientAppointment = Schemas['ClientAppointment'];
