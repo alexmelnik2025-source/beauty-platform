@@ -1055,6 +1055,7 @@ export const uk: Dict = {
       lastVisit: 'Останній візит',
       paid: 'Оплачено разом',
       average: 'У середньому за візит',
+      tips: 'Чайові разом',
       rhythm: 'Зазвичай повертається',
       rhythmValue: 'кожні {days} дн. · наступний бл. {date}',
       favoriteService: 'Улюблена послуга',

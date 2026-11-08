@@ -290,6 +290,16 @@ export function ClientScreen(props: {
             })}
           </Text>
         ) : null}
+        {/* Task 288: tips the client left (not part of the revenue). */}
+        {client.summary.tips && client.summary.tips.length > 0 ? (
+          <Text style={styles.chip}>
+            {fill(c.tips, {
+              amount: client.summary.tips
+                .map((p) => formatPrice(p.amountGrosze, p.currency, props.locale))
+                .join(' + '),
+            })}
+          </Text>
+        ) : null}
         {(client.tags ?? []).map((tag) => (
           <Text key={tag} style={[styles.chip, styles.tag]}>
             {tag}

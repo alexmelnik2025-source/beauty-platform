@@ -279,6 +279,21 @@ export const customerDetailSchema = responseSchema(
           )
           .nullable()
           .describe('One row per currency of the salons; null for staff members'),
+        tips: z
+          .array(
+            z.strictObject({
+              currency: z.string().describe('ISO 4217 code of the salon'),
+              amountGrosze: z
+                .number()
+                .int()
+                .describe('Tips the client left, in hundredths of the currency'),
+              visits: z.number().int().describe('How many visits had a tip'),
+            }),
+          )
+          .nullable()
+          .describe(
+            'Task 287: tips the client left on visits that took place (not part of the revenue), one row per currency; empty when none; null for staff members',
+          ),
       })
       .describe(
         'Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)',

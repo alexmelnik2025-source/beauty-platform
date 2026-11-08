@@ -272,6 +272,7 @@ export const pl = {
     cancelledByClient: 'Odwołał(a) sam(a): {count}',
     paid: 'Zapłacono: {amount}',
     average: 'Średnio za wizytę: {amount}',
+    tips: 'Napiwki: {amount}',
     upcoming: 'Najbliższe wizyty',
     history: 'Historia wizyt',
     noVisits: 'Brak wizyt w tym salonie.',

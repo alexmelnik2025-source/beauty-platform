@@ -169,6 +169,7 @@ describe('client summary on the card (task 98)', () => {
       favoriteService: null,
       favoriteStaff: null,
       paid: [],
+      tips: [],
     });
   });
 
@@ -198,6 +199,11 @@ describe('client summary on the card (task 98)', () => {
     // An unfinished online booking does not count.
     const held = await futureVisit(kasiaId, 6);
     await ctx.prisma.appointment.update({ where: { id: held }, data: { status: 'expired' } });
+    // Task 287: tips on two of the visits that took place (one of them not paid yet); a tip on
+    // the no-show does not count.
+    await ctx.prisma.appointment.update({ where: { id: first }, data: { tipGrosze: 1000 } });
+    await ctx.prisma.appointment.update({ where: { id: latest }, data: { tipGrosze: 550 } });
+    await ctx.prisma.appointment.update({ where: { id: missed }, data: { tipGrosze: 9900 } });
 
     const { body } = await card(owner.auth);
     const latestStart = (await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: latest } }))
@@ -219,6 +225,8 @@ describe('client summary on the card (task 98)', () => {
       favoriteStaff: { name: 'Kasia', visits: 2 },
       // Task 285: two paid visits (the third is not paid yet).
       paid: [{ currency: 'PLN', amountGrosze: 6000 + 8000, visits: 2 }],
+      // Task 287: 10 zł + 5,50 zł on two visits.
+      tips: [{ currency: 'PLN', amountGrosze: 1550, visits: 2 }],
     });
     // The manager of the salon sees the same, money included.
     expect((await card(manager.auth)).body.summary).toEqual(body.summary);
@@ -244,6 +252,7 @@ describe('client summary on the card (task 98)', () => {
       noShow: 1,
       upcoming: 0,
       paid: null,
+      tips: null,
       // Task 261: one own visit is not a habit.
       favoriteService: null,
       favoriteStaff: null,
@@ -280,6 +289,7 @@ describe('client summary on the card (task 98)', () => {
         durationMinutes: visit.durationMinutes,
         bufferMinutes: visit.bufferMinutes,
         paidAt: new Date(),
+        tipGrosze: 5000,
       },
     });
     const { body } = await card(owner.auth);
@@ -288,6 +298,8 @@ describe('client summary on the card (task 98)', () => {
       { currency: 'PLN', amountGrosze: 8000, visits: 1 },
     ]);
     expect(body.summary.completed).toBe(2);
+    // Task 287: the tip in the Prague salon is in crowns.
+    expect(body.summary.tips).toEqual([{ currency: 'CZK', amountGrosze: 5000, visits: 1 }]);
   });
 });
 

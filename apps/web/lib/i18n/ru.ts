@@ -1062,6 +1062,7 @@ export const ru: Dict = {
       lastVisit: 'Последний визит',
       paid: 'Оплачено всего',
       average: 'В среднем за визит',
+      tips: 'Чаевые всего',
       rhythm: 'Обычно возвращается',
       rhythmValue: 'каждые {days} дн. · следующий ок. {date}',
       favoriteService: 'Любимая услуга',

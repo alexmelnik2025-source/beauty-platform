@@ -964,6 +964,13 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
       ]);
     }
   }
+  // Task 287: tips the client left (not part of the revenue), only when there are any.
+  if (summary.tips && summary.tips.length > 0) {
+    tiles.push([
+      t.clients.summary.tips,
+      summary.tips.map((p) => formatPrice(p.amountGrosze, p.currency, tag)).join(' + '),
+    ]);
+  }
   return (
     <section className="section" data-testid="client-summary">
       <h3>{t.clients.summary.title}</h3>

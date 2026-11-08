@@ -1060,6 +1060,7 @@ export const en: Dict = {
       lastVisit: 'Latest visit',
       paid: 'Paid in total',
       average: 'Average per visit',
+      tips: 'Tips in total',
       rhythm: 'Usually comes back',
       rhythmValue: 'every {days} days · next around {date}',
       favoriteService: 'Favourite service',

@@ -274,6 +274,7 @@ export const en: Dictionary = {
     cancelledByClient: 'Cancelled by the client: {count}',
     paid: 'Paid: {amount}',
     average: 'Average per visit: {amount}',
+    tips: 'Tips: {amount}',
     upcoming: 'Upcoming visits',
     history: 'Visit history',
     noVisits: 'No visits in this salon.',

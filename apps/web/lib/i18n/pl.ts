@@ -1058,6 +1058,7 @@ export const pl = {
       lastVisit: 'Ostatnia wizyta',
       paid: 'Zapłacono łącznie',
       average: 'Średnio za wizytę',
+      tips: 'Napiwki łącznie',
       rhythm: 'Wraca zwykle',
       rhythmValue: 'co {days} dni · następna ok. {date}',
       favoriteService: 'Ulubiona usługa',

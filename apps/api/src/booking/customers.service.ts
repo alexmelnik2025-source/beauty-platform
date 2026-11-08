@@ -483,7 +483,7 @@ export class CustomersService {
     where: Prisma.AppointmentWhereInput,
     withMoney: boolean,
   ): Promise<CustomerDetailResponse['summary']> {
-    const [byStatus, upcoming, dates, paid, starts] = await Promise.all([
+    const [byStatus, upcoming, dates, paid, starts, tipped] = await Promise.all([
       this.prisma.appointment.groupBy({
         by: ['status', 'cancelledBy'],
         where,
@@ -515,13 +515,23 @@ export class CustomersService {
         },
         take: 500,
       }),
+      // Task 287: tips are noted on visits that took place, paid or not.
+      withMoney
+        ? this.prisma.appointment.groupBy({
+            by: ['locationId'],
+            where: { AND: [where, { status: 'completed', tipGrosze: { gt: 0 } }] },
+            _sum: { tipGrosze: true },
+            _count: { _all: true },
+          })
+        : null,
     ]);
     const count = (match: (row: (typeof byStatus)[number]) => boolean): number =>
       byStatus.filter(match).reduce((sum, row) => sum + row._count._all, 0);
     let money: CustomerDetailResponse['summary']['paid'] = null;
-    if (paid) {
+    let tips: CustomerDetailResponse['summary']['tips'] = null;
+    if (paid && tipped) {
       const locations = await this.prisma.location.findMany({
-        where: { id: { in: paid.map((p) => p.locationId) } },
+        where: { id: { in: [...paid, ...tipped].map((p) => p.locationId) } },
         select: { id: true, currency: true },
       });
       const currencyOf = new Map(locations.map((l) => [l.id, l.currency]));
@@ -539,6 +549,18 @@ export class CustomersService {
       money = [...totals]
         .map(([currency, sum]) => ({ currency, ...sum }))
         .sort((a, b) => b.amountGrosze - a.amountGrosze);
+      const tipTotals = new Map<string, { amountGrosze: number; visits: number }>();
+      for (const row of tipped) {
+        const currency = currencyOf.get(row.locationId) ?? 'PLN';
+        const sum = tipTotals.get(currency) ?? { amountGrosze: 0, visits: 0 };
+        tipTotals.set(currency, {
+          amountGrosze: sum.amountGrosze + (row._sum.tipGrosze ?? 0),
+          visits: sum.visits + row._count._all,
+        });
+      }
+      tips = [...tipTotals]
+        .map(([currency, sum]) => ({ currency, ...sum }))
+        .sort((a, b) => b.amountGrosze - a.amountGrosze);
     }
     return {
       completed: count((r) => r.status === 'completed'),
@@ -552,6 +574,7 @@ export class CustomersService {
       favoriteService: favorite(starts.map((a) => a.service.name)),
       favoriteStaff: favorite(starts.map((a) => a.staff.displayName)),
       paid: money,
+      tips,
     };
   }
 

@@ -16320,6 +16320,38 @@
                   ],
                   "additionalProperties": false
                 }
+              },
+              "tips": {
+                "nullable": true,
+                "description": "Task 287: tips the client left on visits that took place (not part of the revenue), one row per currency; empty when none; null for staff members",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string",
+                      "description": "ISO 4217 code of the salon"
+                    },
+                    "amountGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Tips the client left, in hundredths of the currency"
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "How many visits had a tip"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "amountGrosze",
+                    "visits"
+                  ],
+                  "additionalProperties": false
+                }
               }
             },
             "required": [
@@ -16333,7 +16365,8 @@
               "rhythmDays",
               "favoriteService",
               "favoriteStaff",
-              "paid"
+              "paid",
+              "tips"
             ],
             "additionalProperties": false,
             "description": "Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)"

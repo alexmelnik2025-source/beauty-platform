@@ -4247,6 +4247,15 @@ export interface components {
                     /** @description Task 285: how many paid visits make up the sum (for "Średnio za wizytę") */
                     visits: number;
                 }[] | null;
+                /** @description Task 287: tips the client left on visits that took place (not part of the revenue), one row per currency; empty when none; null for staff members */
+                tips: {
+                    /** @description ISO 4217 code of the salon */
+                    currency: string;
+                    /** @description Tips the client left, in hundredths of the currency */
+                    amountGrosze: number;
+                    /** @description How many visits had a tip */
+                    visits: number;
+                }[] | null;
             };
         };
         CustomerExport: {

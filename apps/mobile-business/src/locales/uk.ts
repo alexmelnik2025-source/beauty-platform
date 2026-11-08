@@ -272,6 +272,7 @@ export const uk: Dictionary = {
     cancelledByClient: 'Скасував(ла) сам(а): {count}',
     paid: 'Оплачено: {amount}',
     average: 'У середньому за візит: {amount}',
+    tips: 'Чайові: {amount}',
     upcoming: 'Найближчі візити',
     history: 'Історія візитів',
     noVisits: 'У цьому салоні візитів немає.',

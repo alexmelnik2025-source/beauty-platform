@@ -12,7 +12,8 @@ import { serveApp } from './mobile-app';
  * (screenshot 281); task 282: the same chip in the business app (screenshot 282).
  * Task 283: "Zapłacili najwięcej" — only Adam's visit is paid: Adam first, then the others by
  * name (screenshots 283, 283-a). Task 285: Adam's card shows "Średnio za wizytę" (screenshot 285);
- * task 286: the same in the business app (screenshot 286).
+ * task 286: the same in the business app (screenshot 286). Task 287: Adam's 12,50 zł tip as
+ * "Napiwki łącznie" in the card (same screenshots); task 288: "Napiwki" in the business app.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -111,7 +112,14 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await visit(zenon, 5);
   await visit(zenon, 4);
   // Task 283: only Adam's visit is paid.
-  await visit(adam, 2, true);
+  const adamVisit = (await visit(adam, 2, true)) as { id: string; version: number };
+  // Task 287: Adam left a 12,50 zł tip.
+  await json(
+    await request.put(`${salon}/appointments/${adamVisit.id}/tip`, {
+      headers: owner,
+      data: { version: adamVisit.version, tipGrosze: 1250 },
+    }),
+  );
   // Task 281: booked ahead — Basia tomorrow, Zenon in two days.
   const book = (customerId: string, hoursAhead: number) =>
     request
@@ -191,6 +199,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
   await summary.scrollIntoViewIfNeeded();
   await expect(summary).toContainText('Średnio za wizytę');
   await expect(summary).toContainText(/Średnio za wizytę\s*80,00/);
+  // Task 287: the tips Adam left.
+  await expect(summary).toContainText(/Napiwki łącznie\s*12,50/);
   await shot(page, '285-client-average-visit');
   await page.keyboard.press('Escape');
 
@@ -244,6 +254,8 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     // Task 286: the average paid visit in the client card.
     await app.getByRole('button', { name: 'Karta klienta: Adam Świeży' }).click();
     await expect(app.getByText(/^Średnio za wizytę: 80,00/)).toBeVisible();
+    // Task 288: the tips in the business app's card.
+    await expect(app.getByText(/^Napiwki: 12,50/)).toBeVisible();
     await shot(app, '286-business-app-client-average-visit');
     await phone.close();
   } finally {
