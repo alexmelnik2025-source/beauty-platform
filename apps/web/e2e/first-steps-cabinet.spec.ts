@@ -113,7 +113,7 @@ test('the cabinet shows what the salon still needs for online booking', async ({
       data: { days: [{ weekday: 2, intervals: [{ start: '10:00', end: '18:00' }] }] },
     }),
   );
-  await json(
+  const online = await json<{ version: number }>(
     await request.patch(base, {
       headers: owner,
       data: {
@@ -129,4 +129,11 @@ test('the cabinet shows what the salon still needs for online booking', async ({
   await page.waitForLoadState('networkidle');
   await expect(page.getByRole('region', { name: 'Pierwsze kroki' })).toHaveCount(0);
   await context.close();
+  // Off again: other tests count the salons of the public catalogue.
+  await json(
+    await request.patch(base, {
+      headers: owner,
+      data: { version: online.version, onlineBookingEnabled: false },
+    }),
+  );
 });
