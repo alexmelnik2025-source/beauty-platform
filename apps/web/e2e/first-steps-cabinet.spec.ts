@@ -60,7 +60,9 @@ test('the cabinet shows what the salon still needs for online booking', async ({
     await request.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
-        name: 'Gestalt Barbershop',
+        // A name of its own: this salon ends up taking online bookings, so it is in the public
+        // catalogue (booking.spec.ts expects one "Gestalt Barbershop" there).
+        name: 'First Steps Cabinet Barbershop',
         addressLine: 'ul. Józefa Bema 91',
         city: 'Warszawa',
         postalCode: '01-233',
