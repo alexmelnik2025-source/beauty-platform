@@ -229,6 +229,7 @@ export const tr: Dict = {
     doneTitleApproval: 'Rezervasyon gönderildi',
     doneLeadApproval:
       'Salon randevunuzu onaylayacak — saat sizin için ayrıldı. Salon kabul ettiğinde size e-posta göndereceğiz.',
+    directions: 'Yol tarifi',
     addToCalendar: 'Takvime ekle',
     manage: 'Değiştir veya iptal et',
     salonClosed: 'Bu salon şu anda online randevu almıyor.',

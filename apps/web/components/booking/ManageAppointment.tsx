@@ -10,6 +10,7 @@ import { downloadIcs } from './ics';
 import { VisitReviewForm } from '../reviews/VisitReviewForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import type { VisitWishes } from '../wishes/wishes';
+import { directionsLink } from './SalonProfile';
 
 type Mode = 'view' | 'move' | 'cancel';
 
@@ -173,6 +174,14 @@ export function AppointmentManager<T extends PublicAppointment>({
                 {t.booking.addToCalendar}
               </button>
             )}
+            <a
+              className="btn btn--quiet btn--block"
+              href={directionsLink(a.salon)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.booking.directions}
+            </a>
             {a.canChange ? (
               <>
                 <button type="button" className="btn btn--block" onClick={() => setMode('move')}>

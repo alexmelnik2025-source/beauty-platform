@@ -12,6 +12,17 @@ export function mapLink(
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+/**
+ * Task 360: "Jak dojechać" — Google Maps directions to the salon (its app on phones, the site on a
+ * computer); the salon's name goes with the address, so the maps find the right door.
+ */
+export function directionsLink(
+  salon: Pick<PublicLocation, 'name' | 'addressLine' | 'postalCode' | 'city'>,
+): string {
+  const destination = `${salon.name}, ${salon.addressLine}, ${salon.postalCode} ${salon.city}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+}
+
 /** ISO weekday (1 = Monday … 7 = Sunday) of a 'YYYY-MM-DD' date. */
 function isoWeekday(date: string): number {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];

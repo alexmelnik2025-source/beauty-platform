@@ -30,7 +30,7 @@ import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { ClientNav } from '../client/ClientNav';
 import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
-import { SalonProfile } from './SalonProfile';
+import { directionsLink, SalonProfile } from './SalonProfile';
 import { SalonReviews } from '../reviews/SalonReviews';
 import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
@@ -1021,6 +1021,14 @@ export function BookingFlow({ slug }: { slug: string }) {
             >
               {t.booking.addToCalendar}
             </button>
+            <a
+              className="btn btn--quiet btn--block"
+              href={directionsLink(salon)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.booking.directions}
+            </a>
             <Link
               className="btn btn--quiet btn--block"
               href={`/${locale}/m/${result.manageToken}`}

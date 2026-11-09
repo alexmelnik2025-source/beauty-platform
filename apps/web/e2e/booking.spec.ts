@@ -403,6 +403,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Masz teraz konto — wszystkie wizyty w „Moje wizyty”.',
   );
   await shot(client, '06-client-done');
+  // Task 360: "Jak dojechać" — Google Maps directions with the salon's name and address.
+  const doneDirections = new URL(
+    (await client.getByRole('link', { name: 'Jak dojechać' }).getAttribute('href'))!,
+  );
+  expect(doneDirections.pathname).toBe('/maps/dir/');
+  expect(doneDirections.searchParams.get('destination')).toMatch(
+    /, ul\. Józefa Bema 91, \S+ Warszawa$/,
+  );
 
   // ── Emails ─────────────────────────────────────────────────────────────
   const confirmation = await waitForEmail(CLIENT, /Wizyta potwierdzona/);
@@ -416,6 +424,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();
   await shot(client, '07-client-manage');
+  // The visit link has "Jak dojechać" too (task 360).
+  const manageDirections = client.getByRole('link', { name: 'Jak dojechać' });
+  await expect(manageDirections).toHaveAttribute('target', '_blank');
+  expect(
+    new URL((await manageDirections.getAttribute('href'))!).searchParams.get('destination'),
+  ).toMatch(/Warszawa$/);
+  await manageDirections.scrollIntoViewIfNeeded();
+  await shot(client, '360-client-manage-directions');
   // "Add to calendar" (task 20): the email and the page give the visit as an .ics file.
   expect(confirmation.text).toContain('Dodaj do kalendarza:');
   const calendarLink = client.getByRole('link', { name: 'Dodaj do kalendarza' });

@@ -485,6 +485,7 @@ export const pl = {
     doneTitleApproval: 'Rezerwacja wysłana',
     doneLeadApproval:
       'Salon potwierdzi wizytę — termin jest już dla Ciebie zarezerwowany. Napiszemy e-mailem, gdy salon ją przyjmie.',
+    directions: 'Jak dojechać',
     addToCalendar: 'Dodaj do kalendarza',
     manage: 'Zmień lub odwołaj wizytę',
     salonClosed: 'Ten salon nie przyjmuje teraz rezerwacji online.',
