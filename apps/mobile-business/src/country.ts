@@ -150,3 +150,51 @@ export function matching<T extends { label: string }>(items: T[], typed: string)
   const query = plain(typed.trim());
   return query ? items.filter((item) => plain(item.label).includes(query)) : items;
 }
+
+const CURRENCY_BY_REGION: Record<string, Currency> = {
+  PL: 'PLN',
+  CZ: 'CZK',
+  HU: 'HUF',
+  RO: 'RON',
+  SE: 'SEK',
+  DK: 'DKK',
+  NO: 'NOK',
+  CH: 'CHF',
+  GB: 'GBP',
+  AL: 'ALL',
+  TR: 'TRY',
+  MK: 'MKD',
+  RS: 'RSD',
+  BA: 'BAM',
+  MD: 'MDL',
+  UA: 'UAH',
+  GE: 'GEL',
+  AM: 'AMD',
+  AZ: 'AZN',
+  KZ: 'KZT',
+  KG: 'KGS',
+  UZ: 'UZS',
+  TJ: 'TJS',
+  TM: 'TMT',
+  BY: 'BYN',
+  RU: 'RUB',
+};
+
+/**
+ * Task 350 ("Załóż salon"): the zone of the phone when it is one of the salon zones (Kyiv under
+ * either name), otherwise Warsaw — as the cabinet's sign-up does with the browser's zone.
+ */
+export function salonZoneOf(phoneZone: string | undefined): string {
+  const zone = phoneZone === 'Europe/Kyiv' ? 'Europe/Kiev' : phoneZone;
+  return zone && REGION_BY_TIME_ZONE[zone] ? zone : 'Europe/Warsaw';
+}
+
+/** "PL" for Europe/Warsaw; Poland when the zone is not one of the listed countries. */
+export function regionForTimeZone(timeZone: string): string {
+  return REGION_BY_TIME_ZONE[timeZone === 'Europe/Kyiv' ? 'Europe/Kiev' : timeZone] ?? 'PL';
+}
+
+/** The usual currency of the salon's country; euro in the euro area and Montenegro. */
+export function currencyForTimeZone(timeZone: string): Currency {
+  return CURRENCY_BY_REGION[regionForTimeZone(timeZone)] ?? 'EUR';
+}

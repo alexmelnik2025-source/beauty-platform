@@ -498,3 +498,35 @@ describe('visit photos (task 80b)', () => {
     );
   });
 });
+
+describe('BusinessApi — "Załóż salon" (task 350)', () => {
+  it('creates the company, then its salon', async () => {
+    const { fetchFn, calls } = fakeServer({
+      'POST /v1/auth/refresh': () => [200, tokens('a1', 'r2-refresh-token-0123456789')],
+      'POST /v1/organizations': () => [201, { id: 'o9', name: 'GESTALT' }],
+      'POST /v1/organizations/o9/locations': () => [201, { id: 'l9', name: 'GESTALT' }],
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      memoryStore('r1-refresh-token-0123456789'),
+      fetchFn,
+    );
+    await api.restore();
+    const org = await api.createOrganization({ name: 'GESTALT' });
+    await api.createLocation(org.id, {
+      name: 'GESTALT',
+      addressLine: 'ul. Józefa Bema 91',
+      city: 'Warszawa',
+      postalCode: '01-233',
+      timezone: 'Europe/Warsaw',
+      currency: 'PLN',
+      defaultLocale: 'pl',
+    });
+    expect(calls.slice(1).map((c) => [c.key, c.auth])).toEqual([
+      ['POST /v1/organizations', 'Bearer a1'],
+      ['POST /v1/organizations/o9/locations', 'Bearer a1'],
+    ]);
+    expect(calls[1]?.body).toEqual({ name: 'GESTALT' });
+    expect(calls[2]?.body).toMatchObject({ postalCode: '01-233', defaultLocale: 'pl' });
+  });
+});

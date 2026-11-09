@@ -19,8 +19,27 @@ export const pl = {
   },
   salons: {
     title: 'Wybierz salon',
-    none: 'Nie masz jeszcze dostępu do żadnego salonu. Poproś właściciela o zaproszenie.',
+    none: 'Pracujesz w salonie? Poproś właściciela o zaproszenie — salon pojawi się tu po zalogowaniu.',
+    ownTitle: 'Masz własny salon?',
+    ownLead:
+      'Załóż go w kilka minut: nazwa, adres, kraj i waluta. Usługi, zespół i godziny dodasz potem.',
+    create: 'Załóż salon',
     role: { owner: 'Właściciel', manager: 'Menedżer', staff: 'Specjalista' },
+  },
+  newSalon: {
+    title: 'Załóż salon',
+    lead: 'Firma i jej pierwszy salon. Zostaniesz ich właścicielem.',
+    orgName: 'Nazwa firmy',
+    orgNameHint: 'Np. GESTALT — tak, jak na fakturach.',
+    locationName: 'Nazwa salonu',
+    locationNameHint: 'Nieobowiązkowe — pusta to nazwa firmy.',
+    currencyHint: 'W tej walucie będą ceny usług. Kraj podpowiada walutę, możesz wybrać inną.',
+    after:
+      'Rezerwacja online będzie wyłączona, dopóki nie dodasz regulaminu i polityki prywatności (Salon → Regulamin i prywatność).',
+    create: 'Załóż salon',
+    badOrgName: 'Wpisz nazwę firmy.',
+    badLocationName: 'Nazwa salonu może mieć najwyżej 100 znaków.',
+    badPostalCodePl: 'Wpisz kod pocztowy, np. 01-233.',
   },
   day: {
     today: 'Dziś',

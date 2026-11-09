@@ -17,6 +17,7 @@ import type {
 } from '@beauty/api-client';
 import type { MessagesChanges } from './messages';
 import type { SalonChanges } from './salon';
+import type { NewLocationBody } from './newSalon';
 import type { StaffChange } from './staffProfile';
 import type { PermissionMap } from './rights';
 import type { ContactsChange, NewCustomer } from './clientContacts';
@@ -30,6 +31,7 @@ import { paymentBody, type PaymentMethod } from './payment';
 
 export type Locale = 'pl' | 'uk' | 'ru' | 'en';
 export type LocationList = components['schemas']['LocationList'];
+export type Organization = components['schemas']['Organization'];
 export type StaffList = components['schemas']['StaffList'];
 export type CustomerExport = components['schemas']['CustomerExport'];
 export type AnonymizedCustomer = components['schemas']['AnonymizedCustomer'];
@@ -300,6 +302,16 @@ export class BusinessApi {
 
   me(): Promise<Me> {
     return this.authed<Me>('GET', '/v1/me');
+  }
+
+  /** Task 350, "Załóż salon": a new company; the person becomes its owner. */
+  createOrganization(body: { name: string }): Promise<Organization> {
+    return this.authed<Organization>('POST', '/v1/organizations', body);
+  }
+
+  /** Task 350: the company's first salon (online booking off until terms and privacy are added). */
+  createLocation(orgId: string, body: NewLocationBody): Promise<Location> {
+    return this.authed<Location>('POST', `/v1/organizations/${enc(orgId)}/locations`, body);
   }
 
   /** Salons (locations) of the organization the person may open. */

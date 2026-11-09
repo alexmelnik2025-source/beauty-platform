@@ -21,8 +21,28 @@ export const en: Dictionary = {
   },
   salons: {
     title: 'Choose a salon',
-    none: "You don't have access to any salon yet. Ask the owner to invite you.",
+    none: 'Working at a salon? Ask the owner to invite you — the salon will appear here after you sign in.',
+    ownTitle: 'Have your own salon?',
+    ownLead:
+      'Set it up in a few minutes: name, address, country and currency. Add services, team and hours later.',
+    create: 'Set up a salon',
     role: { owner: 'Owner', manager: 'Manager', staff: 'Specialist' },
+  },
+  newSalon: {
+    title: 'Set up a salon',
+    lead: 'The company and its first salon. You will be their owner.',
+    orgName: 'Company name',
+    orgNameHint: 'E.g. GESTALT — as on your invoices.',
+    locationName: 'Salon name',
+    locationNameHint: "Optional — empty means the company's name.",
+    currencyHint:
+      'Service prices will be in this currency. The country suggests it; you can pick another.',
+    after:
+      'Online booking stays off until you add the booking terms and privacy policy (Salon → Terms and privacy).',
+    create: 'Set up the salon',
+    badOrgName: 'Enter the company name.',
+    badLocationName: 'The salon name can have at most 100 characters.',
+    badPostalCodePl: 'Enter the postal code, e.g. 01-233.',
   },
   day: {
     today: 'Today',

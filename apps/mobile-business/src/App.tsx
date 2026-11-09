@@ -7,6 +7,7 @@ import { API_URL } from './config';
 import { errorText } from './errors';
 import { DICTIONARIES, pickLocale } from './i18n';
 import { DayScreen } from './screens/DayScreen';
+import { NewSalonScreen } from './screens/NewSalonScreen';
 import { SalonsScreen, type SalonChoice } from './screens/SalonsScreen';
 import { SignInScreen } from './screens/SignInScreen';
 import { tokenStore } from './storage';
@@ -17,6 +18,7 @@ type Stage =
   | { kind: 'failed'; message: string }
   | { kind: 'signIn' }
   | { kind: 'salons'; choices: SalonChoice[] }
+  | { kind: 'newSalon' }
   | { kind: 'day'; choices: SalonChoice[]; salon: SalonChoice; timeZone: string };
 
 const deviceLocale = pickLocale(Intl.DateTimeFormat().resolvedOptions().locale);
@@ -116,6 +118,7 @@ export default function App() {
               t={t}
               choices={stage.choices}
               onSignOut={signOut}
+              onCreate={() => setStage({ kind: 'newSalon' })}
               onChoose={(salon) =>
                 setStage({
                   kind: 'day',
@@ -124,6 +127,14 @@ export default function App() {
                   timeZone: timeZones[salon.locationId] ?? 'Europe/Warsaw',
                 })
               }
+            />
+          ) : stage.kind === 'newSalon' ? (
+            <NewSalonScreen
+              api={api}
+              t={t}
+              locale={locale}
+              onCreated={openSalons}
+              onBack={openSalons}
             />
           ) : (
             <DayScreen

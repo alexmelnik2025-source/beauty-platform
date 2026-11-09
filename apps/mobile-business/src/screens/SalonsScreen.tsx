@@ -18,12 +18,23 @@ export function SalonsScreen(props: {
   t: Dictionary;
   choices: SalonChoice[];
   onChoose: (choice: SalonChoice) => void;
+  /** Task 350: "Załóż salon" — shown to a person who has no salon yet. */
+  onCreate: () => void;
   onSignOut: () => void;
 }) {
   const { t } = props;
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <Heading>{t.salons.title}</Heading>
+      {props.choices.length === 0 ? (
+        <Card>
+          <Text style={styles.name}>{t.salons.ownTitle}</Text>
+          <Text style={styles.text}>{t.salons.ownLead}</Text>
+          <View style={{ marginTop: 8 }}>
+            <Button label={t.salons.create} onPress={props.onCreate} />
+          </View>
+        </Card>
+      ) : null}
       {props.choices.length === 0 ? <Text style={styles.text}>{t.salons.none}</Text> : null}
       {props.choices.map((c) => (
         <Card key={c.locationId}>

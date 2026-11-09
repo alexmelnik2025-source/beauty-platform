@@ -553,7 +553,7 @@ export function SalonScreen(props: {
  * Task 323: the chosen value with "Zmień"; open, a search field and the list to tap one in.
  * Long lists (50 countries) stay short on a phone this way.
  */
-function ChoiceList<T extends string>(props: {
+export function ChoiceList<T extends string>(props: {
   t: Dictionary;
   label: string;
   hint: string;
