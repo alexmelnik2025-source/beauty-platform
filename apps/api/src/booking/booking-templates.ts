@@ -45,6 +45,8 @@ interface Words {
   client: string;
   manage: string;
   addToCalendar: string;
+  /** Task 361: the maps link in the client's emails. */
+  directions: string;
   reason: string;
   codeSubject: string;
   codeText: (code: string, salon: string) => string;
@@ -85,6 +87,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Cena',
     client: 'Klient',
     manage: 'Zmień lub odwołaj wizytę',
+    directions: 'Jak dojechać',
     addToCalendar: 'Dodaj do kalendarza',
     reason: 'Powód',
     codeSubject: 'Kod potwierdzenia rezerwacji',
@@ -124,6 +127,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Ціна',
     client: 'Клієнт',
     manage: 'Змінити або скасувати візит',
+    directions: 'Як дістатися',
     addToCalendar: 'Додати в календар',
     reason: 'Причина',
     codeSubject: 'Код підтвердження запису',
@@ -163,6 +167,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Цена',
     client: 'Клиент',
     manage: 'Перенести или отменить запись',
+    directions: 'Как добраться',
     addToCalendar: 'Добавить в календарь',
     reason: 'Причина',
     codeSubject: 'Код подтверждения записи',
@@ -202,6 +207,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Price',
     client: 'Client',
     manage: 'Change or cancel the appointment',
+    directions: 'Get directions',
     addToCalendar: 'Add to calendar',
     reason: 'Reason',
     codeSubject: 'Your booking confirmation code',
@@ -241,6 +247,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Fiyat',
     client: 'Müşteri',
     manage: 'Randevuyu değiştir veya iptal et',
+    directions: 'Yol tarifi',
     addToCalendar: 'Takvime ekle',
     reason: 'Neden',
     codeSubject: 'Rezervasyon onay kodunuz',
@@ -280,6 +287,7 @@ const WORDS: Record<Locale, Words> = {
     price: 'Çmimi',
     client: 'Klienti',
     manage: 'Ndryshoni ose anuloni takimin',
+    directions: 'Si të arrini',
     addToCalendar: 'Shtoje në kalendar',
     reason: 'Arsyeja',
     codeSubject: 'Kodi i konfirmimit të rezervimit',
@@ -315,6 +323,15 @@ export function formatPrice(hundredths: number, currency: string, locale: Locale
   return formatMoney(hundredths, currency, LOCALE_TAGS[locale]);
 }
 
+/**
+ * Task 361: Google Maps directions to the salon (the maps app on a phone, the site on a computer),
+ * free and without a key; the salon's name goes with the address. The same link as "Jak dojechać"
+ * on the booking pages and in the client app.
+ */
+export function directionsLink(salonName: string, address: string): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${salonName}, ${address}`)}`;
+}
+
 export function renderAppointmentEmail(
   kind: Kind,
   locale: Locale,
@@ -336,6 +353,10 @@ export function renderAppointmentEmail(
   if (d.reason) lines.push(`${w.reason}: ${d.reason}`);
   if (d.manageLink) lines.push('', `${w.manage}:`, d.manageLink);
   if (d.calendarLink) lines.push('', `${w.addToCalendar}:`, d.calendarLink);
+  // Task 361: the way to the salon — in the client's emails about a visit that is still on.
+  if (!forSalon && kind !== 'client_cancelled') {
+    lines.push('', `${w.directions}:`, directionsLink(d.salonName, d.address));
+  }
   return { subject: `${w.subjects[kind]} — ${d.salonName}`, text: lines.join('\n') };
 }
 

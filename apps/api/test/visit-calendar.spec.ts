@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { renderAppointmentEmail } from '../src/booking/booking-templates';
+import { directionsLink, renderAppointmentEmail } from '../src/booking/booking-templates';
 import { buildIcs, foldLine, icsText, icsTime } from '../src/booking/ics';
 import { OutboxService } from '../src/booking/outbox.service';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
@@ -94,6 +94,43 @@ describe('the .ics format', () => {
         details,
       );
       expect(text).toContain(`${words}\n${details.calendarLink}`);
+    }
+  });
+
+  it('"Jak dojechać" in every language, not after a cancellation (task 361)', () => {
+    const details = {
+      salonName: 'Barber & Co',
+      address: 'ul. Puławska 1, 02-515 Warszawa',
+      serviceName: 'Strzyżenie',
+      staffName: 'Kasia',
+      when: '…',
+      price: '…',
+      customerName: 'Anna',
+      customerPhone: '+48600100200',
+    };
+    const link = directionsLink(details.salonName, details.address);
+    expect(new URL(link).searchParams.get('destination')).toBe(
+      'Barber & Co, ul. Puławska 1, 02-515 Warszawa',
+    );
+    const words = {
+      pl: 'Jak dojechać:',
+      uk: 'Як дістатися:',
+      ru: 'Как добраться:',
+      en: 'Get directions:',
+      tr: 'Yol tarifi:',
+      sq: 'Si të arrini:',
+    } as const;
+    for (const [locale, line] of Object.entries(words)) {
+      const l = locale as keyof typeof words;
+      for (const kind of [
+        'client_confirmation',
+        'client_reminder',
+        'client_rescheduled',
+      ] as const) {
+        expect(renderAppointmentEmail(kind, l, details).text).toContain(`${line}\n${link}`);
+      }
+      expect(renderAppointmentEmail('client_cancelled', l, details).text).not.toContain(link);
+      expect(renderAppointmentEmail('salon_new_booking', l, details).text).not.toContain(link);
     }
   });
 });
@@ -250,6 +287,25 @@ describe('"Add to calendar" for a booked visit', () => {
     expect(link?.[1]).toMatch(/^http/);
     const res = await ics(link?.[2] ?? '').expect(200);
     expect(res.text).toContain('BEGIN:VEVENT');
+  });
+
+  it('the client’s email shows the way to the salon, the salon’s email does not (task 361)', async () => {
+    await book(at(day, 10));
+    await makeQueueDue();
+    await outbox.drain();
+    const toClient = ctx.mail.sent.find(
+      (m) => m.to === CLIENT.email && m.subject.startsWith('Wizyta potwierdzona'),
+    );
+    const link = toClient?.text.match(/Jak dojechać:\n(\S+)/)?.[1];
+    expect(link).toBeDefined();
+    const url = new URL(link ?? '');
+    expect(url.origin + url.pathname).toBe('https://www.google.com/maps/dir/');
+    expect(url.searchParams.get('destination')).toMatch(/, ul\. Puławska 1, 02-515 Warszawa$/);
+    const toSalon = ctx.mail.sent.find(
+      (m) => m.to === 'owner@example.com' && m.subject.startsWith('Nowa rezerwacja online'),
+    );
+    expect(toSalon).toBeDefined();
+    expect(toSalon?.text).not.toContain('google.com/maps');
   });
 });
 
