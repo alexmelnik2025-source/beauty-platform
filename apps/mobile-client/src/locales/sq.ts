@@ -318,6 +318,10 @@ export const sq: Dictionary = {
     shareText: '{name} — rezervo online: {url}',
     copied: 'Lidhja u kopjua — ngjite për miqtë.',
     shareFailed: 'Ndarja nuk u krye. Lidhja: {url}',
+    qrShow: 'Shfaq kodin QR',
+    qrHide: 'Fshih kodin QR',
+    qrAlt: 'Kodi QR i sallonit',
+    qrHint: 'Le ta skanojë një mik me kamerë — hapet faqja e sallonit dhe rezervon vetë.',
   },
   salonReviews: {
     title: 'Vlerësimet',

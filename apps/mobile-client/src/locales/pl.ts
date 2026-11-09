@@ -313,6 +313,10 @@ export const pl = {
     shareText: '{name} — umów się online: {url}',
     copied: 'Link skopiowany — wklej go znajomym.',
     shareFailed: 'Nie udało się udostępnić. Link: {url}',
+    qrShow: 'Pokaż kod QR',
+    qrHide: 'Ukryj kod QR',
+    qrAlt: 'Kod QR salonu',
+    qrHint: 'Niech znajomy zeskanuje go aparatem — otworzy się strona salonu i zapisze się sam.',
   },
   salonReviews: {
     title: 'Opinie',

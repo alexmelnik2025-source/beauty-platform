@@ -12,6 +12,7 @@ import { serveApp } from './mobile-app';
 /**
  * Task 151: "Poleć salon" in the client app (web preview of apps/mobile-client). The browser has
  * no share menu here, so the salon's booking link is copied and the app says so. Screenshot 151.
+ * Task 357: "Pokaż kod QR" — the salon's QR code for a friend nearby; hidden again. Screenshot 357.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -110,6 +111,18 @@ test('the client recommends a salon: its booking link is copied (task 151)', asy
     const copied = await app.evaluate(() => navigator.clipboard.readText());
     expect(copied).toMatch(new RegExp(`/pl/b/${slug}$`));
     await shot(app, '151-client-app-share-salon');
+
+    await app.getByRole('button', { name: 'Pokaż kod QR' }).click();
+    const qr = app.getByRole('img', { name: 'Kod QR salonu' });
+    await qr.scrollIntoViewIfNeeded();
+    await expect(qr).toBeVisible();
+    const box = await qr.boundingBox();
+    expect(box!.width).toBeGreaterThan(150);
+    expect(Math.abs(box!.width - box!.height)).toBeLessThan(1);
+    await expect(app.getByText(/Niech znajomy zeskanuje/)).toBeVisible();
+    await shot(app, '357-client-app-salon-qr');
+    await app.getByRole('button', { name: 'Ukryj kod QR' }).click();
+    await expect(qr).toHaveCount(0);
   } finally {
     clientApp.server.close();
     await phone.close();

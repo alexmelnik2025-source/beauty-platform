@@ -18,6 +18,7 @@ import type { Dictionary } from '../i18n';
 import { priceRows, speakersFirst } from '../booking';
 import { formatPrice, servicePriceText } from '../format';
 import { addressText, durationText, openingRows, serviceGroups, specialtyText } from '../salon';
+import { QrView } from '../QrView';
 import { shareMessage, shareSalon, type ShareTools } from '../share';
 import { SalonReviews } from './SalonReviews';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
@@ -50,6 +51,8 @@ export function SalonScreen(props: {
   const [saving, setSaving] = useState(false);
   const [favoriteError, setFavoriteError] = useState('');
   const [shareInfo, setShareInfo] = useState('');
+  // Task 357: the salon's QR code for a friend standing next to you.
+  const [qrOpen, setQrOpen] = useState(false);
   const tRef = useRef(t);
   tRef.current = t;
 
@@ -175,6 +178,18 @@ export function SalonScreen(props: {
           {shareInfo}
         </Text>
       ) : null}
+      <Button
+        kind="secondary"
+        label={qrOpen ? t.salon.qrHide : t.salon.qrShow}
+        onPress={() => setQrOpen(!qrOpen)}
+      />
+      {qrOpen ? (
+        <View style={styles.qrCard}>
+          <QrView text={bookingUrl(WEB_URL, locale, salon.slug)} label={t.salon.qrAlt} />
+          <Text style={styles.qrName}>{salon.name}</Text>
+          <Text style={styles.small}>{t.salon.qrHint}</Text>
+        </View>
+      ) : null}
       <Text style={styles.small}>{t.salon.bookHint}</Text>
       {salon.phone ? (
         <Button
@@ -295,6 +310,8 @@ function Section(props: { title: string; children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  qrCard: { alignItems: 'center', gap: 6, paddingVertical: 8 },
+  qrName: { fontSize: 17, fontWeight: '700', color: colors.ink },
   screen: { padding: 20, gap: 12 },
   top: { flexDirection: 'row', marginLeft: -8 },
   text: { color: colors.muted, fontSize: 15, lineHeight: 21 },
