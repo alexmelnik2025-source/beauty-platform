@@ -1444,6 +1444,11 @@ export const en: Dictionary = {
     message: '{name} — book online: {url}',
     copied: 'Link copied.',
     failed: 'Could not share — copy the link above.',
+    qrTitle: 'QR code',
+    qrAlt: 'Booking QR code',
+    qrScan: 'Scan to book a visit',
+    qrHint:
+      'Show it to a client at the front desk, or take a screenshot and print it — it opens the same booking page.',
     offline:
       'Online booking is off — clients will see the salon page but cannot book. Switch it on in the salon settings.',
   },

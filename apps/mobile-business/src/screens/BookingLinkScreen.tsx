@@ -1,16 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, Platform, ScrollView, Share, StyleSheet, Text } from 'react-native';
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { BackHandler, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Location } from '../api';
 import { WEB_URL } from '../config';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { bookingLink, shareLink, type ShareTools } from '../share';
+import { encodeQr, qrRuns } from '../qr';
+import { bookingLink, qrLink, shareLink, type ShareTools } from '../share';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
  * Task 152: "Link do rezerwacji" — the owner or a manager sees the salon's booking link and
  * sends it on (Instagram bio, WhatsApp…). When online booking is off, a hint says so.
+ * Task 354: below it the salon's QR code — shown at the front desk or screenshotted for print.
  */
 export function BookingLinkScreen(props: {
   api: BusinessApi;
@@ -83,9 +85,58 @@ export function BookingLinkScreen(props: {
               {info}
             </Text>
           ) : null}
+          <SalonQr link={qrLink(WEB_URL, location)} name={location.name} t={t} />
         </>
       )}
     </ScrollView>
+  );
+}
+
+/** Pixels per module: a typical salon link (version 3–5, 29–37 modules) is ~240–300 px wide. */
+const MODULE = 7;
+/** Light border around the code (4 modules, as the standard asks) — scanners need it. */
+const QUIET = 4;
+
+/** The QR code drawn with plain Views — one per horizontal run of dark modules. */
+function SalonQr(props: { link: string; name: string; t: Dictionary }) {
+  const { link, name, t } = props;
+  const b = t.bookingLink;
+  const qr = useMemo(() => encodeQr(link), [link]);
+  const runs = useMemo(() => qrRuns(qr), [qr]);
+  const side = (qr.size + QUIET * 2) * MODULE;
+  const modules: ReactElement[] = runs.map((r) => (
+    <View
+      key={`${r.x}-${r.y}`}
+      style={[
+        styles.module,
+        {
+          left: (r.x + QUIET) * MODULE,
+          top: (r.y + QUIET) * MODULE,
+          width: r.length * MODULE,
+        },
+      ]}
+    />
+  ));
+  return (
+    <Card>
+      <Text role="heading" style={styles.qrTitle}>
+        {b.qrTitle}
+      </Text>
+      <View style={styles.qrCard}>
+        <View
+          role="img"
+          accessibilityLabel={b.qrAlt}
+          testID="salon-qr"
+          style={[styles.qr, { width: side, height: side }]}
+        >
+          {modules}
+        </View>
+        <Text style={styles.qrName}>{name}</Text>
+        <Text style={styles.qrScan}>{b.qrScan}</Text>
+        <Text style={styles.muted}>{link.replace(/^https?:\/\//, '').replace(/\?.*$/, '')}</Text>
+      </View>
+      <Text style={styles.muted}>{b.qrHint}</Text>
+    </Card>
   );
 }
 
@@ -108,4 +159,10 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 15 },
   warn: { color: colors.accent, fontSize: 15, fontWeight: '600' },
   info: { color: '#2e7d32', fontSize: 15 },
+  qrTitle: { fontSize: 17, fontWeight: '700', color: colors.ink },
+  qrCard: { alignItems: 'center', gap: 4, paddingVertical: 8 },
+  qr: { backgroundColor: '#fff', position: 'relative' },
+  module: { position: 'absolute', height: MODULE, backgroundColor: '#000' },
+  qrName: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  qrScan: { fontSize: 15, color: colors.ink },
 });

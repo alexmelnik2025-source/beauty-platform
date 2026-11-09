@@ -7,6 +7,7 @@ import { serveApp } from './mobile-app';
  * Task 152: "Link do rezerwacji" in the business app (web preview of apps/mobile-business).
  * The owner sees the salon's booking link, a hint while online booking is off, and copies the
  * link (this browser has no share menu). Screenshot 152.
+ * Task 354: below it the salon's QR code with the short link. Screenshot 354.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -90,6 +91,17 @@ test('the owner shares the booking link from the business app (task 152)', async
     const copied = await app.evaluate(() => navigator.clipboard.readText());
     expect(copied).toMatch(new RegExp(`/pl/b/${location.slug}$`));
     await shot(app, '152-business-app-booking-link');
+
+    // Task 354: the QR code of the short link, drawn module by module.
+    const qr = app.getByRole('img', { name: 'Kod QR rezerwacji' });
+    await qr.scrollIntoViewIfNeeded();
+    await expect(qr).toBeVisible();
+    const box = await qr.boundingBox();
+    expect(box!.width).toBeGreaterThan(150);
+    expect(Math.abs(box!.width - box!.height)).toBeLessThan(1);
+    await expect(app.getByText('Zeskanuj i umów wizytę')).toBeVisible();
+    await expect(app.getByText(new RegExp(`/s/${location.slug}$`))).toBeVisible();
+    await shot(app, '354-business-app-salon-qr');
   } finally {
     businessApp.server.close();
     await context.close();

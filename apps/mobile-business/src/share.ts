@@ -16,6 +16,14 @@ export function bookingLink(
   return `${webUrl.replace(/\/+$/, '')}/${location.defaultLocale}/b/${encodeURIComponent(location.slug)}`;
 }
 
+/**
+ * What the QR code opens (task 354): the salon's short link marked as coming from the QR code —
+ * the same link as the cabinet's "Kod QR", e.g. https://…/s/gestalt-barbershop?utm_source=qr.
+ */
+export function qrLink(webUrl: string, location: Pick<Location, 'slug'>): string {
+  return `${webUrl.replace(/\/+$/, '')}/s/${encodeURIComponent(location.slug)}?utm_source=qr`;
+}
+
 export interface ShareMessage {
   message: string;
   url: string;

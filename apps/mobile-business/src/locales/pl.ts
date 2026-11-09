@@ -1442,6 +1442,11 @@ export const pl = {
     message: '{name} — umów się online: {url}',
     copied: 'Link skopiowany.',
     failed: 'Nie udało się udostępnić — przepisz link powyżej.',
+    qrTitle: 'Kod QR',
+    qrAlt: 'Kod QR rezerwacji',
+    qrScan: 'Zeskanuj i umów wizytę',
+    qrHint:
+      'Pokaż klientowi przy recepcji albo zrób zrzut ekranu i wydrukuj — prowadzi do tej samej strony rezerwacji.',
     offline:
       'Rezerwacja online jest wyłączona — klienci zobaczą stronę salonu, ale nie zapiszą się. Włącz ją w ustawieniach salonu.',
   },
