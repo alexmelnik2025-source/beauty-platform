@@ -64,6 +64,7 @@ import { VisitScreen } from './VisitScreen';
 import { WeekScreen } from './WeekScreen';
 import { WaitlistSection } from './WaitlistSection';
 import { TillCloseSection, TillReminder } from './TillCloseSection';
+import { SetupCard } from './SetupCard';
 import { presetFromEntry, type NewVisitPreset } from '../waitlist';
 
 const REFRESH_MS = 30_000;
@@ -635,6 +636,19 @@ export function DayScreen(props: {
       {error ? <ErrorText>{error}</ErrorText> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
 
+      {maySeeSalon(salon.role) ? (
+        <SetupCard
+          api={api}
+          t={t}
+          salon={salon}
+          onOpen={(step) => {
+            setInfo('');
+            if (step === 'services') setServicesOpen(true);
+            else if (step === 'team' || step === 'hours') setTeamHoursOpen(true);
+            else setSalonOpen(true);
+          }}
+        />
+      ) : null}
       {salon.role !== 'staff' && date === today ? (
         <TillReminder
           api={api}

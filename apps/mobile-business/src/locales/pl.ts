@@ -41,6 +41,20 @@ export const pl = {
     badLocationName: 'Nazwa salonu może mieć najwyżej 100 znaków.',
     badPostalCodePl: 'Wpisz kod pocztowy, np. 01-233.',
   },
+  setup: {
+    title: 'Pierwsze kroki',
+    lead: 'Do rezerwacji online zostało kroków: {n}.',
+    doneLabel: 'zrobione',
+    todoLabel: 'do zrobienia',
+    steps: {
+      services: 'Dodaj usługę z ceną i czasem',
+      team: 'Dodaj specjalistę, który ją wykonuje',
+      hours: 'Ustaw specjaliście godziny pracy',
+      legal: 'Dodaj regulamin i politykę prywatności',
+      online: 'Włącz rezerwację online',
+    },
+    go: 'Zrób to',
+  },
   day: {
     today: 'Dziś',
     previous: 'Poprzedni dzień',

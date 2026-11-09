@@ -44,6 +44,20 @@ export const en: Dictionary = {
     badLocationName: 'The salon name can have at most 100 characters.',
     badPostalCodePl: 'Enter the postal code, e.g. 01-233.',
   },
+  setup: {
+    title: 'First steps',
+    lead: 'Steps left before online booking: {n}.',
+    doneLabel: 'done',
+    todoLabel: 'to do',
+    steps: {
+      services: 'Add a service with its price and time',
+      team: 'Add a specialist who does it',
+      hours: "Set the specialist's working hours",
+      legal: 'Add the booking terms and privacy policy',
+      online: 'Switch on online booking',
+    },
+    go: 'Do it',
+  },
   day: {
     today: 'Today',
     previous: 'Previous day',
