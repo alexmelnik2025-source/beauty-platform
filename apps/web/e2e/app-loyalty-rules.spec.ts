@@ -94,7 +94,7 @@ test('business app: the owner changes the loyalty program’s rules', async ({
 
     await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
     await expect(phone.getByText('Zasady programu')).toBeVisible();
-    await phone.getByRole('button', { name: 'Zmień zasady' }).click();
+    await phone.getByRole('button', { name: 'Zmień zasady', exact: true }).click();
     await phone.getByRole('button', { name: 'Punkty za kwotę' }).click();
     await phone.getByLabel('Ile punktów').fill('5');
     await phone.getByLabel(/^Za każde/).fill('0');

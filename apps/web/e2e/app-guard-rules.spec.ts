@@ -100,7 +100,7 @@ test('business app: the owner sets the cancellation protection rules', async ({
       phone.getByText('Najpierw ustaw co najmniej jedną zasadę — „Zmień zasady”.'),
     ).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Zmień zasady' }).click();
+    await phone.getByRole('button', { name: 'Zmień zasady', exact: true }).click();
     await phone.getByRole('checkbox', { name: 'Częste odwołania i przeniesienia' }).click();
     await phone.getByLabel('Ile odwołań lub przeniesień (1–50)').fill('3');
     await phone.getByLabel('W ciągu ilu dni (1–365)').fill('14');
