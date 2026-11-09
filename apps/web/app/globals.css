@@ -2982,3 +2982,39 @@ ul.wish-photos {
     display: none;
   }
 }
+
+/* ── Task 353: "Pierwsze kroki" above the calendar ───── */
+
+.setup-steps {
+  margin: 8px 24px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.setup-steps h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.setup-steps ol {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.setup-steps li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  min-height: 32px;
+}
+
+.setup-steps li.is-done {
+  color: var(--graphite);
+  text-decoration: line-through;
+}

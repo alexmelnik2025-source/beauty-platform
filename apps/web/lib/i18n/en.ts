@@ -173,6 +173,20 @@ export const en: Dict = {
     printed: 'Printed {at}',
     open: 'Print the day plan',
   },
+  firstSteps: {
+    title: 'First steps',
+    lead: 'Steps left before online booking: {n}.',
+    doneLabel: 'done',
+    todoLabel: 'to do',
+    go: 'Do it',
+    steps: {
+      services: 'Add a service with its price and time',
+      team: 'Add a specialist who does it',
+      hours: "Set the specialist's working hours",
+      legal: 'Add the booking terms and privacy policy',
+      online: 'Switch on online booking',
+    },
+  },
   calendar: {
     newAppointment: 'New appointment',
     blockTime: 'Block time',

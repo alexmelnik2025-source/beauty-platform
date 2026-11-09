@@ -174,6 +174,20 @@ export const pl = {
     printed: 'Wydrukowano {at}',
     open: 'Drukuj plan dnia',
   },
+  firstSteps: {
+    title: 'Pierwsze kroki',
+    lead: 'Do rezerwacji online zostało kroków: {n}.',
+    doneLabel: 'zrobione',
+    todoLabel: 'do zrobienia',
+    go: 'Zrób to',
+    steps: {
+      services: 'Dodaj usługę z ceną i czasem',
+      team: 'Dodaj specjalistę, który ją wykonuje',
+      hours: 'Ustaw specjaliście godziny pracy',
+      legal: 'Dodaj regulamin i politykę prywatności',
+      online: 'Włącz rezerwację online',
+    },
+  },
   calendar: {
     newAppointment: 'Nowa wizyta',
     blockTime: 'Zablokuj czas',

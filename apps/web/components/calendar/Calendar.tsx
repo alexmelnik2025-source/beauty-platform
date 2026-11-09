@@ -28,6 +28,7 @@ import { BlockSheet } from './BlockSheet';
 import { MoveSheet, type MoveTarget } from './MoveSheet';
 import { NewItemSheet, type NewItemDraft } from './NewItemSheet';
 import { TillReminder } from './TillReminder';
+import { SetupSteps } from './SetupSteps';
 import { TillStrip } from './TillStrip';
 
 const REFRESH_MS = 30_000;
@@ -428,6 +429,9 @@ export function Calendar() {
           ›
         </button>
       </div>
+
+      {/* Task 353: on an empty calendar only — a day with visits keeps its space for the work. */}
+      {manager && data && data.appointments.length === 0 ? <SetupSteps base={base} /> : null}
 
       {manager && mode === 'day' && date === today ? (
         <TillReminder base={base} today={today} refresh={data} onOpen={setDate} />
