@@ -130,7 +130,7 @@ test('business app: the owner sees what the salon still needs for online booking
       .click();
     await expect(phone.getByText('Regulamin i prywatność')).toBeVisible();
     // The salon adds its texts and switches online booking on (here through the API).
-    await json(
+    const online = await json<{ version: number }>(
       await request.patch(base, {
         headers: owner,
         data: {
@@ -146,6 +146,13 @@ test('business app: the owner sees what the salon still needs for online booking
     await phone.waitForLoadState('networkidle');
     await expect(phone.getByText('Pierwsze kroki')).toHaveCount(0);
     await context.close();
+    // Off again: booking.spec.ts counts the salons of the public catalogue.
+    await json(
+      await request.patch(base, {
+        headers: owner,
+        data: { version: online.version, onlineBookingEnabled: false },
+      }),
+    );
   } finally {
     businessApp.server.close();
   }
