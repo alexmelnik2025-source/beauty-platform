@@ -5,7 +5,16 @@ import { WEB_URL } from '../config';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { encodeQr, qrRuns } from '../qr';
-import { bookingLink, qrLink, shareLink, type ShareTools } from '../share';
+import {
+  bookingLink,
+  embedCode,
+  qrLink,
+  shareLink,
+  shareText,
+  shortLink,
+  type ShareTools,
+  type TextShareTools,
+} from '../share';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -13,6 +22,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 152: "Link do rezerwacji" — the owner or a manager sees the salon's booking link and
  * sends it on (Instagram bio, WhatsApp…). When online booking is off, a hint says so.
  * Task 354: below it the salon's QR code — shown at the front desk or screenshotted for print.
+ * Task 355: the short link (Instagram bio, business card) and the booking button for the salon's
+ * own website, as in the cabinet's "Udostępnij".
  */
 export function BookingLinkScreen(props: {
   api: BusinessApi;
@@ -25,6 +36,8 @@ export function BookingLinkScreen(props: {
   const [location, setLocation] = useState<Location | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [shortInfo, setShortInfo] = useState('');
+  const [embedInfo, setEmbedInfo] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +74,27 @@ export function BookingLinkScreen(props: {
     setInfo(result === 'copied' ? b.copied : result === 'failed' ? b.failed : '');
   };
 
+  const shareShort = async () => {
+    if (!location) return;
+    const url = shortLink(WEB_URL, location);
+    const content = {
+      message: fill(b.message, { name: location.name, url }),
+      url,
+      title: location.name,
+    };
+    const result = await shareLink(content, shareTools());
+    setShortInfo(result === 'copied' ? b.copied : result === 'failed' ? b.failed : '');
+  };
+
+  const shareEmbed = async () => {
+    if (!location) return;
+    const result = await shareText(
+      { title: b.embedTitle, message: embedCode(WEB_URL, location) },
+      codeShareTools(),
+    );
+    setEmbedInfo(result === 'copied' ? b.codeCopied : result === 'failed' ? b.failed : '');
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <Button kind="link" label={b.back} onPress={onBack} />
@@ -85,7 +119,37 @@ export function BookingLinkScreen(props: {
               {info}
             </Text>
           ) : null}
+          <Card>
+            <Text role="heading" style={styles.qrTitle}>
+              {b.shortTitle}
+            </Text>
+            <Text selectable style={styles.link}>
+              {shortLink(WEB_URL, location)}
+            </Text>
+            <Text style={styles.muted}>{b.shortHint}</Text>
+            <Button kind="secondary" label={b.shortShare} onPress={() => void shareShort()} />
+            {shortInfo ? (
+              <Text role="status" style={styles.info}>
+                {shortInfo}
+              </Text>
+            ) : null}
+          </Card>
           <SalonQr link={qrLink(WEB_URL, location)} name={location.name} t={t} />
+          <Card>
+            <Text role="heading" style={styles.qrTitle}>
+              {b.embedTitle}
+            </Text>
+            <Text selectable style={styles.code} accessibilityLabel={b.embedTitle}>
+              {embedCode(WEB_URL, location)}
+            </Text>
+            <Text style={styles.muted}>{b.embedHint}</Text>
+            <Button kind="secondary" label={b.embedCopy} onPress={() => void shareEmbed()} />
+            {embedInfo ? (
+              <Text role="status" style={styles.info}>
+                {embedInfo}
+              </Text>
+            ) : null}
+          </Card>
         </>
       )}
     </ScrollView>
@@ -153,6 +217,18 @@ function shareTools(): ShareTools {
   };
 }
 
+/**
+ * The website code is pasted into a site, so in the web preview it is copied straight away; on a
+ * phone the share sheet opens (it has "Copy", mail and notes).
+ */
+function codeShareTools(): TextShareTools {
+  if (Platform.OS !== 'web') {
+    return { native: (c) => Share.share({ message: c.message, title: c.title }) };
+  }
+  const nav = typeof navigator === 'undefined' ? undefined : navigator;
+  return { copy: nav?.clipboard ? (text) => nav.clipboard.writeText(text) : undefined };
+}
+
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   link: { fontSize: 16, fontWeight: '600', color: colors.ink },
@@ -165,4 +241,9 @@ const styles = StyleSheet.create({
   module: { position: 'absolute', height: MODULE, backgroundColor: '#000' },
   qrName: { fontSize: 18, fontWeight: '700', color: colors.ink },
   qrScan: { fontSize: 15, color: colors.ink },
+  code: {
+    fontSize: 13,
+    color: colors.ink,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+  },
 });

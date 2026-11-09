@@ -8,6 +8,8 @@ import { serveApp } from './mobile-app';
  * The owner sees the salon's booking link, a hint while online booking is off, and copies the
  * link (this browser has no share menu). Screenshot 152.
  * Task 354: below it the salon's QR code with the short link. Screenshot 354.
+ * Task 355: the short link and the booking button code for the salon's website, copied.
+ * Screenshot 355.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -100,8 +102,26 @@ test('the owner shares the booking link from the business app (task 152)', async
     expect(box!.width).toBeGreaterThan(150);
     expect(Math.abs(box!.width - box!.height)).toBeLessThan(1);
     await expect(app.getByText('Zeskanuj i umów wizytę')).toBeVisible();
-    await expect(app.getByText(new RegExp(`/s/${location.slug}$`))).toBeVisible();
+    // The caption under the code (the short link card above shows the same link with https://).
+    await expect(app.getByText(new RegExp(`/s/${location.slug}$`)).last()).toBeVisible();
     await shot(app, '354-business-app-salon-qr');
+
+    // Task 355: the short link and the website button code.
+    await expect(app.getByRole('heading', { name: 'Krótki link' })).toBeVisible();
+    await app.getByRole('button', { name: 'Udostępnij krótki link' }).click();
+    await expect(app.getByText('Link skopiowany.')).toHaveCount(2);
+    expect(await app.evaluate(() => navigator.clipboard.readText())).toMatch(
+      new RegExp(`/s/${location.slug}$`),
+    );
+    const copyCode = app.getByRole('button', { name: 'Skopiuj kod' });
+    await copyCode.scrollIntoViewIfNeeded();
+    await copyCode.click();
+    await expect(app.getByText('Kod skopiowany.')).toBeVisible();
+    const code = await app.evaluate(() => navigator.clipboard.readText());
+    expect(code).toContain(`data-salon="${location.slug}"`);
+    expect(code).toContain('data-lang="pl"');
+    expect(code).toMatch(/^<script src="[^"]+\/embed\.js"/);
+    await shot(app, '355-business-app-website-button');
   } finally {
     businessApp.server.close();
     await context.close();

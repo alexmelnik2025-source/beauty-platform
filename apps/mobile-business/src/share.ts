@@ -21,7 +21,27 @@ export function bookingLink(
  * the same link as the cabinet's "Kod QR", e.g. https://…/s/gestalt-barbershop?utm_source=qr.
  */
 export function qrLink(webUrl: string, location: Pick<Location, 'slug'>): string {
-  return `${webUrl.replace(/\/+$/, '')}/s/${encodeURIComponent(location.slug)}?utm_source=qr`;
+  return `${shortLink(webUrl, location)}?utm_source=qr`;
+}
+
+/**
+ * Task 355: the salon's short link for an Instagram bio or a business card — opens booking in
+ * the language of the client's phone (as "Krótki link" in the cabinet), e.g. https://…/s/gestalt.
+ */
+export function shortLink(webUrl: string, location: Pick<Location, 'slug'>): string {
+  return `${webUrl.replace(/\/+$/, '')}/s/${encodeURIComponent(location.slug)}`;
+}
+
+/**
+ * Task 355: the booking button for the salon's own website (public/embed.js of the web app) —
+ * the same code as "Przycisk rezerwacji na Twoją stronę" in the cabinet, in the salon's language.
+ */
+export function embedCode(
+  webUrl: string,
+  location: Pick<Location, 'slug' | 'defaultLocale'>,
+): string {
+  const base = webUrl.replace(/\/+$/, '');
+  return `<script src="${base}/embed.js" data-salon="${location.slug}" data-lang="${location.defaultLocale}" async></script>`;
 }
 
 export interface ShareMessage {

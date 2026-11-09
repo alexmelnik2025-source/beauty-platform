@@ -1442,6 +1442,15 @@ export const pl = {
     message: '{name} — umów się online: {url}',
     copied: 'Link skopiowany.',
     failed: 'Nie udało się udostępnić — przepisz link powyżej.',
+    shortTitle: 'Krótki link',
+    shortHint:
+      'Do bio na Instagramie, wizytówki lub Google. Otwiera rezerwację w języku telefonu klienta.',
+    shortShare: 'Udostępnij krótki link',
+    embedTitle: 'Przycisk rezerwacji na Twoją stronę',
+    embedHint:
+      'Wklej ten kod na swojej stronie przed </body>. W rogu pojawi się przycisk „Umów wizytę”, a rezerwacja otworzy się w okienku — klient nie opuszcza strony.',
+    embedCopy: 'Skopiuj kod',
+    codeCopied: 'Kod skopiowany.',
     qrTitle: 'Kod QR',
     qrAlt: 'Kod QR rezerwacji',
     qrScan: 'Zeskanuj i umów wizytę',

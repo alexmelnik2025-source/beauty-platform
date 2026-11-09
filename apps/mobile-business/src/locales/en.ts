@@ -1444,6 +1444,15 @@ export const en: Dictionary = {
     message: '{name} — book online: {url}',
     copied: 'Link copied.',
     failed: 'Could not share — copy the link above.',
+    shortTitle: 'Short link',
+    shortHint:
+      "For your Instagram bio, business card or Google. Opens booking in the language of the client's phone.",
+    shortShare: 'Share the short link',
+    embedTitle: 'Booking button for your website',
+    embedHint:
+      'Paste this code into your website before </body>. A "Book a visit" button appears in the corner and booking opens in a window — the client stays on your site.',
+    embedCopy: 'Copy the code',
+    codeCopied: 'Code copied.',
     qrTitle: 'QR code',
     qrAlt: 'Booking QR code',
     qrScan: 'Scan to book a visit',

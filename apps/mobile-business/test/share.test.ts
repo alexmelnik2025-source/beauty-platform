@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DICTIONARIES, fill } from '../src/i18n';
-import { bookingLink, shareCsv, shareLink } from '../src/share';
+import { bookingLink, embedCode, shareCsv, shareLink, shortLink } from '../src/share';
 
 const url = bookingLink('https://app.example.com/', {
   slug: 'gestalt-barbershop',
@@ -73,5 +73,20 @@ describe('the report as CSV (task 220)', () => {
     native.mockRejectedValue(new Error('no'));
     expect(await shareCsv(file, { native })).toBe('failed');
     expect(await shareCsv(file, {})).toBe('failed');
+  });
+});
+
+describe('short link and website button (task 355)', () => {
+  it('gives the cabinet’s short link and embed code', () => {
+    const salon = { slug: 'gestalt-barbershop', defaultLocale: 'pl' as const };
+    expect(shortLink('https://app.example.com/', salon)).toBe(
+      'https://app.example.com/s/gestalt-barbershop',
+    );
+    expect(embedCode('https://app.example.com/', salon)).toBe(
+      '<script src="https://app.example.com/embed.js" data-salon="gestalt-barbershop" data-lang="pl" async></script>',
+    );
+    expect(
+      embedCode('http://localhost:3000', { slug: 'kyiv-barber', defaultLocale: 'uk' }),
+    ).toContain('data-lang="uk"');
   });
 });
