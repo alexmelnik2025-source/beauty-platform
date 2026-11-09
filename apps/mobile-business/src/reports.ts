@@ -43,6 +43,46 @@ export function weekdayLong(weekday: number, locale: keyof typeof INTL_LOCALE): 
   );
 }
 
+/** Task 356: a day of the period, short — "pon. 3 lis" / "Mon, 3 Nov" — in the app's language. */
+export function shortDay(date: string, locale: keyof typeof INTL_LOCALE): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+}
+
+export interface DayBar {
+  date: string;
+  completed: number;
+  revenueGrosze: number;
+  /** Bar length, 0–1 of the best day's revenue. */
+  share: number;
+  /** The day with the most revenue (the first one on a tie). */
+  best: boolean;
+}
+
+/**
+ * Task 356: "Dzień po dniu" — every day of the period with its revenue and visits, bars scaled
+ * to the best day (as "Dzień po dniu" in the cabinet). Empty when the period earned nothing.
+ */
+export function dayBars(
+  days: readonly { date: string; completed: number; revenueGrosze: number }[],
+): DayBar[] {
+  const max = Math.max(0, ...days.map((d) => d.revenueGrosze));
+  if (max === 0 && days.every((d) => d.completed === 0)) return [];
+  const bestIndex = max > 0 ? days.findIndex((d) => d.revenueGrosze === max) : -1;
+  return days.map((d, i) => ({
+    date: d.date,
+    completed: d.completed,
+    revenueGrosze: d.revenueGrosze,
+    share: max > 0 ? d.revenueGrosze / max : 0,
+    best: i === bestIndex,
+  }));
+}
+
 /** Task 213: average stars with one decimal in the app's language — "4,5" / "4.5". */
 export function starsText(average: number, locale: keyof typeof INTL_LOCALE): string {
   return new Intl.NumberFormat(INTL_LOCALE[locale], {

@@ -500,6 +500,11 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
     await expect(app.getByText('poniedziałek', { exact: true })).toBeVisible();
     await shot(app, '75b-business-app-reports-weekdays');
+    // "Dzień po dniu" in the app too (task 356): every day of the month, the paid ones with zł.
+    const days = app.getByTestId('report-days');
+    await days.getByText('Dzień po dniu').scrollIntoViewIfNeeded();
+    await expect(days.getByText(/\d+,\d{2}\s*zł/).first()).toBeVisible();
+    await shot(app, '356-business-app-reports-days');
     // "Obłożenie" in the app too (task 141).
     await app.getByText(/^Obłożenie: \d+%$/).scrollIntoViewIfNeeded();
     await expect(app.getByText('zajęte 1,5 z 360 godz.').first()).toBeVisible();

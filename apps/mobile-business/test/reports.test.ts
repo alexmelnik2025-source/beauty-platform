@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   change,
+  dayBars,
   onlineShare,
   peakHours,
   reportRange,
+  shortDay,
   starsText,
   weekdayLong,
 } from '../src/reports';
@@ -71,5 +73,33 @@ describe('peak hours (task 216)', () => {
       { weekday: 2, hour: 18, visits: 4 },
     ]);
     expect(peakHours([])).toEqual([]);
+  });
+});
+
+describe('"Dzień po dniu" (task 356)', () => {
+  it('scales bars to the best day and marks it', () => {
+    const bars = dayBars([
+      { date: '2026-11-02', completed: 3, revenueGrosze: 30000 },
+      { date: '2026-11-03', completed: 0, revenueGrosze: 0 },
+      { date: '2026-11-04', completed: 6, revenueGrosze: 60000 },
+      { date: '2026-11-05', completed: 5, revenueGrosze: 60000 },
+    ]);
+    expect(bars.map((b) => b.share)).toEqual([0.5, 0, 1, 1]);
+    expect(bars.map((b) => b.best)).toEqual([false, false, true, false]);
+  });
+
+  it('is empty when the period had no visits at all', () => {
+    expect(dayBars([{ date: '2026-11-02', completed: 0, revenueGrosze: 0 }])).toEqual([]);
+    expect(dayBars([])).toEqual([]);
+    // Visits without payments still show (bars empty, nobody "best").
+    const unpaid = dayBars([{ date: '2026-11-02', completed: 2, revenueGrosze: 0 }]);
+    expect(unpaid).toHaveLength(1);
+    expect(unpaid[0]).toMatchObject({ share: 0, best: false });
+  });
+
+  it('names the day short in every language', () => {
+    expect(shortDay('2026-11-02', 'en')).toMatch(/Mon/);
+    expect(shortDay('2026-11-02', 'pl')).toMatch(/pon/);
+    expect(shortDay('2026-11-02', 'en')).toMatch(/2/);
   });
 });

@@ -687,6 +687,9 @@ export const pl = {
     csvFailed: 'Nie udało się zapisać pliku.',
     empty: 'Brak wizyt w tym okresie.',
     note: 'Przychód to opłacone wizyty po rabatach z programu lojalnościowego.',
+    byDay: 'Dzień po dniu',
+    byDayHint:
+      'Przychód z opłaconych wizyt i liczba wizyt każdego dnia; pogrubiony — najlepszy dzień.',
     byWeekday: 'Dni tygodnia',
     weekdayVisits: 'wizyty: {n}',
     occupancy: 'Obłożenie: {n}%',

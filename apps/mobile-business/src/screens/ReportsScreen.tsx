@@ -15,10 +15,12 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
   change,
+  dayBars,
   onlineShare,
   peakHours,
   REPORT_PERIODS,
   reportRange,
+  shortDay,
   starsText,
   weekdayLong,
   type ReportPeriod,
@@ -150,6 +152,7 @@ export function ReportsScreen(props: {
   const ratings = shown?.ratings;
   const maxStars = Math.max(1, ...(ratings?.stars ?? [1]));
   const maxWeekday = Math.max(1, ...(shown?.weekdays.map((d) => d.completed) ?? [1]));
+  const days = shown ? dayBars(shown.days) : [];
   const stat = (label: string, value: string, sub?: string, trend?: string | null) => (
     <View style={styles.stat} key={label}>
       <Text style={styles.muted}>{label}</Text>
@@ -583,6 +586,33 @@ export function ReportsScreen(props: {
               ))}
             </View>
           ) : null}
+          {days.length > 0 ? (
+            <View style={{ gap: 6 }} testID="report-days">
+              <Text style={styles.section}>{r.byDay}</Text>
+              {days.map((d) => (
+                <View
+                  key={d.date}
+                  style={styles.weekday}
+                  accessible
+                  accessibilityLabel={`${shortDay(d.date, props.locale)} · ${
+                    d.revenueGrosze ? money(d.revenueGrosze) : '—'
+                  } · ${fill(r.weekdayVisits, { n: String(d.completed) })}`}
+                >
+                  <Text style={[styles.dayName, d.best && styles.bestDay]}>
+                    {shortDay(d.date, props.locale)}
+                  </Text>
+                  <View style={styles.bar}>
+                    <View style={[styles.barFill, { width: `${d.share * 100}%` }]} />
+                  </View>
+                  <Text style={[styles.dayValue, d.best && styles.bestDay]}>
+                    {d.revenueGrosze ? money(d.revenueGrosze) : '—'}
+                  </Text>
+                  <Text style={styles.dayVisits}>{d.completed || ''}</Text>
+                </View>
+              ))}
+              <Text style={styles.small}>{r.byDayHint}</Text>
+            </View>
+          ) : null}
           {shown.occupancy.staff.length > 0 ? (
             <View style={{ gap: 6 }} testID="report-occupancy">
               <Text style={styles.section}>
@@ -878,4 +908,8 @@ const styles = StyleSheet.create({
   weekdayName: { width: 110, color: colors.ink, fontSize: 14 },
   bar: { flex: 1, height: 8, backgroundColor: colors.line, borderRadius: 4, overflow: 'hidden' },
   barFill: { height: '100%', backgroundColor: colors.ink },
+  dayName: { width: 96, color: colors.ink, fontSize: 13 },
+  dayValue: { width: 84, textAlign: 'right', color: colors.ink, fontSize: 13 },
+  dayVisits: { width: 22, textAlign: 'right', color: colors.muted, fontSize: 13 },
+  bestDay: { fontWeight: '700' },
 });

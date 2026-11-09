@@ -692,6 +692,8 @@ export const en: Dictionary = {
     csvFailed: 'Could not save the file.',
     empty: 'No visits in this period.',
     note: 'Revenue is paid visits after loyalty discounts.',
+    byDay: 'Day by day',
+    byDayHint: 'Revenue from paid visits and the number of visits each day; bold — the best day.',
     byWeekday: 'Days of the week',
     weekdayVisits: 'visits: {n}',
     occupancy: 'Occupancy: {n}%',
