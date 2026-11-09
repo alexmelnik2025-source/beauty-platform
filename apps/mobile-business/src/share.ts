@@ -101,3 +101,47 @@ export async function shareCsv(
   }
   return 'failed';
 }
+
+export interface TextShareTools {
+  /** The phone's share sheet (React Native Share). */
+  native?: (content: { title: string; message: string }) => Promise<{ action: string }>;
+  /** The browser's share menu (navigator.share), when it has one. */
+  webShare?: (data: { title: string; text: string }) => Promise<void>;
+  /** Copy to the clipboard (navigator.clipboard.writeText). */
+  copy?: (text: string) => Promise<void>;
+}
+
+/**
+ * Task 351: shares a text (the day plan) — share sheet → browser menu → copying the text. The
+ * same order as shareLink, but the whole text is copied, not a link.
+ */
+export async function shareText(
+  content: { title: string; message: string },
+  tools: TextShareTools,
+): Promise<ShareResult> {
+  if (tools.native) {
+    try {
+      const result = await tools.native(content);
+      return result.action === 'dismissedAction' ? 'cancelled' : 'shared';
+    } catch {
+      return 'failed';
+    }
+  }
+  if (tools.webShare) {
+    try {
+      await tools.webShare({ title: content.title, text: content.message });
+      return 'shared';
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return 'cancelled';
+    }
+  }
+  if (tools.copy) {
+    try {
+      await tools.copy(content.message);
+      return 'copied';
+    } catch {
+      return 'failed';
+    }
+  }
+  return 'failed';
+}

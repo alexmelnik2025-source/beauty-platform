@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type {
   BusinessApi,
   Calendar,
@@ -21,6 +30,8 @@ import {
   visitsOfDay,
 } from '../day';
 import { tillOf } from '../till';
+import { dayPlanText } from '../dayPlan';
+import { shareText, type TextShareTools } from '../share';
 import { errorText } from '../errors';
 import { badge } from '../notifications';
 import { fill, type Dictionary } from '../i18n';
@@ -493,6 +504,26 @@ export function DayScreen(props: {
   const dayBlocks =
     blocks && blocks.date === date ? blocksOfDay(blocks.list, staffList, date, props.timeZone) : [];
 
+  /** Task 351: the day as text for the team chat or printing — the list as it is on the screen. */
+  async function sharePlan() {
+    if (!visits) return;
+    const title = dayTitle(date, props.locale);
+    const message = dayPlanText(
+      { salon: salonName, title, visits, working, blocks: dayBlocks },
+      {
+        working: t.day.working,
+        nobodyWorks: t.day.nobodyWorks,
+        empty: t.day.empty,
+        blocks: t.blocks.title,
+        wholeSalon: t.blocks.wholeSalon,
+        walkIn: t.day.walkIn,
+        awaitingApproval: t.visit.awaitingApproval,
+      },
+    );
+    const result = await shareText({ title: `${salonName} — ${title}`, message }, textShareTools());
+    setInfo(result === 'copied' ? t.day.planCopied : result === 'failed' ? t.day.planFailed : '');
+  }
+
   async function unblock(id: string, seriesId?: string) {
     setRemoveId(null);
     try {
@@ -594,6 +625,9 @@ export function DayScreen(props: {
         />
         <Button kind="secondary" label={t.week.open} onPress={() => setWeekOpen(true)} />
         <Button kind="link" label={t.day.refresh} onPress={load} />
+        {visits ? (
+          <Button kind="link" label={t.day.sharePlan} onPress={() => void sharePlan()} />
+        ) : null}
       </View>
       {rights && mayAddVisits(rights, mineId) ? (
         <Button label={t.newVisit.open} onPress={() => setAdding(true)} />
@@ -798,6 +832,18 @@ export function DayScreen(props: {
       ) : null}
     </ScrollView>
   );
+}
+
+/** Task 351: the share sheet on phones; in the web preview the browser's menu or the clipboard. */
+function textShareTools(): TextShareTools {
+  if (Platform.OS !== 'web') {
+    return { native: (c) => Share.share({ message: c.message, title: c.title }) };
+  }
+  const nav = typeof navigator === 'undefined' ? undefined : navigator;
+  return {
+    webShare: nav?.share ? (data) => nav.share(data) : undefined,
+    copy: nav?.clipboard ? (text) => nav.clipboard.writeText(text) : undefined,
+  };
 }
 
 const styles = StyleSheet.create({
