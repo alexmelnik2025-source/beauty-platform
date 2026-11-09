@@ -237,6 +237,10 @@ export function DayScreen(props: {
         today={today}
         timeZone={props.timeZone}
         onBack={() => setReportsOpen(false)}
+        onOpenDay={(day) => {
+          setDate(day);
+          setReportsOpen(false);
+        }}
       />
     );
   }

@@ -688,8 +688,9 @@ export const pl = {
     empty: 'Brak wizyt w tym okresie.',
     note: 'Przychód to opłacone wizyty po rabatach z programu lojalnościowego.',
     byDay: 'Dzień po dniu',
+    byDayOpen: 'Otwiera ten dzień w kalendarzu',
     byDayHint:
-      'Przychód z opłaconych wizyt i liczba wizyt każdego dnia; pogrubiony — najlepszy dzień.',
+      'Przychód z opłaconych wizyt i liczba wizyt każdego dnia; pogrubiony — najlepszy dzień. Dotknij dnia, aby otworzyć go w kalendarzu.',
     byWeekday: 'Dni tygodnia',
     weekdayVisits: 'wizyty: {n}',
     occupancy: 'Obłożenie: {n}%',

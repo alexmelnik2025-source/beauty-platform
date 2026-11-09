@@ -70,6 +70,8 @@ export function ReportsScreen(props: {
   /** Task 217: a top client's card opens with the salon's time zone. */
   timeZone: string;
   onBack: () => void;
+  /** Task 358: a day of "Dzień po dniu" opens in the calendar. */
+  onOpenDay?: (date: string) => void;
 }) {
   const { api, t, salon, today, onBack } = props;
   const r = t.reports;
@@ -590,13 +592,16 @@ export function ReportsScreen(props: {
             <View style={{ gap: 6 }} testID="report-days">
               <Text style={styles.section}>{r.byDay}</Text>
               {days.map((d) => (
-                <View
+                <Pressable
                   key={d.date}
                   style={styles.weekday}
-                  accessible
+                  role="button"
+                  disabled={!props.onOpenDay}
+                  onPress={() => props.onOpenDay?.(d.date)}
                   accessibilityLabel={`${shortDay(d.date, props.locale)} · ${
                     d.revenueGrosze ? money(d.revenueGrosze) : '—'
                   } · ${fill(r.weekdayVisits, { n: String(d.completed) })}`}
+                  accessibilityHint={r.byDayOpen}
                 >
                   <Text style={[styles.dayName, d.best && styles.bestDay]}>
                     {shortDay(d.date, props.locale)}
@@ -608,7 +613,7 @@ export function ReportsScreen(props: {
                     {d.revenueGrosze ? money(d.revenueGrosze) : '—'}
                   </Text>
                   <Text style={styles.dayVisits}>{d.completed || ''}</Text>
-                </View>
+                </Pressable>
               ))}
               <Text style={styles.small}>{r.byDayHint}</Text>
             </View>

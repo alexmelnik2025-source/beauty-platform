@@ -693,7 +693,9 @@ export const en: Dictionary = {
     empty: 'No visits in this period.',
     note: 'Revenue is paid visits after loyalty discounts.',
     byDay: 'Day by day',
-    byDayHint: 'Revenue from paid visits and the number of visits each day; bold — the best day.',
+    byDayOpen: 'Opens this day in the calendar',
+    byDayHint:
+      'Revenue from paid visits and the number of visits each day; bold — the best day. Tap a day to open it in the calendar.',
     byWeekday: 'Days of the week',
     weekdayVisits: 'visits: {n}',
     occupancy: 'Occupancy: {n}%',

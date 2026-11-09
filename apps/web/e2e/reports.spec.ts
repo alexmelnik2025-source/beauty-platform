@@ -593,6 +593,31 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await dayCard.click();
     await expect(app.getByRole('heading', { name: visitDay })).toBeVisible();
     await expect(app.getByText('Wizyty (4)')).toBeVisible();
+
+    // Task 358: a day of "Dzień po dniu" opens in the calendar. Back to today first.
+    await app.getByRole('button', { name: 'Dziś' }).click();
+    const visitDayShort = new Intl.DateTimeFormat('pl-PL', {
+      timeZone: 'UTC',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(
+      new Date(
+        Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 12) -
+          2 * 86_400_000,
+      ),
+    );
+    await app.getByRole('button', { name: 'Raporty' }).click();
+    await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+    const dayRow = app
+      .getByTestId('report-days')
+      .getByRole('button', { name: new RegExp(`^${visitDayShort} · `) });
+    await dayRow.scrollIntoViewIfNeeded();
+    await expect(dayRow).toContainText('zł');
+    await shot(app, '358-business-app-report-day');
+    await dayRow.click();
+    await expect(app.getByRole('heading', { name: visitDay })).toBeVisible();
+    await expect(app.getByText('Wizyty (4)')).toBeVisible();
   } finally {
     businessApp.server.close();
   }
