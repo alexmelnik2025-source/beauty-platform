@@ -17,7 +17,14 @@ import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { priceRows, speakersFirst } from '../booking';
 import { formatPrice, servicePriceText } from '../format';
-import { addressText, durationText, openingRows, serviceGroups, specialtyText } from '../salon';
+import {
+  addressText,
+  directionsUrl,
+  durationText,
+  openingRows,
+  serviceGroups,
+  specialtyText,
+} from '../salon';
 import { QrView } from '../QrView';
 import { shareMessage, shareSalon, type ShareTools } from '../share';
 import { SalonReviews } from './SalonReviews';
@@ -198,6 +205,11 @@ export function SalonScreen(props: {
           onPress={() => void Linking.openURL(`tel:${salon.phone}`)}
         />
       ) : null}
+      <Button
+        kind="secondary"
+        label={t.salon.directions}
+        onPress={() => void Linking.openURL(directionsUrl(salon, Platform.OS))}
+      />
 
       {salon.description ? (
         <Section title={t.salon.about}>

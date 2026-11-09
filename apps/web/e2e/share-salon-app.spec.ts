@@ -13,6 +13,7 @@ import { serveApp } from './mobile-app';
  * Task 151: "Poleć salon" in the client app (web preview of apps/mobile-client). The browser has
  * no share menu here, so the salon's booking link is copied and the app says so. Screenshot 151.
  * Task 357: "Pokaż kod QR" — the salon's QR code for a friend nearby; hidden again. Screenshot 357.
+ * Task 359: "Jak dojechać" opens the maps with the salon's name and address. Screenshot 359.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -123,6 +124,20 @@ test('the client recommends a salon: its booking link is copied (task 151)', asy
     await shot(app, '357-client-app-salon-qr');
     await app.getByRole('button', { name: 'Ukryj kod QR' }).click();
     await expect(qr).toHaveCount(0);
+
+    // The CI has no internet: the maps page is answered here, only its address matters.
+    await phone.route('https://www.google.com/maps/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<p>maps</p>' }),
+    );
+    const directions = app.getByRole('button', { name: 'Jak dojechać' });
+    await directions.scrollIntoViewIfNeeded();
+    await shot(app, '359-client-app-directions');
+    const [maps] = await Promise.all([phone.waitForEvent('page'), directions.click()]);
+    await maps.waitForURL(/google\.com\/maps\/dir\//);
+    const destination = new URL(maps.url()).searchParams.get('destination');
+    expect(destination).toContain(NAME);
+    expect(destination).toMatch(/Warszawa$/);
+    await maps.close();
   } finally {
     clientApp.server.close();
     await phone.close();

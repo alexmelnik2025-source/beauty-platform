@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DirectorySalon, PublicLocation } from '../src/api';
 import {
   addressText,
+  directionsUrl,
   durationText,
   filterSalons,
   openingRows,
@@ -151,5 +152,30 @@ describe('salon page', () => {
         pl.specialty,
       ),
     ).toBe('Barber · Fryzjer · Trycholog');
+  });
+});
+
+describe('"Jak dojechać" (task 359)', () => {
+  const salon = {
+    name: 'GESTALT',
+    addressLine: 'ul. Józefa Bema 91',
+    postalCode: '01-233',
+    city: 'Warszawa',
+  };
+
+  it('opens Apple Maps on an iPhone and Google Maps elsewhere, with the name and address', () => {
+    const query = encodeURIComponent('GESTALT, ul. Józefa Bema 91, 01-233 Warszawa');
+    expect(directionsUrl(salon, 'ios')).toBe(`https://maps.apple.com/?daddr=${query}`);
+    expect(directionsUrl(salon, 'android')).toBe(
+      `https://www.google.com/maps/dir/?api=1&destination=${query}`,
+    );
+    expect(directionsUrl(salon, 'web')).toBe(directionsUrl(salon, 'android'));
+  });
+
+  it('keeps "&" and "#" in a name inside the address', () => {
+    const url = new URL(directionsUrl({ ...salon, name: 'Barber & Co #1' }, 'web'));
+    expect(url.searchParams.get('destination')).toBe(
+      'Barber & Co #1, ul. Józefa Bema 91, 01-233 Warszawa',
+    );
   });
 });

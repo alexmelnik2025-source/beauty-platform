@@ -76,6 +76,21 @@ export function addressText(
   return `${s.addressLine}, ${`${s.postalCode} ${s.city}`.trim()}`;
 }
 
+/**
+ * Task 359: "Jak dojechać" — directions to the salon in the phone's maps, free and without a
+ * key: Apple Maps on an iPhone, Google Maps elsewhere (its app on Android, the site in a
+ * browser). The salon's name goes with the address, so the maps find the right door.
+ */
+export function directionsUrl(
+  s: Pick<DirectorySalon, 'name' | 'addressLine' | 'postalCode' | 'city'>,
+  platform: 'ios' | 'android' | 'web' | string,
+): string {
+  const destination = encodeURIComponent(`${s.name}, ${addressText(s)}`);
+  return platform === 'ios'
+    ? `https://maps.apple.com/?daddr=${destination}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+}
+
 /** The specialist's trades, main one first, in the person's language (custom name last). */
 export function specialtyText(
   staff: PublicLocation['staff'][number],
