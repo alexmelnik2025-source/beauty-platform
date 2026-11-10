@@ -3,6 +3,8 @@
  * hours come from the API (special days, vacations and salon-wide blocks included); the next
  * days — from the weekly table. The same logic lives in apps/mobile-client/src/salon.ts.
  */
+import { fill } from './i18n/locales';
+import { toLocal } from './time';
 
 interface Interval {
   start: string;
@@ -52,4 +54,40 @@ export function openStatus(
     if (first) return { kind: 'opensLater', inDays, weekday, at: first.start };
   }
   return { kind: 'closed' };
+}
+
+/** The salon's local date, ISO weekday and minutes after midnight now. */
+export function salonNow(timeZone: string, instant = Date.now()) {
+  const now = toLocal(instant, timeZone);
+  const [y, m, d] = now.date.split('-').map(Number) as [number, number, number];
+  const weekday = ((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7) + 1;
+  return { date: now.date, weekday, minute: now.minute };
+}
+
+/** "Otwarte · do 20:00" and the like, in the reader's language. */
+export function openStatusText(
+  s: OpenStatus,
+  p: {
+    openUntil: string;
+    openUntilMidnight: string;
+    opensToday: string;
+    opensLater: string;
+    tomorrow: string;
+    closedNow: string;
+  },
+  dayName: (weekday: number) => string,
+): string {
+  switch (s.kind) {
+    case 'open':
+      return s.until === '24:00' ? p.openUntilMidnight : fill(p.openUntil, { time: s.until });
+    case 'opensToday':
+      return fill(p.opensToday, { time: s.at });
+    case 'opensLater':
+      return fill(p.opensLater, {
+        day: s.inDays === 1 ? p.tomorrow : dayName(s.weekday),
+        time: s.at,
+      });
+    case 'closed':
+      return p.closedNow;
+  }
 }

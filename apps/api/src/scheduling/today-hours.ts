@@ -1,4 +1,12 @@
-import { addDays, formatClock, instantToLocal, isoWeekday, zonedToInstant } from './time';
+import type { PrismaService } from '../prisma/prisma.service';
+import {
+  addDays,
+  formatClock,
+  instantToLocal,
+  isoWeekday,
+  localToday,
+  zonedToInstant,
+} from './time';
 
 /** Minutes after local midnight, end exclusive. */
 interface Minutes {
@@ -79,4 +87,80 @@ export function hoursOn(
     start: formatClock(i.startMinute),
     end: formatClock(i.endMinute),
   }));
+}
+
+export interface TodayHours {
+  /** Today at the salon, YYYY-MM-DD. */
+  date: string;
+  intervals: { start: string; end: string }[];
+}
+
+/**
+ * Tasks 362–363: today's real hours of several salons at once (the salon page, the catalogue),
+ * in three queries. `staff` — the specialists who take online bookings, with their weekly hours.
+ */
+export async function todayHoursOf(
+  prisma: PrismaService,
+  locations: {
+    id: string;
+    timezone: string;
+    staff: {
+      id: string;
+      workingHours: { weekday: number; startMinute: number; endMinute: number }[];
+    }[];
+  }[],
+  now = Date.now(),
+): Promise<Map<string, TodayHours>> {
+  const days = locations.map((l) => {
+    const date = localToday(now, l.timezone);
+    return {
+      location: l,
+      date,
+      from: zonedToInstant(date, 0, l.timezone),
+      to: zonedToInstant(addDays(date, 1), 0, l.timezone),
+    };
+  });
+  const result = new Map<string, TodayHours>();
+  if (days.length === 0) return result;
+  const staffIds = locations.flatMap((l) => l.staff.map((s) => s.id));
+  const from = new Date(Math.min(...days.map((d) => d.from)));
+  const to = new Date(Math.max(...days.map((d) => d.to)));
+  const dates = [...new Set(days.map((d) => d.date))].map((d) => new Date(`${d}T00:00:00.000Z`));
+  const [overrides, timeOff, blocks] = await Promise.all([
+    prisma.workingHoursOverride.findMany({
+      where: { staffId: { in: staffIds }, date: { in: dates } },
+      select: { staffId: true, date: true, startMinute: true, endMinute: true },
+    }),
+    prisma.timeOff.findMany({
+      where: { staffId: { in: staffIds }, startsAt: { lt: to }, endsAt: { gt: from } },
+      select: { staffId: true, startsAt: true, endsAt: true },
+    }),
+    prisma.timeBlock.findMany({
+      where: {
+        locationId: { in: locations.map((l) => l.id) },
+        staffId: null,
+        deletedAt: null,
+        startAt: { lt: to },
+        endAt: { gt: from },
+      },
+      select: { locationId: true, startAt: true, endAt: true },
+    }),
+  ]);
+  const range = (start: Date, end: Date) => ({ start: start.getTime(), end: end.getTime() });
+  for (const { location, date } of days) {
+    const intervals = hoursOn(
+      date,
+      location.timezone,
+      location.staff.map((s) => ({
+        weekly: s.workingHours,
+        overrides: overrides.filter(
+          (o) => o.staffId === s.id && o.date.toISOString().slice(0, 10) === date,
+        ),
+        off: timeOff.filter((t) => t.staffId === s.id).map((t) => range(t.startsAt, t.endsAt)),
+      })),
+      blocks.filter((b) => b.locationId === location.id).map((b) => range(b.startAt, b.endAt)),
+    );
+    result.set(location.id, { date, intervals });
+  }
+  return result;
 }

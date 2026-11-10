@@ -21056,6 +21056,28 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "timezone": {
+                  "type": "string"
+                },
+                "todayHours": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "start": {
+                        "type": "string"
+                      },
+                      "end": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "start",
+                      "end"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
@@ -21074,7 +21096,9 @@
                 "photoUrl",
                 "distanceKm",
                 "rating",
-                "reviewCount"
+                "reviewCount",
+                "timezone",
+                "todayHours"
               ],
               "additionalProperties": false
             }

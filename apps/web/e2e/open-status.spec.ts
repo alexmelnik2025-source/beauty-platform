@@ -13,6 +13,7 @@ import { serveApp } from './mobile-app';
  * Task 362: "Otwarte teraz". Kasia works around the clock: on the salon page and in the client
  * app "Otwarte · do północy". A vacation for today closes the salon: "Zamknięte · otwarcie:
  * jutro, 00:00", although the weekly table still says 00:00–24:00. Screenshots 362–362b.
+ * Task 363: the same line on the salon's card in the catalogue (site and client app), 363–363a.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -118,6 +119,12 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
   });
   try {
     const client = await phone.newPage();
+    // Task 363: the card in the catalogue.
+    await client.goto(`/pl/salons?q=${encodeURIComponent(NAME)}`);
+    const card = client.getByRole('article', { name: NAME });
+    await expect(card.locator('.open-status')).toHaveText('Otwarte · do północy');
+    await shot(client, '363-catalogue-open-now');
+
     await client.goto(`/pl/b/${slug}`);
     const status = client.locator('.open-status');
     await expect(status).toHaveText('Otwarte · do północy');
@@ -131,10 +138,10 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
       await app.getByRole('button', { name: 'Znajdź salon' }).click();
       await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
       await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(NAME);
-      await app
-        .getByRole('article', { name: NAME })
-        .getByRole('button', { name: 'Zobacz salon' })
-        .click();
+      const appCard = app.getByRole('article', { name: NAME });
+      await expect(appCard.getByLabel('Otwarte · do północy')).toBeVisible();
+      await shot(app, '363a-client-app-catalogue-open-now');
+      await appCard.getByRole('button', { name: 'Zobacz salon' }).click();
       const line = app.getByLabel('Otwarte · do północy');
       await expect(line).toBeVisible();
       await line.scrollIntoViewIfNeeded();
@@ -151,6 +158,9 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
     await client.locator('.opening-hours summary').click();
     await expect(client.locator('.opening-hours summary')).toContainText('dziś nieczynne');
     await shot(client, '362b-booking-closed-today');
+    await client.goto(`/pl/salons?q=${encodeURIComponent(NAME)}`);
+    await expect(card.locator('.open-status')).toHaveText('Zamknięte');
+    await expect(card.locator('.open-status')).toHaveAttribute('data-open', 'false');
   } finally {
     await phone.close();
   }

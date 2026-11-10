@@ -84,6 +84,13 @@ export const publicDirectorySchema = responseSchema(
          */
         rating: z.number().nullable(),
         reviewCount: z.number().int(),
+        /** Task 363: the salon's time zone — "Otwarte teraz" is counted in it. */
+        timezone: z.string(),
+        /**
+         * Task 363: today's real hours at the salon (special days, vacations and salon-wide blocks
+         * included), as on the salon page (`todayHours`); empty = closed today.
+         */
+        todayHours: z.array(z.strictObject({ start: z.string(), end: z.string() })),
       }),
     ),
     /** Task 160: salons per spoken language, with the other filters (the "UA (12)" chips). */

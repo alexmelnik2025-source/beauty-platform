@@ -25,8 +25,8 @@ import {
   type PublicLocationResponse,
 } from './public.responses';
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
-import { addDays, formatClock, localToday, zonedToInstant } from './time';
-import { hoursOn } from './today-hours';
+import { formatClock } from './time';
+import { todayHoursOf } from './today-hours';
 
 /**
  * Opening hours as the client sees them: for each weekday, the union of the regular weekly
@@ -109,7 +109,9 @@ export class PublicLocationsController {
       select: { id: true },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
-    const todayHours = await this.todayHours(location, listed);
+    const todayHours = (await todayHoursOf(this.prisma, [{ ...location, staff: listed }])).get(
+      location.id,
+    )!;
     const basePrice = new Map(services.map((s) => [s.id, s.priceGrosze]));
     const baseDuration = new Map(services.map((s) => [s.id, s.durationMinutes]));
     return {
@@ -173,56 +175,6 @@ export class PublicLocationsController {
         photoUrl: s.photo ? photoUrl(s.photo.id) : null,
       })),
     };
-  }
-
-  /**
-   * Task 362: today's real hours ("Otwarte teraz" on the salon page) — special days, vacations
-   * and salon-wide blocks change them; the weekly table alone does not know about those.
-   */
-  private async todayHours(
-    location: Location,
-    listed: {
-      id: string;
-      workingHours: { weekday: number; startMinute: number; endMinute: number }[];
-    }[],
-  ): Promise<{ date: string; intervals: { start: string; end: string }[] }> {
-    const date = localToday(Date.now(), location.timezone);
-    const from = new Date(zonedToInstant(date, 0, location.timezone));
-    const to = new Date(zonedToInstant(addDays(date, 1), 0, location.timezone));
-    const staffIds = listed.map((s) => s.id);
-    const [overrides, timeOff, blocks] = await Promise.all([
-      this.prisma.workingHoursOverride.findMany({
-        where: { staffId: { in: staffIds }, date: new Date(`${date}T00:00:00.000Z`) },
-        select: { staffId: true, startMinute: true, endMinute: true },
-      }),
-      this.prisma.timeOff.findMany({
-        where: { staffId: { in: staffIds }, startsAt: { lt: to }, endsAt: { gt: from } },
-        select: { staffId: true, startsAt: true, endsAt: true },
-      }),
-      this.prisma.timeBlock.findMany({
-        where: {
-          locationId: location.id,
-          staffId: null,
-          deletedAt: null,
-          startAt: { lt: to },
-          endAt: { gt: from },
-        },
-        select: { startAt: true, endAt: true },
-      }),
-    ]);
-    const intervals = hoursOn(
-      date,
-      location.timezone,
-      listed.map((s) => ({
-        weekly: s.workingHours,
-        overrides: overrides.filter((o) => o.staffId === s.id),
-        off: timeOff
-          .filter((t) => t.staffId === s.id)
-          .map((t) => ({ start: t.startsAt.getTime(), end: t.endsAt.getTime() })),
-      })),
-      blocks.map((b) => ({ start: b.startAt.getTime(), end: b.endAt.getTime() })),
-    );
-    return { date, intervals };
   }
 
   @Get('legal')

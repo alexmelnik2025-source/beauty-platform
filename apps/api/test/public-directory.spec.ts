@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
+import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -498,6 +499,80 @@ describe('public salon directory', () => {
       data: { active: false },
     });
     expect((await fetchSalon()).priceFromGrosze).toBeNull();
+  });
+
+  it('shows today’s real hours of each salon on its card (task 363)', async () => {
+    const owner = await signUp(ctx, 'today@example.com');
+    const every = (start: string, end: string) =>
+      [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({ weekday, intervals: [{ start, end }] }));
+    const salon = async (name: string) => {
+      const s = await createOrgWithLocation(ctx, owner, name);
+      const base = `/v1/organizations/${s.orgId}/locations/${s.locationId}`;
+      const service = await ctx
+        .http()
+        .post(`${base}/services`)
+        .set(owner.auth)
+        .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 })
+        .expect(201);
+      const staff = async (
+        displayName: string,
+        serviceIds: string[],
+        start: string,
+        end: string,
+      ) => {
+        const id = (
+          await ctx
+            .http()
+            .post(`${base}/staff`)
+            .set(owner.auth)
+            .send({ displayName, serviceIds })
+            .expect(201)
+        ).body.id as string;
+        await ctx
+          .http()
+          .put(`${base}/staff/${id}/working-hours`)
+          .set(owner.auth)
+          .send({ days: every(start, end) })
+          .expect(200);
+        return id;
+      };
+      const kasia = await staff('Kasia', [service.body.id], '09:00', '17:00');
+      // Takes no bookings (no services): her hours are not the salon's.
+      await staff('Recepcja', [], '00:00', '24:00');
+      await ctx.prisma.location.update({
+        where: { id: s.locationId },
+        data: { onlineBookingEnabled: true, ...LEGAL_TEXTS },
+      });
+      return { ...s, kasia };
+    };
+    const open = await salon('Open today');
+    const away = await salon('On vacation');
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    await ctx.prisma.timeOff.create({
+      data: {
+        staffId: away.kasia,
+        startsAt: new Date(zonedToInstant(today, 0, 'Europe/Warsaw')),
+        endsAt: new Date(zonedToInstant(addDays(today, 2), 0, 'Europe/Warsaw')),
+      },
+    });
+
+    const res = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ page: 1, pageSize: 12 })
+      .expect(200);
+    const card = (slug: string) =>
+      res.body.items.find((i: { slug: string }) => i.slug === slug) as {
+        timezone: string;
+        todayHours: unknown;
+      };
+    expect(card(open.slug)).toMatchObject({
+      timezone: 'Europe/Warsaw',
+      todayHours: [{ start: '09:00', end: '17:00' }],
+    });
+    expect(card(away.slug).todayHours).toEqual([]);
+    const shape = registeredResponseSchema('PublicSalonDirectory').safeParse(res.body);
+    expect(shape.error?.issues ?? []).toEqual([]);
   });
 
   it('rejects unsupported language filters and out-of-range pagination', async () => {

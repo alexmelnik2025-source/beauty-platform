@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { rememberedLanguages, rememberLanguages } from '@/lib/catalogue-languages';
 import { formatKm, formatRating, locate, type Place } from '@/lib/location';
+import { openStatus, openStatusText, salonNow } from '@/lib/open-status';
 import { formatPrice } from '@/lib/time';
 import {
   SPECIALTIES,
@@ -298,6 +299,7 @@ export function PublicDirectory() {
                       <span className="muted small">
                         {salon.addressLine}, {salon.postalCode} {salon.city}
                       </span>
+                      <OpenNow salon={salon} />
                       {salon.distanceKm !== null ? (
                         <span className="small muted">
                           {fill(t.directory.distance, {
@@ -424,5 +426,20 @@ export function PublicDirectory() {
         ) : null}
       </main>
     </div>
+  );
+}
+
+/**
+ * Task 363: "Otwarte · do 20:00" / "Zamknięte · otwarcie o 10:00" / "Zamknięte" on a catalogue
+ * card — today's real hours of the salon, in its time zone.
+ */
+function OpenNow({ salon }: { salon: PublicSalonDirectory['items'][number] }) {
+  const { t } = useI18n();
+  const now = salonNow(salon.timezone);
+  const status = openStatus({ date: now.date, intervals: salon.todayHours }, [], now);
+  return (
+    <span className="open-status small" data-open={status.kind === 'open' ? 'true' : 'false'}>
+      {openStatusText(status, t.profile, () => '')}
+    </span>
   );
 }

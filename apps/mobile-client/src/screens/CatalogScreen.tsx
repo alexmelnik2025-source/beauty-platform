@@ -9,7 +9,7 @@ import { SalonMap } from '../SalonMap';
 import { catalogLanguagesStore } from '../storage';
 import { formatKm, formatPrice, ratingText } from '../format';
 import { locate, type Place } from '../location';
-import { addressText } from '../salon';
+import { addressText, openStatus, openStatusText, salonNow } from '../salon';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
 const SPOKEN: SpokenLanguage[] = ['pl', 'uk', 'ru', 'be', 'en'];
@@ -239,6 +239,7 @@ export function CatalogScreen(props: {
           <Card>
             <Text style={styles.name}>{s.name}</Text>
             <Text style={styles.text}>{addressText(s)}</Text>
+            <OpenNow salon={s} t={t} locale={props.locale} />
             {s.distanceKm !== null ? (
               <Text style={styles.small}>
                 {fill(t.catalog.distance, { km: formatKm(s.distanceKm, props.locale) })}
@@ -305,3 +306,22 @@ const styles = StyleSheet.create({
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });
+
+/**
+ * Task 363: "Otwarte · do 20:00" / "Zamknięte · otwarcie o 10:00" / "Zamknięte" on a catalogue
+ * card — today's real hours of the salon, in its time zone.
+ */
+function OpenNow(props: { salon: DirectorySalon; t: Dictionary; locale: Locale }) {
+  const now = salonNow(Date.now(), props.salon.timezone);
+  const status = openStatus(
+    { openingHours: [], todayHours: { date: now.date, intervals: props.salon.todayHours } },
+    now,
+  );
+  const text = openStatusText(status, props.t.salon, props.locale);
+  return (
+    <Text style={[styles.small, { fontWeight: '600' }]} accessibilityLabel={text}>
+      <Text style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>● </Text>
+      {text}
+    </Text>
+  );
+}

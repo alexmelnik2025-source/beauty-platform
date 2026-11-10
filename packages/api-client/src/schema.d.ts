@@ -5428,6 +5428,11 @@ export interface components {
                 distanceKm: number | null;
                 rating: number | null;
                 reviewCount: number;
+                timezone: string;
+                todayHours: {
+                    start: string;
+                    end: string;
+                }[];
             }[];
             languageCounts: {
                 [key: string]: number;

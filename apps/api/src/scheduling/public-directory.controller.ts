@@ -4,6 +4,7 @@ import { Public } from '../auth/decorators';
 import { languageSchema, specialtySchema } from '../common/enums.schemas';
 import { Prisma } from '../generated/prisma/client';
 import { photoUrl } from './photos.service';
+import { todayHoursOf } from './today-hours';
 import { ApiZodResponse } from '../common/openapi';
 import type { AppRequest } from '../common/request-context';
 import { RateLimiterService } from '../common/rate-limiter.service';
@@ -167,6 +168,7 @@ export class PublicDirectoryController {
           latitude: true,
           longitude: true,
           currency: true,
+          timezone: true,
           photos: {
             where: { staffId: null },
             select: { id: true },
@@ -176,8 +178,10 @@ export class PublicDirectoryController {
           staffMembers: {
             where: { active: true },
             select: {
+              id: true,
               languages: true,
               specialties: true,
+              workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
               services: {
                 where: { service: { active: true } },
                 select: { priceGrosze: true, service: { select: { priceGrosze: true } } },
@@ -204,6 +208,15 @@ export class PublicDirectoryController {
     }
     const ratings = await this.ratings(
       locations.filter((salon) => salon.reviewSettings?.enabled).map((salon) => salon.id),
+    );
+    // Task 363: "Otwarte teraz" on the cards — today's real hours of those who take bookings.
+    const today = await todayHoursOf(
+      this.prisma,
+      locations.map((l) => ({
+        id: l.id,
+        timezone: l.timezone,
+        staff: l.staffMembers.filter((s) => s.services.length > 0),
+      })),
     );
     return {
       items: locations.map(
@@ -232,6 +245,7 @@ export class PublicDirectoryController {
                 : null,
             rating: ratings.get(id)?.average ?? null,
             reviewCount: ratings.get(id)?.count ?? 0,
+            todayHours: today.get(id)?.intervals ?? [],
           };
         },
       ),

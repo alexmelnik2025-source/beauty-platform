@@ -32,6 +32,8 @@ const salon = (name: string, city: string, addressLine = 'ul. Prosta 1'): Direct
   distanceKm: null,
   rating: null,
   reviewCount: 0,
+  timezone: 'Europe/Warsaw',
+  todayHours: [],
 });
 
 const location = (patch: Partial<PublicLocation> = {}): PublicLocation => ({
