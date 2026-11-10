@@ -231,6 +231,7 @@ export function SalonScreen(props: {
         {status ? (
           <Text
             style={[styles.body, styles.openStatus]}
+            testID="salon-open-status"
             accessibilityLabel={openStatusText(status, t.salon, locale)}
           >
             <Text style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>● </Text>

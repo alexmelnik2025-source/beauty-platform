@@ -142,8 +142,10 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
       await expect(appCard.getByLabel('Otwarte · do północy')).toBeVisible();
       await shot(app, '363a-client-app-catalogue-open-now');
       await appCard.getByRole('button', { name: 'Zobacz salon' }).click();
-      const line = app.getByLabel('Otwarte · do północy');
+      // The catalogue stays under the salon page: the line of the salon page itself.
+      const line = app.getByTestId('salon-open-status');
       await expect(line).toBeVisible();
+      await expect(line).toHaveAttribute('aria-label', 'Otwarte · do północy');
       await line.scrollIntoViewIfNeeded();
       await shot(app, '362a-client-app-open-now');
     } finally {
