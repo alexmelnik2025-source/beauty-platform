@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { OpenNow } from '@/components/OpenNow';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ClientNav } from '@/components/client/ClientNav';
@@ -113,6 +114,7 @@ export default function Home() {
                     <span className="small muted">
                       {salon.addressLine}, {salon.city}
                     </span>
+                    <OpenNow salon={salon} />
                     {formatRating(salon, LOCALE_TAGS[locale]) ? (
                       <span className="small directory-rating">
                         {fill(t.directory.rating, {

@@ -5,6 +5,7 @@ import { API_URL } from './config';
 import { formatPrice, ratingText } from './format';
 import { fill, type Dictionary } from './i18n';
 import { mapLayout } from './map';
+import { OpenNow } from './OpenNow';
 import { addressText } from './salon';
 import { Button, colors } from './ui';
 
@@ -119,6 +120,7 @@ export function SalonMap(props: {
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.name}>{salon.name}</Text>
             <Text style={styles.small}>{addressText(salon)}</Text>
+            <OpenNow salon={salon} t={t} locale={props.locale} />
             {ratingText(salon, t.catalog.rating, props.locale) ? (
               <Text style={styles.small}>{ratingText(salon, t.catalog.rating, props.locale)}</Text>
             ) : null}

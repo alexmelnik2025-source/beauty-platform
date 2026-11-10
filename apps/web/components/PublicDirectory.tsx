@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { LanguageBadges } from '@/components/Languages';
 import { ClientNav } from '@/components/client/ClientNav';
+import { OpenNow } from '@/components/OpenNow';
 import { ErrorBox, LanguageSwitch, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { rememberedLanguages, rememberLanguages } from '@/lib/catalogue-languages';
 import { formatKm, formatRating, locate, type Place } from '@/lib/location';
-import { openStatus, openStatusText, salonNow } from '@/lib/open-status';
 import { formatPrice } from '@/lib/time';
 import {
   SPECIALTIES,
@@ -426,20 +426,5 @@ export function PublicDirectory() {
         ) : null}
       </main>
     </div>
-  );
-}
-
-/**
- * Task 363: "Otwarte · do 20:00" / "Zamknięte · otwarcie o 10:00" / "Zamknięte" on a catalogue
- * card — today's real hours of the salon, in its time zone.
- */
-function OpenNow({ salon }: { salon: PublicSalonDirectory['items'][number] }) {
-  const { t } = useI18n();
-  const now = salonNow(salon.timezone);
-  const status = openStatus({ date: now.date, intervals: salon.todayHours }, [], now);
-  return (
-    <span className="open-status small" data-open={status.kind === 'open' ? 'true' : 'false'}>
-      {openStatusText(status, t.profile, () => '')}
-    </span>
   );
 }

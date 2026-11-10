@@ -14,6 +14,7 @@ import { serveApp } from './mobile-app';
  * app "Otwarte · do północy". A vacation for today closes the salon: "Zamknięte · otwarcie:
  * jutro, 00:00", although the weekly table still says 00:00–24:00. Screenshots 362–362b.
  * Task 363: the same line on the salon's card in the catalogue (site and client app), 363–363a.
+ * Task 364: and on every salon card of the home page, 364.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -119,6 +120,14 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
   });
   try {
     const client = await phone.newPage();
+    // Task 364: every salon card of the home page has the line.
+    await client.goto('/pl');
+    const featured = client.locator('.home-featured li');
+    await expect(featured.first()).toBeVisible();
+    await expect(client.locator('.home-featured .open-status')).toHaveCount(await featured.count());
+    await featured.first().scrollIntoViewIfNeeded();
+    await shot(client, '364-home-open-now');
+
     // Task 363: the card in the catalogue.
     await client.goto(`/pl/salons?q=${encodeURIComponent(NAME)}`);
     const card = client.getByRole('article', { name: NAME });
