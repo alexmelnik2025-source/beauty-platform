@@ -6,6 +6,9 @@ import {
   durationText,
   filterSalons,
   openingRows,
+  openStatus,
+  openStatusText,
+  salonNow,
   serviceGroups,
   specialtyText,
 } from '../src/salon';
@@ -44,6 +47,7 @@ const location = (patch: Partial<PublicLocation> = {}): PublicLocation => ({
   languages: ['pl'],
   description: null,
   openingHours: [],
+  todayHours: { date: '2027-03-10', intervals: [] },
   photos: [],
   wishQuestions: { mood: true, drinks: [], note: true },
   codeChannels: ['email'],
@@ -177,5 +181,86 @@ describe('"Jak dojechać" (task 359)', () => {
     expect(url.searchParams.get('destination')).toBe(
       'Barber & Co #1, ul. Józefa Bema 91, 01-233 Warszawa',
     );
+  });
+});
+
+describe('"Otwarte teraz" (task 362)', () => {
+  // 2027-03-10 is a Wednesday (ISO 3).
+  const weekly = [
+    { weekday: 3, intervals: [{ start: '09:00', end: '17:00' }] },
+    { weekday: 5, intervals: [{ start: '10:00', end: '18:00' }] },
+  ];
+  const wednesday = (minute: number) => ({ date: '2027-03-10', weekday: 3, minute });
+  const today = (intervals: { start: string; end: string }[]) =>
+    location({ openingHours: weekly, todayHours: { date: '2027-03-10', intervals } });
+
+  it('open now, until the end of the hours without a break', () => {
+    const s = openStatus(
+      today([
+        { start: '14:00', end: '20:00' },
+        { start: '09:00', end: '14:00' },
+      ]),
+      wednesday(600),
+    );
+    expect(s).toEqual({ kind: 'open', until: '20:00' });
+    expect(openStatusText(s, pl.salon, 'pl')).toBe('Otwarte · do 20:00');
+    expect(openStatusText({ kind: 'open', until: '24:00' }, pl.salon, 'pl')).toBe(
+      'Otwarte · do północy',
+    );
+  });
+
+  it('closed now, opens later today (a break or before opening)', () => {
+    const s = openStatus(
+      today([
+        { start: '09:00', end: '12:00' },
+        { start: '13:00', end: '17:00' },
+      ]),
+      wednesday(12 * 60 + 30),
+    );
+    expect(s).toEqual({ kind: 'opensToday', at: '13:00' });
+    expect(openStatusText(s, pl.salon, 'pl')).toBe('Zamknięte · otwarcie o 13:00');
+  });
+
+  it('closed for the rest of the day: the next day with hours', () => {
+    // A vacation today: the API says closed, although the weekly table says 09:00–17:00.
+    const s = openStatus(today([]), wednesday(600));
+    expect(s).toEqual({ kind: 'opensLater', inDays: 2, weekday: 5, at: '10:00' });
+    expect(openStatusText(s, pl.salon, 'pl')).toBe('Zamknięte · otwarcie: piątek, 10:00');
+    expect(
+      openStatusText({ kind: 'opensLater', inDays: 1, weekday: 4, at: '09:00' }, pl.salon, 'pl'),
+    ).toBe('Zamknięte · otwarcie: jutro, 09:00');
+    // From Friday evening the week goes round to Wednesday.
+    expect(
+      openStatus(location({ openingHours: weekly }), {
+        date: '2027-03-12',
+        weekday: 5,
+        minute: 1100,
+      }),
+    ).toEqual({ kind: 'opensLater', inDays: 5, weekday: 3, at: '09:00' });
+  });
+
+  it('today’s hours of another date are not used (the page was opened yesterday)', () => {
+    expect(
+      openStatus(location({ openingHours: weekly }), {
+        date: '2027-03-17',
+        weekday: 3,
+        minute: 600,
+      }),
+    ).toEqual({ kind: 'open', until: '17:00' });
+  });
+
+  it('no hours at all: closed', () => {
+    const s = openStatus(location({}), wednesday(600));
+    expect(s).toEqual({ kind: 'closed' });
+    expect(openStatusText(s, pl.salon, 'pl')).toBe('Zamknięte');
+  });
+
+  it('reads the date and time in the salon’s time zone', () => {
+    // 23:30 UTC on Tuesday is already Wednesday 00:30 in Warsaw (UTC+1 until 28 March).
+    expect(salonNow(Date.UTC(2027, 2, 9, 23, 30), 'Europe/Warsaw')).toEqual({
+      date: '2027-03-10',
+      weekday: 3,
+      minute: 30,
+    });
   });
 });

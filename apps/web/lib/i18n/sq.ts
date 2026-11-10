@@ -371,6 +371,12 @@ export const sq: Dict = {
     hours: 'Orari',
     today: 'sot',
     closed: 'mbyllur',
+    openUntil: 'Hapur · deri në {time}',
+    openUntilMidnight: 'Hapur · deri në mesnatë',
+    opensToday: 'Mbyllur · hapet në {time}',
+    opensLater: 'Mbyllur · hapet: {day}, {time}',
+    tomorrow: 'nesër',
+    closedNow: 'Mbyllur',
   },
   photos: {
     ...en.photos,

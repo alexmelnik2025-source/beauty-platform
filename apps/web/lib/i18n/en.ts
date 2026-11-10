@@ -716,6 +716,12 @@ export const en: Dict = {
     hours: 'Opening hours',
     today: 'today',
     closed: 'closed',
+    openUntil: 'Open · until {time}',
+    openUntilMidnight: 'Open · until midnight',
+    opensToday: 'Closed · opens at {time}',
+    opensLater: 'Closed · opens {day}, {time}',
+    tomorrow: 'tomorrow',
+    closedNow: 'Closed',
     description: 'About the salon',
     descriptionHint:
       'A few sentences for clients: what makes you different, how to find you. Shown on the booking page.',

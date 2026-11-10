@@ -22,6 +22,9 @@ import {
   directionsUrl,
   durationText,
   openingRows,
+  openStatus,
+  openStatusText,
+  salonNow,
   serviceGroups,
   specialtyText,
 } from '../salon';
@@ -53,6 +56,13 @@ export function SalonScreen(props: {
   // Task 120: "Wolne dziś" — who can still be booked today.
   const [freeToday, setFreeToday] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
+  // Task 362: "Otwarte · do 20:00" — refreshed every minute while the page is open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  const status = salon ? openStatus(salon, salonNow(now, salon.timezone)) : null;
   // null = not known yet (or not signed in): no button.
   const [saved, setSaved] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
@@ -218,6 +228,15 @@ export function SalonScreen(props: {
       ) : null}
 
       <Section title={t.salon.hours}>
+        {status ? (
+          <Text
+            style={[styles.body, styles.openStatus]}
+            accessibilityLabel={openStatusText(status, t.salon, locale)}
+          >
+            <Text style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>● </Text>
+            {openStatusText(status, t.salon, locale)}
+          </Text>
+        ) : null}
         {openingRows(salon, locale).map((row) => (
           <View key={row.weekday} style={styles.row}>
             <Text style={styles.body}>{row.name}</Text>
@@ -329,6 +348,7 @@ const styles = StyleSheet.create({
   text: { color: colors.muted, fontSize: 15, lineHeight: 21 },
   small: { color: colors.muted, fontSize: 14 },
   freeToday: { color: '#1f7a45', fontSize: 14, fontWeight: '600' },
+  openStatus: { fontWeight: '600' },
   body: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   section: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   group: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { addDays, isoWeekday, localToday } from '../src/scheduling/time';
+import { addDays, isoWeekday, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -673,6 +673,76 @@ describe('salon profile on the booking page', () => {
     ]);
   });
 
+  it('today’s hours include special days, vacations and salon-wide blocks (task 362)', async () => {
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    const every = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+      weekday,
+      intervals: [{ start: '09:00', end: '17:00' }],
+    }));
+    const { serviceId, staffId: kasia } = await setupStaff(every);
+    const ola = (
+      await ctx
+        .http()
+        .post(`${base}/staff`)
+        .set(owner.auth)
+        .send({ displayName: 'Ola', serviceIds: [serviceId] })
+        .expect(201)
+    ).body.id as string;
+    await ctx
+      .http()
+      .put(`${base}/staff/${ola}/working-hours`)
+      .set(owner.auth)
+      .send({ days: every })
+      .expect(200);
+    const { body: loc } = await patch({ onlineBookingEnabled: true, ...LEGAL_TEXTS });
+    const page = async () =>
+      (await ctx.http().get(`/v1/public/locations/${loc.slug}`).expect(200)).body.todayHours;
+
+    expect(await page()).toEqual({ date: today, intervals: [{ start: '09:00', end: '17:00' }] });
+
+    // Kasia works longer today ("Dzień specjalny"), Ola is on vacation the whole day.
+    await ctx
+      .http()
+      .put(`${base}/staff/${kasia}/working-hours/overrides/${today}`)
+      .set(owner.auth)
+      .send({ intervals: [{ start: '12:00', end: '20:00' }] })
+      .expect(200);
+    await ctx.prisma.timeOff.create({
+      data: {
+        staffId: ola,
+        startsAt: new Date(zonedToInstant(today, 0, 'Europe/Warsaw')),
+        endsAt: new Date(zonedToInstant(addDays(today, 1), 0, 'Europe/Warsaw')),
+      },
+    });
+    expect((await page()).intervals).toEqual([{ start: '12:00', end: '20:00' }]);
+
+    // A salon-wide block (no specialist) closes the salon; a specialist's own block does not.
+    await ctx.prisma.timeBlock.createMany({
+      data: [
+        {
+          locationId,
+          startAt: new Date(zonedToInstant(today, 14 * 60, 'Europe/Warsaw')),
+          endAt: new Date(zonedToInstant(today, 15 * 60, 'Europe/Warsaw')),
+          reason: 'Szkolenie',
+        },
+        {
+          locationId,
+          staffId: kasia,
+          startAt: new Date(zonedToInstant(today, 18 * 60, 'Europe/Warsaw')),
+          endAt: new Date(zonedToInstant(today, 19 * 60, 'Europe/Warsaw')),
+        },
+      ],
+    });
+    expect((await page()).intervals).toEqual([
+      { start: '12:00', end: '14:00' },
+      { start: '15:00', end: '20:00' },
+    ]);
+    // The weekly table stays as it is.
+    expect(
+      (await ctx.http().get(`/v1/public/locations/${loc.slug}`).expect(200)).body.openingHours[0],
+    ).toEqual({ weekday: 1, intervals: [{ start: '09:00', end: '17:00' }] });
+  });
+
   it('a salon without a team shows every day closed', async () => {
     const { body: loc } = await patch({ onlineBookingEnabled: true, ...LEGAL_TEXTS });
     const page = await ctx.http().get(`/v1/public/locations/${loc.slug}`).expect(200);
@@ -681,6 +751,7 @@ describe('salon profile on the booking page', () => {
       page.body.openingHours.every((d: { intervals: unknown[] }) => d.intervals.length === 0),
     ).toBe(true);
     expect(page.body.description).toBeNull();
+    expect(page.body.todayHours.intervals).toEqual([]);
   });
 });
 

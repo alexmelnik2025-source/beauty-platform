@@ -5313,6 +5313,16 @@ export interface components {
                     end: string;
                 }[];
             }[];
+            /** @description Today’s real hours: special days, vacations and salon-wide blocks included (task 362) */
+            todayHours: {
+                /** @description Today at the salon, YYYY-MM-DD (its time zone) */
+                date: string;
+                /** @description Merged hours of everyone who takes online bookings; empty = closed today */
+                intervals: {
+                    start: string;
+                    end: string;
+                }[];
+            };
             /** @description Salon photos, oldest first: links to /v1/public/photos/<id> */
             photos: {
                 id: string;

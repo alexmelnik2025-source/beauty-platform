@@ -715,6 +715,12 @@ export const pl = {
     hours: 'Godziny otwarcia',
     today: 'dziś',
     closed: 'nieczynne',
+    openUntil: 'Otwarte · do {time}',
+    openUntilMidnight: 'Otwarte · do północy',
+    opensToday: 'Zamknięte · otwarcie o {time}',
+    opensLater: 'Zamknięte · otwarcie: {day}, {time}',
+    tomorrow: 'jutro',
+    closedNow: 'Zamknięte',
     description: 'O salonie',
     descriptionHint:
       'Kilka zdań dla klientów: czym się wyróżniacie, jak do Was trafić. Widać to na stronie rezerwacji.',

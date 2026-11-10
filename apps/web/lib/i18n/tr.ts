@@ -370,6 +370,12 @@ export const tr: Dict = {
     hours: 'Çalışma saatleri',
     today: 'bugün',
     closed: 'kapalı',
+    openUntil: 'Açık · {time} saatine kadar',
+    openUntilMidnight: 'Açık · gece yarısına kadar',
+    opensToday: 'Kapalı · {time} saatinde açılıyor',
+    opensLater: 'Kapalı · açılış: {day}, {time}',
+    tomorrow: 'yarın',
+    closedNow: 'Kapalı',
   },
   photos: {
     ...en.photos,

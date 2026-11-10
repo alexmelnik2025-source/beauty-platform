@@ -20529,6 +20529,41 @@
             },
             "description": "Monday to Sunday, from the team’s regular weekly hours"
           },
+          "todayHours": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "description": "Today at the salon, YYYY-MM-DD (its time zone)"
+              },
+              "intervals": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "string"
+                    },
+                    "end": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "start",
+                    "end"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Merged hours of everyone who takes online bookings; empty = closed today"
+              }
+            },
+            "required": [
+              "date",
+              "intervals"
+            ],
+            "additionalProperties": false,
+            "description": "Today’s real hours: special days, vacations and salon-wide blocks included (task 362)"
+          },
           "photos": {
             "type": "array",
             "items": {
@@ -20802,6 +20837,7 @@
           "languages",
           "description",
           "openingHours",
+          "todayHours",
           "photos",
           "wishQuestions",
           "codeChannels",

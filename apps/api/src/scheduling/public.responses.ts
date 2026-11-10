@@ -38,6 +38,16 @@ export const publicLocationSchema = responseSchema(
       openingHours: z
         .array(openingDaySchema)
         .describe('Monday to Sunday, from the team’s regular weekly hours'),
+      todayHours: z
+        .strictObject({
+          date: z.string().describe('Today at the salon, YYYY-MM-DD (its time zone)'),
+          intervals: z
+            .array(interval)
+            .describe('Merged hours of everyone who takes online bookings; empty = closed today'),
+        })
+        .describe(
+          'Today’s real hours: special days, vacations and salon-wide blocks included (task 362)',
+        ),
       photos: z
         .array(z.strictObject({ id: z.string(), url: z.string() }))
         .describe('Salon photos, oldest first: links to /v1/public/photos/<id>'),

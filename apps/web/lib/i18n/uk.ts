@@ -715,6 +715,12 @@ export const uk: Dict = {
     hours: 'Години роботи',
     today: 'сьогодні',
     closed: 'зачинено',
+    openUntil: 'Відчинено · до {time}',
+    openUntilMidnight: 'Відчинено · до опівночі',
+    opensToday: 'Зачинено · відчиниться о {time}',
+    opensLater: 'Зачинено · відчиниться: {day}, {time}',
+    tomorrow: 'завтра',
+    closedNow: 'Зачинено',
     description: 'Про салон',
     descriptionHint:
       'Кілька речень для клієнтів: чим ви особливі, як до вас дістатися. Видно на сторінці запису.',

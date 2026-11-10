@@ -1033,6 +1033,23 @@ fieldset.field > legend {
   overflow-wrap: anywhere;
 }
 
+/* Task 362: "Otwarte · do 20:00" / "Zamknięte · otwarcie o 10:00" above the opening hours. */
+.open-status {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+.open-status::before {
+  content: '●';
+  content: '●' / '';
+  margin-right: 6px;
+  color: var(--muted);
+}
+
+.open-status[data-open='true']::before {
+  color: #1f9d55;
+}
+
 .opening-hours summary {
   cursor: pointer;
   width: fit-content;

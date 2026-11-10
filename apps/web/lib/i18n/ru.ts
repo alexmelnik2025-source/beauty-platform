@@ -721,6 +721,12 @@ export const ru: Dict = {
     hours: 'Часы работы',
     today: 'сегодня',
     closed: 'закрыто',
+    openUntil: 'Открыто · до {time}',
+    openUntilMidnight: 'Открыто · до полуночи',
+    opensToday: 'Закрыто · откроется в {time}',
+    opensLater: 'Закрыто · откроется: {day}, {time}',
+    tomorrow: 'завтра',
+    closedNow: 'Закрыто',
     description: 'О салоне',
     descriptionHint:
       'Несколько предложений для клиентов: чем вы отличаетесь, как к вам добраться. Видно на странице записи.',
