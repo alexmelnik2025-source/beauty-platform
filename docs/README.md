@@ -2921,3 +2921,24 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
 - письма (361): в письмах клиенту о визите (подтверждение, перенос, напоминание, ожидание подтверждения салоном) —
   строка «Jak dojechać:» со ссылкой Google Maps; в письме об отмене и в письмах салону её нет. `directionsLink` в
   `apps/api/src/booking/booking-templates.ts`, тест `visit-calendar.spec.ts`.
+
+## «Otwarte teraz» (задачи 362–364)
+
+Клиент сразу видит, открыт ли салон сейчас: «Otwarte · do 20:00», «Otwarte · do północy», «Zamknięte · otwarcie o
+13:00» (перерыв или ещё не открылись), «Zamknięte · otwarcie: jutro, 10:00» / «…: piątek, 10:00», «Zamknięte».
+
+- Сервер (`apps/api/src/scheduling/today-hours.ts`): `hoursOn` — часы салона на дату: объединение часов
+  специалистов, которые принимают онлайн-запись (есть услуги), где «Dzień specjalny» заменяет недельные часы, минус
+  urlopy/wolne специалиста и blokady całego salonu (`TimeBlock` без специалиста); блокировка одного специалиста
+  салон не закрывает. `todayHoursOf` считает «сегодня» (по часовому поясу салона) для нескольких салонов тремя
+  запросами;
+- API: `todayHours: { date, intervals }` в `GET /v1/public/locations/:slug` (недельная таблица `openingHours` не
+  меняется); `timezone` и `todayHours` (только интервалы) у каждого салона в `GET /v1/public/locations`;
+- сайт: `lib/open-status.ts` (`openStatus`, `openStatusText`, `salonNow`) — над «Godziny otwarcia» на странице
+  записи (считается в браузере, обновляется раз в минуту; строка «dziś» — настоящие часы сегодня), на карточках
+  каталога и главной (`components/OpenNow.tsx`), класс `.open-status` с зелёной/серой точкой;
+- клиентское приложение: то же в `src/salon.ts` и `src/OpenNow.tsx` — страница салона (раздел часов), карточки
+  каталога и карточка на карте;
+- следующие дни берутся из недельной таблицы (special days на завтра не учитываются); на карточках каталога —
+  только сегодня («Zamknięte» без даты открытия). Тесты: `today-hours.spec.ts`, `scheduling.spec.ts`,
+  `public-directory.spec.ts`, `mobile-client/test/salon.test.ts`, e2e `open-status.spec.ts` (скриншоты 362–364).
