@@ -5440,6 +5440,7 @@ export interface components {
             specialtyCounts: {
                 [key: string]: number;
             };
+            openNowCount: number;
             page: number;
             pageSize: number;
             total: number;
@@ -8167,6 +8168,8 @@ export interface operations {
             query?: {
                 pageSize?: number;
                 page?: number;
+                /** @description Task 365: "Otwarte teraz" - only salons open right now by today's real hours, in their time zone */
+                openNow?: "true" | "false";
                 /** @description Task 180b: latitude,longitude - the nearest salons first, with distanceKm; salons without a place last */
                 near?: string;
                 /** @description Kind of place: one of its active staff members does it (task 160) */

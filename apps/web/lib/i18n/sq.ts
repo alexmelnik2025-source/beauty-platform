@@ -80,6 +80,10 @@ export const sq: Dict = {
     mapTitle: 'Harta e salloneve',
     noCoordinates: 'Ky sallon nuk e ka shënuar ende vendin në hartë.',
     near: 'Pranë meje',
+    /** Task 365. */
+    openNow: 'Hapur tani',
+    openNowEmpty:
+      'Asnjë nga këto sallone nuk është hapur tani — çaktivizoni „Hapur tani” për t’i parë të gjitha.',
     locating: 'Po gjejmë vendndodhjen tuaj…',
     locationFailed: 'Nuk e gjetëm vendndodhjen tuaj. Lejojeni në shfletues ose shkruani një qytet.',
     distance: '{km} km nga ju',

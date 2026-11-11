@@ -289,6 +289,10 @@ export const pl = {
     startSearch: 'Czego szukasz?',
     searchGo: 'Szukaj',
     near: 'W pobliżu',
+    /** Task 365. */
+    openNow: 'Otwarte teraz',
+    openNowEmpty:
+      'Teraz żaden z tych salonów nie jest otwarty — wyłącz „Otwarte teraz”, żeby zobaczyć wszystkie.',
     locating: 'Szukam Twojej lokalizacji…',
     locationFailed:
       'Nie udało się ustalić Twojej lokalizacji. Zezwól na nią w ustawieniach albo wpisz miasto.',

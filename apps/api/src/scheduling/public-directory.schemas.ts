@@ -43,6 +43,14 @@ export const publicDirectoryQuerySchema = z.strictObject({
       }),
     )
     .optional(),
+  /**
+   * Task 365: "Otwarte teraz" — only salons open right now by today's real hours (special days,
+   * vacations and salon-wide blocks included), in each salon's own time zone.
+   */
+  openNow: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(12),
 });
@@ -97,6 +105,11 @@ export const publicDirectorySchema = responseSchema(
     languageCounts: z.record(languageSchema, z.number().int()),
     /** Task 160: salons per kind of place, with the language filter. */
     specialtyCounts: z.record(specialtySchema, z.number().int()),
+    /**
+     * Task 365: how many of the salons found (with every other filter, without `openNow`) are open
+     * right now — the number on the "Otwarte teraz" chip.
+     */
+    openNowCount: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),
     total: z.number().int(),

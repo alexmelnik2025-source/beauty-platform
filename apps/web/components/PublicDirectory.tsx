@@ -118,6 +118,8 @@ export function PublicDirectory() {
   const [near, setNear] = useState<Place | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+  // Task 365: "Otwarte teraz" - only salons open right now (today's real hours).
+  const [openNow, setOpenNow] = useState(false);
 
   useEffect(() => {
     // The home page's search and kinds of place come in the address (?q=…&specialty=…).
@@ -151,6 +153,7 @@ export function PublicDirectory() {
     if (languages.length > 0) params.set('language', languages.join(','));
     if (specialty) params.set('specialty', specialty);
     if (query) params.set('q', query);
+    if (openNow) params.set('openNow', 'true');
     if (near) params.set('near', `${near.latitude.toFixed(4)},${near.longitude.toFixed(4)}`);
     api<PublicSalonDirectory>(`/v1/public/locations?${params.toString()}`)
       .then((value) => {
@@ -165,7 +168,7 @@ export function PublicDirectory() {
     return () => {
       active = false;
     };
-  }, [languages, specialty, query, near, page, t]);
+  }, [languages, specialty, query, near, openNow, page, t]);
 
   const toggleNear = async () => {
     if (near) {
@@ -232,6 +235,17 @@ export function PublicDirectory() {
             >
               {locating ? t.directory.locating : `⌖ ${t.directory.near}`}
             </button>
+            <button
+              type="button"
+              aria-pressed={openNow}
+              onClick={() => {
+                setOpenNow(!openNow);
+                setPage(1);
+              }}
+            >
+              {t.directory.openNow}
+              {result ? ` (${result.openNowCount})` : ''}
+            </button>
           </div>
           {locationFailed ? <p className="small muted">{t.directory.locationFailed}</p> : null}
           <div className="chips" role="group" aria-label={t.directory.filterLanguage}>
@@ -289,7 +303,11 @@ export function PublicDirectory() {
             </p>
             <div className="directory-grid">
               <ul className="list directory-list">
-                {result.items.length === 0 ? <li className="muted">{t.directory.empty}</li> : null}
+                {result.items.length === 0 ? (
+                  <li className="muted">
+                    {openNow && !query ? t.directory.openNowEmpty : t.directory.empty}
+                  </li>
+                ) : null}
                 {result.items.map((salon) => (
                   <li key={salon.slug} data-selected={salon.slug === selected || undefined}>
                     <article className="stack directory-salon" aria-label={salon.name}>

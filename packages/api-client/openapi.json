@@ -4159,6 +4159,19 @@
             }
           },
           {
+            "name": "openNow",
+            "required": false,
+            "in": "query",
+            "description": "Task 365: \"Otwarte teraz\" - only salons open right now by today's real hours, in their time zone",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "near",
             "required": false,
             "in": "query",
@@ -21135,6 +21148,11 @@
               "massage"
             ]
           },
+          "openNowCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
           "page": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -21160,6 +21178,7 @@
           "items",
           "languageCounts",
           "specialtyCounts",
+          "openNowCount",
           "page",
           "pageSize",
           "total",

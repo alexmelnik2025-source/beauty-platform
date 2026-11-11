@@ -15,6 +15,8 @@ import { serveApp } from './mobile-app';
  * jutro, 00:00", although the weekly table still says 00:00–24:00. Screenshots 362–362b.
  * Task 363: the same line on the salon's card in the catalogue (site and client app), 363–363a.
  * Task 364: and on every salon card of the home page, 364.
+ * Task 365: the "Otwarte teraz" filter in the catalogue (site 365, client app 365a): the salon is
+ * there while open, and gone from the filter after the vacation.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -133,6 +135,14 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
     const card = client.getByRole('article', { name: NAME });
     await expect(card.locator('.open-status')).toHaveText('Otwarte · do północy');
     await shot(client, '363-catalogue-open-now');
+    // Task 365: the filter keeps the open salon; the chip shows how many are open.
+    const openChip = client.getByRole('button', { name: /^Otwarte teraz \(\d+\)$/ });
+    await expect(openChip).toHaveText('Otwarte teraz (1)');
+    await openChip.click();
+    await expect(openChip).toHaveAttribute('aria-pressed', 'true');
+    await expect(card.locator('.open-status')).toHaveText('Otwarte · do północy');
+    await expect(client.getByText('Znalezione salony: 1')).toBeVisible();
+    await shot(client, '365-catalogue-open-now-filter');
 
     await client.goto(`/pl/b/${slug}`);
     const status = client.locator('.open-status');
@@ -150,6 +160,12 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
       const appCard = app.getByRole('article', { name: NAME });
       await expect(appCard.getByLabel('Otwarte · do północy')).toBeVisible();
       await shot(app, '363a-client-app-catalogue-open-now');
+      // Task 365: the same filter in the client app.
+      const appChip = app.getByRole('button', { name: 'Otwarte teraz (1)' });
+      await appChip.click();
+      await expect(appChip).toHaveAttribute('aria-pressed', 'true');
+      await expect(appCard.getByLabel('Otwarte · do północy')).toBeVisible();
+      await shot(app, '365a-client-app-open-now-filter');
       await appCard.getByRole('button', { name: 'Zobacz salon' }).click();
       // The catalogue stays under the salon page: the line of the salon page itself.
       const line = app.getByTestId('salon-open-status');
@@ -172,6 +188,11 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
     await client.goto(`/pl/salons?q=${encodeURIComponent(NAME)}`);
     await expect(card.locator('.open-status')).toHaveText('Zamknięte');
     await expect(card.locator('.open-status')).toHaveAttribute('data-open', 'false');
+    // Task 365: closed today - not under "Otwarte teraz".
+    await expect(openChip).toHaveText('Otwarte teraz (0)');
+    await openChip.click();
+    await expect(openChip).toHaveAttribute('aria-pressed', 'true');
+    await expect(card).toHaveCount(0);
   } finally {
     await phone.close();
   }

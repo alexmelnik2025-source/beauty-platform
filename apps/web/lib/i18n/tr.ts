@@ -79,6 +79,10 @@ export const tr: Dict = {
     mapTitle: 'Salon haritası',
     noCoordinates: 'Bu salon henüz haritada yerini işaretlemedi.',
     near: 'Yakınımda',
+    /** Task 365. */
+    openNow: 'Şimdi açık',
+    openNowEmpty:
+      'Bu salonların hiçbiri şu anda açık değil — hepsini görmek için “Şimdi açık” seçeneğini kapatın.',
     locating: 'Konumunuz bulunuyor…',
     locationFailed: 'Konumunuz bulunamadı. Tarayıcıda izin verin veya bir şehir yazın.',
     distance: 'Size {km} km',

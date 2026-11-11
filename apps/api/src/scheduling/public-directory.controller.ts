@@ -4,7 +4,7 @@ import { Public } from '../auth/decorators';
 import { languageSchema, specialtySchema } from '../common/enums.schemas';
 import { Prisma } from '../generated/prisma/client';
 import { photoUrl } from './photos.service';
-import { todayHoursOf } from './today-hours';
+import { isOpenAt, todayHoursOf } from './today-hours';
 import { ApiZodResponse } from '../common/openapi';
 import type { AppRequest } from '../common/request-context';
 import { RateLimiterService } from '../common/rate-limiter.service';
@@ -132,6 +132,13 @@ export class PublicDirectoryController {
     description:
       'Task 180b: latitude,longitude - the nearest salons first, with distanceKm; salons without a place last',
   })
+  @ApiQuery({
+    name: 'openNow',
+    required: false,
+    enum: ['true', 'false'],
+    description:
+      'Task 365: "Otwarte teraz" - only salons open right now by today\'s real hours, in their time zone',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, minimum: 1 })
   @ApiQuery({
     name: 'pageSize',
@@ -148,7 +155,10 @@ export class PublicDirectoryController {
   ): Promise<PublicDirectoryResponse> {
     this.limiter.hit(`public:directory:ip:${req.ip}`, 120, 60_000);
     const chosen = query.language ?? [];
-    const ids = query.q ? await this.matching(query.q) : undefined;
+    const found = query.q ? await this.matching(query.q) : undefined;
+    // Task 365: the salons (found by `q`) open right now — for the chip's number and the filter.
+    const open = await this.openNow(catalogueWhere([], undefined, found));
+    const ids = query.openNow ? open.filter((id) => !found || found.includes(id)) : found;
     const where = catalogueWhere(chosen, query.specialty, ids);
     // Task 180b: "W pobliżu" - the page is cut from all the salons found, nearest first.
     const near = query.near;
@@ -200,6 +210,7 @@ export class PublicDirectoryController {
       ...KINDS.map((kind) =>
         this.prisma.location.count({ where: catalogueWhere(chosen, kind, ids) }),
       ),
+      this.prisma.location.count({ where: catalogueWhere(chosen, query.specialty, open) }),
     ]);
     const counts = rest as number[];
     if (pageIds) {
@@ -256,6 +267,7 @@ export class PublicDirectoryController {
       specialtyCounts: Object.fromEntries(
         KINDS.map((kind, i) => [kind, counts[SPOKEN.length + i] ?? 0]),
       ) as Record<Kind, number>,
+      openNowCount: counts[SPOKEN.length + KINDS.length] ?? 0,
       page: query.page,
       pageSize: query.pageSize,
       total,
@@ -286,6 +298,34 @@ export class PublicDirectoryController {
         ' AND ',
       )}`;
     return rows.map((row) => row.id);
+  }
+
+  /**
+   * Task 365: the ids of the salons among `where` open right now by today's real hours of those
+   * who take online bookings (as on the cards).
+   */
+  private async openNow(where: Prisma.LocationWhereInput): Promise<string[]> {
+    const salons = await this.prisma.location.findMany({
+      where,
+      select: {
+        id: true,
+        timezone: true,
+        staffMembers: {
+          where: { active: true, services: { some: { service: { active: true } } } },
+          select: {
+            id: true,
+            workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
+          },
+        },
+      },
+    });
+    const now = Date.now();
+    const today = await todayHoursOf(
+      this.prisma,
+      salons.map((l) => ({ id: l.id, timezone: l.timezone, staff: l.staffMembers })),
+      now,
+    );
+    return salons.filter((l) => isOpenAt(today.get(l.id), l.timezone, now)).map((l) => l.id);
   }
 
   /** Task 180b: the ids of one page of the salons found, nearest first; unplaced ones last. */

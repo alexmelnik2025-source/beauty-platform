@@ -53,6 +53,9 @@ export function CatalogScreen(props: {
   const [specialty, setSpecialty] = useState<Specialty | null>(null);
   const [languageCounts, setLanguageCounts] = useState<Partial<Record<SpokenLanguage, number>>>({});
   const [specialtyCounts, setSpecialtyCounts] = useState<Partial<Record<Specialty, number>>>({});
+  // Task 365: "Otwarte teraz" - only salons open right now, with their number on the chip.
+  const [openNow, setOpenNow] = useState(false);
+  const [openNowCount, setOpenNowCount] = useState(0);
   const [items, setItems] = useState<DirectorySalon[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
@@ -98,9 +101,11 @@ export function CatalogScreen(props: {
           specialty: specialty ?? undefined,
           q: search || undefined,
           near: near ?? undefined,
+          openNow,
         });
         setLanguageCounts(res.languageCounts);
         setSpecialtyCounts(res.specialtyCounts);
+        setOpenNowCount(res.openNowCount);
         setItems((old) => (append ? [...old, ...res.items] : res.items));
         setPage(res.page);
         setPageCount(res.pageCount);
@@ -112,7 +117,7 @@ export function CatalogScreen(props: {
       }
     },
     // The texts follow the app language, but switching it does not reload the list.
-    [api, languages, specialty, search, near],
+    [api, languages, specialty, search, near, openNow],
   );
 
   useEffect(() => {
@@ -166,6 +171,11 @@ export function CatalogScreen(props: {
           label={locating ? t.catalog.locating : `⌖ ${t.catalog.near}`}
           pressed={near !== null}
           onPress={() => void toggleNear()}
+        />
+        <Chip
+          label={`${t.catalog.openNow} (${openNowCount})`}
+          pressed={openNow}
+          onPress={() => setOpenNow(!openNow)}
         />
       </View>
       {locationFailed ? <Text style={styles.small}>{t.catalog.locationFailed}</Text> : null}
@@ -233,7 +243,9 @@ export function CatalogScreen(props: {
         <Text style={styles.text}>{fill(t.catalog.found, { n: String(total) })}</Text>
       ) : null}
       {!error && !busy && total === 0 ? (
-        <Text style={styles.text}>{search ? t.catalog.noMatch : t.catalog.empty}</Text>
+        <Text style={styles.text}>
+          {search ? t.catalog.noMatch : openNow ? t.catalog.openNowEmpty : t.catalog.empty}
+        </Text>
       ) : null}
       {shown.map((s) => (
         <View key={s.slug} role="article" aria-label={s.name}>

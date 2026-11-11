@@ -295,6 +295,10 @@ export const tr: Dictionary = {
     startSearch: 'Ne arıyorsunuz?',
     searchGo: 'Ara',
     near: 'Yakınımda',
+    /** Task 365. */
+    openNow: 'Şimdi açık',
+    openNowEmpty:
+      'Bu salonların hiçbiri şu anda açık değil — hepsini görmek için “Şimdi açık” seçeneğini kapatın.',
     locating: 'Konumunuz bulunuyor…',
     locationFailed: 'Konumunuz bulunamadı. Ayarlardan izin verin veya bir şehir yazın.',
     distance: 'Size {km} km',

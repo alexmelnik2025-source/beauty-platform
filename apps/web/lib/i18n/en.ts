@@ -144,6 +144,9 @@ export const en: Dict = {
     mapTitle: 'Map of salons',
     noCoordinates: 'This salon has not marked its place on the map yet.',
     near: 'Near me',
+    /** Task 365. */
+    openNow: 'Open now',
+    openNowEmpty: 'None of these salons is open right now — turn off “Open now” to see them all.',
     locating: 'Finding your location…',
     locationFailed: 'Could not find your location. Allow it in the browser or type a city.',
     distance: '{km} km from you',

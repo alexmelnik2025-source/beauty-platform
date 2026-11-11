@@ -144,6 +144,10 @@ export const pl = {
     mapTitle: 'Mapa salonów',
     noCoordinates: 'Ten salon nie zaznaczył jeszcze miejsca na mapie.',
     near: 'W pobliżu',
+    /** Task 365. */
+    openNow: 'Otwarte teraz',
+    openNowEmpty:
+      'Teraz żaden z tych salonów nie jest otwarty — wyłącz „Otwarte teraz”, żeby zobaczyć wszystkie.',
     locating: 'Szukam Twojej lokalizacji…',
     locationFailed:
       'Nie udało się ustalić Twojej lokalizacji. Zezwól na nią w przeglądarce albo wpisz miasto.',

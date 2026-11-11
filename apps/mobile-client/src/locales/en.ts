@@ -289,6 +289,9 @@ export const en: Dictionary = {
     startSearch: 'What are you looking for?',
     searchGo: 'Search',
     near: 'Near me',
+    /** Task 365. */
+    openNow: 'Open now',
+    openNowEmpty: 'None of these salons is open right now — turn off “Open now” to see them all.',
     locating: 'Finding your location…',
     locationFailed: 'Could not find your location. Allow it in the settings or type a city.',
     distance: '{km} km from you',

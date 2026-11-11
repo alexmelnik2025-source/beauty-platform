@@ -5,6 +5,7 @@ import {
   instantToLocal,
   isoWeekday,
   localToday,
+  parseClock,
   zonedToInstant,
 } from './time';
 
@@ -163,4 +164,21 @@ export async function todayHoursOf(
     result.set(location.id, { date, intervals });
   }
   return result;
+}
+
+/**
+ * Task 365: whether a salon is open at `now` — inside one of today's real intervals, counted in
+ * the salon's time zone (the same rule as the "Otwarte · do 20:00" line).
+ */
+export function isOpenAt(
+  today: TodayHours | undefined,
+  timeZone: string,
+  now = Date.now(),
+): boolean {
+  if (!today) return false;
+  const local = instantToLocal(now, timeZone);
+  if (local.date !== today.date) return false;
+  return today.intervals.some(
+    (i) => (parseClock(i.start) ?? 0) <= local.minute && local.minute < (parseClock(i.end) ?? 0),
+  );
 }

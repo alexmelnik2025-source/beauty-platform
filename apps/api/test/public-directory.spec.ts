@@ -575,6 +575,108 @@ describe('public salon directory', () => {
     expect(shape.error?.issues ?? []).toEqual([]);
   });
 
+  it('"Otwarte teraz" shows only salons open right now, with the number on the chip (task 365)', async () => {
+    const owner = await signUp(ctx, 'open-now@example.com');
+    const salon = async (name: string, hours: boolean, languages: string[] = []) => {
+      const s = await createOrgWithLocation(ctx, owner, name);
+      const base = `/v1/organizations/${s.orgId}/locations/${s.locationId}`;
+      const service = await ctx
+        .http()
+        .post(`${base}/services`)
+        .set(owner.auth)
+        .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 })
+        .expect(201);
+      const staff = async (displayName: string, serviceIds: string[], withHours: boolean) => {
+        const id = (
+          await ctx
+            .http()
+            .post(`${base}/staff`)
+            .set(owner.auth)
+            .send({ displayName, serviceIds, languages })
+            .expect(201)
+        ).body.id as string;
+        if (withHours) {
+          await ctx
+            .http()
+            .put(`${base}/staff/${id}/working-hours`)
+            .set(owner.auth)
+            .send({
+              days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+                weekday,
+                intervals: [{ start: '00:00', end: '24:00' }],
+              })),
+            })
+            .expect(200);
+        }
+        return id;
+      };
+      const kasia = await staff('Kasia', [service.body.id], hours);
+      // Takes no bookings: her round-the-clock hours do not open the salon.
+      await staff('Recepcja', [], true);
+      await ctx.prisma.location.update({
+        where: { id: s.locationId },
+        data: { onlineBookingEnabled: true, ...LEGAL_TEXTS },
+      });
+      return { ...s, kasia };
+    };
+    const open = await salon('Round the clock', true, ['uk']);
+    const openPolish = await salon('Round the clock too', true);
+    const away = await salon('On vacation', true, ['uk']);
+    const blocked = await salon('Closed for a training', true);
+    const noHours = await salon('No hours yet', false);
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    await ctx.prisma.timeOff.create({
+      data: {
+        staffId: away.kasia,
+        startsAt: new Date(zonedToInstant(today, 0, 'Europe/Warsaw')),
+        endsAt: new Date(zonedToInstant(addDays(today, 2), 0, 'Europe/Warsaw')),
+      },
+    });
+    await ctx.prisma.timeBlock.create({
+      data: {
+        locationId: blocked.locationId,
+        startAt: new Date(Date.now() - 3_600_000),
+        endAt: new Date(Date.now() + 3_600_000),
+        reason: 'Szkolenie',
+      },
+    });
+
+    const list = async (query: Record<string, string | number>) =>
+      (await ctx.http().get('/v1/public/locations').query(query).expect(200)).body as {
+        items: { slug: string }[];
+        total: number;
+        openNowCount: number;
+        languageCounts: Record<string, number>;
+      };
+    const all = await list({ page: 1, pageSize: 12 });
+    expect(all.total).toBe(5);
+    expect(all.openNowCount).toBe(2);
+
+    const now = await list({ openNow: 'true' });
+    expect(now.items.map((i) => i.slug).sort()).toEqual([open.slug, openPolish.slug].sort());
+    expect(now.total).toBe(2);
+    expect(now.openNowCount).toBe(2);
+    // The language chips count the open salons only.
+    expect(now.languageCounts.uk).toBe(1);
+    expect(all.languageCounts.uk).toBe(2);
+    for (const closed of [away, blocked, noHours]) {
+      expect(now.items.some((i) => i.slug === closed.slug)).toBe(false);
+    }
+
+    // With the other filters: a language, the search.
+    const ukrainian = await list({ openNow: 'true', language: 'uk' });
+    expect(ukrainian.items.map((i) => i.slug)).toEqual([open.slug]);
+    expect((await list({ language: 'uk' })).openNowCount).toBe(1);
+    const searched = await list({ openNow: 'true', q: 'too' });
+    expect(searched.items.map((i) => i.slug)).toEqual([openPolish.slug]);
+    expect((await list({ q: 'vacation' })).openNowCount).toBe(0);
+    expect((await list({ openNow: 'false' })).total).toBe(5);
+    await ctx.http().get('/v1/public/locations').query({ openNow: 'yes' }).expect(400);
+
+    const shape = registeredResponseSchema('PublicSalonDirectory').safeParse(now);
+    expect(shape.error?.issues ?? []).toEqual([]);
+  });
+
   it('rejects unsupported language filters and out-of-range pagination', async () => {
     await ctx.http().get('/v1/public/locations').query({ language: 'fr' }).expect(400);
     await ctx.http().get('/v1/public/locations').query({ page: 0 }).expect(400);
