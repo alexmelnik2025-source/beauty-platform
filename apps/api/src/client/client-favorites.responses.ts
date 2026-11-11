@@ -15,6 +15,13 @@ export const clientFavoritesSchema = responseSchema(
         /** false while the salon has online booking switched off: the app shows it greyed out. */
         bookable: z.boolean(),
         addedAt: z.string().datetime(),
+        /** Task 367: the salon's time zone — "Otwarte teraz" is counted in it. */
+        timezone: z.string(),
+        /**
+         * Task 367: today's real hours of the salon (special days, vacations, salon-wide blocks),
+         * as on its page; empty = closed today, and always empty while it is not `bookable`.
+         */
+        todayHours: z.array(z.strictObject({ start: z.string(), end: z.string() })),
       }),
     ),
   }),

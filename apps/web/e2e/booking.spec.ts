@@ -1625,6 +1625,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(
       phone.getByRole('button', { name: 'Usuń z ulubionych: Gestalt Barbershop' }),
     ).toBeVisible();
+    // Task 367: "Otwarte teraz" on the saved salon, as in the catalogue.
+    await expect(phone.getByLabel(/^(Otwarte · do |Zamknięte)/)).toBeVisible();
     await shot(phone, '80f-client-app-favourites');
     // The salon's page opens from the list; taking it off empties the list.
     await phone.getByRole('button', { name: 'Zobacz salon: Gestalt Barbershop' }).click();

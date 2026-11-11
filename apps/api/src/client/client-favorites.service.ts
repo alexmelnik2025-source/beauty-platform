@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
 import { PrismaService } from '../prisma/prisma.service';
+import { todayHoursOf } from '../scheduling/today-hours';
 import type { ClientFavoritesResponse } from './client-favorites.responses';
 import type { ClientAuth } from './client.service';
 
@@ -22,6 +23,16 @@ export class ClientFavoritesService {
         createdAt: true,
         location: {
           select: {
+            id: true,
+            timezone: true,
+            staffMembers: {
+              // Those who take online bookings: their hours are the salon's (task 362).
+              where: { active: true, services: { some: { service: { active: true } } } },
+              select: {
+                id: true,
+                workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
+              },
+            },
             slug: true,
             name: true,
             addressLine: true,
@@ -33,12 +44,22 @@ export class ClientFavoritesService {
       },
       orderBy: [{ createdAt: 'desc' }, { locationId: 'asc' }],
     });
+    // Task 367: "Otwarte teraz" on the cards — only for salons a client can book.
+    const today = await todayHoursOf(
+      this.prisma,
+      rows
+        .filter((row) => row.location.onlineBookingEnabled)
+        .map(({ location: l }) => ({ id: l.id, timezone: l.timezone, staff: l.staffMembers })),
+    );
     return {
-      items: rows.map(({ createdAt, location: { onlineBookingEnabled, ...salon } }) => ({
-        ...salon,
-        bookable: onlineBookingEnabled,
-        addedAt: createdAt.toISOString(),
-      })),
+      items: rows.map(
+        ({ createdAt, location: { id, staffMembers: _s, onlineBookingEnabled, ...salon } }) => ({
+          ...salon,
+          bookable: onlineBookingEnabled,
+          addedAt: createdAt.toISOString(),
+          todayHours: onlineBookingEnabled ? (today.get(id)?.intervals ?? []) : [],
+        }),
+      ),
     };
   }
 

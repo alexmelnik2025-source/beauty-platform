@@ -107,6 +107,8 @@ describe('client app: favourite salons', () => {
       'name',
       'postalCode',
       'slug',
+      'timezone',
+      'todayHours',
     ]);
     expect(both.body.items[0]).toMatchObject({ bookable: true });
 
@@ -146,6 +148,50 @@ describe('client app: favourite salons', () => {
     expect((await list(anna)).body.items).toEqual([
       expect.objectContaining({ slug: first.slug, bookable: false }),
     ]);
+  });
+
+  it('shows today’s real hours of each bookable salon for "Otwarte teraz" (task 367)', async () => {
+    const anna = await signIn(ANNA);
+    const kasia = async (salon: Salon) => {
+      const staff = await ctx.http().get(`${salon.base}/staff`).set(salon.owner.auth).expect(200);
+      return (staff.body as { id: string; displayName: string }[]).find(
+        (s) => s.displayName === 'Kasia',
+      )!.id;
+    };
+    for (const salon of [first, second]) {
+      await ctx
+        .http()
+        .put(`${salon.base}/staff/${await kasia(salon)}/working-hours`)
+        .set(salon.owner.auth)
+        .send({
+          days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+            weekday,
+            intervals: [{ start: '09:00', end: '17:00' }],
+          })),
+        })
+        .expect(200);
+      await ctx.http().put(`/v1/client/favorites/${salon.slug}`).set(anna).expect(204);
+    }
+    // The second salon closes for the whole of today ("Salon zamknięty").
+    const location = await ctx.prisma.location.findFirstOrThrow({ where: { slug: second.slug } });
+    await ctx.prisma.timeBlock.create({
+      data: {
+        locationId: location.id,
+        startAt: new Date(Date.now() - 2 * 86_400_000),
+        endAt: new Date(Date.now() + 2 * 86_400_000),
+        reason: 'Remont',
+      },
+    });
+    const card = async (slug: string) =>
+      ((await list(anna)).body.items as { slug: string }[]).find((s) => s.slug === slug);
+    expect(await card(first.slug)).toMatchObject({
+      timezone: 'Europe/Warsaw',
+      todayHours: [{ start: '09:00', end: '17:00' }],
+    });
+    expect(await card(second.slug)).toMatchObject({ todayHours: [] });
+    // Online booking paused: no hours on the greyed-out card.
+    await setOnline(first, false);
+    expect(await card(first.slug)).toMatchObject({ bookable: false, todayHours: [] });
   });
 
   it('each client sees only their own list; salons do not see who saved them', async () => {

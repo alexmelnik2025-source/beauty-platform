@@ -3995,6 +3995,11 @@ export interface components {
                 bookable: boolean;
                 /** Format: date-time */
                 addedAt: string;
+                timezone: string;
+                todayHours: {
+                    start: string;
+                    end: string;
+                }[];
             }[];
         };
         ClientLoyalty: {

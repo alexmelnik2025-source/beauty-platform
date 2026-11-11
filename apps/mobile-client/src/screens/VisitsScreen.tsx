@@ -241,6 +241,7 @@ export function VisitsScreen(props: {
       {tab === 'favorites' && favorites ? (
         <FavoritesView
           t={t}
+          locale={locale}
           items={favorites}
           onOpen={props.onOpenSalon}
           onBook={props.onBook}
