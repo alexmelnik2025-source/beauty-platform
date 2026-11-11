@@ -2942,3 +2942,21 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
 - следующие дни берутся из недельной таблицы (special days на завтра не учитываются); на карточках каталога —
   только сегодня («Zamknięte» без даты открытия). Тесты: `today-hours.spec.ts`, `scheduling.spec.ts`,
   `public-directory.spec.ts`, `mobile-client/test/salon.test.ts`, e2e `open-status.spec.ts` (скриншоты 362–364).
+
+## Фильтр «Otwarte teraz», «Klienci widzą teraz», «Ulubione» (задачи 365–367)
+
+- Каталог (365): `GET /v1/public/locations?openNow=true` — только салоны, открытые сейчас (`isOpenAt` в
+  `apps/api/src/scheduling/today-hours.ts`: текущая минута салона внутри одного из интервалов `todayHoursOf`).
+  Открытые считаются среди всех салонов каталога, найденных по `q`, одним расчётом на запрос; `openNowCount` — их
+  число с остальными фильтрами (язык, вид салона), цифра на чипе. С включённым фильтром цифры языков и видов
+  считают только открытые. Сайт: чип «Otwarte teraz (n)» в `components/PublicDirectory.tsx`; клиентское
+  приложение — в `CatalogScreen.tsx` (`openNow` в `api.directory`). Пустой результат — «Teraz żaden z tych salonów
+  nie jest otwarty…». Тест `public-directory.spec.ts`, e2e `open-status.spec.ts` (скриншоты 365, 365a).
+- Бизнес-приложение (366): `screens/ClientsNowCard.tsx` на экране сегодняшнего дня владельца/менеджера — строка
+  «Klienci widzą teraz: Otwarte · do 20:00» и «Dziś dla klientów: …» из публичной страницы салона
+  (`api.publicHours(slug)` → `GET /v1/public/locations/:slug`: `timezone`, `openingHours`, `todayHours`); логика —
+  `src/openNow.ts` (та же, что `mobile-client/src/salon.ts`). Перечитывается с днём, пересчитывается раз в минуту;
+  без онлайн-записи и при ошибке не показывается. Тест `openNow.test.ts`, e2e `app-clients-now.spec.ts` (366, 366a).
+- «Ulubione» (367): `timezone` и `todayHours` у каждого салона в `GET /v1/client/favorites` (`todayHoursOf` только
+  для салонов с онлайн-записью, у остальных пусто); `FavoritesView.tsx` показывает `OpenNow` на доступных салонах.
+  Тест `client-favorites.spec.ts`, e2e — шаг в `booking.spec.ts`.
