@@ -12,7 +12,8 @@ import { serveApp } from './mobile-app';
  * Task 366: "Klienci widzą teraz" on the business app's day screen (web preview of
  * apps/mobile-business). Kasia works around the clock: clients see "Otwarte · do północy".
  * A vacation for today, and after "Odśwież" the owner sees what clients see — closed until
- * tomorrow, "nieczynne" today. Screenshots 366, 366a.
+ * tomorrow, "nieczynne" today. Screenshots 366, 366a. At the end online booking is switched off
+ * again, so the salon does not show up in the catalogue of the specs that follow.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -154,6 +155,14 @@ test('business app: the owner sees the salon as clients see it now', async ({
     await card.scrollIntoViewIfNeeded();
     await shot(phone, '366a-business-app-clients-now-closed');
     await context.close();
+    // booking.spec.ts expects its salon to be the only one in the catalogue: online booking off.
+    const current = await json<{ version: number }>(await request.get(base, { headers: owner }));
+    await json(
+      await request.patch(base, {
+        headers: owner,
+        data: { version: current.version, onlineBookingEnabled: false },
+      }),
+    );
   } finally {
     businessApp.server.close();
   }
