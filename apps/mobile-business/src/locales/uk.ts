@@ -55,6 +55,19 @@ export const uk: Dictionary = {
     },
     go: 'Зробити',
   },
+  /** Task 366: the salon as clients see it now, on the day screen. */
+  clientsNow: {
+    label: 'Клієнти бачать зараз',
+    today: 'Сьогодні для клієнтів: {hours}',
+    closedToday: 'Сьогодні для клієнтів: зачинено',
+    hint: 'Так салон виглядає в каталозі й на сторінці запису — за годинами команди, особливими днями, відпустками й блокуваннями всього салону.',
+    openUntil: 'Відчинено · до {time}',
+    openUntilMidnight: 'Відчинено · до опівночі',
+    opensToday: 'Зачинено · відчиниться о {time}',
+    opensLater: 'Зачинено · відчиниться: {day}, {time}',
+    tomorrow: 'завтра',
+    closedNow: 'Зачинено',
+  },
   day: {
     today: 'Сьогодні',
     previous: 'Попередній день',

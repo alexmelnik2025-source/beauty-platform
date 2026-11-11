@@ -20,6 +20,7 @@ import type { SalonChanges } from './salon';
 import type { NewLocationBody } from './newSalon';
 import type { StaffChange } from './staffProfile';
 import type { PermissionMap } from './rights';
+import type { PublicHours } from './openNow';
 import type { ContactsChange, NewCustomer } from './clientContacts';
 import { paymentBody, type PaymentMethod } from './payment';
 
@@ -325,6 +326,19 @@ export class BusinessApi {
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}`,
     );
+  }
+
+  /**
+   * Task 366: the salon's public page as clients see it — only its time zone, weekly hours and
+   * today's real hours (special days, vacations, salon-wide blocks), for "Klienci widzą teraz".
+   */
+  async publicHours(slug: string): Promise<PublicHours> {
+    const page = await this.call<PublicHours>('GET', `/v1/public/locations/${enc(slug)}`);
+    return {
+      timezone: page.timezone,
+      openingHours: page.openingHours,
+      todayHours: page.todayHours,
+    };
   }
 
   /** Task 324: Polish templates of the terms and the privacy policy with the salon's data; nothing is saved. */

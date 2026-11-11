@@ -55,6 +55,19 @@ export const pl = {
     },
     go: 'Zrób to',
   },
+  /** Task 366: the salon as clients see it now, on the day screen. */
+  clientsNow: {
+    label: 'Klienci widzą teraz',
+    today: 'Dziś dla klientów: {hours}',
+    closedToday: 'Dziś dla klientów: nieczynne',
+    hint: 'Tak salon wygląda w katalogu i na stronie rezerwacji — według godzin zespołu, dni specjalnych, urlopów i blokad całego salonu.',
+    openUntil: 'Otwarte · do {time}',
+    openUntilMidnight: 'Otwarte · do północy',
+    opensToday: 'Zamknięte · otwarcie o {time}',
+    opensLater: 'Zamknięte · otwarcie: {day}, {time}',
+    tomorrow: 'jutro',
+    closedNow: 'Zamknięte',
+  },
   day: {
     today: 'Dziś',
     previous: 'Poprzedni dzień',

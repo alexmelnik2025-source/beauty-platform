@@ -58,6 +58,19 @@ export const en: Dictionary = {
     },
     go: 'Do it',
   },
+  /** Task 366: the salon as clients see it now, on the day screen. */
+  clientsNow: {
+    label: 'Clients see now',
+    today: 'Today for clients: {hours}',
+    closedToday: 'Today for clients: closed',
+    hint: 'This is how the salon looks in the catalogue and on the booking page — by the team’s hours, special days, time off and salon-wide blocks.',
+    openUntil: 'Open · until {time}',
+    openUntilMidnight: 'Open · until midnight',
+    opensToday: 'Closed · opens at {time}',
+    opensLater: 'Closed · opens {day}, {time}',
+    tomorrow: 'tomorrow',
+    closedNow: 'Closed',
+  },
   day: {
     today: 'Today',
     previous: 'Previous day',

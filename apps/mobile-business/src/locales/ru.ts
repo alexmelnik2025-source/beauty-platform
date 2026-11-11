@@ -56,6 +56,19 @@ export const ru: Dictionary = {
     },
     go: 'Сделать',
   },
+  /** Task 366: the salon as clients see it now, on the day screen. */
+  clientsNow: {
+    label: 'Клиенты видят сейчас',
+    today: 'Сегодня для клиентов: {hours}',
+    closedToday: 'Сегодня для клиентов: закрыто',
+    hint: 'Так салон выглядит в каталоге и на странице записи — по часам команды, особым дням, отпускам и блокировкам всего салона.',
+    openUntil: 'Открыто · до {time}',
+    openUntilMidnight: 'Открыто · до полуночи',
+    opensToday: 'Закрыто · откроется в {time}',
+    opensLater: 'Закрыто · откроется: {day}, {time}',
+    tomorrow: 'завтра',
+    closedNow: 'Закрыто',
+  },
   day: {
     today: 'Сегодня',
     previous: 'Предыдущий день',

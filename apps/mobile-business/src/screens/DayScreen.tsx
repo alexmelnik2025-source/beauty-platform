@@ -64,6 +64,7 @@ import { VisitScreen } from './VisitScreen';
 import { WeekScreen } from './WeekScreen';
 import { WaitlistSection } from './WaitlistSection';
 import { TillCloseSection, TillReminder } from './TillCloseSection';
+import { ClientsNowCard } from './ClientsNowCard';
 import { SetupCard } from './SetupCard';
 import { presetFromEntry, type NewVisitPreset } from '../waitlist';
 
@@ -652,6 +653,9 @@ export function DayScreen(props: {
             else setSalonOpen(true);
           }}
         />
+      ) : null}
+      {salon.role !== 'staff' && date === today ? (
+        <ClientsNowCard api={api} t={t} locale={props.locale} salon={salon} reloads={reloads} />
       ) : null}
       {salon.role !== 'staff' && date === today ? (
         <TillReminder
