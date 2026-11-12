@@ -222,6 +222,11 @@ export const pl = {
     tillOwn: 'tylko Twoje wizyty',
     tillUnpaid: 'przyszli, nieopłacone: {n}',
     tillLabel: 'Kasa dnia — opłacone wizyty tego dnia według sposobu płatności',
+    clientsNow: 'Klienci widzą teraz',
+    clientsNowToday: 'dziś dla klientów: {hours}',
+    clientsNowClosedToday: 'dziś dla klientów: nieczynne',
+    clientsNowHint:
+      'Tak salon wygląda w katalogu i na stronie rezerwacji — według godzin zespołu, dni specjalnych, urlopów i blokad całego salonu.',
     tillClose: 'Zamknij kasę',
     tillExpected: 'Gotówka za wizyty tego dnia: {sum}',
     tillCounted: 'Gotówka w kasie',

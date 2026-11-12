@@ -220,6 +220,11 @@ export const en: Dict = {
     tillOwn: 'your visits only',
     tillUnpaid: 'came, not paid: {n}',
     tillLabel: "Till — the day's paid visits by payment method",
+    clientsNow: 'Clients see now',
+    clientsNowToday: 'today for clients: {hours}',
+    clientsNowClosedToday: 'today for clients: closed',
+    clientsNowHint:
+      'This is how the salon looks in the catalogue and on the booking page — by the team’s hours, special days, time off and salon-wide blocks.',
     tillClose: 'Close the till',
     tillExpected: 'Cash for visits this day: {sum}',
     tillCounted: 'Cash in the till',

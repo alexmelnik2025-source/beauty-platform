@@ -25,6 +25,7 @@ import { useSession } from '../Session';
 import { ErrorBox, initials, Spinner } from '../ui';
 import { AppointmentSheet } from './AppointmentSheet';
 import { BlockSheet } from './BlockSheet';
+import { ClientsNow } from './ClientsNow';
 import { MoveSheet, type MoveTarget } from './MoveSheet';
 import { NewItemSheet, type NewItemDraft } from './NewItemSheet';
 import { TillReminder } from './TillReminder';
@@ -432,6 +433,11 @@ export function Calendar() {
 
       {/* Task 353: on an empty calendar only — a day with visits keeps its space for the work. */}
       {manager && data && data.appointments.length === 0 ? <SetupSteps base={base} /> : null}
+
+      {/* Task 368: the salon as clients see it now — today's day view only. */}
+      {manager && mode === 'day' && date === today ? (
+        <ClientsNow base={base} refresh={data} />
+      ) : null}
 
       {manager && mode === 'day' && date === today ? (
         <TillReminder base={base} today={today} refresh={data} onOpen={setDate} />

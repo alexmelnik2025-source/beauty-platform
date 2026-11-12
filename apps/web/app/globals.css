@@ -2995,9 +2995,25 @@ ul.wish-photos {
 }
 
 @media print {
-  .till-strip {
+  .till-strip,
+  .clients-now {
     display: none;
   }
+}
+
+/* Task 368: "Klienci widzą teraz" above today's calendar. */
+.clients-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
+.clients-now .open-status {
+  margin: 0;
 }
 
 /* ── Task 353: "Pierwsze kroki" above the calendar ───── */
