@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { parseEmail, type ClientApi, type ClientPerson, type Locale } from '../api';
 import { errorText } from '../errors';
@@ -18,6 +18,8 @@ export function SignInScreen(props: {
   /** Opens the catalogue of salons (no sign-in needed). */
   /** Task 180b: opens the catalogue, with what the client typed in "Czego szukasz?". */
   onFindSalon: (query?: string) => void;
+  /** Task 370: opens the catalogue with "Otwarte teraz" on. */
+  onOpenNow: () => void;
   onSignedIn: (person: ClientPerson) => void;
   /** The email the client just booked with (from the booking in the app). */
   initialEmail?: string;
@@ -29,6 +31,21 @@ export function SignInScreen(props: {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [what, setWhat] = useState('');
+  // Task 370: how many salons are open right now; the button is there only when some are.
+  const [openNowCount, setOpenNowCount] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .directory({ page: 1, pageSize: 1 })
+      .then((res) => {
+        if (alive) setOpenNowCount(res.openNowCount);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [api]);
 
   async function send(email = parseEmail(input)) {
     if (!email) return setError(t.signIn.badEmail);
@@ -75,6 +92,14 @@ export function SignInScreen(props: {
           style={styles.input}
         />
         <Button label={t.catalog.searchGo} onPress={() => props.onFindSalon(what.trim())} />
+        {openNowCount > 0 ? (
+          <Button
+            kind="secondary"
+            label={`● ${t.catalog.openNow} (${openNowCount})`}
+            a11yLabel={`${t.catalog.openNow} (${openNowCount})`}
+            onPress={props.onOpenNow}
+          />
+        ) : null}
       </View>
       <Heading>{t.signIn.title}</Heading>
       {!sentTo ? (

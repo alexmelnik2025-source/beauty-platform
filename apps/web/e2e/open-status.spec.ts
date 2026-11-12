@@ -18,6 +18,8 @@ import { serveApp } from './mobile-app';
  * Task 365: the "Otwarte teraz" filter in the catalogue (site 365, client app 365a): the salon is
  * there while open, and gone from the filter after the vacation.
  * Task 369: "Otwarte teraz (n)" on the home page opens the catalogue with the filter on, 369.
+ * Task 370: "Otwarte teraz (n)" on the client app's start screen opens its catalogue with the
+ * filter on, 370.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -164,6 +166,20 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
 
     const clientApp = await serveApp('mobile-client');
     try {
+      // Task 370: from the start screen straight to the open salons, with the filter on.
+      const start = await phone.newPage();
+      await start.goto(clientApp.url);
+      const startOpen = start.getByRole('button', { name: /^Otwarte teraz \(\d+\)$/ });
+      await expect(startOpen).toBeVisible();
+      await shot(start, '370-client-app-start-open-now');
+      await startOpen.click();
+      await expect(start.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
+      await expect(start.getByRole('button', { name: /^Otwarte teraz \(\d+\)$/ })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await start.close();
+
       const app = await phone.newPage();
       await app.goto(clientApp.url);
       await app.getByRole('button', { name: 'Znajdź salon' }).click();

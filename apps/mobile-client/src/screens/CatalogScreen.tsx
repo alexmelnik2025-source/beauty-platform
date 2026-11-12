@@ -44,6 +44,8 @@ export function CatalogScreen(props: {
   onBack: () => void;
   /** Task 180b: what the client typed on the start screen. */
   initialQuery?: string;
+  /** Task 370: opened from "Otwarte teraz (n)" on the start screen — the filter is on. */
+  initialOpenNow?: boolean;
 }) {
   const { api, t } = props;
   // Task 192: several languages at once (any of them), remembered on the device; null until read.
@@ -54,7 +56,7 @@ export function CatalogScreen(props: {
   const [languageCounts, setLanguageCounts] = useState<Partial<Record<SpokenLanguage, number>>>({});
   const [specialtyCounts, setSpecialtyCounts] = useState<Partial<Record<Specialty, number>>>({});
   // Task 365: "Otwarte teraz" - only salons open right now, with their number on the chip.
-  const [openNow, setOpenNow] = useState(false);
+  const [openNow, setOpenNow] = useState(props.initialOpenNow === true);
   const [openNowCount, setOpenNowCount] = useState(0);
   const [items, setItems] = useState<DirectorySalon[]>([]);
   const [page, setPage] = useState(1);
