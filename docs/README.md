@@ -2960,3 +2960,18 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
 - «Ulubione» (367): `timezone` и `todayHours` у каждого салона в `GET /v1/client/favorites` (`todayHoursOf` только
   для салонов с онлайн-записью, у остальных пусто); `FavoritesView.tsx` показывает `OpenNow` на доступных салонах.
   Тест `client-favorites.spec.ts`, e2e — шаг в `booking.spec.ts`.
+
+## «Klienci widzą teraz» в кабинете, «Otwarte teraz (n)» на главной (задачи 368–370)
+
+- Кабинет (368): `components/calendar/ClientsNow.tsx` над сегодняшним календарём (режим «Dzień») у
+  владельца/менеджера — `Location` салона, при включённой онлайн-записи — публичная страница
+  `GET /v1/public/locations/:slug` (`timezone`, `openingHours`, `todayHours`); строка из `lib/open-status.ts` (та же,
+  что на странице салона) и «dziś dla klientów: …». Перечитывается с каждыми новыми данными календаря,
+  пересчитывается раз в минуту; при ошибке и без онлайн-записи скрыта, при печати — тоже. e2e
+  `cabinet-clients-now.spec.ts` (скриншоты 368, 368a).
+- Главная сайта (369): `openNowCount` из того же запроса «Polecane salony» → ссылка «Otwarte teraz (n)» на
+  `/salons?openNow=1`; `PublicDirectory.tsx` включает фильтр по `openNow=1` в адресе. e2e — шаг в
+  `open-status.spec.ts` (369).
+- Клиентское приложение (370): `SignInScreen.tsx` читает `api.directory({ pageSize: 1 })` → кнопка «Otwarte teraz
+  (n)»; `App.tsx` открывает каталог с `openNow: true` → `CatalogScreen` `initialOpenNow`. e2e — шаг в
+  `open-status.spec.ts` (370).
