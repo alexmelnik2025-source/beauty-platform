@@ -17,6 +17,7 @@ import { serveApp } from './mobile-app';
  * Task 364: and on every salon card of the home page, 364.
  * Task 365: the "Otwarte teraz" filter in the catalogue (site 365, client app 365a): the salon is
  * there while open, and gone from the filter after the vacation.
+ * Task 369: "Otwarte teraz (n)" on the home page opens the catalogue with the filter on, 369.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -129,6 +130,17 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
     await expect(client.locator('.home-featured .open-status')).toHaveCount(await featured.count());
     await featured.first().scrollIntoViewIfNeeded();
     await shot(client, '364-home-open-now');
+    // Task 369: straight to the open salons, with the filter on.
+    const homeOpen = client.getByRole('link', { name: /^Otwarte teraz \(\d+\)$/ });
+    await expect(homeOpen).toBeVisible();
+    await homeOpen.scrollIntoViewIfNeeded();
+    await shot(client, '369-home-open-now-link');
+    await homeOpen.click();
+    await client.waitForURL(/\/pl\/salons\?openNow=1/);
+    await expect(client.getByRole('button', { name: /^Otwarte teraz \(\d+\)$/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     // Task 363: the card in the catalogue.
     await client.goto(`/pl/salons?q=${encodeURIComponent(NAME)}`);
