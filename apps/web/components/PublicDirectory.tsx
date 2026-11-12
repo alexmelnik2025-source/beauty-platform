@@ -132,6 +132,8 @@ export function PublicDirectory() {
     setLanguages(rememberedLanguages());
     // Task 205: "W pobliżu" on the home page - ask for the location straight away.
     if (params.get('near') === '1') void findNear();
+    // Task 369: "Otwarte teraz (n)" on the home page - the catalogue opens with the filter on.
+    if (params.get('openNow') === '1') setOpenNow(true);
   }, []);
 
   useEffect(() => {

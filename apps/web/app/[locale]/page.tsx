@@ -34,12 +34,17 @@ export default function Home() {
   const [what, setWhat] = useState('');
   const [where, setWhere] = useState('');
   const [featured, setFeatured] = useState<PublicSalonDirectory['items']>([]);
+  // Task 369: how many salons are open right now (today's real hours), for the link below.
+  const [openNowCount, setOpenNowCount] = useState(0);
 
   useEffect(() => {
     let live = true;
     api<PublicSalonDirectory>('/v1/public/locations?page=1&pageSize=6', { auth: false })
       .then((res) => {
-        if (live) setFeatured(res.items);
+        if (live) {
+          setFeatured(res.items);
+          setOpenNowCount(res.openNowCount);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -86,6 +91,17 @@ export default function Home() {
         <Link className="btn btn--quiet btn--block" href={`/${locale}/salons?near=1`}>
           ⌖ {t.directory.near}
         </Link>
+        {/* Task 369: straight to the salons open right now; not shown when none is open. */}
+        {openNowCount > 0 ? (
+          <Link
+            className="btn btn--quiet btn--block home-open-now"
+            href={`/${locale}/salons?openNow=1`}
+          >
+            <span className="open-status" data-open="true">
+              {t.directory.openNow} ({openNowCount})
+            </span>
+          </Link>
+        ) : null}
         <section className="stack" aria-labelledby="home-categories">
           <h2 id="home-categories" className="small muted">
             {n.categories}

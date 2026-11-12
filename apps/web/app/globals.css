@@ -2877,6 +2877,11 @@ ul.wish-photos {
   font-size: 1.05rem;
 }
 
+/* Task 369: "Otwarte teraz (n)" on the home page. */
+.home-open-now .open-status {
+  margin: 0;
+}
+
 .home-categories {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
