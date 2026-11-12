@@ -29,7 +29,7 @@ type Stage =
  */
 type Finder =
   | null
-  | { kind: 'catalog'; query?: string }
+  | { kind: 'catalog'; query?: string; openNow?: boolean }
   | { kind: 'salon'; slug: string; name: string; fromVisits?: boolean }
   | { kind: 'open'; slug: string; name: string; preset?: BookingPreset }
   | { kind: 'book'; salon: PublicLocation; preset?: BookingPreset; fromVisits?: boolean };
@@ -60,6 +60,8 @@ export default function App() {
     (query?: string) => setFinder({ kind: 'catalog', ...(query && { query }) }),
     [],
   );
+  // Task 370: "Otwarte teraz (n)" on the start screen — the catalogue with the filter on.
+  const openCatalogOpenNow = useCallback(() => setFinder({ kind: 'catalog', openNow: true }), []);
   const openBooking = useCallback(
     (slug: string, name: string, preset?: BookingPreset) =>
       setFinder({ kind: 'open', slug, name, ...(preset && { preset }) }),
@@ -133,6 +135,7 @@ export default function App() {
                 onLocale={changeLocale}
                 onSignedIn={signedIn}
                 onFindSalon={openCatalog}
+                onOpenNow={openCatalogOpenNow}
               />
             ) : (
               <VisitsScreen
@@ -159,6 +162,7 @@ export default function App() {
                 locale={locale}
                 onLocale={changeLocale}
                 initialQuery={finder.kind === 'catalog' ? finder.query : undefined}
+                initialOpenNow={finder.kind === 'catalog' && finder.openNow === true}
                 onOpen={(s) => setFinder({ kind: 'salon', slug: s.slug, name: s.name })}
                 onBack={() => setFinder(null)}
               />
