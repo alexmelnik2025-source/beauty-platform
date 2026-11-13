@@ -4159,6 +4159,18 @@
             }
           },
           {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "description": "Task 378: \"Najlepiej oceniane\" - the best average stars first, then more reviews; salons without stars last",
+            "schema": {
+              "enum": [
+                "rating"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "openNow",
             "required": false,
             "in": "query",

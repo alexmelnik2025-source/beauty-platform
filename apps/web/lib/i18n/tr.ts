@@ -83,6 +83,8 @@ export const tr: Dict = {
     openNow: 'Şimdi açık',
     openNowEmpty:
       'Bu salonların hiçbiri şu anda açık değil — hepsini görmek için “Şimdi açık” seçeneğini kapatın.',
+    /** Task 378: the salons with the best stars first. */
+    bestRated: '★ En yüksek puanlı',
     locating: 'Konumunuz bulunuyor…',
     locationFailed: 'Konumunuz bulunamadı. Tarayıcıda izin verin veya bir şehir yazın.',
     distance: 'Size {km} km',

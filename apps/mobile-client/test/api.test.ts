@@ -244,6 +244,17 @@ describe('catalogue (no sign-in)', () => {
     ).toBe(2);
   });
 
+  it('asks for the best rated salons first (task 378)', async () => {
+    const { fetchFn } = fakeServer({
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}&openNow=true&sort=rating`]: () => [
+        200,
+        { ...directory, total: 4 },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    expect((await api.directory({ openNow: true, bestRated: true })).total).toBe(4);
+  });
+
   it('opens a salon by its link name; a missing one is a 404', async () => {
     const { fetchFn } = fakeServer({
       'GET /v1/public/locations/gestalt%20bema': () => [200, { slug: 'gestalt bema' }],

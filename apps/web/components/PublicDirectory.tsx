@@ -120,6 +120,8 @@ export function PublicDirectory() {
   const [locationFailed, setLocationFailed] = useState(false);
   // Task 365: "Otwarte teraz" - only salons open right now (today's real hours).
   const [openNow, setOpenNow] = useState(false);
+  // Task 378: "Najlepiej oceniane" - the salons with the best stars first.
+  const [bestRated, setBestRated] = useState(false);
 
   useEffect(() => {
     // The home page's search and kinds of place come in the address (?q=…&specialty=…).
@@ -134,6 +136,7 @@ export function PublicDirectory() {
     if (params.get('near') === '1') void findNear();
     // Task 369: "Otwarte teraz (n)" on the home page - the catalogue opens with the filter on.
     if (params.get('openNow') === '1') setOpenNow(true);
+    if (params.get('sort') === 'rating') setBestRated(true);
   }, []);
 
   useEffect(() => {
@@ -156,6 +159,7 @@ export function PublicDirectory() {
     if (specialty) params.set('specialty', specialty);
     if (query) params.set('q', query);
     if (openNow) params.set('openNow', 'true');
+    if (bestRated) params.set('sort', 'rating');
     if (near) params.set('near', `${near.latitude.toFixed(4)},${near.longitude.toFixed(4)}`);
     api<PublicSalonDirectory>(`/v1/public/locations?${params.toString()}`)
       .then((value) => {
@@ -170,7 +174,7 @@ export function PublicDirectory() {
     return () => {
       active = false;
     };
-  }, [languages, specialty, query, near, openNow, page, t]);
+  }, [languages, specialty, query, near, openNow, bestRated, page, t]);
 
   const toggleNear = async () => {
     if (near) {
@@ -247,6 +251,16 @@ export function PublicDirectory() {
             >
               {t.directory.openNow}
               {result ? ` (${result.openNowCount})` : ''}
+            </button>
+            <button
+              type="button"
+              aria-pressed={bestRated}
+              onClick={() => {
+                setBestRated(!bestRated);
+                setPage(1);
+              }}
+            >
+              {t.directory.bestRated}
             </button>
           </div>
           {locationFailed ? <p className="small muted">{t.directory.locationFailed}</p> : null}

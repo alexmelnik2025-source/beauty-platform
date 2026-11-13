@@ -433,6 +433,111 @@ describe('public salon directory', () => {
     }
   });
 
+  it('"Najlepiej oceniane" puts the best stars first, then more reviews, salons without stars last (task 378)', async () => {
+    const owner = await signUp(ctx, 'rated@example.com');
+    const alpha = await createOrgWithLocation(ctx, owner, 'Alpha salon');
+    const beta = await createOrgWithLocation(ctx, owner, 'Beta salon');
+    const gamma = await createOrgWithLocation(ctx, owner, 'Gamma salon');
+    const delta = await createOrgWithLocation(ctx, owner, 'Delta salon');
+    const hidden = await createOrgWithLocation(ctx, owner, 'Hidden salon');
+    for (const salon of [alpha, beta, gamma, delta, hidden]) {
+      await makeBookable(owner, salon);
+      await ctx.prisma.location.update({
+        where: { id: salon.locationId },
+        data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, latitude: 52.2297, longitude: 21.0122 },
+      });
+    }
+    let n = 0;
+    const review = async (salon: { orgId: string; locationId: string }, rating: number) => {
+      n += 1;
+      const staff = await ctx.prisma.staffMember.findFirstOrThrow({
+        where: { locationId: salon.locationId },
+      });
+      const service = await ctx.prisma.service.findFirstOrThrow({
+        where: { locationId: salon.locationId },
+      });
+      const customer = await ctx.prisma.customer.create({
+        data: { organizationId: salon.orgId, name: `Client ${n}`, phone: `+4851100${1000 + n}` },
+      });
+      const startAt = new Date(Date.now() - (n + 1) * 86_400_000);
+      const endAt = new Date(startAt.getTime() + 30 * 60_000);
+      const visit = await ctx.prisma.appointment.create({
+        data: {
+          locationId: salon.locationId,
+          staffId: staff.id,
+          serviceId: service.id,
+          customerId: customer.id,
+          status: 'completed',
+          source: 'online',
+          startAt,
+          endAt,
+          blockedUntil: endAt,
+          priceGrosze: 8000,
+          durationMinutes: 30,
+          bufferMinutes: 0,
+        },
+      });
+      await ctx.prisma.visitReview.create({
+        data: { appointmentId: visit.id, locationId: salon.locationId, staffId: staff.id, rating },
+      });
+    };
+    // Gamma 5.0 (1 review), Delta 4.5 (4), Beta 4.5 (2), Alpha none; Hidden has 5 stars stored
+    // but does not collect reviews — no stars, so it is not "best rated".
+    for (const salon of [beta, gamma, delta]) {
+      await ctx.prisma.reviewSettings.create({
+        data: { locationId: salon.locationId, enabled: true },
+      });
+    }
+    await review(gamma, 5);
+    await review(delta, 5);
+    await review(delta, 4);
+    await review(delta, 5);
+    await review(delta, 4);
+    await review(beta, 5);
+    await review(beta, 4);
+    await review(hidden, 5);
+
+    const slugs = (body: { items: { slug: string }[] }) => body.items.map((s) => s.slug);
+    const first = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ sort: 'rating', pageSize: 3 })
+      .expect(200);
+    expect(first.body.total).toBe(5);
+    expect(slugs(first.body)).toEqual([gamma.slug, delta.slug, beta.slug]);
+    expect(first.body.items[1]).toMatchObject({ rating: 4.5, reviewCount: 4, distanceKm: null });
+    const shape = registeredResponseSchema('PublicSalonDirectory').safeParse(first.body);
+    expect(shape.error?.issues ?? []).toEqual([]);
+
+    // Then the salons without stars, in the usual order (city, name).
+    const second = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ sort: 'rating', pageSize: 3, page: 2 })
+      .expect(200);
+    expect(slugs(second.body)).toEqual([alpha.slug, hidden.slug]);
+    expect(second.body.items[1]).toMatchObject({ rating: null, reviewCount: 0 });
+
+    // With "W pobliżu" too: the stars decide the order, the distance is still shown.
+    const near = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ sort: 'rating', near: '52.2297,21.0122', pageSize: 2 })
+      .expect(200);
+    expect(slugs(near.body)).toEqual([gamma.slug, delta.slug]);
+    expect(near.body.items[0].distanceKm).toBe(0);
+
+    // Other filters still apply.
+    const searched = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ sort: 'rating', q: 'beta' })
+      .expect(200);
+    expect(slugs(searched.body)).toEqual([beta.slug]);
+
+    await ctx.http().get('/v1/public/locations').query({ sort: 'price' }).expect(400);
+  });
+
   it("shows the lowest price a client can book, counting specialists' own prices (task 91)", async () => {
     const owner = await signUp(ctx, 'price-from@example.com');
     const salon = await createOrgWithLocation(ctx, owner, 'Price from');
