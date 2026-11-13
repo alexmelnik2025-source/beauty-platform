@@ -493,6 +493,34 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.products.totalGrosze > 0 ? (
+              // Task 395: products sold at the visits — not part of the visit revenue.
+              <section className="section" data-testid="report-products">
+                <h2>{fill(t.reports.products, { amount: money(report.products.totalGrosze) })}</h2>
+                <ol className="report-days">
+                  {report.products.items.map((item) => (
+                    <li key={item.name}>
+                      <span className="small">{item.name}</span>
+                      <span className="small">
+                        {fill(t.reports.productsRow, {
+                          n: String(item.quantity),
+                          amount: money(item.totalGrosze),
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {report.products.staff.length > 1 ? (
+                  <p className="small">
+                    {report.products.staff
+                      .map((s) => `${s.displayName}: ${money(s.totalGrosze)}`)
+                      .join(' · ')}
+                  </p>
+                ) : null}
+                <p className="small muted">{t.reports.productsHint}</p>
+              </section>
+            ) : null}
+
             {report.discounts.totalGrosze > 0 ? (
               // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
               <section className="section" data-testid="report-discounts">
