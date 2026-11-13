@@ -45,7 +45,20 @@ export const salonReportSchema = responseSchema(
         .describe('Clients whose first visit at this salon that took place is in the period'),
     }),
     staff: z
-      .array(z.strictObject({ id: z.string(), displayName: z.string(), ...counts }))
+      .array(
+        z.strictObject({
+          id: z.string(),
+          displayName: z.string(),
+          ...counts,
+          commissionPercent: z
+            .number()
+            .nullable()
+            .describe('Task 373: the specialist\'s "Prowizja" (e.g. 45.5); null = not set'),
+          commissionGrosze: money(
+            'Task 373: revenue × commission, rounded to whole hundredths; tips not included',
+          ).nullable(),
+        }),
+      )
       .describe('Specialists with any visit in the period, by revenue'),
     services: z
       .array(z.strictObject({ id: z.string(), name: z.string(), ...counts }))
@@ -474,3 +487,24 @@ export const tillCloseSchema = responseSchema(
 );
 
 export type TillCloseResponse = z.infer<typeof tillCloseSchema>;
+
+/** Task 373: "Prowizje" — the share of what paid visits brought that each specialist gets. */
+export const staffCommissionsSchema = responseSchema(
+  'StaffCommissions',
+  z.strictObject({
+    staff: z
+      .array(
+        z.strictObject({
+          staffId: z.string(),
+          displayName: z.string(),
+          active: z.boolean().describe('false = does not take clients (still listed)'),
+          commissionPercent: z
+            .number()
+            .nullable()
+            .describe('0–100 in steps of 0.1; null = not set (no commission in the report)'),
+        }),
+      )
+      .describe("Every specialist of the location, in the salon's order"),
+  }),
+);
+export type StaffCommissionsResponse = z.infer<typeof staffCommissionsSchema>;

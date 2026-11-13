@@ -66,7 +66,8 @@ function toService(service: ServiceWithStaff): ServiceResponse {
 }
 
 function toStaff(staff: StaffWithServices): StaffResponse {
-  const { services, photo, ...rest } = staff;
+  // Task 373: the commission is pay — only owners and managers read it, from the reports API.
+  const { services, photo, commissionPermille, ...rest } = staff;
   return {
     ...rest,
     serviceIds: services.map((s) => s.serviceId).sort(),

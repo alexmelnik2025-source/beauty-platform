@@ -48,3 +48,18 @@ export const tillMovementSchema = z.object({
 });
 
 export type TillMovementInput = z.infer<typeof tillMovementSchema>;
+
+/**
+ * Task 373: the specialist's commission in percent, at most one decimal place (45 or 45.5);
+ * null removes it.
+ */
+export const staffCommissionSchema = z.object({
+  commissionPercent: z
+    .number()
+    .min(0)
+    .max(100)
+    .refine((v) => Math.abs(v * 10 - Math.round(v * 10)) < 1e-9, 'at most one decimal place')
+    .nullable(),
+});
+
+export type StaffCommissionInput = z.infer<typeof staffCommissionSchema>;

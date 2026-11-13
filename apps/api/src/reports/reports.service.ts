@@ -14,6 +14,7 @@ import {
 } from '../scheduling/time';
 import type { Location, PaymentMethod } from '../generated/prisma/client';
 import type { InstantRange, LocalInterval } from '../scheduling/slots';
+import { commissionGrosze, permilleToPercent } from './commissions.service';
 import { occupancy, occupancyPercent } from './occupancy';
 import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
@@ -376,6 +377,16 @@ export class ReportsService {
       totals.newClients = clients.size - earlier.length;
     }
 
+    // Task 373: "Prowizja" of each specialist with a visit, as the salon set it.
+    const commissions = new Map(
+      (
+        await this.prisma.staffMember.findMany({
+          where: { locationId, id: { in: [...staff.keys()] } },
+          select: { id: true, commissionPermille: true },
+        })
+      ).map((s) => [s.id, s.commissionPermille]),
+    );
+
     return {
       location: { id: location.id, name: location.name, timezone: tz, currency: location.currency },
       from: query.from,
@@ -403,6 +414,8 @@ export class ReportsService {
             paid,
             cancelledByClient,
             cancelledBySalon,
+            commissionPercent: permilleToPercent(commissions.get(id) ?? null),
+            commissionGrosze: commissionGrosze(revenueGrosze, commissions.get(id) ?? null),
           }),
         ),
       services: [...services.values()]

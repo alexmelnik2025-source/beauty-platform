@@ -11927,6 +11927,115 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/commissions": {
+      "get": {
+        "description": "Task 373. Owners and managers of the location only (a specialist gets 403): a commission is a team member's pay. The report then shows each specialist's revenue × commission.",
+        "operationId": "ReportsController_listCommissions",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCommissions"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Prowizje\": the commission of every specialist of the location",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/commissions/{staffId}": {
+      "put": {
+        "description": "Task 373. Owners and managers only. 0–100, at most one decimal place. Answers the whole list.",
+        "operationId": "ReportsController_setCommission",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commissionPercent": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "commissionPercent"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCommissions"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set or remove (null) a specialist's commission in percent",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/v1/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -21495,6 +21604,18 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
                   "description": "Task 219: visits the salon cancelled"
+                },
+                "commissionPercent": {
+                  "nullable": true,
+                  "description": "Task 373: the specialist's \"Prowizja\" (e.g. 45.5); null = not set",
+                  "type": "number"
+                },
+                "commissionGrosze": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 373: revenue × commission, rounded to whole hundredths; tips not included, in hundredths of the salon currency"
                 }
               },
               "required": [
@@ -21505,7 +21626,9 @@
                 "revenueGrosze",
                 "paid",
                 "cancelledByClient",
-                "cancelledBySalon"
+                "cancelledBySalon",
+                "commissionPercent",
+                "commissionGrosze"
               ],
               "additionalProperties": false
             },
@@ -23571,6 +23694,46 @@
           ],
           "additionalProperties": false
         }
+      },
+      "StaffCommissions": {
+        "type": "object",
+        "properties": {
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "staffId": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean",
+                  "description": "false = does not take clients (still listed)"
+                },
+                "commissionPercent": {
+                  "nullable": true,
+                  "description": "0–100 in steps of 0.1; null = not set (no commission in the report)",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "staffId",
+                "displayName",
+                "active",
+                "commissionPercent"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Every specialist of the location, in the salon's order"
+          }
+        },
+        "required": [
+          "staff"
+        ],
+        "additionalProperties": false
       },
       "StaffList": {
         "type": "array",

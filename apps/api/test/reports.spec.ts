@@ -204,6 +204,8 @@ describe('salon report', () => {
         paid: 2,
         cancelledByClient: 1,
         cancelledBySalon: 1,
+        commissionPercent: null,
+        commissionGrosze: null,
       },
       {
         id: olaId,
@@ -214,6 +216,8 @@ describe('salon report', () => {
         paid: 1,
         cancelledByClient: 0,
         cancelledBySalon: 0,
+        commissionPercent: null,
+        commissionGrosze: null,
       },
     ]);
     // Task 215: the clients who brought the most, names only (no phone or e-mail).
@@ -1143,6 +1147,100 @@ describe('salon report', () => {
       visits: 2,
       staff: [{ id: kasiaId, displayName: 'Kasia', tipsGrosze: 1500, visits: 2 }],
     });
+  });
+
+  it('"Prowizje": owners set each specialist\'s commission, the report counts it (task 373)', async () => {
+    const commissions = `${base}/reports/commissions`;
+    const listed = await ctx.http().get(commissions).set(owner.auth).expect(200);
+    expect(
+      registeredResponseSchema('StaffCommissions').safeParse(listed.body).error,
+    ).toBeUndefined();
+    expect(listed.body.staff).toEqual([
+      { staffId: kasiaId, displayName: 'Kasia', active: true, commissionPercent: null },
+      { staffId: olaId, displayName: 'Ola', active: true, commissionPercent: null },
+    ]);
+
+    const set = await ctx
+      .http()
+      .put(`${commissions}/${kasiaId}`)
+      .set(owner.auth)
+      .send({ commissionPercent: 45.5 })
+      .expect(200);
+    expect(set.body.staff[0]).toMatchObject({ staffId: kasiaId, commissionPercent: 45.5 });
+    await ctx
+      .http()
+      .put(`${commissions}/${olaId}`)
+      .set(owner.auth)
+      .send({ commissionPercent: 40 })
+      .expect(200);
+    // Two decimal places, more than 100 or below 0 are refused; so is an unknown specialist.
+    for (const commissionPercent of [45.55, 101, -1, '40']) {
+      await ctx
+        .http()
+        .put(`${commissions}/${olaId}`)
+        .set(owner.auth)
+        .send({ commissionPercent })
+        .expect(400);
+    }
+    await ctx
+      .http()
+      .put(`${commissions}/00000000-0000-4000-8000-000000000000`)
+      .set(owner.auth)
+      .send({ commissionPercent: 10 })
+      .expect(404);
+    expect(await ctx.prisma.auditLog.count({ where: { action: 'staff.commission_set' } })).toBe(2);
+
+    const d1 = addDays(today, -3);
+    // Kasia: 8000 + (8000 − 1000 discount) paid, a tip that is not part of it, one unpaid.
+    await visit({ date: d1, status: 'completed', paid: true, tipGrosze: 2000 });
+    await visit({ date: d1, status: 'completed', paid: true, discountGrosze: 1000 });
+    await visit({ date: d1, status: 'completed' });
+    await visit({ date: d1, staffId: olaId, serviceId: beardId, status: 'completed', paid: true });
+    const res = await report().expect(200);
+    expect(
+      res.body.staff.map((s: Record<string, unknown>) => [
+        s.id,
+        s.revenueGrosze,
+        s.commissionPercent,
+        s.commissionGrosze,
+      ]),
+    ).toEqual([
+      [kasiaId, 15000, 45.5, 6825],
+      [olaId, 5000, 40, 2000],
+    ]);
+
+    // Removing it leaves the report without a commission.
+    await ctx
+      .http()
+      .put(`${commissions}/${olaId}`)
+      .set(owner.auth)
+      .send({ commissionPercent: null })
+      .expect(200);
+    const after = await report().expect(200);
+    expect(after.body.staff[1]).toMatchObject({ commissionPercent: null, commissionGrosze: null });
+
+    // A specialist neither sees nor sets commissions — not even their own…
+    await ctx.http().get(commissions).set(kasiaUser.auth).expect(403);
+    await ctx
+      .http()
+      .put(`${commissions}/${kasiaId}`)
+      .set(kasiaUser.auth)
+      .send({ commissionPercent: 100 })
+      .expect(403);
+    // …but with own results the report shows their own.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.staff).toEqual([
+      expect.objectContaining({ id: kasiaId, commissionPercent: 45.5, commissionGrosze: 6825 }),
+    ]);
+
+    // Another salon's owner cannot reach them.
+    const other = await signUp(ctx, 'other@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await ctx.http().get(commissions).set(other.auth).expect(404);
   });
 
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {

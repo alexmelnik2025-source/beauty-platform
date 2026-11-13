@@ -132,6 +132,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/appointments/:appointmentId/payment')) return { version: 1, paid: true };
   if (p.endsWith('/appointments/:appointmentId/tip')) return { version: 1, tipGrosze: 1000 };
   if (p.endsWith('/reports/till-close')) return { date: DATE, countedCashGrosze: 1000 };
+  if (p.endsWith('/reports/commissions/:staffId')) return { commissionPercent: 99 };
   if (p.endsWith('/reports/till-movements')) {
     return { date: DATE, kind: 'out', amountGrosze: 1000, note: 'Hacked' };
   }

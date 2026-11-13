@@ -3101,6 +3101,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/commissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Prowizje": the commission of every specialist of the location
+         * @description Task 373. Owners and managers of the location only (a specialist gets 403): a commission is a team member's pay. The report then shows each specialist's revenue × commission.
+         */
+        get: operations["ReportsController_listCommissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/commissions/{staffId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or remove (null) a specialist's commission in percent
+         * @description Task 373. Owners and managers only. 0–100, at most one decimal place. Answers the whole list.
+         */
+        put: operations["ReportsController_setCommission"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -5534,6 +5574,10 @@ export interface components {
                 cancelledByClient: number;
                 /** @description Task 219: visits the salon cancelled */
                 cancelledBySalon: number;
+                /** @description Task 373: the specialist's "Prowizja" (e.g. 45.5); null = not set */
+                commissionPercent: number | null;
+                /** @description Task 373: revenue × commission, rounded to whole hundredths; tips not included, in hundredths of the salon currency */
+                commissionGrosze: number | null;
             }[];
             /** @description Services with any visit in the period, by revenue */
             services: {
@@ -6057,6 +6101,17 @@ export interface components {
             memberCount: number;
             version: number;
         }[];
+        StaffCommissions: {
+            /** @description Every specialist of the location, in the salon's order */
+            staff: {
+                staffId: string;
+                displayName: string;
+                /** @description false = does not take clients (still listed) */
+                active: boolean;
+                /** @description 0–100 in steps of 0.1; null = not set (no commission in the report) */
+                commissionPercent: number | null;
+            }[];
+        };
         StaffList: {
             id: string;
             locationId: string;
@@ -11789,6 +11844,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TillClose"];
+                };
+            };
+        };
+    };
+    ReportsController_listCommissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffCommissions"];
+                };
+            };
+        };
+    };
+    ReportsController_setCommission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                staffId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    commissionPercent: number | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffCommissions"];
                 };
             };
         };

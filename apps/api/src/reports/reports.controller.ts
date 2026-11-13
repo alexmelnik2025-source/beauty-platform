@@ -28,20 +28,25 @@ import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CurrentMembership, MembershipGuard } from '../organizations/membership.guard';
+import { CommissionsService } from './commissions.service';
 import {
   salonReportSchema,
+  staffCommissionsSchema,
   tillCloseSchema,
   type SalonReport,
+  type StaffCommissionsResponse,
   type TillCloseResponse,
 } from './reports.responses';
 import {
   closeTillSchema,
   reportQuerySchema,
+  staffCommissionSchema,
   tillCloseQuerySchema,
   tillMovementSchema,
   visitsCsvQuerySchema,
   type CloseTillInput,
   type ReportQuery,
+  type StaffCommissionInput,
   type TillCloseQuery,
   type TillMovementInput,
   type VisitsCsvQuery,
@@ -51,6 +56,7 @@ import { ReportsService } from './reports.service';
 import { TillCloseService } from './till-close.service';
 
 const locationIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Location') });
+const staffIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Staff member') });
 const movementIdPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Till movement') });
 
 @ApiTags('reports')
@@ -61,6 +67,7 @@ export class ReportsController {
   constructor(
     private readonly reports: ReportsService,
     private readonly till: TillCloseService,
+    private readonly commissions: CommissionsService,
   ) {}
 
   @Get()
@@ -199,5 +206,38 @@ export class ReportsController {
     @Param('movementId', movementIdPipe) movementId: string,
   ): Promise<TillCloseResponse> {
     return this.till.removeMovement(m, locationId, movementId);
+  }
+
+  @Get('commissions')
+  @ApiOperation({
+    summary: '"Prowizje": the commission of every specialist of the location',
+    description:
+      "Task 373. Owners and managers of the location only (a specialist gets 403): a commission is a team member's pay. The report then shows each specialist's revenue × commission.",
+  })
+  @ApiZodResponse(staffCommissionsSchema)
+  listCommissions(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+  ): Promise<StaffCommissionsResponse> {
+    return this.commissions.list(m, locationId);
+  }
+
+  @Put('commissions/:staffId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Set or remove (null) a specialist's commission in percent",
+    description:
+      'Task 373. Owners and managers only. 0–100, at most one decimal place. Answers the whole list.',
+  })
+  @ApiZodBody(staffCommissionSchema)
+  @ApiZodResponse(staffCommissionsSchema)
+  setCommission(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Param('staffId', staffIdPipe) staffId: string,
+    @Body(new ZodValidationPipe(staffCommissionSchema)) body: StaffCommissionInput,
+  ): Promise<StaffCommissionsResponse> {
+    return this.commissions.set(m, auth.userId, locationId, staffId, body);
   }
 }
