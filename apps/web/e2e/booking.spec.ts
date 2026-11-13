@@ -403,6 +403,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Masz teraz konto — wszystkie wizyty w „Moje wizyty”.',
   );
   await shot(client, '06-client-done');
+  // Task 413: "Udostępnij wizytę" right after booking (the test stands in for the share sheet).
+  await client.evaluate(() => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: async (data: ShareData) => {
+        (window as unknown as { shared?: ShareData }).shared = data;
+      },
+    });
+  });
+  await client.getByRole('button', { name: 'Udostępnij wizytę' }).click();
+  expect(
+    await client.evaluate(() => (window as unknown as { shared?: ShareData }).shared?.text),
+  ).toMatch(/^Moja wizyta: Strzyżenie męskie u Kasia — .+ul\. Józefa Bema 91, Warszawa\. Dojazd: /);
   // Task 360: "Jak dojechać" — Google Maps directions with the salon's name and address.
   const doneDirections = new URL(
     (await client.getByRole('link', { name: 'Jak dojechać' }).getAttribute('href'))!,

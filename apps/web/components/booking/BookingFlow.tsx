@@ -30,6 +30,7 @@ import { useSpecialtyText } from '../Specialties';
 import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
 import { ClientNav } from '../client/ClientNav';
 import { downloadIcs } from './ics';
+import { ShareVisit } from './ShareVisit';
 import { SalonGallery } from './SalonGallery';
 import { directionsLink, SalonProfile } from './SalonProfile';
 import { SalonReviews } from '../reviews/SalonReviews';
@@ -1054,6 +1055,8 @@ export function BookingFlow({ slug }: { slug: string }) {
             >
               {t.booking.directions}
             </a>
+            {/* Task 413: tell someone when and where, right after booking. */}
+            <ShareVisit visit={result.appointment} />
             <Link
               className="btn btn--quiet btn--block"
               href={`/${locale}/m/${result.manageToken}`}
