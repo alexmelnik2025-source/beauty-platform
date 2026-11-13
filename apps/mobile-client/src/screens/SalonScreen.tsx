@@ -22,7 +22,7 @@ import { API_URL, WEB_URL } from '../config';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { priceRows, speakersFirst } from '../booking';
-import { formatPrice, servicePriceText } from '../format';
+import { formatPrice, ratingText, servicePriceText } from '../format';
 import {
   addressText,
   directionsUrl,
@@ -323,6 +323,10 @@ export function SalonScreen(props: {
                 ) : null}
                 {specialtyText(m, t.specialty) ? (
                   <Text style={styles.small}>{specialtyText(m, t.specialty)}</Text>
+                ) : null}
+                {/* Task 384: the specialist's stars. */}
+                {ratingText(m, t.catalog.rating, locale) ? (
+                  <Text style={styles.small}>{ratingText(m, t.catalog.rating, locale)}</Text>
                 ) : null}
                 {m.languages.length > 0 ? (
                   <Text style={styles.small}>

@@ -155,6 +155,8 @@ describe('salon page', () => {
           serviceIds: [],
           prices: [],
           photoUrl: null,
+          rating: null,
+          reviewCount: 0,
         },
         pl.specialty,
       ),

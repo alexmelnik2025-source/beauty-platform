@@ -52,6 +52,7 @@ import {
   servicePriceText,
   nearestByStaff,
   nearestText,
+  ratingText,
   slotsByDay,
 } from '../format';
 import { fill, type Dictionary } from '../i18n';
@@ -550,6 +551,8 @@ export function BookingScreen(props: {
               meta={
                 [
                   specialtyText(s, t.specialty),
+                  // Task 384: the specialist's stars, as on the salon cards of the catalogue.
+                  ratingText(s, t.catalog.rating, locale) ?? '',
                   (s.languages ?? []).length > 0
                     ? `${b.speaksFilter}: ${(s.languages ?? []).map((l) => t.spoken[l]).join(', ')}`
                     : '',

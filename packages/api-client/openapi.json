@@ -21006,6 +21006,17 @@
                   "nullable": true,
                   "description": "Link to the photo; null when there is none",
                   "type": "string"
+                },
+                "rating": {
+                  "nullable": true,
+                  "description": "Task 384: average stars of their reviews (one decimal); null while the salon does not collect reviews or they have none",
+                  "type": "number"
+                },
+                "reviewCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 384: number of their reviews; 0 with no stars"
                 }
               },
               "required": [
@@ -21017,7 +21028,9 @@
                 "customSpecialty",
                 "serviceIds",
                 "prices",
-                "photoUrl"
+                "photoUrl",
+                "rating",
+                "reviewCount"
               ],
               "additionalProperties": false
             }

@@ -112,6 +112,20 @@ export class PublicLocationsController {
     const todayHours = (await todayHoursOf(this.prisma, [{ ...location, staff: listed }])).get(
       location.id,
     )!;
+    // Task 384: the stars of each specialist, only while the salon collects reviews (165b).
+    const collects = await this.prisma.reviewSettings.findUnique({
+      where: { locationId: location.id },
+      select: { enabled: true },
+    });
+    const stars = collects?.enabled
+      ? await this.prisma.visitReview.groupBy({
+          by: ['staffId'],
+          where: { locationId: location.id, staffId: { in: listed.map((s) => s.id) } },
+          _count: { _all: true },
+          _avg: { rating: true },
+        })
+      : [];
+    const starsOf = new Map(stars.map((row) => [row.staffId, row]));
     const basePrice = new Map(services.map((s) => [s.id, s.priceGrosze]));
     const baseDuration = new Map(services.map((s) => [s.id, s.durationMinutes]));
     return {
@@ -173,6 +187,11 @@ export class PublicLocationsController {
           }))
           .sort((a, b) => a.serviceId.localeCompare(b.serviceId)),
         photoUrl: s.photo ? photoUrl(s.photo.id) : null,
+        rating:
+          starsOf.get(s.id)?._avg.rating == null
+            ? null
+            : Math.round(starsOf.get(s.id)!._avg.rating! * 10) / 10,
+        reviewCount: starsOf.get(s.id)?._count._all ?? 0,
       })),
     };
   }
