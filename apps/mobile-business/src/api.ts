@@ -1594,6 +1594,20 @@ export class BusinessApi {
   }
 
   /**
+   * Task 393: "CSV wypłat" — what each specialist earned in the period: visits, revenue,
+   * commission, tips and the total to pay out. Owners and managers only.
+   */
+  payoutCsv(
+    orgId: string,
+    locationId: string,
+    from: string,
+    to: string,
+    locale: Locale,
+  ): Promise<CsvFile> {
+    return this.reportCsv('payout', orgId, locationId, from, to, locale);
+  }
+
+  /**
    * Task 269: every client of the network as a CSV file — the same file as "Pobierz CSV" in the
    * cabinet's client list (contacts, consent, visits, no-shows, the next visit, what they paid).
    * Owners only (the server checks it); every download is written to the audit log.
@@ -1610,7 +1624,7 @@ export class BusinessApi {
   }
 
   private reportCsv(
-    file: 'visits' | 'till',
+    file: 'visits' | 'till' | 'payout',
     orgId: string,
     locationId: string,
     from: string,

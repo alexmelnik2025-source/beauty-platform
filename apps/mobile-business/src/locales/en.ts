@@ -699,6 +699,9 @@ export const en: Dictionary = {
     csvHint: 'Every visit of this period for the accountant (no client contact details).',
     csvHintPhone:
       'Every visit of this period for the accountant (no client contacts) — send it by e-mail or save it to notes.',
+    payoutCsv: 'Payout CSV',
+    payoutCsvHint:
+      'Every specialist with a visit in the period — revenue, commission, tips and the total to pay out — for the accountant.',
     tillCsv: 'Till CSV',
     tillCsvHint:
       'Cash put in, taken out and till closes of this period — a cash journal for the accountant.',

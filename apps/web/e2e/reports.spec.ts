@@ -30,7 +30,7 @@ import { serveApp } from './mobile-app';
  * "Co ile dni wracają klienci" — days between visits in a row (task 247): 247, app 247-a.
  * "Pokaż nowych klientów" — from the report to the new clients in "Klienci" (task 249): 249, 249-a.
  * "Prowizje" — each specialist's commission, set by the owner (task 374): 374, app 375.
- * "CSV wypłat" — commission, tips and the total by specialist for the accountant (task 392).
+ * "CSV wypłat" — commission, tips and the total by specialist for the accountant (task 392, app 393).
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -546,6 +546,15 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(commissions.getByText(/^Prowizje: 82,50\s*zł$/)).toBeVisible();
     await expect(commissions.getByText(/^25% · 22,50\s*zł$/)).toBeVisible();
     await shot(app, '375-business-app-reports-commissions');
+    // "CSV wypłat" in the app too (task 393): Marek's 25% is in the file now.
+    const [appPayout] = await Promise.all([
+      app.waitForEvent('download'),
+      app.getByRole('button', { name: 'CSV wypłat' }).click(),
+    ]);
+    expect(appPayout.suggestedFilename()).toMatch(/^payout-.+\.csv$/);
+    const appPayoutFile = readFileSync((await appPayout.path())!, 'utf8');
+    expect(appPayoutFile).toContain('Ilian;2;2;150,00;40;60,00;0,00;60,00');
+    expect(appPayoutFile).toContain('Marek;1;1;90,00;25;22,50;0,00;22,50');
     // Monday to Sunday in the app too (task 32).
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
     await expect(app.getByText('poniedziałek', { exact: true })).toBeVisible();
