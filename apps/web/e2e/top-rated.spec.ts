@@ -17,7 +17,8 @@ import { serveApp } from './mobile-app';
  * client app (378a). The file name sorts after booking.spec.ts and price-rows.spec.ts, which count
  * every salon in the catalogue (the specs run one after another, by name).
  * Task 379: "★ Najlepiej oceniane" on the home page (379) and on the client app's start screen
- * (379a) opens the catalogue with the chip on.
+ * (379a) opens the catalogue with the chip on. Task 410: Beta's stars in its page's schema.org
+ * data for search engines.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -86,11 +87,11 @@ async function salon(
   api: APIRequestContext,
   owner: Record<string, string>,
   name: string,
-): Promise<{ id: string; base: string }> {
+): Promise<{ id: string; base: string; slug: string }> {
   const org = await json<{ id: string }>(
     await api.post('/v1/organizations', { headers: owner, data: { name } }),
   );
-  const location = await json<{ id: string }>(
+  const location = await json<{ id: string; slug: string }>(
     await api.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
@@ -117,7 +118,7 @@ async function salon(
       data: { displayName: 'Kasia', serviceIds: [service.id] },
     }),
   );
-  return { id: location.id, base };
+  return { id: location.id, base, slug: location.slug };
 }
 
 test('"Najlepiej oceniane" puts the best stars first, on the site and in the client app', async ({
@@ -135,6 +136,23 @@ test('"Najlepiej oceniane" puts the best stars first, on the site and in the cli
   );
   reviewedVisit(beta.id, '+48511300001', 5);
   reviewedVisit(beta.id, '+48511300002', 5);
+
+  // Task 410: the stars are in the salon page's schema.org data for search engines.
+  const crawled = await (
+    await request.get(`/pl/b/${beta.slug}`, {
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; bingbot/2.0)' },
+    })
+  ).text();
+  const ld = JSON.parse(
+    /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(crawled)![1]!,
+  ) as { aggregateRating?: Record<string, unknown> };
+  expect(ld.aggregateRating).toEqual({
+    '@type': 'AggregateRating',
+    ratingValue: 5,
+    reviewCount: 2,
+    bestRating: 5,
+    worstRating: 1,
+  });
 
   const phone = await browser.newContext({
     viewport: PHONE,

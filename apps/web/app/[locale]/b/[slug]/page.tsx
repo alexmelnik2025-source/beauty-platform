@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { BookingFlow } from '@/components/booking/BookingFlow';
 import { isLocale } from '@/lib/i18n/locales';
-import { jsonForScript, publicSalon, salonJsonLd, salonMetadata } from '@/lib/seo';
+import { jsonForScript, publicRating, publicSalon, salonJsonLd, salonMetadata } from '@/lib/seo';
 
 type Params = Promise<{ locale: string; slug: string }>;
 
@@ -15,14 +15,16 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function BookingPage({ params }: { params: Params }) {
   const { locale, slug } = await params;
-  const salon = isLocale(locale) ? await publicSalon(slug) : null;
+  const [salon, rating] = isLocale(locale)
+    ? await Promise.all([publicSalon(slug), publicRating(slug)])
+    : [null, null];
   return (
     <>
       {salon && isLocale(locale) ? (
         <script
           type="application/ld+json"
           // Escaped JSON (no "<"): the salon's own texts cannot end the script tag.
-          dangerouslySetInnerHTML={{ __html: jsonForScript(salonJsonLd(salon, locale)) }}
+          dangerouslySetInnerHTML={{ __html: jsonForScript(salonJsonLd(salon, locale, rating)) }}
         />
       ) : null}
       <BookingFlow slug={slug} />

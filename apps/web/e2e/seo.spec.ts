@@ -143,6 +143,8 @@ test('salon pages are ready for search engines, the dashboard is not indexed', a
     makesOffer: { itemOffered: { name: string }; price: string; priceCurrency: string }[];
   };
   expect(ld['@type']).toBe('BeautySalon');
+  // Task 410: no stars while the salon has no reviews.
+  expect(ld).not.toHaveProperty('aggregateRating');
   expect(ld.name).toBe(NAME);
   expect(ld.telephone).toBe('+48221234567');
   expect(ld.description).toBe(DESCRIPTION);
