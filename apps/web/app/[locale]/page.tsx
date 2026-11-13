@@ -9,6 +9,7 @@ import { LanguageSwitch } from '@/components/ui';
 import { api } from '@/lib/api';
 import { fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatRating } from '@/lib/location';
+import { recentSalons, type RecentSalon } from '@/lib/recent-salons';
 import { formatPrice } from '@/lib/time';
 import type { PublicSalonDirectory, Specialty } from '@/lib/types';
 
@@ -36,6 +37,9 @@ export default function Home() {
   const [featured, setFeatured] = useState<PublicSalonDirectory['items']>([]);
   // Task 369: how many salons are open right now (today's real hours), for the link below.
   const [openNowCount, setOpenNowCount] = useState(0);
+  // Task 403: the salons opened last on this device (read in the browser only).
+  const [recent, setRecent] = useState<RecentSalon[]>([]);
+  useEffect(() => setRecent(recentSalons()), []);
 
   useEffect(() => {
     let live = true;
@@ -106,6 +110,20 @@ export default function Home() {
         <Link className="btn btn--quiet btn--block" href={`/${locale}/salons?sort=rating`}>
           {t.directory.bestRated}
         </Link>
+        {recent.length > 0 ? (
+          <section className="stack" aria-labelledby="home-recent">
+            <h2 id="home-recent" className="small muted">
+              {n.recent}
+            </h2>
+            <div className="home-categories">
+              {recent.map((salon) => (
+                <Link key={salon.slug} href={`/${locale}/b/${salon.slug}`}>
+                  {salon.name}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
         <section className="stack" aria-labelledby="home-categories">
           <h2 id="home-categories" className="small muted">
             {n.categories}

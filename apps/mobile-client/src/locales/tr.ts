@@ -301,6 +301,7 @@ export const tr: Dictionary = {
       'Bu salonların hiçbiri şu anda açık değil — hepsini görmek için “Şimdi açık” seçeneğini kapatın.',
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ En yüksek puanlı',
+    recent: 'Son görüntülenenler',
     locating: 'Konumunuz bulunuyor…',
     locationFailed: 'Konumunuz bulunamadı. Ayarlardan izin verin veya bir şehir yazın.',
     distance: 'Size {km} km',

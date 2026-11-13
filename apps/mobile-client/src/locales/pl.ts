@@ -295,6 +295,7 @@ export const pl = {
       'Teraz żaden z tych salonów nie jest otwarty — wyłącz „Otwarte teraz”, żeby zobaczyć wszystkie.',
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Najlepiej oceniane',
+    recent: 'Ostatnio oglądane',
     locating: 'Szukam Twojej lokalizacji…',
     locationFailed:
       'Nie udało się ustalić Twojej lokalizacji. Zezwól na nią w ustawieniach albo wpisz miasto.',
