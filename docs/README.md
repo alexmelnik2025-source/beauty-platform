@@ -3031,3 +3031,13 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   со своей средней и числом (без учёта `staffId`); чипы «Wszyscy · Kasia ★ 4,8 (12)» в кабинете и бизнес-приложении
   (`staffReviewChip` в `src/reviews.ts`).
 - e2e `reviews.spec.ts` (скриншоты 380, 380-a, 381, 381-a, 382, 382-a, 383, 383-a).
+
+## «Inne salony w pobliżu» (задачи 400–401)
+
+- API (400): `nearSalon=<slug>` в `GET /v1/public/locations` — салоны каталога, ближайшие к этому салону (его место
+  на карте вместо `near`), без него самого, с `distanceKm` от него; остальные фильтры работают как обычно. Пустой
+  ответ, если у салона нет места на карте, он не в каталоге или slug неизвестен. Тест `public-directory.spec.ts`.
+- Сайт: `components/booking/NearbySalons.tsx` под списком услуг на странице салона (не в embed) — до трёх салонов в
+  радиусе 30 км: «2,3 km stąd», «Otwarte teraz», звёзды, «od …». Клиентское приложение: `screens/NearbySalons.tsx`
+  после отзывов, `api.directory({ nearSalon })`, `nearbyOnly` в `src/salon.ts`. e2e `salon-nearby.spec.ts`
+  (скриншоты 400, 401). Показывать ли блок — вопрос владельцу (BACKLOG).
