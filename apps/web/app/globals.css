@@ -1043,7 +1043,7 @@ fieldset.field > legend {
   content: '●';
   content: '●' / '';
   margin-right: 6px;
-  color: var(--muted);
+  color: var(--graphite);
 }
 
 .open-status[data-open='true']::before {
@@ -2291,6 +2291,19 @@ label.btn:focus-within {
 
 .directory-price {
   font-weight: 600;
+}
+
+/* Task 405: "♡ Dodaj do ulubionych" on a salon page. */
+.favorite-button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Task 404: a saved salon that stopped online booking. */
+li[data-bookable='false'] .directory-salon h2 {
+  color: var(--graphite);
 }
 
 /* Task 400: "Inne salony w pobliżu" at the end of a salon page. */

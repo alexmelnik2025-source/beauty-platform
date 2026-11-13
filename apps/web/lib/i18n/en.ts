@@ -629,6 +629,18 @@ export const en: Dict = {
       'Your appointments always at hand — an icon on your phone, no hunting for links in emails.',
     appName: 'Visits',
   },
+  /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  favorites: {
+    tab: 'Favourites',
+    empty:
+      'No favourite salons yet. Open a salon in the catalogue and click “♡ Add to favourites”.',
+    add: '♡ Add to favourites',
+    saved: '♥ In favourites',
+    remove: 'Remove from favourites',
+    open: 'See the salon',
+    notBookable: 'The salon has paused online booking.',
+    tooMany: 'You already have 100 favourite salons. Remove one to add another.',
+  },
   bonuses: {
     extraTitle: 'More for a visit',
     extraAt: 'with {names}',
