@@ -295,6 +295,7 @@ export const en: Dictionary = {
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Top rated',
     recent: 'Recently viewed',
+    recentClear: 'Clear the list',
     locating: 'Finding your location…',
     locationFailed: 'Could not find your location. Allow it in the settings or type a city.',
     distance: '{km} km from you',

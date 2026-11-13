@@ -26,6 +26,8 @@ export function SignInScreen(props: {
   /** Task 402: "Ostatnio oglądane" — the salons opened last on this device. */
   recent?: RecentSalon[];
   onOpenRecent?: (salon: RecentSalon) => void;
+  /** Task 414: "Wyczyść listę". */
+  onClearRecent?: () => void;
   onSignedIn: (person: ClientPerson) => void;
   /** The email the client just booked with (from the booking in the app). */
   initialEmail?: string;
@@ -124,6 +126,11 @@ export function SignInScreen(props: {
               />
             ))}
           </View>
+          <Button
+            kind="link"
+            label={t.catalog.recentClear}
+            onPress={() => props.onClearRecent?.()}
+          />
         </View>
       ) : null}
       <Heading>{t.signIn.title}</Heading>

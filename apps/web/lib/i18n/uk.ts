@@ -406,6 +406,7 @@ export const uk: Dict = {
     searchButton: 'Шукати',
     categories: 'Категорії',
     recent: 'Нещодавно переглянуті',
+    recentClear: 'Очистити список',
     featured: 'Рекомендовані салони',
     signInLater: 'Акаунт створиться сам під час першого запису.',
   },

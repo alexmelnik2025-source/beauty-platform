@@ -408,6 +408,7 @@ export const ru: Dict = {
     searchButton: 'Искать',
     categories: 'Категории',
     recent: 'Недавно просмотренные',
+    recentClear: 'Очистить список',
     featured: 'Рекомендуемые салоны',
     signInLater: 'Аккаунт создастся сам при первой записи.',
   },

@@ -9,7 +9,7 @@ import { LanguageSwitch } from '@/components/ui';
 import { api } from '@/lib/api';
 import { fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatRating } from '@/lib/location';
-import { recentSalons, type RecentSalon } from '@/lib/recent-salons';
+import { forgetRecent, recentSalons, type RecentSalon } from '@/lib/recent-salons';
 import { formatPrice } from '@/lib/time';
 import type { PublicSalonDirectory, Specialty } from '@/lib/types';
 
@@ -122,6 +122,16 @@ export default function Home() {
                 </Link>
               ))}
             </div>
+            <button
+              type="button"
+              className="link-btn small"
+              onClick={() => {
+                forgetRecent();
+                setRecent([]);
+              }}
+            >
+              {n.recentClear}
+            </button>
           </section>
         ) : null}
         <section className="stack" aria-labelledby="home-categories">

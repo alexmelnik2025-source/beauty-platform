@@ -296,6 +296,7 @@ export const pl = {
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Najlepiej oceniane',
     recent: 'Ostatnio oglądane',
+    recentClear: 'Wyczyść listę',
     locating: 'Szukam Twojej lokalizacji…',
     locationFailed:
       'Nie udało się ustalić Twojej lokalizacji. Zezwól na nią w ustawieniach albo wpisz miasto.',

@@ -42,3 +42,12 @@ export function rememberViewed(salon: RecentSalon): void {
     // Private mode or blocked storage: the list just is not remembered.
   }
 }
+
+/** Task 414: "Wyczyść listę" — forget the salons opened on this device (a shared computer). */
+export function forgetRecent(): void {
+  try {
+    window.localStorage.removeItem(RECENT_KEY);
+  } catch {
+    // Nothing was stored.
+  }
+}

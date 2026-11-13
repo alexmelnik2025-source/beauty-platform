@@ -406,6 +406,7 @@ export const pl = {
     searchButton: 'Szukaj',
     categories: 'Kategorie',
     recent: 'Ostatnio oglądane',
+    recentClear: 'Wyczyść listę',
     featured: 'Polecane salony',
     signInLater: 'Konto założy się samo przy pierwszej rezerwacji.',
   },

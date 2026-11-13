@@ -85,6 +85,10 @@ export default function App() {
       return next;
     });
   }, []);
+  const clearRecent = useCallback(() => {
+    setRecent([]);
+    void recentSalonsStore.set([]);
+  }, []);
   const openRecent = useCallback(
     (salon: RecentSalon) => setFinder({ kind: 'salon', slug: salon.slug, name: salon.name }),
     [],
@@ -161,6 +165,7 @@ export default function App() {
                 onBestRated={openCatalogBestRated}
                 recent={recent}
                 onOpenRecent={openRecent}
+                onClearRecent={clearRecent}
               />
             ) : (
               <VisitsScreen

@@ -302,6 +302,7 @@ export const sq: Dictionary = {
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Më të vlerësuarit',
     recent: 'Parë së fundmi',
+    recentClear: 'Pastro listën',
     locating: 'Po gjejmë vendndodhjen tuaj…',
     locationFailed: 'Nuk e gjetëm vendndodhjen tuaj. Lejojeni te cilësimet ose shkruani një qytet.',
     distance: '{km} km nga ju',
