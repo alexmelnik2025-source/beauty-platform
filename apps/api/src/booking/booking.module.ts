@@ -17,6 +17,8 @@ import { CustomersService } from './customers.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { OutboxService } from './outbox.service';
+import { ProductsController } from './products.controller';
+import { ProductsService } from './products.service';
 import { PublicBookingController } from './public-booking.controller';
 import { PublicBookingService } from './public-booking.service';
 import { TimeBlocksController } from './time-blocks.controller';
@@ -45,6 +47,7 @@ import { RebookReminderService } from './rebook-reminder.service';
     PublicVisitPhotosController,
     AppointmentPhotosController,
     RebookReminderController,
+    ProductsController,
   ],
   providers: [
     AppointmentWriter,
@@ -60,6 +63,7 @@ import { RebookReminderService } from './rebook-reminder.service';
     VisitCalendarService,
     VisitPhotosService,
     RebookReminderService,
+    ProductsService,
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
   exports: [

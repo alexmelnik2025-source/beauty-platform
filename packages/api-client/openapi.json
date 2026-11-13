@@ -7968,6 +7968,372 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/products": {
+      "get": {
+        "operationId": "ProductsController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The salon's products (everyone in the salon)",
+        "tags": [
+          "products"
+        ]
+      },
+      "post": {
+        "operationId": "ProductsController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "priceGrosze": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  }
+                },
+                "required": [
+                  "name",
+                  "priceGrosze"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a product to the list",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}": {
+      "patch": {
+        "description": "Past sales keep the name and price they had.",
+        "operationId": "ProductsController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "priceGrosze": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a product (name, price, sold or not)",
+        "tags": [
+          "products"
+        ]
+      },
+      "delete": {
+        "operationId": "ProductsController_remove",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a product; its past sales stay in the reports",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products": {
+      "get": {
+        "operationId": "ProductsController_sales",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProductSales"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Products sold at the visit (whoever sees the visit)",
+        "tags": [
+          "products"
+        ]
+      },
+      "post": {
+        "description": "Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts.",
+        "operationId": "ProductsController_addSale",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  }
+                },
+                "required": [
+                  "productId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProductSales"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Note a product sold at the visit",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products/{saleId}": {
+      "delete": {
+        "operationId": "ProductsController_removeSale",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "saleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProductSales"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a product noted by mistake",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/loyalty/program": {
       "get": {
         "operationId": "LoyaltyController_getProgram",
@@ -20410,6 +20776,75 @@
           "additionalProperties": false
         }
       },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priceGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Price of one, in hundredths of the salon currency"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "false = no longer sold; kept for the history of sales"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "priceGrosze",
+          "active"
+        ],
+        "additionalProperties": false
+      },
+      "ProductList": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one, in hundredths of the salon currency"
+                },
+                "active": {
+                  "type": "boolean",
+                  "description": "false = no longer sold; kept for the history of sales"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "priceGrosze",
+                "active"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The salon’s products, sold ones first, then by name"
+          }
+        },
+        "required": [
+          "products"
+        ],
+        "additionalProperties": false
+      },
       "PublicAppointment": {
         "type": "object",
         "properties": {
@@ -21995,6 +22430,93 @@
             "additionalProperties": false,
             "description": "Task 229: \"Napiwki\" — noted by the staff; not part of the revenue"
           },
+          "products": {
+            "type": "object",
+            "properties": {
+              "totalGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Products sold at the visits of the period, in hundredths of the salon currency"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Pieces sold"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "What this product brought, in hundredths of the salon currency"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "quantity",
+                    "totalGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By product name, most money first"
+              },
+              "staff": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Products sold at this specialist’s visits, in hundredths of the salon currency"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "quantity",
+                    "totalGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By specialist of the visit, most money first"
+              }
+            },
+            "required": [
+              "totalGrosze",
+              "quantity",
+              "items",
+              "staff"
+            ],
+            "additionalProperties": false,
+            "description": "Task 394: \"Sprzedaż produktów\" — not part of the visit revenue"
+          },
           "tillCloses": {
             "type": "object",
             "properties": {
@@ -22861,6 +23383,7 @@
           "days",
           "payments",
           "tips",
+          "products",
           "tillCloses",
           "weekdays",
           "previous",
@@ -24847,6 +25370,68 @@
         "required": [
           "items",
           "deleteAfter"
+        ],
+        "additionalProperties": false
+      },
+      "VisitProductSales": {
+        "type": "object",
+        "properties": {
+          "sales": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "productId": {
+                  "nullable": true,
+                  "description": "null when the product was removed later",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name at the time of the sale"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "unitPriceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one at the time of the sale, in hundredths of the salon currency"
+                },
+                "totalGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "quantity × price, in hundredths of the salon currency"
+                }
+              },
+              "required": [
+                "id",
+                "productId",
+                "name",
+                "quantity",
+                "unitPriceGrosze",
+                "totalGrosze"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "totalGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "All products of the visit; not part of the visit price, in hundredths of the salon currency"
+          }
+        },
+        "required": [
+          "sales",
+          "totalGrosze"
         ],
         "additionalProperties": false
       },

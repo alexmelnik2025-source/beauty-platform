@@ -486,6 +486,7 @@ export class ReportsService {
         ),
       },
       weekdays,
+      products: await this.products(locationId, staffIds, rangeStart, rangeEnd),
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
@@ -1193,6 +1194,63 @@ export class ReportsService {
       cashOutGrosze: moved(r.date, 'out'),
     }));
     return { days, differenceGrosze: days.reduce((sum, d) => sum + d.differenceGrosze, 0) };
+  }
+
+  /** Task 394: products sold at the visits of the period, by product and by specialist. */
+  private async products(
+    locationId: string,
+    staffIds: string[] | null,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['products']> {
+    const sales = await this.prisma.productSale.findMany({
+      where: {
+        locationId,
+        appointment: {
+          startAt: { gte: rangeStart, lt: rangeEnd },
+          ...(staffIds ? { staffId: { in: staffIds } } : {}),
+        },
+      },
+      select: {
+        name: true,
+        quantity: true,
+        unitPriceGrosze: true,
+        appointment: { select: { staff: { select: { id: true, displayName: true } } } },
+      },
+    });
+    const items = new Map<string, { name: string; quantity: number; totalGrosze: number }>();
+    const staff = new Map<
+      string,
+      { id: string; displayName: string; quantity: number; totalGrosze: number }
+    >();
+    let totalGrosze = 0;
+    let quantity = 0;
+    for (const s of sales) {
+      const sum = s.quantity * s.unitPriceGrosze;
+      totalGrosze += sum;
+      quantity += s.quantity;
+      const item =
+        items.get(s.name) ??
+        items.set(s.name, { name: s.name, quantity: 0, totalGrosze: 0 }).get(s.name)!;
+      item.quantity += s.quantity;
+      item.totalGrosze += sum;
+      const who = s.appointment.staff;
+      const row =
+        staff.get(who.id) ??
+        staff.set(who.id, { ...who, quantity: 0, totalGrosze: 0 }).get(who.id)!;
+      row.quantity += s.quantity;
+      row.totalGrosze += sum;
+    }
+    const byMoney =
+      <T extends { totalGrosze: number; quantity: number }>(name: (row: T) => string) =>
+      (a: T, b: T) =>
+        b.totalGrosze - a.totalGrosze || b.quantity - a.quantity || name(a).localeCompare(name(b));
+    return {
+      totalGrosze,
+      quantity,
+      items: [...items.values()].sort(byMoney((r) => r.name)),
+      staff: [...staff.values()].sort(byMoney((r) => r.displayName)),
+    };
   }
 
   private async scope(

@@ -1907,6 +1907,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The salon's products (everyone in the salon) */
+        get: operations["ProductsController_list"];
+        put?: never;
+        /** Add a product to the list */
+        post: operations["ProductsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a product; its past sales stay in the reports */
+        delete: operations["ProductsController_remove"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a product (name, price, sold or not)
+         * @description Past sales keep the name and price they had.
+         */
+        patch: operations["ProductsController_update"];
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products sold at the visit (whoever sees the visit) */
+        get: operations["ProductsController_sales"];
+        put?: never;
+        /**
+         * Note a product sold at the visit
+         * @description Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts.
+         */
+        post: operations["ProductsController_addSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products/{saleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a product noted by mistake */
+        delete: operations["ProductsController_removeSale"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/loyalty/program": {
         parameters: {
             query?: never;
@@ -5278,6 +5355,25 @@ export interface components {
             sizeBytes: number;
             createdAt: string;
         }[];
+        Product: {
+            id: string;
+            name: string;
+            /** @description Price of one, in hundredths of the salon currency */
+            priceGrosze: number;
+            /** @description false = no longer sold; kept for the history of sales */
+            active: boolean;
+        };
+        ProductList: {
+            /** @description The salon’s products, sold ones first, then by name */
+            products: {
+                id: string;
+                name: string;
+                /** @description Price of one, in hundredths of the salon currency */
+                priceGrosze: number;
+                /** @description false = no longer sold; kept for the history of sales */
+                active: boolean;
+            }[];
+        };
         /** @description An appointment as the client sees it */
         PublicAppointment: {
             id: string;
@@ -5669,6 +5765,28 @@ export interface components {
                     /** @description Tips on the visits of this specialist, in hundredths of the salon currency */
                     tipsGrosze: number;
                     visits: number;
+                }[];
+            };
+            /** @description Task 394: "Sprzedaż produktów" — not part of the visit revenue */
+            products: {
+                /** @description Products sold at the visits of the period, in hundredths of the salon currency */
+                totalGrosze: number;
+                /** @description Pieces sold */
+                quantity: number;
+                /** @description By product name, most money first */
+                items: {
+                    name: string;
+                    quantity: number;
+                    /** @description What this product brought, in hundredths of the salon currency */
+                    totalGrosze: number;
+                }[];
+                /** @description By specialist of the visit, most money first */
+                staff: {
+                    id: string;
+                    displayName: string;
+                    quantity: number;
+                    /** @description Products sold at this specialist’s visits, in hundredths of the salon currency */
+                    totalGrosze: number;
                 }[];
             };
             /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
@@ -6388,6 +6506,22 @@ export interface components {
             }[];
             /** @description When the photos are deleted (90 days after the visit); null for a hold */
             deleteAfter: string | null;
+        };
+        VisitProductSales: {
+            sales: {
+                id: string;
+                /** @description null when the product was removed later */
+                productId: string | null;
+                /** @description The name at the time of the sale */
+                name: string;
+                quantity: number;
+                /** @description Price of one at the time of the sale, in hundredths of the salon currency */
+                unitPriceGrosze: number;
+                /** @description quantity × price, in hundredths of the salon currency */
+                totalGrosze: number;
+            }[];
+            /** @description All products of the visit; not part of the visit price, in hundredths of the salon currency */
+            totalGrosze: number;
         };
         VisitReview: {
             /** @description The salon collects reviews, the visit took place and it ended less than 30 days ago */
@@ -9952,6 +10086,181 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Unsubscribed"];
+                };
+            };
+        };
+    };
+    ProductsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductList"];
+                };
+            };
+        };
+    };
+    ProductsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    priceGrosze: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+        };
+    };
+    ProductsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProductsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    priceGrosze?: number;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+        };
+    };
+    ProductsController_sales: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProductSales"];
+                };
+            };
+        };
+    };
+    ProductsController_addSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @default 1 */
+                    quantity?: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProductSales"];
+                };
+            };
+        };
+    };
+    ProductsController_removeSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+                saleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProductSales"];
                 };
             };
         };

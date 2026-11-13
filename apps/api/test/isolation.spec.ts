@@ -44,7 +44,9 @@ type Ids = Record<
   | 'couponId'
   | 'entryId'
   | 'reviewId'
-  | 'movementId',
+  | 'movementId'
+  | 'productId'
+  | 'saleId',
   string
 >;
 
@@ -133,6 +135,11 @@ function validBody(route: Route): object {
   if (p.endsWith('/appointments/:appointmentId/tip')) return { version: 1, tipGrosze: 1000 };
   if (p.endsWith('/reports/till-close')) return { date: DATE, countedCashGrosze: 1000 };
   if (p.endsWith('/reports/commissions/:staffId')) return { commissionPercent: 99 };
+  if (p.endsWith('/appointments/:appointmentId/products')) {
+    return { productId: currentIds?.productId };
+  }
+  if (p.endsWith('/products/:productId')) return { priceGrosze: 1 };
+  if (p.endsWith('/products')) return { name: 'Hacked', priceGrosze: 1 };
   if (p.endsWith('/reports/till-movements')) {
     return { date: DATE, kind: 'out', amountGrosze: 1000, note: 'Hacked' };
   }
@@ -475,6 +482,20 @@ async function seedLocation(
       createdByName: 'Owner',
     },
   });
+  // A product sold at the visit (task 394).
+  const product = await ctx.prisma.product.create({
+    data: { locationId: org.locationId, name: 'Pomada', priceGrosze: 4500 },
+  });
+  const sale = await ctx.prisma.productSale.create({
+    data: {
+      locationId: org.locationId,
+      appointmentId: appointment.body.id,
+      productId: product.id,
+      name: 'Pomada',
+      quantity: 1,
+      unitPriceGrosze: 4500,
+    },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -496,6 +517,8 @@ async function seedLocation(
     entryId: entry.id,
     reviewId: review.id,
     movementId: movement.id,
+    productId: product.id,
+    saleId: sale.id,
   };
 }
 
@@ -541,6 +564,8 @@ async function snapshotOf(ids: Ids) {
     tillMovements: await ctx.prisma.tillMovement.findMany({
       where: { locationId: ids.locationId },
     }),
+    products: await ctx.prisma.product.findMany({ where: { locationId: ids.locationId } }),
+    productSales: await ctx.prisma.productSale.findMany({ where: { locationId: ids.locationId } }),
   };
 }
 
@@ -584,7 +609,7 @@ describe('tenant isolation', () => {
       name: "B's services and staff under A's own location",
       ids: () => ({ ...bobIds, orgId: aliceIds.orgId, locationId: aliceIds.locationId }),
       applies: (r) =>
-        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|seriesId|serviceCategoryId|invitationId|photoId|rewardId|couponId|entryId|movementId)/.test(
+        /:(serviceId|staffId|appointmentId|customerId|categoryId|membershipId|blockId|seriesId|serviceCategoryId|invitationId|photoId|rewardId|couponId|entryId|movementId|productId|saleId)/.test(
           r.path,
         ) || r.path.endsWith('/availability'),
     },

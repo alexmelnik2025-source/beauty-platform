@@ -786,6 +786,21 @@ export class AppointmentsService {
     if (requested && !m.permissions.bookOutsideHours) throw forbidden();
   }
 
+  /**
+   * Task 394: the visit if this member may see it and change it (own visits with
+   * "changeOwnAppointments", others' with "manageAllAppointments"); 404 / 403 otherwise.
+   */
+  async changeable(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+  ): Promise<Appointment> {
+    const appointment = await this.findVisible(m, userId, locationId, appointmentId);
+    await this.assertMayActFor(m, userId, locationId, appointment.staffId, 'changeOwnAppointments');
+    return appointment;
+  }
+
   /** Task 80b: the visit if this member may see it (same rule as the visit card), else 404. */
   visible(
     m: MembershipContext,
