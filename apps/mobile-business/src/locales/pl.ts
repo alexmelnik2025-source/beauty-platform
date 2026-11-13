@@ -1358,6 +1358,8 @@ export const pl = {
     /** Task 381: the filter by stars. */
     byStars: 'Opinie według ocen',
     allStars: 'Wszystkie oceny',
+    /** Task 382: only the reviews without the salon's answer. */
+    unanswered: 'Bez odpowiedzi ({n})',
     service: '{service} u {staff}',
     removedClient: 'Klient usunięty',
     more: 'Pokaż starsze',

@@ -1360,6 +1360,8 @@ export const en: Dictionary = {
     /** Task 381: the filter by stars. */
     byStars: 'Reviews by stars',
     allStars: 'All ratings',
+    /** Task 382: only the reviews without the salon's answer. */
+    unanswered: 'Not answered ({n})',
     service: '{service} with {staff}',
     removedClient: 'Client removed',
     more: 'Show older',

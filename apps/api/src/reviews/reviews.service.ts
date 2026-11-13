@@ -15,6 +15,7 @@ import type {
 } from './reviews.responses';
 import type {
   ListReviewsQuery,
+  SalonReviewsQuery,
   ReplyReviewInput,
   UpdateReviewSettingsInput,
   WriteReviewInput,
@@ -121,7 +122,7 @@ export class ReviewsService {
     m: MembershipContext,
     userId: string,
     locationId: string,
-    query: ListReviewsQuery,
+    query: SalonReviewsQuery,
   ): Promise<SalonReviewsResponse> {
     await this.access.readable(m, locationId);
     const settings = await this.settings(locationId);
@@ -130,13 +131,15 @@ export class ReviewsService {
       ...(query.staffId ? { staffId: query.staffId } : {}),
       ...(m.role === 'staff' && !m.permissions.viewAllAppointments ? { staff: { userId } } : {}),
     };
-    const [summary, byStars, rows] = await Promise.all([
+    const [summary, byStars, unanswered, rows] = await Promise.all([
       this.prisma.visitReview.aggregate({ where, _count: true, _avg: { rating: true } }),
       this.starCounts(where),
+      this.prisma.visitReview.count({ where: { ...where, reply: null } }),
       this.prisma.visitReview.findMany({
         where: {
           ...where,
           ...(query.rating ? { rating: query.rating } : {}),
+          ...(query.unanswered ? { reply: null } : {}),
           ...(query.before ? { id: { lt: query.before } } : {}),
         },
         include: salonReviewInclude,
@@ -150,6 +153,7 @@ export class ReviewsService {
       count: summary._count,
       average: average(summary._avg.rating),
       stars: byStars,
+      unanswered,
       items: page.map(toSalonReview),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };

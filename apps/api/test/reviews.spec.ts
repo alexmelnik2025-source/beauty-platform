@@ -509,6 +509,15 @@ describe('the salon answers a review (task 211)', () => {
   it('the answer is shown on the salon page and to the client; changed or removed; logged', async () => {
     const { visit, reviewId } = await reviewed();
     const before = await ctx.prisma.visitReview.findUniqueOrThrow({ where: { id: reviewId } });
+    // Task 382: "Bez odpowiedzi" — the review waits for an answer.
+    const waiting = await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ unanswered: 'true' })
+      .set(owner.auth)
+      .expect(200);
+    expect(waiting.body.unanswered).toBe(1);
+    expect(waiting.body.items.map((r: { id: string }) => r.id)).toEqual([reviewId]);
 
     const answered = await ctx
       .http()
@@ -528,6 +537,28 @@ describe('the salon answers a review (task 211)', () => {
 
     const page = await ctx.http().get(`/v1/public/locations/${slug}/reviews`).expect(200);
     expect(page.body.items[0]).toMatchObject({ reply: 'Dziękujemy, do zobaczenia!' });
+    // Task 382: answered — no longer under "Bez odpowiedzi"; the whole list still has it.
+    const answeredList = await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ unanswered: 'true' })
+      .set(owner.auth)
+      .expect(200);
+    expect(answeredList.body).toMatchObject({ unanswered: 0, count: 1, items: [] });
+    const whole = await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ unanswered: 'false' })
+      .set(owner.auth)
+      .expect(200);
+    expect(whole.body.items).toHaveLength(1);
+    await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ unanswered: 'yes' })
+      .set(owner.auth)
+      .expect(400);
+
     const mine = await ctx.http().get(`/v1/public/appointments/${visit.token}/review`).expect(200);
     expect(mine.body.review).toMatchObject({ rating: 4, reply: 'Dziękujemy, do zobaczenia!' });
 
@@ -567,6 +598,8 @@ describe('the salon answers a review (task 211)', () => {
     expect(removed.body).toMatchObject({ reply: null, repliedAt: null, rating: 5 });
     const gone = await ctx.http().get(`/v1/public/locations/${slug}/reviews`).expect(200);
     expect(gone.body.items[0]).toMatchObject({ reply: null, repliedAt: null });
+    const again = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    expect(again.body.unanswered).toBe(1);
 
     const log = await ctx.prisma.auditLog.findMany({
       where: { entityType: 'review', entityId: reviewId },

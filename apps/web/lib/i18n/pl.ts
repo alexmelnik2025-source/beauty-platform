@@ -563,6 +563,8 @@ export const pl = {
     list: 'Opinie',
     empty: 'Jeszcze nie ma opinii.',
     anonymous: 'Klient (dane usunięte)',
+    /** Task 382: only the reviews without the salon's answer. */
+    unanswered: 'Bez odpowiedzi ({n})',
     visit: 'wizyta {date}',
     reply: 'Odpowiedz',
     replyChange: 'Zmień odpowiedź',

@@ -83,6 +83,7 @@ describe('reviews in the business app (task 201)', () => {
       count: 0,
       average: null,
       stars: [0, 0, 0, 0, 0],
+      unanswered: 0,
       items: [],
       nextBefore: null,
     };
@@ -112,12 +113,14 @@ describe('reviews in the business app (task 201)', () => {
     );
     expect(await api.restore()).toBe(true);
     await api.reviews('org-1', 'loc 1');
-    await api.reviews('org-1', 'loc 1', 'r-9');
-    await api.reviews('org-1', 'loc 1', undefined, 1);
+    await api.reviews('org-1', 'loc 1', { before: 'r-9' });
+    await api.reviews('org-1', 'loc 1', { rating: 1 });
+    await api.reviews('org-1', 'loc 1', { unanswered: true, before: 'r-2' });
     expect(calls.slice(1)).toEqual([
       'GET /v1/organizations/org-1/locations/loc%201/reviews',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?before=r-9',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?rating=1',
+      'GET /v1/organizations/org-1/locations/loc%201/reviews?before=r-2&unanswered=true',
     ]);
   });
 });

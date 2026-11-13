@@ -563,6 +563,8 @@ export const uk: Dict = {
     list: 'Відгуки',
     empty: 'Відгуків ще немає.',
     anonymous: 'Клієнт (дані видалено)',
+    /** Task 382: only the reviews without the salon's answer. */
+    unanswered: 'Без відповіді ({n})',
     visit: 'візит {date}',
     reply: 'Відповісти',
     replyChange: 'Змінити відповідь',

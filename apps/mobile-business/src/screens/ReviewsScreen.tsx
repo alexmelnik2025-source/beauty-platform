@@ -35,7 +35,8 @@ import type { SalonChoice } from './SalonsScreen';
  * words, who, what, with whom and when. Newest first, 20 at a time. Task 211: the owner and
  * managers answer a review publicly, change or remove the answer. Task 341: they also switch
  * collecting reviews on or off and choose when the client is asked, as in the cabinet.
- * Task 381: "★ 1 (2)" chips — only the reviews with that many stars.
+ * Task 381: "★ 1 (2)" chips — only the reviews with that many stars. Task 382: "Bez odpowiedzi
+ * (n)" for the owner and managers — only the reviews they have not answered yet.
  */
 export function ReviewsScreen(props: {
   api: BusinessApi;
@@ -55,6 +56,8 @@ export function ReviewsScreen(props: {
   const [items, setItems] = useState<Review[] | null>(null);
   const [rating, setRating] = useState<number | null>(null);
   const [counts, setCounts] = useState<number[]>([]);
+  const [unanswered, setUnanswered] = useState(false);
+  const [unansweredCount, setUnansweredCount] = useState(0);
   const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -63,7 +66,12 @@ export function ReviewsScreen(props: {
     async (before?: string) => {
       setBusy(true);
       try {
-        const page = await api.reviews(salon.orgId, salon.locationId, before, rating ?? undefined);
+        const page = await api.reviews(salon.orgId, salon.locationId, {
+          before,
+          rating: rating ?? undefined,
+          unanswered,
+        });
+        setUnansweredCount(page.unanswered);
         setSummary({ count: page.count, average: page.average, enabled: page.enabled });
         setCounts(page.stars);
         setItems((shown) => (before && shown ? appendReviews(shown, page.items) : page.items));
@@ -75,7 +83,7 @@ export function ReviewsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, rating],
+    [api, salon, t, rating, unanswered],
   );
 
   useEffect(() => {
@@ -130,6 +138,21 @@ export function ReviewsScreen(props: {
               </Text>
             </Pressable>
           ))}
+        </View>
+      ) : null}
+      {manager && (unansweredCount > 0 || unanswered) ? (
+        <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            aria-pressed={unanswered}
+            accessibilityState={{ selected: unanswered }}
+            onPress={() => setUnanswered(!unanswered)}
+            style={[styles.chip, unanswered && styles.chipOn]}
+          >
+            <Text style={[styles.chipText, unanswered && { color: '#fff' }]}>
+              {fill(r.unanswered, { n: String(unansweredCount) })}
+            </Text>
+          </Pressable>
         </View>
       ) : null}
       {items === null ? (

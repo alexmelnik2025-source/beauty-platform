@@ -562,6 +562,8 @@ export const en: Dict = {
     list: 'Reviews',
     empty: 'No reviews yet.',
     anonymous: 'Client (data erased)',
+    /** Task 382: only the reviews without the salon's answer. */
+    unanswered: 'Not answered ({n})',
     visit: 'visit {date}',
     reply: 'Reply',
     replyChange: 'Change reply',

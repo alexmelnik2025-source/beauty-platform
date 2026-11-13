@@ -60,3 +60,13 @@ export const listReviewsQuerySchema = z.object({
     .describe('Task 380: only reviews with this many stars'),
 });
 export type ListReviewsQuery = z.infer<typeof listReviewsQuerySchema>;
+
+/** The cabinet's list: also "Bez odpowiedzi" (task 382). */
+export const salonReviewsQuerySchema = listReviewsQuerySchema.extend({
+  unanswered: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional()
+    .describe('Task 382: only reviews the salon has not answered yet'),
+});
+export type SalonReviewsQuery = z.infer<typeof salonReviewsQuerySchema>;

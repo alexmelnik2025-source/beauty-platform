@@ -5897,6 +5897,8 @@ export interface components {
             average: number | null;
             /** @description Task 380: how many reviews have 1, 2, 3, 4 and 5 stars (index 0 = one star); with `staffId`, without `rating` */
             stars: number[];
+            /** @description Task 382: how many reviews have no answer of the salon yet (without `rating`) */
+            unanswered: number;
             items: {
                 id: string;
                 rating: number;
@@ -11448,6 +11450,8 @@ export interface operations {
     ReviewsController_list: {
         parameters: {
             query?: {
+                /** @description Task 382: "Bez odpowiedzi" - only reviews the salon has not answered yet */
+                unanswered?: "true" | "false";
                 /** @description Only reviews of this specialist */
                 staffId?: unknown;
                 /** @description Next page: nextBefore of the previous page */

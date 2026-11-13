@@ -37,10 +37,12 @@ import {
 } from './reviews.responses';
 import {
   listReviewsQuerySchema,
+  salonReviewsQuerySchema,
   replyReviewSchema,
   updateReviewSettingsSchema,
   writeReviewSchema,
   type ListReviewsQuery,
+  type SalonReviewsQuery,
   type ReplyReviewInput,
   type UpdateReviewSettingsInput,
   type WriteReviewInput,
@@ -111,12 +113,18 @@ export class ReviewsController {
       'With the client’s name. Staff without “all appointments” see only reviews of their own visits.',
   })
   @pageQueries()
+  @ApiQuery({
+    name: 'unanswered',
+    required: false,
+    enum: ['true', 'false'],
+    description: 'Task 382: "Bez odpowiedzi" - only reviews the salon has not answered yet',
+  })
   @ApiZodResponse(salonReviewsSchema)
   list(
     @CurrentMembership() m: MembershipContext,
     @CurrentAuth() auth: AuthContext,
     @Param('locationId', uuid('Location')) locationId: string,
-    @Query(new ZodValidationPipe(listReviewsQuerySchema)) query: ListReviewsQuery,
+    @Query(new ZodValidationPipe(salonReviewsQuerySchema)) query: SalonReviewsQuery,
   ): Promise<SalonReviewsResponse> {
     return this.reviews.listForSalon(m, auth.userId, locationId, query);
   }

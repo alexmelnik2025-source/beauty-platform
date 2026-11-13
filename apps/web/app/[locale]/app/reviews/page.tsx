@@ -20,6 +20,7 @@ const HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
  * asked ("Jak było?" email); everyone sees the reviews with the client's name (staff only those
  * of their own visits — the server decides). Task 211: the owner and managers answer a review
  * publicly, change or remove the answer. Task 380: "★ 1 (2)" chips — e.g. only the low ratings.
+ * Task 382: "Bez odpowiedzi (n)" — only the reviews the salon has not answered yet.
  */
 export default function ReviewsPage() {
   const { t, locale } = useI18n();
@@ -30,16 +31,19 @@ export default function ReviewsPage() {
   const [list, setList] = useState<SalonReviews | null>(null);
   const [error, setError] = useState('');
   const [rating, setRating] = useState<number | null>(null);
+  const [unanswered, setUnanswered] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setList(
-        await api<SalonReviews>(`${base}/reviews`, { query: { rating: rating ?? undefined } }),
+        await api<SalonReviews>(`${base}/reviews`, {
+          query: { rating: rating ?? undefined, unanswered: unanswered ? 'true' : undefined },
+        }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [base, t, rating]);
+  }, [base, t, rating, unanswered]);
 
   useEffect(() => {
     void load();
@@ -49,7 +53,11 @@ export default function ReviewsPage() {
     if (!list?.nextBefore) return;
     try {
       const next = await api<SalonReviews>(`${base}/reviews`, {
-        query: { before: list.nextBefore, rating: rating ?? undefined },
+        query: {
+          before: list.nextBefore,
+          rating: rating ?? undefined,
+          unanswered: unanswered ? 'true' : undefined,
+        },
       });
       setList({ ...next, items: [...list.items, ...next.items] });
     } catch (err) {
@@ -91,6 +99,17 @@ export default function ReviewsPage() {
               </p>
             ) : null}
             <StarFilter stars={list.stars} value={rating} onChange={setRating} />
+            {manager && (list.unanswered > 0 || unanswered) ? (
+              <div className="chips">
+                <button
+                  type="button"
+                  aria-pressed={unanswered}
+                  onClick={() => setUnanswered(!unanswered)}
+                >
+                  {fill(t.reviewsCabinet.unanswered, { n: String(list.unanswered) })}
+                </button>
+              </div>
+            ) : null}
             {list.items.length === 0 ? (
               <p className="note">{t.reviewsCabinet.empty}</p>
             ) : (

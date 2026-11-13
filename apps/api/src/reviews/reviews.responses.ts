@@ -69,6 +69,10 @@ export const salonReviewsSchema = responseSchema(
     enabled: z.boolean(),
     ...ratingSummary,
     stars,
+    unanswered: z
+      .number()
+      .int()
+      .describe('Task 382: how many reviews have no answer of the salon yet (without `rating`)'),
     items: z.array(
       z.strictObject({
         id: z.string(),

@@ -569,6 +569,8 @@ export const ru: Dict = {
     list: 'Отзывы',
     empty: 'Отзывов пока нет.',
     anonymous: 'Клиент (данные удалены)',
+    /** Task 382: only the reviews without the salon's answer. */
+    unanswered: 'Без ответа ({n})',
     visit: 'визит {date}',
     reply: 'Ответить',
     replyChange: 'Изменить ответ',

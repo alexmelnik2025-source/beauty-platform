@@ -11080,6 +11080,19 @@
             }
           },
           {
+            "name": "unanswered",
+            "required": false,
+            "in": "query",
+            "description": "Task 382: \"Bez odpowiedzi\" - only reviews the salon has not answered yet",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "staffId",
             "required": false,
             "in": "query",
@@ -22900,6 +22913,12 @@
             },
             "description": "Task 380: how many reviews have 1, 2, 3, 4 and 5 stars (index 0 = one star); with `staffId`, without `rating`"
           },
+          "unanswered": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 382: how many reviews have no answer of the salon yet (without `rating`)"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -22986,6 +23005,7 @@
           "count",
           "average",
           "stars",
+          "unanswered",
           "items",
           "nextBefore"
         ],
