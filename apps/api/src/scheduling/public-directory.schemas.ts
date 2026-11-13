@@ -51,6 +51,12 @@ export const publicDirectoryQuerySchema = z.strictObject({
     .enum(['true', 'false'])
     .transform((value) => value === 'true')
     .optional(),
+  /**
+   * Task 378: "Najlepiej oceniane" — `rating` puts the salons with the best stars first (average,
+   * then the number of reviews); salons without stars follow in the usual order. Wins over the
+   * order of `near` (the distance is still shown).
+   */
+  sort: z.enum(['rating']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(12),
 });

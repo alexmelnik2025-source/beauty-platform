@@ -527,6 +527,8 @@ export class ClientApi {
       near?: { latitude: number; longitude: number };
       /** Task 365: "Otwarte teraz" — only salons open right now. */
       openNow?: boolean;
+      /** Task 378: "Najlepiej oceniane" — the salons with the best stars first. */
+      bestRated?: boolean;
       pageSize?: number;
     } = {},
   ): Promise<PublicSalonDirectory> {
@@ -538,6 +540,7 @@ export class ClientApi {
     if (query.specialty) params.set('specialty', query.specialty);
     if (query.q?.trim()) params.set('q', query.q.trim());
     if (query.openNow) params.set('openNow', 'true');
+    if (query.bestRated) params.set('sort', 'rating');
     if (query.near) {
       const { latitude, longitude } = query.near;
       params.set('near', `${latitude.toFixed(4)},${longitude.toFixed(4)}`);

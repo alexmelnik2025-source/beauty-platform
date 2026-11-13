@@ -8234,6 +8234,8 @@ export interface operations {
             query?: {
                 pageSize?: number;
                 page?: number;
+                /** @description Task 378: "Najlepiej oceniane" - the best average stars first, then more reviews; salons without stars last */
+                sort?: "rating";
                 /** @description Task 365: "Otwarte teraz" - only salons open right now by today's real hours, in their time zone */
                 openNow?: "true" | "false";
                 /** @description Task 180b: latitude,longitude - the nearest salons first, with distanceKm; salons without a place last */

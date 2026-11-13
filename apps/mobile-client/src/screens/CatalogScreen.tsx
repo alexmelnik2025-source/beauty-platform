@@ -58,6 +58,8 @@ export function CatalogScreen(props: {
   // Task 365: "Otwarte teraz" - only salons open right now, with their number on the chip.
   const [openNow, setOpenNow] = useState(props.initialOpenNow === true);
   const [openNowCount, setOpenNowCount] = useState(0);
+  // Task 378: "Najlepiej oceniane" - the salons with the best stars first.
+  const [bestRated, setBestRated] = useState(false);
   const [items, setItems] = useState<DirectorySalon[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
@@ -104,6 +106,7 @@ export function CatalogScreen(props: {
           q: search || undefined,
           near: near ?? undefined,
           openNow,
+          bestRated,
         });
         setLanguageCounts(res.languageCounts);
         setSpecialtyCounts(res.specialtyCounts);
@@ -119,7 +122,7 @@ export function CatalogScreen(props: {
       }
     },
     // The texts follow the app language, but switching it does not reload the list.
-    [api, languages, specialty, search, near, openNow],
+    [api, languages, specialty, search, near, openNow, bestRated],
   );
 
   useEffect(() => {
@@ -178,6 +181,11 @@ export function CatalogScreen(props: {
           label={`${t.catalog.openNow} (${openNowCount})`}
           pressed={openNow}
           onPress={() => setOpenNow(!openNow)}
+        />
+        <Chip
+          label={t.catalog.bestRated}
+          pressed={bestRated}
+          onPress={() => setBestRated(!bestRated)}
         />
       </View>
       {locationFailed ? <Text style={styles.small}>{t.catalog.locationFailed}</Text> : null}

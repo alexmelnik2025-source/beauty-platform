@@ -139,6 +139,13 @@ export class PublicDirectoryController {
     description:
       'Task 365: "Otwarte teraz" - only salons open right now by today\'s real hours, in their time zone',
   })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    enum: ['rating'],
+    description:
+      'Task 378: "Najlepiej oceniane" - the best average stars first, then more reviews; salons without stars last',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, minimum: 1 })
   @ApiQuery({
     name: 'pageSize',
@@ -162,7 +169,13 @@ export class PublicDirectoryController {
     const where = catalogueWhere(chosen, query.specialty, ids);
     // Task 180b: "W pobliżu" - the page is cut from all the salons found, nearest first.
     const near = query.near;
-    const pageIds = near ? await this.nearestPage(where, near, query.page, query.pageSize) : null;
+    // Task 378: "Najlepiej oceniane" - the page is cut from all the salons found, best stars first.
+    const pageIds =
+      query.sort === 'rating'
+        ? await this.bestRatedPage(where, query.page, query.pageSize)
+        : near
+          ? await this.nearestPage(where, near, query.page, query.pageSize)
+          : null;
     const [total, locations, ...rest] = await this.prisma.$transaction([
       this.prisma.location.count({ where }),
       this.prisma.location.findMany({
@@ -350,6 +363,35 @@ export class PublicDirectoryController {
             : Number.POSITIVE_INFINITY,
       }))
       .sort((a, b) => a.km - b.km || a.index - b.index)
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map((salon) => salon.id);
+  }
+
+  /**
+   * Task 378: the ids of one page of the salons found, the best stars first (the average as the
+   * card shows it, then more reviews); salons without stars after them, in the usual order.
+   */
+  private async bestRatedPage(
+    where: Prisma.LocationWhereInput,
+    page: number,
+    pageSize: number,
+  ): Promise<string[]> {
+    const all = await this.prisma.location.findMany({
+      where,
+      select: { id: true, reviewSettings: { select: { enabled: true } } },
+      orderBy: [{ city: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+    });
+    const ratings = await this.ratings(
+      all.filter((salon) => salon.reviewSettings?.enabled).map((salon) => salon.id),
+    );
+    return all
+      .map((salon, index) => ({ id: salon.id, index, stars: ratings.get(salon.id) }))
+      .sort(
+        (a, b) =>
+          (b.stars?.average ?? -1) - (a.stars?.average ?? -1) ||
+          (b.stars?.count ?? 0) - (a.stars?.count ?? 0) ||
+          a.index - b.index,
+      )
       .slice((page - 1) * pageSize, page * pageSize)
       .map((salon) => salon.id);
   }
