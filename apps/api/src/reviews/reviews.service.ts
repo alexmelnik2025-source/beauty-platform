@@ -427,7 +427,6 @@ export class ReviewsService {
         select: { id: true, displayName: true },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       }),
-      this.serviceRatings(locationId, ofStaff),
       this.prisma.visitReview.findMany({
         where: {
           ...where,
