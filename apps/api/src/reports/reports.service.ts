@@ -18,6 +18,7 @@ import { commissionGrosze, permilleToPercent } from './commissions.service';
 import { occupancy, occupancyPercent } from './occupancy';
 import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
+import { payoutCsv } from './payout-csv';
 import { visitsCsv, type CsvLocale } from './visits-csv';
 
 /** Task 227: a payment method, or "unknown" when the staff did not say. */
@@ -1048,6 +1049,35 @@ export class ReportsService {
       ...result,
       averageTicketGrosze: result.paid > 0 ? Math.round(result.revenueGrosze / result.paid) : 0,
     };
+  }
+
+  /**
+   * Task 391: "CSV wypłat" — each specialist with a visit in the period: visits, revenue,
+   * commission, tips and the total to pay out. Owners and managers of the location only.
+   */
+  async payoutCsv(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    query: ReportQuery,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const location = await this.access.writable(m, locationId);
+    const report = await this.get(m, userId, locationId, query);
+    const tips = new Map(report.tips.staff.map((s) => [s.id, s.tipsGrosze]));
+    const csv = payoutCsv(
+      report.staff.map((s) => ({
+        staff: s.displayName,
+        completed: s.completed,
+        paid: s.paid,
+        revenueGrosze: s.revenueGrosze,
+        commissionPercent: s.commissionPercent,
+        commissionGrosze: s.commissionGrosze,
+        tipsGrosze: tips.get(s.id) ?? 0,
+      })),
+      locale,
+    );
+    return { csv, fileName: `payout-${location.slug}-${query.from}-${query.to}.csv` };
   }
 
   /** Task 30: every visit of the period as CSV (same access as the report), oldest first. */
