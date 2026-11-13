@@ -3099,3 +3099,16 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   один), раздел в «Raporty». Тесты `reports.spec.ts`, `isolation.spec.ts`, e2e `products.spec.ts` (395–396).
 - Список товаров в бизнес-приложении (397): `ProductListSection.tsx` внизу «Usługi» — добавить, изменить, «Nie
   sprzedajemy», удалить с вопросом (`api.addProduct`, `updateProduct`, `removeProduct`). e2e `products.spec.ts` (397).
+
+## «Opinie» по услуге и «Oceny usług» в отчёте (задачи 420–421)
+
+- 420: `GET …/locations/:id/reviews?serviceId=` — только отзывы визитов этой услуги; в ответе `services`
+  (`serviceId`, `name`, `count`, `average`) — услуги с отзывами (в т. ч. удалённые), которые видит пользователь, в
+  порядке салона; при `staffId` — только по отзывам этого специалиста. `serviceId` понимает и
+  `…/reviews/export.csv`. Кабинет «Opinie» и бизнес-приложение: чипы «Wszystkie usługi · Broda ★ 4,5 (6) · …»
+  (показываются, когда услуг с отзывами больше одной). Тест `reviews.spec.ts`, e2e `reviews.spec.ts` (скриншоты 420,
+  420-a).
+- 421: `ratings.services` в `GET …/reports` — `{ id, name, reviews, average }` по отзывам визитов периода, лучшие
+  первыми (права — как у `ratings.staff`; мастер со своим отчётом видит только свои визиты). Кабинет «Raporty» и
+  бизнес-приложение: список «Według usług» под мастерами в блоке «Oceny klientów». Тест `reports.spec.ts`, e2e
+  `reports.spec.ts` (скриншоты 421, 421-a).
