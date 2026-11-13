@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import type { TokenStore } from './api';
+import { parseRecent, type RecentSalon } from './recent';
 
 const KEY = 'beauty.client.session';
 
@@ -56,6 +57,32 @@ export const catalogLanguagesStore = {
       else await SecureStore.setItemAsync(LANGUAGES_KEY, value);
     } catch {
       // Private mode or no storage: the choice is just not remembered.
+    }
+  },
+};
+
+const RECENT_KEY = 'beauty.catalog.recent';
+
+/** Task 402: "Ostatnio oglądane" — the salons opened last on this device (nothing is sent). */
+export const recentSalonsStore = {
+  async get(): Promise<RecentSalon[]> {
+    try {
+      return parseRecent(
+        Platform.OS === 'web'
+          ? (globalThis.localStorage?.getItem(RECENT_KEY) ?? null)
+          : await SecureStore.getItemAsync(RECENT_KEY),
+      );
+    } catch {
+      return [];
+    }
+  },
+  async set(list: RecentSalon[]): Promise<void> {
+    try {
+      const value = JSON.stringify(list);
+      if (Platform.OS === 'web') globalThis.localStorage?.setItem(RECENT_KEY, value);
+      else await SecureStore.setItemAsync(RECENT_KEY, value);
+    } catch {
+      // Private mode or no storage: the list is just not remembered.
     }
   },
 };

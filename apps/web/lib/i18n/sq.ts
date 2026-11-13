@@ -129,6 +129,7 @@ export const sq: Dict = {
     searchWherePlaceholder: 'Qyteti ose rruga',
     searchButton: 'Kërko',
     categories: 'Kategoritë',
+    recent: 'Parë së fundmi',
     featured: 'Sallone të rekomanduara',
     signInLater: 'Llogaria krijohet vetë me rezervimin e parë.',
   },

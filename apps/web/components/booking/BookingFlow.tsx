@@ -34,6 +34,7 @@ import { SalonGallery } from './SalonGallery';
 import { directionsLink, SalonProfile } from './SalonProfile';
 import { SalonReviews } from '../reviews/SalonReviews';
 import { NearbySalons } from './NearbySalons';
+import { rememberViewed } from '@/lib/recent-salons';
 import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import { WishPhotos } from '../wishes/WishPhotos';
@@ -226,6 +227,10 @@ export function BookingFlow({ slug }: { slug: string }) {
       .then((loaded) => {
         // Task 160c: specialists speaking a language chosen in the catalogue come first.
         setSalon({ ...loaded, staff: speakersFirst(loaded.staff, rememberedLanguages()) });
+        // Task 403: "Ostatnio oglądane" on the home page — not from a window on the salon's site.
+        if (new URLSearchParams(window.location.search).get('embed') !== '1') {
+          rememberViewed({ slug: loaded.slug, name: loaded.name });
+        }
         const own = dialForTimeZone(loaded.timezone);
         setContact((c) => (c.phone.trim() === '+48' ? { ...c, phone: `+${own} ` } : c));
         // "Book again" from the client app: ?service=…&staff=… skips straight to the times.

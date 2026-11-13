@@ -301,6 +301,7 @@ export const sq: Dictionary = {
       'Asnjë nga këto sallone nuk është hapur tani — çaktivizoni „Hapur tani” për t’i parë të gjitha.',
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Më të vlerësuarit',
+    recent: 'Parë së fundmi',
     locating: 'Po gjejmë vendndodhjen tuaj…',
     locationFailed: 'Nuk e gjetëm vendndodhjen tuaj. Lejojeni te cilësimet ose shkruani një qytet.',
     distance: '{km} km nga ju',

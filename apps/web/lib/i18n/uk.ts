@@ -405,6 +405,7 @@ export const uk: Dict = {
     searchWherePlaceholder: 'Місто або вулиця',
     searchButton: 'Шукати',
     categories: 'Категорії',
+    recent: 'Нещодавно переглянуті',
     featured: 'Рекомендовані салони',
     signInLater: 'Акаунт створиться сам під час першого запису.',
   },

@@ -407,6 +407,7 @@ export const ru: Dict = {
     searchWherePlaceholder: 'Город или улица',
     searchButton: 'Искать',
     categories: 'Категории',
+    recent: 'Недавно просмотренные',
     featured: 'Рекомендуемые салоны',
     signInLater: 'Аккаунт создастся сам при первой записи.',
   },
