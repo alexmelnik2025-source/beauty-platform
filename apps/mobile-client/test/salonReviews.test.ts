@@ -6,6 +6,7 @@ import {
   salonReviewLine,
   salonReviewSummary,
   staffChip,
+  starChips,
   starText,
   type SalonReview,
 } from '../src/salonReviews';
@@ -43,6 +44,17 @@ describe('reviews on the salon page of the client app (task 212)', () => {
     );
     expect(salonReviewLine(review('a'), 'pl')).toBe('Kasia · Strzyżenie · 5 lis 2026');
     expect(starText(4)).toBe('★★★★☆');
+    // Task 381: the chips by stars — only stars with reviews, five first.
+    expect(starChips([0, 1, 0, 3, 7], null)).toEqual([
+      { rating: 5, label: '★ 5 (7)' },
+      { rating: 4, label: '★ 4 (3)' },
+      { rating: 2, label: '★ 2 (1)' },
+    ]);
+    expect(starChips([0, 0, 0, 0, 4], null)).toEqual([]);
+    expect(starChips([0, 0, 0, 0, 4], 3)).toEqual([
+      { rating: 5, label: '★ 5 (4)' },
+      { rating: 3, label: '★ 3 (0)' },
+    ]);
     expect(starText(7)).toBe('★★★★★');
   });
 
@@ -65,6 +77,7 @@ describe('reviews on the salon page of the client app (task 212)', () => {
           enabled: true,
           count: 0,
           average: null,
+          stars: [0, 0, 0, 0, 0],
           staff: [],
           items: [],
           nextBefore: null,
@@ -74,9 +87,11 @@ describe('reviews on the salon page of the client app (task 212)', () => {
     });
     await api.salonReviews('gestalt bema');
     await api.salonReviews('gestalt', { staffId: 's-1', before: 'r-9' });
+    await api.salonReviews('gestalt', { rating: 4 });
     expect(calls).toEqual([
       'https://api.example/v1/public/locations/gestalt%20bema/reviews',
       'https://api.example/v1/public/locations/gestalt/reviews?staffId=s-1&before=r-9',
+      'https://api.example/v1/public/locations/gestalt/reviews?rating=4',
     ]);
   });
 });

@@ -58,3 +58,16 @@ export function starText(rating: number): string {
   const full = Math.max(0, Math.min(5, Math.round(rating)));
   return '★'.repeat(full) + '☆'.repeat(5 - full);
 }
+
+/**
+ * Task 381: the "★ 5 (12)" chips — stars with reviews (and the chosen one), five first; none
+ * while there is only one kind of rating.
+ */
+export function starChips(
+  stars: number[],
+  chosen: number | null,
+): { rating: number; label: string }[] {
+  const shown = [5, 4, 3, 2, 1].filter((n) => (stars[n - 1] ?? 0) > 0 || n === chosen);
+  if (shown.length < 2 && chosen === null) return [];
+  return shown.map((n) => ({ rating: n, label: `★ ${n} (${stars[n - 1] ?? 0})` }));
+}

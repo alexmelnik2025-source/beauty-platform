@@ -1357,6 +1357,9 @@ export const en: Dictionary = {
     hint: 'What clients wrote after their visits. A specialist sees reviews of their own visits.',
     none: 'No reviews yet.',
     summary: '★ {average} · reviews: {count}',
+    /** Task 381: the filter by stars. */
+    byStars: 'Reviews by stars',
+    allStars: 'All ratings',
     service: '{service} with {staff}',
     removedClient: 'Client removed',
     more: 'Show older',

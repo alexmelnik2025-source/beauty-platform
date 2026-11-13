@@ -1355,6 +1355,9 @@ export const pl = {
     hint: 'Co klienci napisali po wizycie. Specjalista widzi opinie o swoich wizytach.',
     none: 'Brak opinii.',
     summary: '★ {average} · opinie: {count}',
+    /** Task 381: the filter by stars. */
+    byStars: 'Opinie według ocen',
+    allStars: 'Wszystkie oceny',
     service: '{service} u {staff}',
     removedClient: 'Klient usunięty',
     more: 'Pokaż starsze',

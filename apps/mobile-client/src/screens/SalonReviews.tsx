@@ -8,6 +8,7 @@ import {
   salonReviewLine,
   salonReviewSummary,
   staffChip,
+  starChips,
   starText,
   type SalonReview,
 } from '../salonReviews';
@@ -17,6 +18,7 @@ import { Button, Card, colors, ErrorText } from '../ui';
  * Task 212: "Opinie" on the salon page — the average, the specialists' averages as chips (tap —
  * only their reviews), then the reviews: stars, words, with whom, what and when, and the salon's
  * answer under a review. Nothing is shown while the salon does not collect reviews or has none.
+ * Task 381: "★ 5 (12)" chips — only the reviews with that many stars.
  */
 export function SalonReviews(props: {
   api: ClientApi;
@@ -28,6 +30,8 @@ export function SalonReviews(props: {
   const r = t.salonReviews;
   const [all, setAll] = useState<PublicReviews | null>(null);
   const [staffId, setStaffId] = useState<string | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
+  const [stars, setStars] = useState<number[]>([]);
   const [items, setItems] = useState<SalonReview[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -36,14 +40,16 @@ export function SalonReviews(props: {
   tRef.current = t;
 
   const load = useCallback(
-    async (who: string | null, before?: string) => {
+    async (who: string | null, withStars: number | null, before?: string) => {
       setBusy(true);
       try {
         const page = await api.salonReviews(slug, {
           ...(who ? { staffId: who } : {}),
+          ...(withStars ? { rating: withStars } : {}),
           ...(before ? { before } : {}),
         });
-        if (!who && !before) setAll(page);
+        if (!who && !withStars && !before) setAll(page);
+        setStars(page.stars);
         setItems((shown) => (before ? appendSalonReviews(shown, page.items) : page.items));
         setNext(page.nextBefore);
         setError('');
@@ -57,7 +63,7 @@ export function SalonReviews(props: {
   );
 
   useEffect(() => {
-    void load(null);
+    void load(null, null);
   }, [load]);
 
   if (error && !all) return null;
@@ -84,11 +90,33 @@ export function SalonReviews(props: {
                 aria-label={chip.label}
                 onPress={() => {
                   setStaffId(chip.id);
-                  void load(chip.id);
+                  setRating(null);
+                  void load(chip.id, null);
                 }}
                 style={[styles.chip, staffId === chip.id && styles.chipOn]}
               >
                 <Text style={[styles.chipText, staffId === chip.id && styles.chipTextOn]}>
+                  {chip.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {starChips(stars, rating).length > 0 ? (
+          <View style={styles.chips} role="radiogroup" aria-label={r.byStars}>
+            {[{ rating: null, label: r.allStars }, ...starChips(stars, rating)].map((chip) => (
+              <Pressable
+                key={chip.rating ?? 'all'}
+                role="radio"
+                aria-checked={rating === chip.rating}
+                aria-label={chip.label}
+                onPress={() => {
+                  setRating(chip.rating);
+                  void load(staffId, chip.rating);
+                }}
+                style={[styles.chip, rating === chip.rating && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, rating === chip.rating && styles.chipTextOn]}>
                   {chip.label}
                 </Text>
               </Pressable>
@@ -120,7 +148,7 @@ export function SalonReviews(props: {
             kind="secondary"
             label={r.more}
             busy={busy}
-            onPress={() => void load(staffId, next)}
+            onPress={() => void load(staffId, rating, next)}
           />
         ) : null}
       </View>

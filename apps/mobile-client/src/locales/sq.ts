@@ -340,6 +340,9 @@ export const sq: Dictionary = {
     summary: '★ {average} · vlerësime: {count}',
     bySpecialist: 'Vlerësimet e specialistëve',
     everyone: 'Të gjithë',
+    /** Task 381: the filter by stars. */
+    byStars: 'Vlerësimet sipas yjeve',
+    allStars: 'Të gjitha vlerësimet',
     more: 'Shfaq më shumë',
     salonReply: 'Përgjigjja e sallonit',
   },

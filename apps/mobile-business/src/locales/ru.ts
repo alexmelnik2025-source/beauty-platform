@@ -1357,6 +1357,9 @@ export const ru: Dictionary = {
     hint: 'Что клиенты написали после визита. Мастер видит отзывы о своих визитах.',
     none: 'Отзывов нет.',
     summary: '★ {average} · отзывов: {count}',
+    /** Task 381: the filter by stars. */
+    byStars: 'Отзывы по оценкам',
+    allStars: 'Все оценки',
     service: '{service} у {staff}',
     removedClient: 'Клиент удалён',
     more: 'Показать старые',

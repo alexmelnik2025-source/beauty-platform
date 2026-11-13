@@ -556,10 +556,12 @@ export class ClientApi {
    */
   salonReviews(
     slug: string,
-    query: { staffId?: string; before?: string } = {},
+    query: { staffId?: string; before?: string; rating?: number } = {},
   ): Promise<PublicReviews> {
     const params = new URLSearchParams();
     if (query.staffId) params.set('staffId', query.staffId);
+    // Task 381: only the reviews with this many stars.
+    if (query.rating) params.set('rating', String(query.rating));
     if (query.before) params.set('before', query.before);
     const q = params.toString();
     return this.call<PublicReviews>(

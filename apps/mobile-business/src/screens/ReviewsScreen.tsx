@@ -23,6 +23,7 @@ import {
   reviewLine,
   reviewSettingsChanged,
   reviewSummary,
+  starChips,
   stars,
   type Review,
 } from '../reviews';
@@ -34,6 +35,7 @@ import type { SalonChoice } from './SalonsScreen';
  * words, who, what, with whom and when. Newest first, 20 at a time. Task 211: the owner and
  * managers answer a review publicly, change or remove the answer. Task 341: they also switch
  * collecting reviews on or off and choose when the client is asked, as in the cabinet.
+ * Task 381: "★ 1 (2)" chips — only the reviews with that many stars.
  */
 export function ReviewsScreen(props: {
   api: BusinessApi;
@@ -51,6 +53,8 @@ export function ReviewsScreen(props: {
     'count' | 'average' | 'enabled'
   > | null>(null);
   const [items, setItems] = useState<Review[] | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
+  const [counts, setCounts] = useState<number[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -59,8 +63,9 @@ export function ReviewsScreen(props: {
     async (before?: string) => {
       setBusy(true);
       try {
-        const page = await api.reviews(salon.orgId, salon.locationId, before);
+        const page = await api.reviews(salon.orgId, salon.locationId, before, rating ?? undefined);
         setSummary({ count: page.count, average: page.average, enabled: page.enabled });
+        setCounts(page.stars);
         setItems((shown) => (before && shown ? appendReviews(shown, page.items) : page.items));
         setNext(page.nextBefore);
         setError('');
@@ -70,12 +75,14 @@ export function ReviewsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t],
+    [api, salon, t, rating],
   );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const chips = starChips(counts, rating);
 
   // Android's back button closes the screen instead of the app.
   useEffect(() => {
@@ -106,6 +113,24 @@ export function ReviewsScreen(props: {
         <Text style={styles.summary} accessibilityRole="header">
           {reviewSummary(summary, t, props.locale)}
         </Text>
+      ) : null}
+      {chips.length > 0 ? (
+        <View style={styles.actions} role="group" aria-label={r.byStars}>
+          {[{ rating: null, label: r.allStars }, ...chips].map((chip) => (
+            <Pressable
+              key={chip.rating ?? 'all'}
+              accessibilityRole="button"
+              aria-pressed={rating === chip.rating}
+              accessibilityState={{ selected: rating === chip.rating }}
+              onPress={() => setRating(chip.rating)}
+              style={[styles.chip, rating === chip.rating && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, rating === chip.rating && { color: '#fff' }]}>
+                {chip.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       ) : null}
       {items === null ? (
         error ? null : (
