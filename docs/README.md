@@ -2984,3 +2984,19 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   (`TeamHoursScreen`, счётчик чтений). E2E `app-staff-profile.spec.ts`: «Wróć» сразу после сохранения.
 - 371: тот же сценарий в e2e ждал не того текста (подсказка «Wyłączony…» видна в форме ещё до сохранения) и
   иногда падал на main 12.11.2026 — теперь ждёт «Profil zapisany.».
+
+## «Prowizje» — процент специалиста в отчётах (задачи 373–375)
+
+- Каждый салон сам задаёт процент специалиста (0–100, один знак после запятой) — платформа ничего не навязывает.
+  Хранится в `staff_member.commission_permille` (десятые доли процента, `null` — не задан).
+- API (373): `GET …/reports/commissions` — все специалисты салона с процентом; `PUT …/reports/commissions/:staffId`
+  `{ commissionPercent: 42.5 | null }` — только владелец и менеджеры салона (специалист — 403), запись в журнал
+  (`staff.commission_set`). В общем списке команды (`Staff`) процента нет — это зарплата. В отчёте у каждой строки
+  `staff[]` — `commissionPercent` и `commissionGrosze` = выручка оплаченных визитов (после скидок) × процент,
+  без napiwków; специалист с «viewOwnEarnings» видит только свою строку. Тест `reports.spec.ts`, изоляция —
+  `isolation.spec.ts`.
+- Кабинет (374): в «Raporty» после «Specjaliści» — раздел «Prowizje: <сумма>» (таблица: выручка, процент, сумма) и
+  «Ustaw prowizje» (поле процента у каждого специалиста; после «Zapisz» отчёт перечитывается). Компонент
+  `app/[locale]/app/reports/Commissions.tsx`. e2e `reports.spec.ts` (скриншот 374).
+- Бизнес-приложение (375): то же в «Raporty» — `screens/CommissionsSection.tsx`, разбор ввода `src/commissions.ts`
+  (Vitest). e2e `reports.spec.ts` (скриншот 375).

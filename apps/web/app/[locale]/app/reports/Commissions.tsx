@@ -145,28 +145,28 @@ export function Commissions({
           <summary>{t.reports.commissionsSet}</summary>
           {error ? <ErrorBox>{error}</ErrorBox> : null}
           {list ? (
-            <ul className="list" data-testid="commission-list">
+            <ul className="commission-list" data-testid="commission-list">
               {list.map((s) => (
-                <li key={s.staffId} className="row">
-                  <label className="field">
-                    <span>
-                      {s.displayName}
-                      {s.active ? null : (
-                        <span className="small muted"> · {t.reports.commissionInactive}</span>
-                      )}
-                    </span>
+                <li key={s.staffId} className="commission-row">
+                  <label htmlFor={`commission-${s.staffId}`}>
+                    {s.displayName}
+                    {s.active ? null : (
+                      <span className="small muted"> · {t.reports.commissionInactive}</span>
+                    )}
+                  </label>
+                  <span className="commission-row__input">
                     <input
+                      id={`commission-${s.staffId}`}
                       inputMode="decimal"
                       placeholder={t.reports.commissionNone}
-                      aria-label={`${t.reports.colCommission}, % — ${s.displayName}`}
                       value={drafts[s.staffId] ?? ''}
                       onChange={(e) => {
                         setSaved('');
                         setDrafts({ ...drafts, [s.staffId]: e.target.value });
                       }}
                     />
-                  </label>
-                  <span className="small">%</span>
+                    <span aria-hidden="true">%</span>
+                  </span>
                   <button
                     type="button"
                     className="btn btn--small"
