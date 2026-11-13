@@ -16,7 +16,7 @@
   клиентского приложения и главная сайта) — ветка `agent/402-recent-salons`; 404–405 «Ulubione» на сайте (сердечко на
   странице салона, вкладка в «Moje wizyty») — `agent/404-web-favorites`; 406 «Poleć salon znajomym» и 409 «Pokaż kod
   QR» на странице салона на сайте — `agent/406-…`, `agent/409-web-salon-qr`; 410 звёзды салона в schema.org
-  (`aggregateRating`) — `agent/410-seo-rating`. Ветки `agent/407-reviews-csv`, `agent/408-app-reviews-csv` не нужны —
+  (`aggregateRating`) — `agent/410-seo-rating`. 411–412 «Udostępnij wizytę» (клиентское приложение и страница визита) — `agent/411-share-visit`. Ветки `agent/407-reviews-csv`, `agent/408-app-reviews-csv` не нужны —
   то же сделано в задаче 385.
 
 - **13.11.2026, ~20:30 UTC — влиты 384–386** (звёзды мастера при выборе мастера в записи и в «Zespół» клиентского
