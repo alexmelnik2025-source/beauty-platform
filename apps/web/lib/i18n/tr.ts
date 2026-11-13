@@ -349,6 +349,11 @@ export const tr: Dict = {
     shareText: '{name} — online randevu al: {url}',
     copied: 'Bağlantı kopyalandı — arkadaşlarına yapıştır.',
     shareFailed: 'Paylaşılamadı. Bağlantı: {url}',
+
+    qrShow: 'QR kodunu göster',
+    qrHide: 'QR kodunu gizle',
+    qrAlt: 'Salonun QR kodu',
+    qrHint: 'Arkadaşınız kamerasıyla tarasın — salon sayfası açılır ve kendisi randevu alır.',
   },
   favorites: {
     tab: 'Favoriler',
