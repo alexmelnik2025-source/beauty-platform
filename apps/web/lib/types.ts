@@ -115,6 +115,8 @@ export type {
   PublicSalonDirectory,
   PushPublicKey,
   Role,
+  Product,
+  ProductList,
   SalonReport,
   StaffCommissions,
   TillClose,
@@ -129,5 +131,6 @@ export type {
   TimeOff,
   UnreadCount,
   VisitCoupons,
+  VisitProductSales,
   WorkingHours,
 } from '@beauty/api-client';

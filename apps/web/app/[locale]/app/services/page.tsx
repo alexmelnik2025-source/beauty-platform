@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { ProductsSection } from '@/components/products/ProductsSection';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
@@ -340,6 +341,8 @@ export default function ServicesPage() {
           </button>
         </form>
       </div>
+      {/* Task 395: the products sold at a visit. */}
+      <ProductsSection base={base} />
       {editing ? (
         <ServiceSheet
           key={editing === 'new' ? `new-${copyOf?.id ?? ''}` : editing.id}

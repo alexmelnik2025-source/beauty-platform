@@ -15,6 +15,7 @@ import type {
 import { useSession } from '../Session';
 import { ErrorBox, Sheet, Spinner } from '../ui';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
+import { ProductSales } from '../products/ProductSales';
 import { TipField } from './TipField';
 
 type Mode = 'view' | 'move' | 'cancel';
@@ -262,6 +263,15 @@ export function AppointmentSheet({
         <p className="small" data-testid="tip-note">
           {t.appointment.tip}: {money(a.tipGrosze)}
         </p>
+      ) : null}
+      {mode === 'view' && a.status === 'completed' ? (
+        // Task 395: products the client bought at the visit.
+        <ProductSales
+          base={base}
+          appointmentId={a.id}
+          currency={session.location.currency}
+          canChange={canChange}
+        />
       ) : null}
 
       {mode === 'view' ? (
