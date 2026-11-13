@@ -20,6 +20,8 @@ export function SignInScreen(props: {
   onFindSalon: (query?: string) => void;
   /** Task 370: opens the catalogue with "Otwarte teraz" on. */
   onOpenNow: () => void;
+  /** Task 379: the catalogue with the best rated salons first. */
+  onBestRated: () => void;
   onSignedIn: (person: ClientPerson) => void;
   /** The email the client just booked with (from the booking in the app). */
   initialEmail?: string;
@@ -100,6 +102,8 @@ export function SignInScreen(props: {
             onPress={props.onOpenNow}
           />
         ) : null}
+        {/* Task 379: the catalogue with the best rated salons first. */}
+        <Button kind="secondary" label={t.catalog.bestRated} onPress={props.onBestRated} />
       </View>
       <Heading>{t.signIn.title}</Heading>
       {!sentTo ? (

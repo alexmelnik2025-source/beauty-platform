@@ -102,6 +102,10 @@ export default function Home() {
             </span>
           </Link>
         ) : null}
+        {/* Task 379: the catalogue with the best rated salons first. */}
+        <Link className="btn btn--quiet btn--block" href={`/${locale}/salons?sort=rating`}>
+          {t.directory.bestRated}
+        </Link>
         <section className="stack" aria-labelledby="home-categories">
           <h2 id="home-categories" className="small muted">
             {n.categories}

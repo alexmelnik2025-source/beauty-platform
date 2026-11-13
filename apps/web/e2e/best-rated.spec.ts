@@ -15,6 +15,8 @@ import { serveApp } from './mobile-app';
  * without reviews and "Gwiazdy … Beta" with two five-star reviews. In the usual order Alfa is
  * first; with the chip on, Beta (★ 5) goes first — on the site (screenshot 378) and in the
  * client app (378a).
+ * Task 379: "★ Najlepiej oceniane" on the home page (379) and on the client app's start screen
+ * (379a) opens the catalogue with the chip on.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -153,9 +155,34 @@ test('"Najlepiej oceniane" puts the best stars first, on the site and in the cli
     // The chip can be opened from a link too.
     await client.goto(`/pl/salons?q=${encodeURIComponent(PREFIX)}&sort=rating`);
     await expect(names).toHaveText([`${PREFIX} Beta`, `${PREFIX} Alfa`]);
+    // Task 379: from the home page.
+    await client.goto('/pl');
+    const homeLink = client.getByRole('link', { name: '★ Najlepiej oceniane' });
+    await homeLink.scrollIntoViewIfNeeded();
+    await shot(client, '379-home-best-rated');
+    await homeLink.click();
+    await client.waitForURL(/\/pl\/salons\?sort=rating/);
+    await expect(client.getByRole('button', { name: '★ Najlepiej oceniane' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     const clientApp = await serveApp('mobile-client');
     try {
+      // Task 379: from the start screen, with the chip on.
+      const start = await phone.newPage();
+      await start.goto(clientApp.url);
+      const startButton = start.getByRole('button', { name: '★ Najlepiej oceniane' });
+      await expect(startButton).toBeVisible();
+      await shot(start, '379a-client-app-start-best-rated');
+      await startButton.click();
+      await expect(start.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
+      await expect(start.getByRole('button', { name: '★ Najlepiej oceniane' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await start.close();
+
       const app = await phone.newPage();
       await app.goto(clientApp.url);
       await app.getByRole('button', { name: 'Znajdź salon' }).click();

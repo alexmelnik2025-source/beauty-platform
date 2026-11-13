@@ -46,6 +46,8 @@ export function CatalogScreen(props: {
   initialQuery?: string;
   /** Task 370: opened from "Otwarte teraz (n)" on the start screen — the filter is on. */
   initialOpenNow?: boolean;
+  /** Task 379: opened from "★ Najlepiej oceniane" on the start screen. */
+  initialBestRated?: boolean;
 }) {
   const { api, t } = props;
   // Task 192: several languages at once (any of them), remembered on the device; null until read.
@@ -59,7 +61,7 @@ export function CatalogScreen(props: {
   const [openNow, setOpenNow] = useState(props.initialOpenNow === true);
   const [openNowCount, setOpenNowCount] = useState(0);
   // Task 378: "Najlepiej oceniane" - the salons with the best stars first.
-  const [bestRated, setBestRated] = useState(false);
+  const [bestRated, setBestRated] = useState(props.initialBestRated === true);
   const [items, setItems] = useState<DirectorySalon[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
