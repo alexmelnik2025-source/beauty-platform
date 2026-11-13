@@ -223,6 +223,15 @@ test('business app: the owner orders, edits, switches off and adds specialists',
     await expect(phone.getByText('Specjalista dodany.', { exact: false })).toBeVisible();
     await expect(phone.getByText('Usługi: 2 z 2')).toBeVisible();
     await shot(phone, '328-business-app-new-specialist');
+
+    // ── 372: "‹ Wróć" right after "Zapisz profil" — the list still shows the saved state ──
+    await phone.getByRole('button', { name: 'Zmień profil' }).click();
+    await phone.getByLabel('Przyjmuje klientów').click();
+    await phone.getByRole('button', { name: 'Zapisz profil' }).click();
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await expect(phone.getByRole('heading', { name: 'Grafik zespołu' })).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Marek', exact: true })).toBeVisible();
+    await expect(phone.getByText('nie przyjmuje')).toHaveCount(2);
     await context.close();
   } finally {
     businessApp.server.close();
@@ -241,6 +250,6 @@ test('business app: the owner orders, edits, switches off and adds specialists',
     photoUrl: null,
   });
   expect(byName['Ilian']).toMatchObject({ sortOrder: 10, active: true });
-  expect(byName['Marek']).toMatchObject({ sortOrder: 20, active: true });
+  expect(byName['Marek']).toMatchObject({ sortOrder: 20, active: false });
   expect([...byName['Marek']!.serviceIds].sort()).toEqual([haircut.id, beard.id].sort());
 });

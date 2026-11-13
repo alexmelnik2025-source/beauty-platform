@@ -31,6 +31,8 @@ export function StaffProfileSection(props: {
   staffId: string;
   /** The name changed: the page title and the team list show the new one. */
   onRenamed: (name: string) => void;
+  /** Task 372: after the server saved the profile or the photo — the team list reloads. */
+  onSaved?: () => void;
 }) {
   const { api, t, salon, staffId, onRenamed } = props;
   const p = t.staffProfile;
@@ -98,6 +100,7 @@ export function StaffProfileSection(props: {
       setForm(null);
       setInfo(p.saved);
       if (saved.displayName !== staff.displayName) onRenamed(saved.displayName);
+      props.onSaved?.();
     } catch (e) {
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
         setError(p.changedMeanwhile);
@@ -134,6 +137,7 @@ export function StaffProfileSection(props: {
       );
       await load();
       setInfo(p.photoSaved);
+      props.onSaved?.();
     } catch (e) {
       setError(uploadErrorText(e, t) ?? errorText(e, t));
     } finally {
@@ -150,6 +154,7 @@ export function StaffProfileSection(props: {
       await api.removeStaffPhoto(salon.orgId, salon.locationId, staffId);
       await load();
       setInfo(p.photoRemoved);
+      props.onSaved?.();
     } catch (e) {
       setError(errorText(e, t));
     } finally {

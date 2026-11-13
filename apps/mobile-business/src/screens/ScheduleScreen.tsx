@@ -26,6 +26,8 @@ export function ScheduleScreen(props: {
   staffName?: string;
   /** Task 326: the specialist's name was changed in their profile. */
   onRenamed?: (name: string) => void;
+  /** Task 372: the specialist's profile or photo was saved. */
+  onSaved?: () => void;
   /** Task 328: shown at the top when the page opens (a specialist was just added). */
   notice?: string;
   today: string;
@@ -171,6 +173,7 @@ export function ScheduleScreen(props: {
           salon={salon}
           staffId={staffId}
           onRenamed={(name) => props.onRenamed?.(name)}
+          onSaved={props.onSaved}
         />
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
