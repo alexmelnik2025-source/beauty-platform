@@ -1398,6 +1398,9 @@ export const uk: Dictionary = {
     /** Task 383: the filter by specialist. */
     bySpecialist: 'Відгуки про спеціалістів',
     everyone: 'Усі',
+    /** Task 420: the filter by service. */
+    byService: 'Відгуки за послугами',
+    allServices: 'Усі послуги',
     /** Task 385: the reviews as a CSV file. */
     csv: 'Завантажити відгуки (CSV)',
     csvFailed: 'Не вдалося зберегти файл.',

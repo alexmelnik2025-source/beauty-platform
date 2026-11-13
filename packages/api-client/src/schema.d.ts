@@ -2950,7 +2950,7 @@ export interface paths {
         };
         /**
          * The reviews as a CSV file (owners and managers)
-         * @description Task 385. The list’s filters (staffId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.
+         * @description Task 385. The list’s filters (staffId, serviceId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.
          */
         get: operations["ReviewsController_exportCsv"];
         put?: never;
@@ -6065,6 +6065,14 @@ export interface components {
             staff: {
                 staffId: string;
                 displayName: string;
+                count: number;
+                /** @description Average stars, one decimal; null without reviews */
+                average: number | null;
+            }[];
+            /** @description Task 420: services (removed ones too) with reviews the user may see — of the chosen specialist with `staffId`; salon order */
+            services: {
+                serviceId: string;
+                name: string;
                 count: number;
                 /** @description Average stars, one decimal; null without reviews */
                 average: number | null;
@@ -11823,6 +11831,8 @@ export interface operations {
                 before?: unknown;
                 /** @description Task 380: only reviews with this many stars (1-5); count, average and stars stay */
                 rating?: number;
+                /** @description Task 420: only reviews of visits for this service */
+                serviceId?: unknown;
             };
             header?: never;
             path: {
@@ -11851,6 +11861,8 @@ export interface operations {
                 rating?: number;
                 /** @description Only reviews of this specialist */
                 staffId?: unknown;
+                /** @description Task 420: only this service */
+                serviceId?: unknown;
             };
             header?: never;
             path: {

@@ -1399,6 +1399,9 @@ export const pl = {
     /** Task 383: the filter by specialist. */
     bySpecialist: 'Opinie o specjalistach',
     everyone: 'Wszyscy',
+    /** Task 420: the filter by service. */
+    byService: 'Opinie według usług',
+    allServices: 'Wszystkie usługi',
     /** Task 385: the reviews as a CSV file. */
     csv: 'Pobierz CSV opinii',
     csvFailed: 'Nie udało się zapisać pliku.',

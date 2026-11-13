@@ -571,6 +571,98 @@ describe('showing reviews', () => {
     const after = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
     expect(after.body.items[1]).toMatchObject({ customerId: null, customerName: null });
   });
+
+  it('the cabinet: chips and the filter by service (task 420)', async () => {
+    await switchOn();
+    const beard = await ctx.prisma.service.create({
+      data: { locationId, name: 'Broda', durationMinutes: 30, priceGrosze: 5000, sortOrder: -1 },
+    });
+    const a = await book(10, kasiaId);
+    const b = await book(11, kasiaId, BOB);
+    const c = await book(12, olaId);
+    for (const v of [a, b, c]) await tookPlace(v.id, 1);
+    // Bob's visit with Kasia was a beard trim.
+    await ctx.prisma.appointment.update({ where: { id: b.id }, data: { serviceId: beard.id } });
+    await review(a.token, { rating: 5 });
+    await review(b.token, { rating: 2 });
+    await review(c.token, { rating: 4 });
+
+    const all = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    // Salon order: "Broda" first; each with its own stars.
+    expect(all.body.services).toEqual([
+      { serviceId: beard.id, name: 'Broda', count: 1, average: 2 },
+      { serviceId, name: 'Strzyżenie', count: 2, average: 4.5 },
+    ]);
+    const cuts = await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ serviceId })
+      .set(owner.auth)
+      .expect(200);
+    expect(cuts.body).toMatchObject({ count: 2, average: 4.5, stars: [0, 0, 0, 1, 1] });
+    expect(cuts.body.services).toHaveLength(2);
+    expect(cuts.body.items.map((r: { serviceName: string }) => r.serviceName)).toEqual([
+      'Strzyżenie',
+      'Strzyżenie',
+    ]);
+    // With a specialist chosen the service chips count only their reviews.
+    const kasias = await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ staffId: kasiaId, serviceId })
+      .set(owner.auth)
+      .expect(200);
+    expect(kasias.body.items.map((r: { appointmentId: string }) => r.appointmentId)).toEqual([
+      a.id,
+    ]);
+    expect(kasias.body.services).toEqual([
+      { serviceId: beard.id, name: 'Broda', count: 1, average: 2 },
+      { serviceId, name: 'Strzyżenie', count: 1, average: 5 },
+    ]);
+    // A removed service keeps its chip.
+    await ctx.prisma.service.update({ where: { id: beard.id }, data: { active: false } });
+    const later = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    expect(later.body.services[0]).toMatchObject({ name: 'Broda', count: 1 });
+
+    // The CSV keeps the filter.
+    const csv = await ctx
+      .http()
+      .get(`${base}/reviews/export.csv`)
+      .query({ serviceId: beard.id })
+      .set(owner.auth)
+      .buffer(true)
+      .parse((res, done) => {
+        let text = '';
+        res.on('data', (chunk: Buffer) => (text += chunk.toString('utf8')));
+        res.on('end', () => done(null, text));
+      })
+      .expect(200);
+    const lines = (csv.body as string).trim().split('\r\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('"2";"Kasia";"Broda"');
+
+    // Staff with only their own visits see only their own services.
+    const ola = await signUp(ctx, 'ola@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: ola.userId,
+        organizationId: orgId,
+        role: 'staff',
+        locations: { create: [{ locationId }] },
+      },
+    });
+    await ctx.prisma.staffMember.update({ where: { id: olaId }, data: { userId: ola.userId } });
+    const own = await ctx.http().get(`${base}/reviews`).set(ola.auth).expect(200);
+    expect(own.body.services).toEqual([{ serviceId, name: 'Strzyżenie', count: 1, average: 4 }]);
+    // Another salon's service shows nothing.
+    const other = await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ serviceId: '00000000-0000-7000-8000-000000000000' })
+      .set(owner.auth)
+      .expect(200);
+    expect(other.body).toMatchObject({ count: 0, items: [] });
+  });
 });
 
 describe('the salon answers a review (task 211)', () => {

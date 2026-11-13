@@ -22,7 +22,8 @@ const HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
  * publicly, change or remove the answer. Task 380: "★ 1 (2)" chips — e.g. only the low ratings.
  * Task 382: "Bez odpowiedzi (n)" — only the reviews the salon has not answered yet. Task 383:
  * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist. Task 385: "Pobierz CSV" of the
- * reviews shown (owner and managers).
+ * reviews shown (owner and managers). Task 420: "Broda ★ 4,5 (6)" chips — only the reviews of
+ * visits for one service (of the chosen specialist, if any).
  */
 export default function ReviewsPage() {
   const { t, locale } = useI18n();
@@ -35,6 +36,7 @@ export default function ReviewsPage() {
   const [rating, setRating] = useState<number | null>(null);
   const [unanswered, setUnanswered] = useState(false);
   const [staffId, setStaffId] = useState<string | null>(null);
+  const [serviceId, setServiceId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   /** Task 385: the reviews with the chosen filters as a CSV file (column names in the cabinet language). */
@@ -48,6 +50,7 @@ export default function ReviewsPage() {
         query: {
           lang,
           staffId: staffId ?? undefined,
+          serviceId: serviceId ?? undefined,
           rating: rating ?? undefined,
           unanswered: unanswered ? 'true' : undefined,
         },
@@ -73,6 +76,7 @@ export default function ReviewsPage() {
         await api<SalonReviews>(`${base}/reviews`, {
           query: {
             staffId: staffId ?? undefined,
+            serviceId: serviceId ?? undefined,
             rating: rating ?? undefined,
             unanswered: unanswered ? 'true' : undefined,
           },
@@ -81,7 +85,7 @@ export default function ReviewsPage() {
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [base, t, rating, unanswered, staffId]);
+  }, [base, t, rating, unanswered, staffId, serviceId]);
 
   useEffect(() => {
     void load();
@@ -94,6 +98,7 @@ export default function ReviewsPage() {
         query: {
           before: list.nextBefore,
           staffId: staffId ?? undefined,
+          serviceId: serviceId ?? undefined,
           rating: rating ?? undefined,
           unanswered: unanswered ? 'true' : undefined,
         },
@@ -164,6 +169,29 @@ export default function ReviewsPage() {
                     aria-pressed={staffId === chip.staffId}
                     onClick={() => {
                       setStaffId(chip.staffId);
+                      setRating(null);
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {list.services.length > 1 || serviceId !== null ? (
+              <div className="chips" role="group" aria-label={t.reviews.byService}>
+                {[
+                  { serviceId: null, label: t.reviews.allServices },
+                  ...list.services.map((s) => ({
+                    serviceId: s.serviceId,
+                    label: `${s.name} ★ ${s.average === null ? '' : one.format(s.average)} (${s.count})`,
+                  })),
+                ].map((chip) => (
+                  <button
+                    key={chip.serviceId ?? 'all'}
+                    type="button"
+                    aria-pressed={serviceId === chip.serviceId}
+                    onClick={() => {
+                      setServiceId(chip.serviceId);
                       setRating(null);
                     }}
                   >

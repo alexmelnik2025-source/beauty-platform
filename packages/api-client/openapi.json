@@ -11502,6 +11502,13 @@
             "schema": {
               "type": "number"
             }
+          },
+          {
+            "name": "serviceId",
+            "required": false,
+            "in": "query",
+            "description": "Task 420: only reviews of visits for this service",
+            "schema": {}
           }
         ],
         "responses": {
@@ -11529,7 +11536,7 @@
     },
     "/v1/organizations/{orgId}/locations/{locationId}/reviews/export.csv": {
       "get": {
-        "description": "Task 385. The list’s filters (staffId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.",
+        "description": "Task 385. The list’s filters (staffId, serviceId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.",
         "operationId": "ReviewsController_exportCsv",
         "parameters": [
           {
@@ -11580,6 +11587,13 @@
             "required": false,
             "in": "query",
             "description": "Only reviews of this specialist",
+            "schema": {}
+          },
+          {
+            "name": "serviceId",
+            "required": false,
+            "in": "query",
+            "description": "Task 420: only this service",
             "schema": {}
           }
         ],
@@ -23655,6 +23669,38 @@
             },
             "description": "Task 383: specialists (former ones too) with reviews the user may see, salon order; without `staffId`"
           },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "serviceId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "average": {
+                  "nullable": true,
+                  "description": "Average stars, one decimal; null without reviews",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "serviceId",
+                "name",
+                "count",
+                "average"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 420: services (removed ones too) with reviews the user may see — of the chosen specialist with `staffId`; salon order"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -23743,6 +23789,7 @@
           "stars",
           "unanswered",
           "staff",
+          "services",
           "items",
           "nextBefore"
         ],

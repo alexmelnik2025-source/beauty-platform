@@ -297,6 +297,9 @@ export const sq: Dict = {
     summary: '{avg} · vlerësime: {count}',
     bySpecialist: 'Vlerësimet e specialistëve',
     everyone: 'Të gjithë',
+    /** Task 420: the filter by service. */
+    byService: 'Vlerësimet sipas shërbimeve',
+    allServices: 'Të gjitha shërbimet',
     /** Task 380: the filter by stars. */
     byStars: 'Vlerësimet sipas yjeve',
     allStars: 'Të gjitha vlerësimet',

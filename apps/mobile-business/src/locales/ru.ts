@@ -1400,6 +1400,9 @@ export const ru: Dictionary = {
     /** Task 383: the filter by specialist. */
     bySpecialist: 'Отзывы о специалистах',
     everyone: 'Все',
+    /** Task 420: the filter by service. */
+    byService: 'Отзывы по услугам',
+    allServices: 'Все услуги',
     /** Task 385: the reviews as a CSV file. */
     csv: 'Скачать отзывы (CSV)',
     csvFailed: 'Не удалось сохранить файл.',

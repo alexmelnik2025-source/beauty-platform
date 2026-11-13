@@ -84,6 +84,17 @@ export const salonReviewsSchema = responseSchema(
       .describe(
         'Task 383: specialists (former ones too) with reviews the user may see, salon order; without `staffId`',
       ),
+    services: z
+      .array(
+        z.strictObject({
+          serviceId: z.string(),
+          name: z.string(),
+          ...ratingSummary,
+        }),
+      )
+      .describe(
+        'Task 420: services (removed ones too) with reviews the user may see — of the chosen specialist with `staffId`; salon order',
+      ),
     items: z.array(
       z.strictObject({
         id: z.string(),

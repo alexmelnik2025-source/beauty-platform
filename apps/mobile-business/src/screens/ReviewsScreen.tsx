@@ -25,6 +25,7 @@ import {
   reviewLine,
   reviewSettingsChanged,
   reviewSummary,
+  serviceReviewChip,
   staffReviewChip,
   starChips,
   stars,
@@ -40,7 +41,8 @@ import type { SalonChoice } from './SalonsScreen';
  * collecting reviews on or off and choose when the client is asked, as in the cabinet.
  * Task 381: "★ 1 (2)" chips — only the reviews with that many stars. Task 382: "Bez odpowiedzi
  * (n)" for the owner and managers — only the reviews they have not answered yet. Task 383:
- * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist. Task 385: "Pobierz CSV opinii"
+ * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist. Task 420: "Broda ★ 4,5 (6)"
+ * chips — only the reviews of visits for one service. Task 385: "Pobierz CSV opinii"
  * for the owner and managers — the reviews shown, as a file.
  */
 export function ReviewsScreen(props: {
@@ -65,6 +67,8 @@ export function ReviewsScreen(props: {
   const [unansweredCount, setUnansweredCount] = useState(0);
   const [staffId, setStaffId] = useState<string | null>(null);
   const [team, setTeam] = useState<SalonReviews['staff']>([]);
+  const [serviceId, setServiceId] = useState<string | null>(null);
+  const [services, setServices] = useState<SalonReviews['services']>([]);
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
 
@@ -75,6 +79,7 @@ export function ReviewsScreen(props: {
     try {
       const file = await api.reviewsCsv(salon.orgId, salon.locationId, props.locale, {
         staffId: staffId ?? undefined,
+        serviceId: serviceId ?? undefined,
         rating: rating ?? undefined,
         unanswered,
       });
@@ -97,11 +102,13 @@ export function ReviewsScreen(props: {
         const page = await api.reviews(salon.orgId, salon.locationId, {
           before,
           staffId: staffId ?? undefined,
+          serviceId: serviceId ?? undefined,
           rating: rating ?? undefined,
           unanswered,
         });
         setUnansweredCount(page.unanswered);
         setTeam(page.staff);
+        setServices(page.services);
         setSummary({ count: page.count, average: page.average, enabled: page.enabled });
         setCounts(page.stars);
         setItems((shown) => (before && shown ? appendReviews(shown, page.items) : page.items));
@@ -113,7 +120,7 @@ export function ReviewsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, rating, unanswered, staffId],
+    [api, salon, t, rating, unanswered, staffId, serviceId],
   );
 
   useEffect(() => {
@@ -174,6 +181,33 @@ export function ReviewsScreen(props: {
               style={[styles.chip, staffId === chip.staffId && styles.chipOn]}
             >
               <Text style={[styles.chipText, staffId === chip.staffId && { color: '#fff' }]}>
+                {chip.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      {services.length > 1 || serviceId !== null ? (
+        <View style={styles.actions} role="group" aria-label={r.byService}>
+          {[
+            { serviceId: null, label: r.allServices },
+            ...services.map((s) => ({
+              serviceId: s.serviceId,
+              label: serviceReviewChip(s, props.locale),
+            })),
+          ].map((chip) => (
+            <Pressable
+              key={chip.serviceId ?? 'all'}
+              accessibilityRole="button"
+              aria-pressed={serviceId === chip.serviceId}
+              accessibilityState={{ selected: serviceId === chip.serviceId }}
+              onPress={() => {
+                setServiceId(chip.serviceId);
+                setRating(null);
+              }}
+              style={[styles.chip, serviceId === chip.serviceId && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, serviceId === chip.serviceId && { color: '#fff' }]}>
                 {chip.label}
               </Text>
             </Pressable>

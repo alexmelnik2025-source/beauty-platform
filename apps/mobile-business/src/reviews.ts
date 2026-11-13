@@ -101,3 +101,19 @@ export function staffReviewChip(staff: SalonReviews['staff'][number], locale: Da
         }).format(staff.average);
   return `${staff.displayName} ★ ${average} (${staff.count})`;
 }
+
+/** Task 420: "Broda ★ 4,5 (6)" — a service's chip in "Opinie". */
+export function serviceReviewChip(
+  service: SalonReviews['services'][number],
+  locale: DayLocale,
+): string {
+  return staffReviewChip(
+    {
+      staffId: service.serviceId,
+      displayName: service.name,
+      count: service.count,
+      average: service.average,
+    },
+    locale,
+  );
+}
