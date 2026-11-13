@@ -10,10 +10,12 @@ import type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  ProductList,
   SalonReport,
   StaffCommissions,
   TillClose,
   Tokens,
+  VisitProductSales,
   components,
 } from '@beauty/api-client';
 import type { MessagesChanges } from './messages';
@@ -171,10 +173,12 @@ export type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  ProductList,
   SalonReport,
   StaffCommissions,
   TillClose,
   Tokens,
+  VisitProductSales,
 };
 
 /** Where the refresh token lives: Keychain/Keystore on phones, browser storage in the web preview. */
@@ -644,6 +648,50 @@ export class BusinessApi {
   }
 
   /** Task 229: the tip the client left on a visit that took place (0 = none). */
+  /** Task 396: the salon's products (everyone in the salon reads the list). */
+  products(orgId: string, locationId: string): Promise<ProductList> {
+    return this.authed<ProductList>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
+    );
+  }
+
+  /** Task 396: products sold at the visit. */
+  productSales(orgId: string, locationId: string, id: string): Promise<VisitProductSales> {
+    return this.authed<VisitProductSales>(
+      'GET',
+      `${appointmentPath(orgId, locationId, id)}/products`,
+    );
+  }
+
+  /** Task 396: notes a product sold at a visit that took place. */
+  addProductSale(
+    orgId: string,
+    locationId: string,
+    id: string,
+    productId: string,
+    quantity = 1,
+  ): Promise<VisitProductSales> {
+    return this.authed<VisitProductSales>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/products`,
+      { productId, quantity },
+    );
+  }
+
+  /** Task 396: removes a product noted by mistake. */
+  removeProductSale(
+    orgId: string,
+    locationId: string,
+    id: string,
+    saleId: string,
+  ): Promise<VisitProductSales> {
+    return this.authed<VisitProductSales>(
+      'DELETE',
+      `${appointmentPath(orgId, locationId, id)}/products/${enc(saleId)}`,
+    );
+  }
+
   setTip(
     orgId: string,
     locationId: string,

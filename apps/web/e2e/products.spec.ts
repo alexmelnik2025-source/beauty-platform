@@ -8,11 +8,14 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 395: "Produkty". The owner keeps the salon's list of products in "Usługi" (screenshot
  * 395), notes what the client bought in the card of a visit that took place (395-a) and sees
  * "Sprzedaż produktów" in "Raporty", apart from the visit revenue (395-b).
+ * Task 396: the same in the business app — a tap on a product in the visit card (396) and
+ * "Sprzedaż produktów" in its report (396-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -176,4 +179,45 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(report).toContainText(/2 szt\. · 98,00\s*zł/);
   await shot(page, '395-b-report-products');
   await context.close();
+
+  // The business app (its web preview): one more shampoo in the visit card, then the report.
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const app = await (
+      await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        locale: 'pl-PL',
+        isMobile: true,
+      })
+    ).newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();
+    for (let back = 0; back < 3 && !(await jan.isVisible()); back++) {
+      await app.getByRole('button', { name: 'Poprzedni dzień' }).click();
+      await app.waitForTimeout(800);
+    }
+    await jan.click();
+    const appSold = app.getByTestId('visit-products');
+    await expect(appSold).toContainText(/Pomada matowa × 2/);
+    await appSold.getByRole('button', { name: 'Dodaj produkt — Szampon' }).click();
+    await expect(appSold).toContainText(/PRODUKTY: 128,50\s*zł/);
+    await appSold.scrollIntoViewIfNeeded();
+    await shot(app, '396-business-app-visit-products');
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Raporty' }).click();
+    await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+    const appReport = app.getByTestId('report-products');
+    await appReport.scrollIntoViewIfNeeded();
+    await expect(appReport).toContainText(/Sprzedaż produktów: 128,50\s*zł/);
+    await expect(appReport).toContainText(/1 szt\. · 30,50\s*zł/);
+    await shot(app, '396-a-business-app-report-products');
+  } finally {
+    businessApp.server.close();
+  }
 });

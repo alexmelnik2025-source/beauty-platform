@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ProductSalesSection } from './ProductSalesSection';
 import {
   BackHandler,
   Image,
@@ -409,6 +410,17 @@ export function VisitScreen(props: {
             amount: formatPrice(visit.tipGrosze, salon.currency, props.locale),
           })}
         </Text>
+      ) : null}
+      {visit.status === 'completed' ? (
+        // Task 396: products the client bought at the visit.
+        <ProductSalesSection
+          api={api}
+          t={t}
+          locale={props.locale}
+          salon={salon}
+          appointmentId={visit.id}
+          canChange={props.canChange}
+        />
       ) : null}
 
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}

@@ -649,6 +649,15 @@ export const en: Dictionary = {
     removeNo: 'No',
     removed: '{name} removed from the waiting list.',
   },
+  products: {
+    sold: 'Products',
+    soldTotal: 'PRODUCTS: {amount}',
+    soldHint:
+      'Not part of the visit price, points or discounts. The list of products is kept in the cabinet ("Services").',
+    removeSale: 'Remove',
+    removeSaleFor: 'Remove product — {name}',
+    addSaleFor: 'Add product — {name}',
+  },
   reports: {
     open: 'Reports',
     title: 'Reports',
@@ -773,6 +782,9 @@ export const en: Dictionary = {
     discountRow: '{amount} · visits: {n}',
     discountHint:
       'How much the salon gave away in discounts on the paid visits of this period. The revenue in the report is already after them.',
+    products: 'Products sold: {amount}',
+    productsRow: '{n} pcs · {amount}',
+    productsHint: 'Products sold at the visits. Not part of the visit revenue or the commissions.',
     tipsHint: 'They are not part of the salon’s revenue — the salon decides how to share them.',
     commissions: 'Commissions',
     commissionsTotal: 'Commissions: {amount}',
