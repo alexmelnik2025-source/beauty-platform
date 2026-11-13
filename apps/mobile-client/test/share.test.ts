@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { bookingUrl } from '../src/api';
 import { DICTIONARIES } from '../src/i18n';
-import { shareMessage, shareSalon } from '../src/share';
+import { shareMessage, shareSalon, visitShareMessage } from '../src/share';
 
 const url = bookingUrl('https://app.example.com/', 'pl', 'gestalt-barbershop');
 const content = shareMessage(DICTIONARIES.pl.salon.shareText, 'GESTALT BARBERSHOP', url);
@@ -63,5 +63,33 @@ describe('recommending a salon (task 151)', () => {
     expect(await shareSalon(content, { copy: vi.fn().mockRejectedValue(new Error('no')) })).toBe(
       'failed',
     );
+  });
+});
+
+describe('"Udostępnij wizytę" (task 411)', () => {
+  it('fills in the visit and copies the whole text when nothing else can share', async () => {
+    const content = visitShareMessage(
+      'Moja wizyta: {service} u {staff} — {day}, godz. {time}. {salon}, {address}. Dojazd: {url}',
+      {
+        service: 'Strzyżenie',
+        staff: 'Kasia',
+        day: 'piątek, 14 listopada',
+        time: '12:00',
+        salon: 'GESTALT',
+        address: 'ul. Łopuszańska 32, Warszawa',
+      },
+      'https://maps.test/x',
+    );
+    expect(content).toEqual({
+      message:
+        'Moja wizyta: Strzyżenie u Kasia — piątek, 14 listopada, godz. 12:00. GESTALT, ul. Łopuszańska 32, Warszawa. Dojazd: https://maps.test/x',
+      url: 'https://maps.test/x',
+      title: 'GESTALT',
+    });
+    const copied: string[] = [];
+    const tools = { copy: async (text: string) => void copied.push(text) };
+    expect(await shareSalon(content, tools, 'message')).toBe('copied');
+    expect(await shareSalon(content, tools)).toBe('copied');
+    expect(copied).toEqual([content.message, 'https://maps.test/x']);
   });
 });

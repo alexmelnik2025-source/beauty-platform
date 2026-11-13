@@ -85,6 +85,12 @@ export const tr: Dictionary = {
     cancelYes: 'Evet, iptal et',
     cancelled: 'Randevu iptal edildi.',
     directions: 'Yol tarifi',
+    /** Task 411. */
+    share: 'Randevuyu paylaş',
+    shareText:
+      'Randevum: {service}, {staff} — {day}, saat {time}. {salon}, {address}. Yol tarifi: {url}',
+    shareCopied: 'Kopyalandı — istediğin yere yapıştır.',
+    shareFailed: 'Paylaşılamadı.',
     callSalon: 'Salonu ara',
     addToCalendar: 'Takvime ekle',
     bookAgain: 'Tekrar randevu al',

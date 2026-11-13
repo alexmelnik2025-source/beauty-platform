@@ -32,6 +32,8 @@ import {
 } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { directionsUrl } from '../salon';
+import { shareSalon, visitShareMessage } from '../share';
+import { shareTools } from './shareTools';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 import { WishesPicker } from '../WishesPicker';
 import { VisitPhotos } from '../WishPhotosPicker';
@@ -98,6 +100,27 @@ export function VisitScreen(props: {
       if (!api.signedIn) return onSessionEnded();
       setError(errorText(e, t));
     }
+  }
+
+  /** Task 411: "Udostępnij wizytę" — when and where, with the route, for a friend or family. */
+  const [shareInfo, setShareInfo] = useState('');
+  async function shareVisit() {
+    const content = visitShareMessage(
+      t.visit.shareText,
+      {
+        service: visit.service.name,
+        staff: visit.staff.displayName,
+        day: formatDay(visit.date, locale),
+        time: visit.time,
+        salon: visit.salon.name,
+        address: salonAddress(visit.salon),
+      },
+      directionsUrl(visit.salon, 'web'),
+    );
+    const result = await shareSalon(content, shareTools(), 'message');
+    setShareInfo(
+      result === 'copied' ? t.visit.shareCopied : result === 'failed' ? t.visit.shareFailed : '',
+    );
   }
 
   // Android "back" closes the card instead of the app.
@@ -510,6 +533,14 @@ export function VisitScreen(props: {
           label={`${v.callSalon} ${visit.salon.phone}`}
           onPress={() => void Linking.openURL(`tel:${visit.salon.phone}`)}
         />
+      ) : null}
+      {visit.status === 'confirmed' && !moving ? (
+        <Button kind="secondary" label={v.share} onPress={() => void shareVisit()} />
+      ) : null}
+      {shareInfo ? (
+        <Text role="status" style={styles.muted}>
+          {shareInfo}
+        </Text>
       ) : null}
       {visit.status === 'confirmed' ? (
         <Button

@@ -237,6 +237,12 @@ export const sq: Dict = {
     doneLeadApproval:
       "Salloni do ta konfirmojë vizitën — ora është mbajtur tashmë për ju. Do t'ju shkruajmë me email kur salloni ta pranojë.",
     directions: 'Si të arrini',
+    /** Task 412. */
+    shareVisit: 'Ndaj takimin',
+    shareVisitText:
+      'Takimi im: {service} me {staff} — {day}, ora {time}. {salon}, {address}. Si të arrini: {url}',
+    shareVisitCopied: 'U kopjua — ngjite ku të duash.',
+    shareVisitFailed: 'Ndarja nuk u krye.',
     nearbyTitle: 'Sallone të tjera afër',
     nearbyDistance: '{km} km larg',
     addToCalendar: 'Shto në kalendar',

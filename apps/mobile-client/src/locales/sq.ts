@@ -85,6 +85,12 @@ export const sq: Dictionary = {
     cancelYes: 'Po, anuloje',
     cancelled: 'Takimi u anulua.',
     directions: 'Si të arrini',
+    /** Task 411. */
+    share: 'Ndaj takimin',
+    shareText:
+      'Takimi im: {service} me {staff} — {day}, ora {time}. {salon}, {address}. Si të arrini: {url}',
+    shareCopied: 'U kopjua — ngjite ku të duash.',
+    shareFailed: 'Ndarja nuk u krye.',
     callSalon: 'Telefono sallonin',
     addToCalendar: 'Shtoje në kalendar',
     bookAgain: 'Rezervo përsëri',

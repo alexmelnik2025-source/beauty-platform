@@ -496,6 +496,12 @@ export const en: Dict = {
     doneLeadApproval:
       'The salon will confirm your visit — the time is already held for you. We will email you when the salon accepts it.',
     directions: 'Get directions',
+    /** Task 412. */
+    shareVisit: 'Share the visit',
+    shareVisitText:
+      'My visit: {service} with {staff} — {day}, {time}. {salon}, {address}. Directions: {url}',
+    shareVisitCopied: 'Copied — paste it wherever you like.',
+    shareVisitFailed: 'Could not share.',
     nearbyTitle: 'Other salons nearby',
     nearbyDistance: '{km} km away',
     addToCalendar: 'Add to calendar',

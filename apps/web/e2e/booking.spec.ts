@@ -432,6 +432,23 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   ).toMatch(/Warszawa$/);
   await manageDirections.scrollIntoViewIfNeeded();
   await shot(client, '360-client-manage-directions');
+  // Task 412: "Udostępnij wizytę" — when and where, with the route (the test stands in for the
+  // phone's share sheet).
+  await client.evaluate(() => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: async (data: ShareData) => {
+        (window as unknown as { shared?: ShareData }).shared = data;
+      },
+    });
+  });
+  await client.getByRole('button', { name: 'Udostępnij wizytę' }).click();
+  const sharedVisit = await client.evaluate(
+    () => (window as unknown as { shared?: ShareData }).shared,
+  );
+  expect(sharedVisit?.text).toMatch(
+    /^Moja wizyta: Strzyżenie męskie u Kasia — .+, godz\. \d{2}:\d{2}\. Gestalt Barbershop, .+Warszawa\. Dojazd: https:\/\/www\.google\.com\/maps\/dir\//,
+  );
   // "Add to calendar" (task 20): the email and the page give the visit as an .ics file.
   expect(confirmation.text).toContain('Dodaj do kalendarza:');
   const calendarLink = client.getByRole('link', { name: 'Dodaj do kalendarza' });
@@ -1543,6 +1560,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText(/Odwołać lub zmienić online możesz do/)).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Umów ponownie' })).toBeVisible();
     await shot(phone, '59-client-app-visit');
+    // Task 411: "Udostępnij wizytę" in the app (the browser's share menu in the web preview).
+    await phone.evaluate(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: async (data: ShareData) => {
+          (window as unknown as { shared?: ShareData }).shared = data;
+        },
+      });
+    });
+    await phone.getByRole('button', { name: 'Udostępnij wizytę' }).click();
+    await expect
+      .poll(() => phone.evaluate(() => (window as unknown as { shared?: ShareData }).shared?.text))
+      .toMatch(/^Moja wizyta: Strzyżenie męskie u Kasia — .+Gestalt Barbershop, .+ Dojazd: https:/);
     // "Add to calendar" (task 22): the app gets a link to the visit's .ics file and opens it.
     const [calendarLink] = await Promise.all([
       phone.waitForResponse((r) => r.url().endsWith('/calendar-link')),
