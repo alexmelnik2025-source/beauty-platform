@@ -773,6 +773,8 @@ export const pl = {
     commissionRow: '{percent} · {amount}',
     commissionsHint:
       'Procent od tego, co przyniosły opłacone wizyty specjalisty (cena po rabatach). Napiwki nie wchodzą.',
+    payoutRow: '+ napiwki {tips} = {total}',
+    payoutTotal: 'Razem do wypłaty (z napiwkami): {amount}',
     commissionsSet: 'Ustaw prowizje',
     commissionsHide: 'Zwiń prowizje',
     commissionsSetHint:

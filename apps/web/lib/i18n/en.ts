@@ -1574,6 +1574,9 @@ export const en: Dict = {
     colCommissionAmount: 'Commission amount',
     commissionsHint:
       "A percentage of what the specialist's paid visits brought (price after discounts). Tips are not included — they are separate.",
+    colPayoutTips: 'Tips',
+    colPayout: 'To pay out',
+    payoutTotal: 'Total to pay out (commissions and tips): {amount}',
     commissionsSet: 'Set commissions',
     commissionsSetHint:
       'A percentage from 0 to 100, e.g. 40 or 42.5. Empty — no commission. Only the owner and managers see this; a specialist who can see their own results sees only theirs.',

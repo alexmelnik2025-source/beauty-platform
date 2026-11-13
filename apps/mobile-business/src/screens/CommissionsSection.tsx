@@ -33,6 +33,9 @@ export function CommissionsSection(props: {
 
   if (!canSet && rows.length === 0) return null;
   const total = rows.reduce((sum, row) => sum + (row.commissionGrosze ?? 0), 0);
+  // Task 390: "Do wypłaty" — the commission plus the tips the specialist got in the period.
+  const tipsOf = (id: string) => report.tips.staff.find((s) => s.id === id)?.tipsGrosze ?? 0;
+  const payout = rows.reduce((sum, row) => sum + (row.commissionGrosze ?? 0) + tipsOf(row.id), 0);
 
   const show = (next: StaffCommissions) => {
     setList(next.staff);
@@ -84,14 +87,29 @@ export function CommissionsSection(props: {
       {rows.map((row) => (
         <View key={row.id} style={styles.cardTop}>
           <Text style={styles.name}>{row.displayName}</Text>
-          <Text style={styles.muted}>
-            {fill(r.commissionRow, {
-              percent: percentText(row.commissionPercent!, locale),
-              amount: money(row.commissionGrosze ?? 0),
-            })}
-          </Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.muted}>
+              {fill(r.commissionRow, {
+                percent: percentText(row.commissionPercent!, locale),
+                amount: money(row.commissionGrosze ?? 0),
+              })}
+            </Text>
+            {tipsOf(row.id) > 0 ? (
+              <Text style={styles.small}>
+                {fill(r.payoutRow, {
+                  tips: money(tipsOf(row.id)),
+                  total: money((row.commissionGrosze ?? 0) + tipsOf(row.id)),
+                })}
+              </Text>
+            ) : null}
+          </View>
         </View>
       ))}
+      {payout > total ? (
+        <Text style={styles.name} testID="report-payout">
+          {fill(r.payoutTotal, { amount: money(payout) })}
+        </Text>
+      ) : null}
       <Text style={styles.small}>{r.commissionsHint}</Text>
       {canSet ? (
         <Button

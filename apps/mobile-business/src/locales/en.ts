@@ -776,6 +776,8 @@ export const en: Dictionary = {
     commissionRow: '{percent} · {amount}',
     commissionsHint:
       "A percentage of what the specialist's paid visits brought (price after discounts). Tips are not included.",
+    payoutRow: '+ tips {tips} = {total}',
+    payoutTotal: 'Total to pay out (with tips): {amount}',
     commissionsSet: 'Set commissions',
     commissionsHide: 'Hide commissions',
     commissionsSetHint:
