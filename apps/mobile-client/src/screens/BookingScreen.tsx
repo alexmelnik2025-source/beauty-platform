@@ -57,7 +57,9 @@ import {
 } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { dialForTimeZone } from '../phone';
-import { durationText, serviceGroups, specialtyText } from '../salon';
+import { directionsUrl, durationText, serviceGroups, specialtyText } from '../salon';
+import { shareSalon, visitShareMessage } from '../share';
+import { shareTools } from './shareTools';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 import { WaitlistPanel } from './WaitlistPanel';
 
@@ -131,6 +133,8 @@ export function BookingScreen(props: {
   });
   const [code, setCode] = useState('');
   const [done, setDone] = useState<BookingConfirmed | null>(null);
+  // Task 418: what "Udostępnij wizytę" says after it ran (copied, failed).
+  const [shareInfo, setShareInfo] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [, tick] = useState(0);
@@ -841,6 +845,42 @@ export function BookingScreen(props: {
               {salon.name}, {salon.addressLine}, {salon.city}
             </Text>
           </Card>
+          {/* Task 418: tell someone when and where, right after booking (as on the site, 413). */}
+          <Button
+            kind="secondary"
+            label={t.visit.share}
+            onPress={() =>
+              void shareSalon(
+                visitShareMessage(
+                  t.visit.shareText,
+                  {
+                    service: done.appointment.service.name,
+                    staff: done.appointment.staff.displayName,
+                    day: formatDay(done.appointment.date, locale),
+                    time: done.appointment.time,
+                    salon: salon.name,
+                    address: `${salon.addressLine}, ${salon.city}`,
+                  },
+                  directionsUrl(salon, 'web'),
+                ),
+                shareTools(),
+                'message',
+              ).then((result) =>
+                setShareInfo(
+                  result === 'copied'
+                    ? t.visit.shareCopied
+                    : result === 'failed'
+                      ? t.visit.shareFailed
+                      : '',
+                ),
+              )
+            }
+          />
+          {shareInfo ? (
+            <Text role="status" style={styles.muted}>
+              {shareInfo}
+            </Text>
+          ) : null}
           {props.signedIn ? (
             <>
               <Text style={styles.text}>{b.inVisits}</Text>

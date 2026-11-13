@@ -1812,6 +1812,21 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText(`${bookedTime} ·`, { exact: false })).toBeVisible();
     await expect(phone.getByText('Strzyżenie męskie · Kasia')).toBeVisible();
     await shot(phone, '64c-client-app-booked');
+    // Task 418: "Udostępnij wizytę" right after booking in the app.
+    await phone.evaluate(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: async (data: ShareData) => {
+          (window as unknown as { booked?: ShareData }).booked = data;
+        },
+      });
+    });
+    await phone.getByRole('button', { name: 'Udostępnij wizytę' }).click();
+    await expect
+      .poll(() => phone.evaluate(() => (window as unknown as { booked?: ShareData }).booked?.text))
+      .toMatch(
+        new RegExp(`^Moja wizyta: Strzyżenie męskie u Kasia — .+, godz\\. ${bookedTime}\\. `),
+      );
     // Not signed in: one more code shows the new visit in "Moje wizyty"; the email is filled in.
     await phone.getByRole('button', { name: 'Zaloguj się do „Moich wizyt”' }).click();
     await expect(phone.getByLabel('E-mail', { exact: true })).toHaveValue(CLIENT4);
