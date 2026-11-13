@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   expect,
   test,
@@ -288,6 +289,17 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await shot(cabinet, '383-cabinet-reviews-specialist');
   await list.getByRole('button', { name: 'Wszyscy', exact: true }).click();
   await expect(list.locator('.list-row')).toHaveCount(3);
+  // Task 407: every review as a CSV file.
+  const [reviewsCsv] = await Promise.all([
+    cabinet.waitForEvent('download'),
+    list.getByRole('button', { name: 'Pobierz CSV opinii' }).click(),
+  ]);
+  expect(reviewsCsv.suggestedFilename()).toMatch(/^opinie-.+-\d{4}-\d{2}-\d{2}\.csv$/);
+  const reviewsText = readFileSync((await reviewsCsv.path())!, 'utf8');
+  expect(reviewsText).toContain('Data wizyty;Godzina;Ocena;Specjalista;Usługa;Klient;Opinia');
+  expect(reviewsText).toContain('Marta Nowak');
+  expect(reviewsText.trimEnd().split('\r\n')).toHaveLength(4);
+  await shot(cabinet, '407-cabinet-reviews-csv');
   const saved = await json<{ requestHours: number; version: number }>(
     await request.get(`${base}/review-settings`, { headers: owner }),
   );

@@ -9,9 +9,19 @@ import {
   Put,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
+import { CSV_LOCALES } from '../reports/visits-csv';
 import { CurrentAuth, Public } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
@@ -39,11 +49,13 @@ import {
   listReviewsQuerySchema,
   salonReviewsQuerySchema,
   replyReviewSchema,
+  reviewsCsvQuerySchema,
   updateReviewSettingsSchema,
   writeReviewSchema,
   type ListReviewsQuery,
   type SalonReviewsQuery,
   type ReplyReviewInput,
+  type ReviewsCsvQuery,
   type UpdateReviewSettingsInput,
   type WriteReviewInput,
 } from './reviews.schemas';
@@ -127,6 +139,29 @@ export class ReviewsController {
     @Query(new ZodValidationPipe(salonReviewsQuerySchema)) query: SalonReviewsQuery,
   ): Promise<SalonReviewsResponse> {
     return this.reviews.listForSalon(m, auth.userId, locationId, query);
+  }
+
+  @Get('reviews-csv')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'Every review of the location as a CSV file, newest first',
+    description:
+      'Task 407. Owners and managers only. Visit date and time (salon time), stars, specialist, service, the client’s name (empty after erasure; no contacts), the review, the salon’s reply, when it was written. Same file format as visits-csv.',
+  })
+  @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async csv(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Query(new ZodValidationPipe(reviewsCsvQuerySchema)) query: ReviewsCsvQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, fileName } = await this.reviews.csv(m, locationId, query.locale);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
   }
 
   @Put('reviews/:reviewId/reply')

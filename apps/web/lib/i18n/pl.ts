@@ -556,6 +556,10 @@ export const pl = {
     salonReply: 'Odpowiedź salonu',
   },
   reviewsCabinet: {
+    /** Task 407. */
+    csv: 'Pobierz CSV opinii',
+    csvHint:
+      'Wszystkie opinie z oceną, specjalistą, usługą, imieniem klienta i odpowiedzią salonu — do Excela.',
     title: 'Opinie klientów',
     settings: 'Ustawienia opinii',
     enabled: 'Zbieraj opinie po wizycie',

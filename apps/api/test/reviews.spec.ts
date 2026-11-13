@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
+import { addDays, instantToLocal, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -675,5 +675,92 @@ describe('the salon answers a review (task 211)', () => {
       .expect(404);
     const kept = await ctx.prisma.visitReview.findUniqueOrThrow({ where: { id: reviewId } });
     expect(kept.reply).toBeNull();
+  });
+});
+
+describe('reviews CSV (task 407)', () => {
+  const csv = (auth: { Authorization: string }, locale?: string) =>
+    ctx
+      .http()
+      .get(`${base}/reviews-csv`)
+      .query(locale ? { locale } : {})
+      .set(auth);
+
+  it('every review, newest first, with the client name and the reply; no contacts', async () => {
+    await switchOn();
+    const anna = await book(10, kasiaId, ANNA);
+    await tookPlace(anna.id, 2);
+    await review(anna.token, { rating: 4, text: 'Dobrze; "polecam"' });
+    const bob = await book(11, olaId, BOB);
+    await tookPlace(bob.id, 1);
+    await review(bob.token, { rating: 5 });
+    const list = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    const annaReview = list.body.items.find(
+      (r: { customerName: string }) => r.customerName === 'Anna Kowalska',
+    );
+    await ctx
+      .http()
+      .put(`${base}/reviews/${annaReview.id}/reply`)
+      .set(owner.auth)
+      .send({ text: '=Dziękujemy' })
+      .expect(200);
+    // Bob's data was erased (RODO): his review stays, without his name.
+    const bobVisit = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: bob.id } });
+    await ctx.prisma.customer.update({
+      where: { id: bobVisit.customerId! },
+      data: { anonymizedAt: new Date() },
+    });
+
+    const res = await csv(owner.auth).expect(200);
+    expect(res.headers['content-type']).toMatch(/^text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(
+      new RegExp(`attachment; filename="opinie-${slug}-\\d{4}-\\d{2}-\\d{2}\\.csv"`),
+    );
+    expect(res.text.startsWith('﻿')).toBe(true);
+    const lines = res.text.slice(1).trimEnd().split('\r\n');
+    expect(lines[0]).toBe(
+      'Data wizyty;Godzina;Ocena;Specjalista;Usługa;Klient;Opinia;Odpowiedź salonu;Data opinii',
+    );
+    expect(lines).toHaveLength(3);
+    const local = (at: Date) => instantToLocal(at.getTime(), TZ);
+    const annaVisit = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: anna.id } });
+    const today = local(new Date()).date;
+    // Newest first: Bob's review was written last.
+    expect(lines[1]).toBe(
+      `${local(bobVisit.startAt).date};${local(bobVisit.startAt).time};5;Ola;Strzyżenie;;;;${today}`,
+    );
+    expect(lines[2]).toBe(
+      `${local(annaVisit.startAt).date};${local(annaVisit.startAt).time};4;Kasia;Strzyżenie;` +
+        `Anna Kowalska;"Dobrze; ""polecam""";'=Dziękujemy;${today}`,
+    );
+    expect(res.text).not.toContain('600 100 200');
+    expect(res.text).not.toContain('anna.client@example.com');
+
+    const english = await csv(owner.auth, 'en').expect(200);
+    expect(english.text.slice(1).split('\r\n')[0]).toBe(
+      'Visit date;Time;Rating;Specialist;Service;Client;Review;Salon reply;Written on',
+    );
+    await csv(owner.auth, 'de').expect(400);
+  });
+
+  it('only owners and managers of the salon', async () => {
+    const kasia = await signUp(ctx, 'kasia@example.com');
+    await ctx.prisma.membership.create({
+      data: {
+        userId: kasia.userId,
+        organizationId: orgId,
+        role: 'staff',
+        permissionOverrides: { viewAllAppointments: true },
+        locations: { create: [{ locationId }] },
+      },
+    });
+    await csv(kasia.auth).expect(403);
+    const other = await signUp(ctx, 'other@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    const res = await csv(other.auth);
+    expect([403, 404]).toContain(res.status);
+    // An empty salon: only the header line.
+    const empty = await csv(owner.auth).expect(200);
+    expect(empty.text.slice(1).trimEnd().split('\r\n')).toHaveLength(1);
   });
 });

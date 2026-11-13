@@ -2864,6 +2864,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reviews-csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every review of the location as a CSV file, newest first
+         * @description Task 407. Owners and managers only. Visit date and time (salon time), stars, specialist, service, the client’s name (empty after erasure; no contacts), the review, the salon’s reply, when it was written. Same file format as visits-csv.
+         */
+        get: operations["ReviewsController_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/reviews/{reviewId}/reply": {
         parameters: {
             query?: never;
@@ -11485,6 +11505,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalonReviews"];
+                };
+            };
+        };
+    };
+    ReviewsController_csv: {
+        parameters: {
+            query?: {
+                locale?: "pl" | "uk" | "ru" | "en";
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };

@@ -6,7 +6,7 @@ import { SalonReply } from '@/components/reviews/SalonReply';
 import { StarFilter } from '@/components/reviews/StarFilter';
 import { Stars } from '@/components/reviews/Stars';
 import { ErrorBox, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import type { ReviewSettings, SalonReviews } from '@/lib/types';
@@ -21,7 +21,7 @@ const HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
  * of their own visits — the server decides). Task 211: the owner and managers answer a review
  * publicly, change or remove the answer. Task 380: "★ 1 (2)" chips — e.g. only the low ratings.
  * Task 382: "Bez odpowiedzi (n)" — only the reviews the salon has not answered yet. Task 383:
- * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist.
+ * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist. Task 407: "Pobierz CSV opinii".
  */
 export default function ReviewsPage() {
   const { t, locale } = useI18n();
@@ -69,6 +69,30 @@ export default function ReviewsPage() {
       setList({ ...next, items: [...list.items, ...next.items] });
     } catch (err) {
       setError(errorText(t, err));
+    }
+  }
+
+  // Task 407: every review as a CSV file (owners and managers).
+  const [downloading, setDownloading] = useState(false);
+  async function downloadCsv() {
+    setDownloading(true);
+    setError('');
+    try {
+      const res = await apiResponse(`${base}/reviews-csv`, { query: { locale } });
+      const name =
+        /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ??
+        'opinie.csv';
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(await res.blob());
+      link.download = name;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -129,6 +153,19 @@ export default function ReviewsPage() {
               </div>
             ) : null}
             <StarFilter stars={list.stars} value={rating} onChange={setRating} />
+            {manager && list.count > 0 ? (
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn btn--quiet btn--small"
+                  title={t.reviewsCabinet.csvHint}
+                  disabled={downloading}
+                  onClick={() => void downloadCsv()}
+                >
+                  {t.reviewsCabinet.csv}
+                </button>
+              </div>
+            ) : null}
             {manager && (list.unanswered > 0 || unanswered) ? (
               <div className="chips">
                 <button

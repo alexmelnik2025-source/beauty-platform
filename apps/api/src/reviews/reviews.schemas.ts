@@ -1,3 +1,4 @@
+import { CSV_LOCALES } from '../reports/visits-csv';
 import { z } from 'zod';
 
 /** Task 165b: the salon's review settings. */
@@ -70,3 +71,7 @@ export const salonReviewsQuerySchema = listReviewsQuerySchema.extend({
     .describe('Task 382: only reviews the salon has not answered yet'),
 });
 export type SalonReviewsQuery = z.infer<typeof salonReviewsQuerySchema>;
+
+/** Task 407: the language of the reviews CSV's column names. */
+export const reviewsCsvQuerySchema = z.object({ locale: z.enum(CSV_LOCALES).default('pl') });
+export type ReviewsCsvQuery = z.infer<typeof reviewsCsvQuerySchema>;

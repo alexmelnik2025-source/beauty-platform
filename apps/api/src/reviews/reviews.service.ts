@@ -6,6 +6,9 @@ import type { MembershipContext } from '../common/request-context';
 import type { Appointment, Prisma, ReviewSettings, VisitReview } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type { CsvLocale } from '../reports/visits-csv';
+import { instantToLocal } from '../scheduling/time';
+import { reviewsCsv } from './reviews-csv';
 import type {
   PublicReviewsResponse,
   ReviewSettingsResponse,
@@ -182,6 +185,44 @@ export class ReviewsService {
       items: page.map(toSalonReview),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };
+  }
+
+  /**
+   * Task 407: every review of the location as a CSV file, newest first — owners and managers
+   * of the location only (as they answer the reviews). The client's name as in the cabinet.
+   */
+  async csv(
+    m: MembershipContext,
+    locationId: string,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const location = await this.access.writable(m, locationId);
+    const rows = await this.prisma.visitReview.findMany({
+      where: { locationId },
+      include: salonReviewInclude,
+      orderBy: { id: 'desc' },
+    });
+    const tz = location.timezone;
+    const csv = reviewsCsv(
+      rows.map((r) => {
+        const visit = instantToLocal(r.appointment.startAt.getTime(), tz);
+        const customer = r.appointment.customer;
+        return {
+          visitDate: visit.date,
+          visitTime: visit.time,
+          rating: r.rating,
+          staff: r.staff.displayName,
+          service: r.appointment.service.name,
+          client: customer && !customer.anonymizedAt ? customer.name : null,
+          text: r.text,
+          reply: r.reply,
+          writtenOn: instantToLocal(r.createdAt.getTime(), tz).date,
+        };
+      }),
+      locale,
+    );
+    const today = instantToLocal(Date.now(), tz).date;
+    return { csv, fileName: `opinie-${location.slug}-${today}.csv` };
   }
 
   /**

@@ -11161,6 +11161,57 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reviews-csv": {
+      "get": {
+        "description": "Task 407. Owners and managers only. Visit date and time (salon time), stars, specialist, service, the client’s name (empty after erasure; no contacts), the review, the salon’s reply, when it was written. Same file format as visits-csv.",
+        "operationId": "ReviewsController_csv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every review of the location as a CSV file, newest first",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/reviews/{reviewId}/reply": {
       "put": {
         "description": "Task 211. Shown under the review on the salon page and to the client. Owners and managers only.",

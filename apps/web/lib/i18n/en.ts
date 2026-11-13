@@ -555,6 +555,10 @@ export const en: Dict = {
     salonReply: 'Reply from the salon',
   },
   reviewsCabinet: {
+    /** Task 407. */
+    csv: 'Download reviews CSV',
+    csvHint:
+      "Every review with the stars, specialist, service, client name and the salon's reply — for Excel.",
     title: 'Client reviews',
     settings: 'Review settings',
     enabled: 'Collect reviews after the visit',
