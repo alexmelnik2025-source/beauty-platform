@@ -201,7 +201,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await app.getByRole('button', { name: 'Usługi' }).click();
     const appList = app.getByTestId('products');
     await appList.getByLabel('Nowy produkt').fill('Wosk');
-    await appList.getByLabel('Cena (PLN)').last().fill('25');
+    await appList.getByLabel('Cena produktu (PLN)').last().fill('25');
     await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
     await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
     await expect(appList.getByText('Pomada matowa', { exact: true })).toBeVisible();

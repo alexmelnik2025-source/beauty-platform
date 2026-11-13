@@ -655,7 +655,7 @@ export const en: Dictionary = {
       'Products you sell at the visit (pomade, shampoo…). A sale is noted in the card of a visit that took place.',
     empty: 'No products on the list yet.',
     name: 'Product name',
-    priceIn: 'Price ({currency})',
+    priceIn: 'Product price ({currency})',
     priceInvalid: 'Enter a price, e.g. 45 or 30.50.',
     save: 'Save',
     cancel: 'Cancel',

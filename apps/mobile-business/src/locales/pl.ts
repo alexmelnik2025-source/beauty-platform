@@ -651,7 +651,7 @@ export const pl = {
       'Produkty, które sprzedajecie przy wizycie (pomada, szampon…). Sprzedaż zapisuje się w karcie wizyty, która się odbyła.',
     empty: 'Na liście nie ma jeszcze produktów.',
     name: 'Nazwa produktu',
-    priceIn: 'Cena ({currency})',
+    priceIn: 'Cena produktu ({currency})',
     priceInvalid: 'Wpisz cenę, np. 45 lub 30,50.',
     save: 'Zapisz',
     cancel: 'Anuluj',
