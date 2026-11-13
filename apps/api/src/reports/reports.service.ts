@@ -1085,7 +1085,7 @@ export class ReportsService {
         cancelledBy: true,
         cancelledAt: true,
         customer: { select: { name: true } },
-        staff: { select: { displayName: true } },
+        staff: { select: { displayName: true, commissionPermille: true } },
         service: { select: { name: true, category: { select: { name: true } } } },
       },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
@@ -1116,6 +1116,10 @@ export class ReportsService {
           tierDiscountGrosze: a.tierDiscountGrosze,
           happyHourGrosze:
             a.listPriceGrosze === null ? 0 : Math.max(0, a.listPriceGrosze - a.priceGrosze),
+          commissionGrosze:
+            a.paidAt === null
+              ? null
+              : commissionGrosze(a.priceGrosze - a.discountGrosze, a.staff.commissionPermille),
         };
       }),
       locale,
