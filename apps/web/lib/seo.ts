@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { DICTIONARIES, fill, LOCALE_TAGS, LOCALES, type Locale } from './i18n/locales';
-import type { PublicLocation } from './types';
+import type { PublicLocation, PublicReviews } from './types';
 
 /**
  * Search engines (task 130). Public pages (the salon catalogue and each salon's booking page)
@@ -45,6 +45,28 @@ export async function publicSalon(slug: string): Promise<PublicLocation | null> 
       next: { revalidate: 300 },
     });
     return res.ok ? ((await res.json()) as PublicLocation) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Task 410: the salon's stars for search engines — the average and the number of its reviews;
+ * null while it does not collect reviews or has none (as on the page).
+ */
+export async function publicRating(
+  slug: string,
+): Promise<{ average: number; count: number } | null> {
+  if (!/^[a-z0-9-]{1,80}$/.test(slug)) return null;
+  try {
+    const res = await fetch(`${apiUrl()}/v1/public/locations/${slug}/reviews`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as PublicReviews;
+    return body.enabled && body.count > 0 && body.average !== null
+      ? { average: body.average, count: body.count }
+      : null;
   } catch {
     return null;
   }
@@ -106,7 +128,11 @@ const DAYS = [
 ] as const;
 
 /** schema.org data of the salon: what Google shows next to the search result. */
-export function salonJsonLd(salon: PublicLocation, locale: Locale): Record<string, unknown> {
+export function salonJsonLd(
+  salon: PublicLocation,
+  locale: Locale,
+  rating: { average: number; count: number } | null = null,
+): Record<string, unknown> {
   const url = `${siteUrl()}/${locale}/b/${salon.slug}`;
   const price = (hundredths: number) => (hundredths / 100).toFixed(2);
   return {
@@ -127,6 +153,18 @@ export function salonJsonLd(salon: PublicLocation, locale: Locale): Record<strin
       postalCode: salon.postalCode,
     },
     currenciesAccepted: salon.currency,
+    // Task 410: the stars clients gave on the platform (1–5), as on the page.
+    ...(rating
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: rating.average,
+            reviewCount: rating.count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }
+      : {}),
     openingHoursSpecification: salon.openingHours.flatMap((day) =>
       day.intervals.map((i) => ({
         '@type': 'OpeningHoursSpecification',
