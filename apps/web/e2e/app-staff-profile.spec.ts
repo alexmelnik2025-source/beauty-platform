@@ -203,6 +203,9 @@ test('business app: the owner orders, edits, switches off and adds specialists',
     await phone.getByRole('button', { name: 'Zmień profil' }).click();
     await phone.getByLabel('Przyjmuje klientów').click();
     await phone.getByRole('button', { name: 'Zapisz profil' }).click();
+    // The form shows the same hint before saving — wait until the server has saved it, or the
+    // team list read on "Wróć" may still be the old one (flaky on main, 12.11.2026).
+    await expect(phone.getByText('Profil zapisany.')).toBeVisible();
     await expect(
       phone.getByText('Wyłączony — klienci go nie widzą', { exact: false }),
     ).toBeVisible();
