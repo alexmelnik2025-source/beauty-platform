@@ -336,6 +336,9 @@ export const uk: Dictionary = {
     summary: '★ {average} · відгуків: {count}',
     bySpecialist: 'Відгуки про майстрів',
     everyone: 'Усі',
+    /** Task 381: the filter by stars. */
+    byStars: 'Відгуки за оцінками',
+    allStars: 'Усі оцінки',
     more: 'Показати ще',
     salonReply: 'Відповідь салону',
   },

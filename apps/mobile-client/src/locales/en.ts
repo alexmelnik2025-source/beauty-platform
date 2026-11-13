@@ -335,6 +335,9 @@ export const en: Dictionary = {
     summary: '★ {average} · reviews: {count}',
     bySpecialist: 'Reviews of the specialists',
     everyone: 'Everyone',
+    /** Task 381: the filter by stars. */
+    byStars: 'Reviews by stars',
+    allStars: 'All ratings',
     more: 'Show more',
     salonReply: 'Reply from the salon',
   },

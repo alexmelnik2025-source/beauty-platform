@@ -340,6 +340,9 @@ export const tr: Dictionary = {
     summary: '★ {average} · yorum: {count}',
     bySpecialist: 'Uzman yorumları',
     everyone: 'Herkes',
+    /** Task 381: the filter by stars. */
+    byStars: 'Puana göre yorumlar',
+    allStars: 'Tüm puanlar',
     more: 'Daha fazla göster',
     salonReply: 'Salonun yanıtı',
   },

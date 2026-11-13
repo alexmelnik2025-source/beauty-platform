@@ -339,6 +339,9 @@ export const ru: Dictionary = {
     summary: '★ {average} · отзывов: {count}',
     bySpecialist: 'Отзывы о мастерах',
     everyone: 'Все',
+    /** Task 381: the filter by stars. */
+    byStars: 'Отзывы по оценкам',
+    allStars: 'Все оценки',
     more: 'Показать ещё',
     salonReply: 'Ответ салона',
   },

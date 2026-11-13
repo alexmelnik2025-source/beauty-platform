@@ -335,6 +335,9 @@ export const pl = {
     summary: '★ {average} · opinie: {count}',
     bySpecialist: 'Opinie o specjalistach',
     everyone: 'Wszyscy',
+    /** Task 381: the filter by stars. */
+    byStars: 'Opinie według ocen',
+    allStars: 'Wszystkie oceny',
     more: 'Pokaż więcej',
     salonReply: 'Odpowiedź salonu',
   },

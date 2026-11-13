@@ -7,6 +7,7 @@ import {
   reviewLine,
   reviewSettingsChanged,
   reviewSummary,
+  starChips,
   stars,
   type Review,
 } from '../src/reviews';
@@ -66,6 +67,16 @@ describe('reviews in the business app (task 201)', () => {
     ]);
   });
 
+  it('shows chips only for the stars that have reviews (task 381)', () => {
+    expect(starChips([2, 0, 1, 0, 9], null).map((c) => c.label)).toEqual([
+      '★ 5 (9)',
+      '★ 3 (1)',
+      '★ 1 (2)',
+    ]);
+    expect(starChips([0, 0, 0, 3, 0], null)).toEqual([]);
+    expect(starChips([0, 0, 0, 0, 0], null)).toEqual([]);
+  });
+
   it('asks the salon’s reviews page by page', async () => {
     const page: SalonReviews = {
       enabled: true,
@@ -102,9 +113,11 @@ describe('reviews in the business app (task 201)', () => {
     expect(await api.restore()).toBe(true);
     await api.reviews('org-1', 'loc 1');
     await api.reviews('org-1', 'loc 1', 'r-9');
+    await api.reviews('org-1', 'loc 1', undefined, 1);
     expect(calls.slice(1)).toEqual([
       'GET /v1/organizations/org-1/locations/loc%201/reviews',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?before=r-9',
+      'GET /v1/organizations/org-1/locations/loc%201/reviews?rating=1',
     ]);
   });
 });

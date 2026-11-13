@@ -793,8 +793,17 @@ export class BusinessApi {
    * Task 201: reviews of the salon, newest first, 20 at a time; `before` = the last one shown.
    * A specialist without "all appointments" gets only reviews of their own visits (the server checks).
    */
-  reviews(orgId: string, locationId: string, before?: string): Promise<SalonReviews> {
-    const query = before ? `?${new URLSearchParams({ before })}` : '';
+  reviews(
+    orgId: string,
+    locationId: string,
+    before?: string,
+    /** Task 381: only the reviews with this many stars. */
+    rating?: number,
+  ): Promise<SalonReviews> {
+    const params = new URLSearchParams();
+    if (before) params.set('before', before);
+    if (rating) params.set('rating', String(rating));
+    const query = params.toString() ? `?${params.toString()}` : '';
     return this.authed<SalonReviews>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews${query}`,
