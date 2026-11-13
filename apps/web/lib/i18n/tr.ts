@@ -284,6 +284,9 @@ export const tr: Dict = {
     summary: '{avg} · yorum: {count}',
     bySpecialist: 'Uzman yorumları',
     everyone: 'Herkes',
+    /** Task 380: the filter by stars. */
+    byStars: 'Puana göre yorumlar',
+    allStars: 'Tüm puanlar',
     more: 'Daha fazla göster',
     salonReply: 'Salonun yanıtı',
   },

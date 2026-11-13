@@ -71,6 +71,7 @@ describe('reviews in the business app (task 201)', () => {
       enabled: true,
       count: 0,
       average: null,
+      stars: [0, 0, 0, 0, 0],
       items: [],
       nextBefore: null,
     };

@@ -22,12 +22,20 @@ const ratingSummary = {
   average: z.number().nullable().describe('Average stars, one decimal; null without reviews'),
 };
 
+/** Task 380: the reviews by stars — the bars above the list and the "★ 5 (12)" filter. */
+const stars = z
+  .array(z.number().int())
+  .describe(
+    'Task 380: how many reviews have 1, 2, 3, 4 and 5 stars (index 0 = one star); with `staffId`, without `rating`',
+  );
+
 /** The salon page: reviews without any client data. */
 export const publicReviewsSchema = responseSchema(
   'PublicReviews',
   z.strictObject({
     enabled: z.boolean().describe('false: the salon does not collect reviews (nothing to show)'),
     ...ratingSummary,
+    stars,
     staff: z
       .array(
         z.strictObject({
@@ -60,6 +68,7 @@ export const salonReviewsSchema = responseSchema(
   z.strictObject({
     enabled: z.boolean(),
     ...ratingSummary,
+    stars,
     items: z.array(
       z.strictObject({
         id: z.string(),

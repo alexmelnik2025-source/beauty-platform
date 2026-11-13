@@ -21,6 +21,8 @@ import { serveApp } from './mobile-app';
  * shows on the salon page and under the client's own review (screenshots 211, 211-a, 211-b);
  * the client app shows it in the visit card (211c-a), the owner answers in the business app (211c).
  * Task 212: the salon page in the client app shows the reviews and answers (212, 212-a).
+ * Task 380: "★ 4 (1)" shows only the four-star reviews, on the salon page (380) and in the
+ * cabinet (380-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -220,6 +222,18 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await expect(reviews).toContainText('Najlepszy fade w Warszawie. Polecam!');
   await expect(reviews).not.toContainText('Marta');
   await shot(page, '165b-3-salon-reviews');
+  // Task 380: only the four-star review.
+  await expect(reviews.getByRole('button', { name: '★ 5 (2)' })).toBeVisible();
+  await reviews.getByRole('button', { name: '★ 4 (1)' }).click();
+  await expect(reviews.getByRole('button', { name: '★ 4 (1)' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(reviews.locator('.review-list > li')).toHaveCount(1);
+  await expect(reviews.locator('.review-list')).toContainText('Nazar');
+  await shot(page, '380-salon-reviews-stars');
+  await reviews.getByRole('button', { name: 'Wszystkie oceny' }).click();
+  await expect(reviews.locator('.review-list > li')).toHaveCount(3);
   await reviews.getByRole('button', { name: /Nazar/ }).click();
   await expect(reviews.locator('.review-list > li')).toHaveCount(1);
   await phone.close();
@@ -249,6 +263,13 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await expect(list.locator('.list-row').first()).toContainText('Piotr Zieliński');
   await expect(list).toContainText('Marta Nowak');
   await shot(cabinet, '165b-4-cabinet-reviews');
+  // Task 380: the salon looks only at the four-star reviews.
+  await list.getByRole('button', { name: '★ 4 (1)' }).click();
+  await expect(list.locator('.list-row')).toHaveCount(1);
+  await expect(list.locator('.list-row')).toContainText('Jan Kowalski');
+  await shot(cabinet, '380-a-cabinet-reviews-stars');
+  await list.getByRole('button', { name: 'Wszystkie oceny' }).click();
+  await expect(list.locator('.list-row')).toHaveCount(3);
   const saved = await json<{ requestHours: number; version: number }>(
     await request.get(`${base}/review-settings`, { headers: owner }),
   );

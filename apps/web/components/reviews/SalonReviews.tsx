@@ -5,32 +5,37 @@ import { api } from '@/lib/api';
 import { fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { PublicReviews } from '@/lib/types';
 import { SalonReply } from './SalonReply';
+import { StarFilter } from './StarFilter';
 import { Stars } from './Stars';
 
 /**
  * Task 165b: reviews on the salon page — the average, the averages of the specialists and the
  * newest reviews (no client data). Nothing while the salon does not collect reviews or has none.
+ * Task 380: "★ 5 (12)" chips — only the reviews with that many stars.
  */
 export function SalonReviews({ slug }: { slug: string }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
   const [page, setPage] = useState<PublicReviews | null>(null);
   const [staffId, setStaffId] = useState<string | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
+  const [stars, setStars] = useState<number[]>([]);
   const [items, setItems] = useState<PublicReviews['items']>([]);
   const [next, setNext] = useState<string | null>(null);
 
   useEffect(() => {
     api<PublicReviews>(`/v1/public/locations/${slug}/reviews`, {
       auth: false,
-      query: staffId ? { staffId } : {},
+      query: { ...(staffId ? { staffId } : {}), ...(rating ? { rating: String(rating) } : {}) },
     })
       .then((res) => {
-        if (!staffId) setPage(res);
+        if (!staffId && !rating) setPage(res);
+        setStars(res.stars);
         setItems(res.items);
         setNext(res.nextBefore);
       })
       .catch(() => setPage(null));
-  }, [slug, staffId]);
+  }, [slug, staffId, rating]);
 
   if (!page?.enabled || page.count === 0 || page.average === null) return null;
 
@@ -38,7 +43,11 @@ export function SalonReviews({ slug }: { slug: string }) {
     if (!next) return;
     const res = await api<PublicReviews>(`/v1/public/locations/${slug}/reviews`, {
       auth: false,
-      query: { before: next, ...(staffId ? { staffId } : {}) },
+      query: {
+        before: next,
+        ...(staffId ? { staffId } : {}),
+        ...(rating ? { rating: String(rating) } : {}),
+      },
     });
     setItems((prev) => [...prev, ...res.items]);
     setNext(res.nextBefore);
@@ -61,7 +70,14 @@ export function SalonReviews({ slug }: { slug: string }) {
       <div className="stack">
         {page.staff.length > 1 ? (
           <div className="chips" role="group" aria-label={t.reviews.bySpecialist}>
-            <button type="button" aria-pressed={staffId === null} onClick={() => setStaffId(null)}>
+            <button
+              type="button"
+              aria-pressed={staffId === null}
+              onClick={() => {
+                setStaffId(null);
+                setRating(null);
+              }}
+            >
               {t.reviews.everyone}
             </button>
             {page.staff.map((s) => (
@@ -69,13 +85,17 @@ export function SalonReviews({ slug }: { slug: string }) {
                 key={s.staffId}
                 type="button"
                 aria-pressed={staffId === s.staffId}
-                onClick={() => setStaffId(s.staffId)}
+                onClick={() => {
+                  setStaffId(s.staffId);
+                  setRating(null);
+                }}
               >
                 {s.displayName} ★ {s.average === null ? '' : one.format(s.average)} ({s.count})
               </button>
             ))}
           </div>
         ) : null}
+        <StarFilter stars={stars} value={rating} onChange={setRating} />
         <ul className="review-list">
           {items.map((r) => (
             <li key={r.id}>
