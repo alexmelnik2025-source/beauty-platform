@@ -111,19 +111,15 @@ export function ReportsScreen(props: {
 
   // Task 220: the accountant's CSV of the period — saved in a browser, shared on a phone.
   // Task 238: "till" — the till's cash journal (owners and managers).
-  const downloadCsv = async (kind: 'visits' | 'till' = 'visits') => {
+  // Task 393: "payout" — commission, tips and the total by specialist (owners and managers).
+  const downloadCsv = async (kind: 'visits' | 'till' | 'payout' = 'visits') => {
     if (csvBusy) return;
     setCsvBusy(true);
     setCsvInfo('');
     try {
-      const file = await (kind === 'till' ? api.tillCsv : api.visitsCsv).call(
-        api,
-        salon.orgId,
-        salon.locationId,
-        range.from,
-        range.to,
-        props.locale,
-      );
+      const file = await (
+        kind === 'till' ? api.tillCsv : kind === 'payout' ? api.payoutCsv : api.visitsCsv
+      ).call(api, salon.orgId, salon.locationId, range.from, range.to, props.locale);
       const result = await shareCsv(file, csvTools());
       setCsvInfo(result === 'failed' ? r.csvFailed : '');
     } catch (e) {
@@ -340,6 +336,12 @@ export function ReportsScreen(props: {
                 onPress={() => void downloadCsv('till')}
               />
               <Text style={styles.small}>{r.tillCsvHint}</Text>
+              <Button
+                kind="secondary"
+                label={csvBusy ? t.loading : r.payoutCsv}
+                onPress={() => void downloadCsv('payout')}
+              />
+              <Text style={styles.small}>{r.payoutCsvHint}</Text>
             </View>
           ) : null}
 
