@@ -3054,3 +3054,22 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   бизнес-приложение: `api.reviewsCsv` + `shareCsv`. e2e `reviews.spec.ts` (скриншоты 385, 385-a).
 - 386: e2e `cabinet-a11y.spec.ts` — та же проверка, что `client-a11y.spec.ts` (234), для страниц кабинета на
   телефоне и компьютере; новая кнопка-значок без `aria-label` уронит проверку.
+
+## «Ostatnio oglądane», «Ulubione», «Poleć salon» и QR на сайте, «Udostępnij wizytę» (задачи 402–414)
+
+- 402–403, 414–415: «Ostatnio oglądane» — до пяти салонов, открытых на этом устройстве, новые сверху (`rememberViewed` /
+  `withViewed`). Клиентское приложение: `src/recent.ts`, `recentSalonsStore` в `src/storage.ts`, список на стартовом
+  экране и в «Moje wizyty» (`screens/RecentSalons.tsx`); сайт: `lib/recent-salons.ts` (localStorage), блок на главной; окно записи на сайте салона
+  (`?embed=1`) не запоминается. «Wyczyść listę» стирает список. Ничего не уходит на сервер. Vitest, e2e
+  `salon-nearby.spec.ts` (скриншоты 402, 403).
+- 404–405: «Ulubione» на сайте — те же `GET/PUT/DELETE /v1/client/favorites`, что в приложении (task 61):
+  `components/client/ClientFavorites.tsx` (вкладка в «Moje wizyty»), `components/booking/FavoriteButton.tsx` (на
+  странице салона, только для вошедшего клиента, не в embed). e2e `web-favorites.spec.ts` (скриншоты 404, 405).
+- 406, 409: `components/booking/ShareSalon.tsx` — «Poleć salon znajomym» (`navigator.share`, иначе ссылка в буфер) и
+  «Pokaż kod QR» (кодировщик `lib/qr.ts` кабинета). Не в embed. e2e `web-favorites.spec.ts` (скриншоты 406, 409).
+- 410: `publicRating` в `lib/seo.ts` — `aggregateRating` в JSON-LD страницы салона, пока салон собирает отзывы и они
+  есть. e2e `top-rated.spec.ts` (Beta) и `seo.spec.ts` (без отзывов — нет).
+- 411–413: «Udostępnij wizytę» — текст «Moja wizyta: … u … — день, godz. …. Салон, адрес. Dojazd: <Google Maps>»:
+  клиентское приложение (`visitShareMessage` в `src/share.ts`, `screens/shareTools.ts`; без меню «Поделиться» копируется
+  весь текст), сайт — `components/booking/ShareVisit.tsx` на странице визита и на «Do zobaczenia!». e2e в
+  `booking.spec.ts`.
