@@ -11092,6 +11092,15 @@
             "in": "query",
             "description": "Next page: nextBefore of the previous page",
             "schema": {}
+          },
+          {
+            "name": "rating",
+            "required": false,
+            "in": "query",
+            "description": "Task 380: only reviews with this many stars (1-5); count, average and stars stay",
+            "schema": {
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -11252,6 +11261,15 @@
             "in": "query",
             "description": "Next page: nextBefore of the previous page",
             "schema": {}
+          },
+          {
+            "name": "rating",
+            "required": false,
+            "in": "query",
+            "description": "Task 380: only reviews with this many stars (1-5); count, average and stars stay",
+            "schema": {
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -21011,6 +21029,15 @@
             "description": "Average stars, one decimal; null without reviews",
             "type": "number"
           },
+          "stars": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "description": "Task 380: how many reviews have 1, 2, 3, 4 and 5 stars (index 0 = one star); with `staffId`, without `rating`"
+          },
           "staff": {
             "type": "array",
             "items": {
@@ -21106,6 +21133,7 @@
           "enabled",
           "count",
           "average",
+          "stars",
           "staff",
           "items",
           "nextBefore"
@@ -22863,6 +22891,15 @@
             "description": "Average stars, one decimal; null without reviews",
             "type": "number"
           },
+          "stars": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "description": "Task 380: how many reviews have 1, 2, 3, 4 and 5 stars (index 0 = one star); with `staffId`, without `rating`"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -22948,6 +22985,7 @@
           "enabled",
           "count",
           "average",
+          "stars",
           "items",
           "nextBefore"
         ],

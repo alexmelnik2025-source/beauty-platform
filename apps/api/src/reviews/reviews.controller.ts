@@ -58,6 +58,13 @@ const pageQueries = () =>
       required: false,
       description: 'Next page: nextBefore of the previous page',
     }),
+    ApiQuery({
+      name: 'rating',
+      required: false,
+      type: Number,
+      description:
+        'Task 380: only reviews with this many stars (1-5); count, average and stars stay',
+    }),
   );
 
 /** Task 165b: the salon's review settings and its reviews in the cabinet. */

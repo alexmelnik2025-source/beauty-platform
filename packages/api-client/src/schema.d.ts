@@ -5432,6 +5432,8 @@ export interface components {
             count: number;
             /** @description Average stars, one decimal; null without reviews */
             average: number | null;
+            /** @description Task 380: how many reviews have 1, 2, 3, 4 and 5 stars (index 0 = one star); with `staffId`, without `rating` */
+            stars: number[];
             /** @description Active specialists with at least one review, salon order */
             staff: {
                 staffId: string;
@@ -5893,6 +5895,8 @@ export interface components {
             count: number;
             /** @description Average stars, one decimal; null without reviews */
             average: number | null;
+            /** @description Task 380: how many reviews have 1, 2, 3, 4 and 5 stars (index 0 = one star); with `staffId`, without `rating` */
+            stars: number[];
             items: {
                 id: string;
                 rating: number;
@@ -11448,6 +11452,8 @@ export interface operations {
                 staffId?: unknown;
                 /** @description Next page: nextBefore of the previous page */
                 before?: unknown;
+                /** @description Task 380: only reviews with this many stars (1-5); count, average and stars stay */
+                rating?: number;
             };
             header?: never;
             path: {
@@ -11525,6 +11531,8 @@ export interface operations {
                 staffId?: unknown;
                 /** @description Next page: nextBefore of the previous page */
                 before?: unknown;
+                /** @description Task 380: only reviews with this many stars (1-5); count, average and stars stay */
+                rating?: number;
             };
             header?: never;
             path: {

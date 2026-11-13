@@ -320,6 +320,8 @@ describe('showing reviews', () => {
 
     const page = await ctx.http().get(`/v1/public/locations/${slug}/reviews`).expect(200);
     expect(page.body).toMatchObject({ enabled: true, count: 3, average: 3.7, nextBefore: null });
+    // Task 380: the reviews by stars, index 0 = one star.
+    expect(page.body.stars).toEqual([0, 1, 0, 1, 1]);
     expect(page.body.staff).toEqual([
       { staffId: kasiaId, displayName: 'Kasia', count: 2, average: 4.5 },
       { staffId: olaId, displayName: 'Ola', count: 1, average: 2 },
@@ -343,8 +345,30 @@ describe('showing reviews', () => {
       .get(`/v1/public/locations/${slug}/reviews`)
       .query({ staffId: kasiaId })
       .expect(200);
-    expect(kasias.body).toMatchObject({ count: 2, average: 4.5 });
+    expect(kasias.body).toMatchObject({ count: 2, average: 4.5, stars: [0, 0, 0, 1, 1] });
     expect(kasias.body.items).toHaveLength(2);
+
+    // Task 380: only the reviews with the stars asked for; the summary stays.
+    const twos = await ctx
+      .http()
+      .get(`/v1/public/locations/${slug}/reviews`)
+      .query({ rating: 2 })
+      .expect(200);
+    expect(twos.body).toMatchObject({ count: 3, average: 3.7, stars: [0, 1, 0, 1, 1] });
+    expect(twos.body.items.map((r: { text: string | null }) => r.text)).toEqual(['Za krótko']);
+    const kasiaTwos = await ctx
+      .http()
+      .get(`/v1/public/locations/${slug}/reviews`)
+      .query({ staffId: kasiaId, rating: 2 })
+      .expect(200);
+    expect(kasiaTwos.body.items).toEqual([]);
+    for (const bad of ['0', '6', '4.5', 'abc']) {
+      await ctx
+        .http()
+        .get(`/v1/public/locations/${slug}/reviews`)
+        .query({ rating: bad })
+        .expect(400);
+    }
 
     // Switched off: the reviews are kept but not shown.
     const current = await ctx.http().get(`${base}/review-settings`).set(owner.auth);
@@ -359,6 +383,7 @@ describe('showing reviews', () => {
       enabled: false,
       count: 0,
       average: null,
+      stars: [0, 0, 0, 0, 0],
       staff: [],
       items: [],
       nextBefore: null,
@@ -401,6 +426,17 @@ describe('showing reviews', () => {
     expect(second.body.nextBefore).toBeNull();
     const ids = [...first.body.items, ...second.body.items].map((r: { id: string }) => r.id);
     expect(new Set(ids).size).toBe(22);
+
+    // Task 380: the filter by stars pages the same way; 22 reviews of 1…5 stars in turn.
+    expect(first.body.stars).toEqual([5, 5, 4, 4, 4]);
+    const ones = await ctx
+      .http()
+      .get(`/v1/public/locations/${slug}/reviews`)
+      .query({ rating: 1 })
+      .expect(200);
+    expect(ones.body.items).toHaveLength(5);
+    expect(ones.body.items.every((r: { rating: number }) => r.rating === 1)).toBe(true);
+    expect(ones.body.nextBefore).toBeNull();
   });
 
   it('the cabinet: with the client name; staff see only their own visits', async () => {
@@ -413,7 +449,13 @@ describe('showing reviews', () => {
     await review(c.token, { rating: 3 });
 
     const all = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
-    expect(all.body).toMatchObject({ enabled: true, count: 2, average: 4 });
+    expect(all.body).toMatchObject({ enabled: true, count: 2, average: 4, stars: [0, 0, 1, 0, 1] });
+    // Task 380: the salon looks for its lower ratings.
+    const threes = await ctx.http().get(`${base}/reviews`).query({ rating: 3 }).set(owner.auth);
+    expect(threes.status).toBe(200);
+    expect(threes.body.items.map((r: { appointmentId: string }) => r.appointmentId)).toEqual([
+      c.id,
+    ]);
     expect(all.body.items[0]).toMatchObject({
       rating: 3,
       staffName: 'Ola',
@@ -437,6 +479,8 @@ describe('showing reviews', () => {
     });
     const own = await ctx.http().get(`${base}/reviews`).set(kasia.auth).expect(200);
     expect(own.body.count).toBe(1);
+    // Staff with only their own visits count only their own stars.
+    expect(own.body.stars).toEqual([0, 0, 0, 0, 1]);
     expect(own.body.items).toEqual([
       expect.objectContaining({ appointmentId: a.id, customerName: 'Anna Kowalska' }),
     ]);

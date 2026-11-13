@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from '@/components/Session';
 import { SalonReply } from '@/components/reviews/SalonReply';
+import { StarFilter } from '@/components/reviews/StarFilter';
 import { Stars } from '@/components/reviews/Stars';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -18,7 +19,7 @@ const HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
  * Task 165b: "Opinie" — the owner and managers switch reviews on and choose when the client is
  * asked ("Jak było?" email); everyone sees the reviews with the client's name (staff only those
  * of their own visits — the server decides). Task 211: the owner and managers answer a review
- * publicly, change or remove the answer.
+ * publicly, change or remove the answer. Task 380: "★ 1 (2)" chips — e.g. only the low ratings.
  */
 export default function ReviewsPage() {
   const { t, locale } = useI18n();
@@ -28,14 +29,17 @@ export default function ReviewsPage() {
   const manager = role !== 'staff';
   const [list, setList] = useState<SalonReviews | null>(null);
   const [error, setError] = useState('');
+  const [rating, setRating] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setList(await api<SalonReviews>(`${base}/reviews`));
+      setList(
+        await api<SalonReviews>(`${base}/reviews`, { query: { rating: rating ?? undefined } }),
+      );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [base, t]);
+  }, [base, t, rating]);
 
   useEffect(() => {
     void load();
@@ -45,7 +49,7 @@ export default function ReviewsPage() {
     if (!list?.nextBefore) return;
     try {
       const next = await api<SalonReviews>(`${base}/reviews`, {
-        query: { before: list.nextBefore },
+        query: { before: list.nextBefore, rating: rating ?? undefined },
       });
       setList({ ...next, items: [...list.items, ...next.items] });
     } catch (err) {
@@ -86,6 +90,7 @@ export default function ReviewsPage() {
                 })}
               </p>
             ) : null}
+            <StarFilter stars={list.stars} value={rating} onChange={setRating} />
             {list.items.length === 0 ? (
               <p className="note">{t.reviewsCabinet.empty}</p>
             ) : (

@@ -551,6 +551,9 @@ export const ru: Dict = {
     summary: '{avg} · отзывов: {count}',
     bySpecialist: 'Отзывы о мастерах',
     everyone: 'Все',
+    /** Task 380: the filter by stars. */
+    byStars: 'Отзывы по оценкам',
+    allStars: 'Все оценки',
     more: 'Показать ещё',
     salonReply: 'Ответ салона',
   },

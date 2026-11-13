@@ -51,5 +51,12 @@ export const listReviewsQuerySchema = z.object({
     .uuid()
     .optional()
     .describe('Next page: the id of the last review already shown'),
+  rating: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(5)
+    .optional()
+    .describe('Task 380: only reviews with this many stars'),
 });
 export type ListReviewsQuery = z.infer<typeof listReviewsQuerySchema>;

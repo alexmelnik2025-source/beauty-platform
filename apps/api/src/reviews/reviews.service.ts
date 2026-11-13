@@ -130,10 +130,15 @@ export class ReviewsService {
       ...(query.staffId ? { staffId: query.staffId } : {}),
       ...(m.role === 'staff' && !m.permissions.viewAllAppointments ? { staff: { userId } } : {}),
     };
-    const [summary, rows] = await Promise.all([
+    const [summary, byStars, rows] = await Promise.all([
       this.prisma.visitReview.aggregate({ where, _count: true, _avg: { rating: true } }),
+      this.starCounts(where),
       this.prisma.visitReview.findMany({
-        where: { ...where, ...(query.before ? { id: { lt: query.before } } : {}) },
+        where: {
+          ...where,
+          ...(query.rating ? { rating: query.rating } : {}),
+          ...(query.before ? { id: { lt: query.before } } : {}),
+        },
         include: salonReviewInclude,
         orderBy: { id: 'desc' },
         take: PAGE + 1,
@@ -144,6 +149,7 @@ export class ReviewsService {
       enabled: settings.enabled,
       count: summary._count,
       average: average(summary._avg.rating),
+      stars: byStars,
       items: page.map(toSalonReview),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };
@@ -221,12 +227,21 @@ export class ReviewsService {
     if (!location?.onlineBookingEnabled) throw notFound('Salon');
     const settings = await this.settings(location.id);
     if (!settings.enabled) {
-      return { enabled: false, count: 0, average: null, staff: [], items: [], nextBefore: null };
+      return {
+        enabled: false,
+        count: 0,
+        average: null,
+        stars: [0, 0, 0, 0, 0],
+        staff: [],
+        items: [],
+        nextBefore: null,
+      };
     }
     const base: Prisma.VisitReviewWhereInput = { locationId: location.id };
     const where = query.staffId ? { ...base, staffId: query.staffId } : base;
-    const [summary, perStaff, staff, rows] = await Promise.all([
+    const [summary, byStars, perStaff, staff, rows] = await Promise.all([
       this.prisma.visitReview.aggregate({ where, _count: true, _avg: { rating: true } }),
+      this.starCounts(where),
       this.prisma.visitReview.groupBy({
         by: ['staffId'],
         where: base,
@@ -239,7 +254,11 @@ export class ReviewsService {
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       }),
       this.prisma.visitReview.findMany({
-        where: { ...where, ...(query.before ? { id: { lt: query.before } } : {}) },
+        where: {
+          ...where,
+          ...(query.rating ? { rating: query.rating } : {}),
+          ...(query.before ? { id: { lt: query.before } } : {}),
+        },
         include: {
           staff: { select: { displayName: true } },
           appointment: { select: { service: { select: { name: true } } } },
@@ -254,6 +273,7 @@ export class ReviewsService {
       enabled: true,
       count: summary._count,
       average: average(summary._avg.rating),
+      stars: byStars,
       staff: staff
         .filter((s) => byStaff.has(s.id))
         .map((s) => {
@@ -278,6 +298,20 @@ export class ReviewsService {
       })),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };
+  }
+
+  /** Task 380: how many of the reviews have 1…5 stars (index 0 = one star). */
+  private async starCounts(where: Prisma.VisitReviewWhereInput): Promise<number[]> {
+    const rows = await this.prisma.visitReview.groupBy({
+      by: ['rating'],
+      where,
+      _count: { _all: true },
+    });
+    const counts = [0, 0, 0, 0, 0];
+    for (const row of rows) {
+      if (row.rating >= 1 && row.rating <= 5) counts[row.rating - 1] = row._count._all;
+    }
+    return counts;
   }
 
   // ── The client: by "manage" link or in the client app ──

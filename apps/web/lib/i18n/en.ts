@@ -544,6 +544,9 @@ export const en: Dict = {
     summary: '{avg} · reviews: {count}',
     bySpecialist: 'Reviews of specialists',
     everyone: 'Everyone',
+    /** Task 380: the filter by stars. */
+    byStars: 'Reviews by stars',
+    allStars: 'All ratings',
     more: 'Show more',
     salonReply: 'Reply from the salon',
   },
