@@ -238,6 +238,12 @@ export const tr: Dict = {
     doneLeadApproval:
       'Salon randevunuzu onaylayacak — saat sizin için ayrıldı. Salon kabul ettiğinde size e-posta göndereceğiz.',
     directions: 'Yol tarifi',
+    /** Task 412. */
+    shareVisit: 'Randevuyu paylaş',
+    shareVisitText:
+      'Randevum: {service}, {staff} — {day}, saat {time}. {salon}, {address}. Yol tarifi: {url}',
+    shareVisitCopied: 'Kopyalandı — istediğin yere yapıştır.',
+    shareVisitFailed: 'Paylaşılamadı.',
     nearbyTitle: 'Yakındaki diğer salonlar',
     nearbyDistance: '{km} km uzakta',
     addToCalendar: 'Takvime ekle',

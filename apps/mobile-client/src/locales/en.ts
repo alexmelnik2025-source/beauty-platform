@@ -84,6 +84,12 @@ export const en: Dictionary = {
     cancelYes: 'Yes, cancel',
     cancelled: 'The visit is cancelled.',
     directions: 'Get directions',
+    /** Task 411. */
+    share: 'Share the visit',
+    shareText:
+      'My visit: {service} with {staff} — {day}, {time}. {salon}, {address}. Directions: {url}',
+    shareCopied: 'Copied — paste it wherever you like.',
+    shareFailed: 'Could not share.',
     callSalon: 'Call the salon',
     addToCalendar: 'Add to calendar',
     bookAgain: 'Book again',

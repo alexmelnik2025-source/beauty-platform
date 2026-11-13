@@ -499,6 +499,12 @@ export const uk: Dict = {
     doneLeadApproval:
       'Салон підтвердить візит — час уже заброньовано для вас. Ми напишемо на e-mail, коли салон його прийме.',
     directions: 'Як дістатися',
+    /** Task 412. */
+    shareVisit: 'Поділитися візитом',
+    shareVisitText:
+      'Мій візит: {service} у {staff} — {day}, о {time}. {salon}, {address}. Як дістатися: {url}',
+    shareVisitCopied: 'Скопійовано — вставте, куди потрібно.',
+    shareVisitFailed: 'Не вдалося поділитися.',
     nearbyTitle: 'Інші салони поблизу',
     nearbyDistance: '{km} км звідси',
     addToCalendar: 'Додати в календар',

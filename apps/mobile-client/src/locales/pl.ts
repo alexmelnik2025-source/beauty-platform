@@ -83,6 +83,12 @@ export const pl = {
     cancelYes: 'Tak, odwołaj',
     cancelled: 'Wizyta odwołana.',
     directions: 'Jak dojechać',
+    /** Task 411. */
+    share: 'Udostępnij wizytę',
+    shareText:
+      'Moja wizyta: {service} u {staff} — {day}, godz. {time}. {salon}, {address}. Dojazd: {url}',
+    shareCopied: 'Skopiowano — wklej, gdzie chcesz.',
+    shareFailed: 'Nie udało się udostępnić.',
     callSalon: 'Zadzwoń do salonu',
     addToCalendar: 'Dodaj do kalendarza',
     bookAgain: 'Umów ponownie',

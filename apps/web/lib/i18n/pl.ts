@@ -499,6 +499,12 @@ export const pl = {
     doneLeadApproval:
       'Salon potwierdzi wizytę — termin jest już dla Ciebie zarezerwowany. Napiszemy e-mailem, gdy salon ją przyjmie.',
     directions: 'Jak dojechać',
+    /** Task 412. */
+    shareVisit: 'Udostępnij wizytę',
+    shareVisitText:
+      'Moja wizyta: {service} u {staff} — {day}, godz. {time}. {salon}, {address}. Dojazd: {url}',
+    shareVisitCopied: 'Skopiowano — wklej, gdzie chcesz.',
+    shareVisitFailed: 'Nie udało się udostępnić.',
     nearbyTitle: 'Inne salony w pobliżu',
     nearbyDistance: '{km} km stąd',
     addToCalendar: 'Dodaj do kalendarza',

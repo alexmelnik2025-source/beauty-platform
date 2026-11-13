@@ -32,8 +32,15 @@ export interface ShareTools {
   copy?: (text: string) => Promise<void>;
 }
 
-/** Shares with what the platform has: share sheet → browser menu → copying the link. */
-export async function shareSalon(content: ShareMessage, tools: ShareTools): Promise<ShareResult> {
+/**
+ * Shares with what the platform has: share sheet → browser menu → copying the link (or, with
+ * `copy: 'message'`, the whole text — task 411).
+ */
+export async function shareSalon(
+  content: ShareMessage,
+  tools: ShareTools,
+  copy: 'url' | 'message' = 'url',
+): Promise<ShareResult> {
   if (tools.native) {
     try {
       const result = await tools.native(content);
@@ -53,11 +60,31 @@ export async function shareSalon(content: ShareMessage, tools: ShareTools): Prom
   }
   if (tools.copy) {
     try {
-      await tools.copy(content.url);
+      await tools.copy(copy === 'message' ? content.message : content.url);
       return 'copied';
     } catch {
       return 'failed';
     }
   }
   return 'failed';
+}
+
+/** Task 411: what the client's visit share says ({service}, {staff}, {day}, {time}, {salon}…). */
+export function visitShareMessage(
+  template: string,
+  visit: {
+    service: string;
+    staff: string;
+    day: string;
+    time: string;
+    salon: string;
+    address: string;
+  },
+  url: string,
+): ShareMessage {
+  let message = template;
+  for (const [key, value] of Object.entries({ ...visit, url })) {
+    message = message.split(`{${key}}`).join(value);
+  }
+  return { message, url, title: visit.salon };
 }

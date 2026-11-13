@@ -5,7 +5,6 @@ import {
   Linking,
   Platform,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -35,7 +34,8 @@ import {
   specialtyText,
 } from '../salon';
 import { QrView } from '../QrView';
-import { shareMessage, shareSalon, type ShareTools } from '../share';
+import { shareMessage, shareSalon } from '../share';
+import { shareTools } from './shareTools';
 import { NearbySalons } from './NearbySalons';
 import { SalonReviews } from './SalonReviews';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
@@ -381,16 +381,3 @@ const styles = StyleSheet.create({
   initial: { alignItems: 'center', justifyContent: 'center' },
   initialText: { color: colors.ink, fontSize: 18, fontWeight: '700' },
 });
-
-/** What this platform can share with: the share sheet on phones, the browser's tools on the web. */
-function shareTools(): ShareTools {
-  if (Platform.OS !== 'web') {
-    // The link is in the message already (iOS would add `url` a second time).
-    return { native: (c) => Share.share({ message: c.message, title: c.title }) };
-  }
-  const nav = typeof navigator === 'undefined' ? undefined : navigator;
-  return {
-    webShare: nav?.share ? (data) => nav.share(data) : undefined,
-    copy: nav?.clipboard ? (text) => nav.clipboard.writeText(text) : undefined,
-  };
-}

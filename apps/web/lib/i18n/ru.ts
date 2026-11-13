@@ -505,6 +505,12 @@ export const ru: Dict = {
     doneLeadApproval:
       'Салон подтвердит визит — время уже забронировано за вами. Мы напишем на e-mail, когда салон его примет.',
     directions: 'Как добраться',
+    /** Task 412. */
+    shareVisit: 'Поделиться визитом',
+    shareVisitText:
+      'Мой визит: {service} у {staff} — {day}, в {time}. {salon}, {address}. Как добраться: {url}',
+    shareVisitCopied: 'Скопировано — вставьте, куда нужно.',
+    shareVisitFailed: 'Не удалось поделиться.',
     nearbyTitle: 'Другие салоны рядом',
     nearbyDistance: '{km} км отсюда',
     addToCalendar: 'Добавить в календарь',

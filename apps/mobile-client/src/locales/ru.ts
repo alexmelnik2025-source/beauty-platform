@@ -84,6 +84,12 @@ export const ru: Dictionary = {
     cancelYes: 'Да, отменить',
     cancelled: 'Визит отменён.',
     directions: 'Как добраться',
+    /** Task 411. */
+    share: 'Поделиться визитом',
+    shareText:
+      'Мой визит: {service} у {staff} — {day}, в {time}. {salon}, {address}. Как добраться: {url}',
+    shareCopied: 'Скопировано — вставьте, куда нужно.',
+    shareFailed: 'Не удалось поделиться.',
     callSalon: 'Позвонить в салон',
     addToCalendar: 'Добавить в календарь',
     bookAgain: 'Записаться снова',

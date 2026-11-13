@@ -11,6 +11,7 @@ import { VisitReviewForm } from '../reviews/VisitReviewForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import type { VisitWishes } from '../wishes/wishes';
 import { directionsLink } from './SalonProfile';
+import { ShareVisit } from './ShareVisit';
 
 type Mode = 'view' | 'move' | 'cancel';
 
@@ -182,6 +183,7 @@ export function AppointmentManager<T extends PublicAppointment>({
             >
               {t.booking.directions}
             </a>
+            <ShareVisit visit={a} />
             {a.canChange ? (
               <>
                 <button type="button" className="btn btn--block" onClick={() => setMode('move')}>
