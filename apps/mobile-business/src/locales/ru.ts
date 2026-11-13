@@ -1351,6 +1351,9 @@ export const ru: Dictionary = {
     released: 'Блокировка снята.',
   },
   reviews: {
+    /** Task 408. */
+    csv: 'Скачать CSV отзывов',
+    csvFailed: 'Не удалось сохранить файл.',
     open: 'Отзывы',
     back: '‹ Назад',
     title: 'Отзывы',

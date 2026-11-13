@@ -28,7 +28,9 @@ import {
   stars,
   type Review,
 } from '../reviews';
+import { shareCsv } from '../share';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { csvTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -98,6 +100,24 @@ export function ReviewsScreen(props: {
 
   const chips = starChips(counts, rating);
 
+  // Task 408: every review as a CSV file (owners and managers).
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvInfo, setCsvInfo] = useState('');
+  const downloadCsv = async () => {
+    if (csvBusy) return;
+    setCsvBusy(true);
+    setCsvInfo('');
+    try {
+      const file = await api.reviewsCsv(salon.orgId, salon.locationId, props.locale);
+      const result = await shareCsv(file, csvTools());
+      setCsvInfo(result === 'failed' ? r.csvFailed : '');
+    } catch (e) {
+      setCsvInfo(errorText(e, t));
+    } finally {
+      setCsvBusy(false);
+    }
+  };
+
   // Android's back button closes the screen instead of the app.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -128,6 +148,10 @@ export function ReviewsScreen(props: {
           {reviewSummary(summary, t, props.locale)}
         </Text>
       ) : null}
+      {manager && summary && summary.count > 0 ? (
+        <Button kind="secondary" label={r.csv} busy={csvBusy} onPress={() => void downloadCsv()} />
+      ) : null}
+      {csvInfo ? <Text style={styles.muted}>{csvInfo}</Text> : null}
       {team.length > 1 ? (
         <View style={styles.actions} role="group" aria-label={r.bySpecialist}>
           {[

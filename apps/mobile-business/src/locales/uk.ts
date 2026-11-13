@@ -1349,6 +1349,9 @@ export const uk: Dictionary = {
     released: 'Блокування знято.',
   },
   reviews: {
+    /** Task 408. */
+    csv: 'Завантажити CSV відгуків',
+    csvFailed: 'Не вдалося зберегти файл.',
     open: 'Відгуки',
     back: '‹ Назад',
     title: 'Відгуки',

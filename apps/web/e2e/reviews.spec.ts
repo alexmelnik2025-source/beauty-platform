@@ -455,6 +455,15 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await expect(app.getByText(/^Ola Wiśniewska · Strzyżenie fade u Nazar · /)).toBeVisible();
     await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toBeVisible();
     await shot(app, '201-app-reviews');
+    // Task 408: "Pobierz CSV opinii" — the same file as in the cabinet.
+    const [appCsv] = await Promise.all([
+      app.waitForEvent('download'),
+      app.getByRole('button', { name: 'Pobierz CSV opinii' }).click(),
+    ]);
+    expect(appCsv.suggestedFilename()).toMatch(/^opinie-.+\.csv$/);
+    const appCsvText = readFileSync((await appCsv.path())!, 'utf8');
+    expect(appCsvText).toContain('Najlepszy fade w Warszawie. Polecam!');
+    expect(appCsvText.trimEnd().split('\r\n')).toHaveLength(5);
     // Task 381: the owner looks only at the four-star reviews.
     await app.getByRole('button', { name: '★ 4 (2)' }).click();
     await expect(app.getByText('Dobra broda, polecam.')).toBeVisible();

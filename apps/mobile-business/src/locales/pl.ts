@@ -1349,6 +1349,9 @@ export const pl = {
     released: 'Zdjęto blokadę.',
   },
   reviews: {
+    /** Task 408. */
+    csv: 'Pobierz CSV opinii',
+    csvFailed: 'Nie udało się zapisać pliku.',
     open: 'Opinie',
     back: '‹ Wróć',
     title: 'Opinie',

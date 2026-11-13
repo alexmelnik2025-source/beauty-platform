@@ -1609,6 +1609,18 @@ export class BusinessApi {
     );
   }
 
+  /**
+   * Task 408: every review of the location as a CSV file ("CSV opinii", task 407) — owners and
+   * managers only (the server checks it).
+   */
+  reviewsCsv(orgId: string, locationId: string, locale: Locale): Promise<CsvFile> {
+    const query = new URLSearchParams({ locale }).toString();
+    return this.csvFile(
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews-csv?${query}`,
+      'opinie.csv',
+    );
+  }
+
   private reportCsv(
     file: 'visits' | 'till',
     orgId: string,

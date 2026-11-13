@@ -1351,6 +1351,9 @@ export const en: Dictionary = {
     released: 'Block lifted.',
   },
   reviews: {
+    /** Task 408. */
+    csv: 'Download reviews CSV',
+    csvFailed: 'Could not save the file.',
     open: 'Reviews',
     back: '‹ Back',
     title: 'Reviews',
