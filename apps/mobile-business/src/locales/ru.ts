@@ -647,6 +647,15 @@ export const ru: Dictionary = {
     removeNo: 'Нет',
     removed: '{name} убран(а) из листа ожидания.',
   },
+  products: {
+    sold: 'Товары',
+    soldTotal: 'ТОВАРЫ: {amount}',
+    soldHint:
+      'Не входят в цену визита, баллы и скидки. Список товаров ведётся в кабинете («Услуги»).',
+    removeSale: 'Удалить',
+    removeSaleFor: 'Удалить товар — {name}',
+    addSaleFor: 'Добавить товар — {name}',
+  },
   reports: {
     open: 'Отчёты',
     title: 'Отчёты',
@@ -773,6 +782,9 @@ export const ru: Dictionary = {
     discountRow: '{amount} · визиты: {n}',
     discountHint:
       'Сколько салон отдал в скидках на оплаченных визитах этого периода. Выручка в отчёте уже после скидок.',
+    products: 'Продажа товаров: {amount}',
+    productsRow: '{n} шт. · {amount}',
+    productsHint: 'Товары, проданные на визитах. Не входят в выручку за визиты и в комиссию.',
     tipsHint: 'Не входят в выручку салона — как их делить, решает салон.',
     commissions: 'Комиссия специалистов',
     commissionsTotal: 'Комиссия специалистов: {amount}',

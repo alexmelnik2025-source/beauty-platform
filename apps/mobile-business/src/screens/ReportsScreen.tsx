@@ -436,6 +436,26 @@ export function ReportsScreen(props: {
               <Text style={styles.muted}>{r.tipsHint}</Text>
             </View>
           ) : null}
+          {shown.products.totalGrosze > 0 ? (
+            // Task 396: products sold at the visits — not part of the visit revenue.
+            <View style={{ gap: 6 }} testID="report-products">
+              <Text style={styles.section}>
+                {fill(r.products, { amount: money(shown.products.totalGrosze) })}
+              </Text>
+              {shown.products.items.map((item) => (
+                <View key={item.name} style={styles.cardTop}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.muted}>
+                    {fill(r.productsRow, {
+                      n: String(item.quantity),
+                      amount: money(item.totalGrosze),
+                    })}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.muted}>{r.productsHint}</Text>
+            </View>
+          ) : null}
           {shown.discounts.totalGrosze > 0 ? (
             // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
             <View style={{ gap: 6 }} testID="report-discounts">

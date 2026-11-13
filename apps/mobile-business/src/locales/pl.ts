@@ -645,6 +645,15 @@ export const pl = {
     removeNo: 'Nie',
     removed: 'Usunięto {name} z listy oczekujących.',
   },
+  products: {
+    sold: 'Produkty',
+    soldTotal: 'PRODUKTY: {amount}',
+    soldHint:
+      'Nie wchodzą do ceny wizyty, punktów ani rabatów. Listę produktów prowadzi się w kabinecie („Usługi”).',
+    removeSale: 'Usuń',
+    removeSaleFor: 'Usuń produkt — {name}',
+    addSaleFor: 'Dodaj produkt — {name}',
+  },
   reports: {
     open: 'Raporty',
     title: 'Raporty',
@@ -770,6 +779,10 @@ export const pl = {
     discountRow: '{amount} · wizyty: {n}',
     discountHint:
       'Ile salon oddał w rabatach na opłaconych wizytach z tego okresu. Przychód w raporcie jest już po rabatach.',
+    products: 'Sprzedaż produktów: {amount}',
+    productsRow: '{n} szt. · {amount}',
+    productsHint:
+      'Produkty sprzedane przy wizytach. Nie wchodzą do przychodu z wizyt ani do prowizji.',
     tipsHint: 'Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
     commissions: 'Prowizje',
     commissionsTotal: 'Prowizje: {amount}',

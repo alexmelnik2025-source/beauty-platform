@@ -645,6 +645,15 @@ export const uk: Dictionary = {
     removeNo: 'Ні',
     removed: '{name} видалено з листа очікування.',
   },
+  products: {
+    sold: 'Товари',
+    soldTotal: 'ТОВАРИ: {amount}',
+    soldHint:
+      'Не входять у ціну візиту, бали і знижки. Список товарів ведеться в кабінеті («Послуги»).',
+    removeSale: 'Видалити',
+    removeSaleFor: 'Видалити товар — {name}',
+    addSaleFor: 'Додати товар — {name}',
+  },
   reports: {
     open: 'Звіти',
     title: 'Звіти',
@@ -771,6 +780,9 @@ export const uk: Dictionary = {
     discountRow: '{amount} · візити: {n}',
     discountHint:
       'Скільки салон віддав у знижках на оплачених візитах цього періоду. Виторг у звіті вже після знижок.',
+    products: 'Продаж товарів: {amount}',
+    productsRow: '{n} шт. · {amount}',
+    productsHint: 'Товари, продані на візитах. Не входять у виторг за візити і в комісію.',
     tipsHint: 'Не входять у виторг салону — як їх ділити, вирішує салон.',
     commissions: 'Комісія спеціалістів',
     commissionsTotal: 'Комісія спеціалістів: {amount}',
