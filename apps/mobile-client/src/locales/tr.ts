@@ -302,6 +302,7 @@ export const tr: Dictionary = {
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ En yüksek puanlı',
     recent: 'Son görüntülenenler',
+    recentClear: 'Listeyi temizle',
     locating: 'Konumunuz bulunuyor…',
     locationFailed: 'Konumunuz bulunamadı. Ayarlardan izin verin veya bir şehir yazın.',
     distance: 'Size {km} km',

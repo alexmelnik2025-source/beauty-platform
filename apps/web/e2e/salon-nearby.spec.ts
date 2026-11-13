@@ -157,7 +157,12 @@ test('a salon page lists the other salons nearby, nearest first', async ({ brows
     await expect(recent.getByRole('link')).toHaveText([`${PREFIX} Wrzeszcz`, `${PREFIX} Główny`]);
     await recent.scrollIntoViewIfNeeded();
     await shot(page, '403-home-recent');
-    await recent.getByRole('link', { name: `${PREFIX} Główny` }).click();
+    // Task 414: "Wyczyść listę" forgets them on this device.
+    await recent.getByRole('button', { name: 'Wyczyść listę' }).click();
+    await expect(recent).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('region', { name: 'Ostatnio oglądane' })).toHaveCount(0);
+    await page.goto(`/pl/b/${main}`);
     await expect(page.getByRole('heading', { level: 1, name: `${PREFIX} Główny` })).toBeVisible();
 
     // Task 401: the client app.
@@ -188,13 +193,20 @@ test('a salon page lists the other salons nearby, nearest first', async ({ brows
       // Task 402: the start screen remembers the salons opened on this device, newest first.
       await app.reload();
       const recentApp = app.getByRole('group', { name: 'Ostatnio oglądane' });
-      await expect(recentApp.getByRole('button')).toHaveText([
+      await expect(recentApp.getByRole('button', { name: new RegExp(PREFIX) })).toHaveText([
         `${PREFIX} Wrzeszcz`,
         `${PREFIX} Główny`,
       ]);
       await shot(app, '402-client-app-recent');
       await recentApp.getByRole('button', { name: `${PREFIX} Główny` }).click();
       await expect(app.getByRole('heading', { name: `${PREFIX} Główny` })).toBeVisible();
+      // Task 414: "Wyczyść listę" forgets them on this device.
+      await app.reload();
+      await app.getByRole('button', { name: 'Wyczyść listę' }).click();
+      await expect(app.getByRole('group', { name: 'Ostatnio oglądane' })).toHaveCount(0);
+      await app.reload();
+      await expect(app.getByRole('button', { name: 'Znajdź salon' }).first()).toBeVisible();
+      await expect(app.getByRole('group', { name: 'Ostatnio oglądane' })).toHaveCount(0);
       await app.close();
     } finally {
       clientApp.server.close();

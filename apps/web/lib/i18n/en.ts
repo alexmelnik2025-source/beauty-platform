@@ -404,6 +404,7 @@ export const en: Dict = {
     searchButton: 'Search',
     categories: 'Categories',
     recent: 'Recently viewed',
+    recentClear: 'Clear the list',
     featured: 'Recommended salons',
     signInLater: 'Your account is created with your first booking.',
   },

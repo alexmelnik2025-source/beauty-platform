@@ -129,6 +129,7 @@ export const tr: Dict = {
     searchButton: 'Ara',
     categories: 'Kategoriler',
     recent: 'Son görüntülenenler',
+    recentClear: 'Listeyi temizle',
     featured: 'Önerilen salonlar',
     signInLater: 'Hesabınız ilk rezervasyonda kendiliğinden oluşur.',
   },

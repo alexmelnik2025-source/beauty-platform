@@ -299,6 +299,7 @@ export const ru: Dictionary = {
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Лучшие по отзывам',
     recent: 'Недавно просмотренные',
+    recentClear: 'Очистить список',
     locating: 'Определяем ваше местоположение…',
     locationFailed:
       'Не удалось определить ваше местоположение. Разрешите его в настройках или введите город.',

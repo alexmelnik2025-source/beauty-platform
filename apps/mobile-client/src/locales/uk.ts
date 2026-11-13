@@ -296,6 +296,7 @@ export const uk: Dictionary = {
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Найкращі за відгуками',
     recent: 'Нещодавно переглянуті',
+    recentClear: 'Очистити список',
     locating: 'Визначаємо ваше місцезнаходження…',
     locationFailed:
       'Не вдалося визначити ваше місцезнаходження. Дозвольте його в налаштуваннях або введіть місто.',

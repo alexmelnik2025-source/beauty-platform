@@ -130,6 +130,7 @@ export const sq: Dict = {
     searchButton: 'Kërko',
     categories: 'Kategoritë',
     recent: 'Parë së fundmi',
+    recentClear: 'Pastro listën',
     featured: 'Sallone të rekomanduara',
     signInLater: 'Llogaria krijohet vetë me rezervimin e parë.',
   },
