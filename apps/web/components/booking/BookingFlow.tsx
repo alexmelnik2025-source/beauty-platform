@@ -34,6 +34,7 @@ import { directionsLink, SalonProfile } from './SalonProfile';
 import { SalonReviews } from '../reviews/SalonReviews';
 import { NearbySalons } from './NearbySalons';
 import { FavoriteButton } from './FavoriteButton';
+import { ShareSalon } from './ShareSalon';
 import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import { WishPhotos } from '../wishes/WishPhotos';
@@ -559,6 +560,8 @@ export function BookingFlow({ slug }: { slug: string }) {
           <LanguageBadges codes={salon.languages ?? []} label={t.languages.speaks} />
           {/* Task 405: a client signed in to "Moje wizyty" saves the salon to "Ulubione". */}
           {signedInAs && !embed ? <FavoriteButton slug={salon.slug} /> : null}
+          {/* Task 406: not in a window on the salon's own site. */}
+          {embed ? null : <ShareSalon name={salon.name} slug={salon.slug} />}
           <SalonProfile salon={salon} />
           <SalonGallery photos={salon.photos ?? []} />
           <SalonReviews slug={salon.slug} />

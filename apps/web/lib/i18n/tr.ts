@@ -342,6 +342,13 @@ export const tr: Dict = {
     appName: 'Randevular',
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  shareSalon: {
+    share: 'Arkadaşlarına öner',
+    shareText: '{name} — online randevu al: {url}',
+    copied: 'Bağlantı kopyalandı — arkadaşlarına yapıştır.',
+    shareFailed: 'Paylaşılamadı. Bağlantı: {url}',
+  },
   favorites: {
     tab: 'Favoriler',
     empty: 'Henüz favori salonunuz yok. Katalogda bir salon açın ve “♡ Favorilere ekle”ye dokunun.',
