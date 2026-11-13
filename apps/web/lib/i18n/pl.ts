@@ -630,6 +630,13 @@ export const pl = {
     appName: 'Wizyty',
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  shareSalon: {
+    share: 'Poleć salon znajomym',
+    shareText: '{name} — umów się online: {url}',
+    copied: 'Link skopiowany — wklej go znajomym.',
+    shareFailed: 'Nie udało się udostępnić. Link: {url}',
+  },
   favorites: {
     tab: 'Ulubione',
     empty:
