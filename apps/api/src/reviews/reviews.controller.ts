@@ -9,9 +9,18 @@ import {
   Put,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
 import { CurrentAuth, Public } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
@@ -36,11 +45,13 @@ import {
   type VisitReviewResponse,
 } from './reviews.responses';
 import {
+  exportReviewsQuerySchema,
   listReviewsQuerySchema,
   salonReviewsQuerySchema,
   replyReviewSchema,
   updateReviewSettingsSchema,
   writeReviewSchema,
+  type ExportReviewsQuery,
   type ListReviewsQuery,
   type SalonReviewsQuery,
   type ReplyReviewInput,
@@ -127,6 +138,34 @@ export class ReviewsController {
     @Query(new ZodValidationPipe(salonReviewsQuerySchema)) query: SalonReviewsQuery,
   ): Promise<SalonReviewsResponse> {
     return this.reviews.listForSalon(m, auth.userId, locationId, query);
+  }
+
+  @Get('reviews/export.csv')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: 'The reviews as a CSV file (owners and managers)',
+    description:
+      'Task 385. The list’s filters (staffId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.',
+  })
+  @ApiQuery({ name: 'staffId', required: false, description: 'Only reviews of this specialist' })
+  @ApiQuery({ name: 'rating', required: false, type: Number, description: 'Only this many stars' })
+  @ApiQuery({ name: 'unanswered', required: false, enum: ['true', 'false'] })
+  @ApiQuery({ name: 'lang', required: false, enum: ['pl', 'uk', 'ru', 'en'] })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async exportCsv(
+    @CurrentMembership() m: MembershipContext,
+    @CurrentAuth() auth: AuthContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Query(new ZodValidationPipe(exportReviewsQuerySchema)) query: ExportReviewsQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const csv = await this.reviews.exportCsv(m, auth.userId, locationId, query);
+    const day = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="opinie-${day}.csv"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.end(csv);
   }
 
   @Put('reviews/:reviewId/reply')

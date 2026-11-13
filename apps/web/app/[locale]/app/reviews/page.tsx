@@ -6,7 +6,7 @@ import { SalonReply } from '@/components/reviews/SalonReply';
 import { StarFilter } from '@/components/reviews/StarFilter';
 import { Stars } from '@/components/reviews/Stars';
 import { ErrorBox, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import type { ReviewSettings, SalonReviews } from '@/lib/types';
@@ -21,7 +21,8 @@ const HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
  * of their own visits — the server decides). Task 211: the owner and managers answer a review
  * publicly, change or remove the answer. Task 380: "★ 1 (2)" chips — e.g. only the low ratings.
  * Task 382: "Bez odpowiedzi (n)" — only the reviews the salon has not answered yet. Task 383:
- * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist.
+ * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist. Task 385: "Pobierz CSV" of the
+ * reviews shown (owner and managers).
  */
 export default function ReviewsPage() {
   const { t, locale } = useI18n();
@@ -34,6 +35,37 @@ export default function ReviewsPage() {
   const [rating, setRating] = useState<number | null>(null);
   const [unanswered, setUnanswered] = useState(false);
   const [staffId, setStaffId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  /** Task 385: the reviews with the chosen filters as a CSV file (column names in the cabinet language). */
+  async function exportCsv(): Promise<void> {
+    if (exporting) return;
+    setExporting(true);
+    setError('');
+    try {
+      const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
+      const res = await apiResponse(`${base}/reviews/export.csv`, {
+        query: {
+          lang,
+          staffId: staffId ?? undefined,
+          rating: rating ?? undefined,
+          unanswered: unanswered ? 'true' : undefined,
+        },
+      });
+      const name =
+        /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ??
+        'opinie.csv';
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(await res.blob());
+      link.download = name;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -96,6 +128,18 @@ export default function ReviewsPage() {
         ) : (
           <section className="section" aria-label={t.reviewsCabinet.list}>
             <h2>{t.reviewsCabinet.list}</h2>
+            {manager && list.count > 0 ? (
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  disabled={exporting}
+                  onClick={() => void exportCsv()}
+                >
+                  {t.reviewsCabinet.csv}
+                </button>
+              </div>
+            ) : null}
             {list.average !== null ? (
               <p>
                 <Stars value={list.average} />{' '}

@@ -1363,6 +1363,9 @@ export const en: Dictionary = {
     /** Task 383: the filter by specialist. */
     bySpecialist: 'Reviews by specialist',
     everyone: 'Everyone',
+    /** Task 385: the reviews as a CSV file. */
+    csv: 'Download reviews (CSV)',
+    csvFailed: 'Could not save the file.',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Not answered ({n})',
     service: '{service} with {staff}',

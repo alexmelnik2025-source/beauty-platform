@@ -464,6 +464,48 @@ describe('showing reviews', () => {
     await review(c.token, { rating: 3 });
 
     const all = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    // Task 385: "Pobierz CSV" — every review with the client's name, newest first, filters kept.
+    const csv = await ctx
+      .http()
+      .get(`${base}/reviews/export.csv`)
+      .set(owner.auth)
+      .buffer(true)
+      .parse((res, done) => {
+        let text = '';
+        res.on('data', (chunk: Buffer) => (text += chunk.toString('utf8')));
+        res.on('end', () => done(null, text));
+      })
+      .expect(200);
+    expect(csv.headers['content-type']).toContain('text/csv');
+    const lines = (csv.body as string)
+      .replace(/^\uFEFF/, '')
+      .trim()
+      .split('\r\n');
+    expect(lines[0]).toBe(
+      '"Data opinii";"Ocena";"Specjalista";"Usługa";"Data wizyty";"Klient";"Opinia";"Odpowiedź salonu";"Data odpowiedzi"',
+    );
+    expect(lines).toHaveLength(3);
+    expect(lines[1]).toContain('"3";"Ola";"Strzyżenie"');
+    expect(lines[1]).toContain('"Bob Nowak"');
+    const fives = await ctx
+      .http()
+      .get(`${base}/reviews/export.csv`)
+      .query({ rating: 5, lang: 'en' })
+      .set(owner.auth)
+      .buffer(true)
+      .parse((res, done) => {
+        let text = '';
+        res.on('data', (chunk: Buffer) => (text += chunk.toString('utf8')));
+        res.on('end', () => done(null, text));
+      })
+      .expect(200);
+    const fiveLines = (fives.body as string).trim().split('\r\n');
+    expect(fiveLines[0]).toContain('"Review date";"Stars"');
+    expect(fiveLines).toHaveLength(2);
+    expect(fiveLines[1]).toContain('"Anna Kowalska"');
+    const logged = await ctx.prisma.auditLog.count({ where: { action: 'reviews.exported' } });
+    expect(logged).toBe(2);
+
     // Task 383: each specialist with reviews, for the chips; the filter by one of them.
     expect(all.body.staff).toEqual([
       { staffId: kasiaId, displayName: 'Kasia', count: 1, average: 5 },
@@ -507,6 +549,8 @@ describe('showing reviews', () => {
       data: { userId: kasia.userId },
     });
     const own = await ctx.http().get(`${base}/reviews`).set(kasia.auth).expect(200);
+    // Task 385: the CSV is for owners and managers only.
+    await ctx.http().get(`${base}/reviews/export.csv`).set(kasia.auth).expect(403);
     expect(own.body.count).toBe(1);
     // Staff with only their own visits count only their own stars.
     expect(own.body.stars).toEqual([0, 0, 0, 0, 1]);

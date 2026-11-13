@@ -70,3 +70,9 @@ export const salonReviewsQuerySchema = listReviewsQuerySchema.extend({
     .describe('Task 382: only reviews the salon has not answered yet'),
 });
 export type SalonReviewsQuery = z.infer<typeof salonReviewsQuerySchema>;
+
+/** Task 385: "Pobierz CSV" of the reviews — the same filters, without paging. */
+export const exportReviewsQuerySchema = salonReviewsQuerySchema
+  .omit({ before: true })
+  .extend({ lang: z.enum(['pl', 'uk', 'ru', 'en']).default('pl') });
+export type ExportReviewsQuery = z.infer<typeof exportReviewsQuerySchema>;

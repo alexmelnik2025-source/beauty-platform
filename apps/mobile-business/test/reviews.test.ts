@@ -125,12 +125,14 @@ describe('reviews in the business app (task 201)', () => {
     await api.reviews('org-1', 'loc 1', { rating: 1 });
     await api.reviews('org-1', 'loc 1', { staffId: 's 1' });
     await api.reviews('org-1', 'loc 1', { unanswered: true, before: 'r-2' });
+    await api.reviewsCsv('org-1', 'loc 1', 'uk', { rating: 1, unanswered: true });
     expect(calls.slice(1)).toEqual([
       'GET /v1/organizations/org-1/locations/loc%201/reviews',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?before=r-9',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?rating=1',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?staffId=s+1',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?before=r-2&unanswered=true',
+      'GET /v1/organizations/org-1/locations/loc%201/reviews/export.csv?lang=uk&rating=1&unanswered=true',
     ]);
   });
 });

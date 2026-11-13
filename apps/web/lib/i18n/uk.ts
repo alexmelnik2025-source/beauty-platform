@@ -569,6 +569,8 @@ export const uk: Dict = {
     anonymous: 'Клієнт (дані видалено)',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Без відповіді ({n})',
+    /** Task 385: the reviews as a CSV file. */
+    csv: 'Завантажити відгуки (CSV)',
     visit: 'візит {date}',
     reply: 'Відповісти',
     replyChange: 'Змінити відповідь',

@@ -16,6 +16,8 @@ import {
   type SalonReviews,
 } from '../api';
 import { errorText } from '../errors';
+import { shareCsv } from '../share';
+import { csvTools } from './csvTools';
 import { fill, type Dictionary } from '../i18n';
 import {
   appendReviews,
@@ -38,7 +40,8 @@ import type { SalonChoice } from './SalonsScreen';
  * collecting reviews on or off and choose when the client is asked, as in the cabinet.
  * Task 381: "★ 1 (2)" chips — only the reviews with that many stars. Task 382: "Bez odpowiedzi
  * (n)" for the owner and managers — only the reviews they have not answered yet. Task 383:
- * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist.
+ * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist. Task 385: "Pobierz CSV opinii"
+ * for the owner and managers — the reviews shown, as a file.
  */
 export function ReviewsScreen(props: {
   api: BusinessApi;
@@ -62,6 +65,27 @@ export function ReviewsScreen(props: {
   const [unansweredCount, setUnansweredCount] = useState(0);
   const [staffId, setStaffId] = useState<string | null>(null);
   const [team, setTeam] = useState<SalonReviews['staff']>([]);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvInfo, setCsvInfo] = useState('');
+
+  const downloadCsv = async () => {
+    if (csvBusy) return;
+    setCsvBusy(true);
+    setCsvInfo('');
+    try {
+      const file = await api.reviewsCsv(salon.orgId, salon.locationId, props.locale, {
+        staffId: staffId ?? undefined,
+        rating: rating ?? undefined,
+        unanswered,
+      });
+      const result = await shareCsv(file, csvTools());
+      setCsvInfo(result === 'failed' ? r.csvFailed : '');
+    } catch (e) {
+      setCsvInfo(errorText(e, t));
+    } finally {
+      setCsvBusy(false);
+    }
+  };
   const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -128,6 +152,10 @@ export function ReviewsScreen(props: {
           {reviewSummary(summary, t, props.locale)}
         </Text>
       ) : null}
+      {manager && summary && summary.count > 0 ? (
+        <Button kind="secondary" label={r.csv} busy={csvBusy} onPress={() => void downloadCsv()} />
+      ) : null}
+      {csvInfo ? <Text style={styles.muted}>{csvInfo}</Text> : null}
       {team.length > 1 ? (
         <View style={styles.actions} role="group" aria-label={r.bySpecialist}>
           {[

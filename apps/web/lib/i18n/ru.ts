@@ -575,6 +575,8 @@ export const ru: Dict = {
     anonymous: 'Клиент (данные удалены)',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Без ответа ({n})',
+    /** Task 385: the reviews as a CSV file. */
+    csv: 'Скачать отзывы (CSV)',
     visit: 'визит {date}',
     reply: 'Ответить',
     replyChange: 'Изменить ответ',
