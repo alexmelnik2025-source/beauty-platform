@@ -3077,3 +3077,5 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   ulubione» → `/c?tab=favorites`) и `FavoriteButton` на «Do zobaczenia!» для аккаунта, созданного при записи (если
   клиент уже был вошедшим — кнопка в шапке салона). e2e `web-favorites.spec.ts`, `booking.spec.ts` (скриншоты 416,
   417).
+- 418: «Udostępnij wizytę» и на «Do zobaczenia!» клиентского приложения (`BookingScreen`, те же `visitShareMessage` и
+  `shareTools`). e2e в `booking.spec.ts`.
