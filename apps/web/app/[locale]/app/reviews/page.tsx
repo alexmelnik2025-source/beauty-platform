@@ -20,7 +20,8 @@ const HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
  * asked ("Jak było?" email); everyone sees the reviews with the client's name (staff only those
  * of their own visits — the server decides). Task 211: the owner and managers answer a review
  * publicly, change or remove the answer. Task 380: "★ 1 (2)" chips — e.g. only the low ratings.
- * Task 382: "Bez odpowiedzi (n)" — only the reviews the salon has not answered yet.
+ * Task 382: "Bez odpowiedzi (n)" — only the reviews the salon has not answered yet. Task 383:
+ * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist.
  */
 export default function ReviewsPage() {
   const { t, locale } = useI18n();
@@ -32,18 +33,23 @@ export default function ReviewsPage() {
   const [error, setError] = useState('');
   const [rating, setRating] = useState<number | null>(null);
   const [unanswered, setUnanswered] = useState(false);
+  const [staffId, setStaffId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setList(
         await api<SalonReviews>(`${base}/reviews`, {
-          query: { rating: rating ?? undefined, unanswered: unanswered ? 'true' : undefined },
+          query: {
+            staffId: staffId ?? undefined,
+            rating: rating ?? undefined,
+            unanswered: unanswered ? 'true' : undefined,
+          },
         }),
       );
     } catch (err) {
       setError(errorText(t, err));
     }
-  }, [base, t, rating, unanswered]);
+  }, [base, t, rating, unanswered, staffId]);
 
   useEffect(() => {
     void load();
@@ -55,6 +61,7 @@ export default function ReviewsPage() {
       const next = await api<SalonReviews>(`${base}/reviews`, {
         query: {
           before: list.nextBefore,
+          staffId: staffId ?? undefined,
           rating: rating ?? undefined,
           unanswered: unanswered ? 'true' : undefined,
         },
@@ -97,6 +104,29 @@ export default function ReviewsPage() {
                   count: String(list.count),
                 })}
               </p>
+            ) : null}
+            {list.staff.length > 1 ? (
+              <div className="chips" role="group" aria-label={t.reviews.bySpecialist}>
+                {[
+                  { staffId: null, label: t.reviews.everyone },
+                  ...list.staff.map((s) => ({
+                    staffId: s.staffId,
+                    label: `${s.displayName} ★ ${s.average === null ? '' : one.format(s.average)} (${s.count})`,
+                  })),
+                ].map((chip) => (
+                  <button
+                    key={chip.staffId ?? 'all'}
+                    type="button"
+                    aria-pressed={staffId === chip.staffId}
+                    onClick={() => {
+                      setStaffId(chip.staffId);
+                      setRating(null);
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
             ) : null}
             <StarFilter stars={list.stars} value={rating} onChange={setRating} />
             {manager && (list.unanswered > 0 || unanswered) ? (

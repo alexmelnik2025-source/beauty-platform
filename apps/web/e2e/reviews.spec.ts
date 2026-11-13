@@ -24,7 +24,8 @@ import { serveApp } from './mobile-app';
  * Task 380: "★ 4 (1)" shows only the four-star reviews, on the salon page (380) and in the
  * cabinet (380-a); task 381: the same chips in the business app (381) and on the salon page of the
  * client app (381-a). Task 382: "Bez odpowiedzi (n)" — the reviews still without the salon's
- * answer, in the cabinet (382) and in the business app (382-a).
+ * answer, in the cabinet (382) and in the business app (382-a). Task 383: the reviews of one
+ * specialist, in the cabinet (383) and in the business app (383-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -280,6 +281,13 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await shot(cabinet, '382-cabinet-unanswered');
   await waiting.click();
   await expect(waiting).toHaveAttribute('aria-pressed', 'false');
+  // Task 383: only Nazar's reviews.
+  await list.getByRole('button', { name: 'Nazar ★ 4,0 (1)' }).click();
+  await expect(list.locator('.list-row')).toHaveCount(1);
+  await expect(list.locator('.list-row')).toContainText('Jan Kowalski');
+  await shot(cabinet, '383-cabinet-reviews-specialist');
+  await list.getByRole('button', { name: 'Wszyscy', exact: true }).click();
+  await expect(list.locator('.list-row')).toHaveCount(3);
   const saved = await json<{ requestHours: number; version: number }>(
     await request.get(`${base}/review-settings`, { headers: owner }),
   );
@@ -450,6 +458,13 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await shot(app, '382-a-app-unanswered');
     await waitingApp.click();
     await expect(app.getByRole('button', { name: 'Zmień odpowiedź' })).toHaveCount(2);
+    // Task 383: only Nazar's reviews on the phone.
+    await app.getByRole('button', { name: 'Nazar ★ 4,0 (2)' }).click();
+    await expect(app.getByText('Dobra broda, polecam.')).toBeVisible();
+    await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toHaveCount(0);
+    await shot(app, '383-a-app-reviews-specialist');
+    await app.getByRole('button', { name: 'Wszyscy', exact: true }).click();
+    await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toBeVisible();
 
     // Task 211: the owner answers a review on the phone (Piotr's — the newest without an answer).
     await expect(app.getByRole('button', { name: 'Zmień odpowiedź' })).toHaveCount(2);

@@ -449,6 +449,20 @@ describe('showing reviews', () => {
     await review(c.token, { rating: 3 });
 
     const all = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    // Task 383: each specialist with reviews, for the chips; the filter by one of them.
+    expect(all.body.staff).toEqual([
+      { staffId: kasiaId, displayName: 'Kasia', count: 1, average: 5 },
+      { staffId: olaId, displayName: 'Ola', count: 1, average: 3 },
+    ]);
+    const olas = await ctx
+      .http()
+      .get(`${base}/reviews`)
+      .query({ staffId: olaId })
+      .set(owner.auth)
+      .expect(200);
+    expect(olas.body).toMatchObject({ count: 1, average: 3, stars: [0, 0, 1, 0, 0] });
+    expect(olas.body.staff).toHaveLength(2);
+    expect(olas.body.items.map((r: { staffName: string }) => r.staffName)).toEqual(['Ola']);
     expect(all.body).toMatchObject({ enabled: true, count: 2, average: 4, stars: [0, 0, 1, 0, 1] });
     // Task 380: the salon looks for its lower ratings.
     const threes = await ctx.http().get(`${base}/reviews`).query({ rating: 3 }).set(owner.auth);
@@ -481,6 +495,10 @@ describe('showing reviews', () => {
     expect(own.body.count).toBe(1);
     // Staff with only their own visits count only their own stars.
     expect(own.body.stars).toEqual([0, 0, 0, 0, 1]);
+    // Task 383: and see only themselves among the specialists.
+    expect(own.body.staff).toEqual([
+      { staffId: kasiaId, displayName: 'Kasia', count: 1, average: 5 },
+    ]);
     expect(own.body.items).toEqual([
       expect.objectContaining({ appointmentId: a.id, customerName: 'Anna Kowalska' }),
     ]);

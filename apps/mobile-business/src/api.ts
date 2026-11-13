@@ -798,6 +798,8 @@ export class BusinessApi {
     locationId: string,
     filter: {
       before?: string;
+      /** Task 383: only the reviews of this specialist. */
+      staffId?: string;
       /** Task 381: only the reviews with this many stars. */
       rating?: number;
       /** Task 382: only the reviews without the salon's answer. */
@@ -806,6 +808,7 @@ export class BusinessApi {
   ): Promise<SalonReviews> {
     const params = new URLSearchParams();
     if (filter.before) params.set('before', filter.before);
+    if (filter.staffId) params.set('staffId', filter.staffId);
     if (filter.rating) params.set('rating', String(filter.rating));
     if (filter.unanswered) params.set('unanswered', 'true');
     const query = params.toString() ? `?${params.toString()}` : '';

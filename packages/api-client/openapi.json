@@ -22931,6 +22931,38 @@
             "maximum": 9007199254740991,
             "description": "Task 382: how many reviews have no answer of the salon yet (without `rating`)"
           },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "staffId": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "average": {
+                  "nullable": true,
+                  "description": "Average stars, one decimal; null without reviews",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "staffId",
+                "displayName",
+                "count",
+                "average"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 383: specialists (former ones too) with reviews the user may see, salon order; without `staffId`"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -23018,6 +23050,7 @@
           "average",
           "stars",
           "unanswered",
+          "staff",
           "items",
           "nextBefore"
         ],

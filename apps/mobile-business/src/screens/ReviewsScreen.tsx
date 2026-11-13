@@ -23,6 +23,7 @@ import {
   reviewLine,
   reviewSettingsChanged,
   reviewSummary,
+  staffReviewChip,
   starChips,
   stars,
   type Review,
@@ -36,7 +37,8 @@ import type { SalonChoice } from './SalonsScreen';
  * managers answer a review publicly, change or remove the answer. Task 341: they also switch
  * collecting reviews on or off and choose when the client is asked, as in the cabinet.
  * Task 381: "★ 1 (2)" chips — only the reviews with that many stars. Task 382: "Bez odpowiedzi
- * (n)" for the owner and managers — only the reviews they have not answered yet.
+ * (n)" for the owner and managers — only the reviews they have not answered yet. Task 383:
+ * "Kasia ★ 4,8 (12)" chips — only the reviews of one specialist.
  */
 export function ReviewsScreen(props: {
   api: BusinessApi;
@@ -58,6 +60,8 @@ export function ReviewsScreen(props: {
   const [counts, setCounts] = useState<number[]>([]);
   const [unanswered, setUnanswered] = useState(false);
   const [unansweredCount, setUnansweredCount] = useState(0);
+  const [staffId, setStaffId] = useState<string | null>(null);
+  const [team, setTeam] = useState<SalonReviews['staff']>([]);
   const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -68,10 +72,12 @@ export function ReviewsScreen(props: {
       try {
         const page = await api.reviews(salon.orgId, salon.locationId, {
           before,
+          staffId: staffId ?? undefined,
           rating: rating ?? undefined,
           unanswered,
         });
         setUnansweredCount(page.unanswered);
+        setTeam(page.staff);
         setSummary({ count: page.count, average: page.average, enabled: page.enabled });
         setCounts(page.stars);
         setItems((shown) => (before && shown ? appendReviews(shown, page.items) : page.items));
@@ -83,7 +89,7 @@ export function ReviewsScreen(props: {
         setBusy(false);
       }
     },
-    [api, salon, t, rating, unanswered],
+    [api, salon, t, rating, unanswered, staffId],
   );
 
   useEffect(() => {
@@ -121,6 +127,30 @@ export function ReviewsScreen(props: {
         <Text style={styles.summary} accessibilityRole="header">
           {reviewSummary(summary, t, props.locale)}
         </Text>
+      ) : null}
+      {team.length > 1 ? (
+        <View style={styles.actions} role="group" aria-label={r.bySpecialist}>
+          {[
+            { staffId: null, label: r.everyone },
+            ...team.map((s) => ({ staffId: s.staffId, label: staffReviewChip(s, props.locale) })),
+          ].map((chip) => (
+            <Pressable
+              key={chip.staffId ?? 'all'}
+              accessibilityRole="button"
+              aria-pressed={staffId === chip.staffId}
+              accessibilityState={{ selected: staffId === chip.staffId }}
+              onPress={() => {
+                setStaffId(chip.staffId);
+                setRating(null);
+              }}
+              style={[styles.chip, staffId === chip.staffId && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, staffId === chip.staffId && { color: '#fff' }]}>
+                {chip.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       ) : null}
       {chips.length > 0 ? (
         <View style={styles.actions} role="group" aria-label={r.byStars}>

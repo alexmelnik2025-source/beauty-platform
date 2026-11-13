@@ -5899,6 +5899,14 @@ export interface components {
             stars: number[];
             /** @description Task 382: how many reviews have no answer of the salon yet (without `rating`) */
             unanswered: number;
+            /** @description Task 383: specialists (former ones too) with reviews the user may see, salon order; without `staffId` */
+            staff: {
+                staffId: string;
+                displayName: string;
+                count: number;
+                /** @description Average stars, one decimal; null without reviews */
+                average: number | null;
+            }[];
             items: {
                 id: string;
                 rating: number;

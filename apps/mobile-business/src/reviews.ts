@@ -89,3 +89,15 @@ export function starChips(
   if (shown.length < 2 && chosen === null) return [];
   return shown.map((n) => ({ rating: n, label: `★ ${n} (${counts[n - 1] ?? 0})` }));
 }
+
+/** Task 383: "Kasia ★ 4,8 (12)" — a specialist's chip in "Opinie". */
+export function staffReviewChip(staff: SalonReviews['staff'][number], locale: DayLocale): string {
+  const average =
+    staff.average === null
+      ? ''
+      : new Intl.NumberFormat(INTL_LOCALE[locale], {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }).format(staff.average);
+  return `${staff.displayName} ★ ${average} (${staff.count})`;
+}

@@ -1358,6 +1358,9 @@ export const uk: Dictionary = {
     /** Task 381: the filter by stars. */
     byStars: 'Відгуки за оцінками',
     allStars: 'Усі оцінки',
+    /** Task 383: the filter by specialist. */
+    bySpecialist: 'Відгуки про спеціалістів',
+    everyone: 'Усі',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Без відповіді ({n})',
     service: '{service} у {staff}',

@@ -1360,6 +1360,9 @@ export const ru: Dictionary = {
     /** Task 381: the filter by stars. */
     byStars: 'Отзывы по оценкам',
     allStars: 'Все оценки',
+    /** Task 383: the filter by specialist. */
+    bySpecialist: 'Отзывы о специалистах',
+    everyone: 'Все',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Без ответа ({n})',
     service: '{service} у {staff}',

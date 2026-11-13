@@ -126,15 +126,29 @@ export class ReviewsService {
   ): Promise<SalonReviewsResponse> {
     await this.access.readable(m, locationId);
     const settings = await this.settings(locationId);
-    const where: Prisma.VisitReviewWhereInput = {
+    const visible: Prisma.VisitReviewWhereInput = {
       locationId,
-      ...(query.staffId ? { staffId: query.staffId } : {}),
       ...(m.role === 'staff' && !m.permissions.viewAllAppointments ? { staff: { userId } } : {}),
     };
-    const [summary, byStars, unanswered, rows] = await Promise.all([
+    const where: Prisma.VisitReviewWhereInput = query.staffId
+      ? { ...visible, staffId: query.staffId }
+      : visible;
+    const [summary, byStars, unanswered, perStaff, staff, rows] = await Promise.all([
       this.prisma.visitReview.aggregate({ where, _count: true, _avg: { rating: true } }),
       this.starCounts(where),
       this.prisma.visitReview.count({ where: { ...where, reply: null } }),
+      // Task 383: the chips "Kasia ★ 4,8 (12)" — every specialist with reviews the user may see.
+      this.prisma.visitReview.groupBy({
+        by: ['staffId'],
+        where: visible,
+        _count: true,
+        _avg: { rating: true },
+      }),
+      this.prisma.staffMember.findMany({
+        where: { locationId },
+        select: { id: true, displayName: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      }),
       this.prisma.visitReview.findMany({
         where: {
           ...where,
@@ -154,6 +168,17 @@ export class ReviewsService {
       average: average(summary._avg.rating),
       stars: byStars,
       unanswered,
+      staff: staff
+        .filter((s) => perStaff.some((p) => p.staffId === s.id))
+        .map((s) => {
+          const stats = perStaff.find((p) => p.staffId === s.id)!;
+          return {
+            staffId: s.id,
+            displayName: s.displayName,
+            count: stats._count,
+            average: average(stats._avg.rating),
+          };
+        }),
       items: page.map(toSalonReview),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };

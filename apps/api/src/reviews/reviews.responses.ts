@@ -73,6 +73,17 @@ export const salonReviewsSchema = responseSchema(
       .number()
       .int()
       .describe('Task 382: how many reviews have no answer of the salon yet (without `rating`)'),
+    staff: z
+      .array(
+        z.strictObject({
+          staffId: z.string(),
+          displayName: z.string(),
+          ...ratingSummary,
+        }),
+      )
+      .describe(
+        'Task 383: specialists (former ones too) with reviews the user may see, salon order; without `staffId`',
+      ),
     items: z.array(
       z.strictObject({
         id: z.string(),
