@@ -716,7 +716,7 @@ describe('reviews CSV (task 407)', () => {
     expect(res.headers['content-disposition']).toMatch(
       new RegExp(`attachment; filename="opinie-${slug}-\\d{4}-\\d{2}-\\d{2}\\.csv"`),
     );
-    expect(res.text.startsWith('﻿')).toBe(true);
+    expect(res.text.startsWith('\uFEFF')).toBe(true);
     const lines = res.text.slice(1).trimEnd().split('\r\n');
     expect(lines[0]).toBe(
       'Data wizyty;Godzina;Ocena;Specjalista;Usługa;Klient;Opinia;Odpowiedź salonu;Data opinii',
