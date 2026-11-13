@@ -342,6 +342,18 @@ export const sq: Dict = {
       'Takimet tuaja gjithmonë pranë — një ikonë në telefon, pa kërkuar lidhje nëpër email.',
     appName: 'Takimet',
   },
+  /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  favorites: {
+    tab: 'Të preferuarat',
+    empty:
+      'Ende nuk keni sallone të preferuara. Hapni një sallon në katalog dhe prekni “♡ Shto te të preferuarat”.',
+    add: '♡ Shto te të preferuarat',
+    saved: '♥ Te të preferuarat',
+    remove: 'Hiqe nga të preferuarat',
+    open: 'Shiko sallonin',
+    notBookable: 'Salloni ka pezulluar rezervimet online.',
+    tooMany: 'Keni tashmë 100 sallone të preferuara. Hiqni një për të shtuar një të ri.',
+  },
   bonuses: {
     extraTitle: 'Më shumë për vizitën',
     extraAt: 'te {names}',

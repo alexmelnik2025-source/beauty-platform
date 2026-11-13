@@ -65,6 +65,8 @@ export type {
   CustomerTags,
   ClientAppointment,
   ClientLoyalty,
+  ClientFavorites,
+  FavoriteSalon,
   ClientDataExport,
   ClientLoyaltyCard,
   ClientContact,

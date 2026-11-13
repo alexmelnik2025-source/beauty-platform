@@ -341,6 +341,17 @@ export const tr: Dict = {
       'Randevularınız hep elinizin altında — telefonunuzda bir simge, e-postalarda bağlantı aramaya gerek yok.',
     appName: 'Randevular',
   },
+  /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  favorites: {
+    tab: 'Favoriler',
+    empty: 'Henüz favori salonunuz yok. Katalogda bir salon açın ve “♡ Favorilere ekle”ye dokunun.',
+    add: '♡ Favorilere ekle',
+    saved: '♥ Favorilerde',
+    remove: 'Favorilerden çıkar',
+    open: 'Salonu gör',
+    notBookable: 'Salon online randevuyu durdurdu.',
+    tooMany: 'Zaten 100 favori salonunuz var. Yenisini eklemek için birini çıkarın.',
+  },
   bonuses: {
     extraTitle: 'Ziyarette daha fazla',
     extraAt: '{names} ile',
