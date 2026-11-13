@@ -1525,6 +1525,8 @@ export const pl = {
     ratings: 'Oceny klientów',
     ratingsCount: 'opinie: {n}',
     ratingsStaff: '{stars} ★ · opinie: {n}',
+    /** Task 421: the ratings by service. */
+    ratingsServices: 'Według usług',
     ratingsHint:
       'Średnia z opinii o wizytach z tego okresu (także tych napisanych później). Odpowiedzi na opinie — w zakładce „Opinie”.',
     rebooking: 'Kolejna wizyta',

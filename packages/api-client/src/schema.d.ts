@@ -5891,6 +5891,14 @@ export interface components {
                     /** @description Average stars, one decimal */
                     average: number;
                 }[];
+                /** @description Task 421: services with reviews in the period, best rated first */
+                services: {
+                    id: string;
+                    name: string;
+                    reviews: number;
+                    /** @description Average stars, one decimal */
+                    average: number;
+                }[];
             };
             /** @description Task 218: how many clients of the period booked their next visit ("Kolejna wizyta") */
             rebooking: {

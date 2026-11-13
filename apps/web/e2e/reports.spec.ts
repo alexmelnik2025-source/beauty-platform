@@ -20,6 +20,7 @@ import { serveApp } from './mobile-app';
  * "Obłożenie" — how busy each specialist was against their schedule (task 141): 74d, app 75c.
  * Revenue for one hour of working time, for the salon and each specialist (task 299): 74d, 75c.
  * "Oceny klientów" — the reviews of the period by stars and specialist (task 213): 74e, app 75d.
+ * The same by service — "Według usług" (task 421): 421, app 421-a.
  * "Najlepsi klienci" — the clients who brought the most, names only (task 215): 74f, app 75f.
  * "Godziny szczytu" — when visits start, by weekday and hour (task 216): 74g, app 75g.
  * A top client's name opens their card (task 217): 74h, app 75h.
@@ -355,6 +356,14 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     '4,5 ★ · opinie: 2',
   );
   await shot(page, '74e-owner-reports-ratings');
+  // Task 421: "Według usług" — the haircuts 5,0 (2), the beard 4,0 (1).
+  const byService = ratings.getByRole('list', { name: 'Według usług' });
+  await expect(byService.getByRole('listitem')).toHaveText([
+    /Strzyżenie męskie.*5,0 ★ · opinie: 2/,
+    /Broda.*4,0 ★ · opinie: 1/,
+  ]);
+  await byService.scrollIntoViewIfNeeded();
+  await shot(page, '421-owner-reports-service-ratings');
   // "Kolejna wizyta": Jan (last came to Ilian) has booked again, Piotr (Marek) not yet (task 218).
   const rebooking = page.getByTestId('report-rebooking');
   await rebooking.scrollIntoViewIfNeeded();
@@ -576,6 +585,11 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(app.getByText('4,5 ★ · opinie: 2')).toBeVisible();
     await expect(app.getByText('5,0 ★ · opinie: 1')).toBeVisible();
     await shot(app, '75d-business-app-reports-ratings');
+    // Task 421: by service in the app too.
+    await app.getByText('Według usług').scrollIntoViewIfNeeded();
+    await expect(app.getByText('5,0 ★ · opinie: 2')).toBeVisible();
+    await expect(app.getByText('4,0 ★ · opinie: 1')).toBeVisible();
+    await shot(app, '421-a-business-app-service-ratings');
     // "Kolejna wizyta" in the app too (task 218).
     await app.getByText('Kolejna wizyta: 50%').scrollIntoViewIfNeeded();
     await expect(app.getByTestId('report-rebooking')).toContainText('100% · 1/1');

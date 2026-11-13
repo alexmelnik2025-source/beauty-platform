@@ -734,6 +734,24 @@ export function ReportsScreen(props: {
                     </View>
                   ))
                 : null}
+              {ratings.services.length > 0 ? (
+                <Text style={styles.small} accessibilityRole="header">
+                  {r.ratingsServices}
+                </Text>
+              ) : null}
+              {ratings.services.map((s) => (
+                <View key={s.id} style={styles.weekday}>
+                  <Text style={[styles.weekdayName, { flexGrow: 1 }]} numberOfLines={1}>
+                    {s.name}
+                  </Text>
+                  <Text style={styles.small}>
+                    {fill(r.ratingsStaff, {
+                      stars: starsText(s.average, props.locale),
+                      n: String(s.reviews),
+                    })}
+                  </Text>
+                </View>
+              ))}
               <Text style={styles.small}>{r.ratingsHint}</Text>
             </View>
           ) : null}

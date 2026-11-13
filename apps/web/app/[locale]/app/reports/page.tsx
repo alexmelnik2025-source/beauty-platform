@@ -651,6 +651,24 @@ export default function ReportsPage() {
                     ))}
                   </ul>
                 ) : null}
+                {ratings.services.length > 0 ? (
+                  <>
+                    <h3 className="small">{t.reports.ratingsServices}</h3>
+                    <ul className="report-ratings-staff" aria-label={t.reports.ratingsServices}>
+                      {ratings.services.map((s) => (
+                        <li key={s.id}>
+                          <span>{s.name}</span>
+                          <span className="small muted">
+                            {fill(t.reports.ratingsStaff, {
+                              stars: stars(s.average),
+                              n: String(s.reviews),
+                            })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
                 <p className="small muted">{t.reports.ratingsHint}</p>
               </section>
             ) : null}

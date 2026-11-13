@@ -1522,6 +1522,8 @@ export const uk: Dict = {
     ratings: 'Оцінки клієнтів',
     ratingsCount: 'Відгуків: {n}',
     ratingsStaff: '{stars} ★ · відгуків: {n}',
+    /** Task 421: the ratings by service. */
+    ratingsServices: 'За послугами',
     ratingsHint:
       'Середня оцінка з відгуків про візити цього періоду (також написаних пізніше). Відповісти на відгуки — у розділі «Відгуки».',
     rebooking: 'Наступний візит',

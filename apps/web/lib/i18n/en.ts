@@ -1528,6 +1528,8 @@ export const en: Dict = {
     ratings: 'Client ratings',
     ratingsCount: 'reviews: {n}',
     ratingsStaff: '{stars} ★ · reviews: {n}',
+    /** Task 421: the ratings by service. */
+    ratingsServices: 'By service',
     ratingsHint:
       'Average of the reviews of visits in this period (including ones written later). Reply to reviews on the “Reviews” tab.',
     rebooking: 'Next visit booked',

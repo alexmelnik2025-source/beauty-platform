@@ -754,6 +754,8 @@ export const en: Dictionary = {
     ratings: 'Client ratings: ★ {stars}',
     ratingsCount: 'reviews: {n}',
     ratingsStaff: '{stars} ★ · reviews: {n}',
+    /** Task 421: the ratings by service. */
+    ratingsServices: 'By service',
     ratingsHint: 'Average of the reviews of visits in this period. Reply to reviews in “Reviews”.',
     rebooking: 'Next visit booked: {n}%',
     rebookingCount: 'booked: {rebooked} of {clients}',

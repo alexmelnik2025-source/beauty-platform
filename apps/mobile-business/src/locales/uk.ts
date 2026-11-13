@@ -750,6 +750,8 @@ export const uk: Dictionary = {
     ratings: 'Оцінки клієнтів: ★ {stars}',
     ratingsCount: 'відгуків: {n}',
     ratingsStaff: '{stars} ★ · відгуків: {n}',
+    /** Task 421: the ratings by service. */
+    ratingsServices: 'За послугами',
     ratingsHint:
       'Середня оцінка з відгуків про візити цього періоду. Відповісти на відгуки — у «Відгуки».',
     rebooking: 'Наступний візит: {n}%',

@@ -705,7 +705,7 @@ describe('salon report', () => {
     await review({ date: d1, status: 'completed' }, 4);
     await review({ date: d1, staffId: olaId, status: 'completed' }, 5);
     await review({ date: d1, staffId: olaId, status: 'completed' }, 5);
-    await review({ date: d1, staffId: olaId, status: 'completed' }, 2);
+    await review({ date: d1, staffId: olaId, serviceId: beardId, status: 'completed' }, 2);
     // A review of a visit before the period does not count.
     await review({ date: addDays(today, -40), status: 'completed' }, 1);
 
@@ -721,6 +721,11 @@ describe('salon report', () => {
         { id: kasiaId, displayName: 'Kasia', reviews: 2, average: 4.5 },
         { id: olaId, displayName: 'Ola', reviews: 3, average: 4 },
       ],
+      // Task 421: the same by service, best rated first.
+      services: [
+        { id: haircutId, name: 'Strzyżenie', reviews: 4, average: 4.8 },
+        { id: beardId, name: 'Broda', reviews: 1, average: 2 },
+      ],
     });
 
     // A specialist with their own report sees only the reviews of their own visits.
@@ -734,6 +739,7 @@ describe('salon report', () => {
       average: 4.5,
       stars: [0, 0, 0, 1, 1],
       staff: [{ id: kasiaId, displayName: 'Kasia', reviews: 2, average: 4.5 }],
+      services: [{ id: haircutId, name: 'Strzyżenie', reviews: 2, average: 4.5 }],
     });
 
     // No reviews in a period: no average.
@@ -743,6 +749,7 @@ describe('salon report', () => {
       average: null,
       stars: [0, 0, 0, 0, 0],
       staff: [],
+      services: [],
     });
   });
 

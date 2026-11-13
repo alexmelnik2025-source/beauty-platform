@@ -1529,6 +1529,8 @@ export const ru: Dict = {
     ratings: 'Оценки клиентов',
     ratingsCount: 'Отзывов: {n}',
     ratingsStaff: '{stars} ★ · отзывов: {n}',
+    /** Task 421: the ratings by service. */
+    ratingsServices: 'По услугам',
     ratingsHint:
       'Средняя оценка по отзывам о визитах этого периода (в том числе написанным позже). Ответить на отзывы — в разделе «Отзывы».',
     rebooking: 'Следующий визит',

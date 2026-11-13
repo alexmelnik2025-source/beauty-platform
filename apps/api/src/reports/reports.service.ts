@@ -721,6 +721,16 @@ export class ReportsService {
             b.percent - a.percent ||
             a.displayName.localeCompare(b.displayName),
         ),
+      services: [...services.values()]
+        .map(({ id, name, sum: total, reviews }) => ({
+          id,
+          name,
+          reviews,
+          average: oneDecimal(total, reviews),
+        }))
+        .sort(
+          (a, b) => b.average - a.average || b.reviews - a.reviews || a.name.localeCompare(b.name),
+        ),
     };
   }
 
@@ -858,7 +868,11 @@ export class ReportsService {
         appointment: { startAt: { gte: rangeStart, lt: rangeEnd } },
         ...(staffIds ? { staffId: { in: staffIds } } : {}),
       },
-      select: { rating: true, staff: { select: { id: true, displayName: true } } },
+      select: {
+        rating: true,
+        staff: { select: { id: true, displayName: true } },
+        appointment: { select: { service: { select: { id: true, name: true } } } },
+      },
     });
     const oneDecimal = (sum: number, count: number) => Math.round((sum / count) * 10) / 10;
     const stars = [0, 0, 0, 0, 0];
@@ -866,6 +880,8 @@ export class ReportsService {
       string,
       { id: string; displayName: string; sum: number; reviews: number }
     >();
+    // Task 421: the same per service (removed services too).
+    const services = new Map<string, { id: string; name: string; sum: number; reviews: number }>();
     let sum = 0;
     for (const r of rows) {
       const rating = Math.min(5, Math.max(1, r.rating));
@@ -876,6 +892,12 @@ export class ReportsService {
         staff.set(r.staff.id, { ...r.staff, sum: 0, reviews: 0 }).get(r.staff.id)!;
       row.sum += rating;
       row.reviews++;
+      const service = r.appointment.service;
+      const byService =
+        services.get(service.id) ??
+        services.set(service.id, { ...service, sum: 0, reviews: 0 }).get(service.id)!;
+      byService.sum += rating;
+      byService.reviews++;
     }
     return {
       reviews: rows.length,
@@ -893,6 +915,16 @@ export class ReportsService {
             b.average - a.average ||
             b.reviews - a.reviews ||
             a.displayName.localeCompare(b.displayName),
+        ),
+      services: [...services.values()]
+        .map(({ id, name, sum: total, reviews }) => ({
+          id,
+          name,
+          reviews,
+          average: oneDecimal(total, reviews),
+        }))
+        .sort(
+          (a, b) => b.average - a.average || b.reviews - a.reviews || a.name.localeCompare(b.name),
         ),
     };
   }

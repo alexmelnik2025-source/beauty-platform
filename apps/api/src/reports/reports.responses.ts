@@ -238,6 +238,16 @@ export const salonReportSchema = responseSchema(
             }),
           )
           .describe('Specialists with reviews in the period, best rated first'),
+        services: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              name: z.string(),
+              reviews: z.number().int(),
+              average: z.number().describe('Average stars, one decimal'),
+            }),
+          )
+          .describe('Task 421: services with reviews in the period, best rated first'),
       })
       .describe('Task 213: how clients rated the visits of the period ("Oceny")'),
     rebooking: z

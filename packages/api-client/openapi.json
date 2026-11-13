@@ -22946,13 +22946,45 @@
                   "additionalProperties": false
                 },
                 "description": "Specialists with reviews in the period, best rated first"
+              },
+              "services": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "reviews": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "average": {
+                      "type": "number",
+                      "description": "Average stars, one decimal"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "reviews",
+                    "average"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Task 421: services with reviews in the period, best rated first"
               }
             },
             "required": [
               "reviews",
               "average",
               "stars",
-              "staff"
+              "staff",
+              "services"
             ],
             "additionalProperties": false,
             "description": "Task 213: how clients rated the visits of the period (\"Oceny\")"
