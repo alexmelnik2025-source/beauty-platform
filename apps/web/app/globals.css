@@ -2309,6 +2309,34 @@ label.btn:focus-within {
   gap: 8px;
 }
 
+/* Task 409: the salon page's QR code for a friend next to you. */
+.share-salon-qr {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.share-salon-qr > div {
+  width: 220px;
+  height: 220px;
+}
+
+.share-salon-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.share-salon-qr figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* Task 404: a saved salon that stopped online booking. */
 li[data-bookable='false'] .directory-salon h2 {
   color: var(--graphite);

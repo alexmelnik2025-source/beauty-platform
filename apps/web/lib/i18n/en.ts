@@ -636,6 +636,12 @@ export const en: Dict = {
     shareText: '{name} — book online: {url}',
     copied: 'Link copied — paste it to your friends.',
     shareFailed: 'Could not share. Link: {url}',
+
+    qrShow: 'Show QR code',
+    qrHide: 'Hide QR code',
+    qrAlt: 'Salon QR code',
+    qrHint:
+      'Let a friend scan it with their camera — the salon page opens and they book themselves.',
   },
   favorites: {
     tab: 'Favourites',

@@ -1,15 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { fill, useI18n } from '@/lib/i18n';
+import { encodeQr, qrSvg } from '@/lib/qr';
 
 /**
  * Task 406: "Poleć salon znajomym" on a salon page — the phone's share sheet (WhatsApp, Messenger,
  * SMS) with the salon's booking link; where the browser cannot share, the link is copied.
+ * Task 409: "Pokaż kod QR" — a friend next to you scans the page with the phone's camera.
  */
 export function ShareSalon({ name, slug }: { name: string; slug: string }) {
   const { t, locale } = useI18n();
   const [info, setInfo] = useState('');
+  const [qrOpen, setQrOpen] = useState(false);
+  // The link is only known in the browser (its own address).
+  const svg = useMemo(
+    () =>
+      qrOpen
+        ? qrSvg(encodeQr(`${window.location.origin}/${locale}/b/${slug}`), t.shareSalon.qrAlt)
+        : '',
+    [qrOpen, locale, slug, t.shareSalon.qrAlt],
+  );
 
   async function share() {
     const url = `${window.location.origin}/${locale}/b/${slug}`;
@@ -34,10 +45,31 @@ export function ShareSalon({ name, slug }: { name: string; slug: string }) {
       <button type="button" className="btn btn--quiet btn--small" onClick={() => void share()}>
         {t.shareSalon.share}
       </button>
+      <button
+        type="button"
+        className="btn btn--quiet btn--small"
+        aria-expanded={qrOpen}
+        onClick={() => setQrOpen(!qrOpen)}
+      >
+        {qrOpen ? t.shareSalon.qrHide : t.shareSalon.qrShow}
+      </button>
       {info ? (
         <span className="small muted" role="status">
           {info}
         </span>
+      ) : null}
+      {qrOpen ? (
+        <figure className="share-salon-qr">
+          <div
+            role="img"
+            aria-label={t.shareSalon.qrAlt}
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+          <figcaption>
+            <strong>{name}</strong>
+            <span className="small muted">{t.shareSalon.qrHint}</span>
+          </figcaption>
+        </figure>
       ) : null}
     </div>
   );

@@ -11,7 +11,7 @@ import { listTo, waitForEmail } from './mailpit';
 /**
  * Task 404: "Ulubione" in "Moje wizyty" on the site (screenshot 404); task 405: "♡ Dodaj do
  * ulubionych" on a salon page for a client signed in on this device (screenshot 405); task 406:
- * "Poleć salon znajomym" on a salon page (screenshot 406).
+ * "Poleć salon znajomym" on a salon page (screenshot 406); task 409: "Pokaż kod QR" there (409).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -146,6 +146,15 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
     await page.getByRole('button', { name: 'Poleć salon znajomym' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Link skopiowany' })).toBeVisible();
     await shot(page, '406-salon-page-share');
+    // Task 409: the page's QR code for a friend next to you.
+    await page.getByRole('button', { name: 'Pokaż kod QR' }).click();
+    const qr = page.getByRole('img', { name: 'Kod QR salonu' });
+    await expect(qr).toBeVisible();
+    await expect(qr.locator('svg path')).toHaveCount(1);
+    await qr.scrollIntoViewIfNeeded();
+    await shot(page, '409-salon-page-qr');
+    await page.getByRole('button', { name: 'Ukryj kod QR' }).click();
+    await expect(qr).toHaveCount(0);
 
     await page.goto('/pl/c');
     const loginCode = /Kod logowania do Twoich wizyt/;
