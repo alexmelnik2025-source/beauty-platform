@@ -566,6 +566,8 @@ export const en: Dict = {
     anonymous: 'Client (data erased)',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Not answered ({n})',
+    /** Task 385: the reviews as a CSV file. */
+    csv: 'Download reviews (CSV)',
     visit: 'visit {date}',
     reply: 'Reply',
     replyChange: 'Change reply',

@@ -1361,6 +1361,9 @@ export const pl = {
     /** Task 383: the filter by specialist. */
     bySpecialist: 'Opinie o specjalistach',
     everyone: 'Wszyscy',
+    /** Task 385: the reviews as a CSV file. */
+    csv: 'Pobierz CSV opinii',
+    csvFailed: 'Nie udało się zapisać pliku.',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Bez odpowiedzi ({n})',
     service: '{service} u {staff}',

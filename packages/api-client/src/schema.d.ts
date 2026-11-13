@@ -2864,6 +2864,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reviews/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The reviews as a CSV file (owners and managers)
+         * @description Task 385. The list’s filters (staffId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.
+         */
+        get: operations["ReviewsController_exportCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/reviews/{reviewId}/reply": {
         parameters: {
             query?: never;
@@ -11487,6 +11507,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalonReviews"];
+                };
+            };
+        };
+    };
+    ReviewsController_exportCsv: {
+        parameters: {
+            query?: {
+                lang?: "pl" | "uk" | "ru" | "en";
+                unanswered?: "true" | "false";
+                /** @description Only this many stars */
+                rating?: number;
+                /** @description Only reviews of this specialist */
+                staffId?: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };

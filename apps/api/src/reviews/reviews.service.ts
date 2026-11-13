@@ -6,6 +6,8 @@ import type { MembershipContext } from '../common/request-context';
 import type { Appointment, Prisma, ReviewSettings, VisitReview } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { csvCell } from '../booking/customers-export';
+import { instantToLocal } from '../scheduling/time';
 import type {
   PublicReviewsResponse,
   ReviewSettingsResponse,
@@ -14,6 +16,7 @@ import type {
   VisitReviewResponse,
 } from './reviews.responses';
 import type {
+  ExportReviewsQuery,
   ListReviewsQuery,
   SalonReviewsQuery,
   ReplyReviewInput,
@@ -37,6 +40,54 @@ const salonReviewInclude = {
   },
 } satisfies Prisma.VisitReviewInclude;
 type SalonReviewRow = Prisma.VisitReviewGetPayload<{ include: typeof salonReviewInclude }>;
+
+/** Task 385: the columns of the reviews CSV in the four cabinet languages. */
+const REVIEW_CSV_COLUMNS = {
+  pl: [
+    'Data opinii',
+    'Ocena',
+    'Specjalista',
+    'Usługa',
+    'Data wizyty',
+    'Klient',
+    'Opinia',
+    'Odpowiedź salonu',
+    'Data odpowiedzi',
+  ],
+  uk: [
+    'Дата відгуку',
+    'Оцінка',
+    'Спеціаліст',
+    'Послуга',
+    'Дата візиту',
+    'Клієнт',
+    'Відгук',
+    'Відповідь салону',
+    'Дата відповіді',
+  ],
+  ru: [
+    'Дата отзыва',
+    'Оценка',
+    'Специалист',
+    'Услуга',
+    'Дата визита',
+    'Клиент',
+    'Отзыв',
+    'Ответ салона',
+    'Дата ответа',
+  ],
+  en: [
+    'Review date',
+    'Stars',
+    'Specialist',
+    'Service',
+    'Visit date',
+    'Client',
+    'Review',
+    "Salon's answer",
+    'Answer date',
+  ],
+} as const;
 
 /** Off until the salon saves its own settings. */
 export const DEFAULT_REVIEW_SETTINGS: Pick<ReviewSettings, 'enabled' | 'requestHours'> = {
@@ -182,6 +233,60 @@ export class ReviewsService {
       items: page.map(toSalonReview),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };
+  }
+
+  /**
+   * Task 385: every review of the location (with the list's filters) as a CSV file for the
+   * owner and managers: the day, stars, specialist, service, client's name, words and the
+   * salon's answer. Newest first; each export is written to the audit log.
+   */
+  async exportCsv(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    query: ExportReviewsQuery,
+  ): Promise<string> {
+    const location = await this.access.readable(m, locationId);
+    const rows = await this.prisma.visitReview.findMany({
+      where: {
+        locationId,
+        ...(query.staffId ? { staffId: query.staffId } : {}),
+        ...(query.rating ? { rating: query.rating } : {}),
+        ...(query.unanswered ? { reply: null } : {}),
+      },
+      include: salonReviewInclude,
+      orderBy: { id: 'desc' },
+      take: 10_000,
+    });
+    const day = (d: Date | null) => (d ? instantToLocal(d.getTime(), location.timezone).date : '');
+    const lines = [REVIEW_CSV_COLUMNS[query.lang].map(csvCell).join(';')];
+    for (const r of rows) {
+      const customer = r.appointment.customer;
+      lines.push(
+        [
+          day(r.createdAt),
+          String(r.rating),
+          r.staff.displayName,
+          r.appointment.service.name,
+          day(r.appointment.startAt),
+          customer && !customer.anonymizedAt ? customer.name : '',
+          r.text ?? '',
+          r.reply ?? '',
+          day(r.repliedAt),
+        ]
+          .map(csvCell)
+          .join(';'),
+      );
+    }
+    await this.audit.record({
+      organizationId: m.organizationId,
+      actorUserId: userId,
+      action: 'reviews.exported',
+      entityType: 'location',
+      entityId: locationId,
+      metadata: { count: rows.length },
+    });
+    return `\uFEFF${lines.join('\r\n')}\r\n`;
   }
 
   /**

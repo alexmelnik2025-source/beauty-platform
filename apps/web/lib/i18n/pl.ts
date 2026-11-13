@@ -567,6 +567,8 @@ export const pl = {
     anonymous: 'Klient (dane usunięte)',
     /** Task 382: only the reviews without the salon's answer. */
     unanswered: 'Bez odpowiedzi ({n})',
+    /** Task 385: the reviews as a CSV file. */
+    csv: 'Pobierz CSV opinii',
     visit: 'wizyta {date}',
     reply: 'Odpowiedz',
     replyChange: 'Zmień odpowiedź',

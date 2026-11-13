@@ -11151,6 +11151,85 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reviews/export.csv": {
+      "get": {
+        "description": "Task 385. The list’s filters (staffId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.",
+        "operationId": "ReviewsController_exportCsv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "unanswered",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "rating",
+            "required": false,
+            "in": "query",
+            "description": "Only this many stars",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "staffId",
+            "required": false,
+            "in": "query",
+            "description": "Only reviews of this specialist",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The reviews as a CSV file (owners and managers)",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/reviews/{reviewId}/reply": {
       "put": {
         "description": "Task 211. Shown under the review on the salon page and to the client. Owners and managers only.",

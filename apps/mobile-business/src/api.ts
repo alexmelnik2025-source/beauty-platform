@@ -1625,6 +1625,26 @@ export class BusinessApi {
   }
 
   /** Downloads a CSV file (signed in), keeping the server's file name. */
+  /**
+   * Task 385: the salon's reviews as a CSV file — the same as "Pobierz CSV opinii" in the cabinet,
+   * with the list's filters. Owners and managers only (the server checks it).
+   */
+  reviewsCsv(
+    orgId: string,
+    locationId: string,
+    locale: Locale,
+    filter: { staffId?: string; rating?: number; unanswered?: boolean } = {},
+  ): Promise<CsvFile> {
+    const params = new URLSearchParams({ lang: locale });
+    if (filter.staffId) params.set('staffId', filter.staffId);
+    if (filter.rating) params.set('rating', String(filter.rating));
+    if (filter.unanswered) params.set('unanswered', 'true');
+    return this.csvFile(
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews/export.csv?${params.toString()}`,
+      'opinie.csv',
+    );
+  }
+
   private async csvFile(path: string, fallbackName: string): Promise<CsvFile> {
     if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
     let res = await this.fetchCsv(path);

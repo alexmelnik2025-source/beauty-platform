@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
@@ -27,6 +28,7 @@ import { serveApp } from './mobile-app';
  * answer, in the cabinet (382) and in the business app (382-a). Task 383: the reviews of one
  * specialist, in the cabinet (383) and in the business app (383-a). Task 384: each specialist's stars
  * at the choice of specialist when booking (384) and in the team of the salon in the client app (384-a).
+ * Task 385: "Pobierz CSV opinii" in the cabinet (385) and in the business app (385-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -299,6 +301,15 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await shot(cabinet, '383-cabinet-reviews-specialist');
   await list.getByRole('button', { name: 'Wszyscy', exact: true }).click();
   await expect(list.locator('.list-row')).toHaveCount(3);
+  // Task 385: the reviews as a file for the owner.
+  const csvButton = list.getByRole('button', { name: 'Pobierz CSV opinii' });
+  const [reviewsCsv] = await Promise.all([cabinet.waitForEvent('download'), csvButton.click()]);
+  expect(reviewsCsv.suggestedFilename()).toMatch(/^opinie-\d{4}-\d{2}-\d{2}\.csv$/);
+  const reviewsText = await readFile((await reviewsCsv.path())!, 'utf8');
+  expect(reviewsText).toContain('"Data opinii";"Ocena";"Specjalista"');
+  expect(reviewsText).toContain('"Najlepszy fade w Warszawie. Polecam!"');
+  expect(reviewsText).toContain('"Marta Nowak"');
+  await shot(cabinet, '385-cabinet-reviews-csv');
   const saved = await json<{ requestHours: number; version: number }>(
     await request.get(`${base}/review-settings`, { headers: owner }),
   );
@@ -482,6 +493,12 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toHaveCount(0);
     await shot(app, '383-a-app-reviews-specialist');
     await app.getByRole('button', { name: 'Wszyscy', exact: true }).click();
+    // Task 385: the reviews as a file on the phone (in the browser preview — a download).
+    const appCsvButton = app.getByRole('button', { name: 'Pobierz CSV opinii' });
+    const [appCsv] = await Promise.all([app.waitForEvent('download'), appCsvButton.click()]);
+    const appCsvText = await readFile((await appCsv.path())!, 'utf8');
+    expect(appCsvText).toContain('"Dobra broda, polecam."');
+    await shot(app, '385-a-app-reviews-csv');
     await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toBeVisible();
 
     // Task 211: the owner answers a review on the phone (Piotr's — the newest without an answer).
