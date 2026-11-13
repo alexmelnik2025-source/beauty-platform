@@ -590,6 +590,8 @@ export const pl = {
     replyOnlyManagers: 'Na opinie odpowiada właściciel lub menedżer.',
   },
   visits: {
+    /** Task 416. */
+    allFavorites: 'Wszystkie ulubione',
     title: 'Moje wizyty',
     coupons: 'Moje kupony',
     couponsHint: 'Wybierz kupon do tej wizyty — rabat salon odejmie od ceny.',

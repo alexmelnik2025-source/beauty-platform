@@ -194,6 +194,12 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
   const [scope, setScope] = useState<Scope>('upcoming');
+  // Task 416: "Wszystkie ulubione" on the home page opens the "Ulubione" tab.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'favorites') {
+      setScope('favorites');
+    }
+  }, []);
   const [items, setItems] = useState<ClientAppointment[] | null>(null);
   // Task 203: "Twoi specjaliści" above the coming visits, from the client's own history.
   const [mine, setMine] = useState<FavoriteSpecialist[]>([]);

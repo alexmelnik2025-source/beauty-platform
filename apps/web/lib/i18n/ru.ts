@@ -596,6 +596,8 @@ export const ru: Dict = {
     replyOnlyManagers: 'На отзывы отвечает владелец или менеджер.',
   },
   visits: {
+    /** Task 416. */
+    allFavorites: 'Все избранные',
     title: 'Мои визиты',
     coupons: 'Мои купоны',
     couponsHint: 'Выберите купон для этого визита — салон вычтет скидку из цены.',

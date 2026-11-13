@@ -11,7 +11,7 @@ import { fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatRating } from '@/lib/location';
 import { forgetRecent, recentSalons, type RecentSalon } from '@/lib/recent-salons';
 import { formatPrice } from '@/lib/time';
-import type { PublicSalonDirectory, Specialty } from '@/lib/types';
+import type { ClientFavorites, PublicSalonDirectory, Specialty } from '@/lib/types';
 
 /** Task 180b: the kinds of place on the home page, the most asked for first. */
 const CATEGORIES: Specialty[] = [
@@ -40,6 +40,17 @@ export default function Home() {
   // Task 403: the salons opened last on this device (read in the browser only).
   const [recent, setRecent] = useState<RecentSalon[]>([]);
   useEffect(() => setRecent(recentSalons()), []);
+  // Task 416: a client signed in to "Moje wizyty" on this device sees their favourite salons.
+  const [favorites, setFavorites] = useState<ClientFavorites['items']>([]);
+  useEffect(() => {
+    let live = true;
+    api<ClientFavorites>('/v1/client/favorites', { auth: false })
+      .then((res) => live && setFavorites(res.items.filter((s) => s.bookable)))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -110,6 +121,25 @@ export default function Home() {
         <Link className="btn btn--quiet btn--block" href={`/${locale}/salons?sort=rating`}>
           {t.directory.bestRated}
         </Link>
+        {favorites.length > 0 ? (
+          <section className="stack" aria-labelledby="home-favorites">
+            <h2 id="home-favorites" className="small muted">
+              {t.favorites.tab}
+            </h2>
+            <div className="home-categories">
+              {favorites.slice(0, 6).map((salon) => (
+                <Link key={salon.slug} href={`/${locale}/b/${salon.slug}`}>
+                  ♥ {salon.name}
+                </Link>
+              ))}
+            </div>
+            {favorites.length > 6 ? (
+              <Link className="link-btn small" href={`/${locale}/c?tab=favorites`}>
+                {t.visits.allFavorites}
+              </Link>
+            ) : null}
+          </section>
+        ) : null}
         {recent.length > 0 ? (
           <section className="stack" aria-labelledby="home-recent">
             <h2 id="home-recent" className="small muted">

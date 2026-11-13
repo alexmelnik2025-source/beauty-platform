@@ -184,9 +184,19 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
       '♥ W ulubionych',
     );
 
-    // Task 404: "Ulubione" in "Moje wizyty".
-    await page.goto('/pl/c');
-    await page.getByRole('button', { name: 'Ulubione', exact: true }).click();
+    // Task 416: the favourite salons on the home page.
+    await page.goto('/pl');
+    const homeFavorites = page.getByRole('region', { name: 'Ulubione' });
+    await expect(homeFavorites.getByRole('link', { name: `♥ ${SALON}` })).toBeVisible();
+    await homeFavorites.scrollIntoViewIfNeeded();
+    await shot(page, '416-home-favorites');
+
+    // Task 404: "Ulubione" in "Moje wizyty" (task 416: ?tab=favorites opens it).
+    await page.goto('/pl/c?tab=favorites');
+    await expect(page.getByRole('button', { name: 'Ulubione', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     const card = page.getByRole('article', { name: SALON });
     await expect(card.getByRole('link', { name: 'Umów wizytę' })).toBeVisible();
     await shot(page, '404-site-favorites');

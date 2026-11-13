@@ -304,6 +304,8 @@ export const sq: Dict = {
     salonReply: 'Përgjigjja e sallonit',
   },
   visits: {
+    /** Task 416. */
+    allFavorites: 'Të gjitha të preferuarat',
     title: 'Takimet e mia',
     coupons: 'Kuponat e mia',
     couponsHint: 'Zgjidhni një kupon për këtë takim — salloni e zbret uljen nga çmimi.',

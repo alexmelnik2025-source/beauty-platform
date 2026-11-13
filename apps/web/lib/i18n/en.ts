@@ -590,6 +590,8 @@ export const en: Dict = {
     replyOnlyManagers: 'The owner or a manager replies to reviews.',
   },
   visits: {
+    /** Task 416. */
+    allFavorites: 'All favourites',
     title: 'My visits',
     coupons: 'My coupons',
     couponsHint: 'Pick a coupon for this visit — the salon takes the discount off the price.',

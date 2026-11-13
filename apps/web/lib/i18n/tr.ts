@@ -303,6 +303,8 @@ export const tr: Dict = {
     salonReply: 'Salonun yanıtı',
   },
   visits: {
+    /** Task 416. */
+    allFavorites: 'Tüm favoriler',
     title: 'Randevularım',
     coupons: 'Kuponlarım',
     couponsHint: 'Bu randevu için bir kupon seçin — salon indirimi fiyattan düşer.',

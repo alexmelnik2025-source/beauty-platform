@@ -590,6 +590,8 @@ export const uk: Dict = {
     replyOnlyManagers: 'На відгуки відповідає власник або менеджер.',
   },
   visits: {
+    /** Task 416. */
+    allFavorites: 'Усі улюблені',
     title: 'Мої візити',
     coupons: 'Мої купони',
     couponsHint: 'Оберіть купон для цього візиту — салон відніме знижку від ціни.',
