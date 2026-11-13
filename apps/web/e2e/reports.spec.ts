@@ -29,6 +29,7 @@ import { serveApp } from './mobile-app';
  * "Nowi klienci — wrócili" — new clients who came again or booked (task 246): 246, app 246-a.
  * "Co ile dni wracają klienci" — days between visits in a row (task 247): 247, app 247-a.
  * "Pokaż nowych klientów" — from the report to the new clients in "Klienci" (task 249): 249, 249-a.
+ * "Prowizje" — each specialist's commission, set by the owner (task 374): 374.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -410,6 +411,27 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(busy.locator(`td[title*=" ${h}:00 · wizyty: 1"]`)).toHaveText('1');
   }
   await shot(page, '74g-owner-reports-busy-hours');
+
+  // "Prowizje" (task 374): the owner sets Ilian's commission; the report counts it from the
+  // revenue of his paid visits (150 zł × 40% = 60 zł). Marek has none — no line for him.
+  const commissions = page.getByTestId('report-commissions');
+  await commissions.scrollIntoViewIfNeeded();
+  await commissions.getByText('Ustaw prowizje').click();
+  const list = commissions.getByTestId('commission-list');
+  await expect(list.getByRole('listitem')).toHaveCount(2);
+  const ilian = list.getByRole('listitem').filter({ hasText: 'Ilian' });
+  await ilian.getByRole('textbox').fill('42,55');
+  await ilian.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(commissions.getByText(/najwyżej jedno miejsce po przecinku/)).toBeVisible();
+  await ilian.getByRole('textbox').fill('40');
+  await ilian.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(ilian.getByRole('status')).toHaveText('Zapisano.');
+  await expect(commissions.getByRole('heading', { name: /^Prowizje: 60,00\s*zł$/ })).toBeVisible();
+  const ilianRow = commissions.getByRole('row').filter({ hasText: 'Ilian' });
+  await expect(ilianRow).toContainText('40%');
+  await expect(ilianRow).toContainText(/60,00\s*zł/);
+  await expect(commissions.getByRole('row').filter({ hasText: 'Marek' })).toHaveCount(0);
+  await shot(page, '374-owner-reports-commissions');
 
   // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([

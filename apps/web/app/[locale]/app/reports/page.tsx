@@ -8,6 +8,7 @@ import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, formatDay, formatPrice, todayIn } from '@/lib/time';
 import type { SalonReport } from '@/lib/types';
+import { Commissions } from './Commissions';
 
 type Period = 'thisMonth' | 'lastMonth' | 'last30' | 'custom';
 
@@ -78,6 +79,8 @@ export default function ReportsPage() {
   const [report, setReport] = useState<SalonReport | null>(null);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
+  /** Task 374: read the report again after a commission is saved. */
+  const [reloads, setReloads] = useState(0);
   const range = period === 'custom' ? custom : rangeOf(period, today);
   const invalid =
     !range.from || !range.to || range.from > range.to || daysBetween(range.from, range.to) >= 366;
@@ -100,7 +103,7 @@ export default function ReportsPage() {
     return () => {
       live = false;
     };
-  }, [session.orgId, session.location.id, range.from, range.to, invalid, t]);
+  }, [session.orgId, session.location.id, range.from, range.to, invalid, t, reloads]);
 
   /**
    * Task 30: every visit of the period as a CSV file the accountant opens in Excel.
@@ -797,7 +800,15 @@ export default function ReportsPage() {
             ) : null}
 
             {totals.visits === 0 ? (
-              <p className="note">{t.reports.empty}</p>
+              <>
+                <p className="note">{t.reports.empty}</p>
+                <Commissions
+                  report={report}
+                  localeTag={tag}
+                  money={money}
+                  onSaved={() => setReloads((n) => n + 1)}
+                />
+              </>
             ) : (
               <>
                 {(
@@ -863,6 +874,14 @@ export default function ReportsPage() {
                       </div>
                     </section>
                   ))}
+
+                {/* Task 374: "Prowizje" — after the specialists' revenue. */}
+                <Commissions
+                  report={report}
+                  localeTag={tag}
+                  money={money}
+                  onSaved={() => setReloads((n) => n + 1)}
+                />
 
                 {report.topClients.length > 0 ? (
                   <section className="section" data-testid="report-top-clients">

@@ -1523,6 +1523,21 @@ export const en: Dict = {
     tipsHint:
       'Tips noted on visits that took place. They are not part of the salon’s revenue — the salon decides how to share them.',
     tipsVisits: 'visits with a tip: {n}',
+    commissions: 'Commissions',
+    colCommission: 'Commission',
+    colCommissionAmount: 'Commission amount',
+    commissionsHint:
+      "A percentage of what the specialist's paid visits brought (price after discounts). Tips are not included — they are separate.",
+    commissionsSet: 'Set commissions',
+    commissionsSetHint:
+      'A percentage from 0 to 100, e.g. 40 or 42.5. Empty — no commission. Only the owner and managers see this; a specialist who can see their own results sees only theirs.',
+    commissionNone: 'none',
+    commissionInactive: 'not taking clients',
+    commissionSave: 'Save',
+    commissionSaving: 'Saving…',
+    commissionSaved: 'Saved.',
+    commissionInvalid:
+      'Enter a percentage from 0 to 100 with at most one decimal place (e.g. 42.5).',
     discountKinds: 'Discounts: {amount}',
     discountCoupon: 'Loyalty coupons',
     discountTier: 'Client tier discount',

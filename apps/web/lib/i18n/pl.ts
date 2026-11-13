@@ -1521,6 +1521,20 @@ export const pl = {
     tipsHint:
       'Napiwki zapisane przy wizytach, które się odbyły. Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
     tipsVisits: 'wizyty z napiwkiem: {n}',
+    commissions: 'Prowizje',
+    colCommission: 'Prowizja',
+    colCommissionAmount: 'Kwota prowizji',
+    commissionsHint:
+      'Procent od tego, co przyniosły opłacone wizyty specjalisty (cena po rabatach). Napiwki nie wchodzą — są osobno.',
+    commissionsSet: 'Ustaw prowizje',
+    commissionsSetHint:
+      'Procent od 0 do 100, np. 40 albo 42,5. Puste pole — bez prowizji. Widzą to tylko właściciel i menedżerowie; specjalista z wglądem we własne wyniki widzi tylko swoją.',
+    commissionNone: 'brak',
+    commissionInactive: 'nie przyjmuje klientów',
+    commissionSave: 'Zapisz',
+    commissionSaving: 'Zapisuję…',
+    commissionSaved: 'Zapisano.',
+    commissionInvalid: 'Wpisz procent od 0 do 100, najwyżej jedno miejsce po przecinku (np. 42,5).',
     discountKinds: 'Rabaty: {amount}',
     discountCoupon: 'Kupony lojalnościowe',
     discountTier: 'Rabat poziomu klienta',

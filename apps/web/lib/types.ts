@@ -114,6 +114,7 @@ export type {
   PushPublicKey,
   Role,
   SalonReport,
+  StaffCommissions,
   TillClose,
   Service,
   ServiceCategory,
