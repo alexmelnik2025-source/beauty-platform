@@ -15,6 +15,7 @@ import { serveApp } from './mobile-app';
  * (screenshot 229); "Kasa dnia" shows it apart from the visit money (229-a) and "Raporty" has
  * "Napiwki" by specialist (229-b). The business app: the tip in the visit and "Kasa dnia"
  * (229-c), "Napiwki" in its report (229-d).
+ * Task 390: "Do wypłaty" — commission plus tips by specialist (390, app 390-a).
  * Task 304: "Rabaty" in the report — a coupon, the client's tier discount and happy hours on the
  * paid visit (screenshot 304), the same in the business app (304-a).
  */
@@ -83,6 +84,13 @@ test('the owner notes a tip; the till and the report show it apart from the reve
     await request.post(`${base}/staff`, {
       headers: owner,
       data: { displayName: 'Ilian', serviceIds: [service.id] },
+    }),
+  );
+  // Task 390: Ilian gets 40% of what his paid visits bring.
+  await json(
+    await request.put(`${base}/reports/commissions/${staff.id}`, {
+      headers: owner,
+      data: { commissionPercent: 40 },
     }),
   );
   // Visits can't be booked in the past: book tomorrow at 10:00 UTC and move it a day back.
@@ -186,6 +194,17 @@ test('the owner notes a tip; the till and the report show it apart from the reve
   );
   await expect(discounts.getByRole('listitem').nth(2)).toContainText('Happy hours');
   await shot(page, '304-report-discounts');
+  // Task 390: "Do wypłaty" — 40% of 75 zł (90 zł minus 15 zł of discounts) plus the tip.
+  const payout = page.getByTestId('report-commissions');
+  await payout.scrollIntoViewIfNeeded();
+  const ilianPayout = payout.getByRole('row').filter({ hasText: 'Ilian' });
+  await expect(ilianPayout).toContainText(/30,00\s*zł/);
+  await expect(ilianPayout).toContainText(/15,50\s*zł/);
+  await expect(ilianPayout).toContainText(/45,50\s*zł/);
+  await expect(payout.getByTestId('report-payout')).toHaveText(
+    /Razem do wypłaty \(prowizje i napiwki\): 45,50\s*zł/,
+  );
+  await shot(page, '390-report-payout');
   await context.close();
 
   // The business app (its web preview): the day's tips, the tip in the visit, the report.
@@ -239,6 +258,15 @@ test('the owner notes a tip; the till and the report show it apart from the reve
     await expect(appDiscounts).toContainText('Rabat poziomu klienta');
     await expect(appDiscounts).toContainText(/5,00\s*zł · wizyty: 1/);
     await shot(app, '304-a-business-app-report-discounts');
+    // Task 390: the same in the app — the tip is 20 zł now.
+    const appPayout = app.getByTestId('report-commissions');
+    await appPayout.scrollIntoViewIfNeeded();
+    await expect(appPayout).toContainText(/40% · 30,00\s*zł/);
+    await expect(appPayout).toContainText(/\+ napiwki 20,00\s*zł = 50,00\s*zł/);
+    await expect(app.getByTestId('report-payout')).toHaveText(
+      /Razem do wypłaty \(z napiwkami\): 50,00\s*zł/,
+    );
+    await shot(app, '390-a-business-app-report-payout');
   } finally {
     businessApp.server.close();
   }

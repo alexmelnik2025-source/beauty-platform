@@ -1531,6 +1531,9 @@ export const pl = {
     colCommissionAmount: 'Kwota prowizji',
     commissionsHint:
       'Procent od tego, co przyniosły opłacone wizyty specjalisty (cena po rabatach). Napiwki nie wchodzą — są osobno.',
+    colPayoutTips: 'Napiwki',
+    colPayout: 'Do wypłaty',
+    payoutTotal: 'Razem do wypłaty (prowizje i napiwki): {amount}',
     commissionsSet: 'Ustaw prowizje',
     commissionsSetHint:
       'Procent od 0 do 100, np. 40 albo 42,5. Puste pole — bez prowizji. Widzą to tylko właściciel i menedżerowie; specjalista z wglądem we własne wyniki widzi tylko swoją.',

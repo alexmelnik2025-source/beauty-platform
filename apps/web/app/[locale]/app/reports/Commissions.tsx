@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useSession } from '@/components/Session';
 import { ErrorBox } from '@/components/ui';
 import { api } from '@/lib/api';
-import { errorText, useI18n } from '@/lib/i18n';
+import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { SalonReport, StaffCommissions } from '@/lib/types';
 
 /** "45,5%" in the reader's language. */
@@ -51,6 +51,10 @@ export function Commissions({
 
   if (!canSet && rows.length === 0) return null;
   const total = rows.reduce((sum, r) => sum + (r.commissionGrosze ?? 0), 0);
+  // Task 390: "Do wypłaty" — the commission plus the tips the specialist got in the period.
+  const tipsOf = (id: string) => report.tips.staff.find((s) => s.id === id)?.tipsGrosze ?? 0;
+  const withTips = rows.some((r) => tipsOf(r.id) > 0);
+  const payout = rows.reduce((sum, r) => sum + (r.commissionGrosze ?? 0) + tipsOf(r.id), 0);
 
   function show(next: StaffCommissions) {
     setList(next.staff);
@@ -119,6 +123,12 @@ export function Commissions({
                 <th scope="col">{t.reports.colRevenue}</th>
                 <th scope="col">{t.reports.colCommission}</th>
                 <th scope="col">{t.reports.colCommissionAmount}</th>
+                {withTips ? (
+                  <>
+                    <th scope="col">{t.reports.colPayoutTips}</th>
+                    <th scope="col">{t.reports.colPayout}</th>
+                  </>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -128,11 +138,22 @@ export function Commissions({
                   <td>{money(r.revenueGrosze)}</td>
                   <td>{percentText(r.commissionPercent!, localeTag)}</td>
                   <td>{money(r.commissionGrosze ?? 0)}</td>
+                  {withTips ? (
+                    <>
+                      <td>{money(tipsOf(r.id))}</td>
+                      <td>
+                        <strong>{money((r.commissionGrosze ?? 0) + tipsOf(r.id))}</strong>
+                      </td>
+                    </>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      ) : null}
+      {withTips ? (
+        <p data-testid="report-payout">{fill(t.reports.payoutTotal, { amount: money(payout) })}</p>
       ) : null}
       <p className="small muted">{t.reports.commissionsHint}</p>
       {canSet ? (

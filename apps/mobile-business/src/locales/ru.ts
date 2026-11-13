@@ -776,6 +776,8 @@ export const ru: Dictionary = {
     commissionRow: '{percent} · {amount}',
     commissionsHint:
       'Процент от того, что принесли оплаченные визиты специалиста (цена после скидок). Чаевые не входят.',
+    payoutRow: '+ чаевые {tips} = {total}',
+    payoutTotal: 'Всего к выплате (с чаевыми): {amount}',
     commissionsSet: 'Задать проценты',
     commissionsHide: 'Свернуть проценты',
     commissionsSetHint:
