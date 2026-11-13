@@ -3041,3 +3041,16 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   радиусе 30 км: «2,3 km stąd», «Otwarte teraz», звёзды, «od …». Клиентское приложение: `screens/NearbySalons.tsx`
   после отзывов, `api.directory({ nearSalon })`, `nearbyOnly` в `src/salon.ts`. e2e `salon-nearby.spec.ts`
   (скриншоты 400, 401). Показывать ли блок — вопрос владельцу (BACKLOG).
+
+## Звёзды мастера, CSV отзывов, названия кнопок кабинета (задачи 384–386)
+
+- 384: у каждого `staff[]` в `GET /v1/public/locations/:slug` — `rating` (средняя оценка его отзывов, 0,1) и
+  `reviewCount`; `null`/0, пока салон не собирает отзывы. Сайт: строка `.staff-rating` на шаге выбора мастера
+  (`BookingFlow.tsx`); клиентское приложение: в `meta` выбора мастера (`BookingScreen`) и в «Zespół» (`SalonScreen`),
+  текст `ratingText` — как на карточках каталога. Тест `reviews.spec.ts`.
+- 385: `GET …/locations/:id/reviews/export.csv?lang=pl&staffId=&rating=&unanswered=` — владелец и менеджеры
+  (специалист — 403); `;`-разделитель, UTF-8 с BOM, `csvCell` из выгрузки клиентов (защита от формул); имя клиента
+  пусто после удаления данных (RODO); запись `reviews.exported` в журнал. Кабинет: «Pobierz CSV opinii» в «Opinie»;
+  бизнес-приложение: `api.reviewsCsv` + `shareCsv`. e2e `reviews.spec.ts` (скриншоты 385, 385-a).
+- 386: e2e `cabinet-a11y.spec.ts` — та же проверка, что `client-a11y.spec.ts` (234), для страниц кабинета на
+  телефоне и компьютере; новая кнопка-значок без `aria-label` уронит проверку.
