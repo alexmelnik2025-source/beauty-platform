@@ -60,11 +60,8 @@ export function ShareSalon({ name, slug }: { name: string; slug: string }) {
       ) : null}
       {qrOpen ? (
         <figure className="share-salon-qr">
-          <div
-            role="img"
-            aria-label={t.shareSalon.qrAlt}
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
+          {/* The SVG carries its own name (<title>): one image for screen readers. */}
+          <div className="share-salon-qr-code" dangerouslySetInnerHTML={{ __html: svg }} />
           <figcaption>
             <strong>{name}</strong>
             <span className="small muted">{t.shareSalon.qrHint}</span>

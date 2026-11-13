@@ -150,7 +150,7 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
     await page.getByRole('button', { name: 'Pokaż kod QR' }).click();
     const qr = page.getByRole('img', { name: 'Kod QR salonu' });
     await expect(qr).toBeVisible();
-    await expect(qr.locator('svg path')).toHaveCount(1);
+    await expect(qr.locator('path')).toHaveCount(1);
     await qr.scrollIntoViewIfNeeded();
     await shot(page, '409-salon-page-qr');
     await page.getByRole('button', { name: 'Ukryj kod QR' }).click();

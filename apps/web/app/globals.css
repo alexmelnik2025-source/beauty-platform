@@ -2320,7 +2320,7 @@ label.btn:focus-within {
   text-align: center;
 }
 
-.share-salon-qr > div {
+.share-salon-qr-code {
   width: 220px;
   height: 220px;
 }
