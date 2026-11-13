@@ -106,6 +106,16 @@ export const publicLocationSchema = responseSchema(
               "This specialist's price and duration of each service they perform (tasks 62, 70)",
             ),
           photoUrl: z.string().nullable().describe('Link to the photo; null when there is none'),
+          rating: z
+            .number()
+            .nullable()
+            .describe(
+              'Task 384: average stars of their reviews (one decimal); null while the salon does not collect reviews or they have none',
+            ),
+          reviewCount: z
+            .number()
+            .int()
+            .describe('Task 384: number of their reviews; 0 with no stars'),
         }),
       ),
     })

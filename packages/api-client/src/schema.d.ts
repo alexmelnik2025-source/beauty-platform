@@ -5424,6 +5424,10 @@ export interface components {
                 }[];
                 /** @description Link to the photo; null when there is none */
                 photoUrl: string | null;
+                /** @description Task 384: average stars of their reviews (one decimal); null while the salon does not collect reviews or they have none */
+                rating: number | null;
+                /** @description Task 384: number of their reviews; 0 with no stars */
+                reviewCount: number;
             }[];
         };
         PublicReviews: {

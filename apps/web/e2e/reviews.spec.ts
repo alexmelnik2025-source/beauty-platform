@@ -25,7 +25,8 @@ import { serveApp } from './mobile-app';
  * cabinet (380-a); task 381: the same chips in the business app (381) and on the salon page of the
  * client app (381-a). Task 382: "Bez odpowiedzi (n)" — the reviews still without the salon's
  * answer, in the cabinet (382) and in the business app (382-a). Task 383: the reviews of one
- * specialist, in the cabinet (383) and in the business app (383-a).
+ * specialist, in the cabinet (383) and in the business app (383-a). Task 384: each specialist's stars
+ * at the choice of specialist when booking (384) and in the team of the salon in the client app (384-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -239,6 +240,16 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await expect(reviews.locator('.review-list > li')).toHaveCount(3);
   await reviews.getByRole('button', { name: /Nazar/ }).click();
   await expect(reviews.locator('.review-list > li')).toHaveCount(1);
+  // Task 384: the stars of each specialist when the client chooses one.
+  await page
+    .getByRole('button', { name: /Strzyżenie fade/ })
+    .first()
+    .click();
+  await expect(page.locator('.staff-rating')).toHaveText([
+    '★ 5,0 · opinie: 2',
+    '★ 4,0 · opinie: 1',
+  ]);
+  await shot(page, '384-booking-staff-stars');
   await phone.close();
 
   // ── The cabinet: "Opinie" with the settings and the client names ──────
@@ -396,6 +407,13 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
       await expect(opinions).not.toContainText('Marta Nowak');
       await opinions.scrollIntoViewIfNeeded();
       await shot(look, '212-app-salon-reviews');
+      // Task 384: the stars of each specialist in the team.
+      const ilyaStars = look.getByText('★ 5,0 · opinie: 2', { exact: true });
+      await expect(ilyaStars).toBeVisible();
+      await expect(look.getByText('★ 4,0 · opinie: 2', { exact: true })).toBeVisible();
+      await ilyaStars.scrollIntoViewIfNeeded();
+      await shot(look, '384-a-app-team-stars');
+      await opinions.scrollIntoViewIfNeeded();
       // Task 381: only the four-star reviews.
       await opinions.getByRole('radio', { name: '★ 4 (2)' }).click();
       await expect(opinions.getByText('Dobra broda, polecam.')).toBeVisible();

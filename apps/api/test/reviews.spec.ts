@@ -340,6 +340,16 @@ describe('showing reviews', () => {
     ]);
     expect(JSON.stringify(page.body)).not.toContain('Anna');
 
+    // Task 384: the stars of each specialist on the salon page (the booking step shows them).
+    const salonPage = await ctx.http().get(`/v1/public/locations/${slug}`).expect(200);
+    const starsOf = (body: {
+      staff: { id: string; rating: number | null; reviewCount: number }[];
+    }) => body.staff.map((s) => [s.id, s.rating, s.reviewCount]);
+    expect(starsOf(salonPage.body)).toEqual([
+      [kasiaId, 4.5, 2],
+      [olaId, 2, 1],
+    ]);
+
     const kasias = await ctx
       .http()
       .get(`/v1/public/locations/${slug}/reviews`)
@@ -389,6 +399,11 @@ describe('showing reviews', () => {
       nextBefore: null,
     });
     expect(await ctx.prisma.visitReview.count()).toBe(3);
+    const salonOff = await ctx.http().get(`/v1/public/locations/${slug}`).expect(200);
+    expect(starsOf(salonOff.body)).toEqual([
+      [kasiaId, null, 0],
+      [olaId, null, 0],
+    ]);
 
     await ctx.http().get('/v1/public/locations/no-such-salon/reviews').expect(404);
   });

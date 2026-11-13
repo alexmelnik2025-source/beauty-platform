@@ -22,6 +22,7 @@ import type {
   PublicLocation,
   Slot,
 } from '@/lib/types';
+import { formatRating } from '@/lib/location';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { LanguageBadges, SPOKEN, SPOKEN_SHORT, type Spoken } from '../Languages';
@@ -687,6 +688,15 @@ export function BookingFlow({ slug }: { slug: string }) {
                         </span>
                       ) : null}
                       {s.bio ? <span className="c-meta">{s.bio}</span> : null}
+                      {/* Task 384: the specialist's stars, as on the salon cards of the catalogue. */}
+                      {formatRating(s, LOCALE_TAGS[locale]) ? (
+                        <span className="c-meta staff-rating">
+                          {fill(t.directory.rating, {
+                            rating: formatRating(s, LOCALE_TAGS[locale])!,
+                            n: String(s.reviewCount),
+                          })}
+                        </span>
+                      ) : null}
                       <LanguageBadges codes={s.languages ?? []} />
                       {nearestFree(s.id)}
                     </span>
