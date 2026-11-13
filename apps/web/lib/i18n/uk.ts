@@ -630,6 +630,13 @@ export const uk: Dict = {
     appName: 'Візити',
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  shareSalon: {
+    share: 'Порадити салон друзям',
+    shareText: '{name} — запишіться онлайн: {url}',
+    copied: 'Посилання скопійовано — надішліть його друзям.',
+    shareFailed: 'Не вдалося поділитися. Посилання: {url}',
+  },
   favorites: {
     tab: 'Улюблені',
     empty:

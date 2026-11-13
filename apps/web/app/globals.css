@@ -2301,6 +2301,14 @@ label.btn:focus-within {
   gap: 8px;
 }
 
+/* Task 406: "Poleć salon znajomym" on a salon page. */
+.share-salon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Task 404: a saved salon that stopped online booking. */
 li[data-bookable='false'] .directory-salon h2 {
   color: var(--graphite);

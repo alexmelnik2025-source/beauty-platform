@@ -344,6 +344,13 @@ export const sq: Dict = {
     appName: 'Takimet',
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  shareSalon: {
+    share: 'Rekomandoje te miqtë',
+    shareText: '{name} — rezervo online: {url}',
+    copied: 'Lidhja u kopjua — ngjite për miqtë.',
+    shareFailed: 'Ndarja nuk u krye. Lidhja: {url}',
+  },
   favorites: {
     tab: 'Të preferuarat',
     empty:

@@ -10,7 +10,8 @@ import { listTo, waitForEmail } from './mailpit';
 
 /**
  * Task 404: "Ulubione" in "Moje wizyty" on the site (screenshot 404); task 405: "♡ Dodaj do
- * ulubionych" on a salon page for a client signed in on this device (screenshot 405).
+ * ulubionych" on a salon page for a client signed in on this device (screenshot 405); task 406:
+ * "Poleć salon znajomym" on a salon page (screenshot 406).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -119,6 +120,32 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
     await page.goto(`/pl/b/${slug}`);
     await expect(page.getByRole('heading', { level: 1, name: SALON })).toBeVisible();
     await expect(page.getByRole('button', { name: '♡ Dodaj do ulubionych' })).toHaveCount(0);
+
+    // Task 406: "Poleć salon znajomym" — the share sheet gets the salon's name and link (the
+    // test stands in for the phone's sheet); without a share sheet the link is copied.
+    await page.evaluate(() => {
+      const w = window as unknown as { shared?: ShareData };
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: async (data: ShareData) => {
+          w.shared = data;
+        },
+      });
+    });
+    await page.getByRole('button', { name: 'Poleć salon znajomym' }).click();
+    const shared = await page.evaluate(() => (window as unknown as { shared?: ShareData }).shared);
+    expect(shared?.url).toMatch(new RegExp(`/pl/b/${slug}$`));
+    expect(shared?.text).toBe(`${SALON} — umów się online: ${shared?.url}`);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async () => undefined },
+      });
+    });
+    await page.getByRole('button', { name: 'Poleć salon znajomym' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Link skopiowany' })).toBeVisible();
+    await shot(page, '406-salon-page-share');
 
     await page.goto('/pl/c');
     const loginCode = /Kod logowania do Twoich wizyt/;
