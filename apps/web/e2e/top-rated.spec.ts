@@ -14,7 +14,8 @@ import { serveApp } from './mobile-app';
  * Task 378: "Najlepiej oceniane" in the catalogue. Two salons of one owner: "Gwiazdy … Alfa"
  * without reviews and "Gwiazdy … Beta" with two five-star reviews. In the usual order Alfa is
  * first; with the chip on, Beta (★ 5) goes first — on the site (screenshot 378) and in the
- * client app (378a).
+ * client app (378a). The file name sorts after booking.spec.ts and price-rows.spec.ts, which count
+ * every salon in the catalogue (the specs run one after another, by name).
  * Task 379: "★ Najlepiej oceniane" on the home page (379) and on the client app's start screen
  * (379a) opens the catalogue with the chip on.
  */
