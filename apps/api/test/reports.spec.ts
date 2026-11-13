@@ -1298,6 +1298,161 @@ describe('salon report', () => {
     await csv({ from: today, to: from }).expect(400);
   });
 
+  it('"Produkty": the salon\'s products, sold at a visit, counted apart in the report (task 394)', async () => {
+    const product = async (name: string, priceGrosze: number) =>
+      (
+        await ctx
+          .http()
+          .post(`${base}/products`)
+          .set(owner.auth)
+          .send({ name, priceGrosze })
+          .expect(201)
+      ).body as { id: string; name: string; priceGrosze: number; active: boolean };
+    const pomade = await product('Pomada', 4500);
+    const shampoo = await product('Szampon', 3000);
+    expect(registeredResponseSchema('Product').safeParse(pomade).error).toBeUndefined();
+    // Only owners and managers change the list; everyone in the salon reads it.
+    await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(kasiaUser.auth)
+      .send({ name: 'Wosk', priceGrosze: 100 })
+      .expect(403);
+    const listed = await ctx.http().get(`${base}/products`).set(kasiaUser.auth).expect(200);
+    expect(listed.body.products.map((p: { name: string }) => p.name)).toEqual([
+      'Pomada',
+      'Szampon',
+    ]);
+
+    const d1 = addDays(today, -3);
+    const kasiaVisit = await visit({ date: d1, status: 'completed', paid: true });
+    const olaVisit = await visit({ date: d1, staffId: olaId, status: 'completed', paid: true });
+    const upcoming = await visit({ date: addDays(today, 1), status: 'confirmed' });
+    const sales = (id: string) => `${base}/appointments/${id}/products`;
+
+    // Only at a visit that took place.
+    await ctx
+      .http()
+      .post(sales(upcoming))
+      .set(owner.auth)
+      .send({ productId: pomade.id })
+      .expect(409);
+    const first = await ctx
+      .http()
+      .post(sales(kasiaVisit))
+      .set(owner.auth)
+      .send({ productId: pomade.id, quantity: 2 })
+      .expect(201);
+    expect(
+      registeredResponseSchema('VisitProductSales').safeParse(first.body).error,
+    ).toBeUndefined();
+    expect(first.body.totalGrosze).toBe(9000);
+    // Kasia notes a sale at her own visit; Ola's visit is not hers to see.
+    await ctx
+      .http()
+      .post(sales(kasiaVisit))
+      .set(kasiaUser.auth)
+      .send({ productId: shampoo.id })
+      .expect(201);
+    await ctx
+      .http()
+      .post(sales(olaVisit))
+      .set(kasiaUser.auth)
+      .send({ productId: shampoo.id })
+      .expect(404);
+    const olaSale = await ctx
+      .http()
+      .post(sales(olaVisit))
+      .set(owner.auth)
+      .send({ productId: shampoo.id })
+      .expect(201);
+    // A wrong quantity or another salon's product id is refused.
+    await ctx
+      .http()
+      .post(sales(olaVisit))
+      .set(owner.auth)
+      .send({ productId: shampoo.id, quantity: 0 })
+      .expect(400);
+    await ctx
+      .http()
+      .post(sales(olaVisit))
+      .set(owner.auth)
+      .send({ productId: '00000000-0000-4000-8000-000000000000' })
+      .expect(404);
+
+    // The price changes later: the sales keep the old price; a removed product keeps its sales.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ priceGrosze: 5000 })
+      .expect(200);
+    await ctx.http().delete(`${base}/products/${shampoo.id}`).set(owner.auth).expect(204);
+    const kept = await ctx.http().get(sales(kasiaVisit)).set(owner.auth).expect(200);
+    expect(kept.body).toEqual({
+      sales: [
+        expect.objectContaining({
+          productId: pomade.id,
+          name: 'Pomada',
+          quantity: 2,
+          unitPriceGrosze: 4500,
+          totalGrosze: 9000,
+        }),
+        expect.objectContaining({
+          productId: null,
+          name: 'Szampon',
+          quantity: 1,
+          totalGrosze: 3000,
+        }),
+      ],
+      totalGrosze: 12000,
+    });
+    // A removed product cannot be sold any more.
+    await ctx
+      .http()
+      .post(sales(olaVisit))
+      .set(owner.auth)
+      .send({ productId: shampoo.id })
+      .expect(404);
+
+    const res = await report().expect(200);
+    expect(res.body.products).toEqual({
+      totalGrosze: 15000,
+      quantity: 4,
+      items: [
+        { name: 'Pomada', quantity: 2, totalGrosze: 9000 },
+        { name: 'Szampon', quantity: 2, totalGrosze: 6000 },
+      ],
+      staff: [
+        { id: kasiaId, displayName: 'Kasia', quantity: 3, totalGrosze: 12000 },
+        { id: olaId, displayName: 'Ola', quantity: 1, totalGrosze: 3000 },
+      ],
+    });
+    // Not part of the visit revenue.
+    expect(res.body.totals.revenueGrosze).toBe(2 * 8000);
+
+    // Removing a sale noted by mistake.
+    const removed = await ctx
+      .http()
+      .delete(`${sales(olaVisit)}/${olaSale.body.sales[0].id}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(removed.body).toEqual({ sales: [], totalGrosze: 0 });
+
+    // A specialist with own results sees only the products of her own visits.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.products).toMatchObject({ totalGrosze: 12000, quantity: 3 });
+
+    // Another salon reaches nothing.
+    const other = await signUp(ctx, 'other@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await ctx.http().get(`${base}/products`).set(other.auth).expect(404);
+  });
+
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {
     const d1 = addDays(today, -3);
     const first = await visit({

@@ -507,6 +507,8 @@ model Location {
   reviews           VisitReview[]
   tillCloses        TillClose[]
   tillMovements     TillMovement[]
+  products          Product[]
+  productSales      ProductSale[]
 
   @@index([organizationId])
   @@map("location")
@@ -887,6 +889,7 @@ model Appointment {
   loyaltyEntries   LoyaltyTransaction[]
   wishPhotos       VisitPhoto[]
   review           VisitReview?
+  productSales     ProductSale[]
 
   @@index([locationId, startAt])
   @@index([staffId, startAt])
@@ -1470,4 +1473,47 @@ model TillMovement {
 
   @@index([locationId, date])
   @@map("till_movement")
+}
+
+/// Task 394: "Produkty" — what the salon sells at the visit (pomade, shampoo…). Only the salon's
+/// own list with a price; no stock and no payment systems.
+model Product {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  locationId  String   @map("location_id") @db.Uuid
+  name        String
+  priceGrosze Int      @map("price_grosze")
+  /// false = no longer sold (kept for the history of sales).
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  sales    ProductSale[]
+
+  @@index([locationId])
+  @@map("product")
+}
+
+/// Task 394: a product sold at a visit, with its name and price at the time of the sale.
+/// Not part of the visit price, the loyalty points or the discounts.
+model ProductSale {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  locationId      String   @map("location_id") @db.Uuid
+  appointmentId   String   @map("appointment_id") @db.Uuid
+  /// null when the product was removed from the list later.
+  productId       String?  @map("product_id") @db.Uuid
+  name            String
+  quantity        Int
+  unitPriceGrosze Int      @map("unit_price_grosze")
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location    Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product     Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([appointmentId])
+  @@index([locationId])
+  @@map("product_sale")
 }

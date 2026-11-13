@@ -112,6 +112,10 @@ export type OutboxStats = Schemas['OutboxStats'];
 export type SalonReport = Schemas['SalonReport'];
 /** "Prowizje": each specialist's commission, set by owners and managers (task 373). */
 export type StaffCommissions = Schemas['StaffCommissions'];
+/** "Produkty": the salon's products and the ones sold at a visit (task 394). */
+export type Product = Schemas['Product'];
+export type ProductList = Schemas['ProductList'];
+export type VisitProductSales = Schemas['VisitProductSales'];
 /** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
 export type TillClose = Schemas['TillClose'];
 export type FailedEmail = Schemas['FailedEmail'];

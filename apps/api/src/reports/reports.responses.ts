@@ -112,6 +112,31 @@ export const salonReportSchema = responseSchema(
           .describe('Specialists with a tip in the period, most first'),
       })
       .describe('Task 229: "Napiwki" — noted by the staff; not part of the revenue'),
+    products: z
+      .strictObject({
+        totalGrosze: money('Products sold at the visits of the period'),
+        quantity: z.number().int().describe('Pieces sold'),
+        items: z
+          .array(
+            z.strictObject({
+              name: z.string(),
+              quantity: z.number().int(),
+              totalGrosze: money('What this product brought'),
+            }),
+          )
+          .describe('By product name, most money first'),
+        staff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              displayName: z.string(),
+              quantity: z.number().int(),
+              totalGrosze: money('Products sold at this specialist’s visits'),
+            }),
+          )
+          .describe('By specialist of the visit, most money first'),
+      })
+      .describe('Task 394: "Sprzedaż produktów" — not part of the visit revenue'),
     tillCloses: z
       .strictObject({
         days: z
