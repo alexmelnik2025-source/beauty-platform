@@ -3016,3 +3016,21 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
 - 382: «Bez odpowiedzi (n)» — `unanswered=true` и число `unanswered` (без ответа салона, без учёта `rating`) только в
   списке кабинета; чип видят владелец и менеджеры (те, кто отвечает) в кабинете и бизнес-приложении.
 - e2e `reviews.spec.ts` (скриншоты 380, 380-a, 381, 381-a, 382, 382-a).
+
+## «Do wypłaty», «CSV wypłat» и «Produkty» (задачи 390–396)
+
+- «Do wypłaty» (390): в блоке «Prowizje» отчёта (кабинет `reports/Commissions.tsx`, приложение
+  `CommissionsSection.tsx`) — napiwki специалиста из `report.tips.staff` и сумма prowizja + napiwki, внизу «Razem do
+  wypłaty». e2e `tips.spec.ts` (390, 390-a).
+- «CSV wypłat» (391–393): `GET …/reports/payout-csv?from&to&locale` — только владелец/менеджер (`access.writable`),
+  строится из того же отчёта (`reports/payout-csv.ts`): специалист, odbyte, opłacone, przychód, prowizja %, prowizja,
+  napiwki, do wypłaty и «Razem». Кнопки в «Raporty» кабинета и бизнес-приложения (`api.payoutCsv`).
+- «Produkty» (394–396): таблицы `product` (товары точки: название, цена, `active`) и `product_sale` (продажа на
+  визите: название и цена на момент продажи, количество). API `…/products` (читают все сотрудники точки, меняют
+  владелец/менеджер; удаление товара оставляет продажи с `productId = null`) и `…/appointments/:id/products`
+  (GET — кто видит визит; POST/DELETE — кто может менять визит, `AppointmentsService.changeable`; продажа только на
+  визите «odbyła się», иначе 409 `NOT_COMPLETED`). Продажи не входят в цену визита, баллы, скидки, выручку и
+  prowizje. Отчёт: `products` — сумма, штуки, по товару и по специалисту визита (специалист с «viewOwnEarnings» —
+  только свои визиты). Кабинет: `components/products/ProductsSection.tsx` (в «Usługi»), `ProductSales.tsx` (карточка
+  визита), раздел в «Raporty». Приложение: `ProductSalesSection.tsx` в карточке визита (тап по товару — продан
+  один), раздел в «Raporty». Тесты `reports.spec.ts`, `isolation.spec.ts`, e2e `products.spec.ts` (395–396).
