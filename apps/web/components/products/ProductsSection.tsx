@@ -71,7 +71,7 @@ export function ProductsSection({ base }: { base: string }) {
   const canAdd = name.trim() !== '' && price.trim() !== '' && newPrice !== null && !busy;
 
   return (
-    <section className="page section" data-testid="products">
+    <section className="page" data-testid="products">
       <h2>{p.title}</h2>
       <p className="small muted">{p.hint}</p>
       <ErrorBox>{error}</ErrorBox>
