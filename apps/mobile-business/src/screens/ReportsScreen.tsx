@@ -29,6 +29,7 @@ import { shareCsv } from '../share';
 import { signed } from '../tillClose';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ClientScreen } from './ClientScreen';
+import { CommissionsSection } from './CommissionsSection';
 import { csvTools } from './csvTools';
 import { ClientsScreen } from './ClientsScreen';
 import type { SalonChoice } from './SalonsScreen';
@@ -392,6 +393,16 @@ export function ReportsScreen(props: {
                 </View>
               ))
           )}
+          {/* Task 375: "Prowizje" — after the specialists' revenue. */}
+          <CommissionsSection
+            api={api}
+            t={t}
+            locale={props.locale}
+            salon={salon}
+            report={shown}
+            money={money}
+            onSaved={() => void load()}
+          />
           {shown.payments.length > 0 ? (
             <View style={{ gap: 6 }} testID="report-payments">
               <Text style={styles.section}>{r.payments}</Text>

@@ -11,6 +11,7 @@ import type {
   Me,
   PermissionCatalog,
   SalonReport,
+  StaffCommissions,
   TillClose,
   Tokens,
   components,
@@ -171,6 +172,7 @@ export type {
   Me,
   PermissionCatalog,
   SalonReport,
+  StaffCommissions,
   TillClose,
   Tokens,
 };
@@ -1470,6 +1472,31 @@ export class BusinessApi {
     return this.authed<SalonReport>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports?${query}`,
+    );
+  }
+
+  /**
+   * Task 375: "Prowizje" — every specialist of the salon with their commission in percent.
+   * Owners and managers only (a specialist gets 403).
+   */
+  commissions(orgId: string, locationId: string): Promise<StaffCommissions> {
+    return this.authed<StaffCommissions>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/commissions`,
+    );
+  }
+
+  /** Task 375: sets a specialist's commission (0–100, one decimal place); null removes it. */
+  setCommission(
+    orgId: string,
+    locationId: string,
+    staffId: string,
+    commissionPercent: number | null,
+  ): Promise<StaffCommissions> {
+    return this.authed<StaffCommissions>(
+      'PUT',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/commissions/${enc(staffId)}`,
+      { commissionPercent },
     );
   }
 

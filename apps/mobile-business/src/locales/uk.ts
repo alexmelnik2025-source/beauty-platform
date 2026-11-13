@@ -769,6 +769,23 @@ export const uk: Dictionary = {
     discountHint:
       'Скільки салон віддав у знижках на оплачених візитах цього періоду. Виторг у звіті вже після знижок.',
     tipsHint: 'Не входять у виторг салону — як їх ділити, вирішує салон.',
+    commissions: 'Комісія спеціалістів',
+    commissionsTotal: 'Комісія спеціалістів: {amount}',
+    commissionRow: '{percent} · {amount}',
+    commissionsHint:
+      'Відсоток від того, що принесли оплачені візити спеціаліста (ціна після знижок). Чайові не входять.',
+    commissionsSet: 'Задати відсотки',
+    commissionsHide: 'Згорнути відсотки',
+    commissionsSetHint:
+      'Від 0 до 100, наприклад 40 або 42,5. Порожнє поле — без відсотка. Бачать лише власник і менеджери; спеціаліст із доступом до своїх результатів бачить лише свій.',
+    commissionLabel: 'Відсоток — {name}',
+    commissionNone: 'немає',
+    commissionInactive: 'не приймає клієнтів',
+    commissionSave: 'Зберегти',
+    commissionSaveFor: 'Зберегти відсоток — {name}',
+    commissionSaved: 'Збережено.',
+    commissionInvalid:
+      'Введіть відсоток від 0 до 100, не більше одного знака після коми (наприклад 42,5).',
     tillCloses: 'Закриття каси · різниця разом: {sum}',
     tillClosesRow: 'пораховано {counted} · має бути {expected} · {difference}',
     tillClosesMoves: 'внесення {in} · виплати {out}',

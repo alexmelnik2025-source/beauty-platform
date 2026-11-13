@@ -768,6 +768,22 @@ export const pl = {
     discountHint:
       'Ile salon oddał w rabatach na opłaconych wizytach z tego okresu. Przychód w raporcie jest już po rabatach.',
     tipsHint: 'Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
+    commissions: 'Prowizje',
+    commissionsTotal: 'Prowizje: {amount}',
+    commissionRow: '{percent} · {amount}',
+    commissionsHint:
+      'Procent od tego, co przyniosły opłacone wizyty specjalisty (cena po rabatach). Napiwki nie wchodzą.',
+    commissionsSet: 'Ustaw prowizje',
+    commissionsHide: 'Zwiń prowizje',
+    commissionsSetHint:
+      'Od 0 do 100, np. 40 albo 42,5. Puste pole — bez prowizji. Widzą to tylko właściciel i menedżerowie; specjalista z wglądem we własne wyniki widzi tylko swoją.',
+    commissionLabel: 'Prowizja, % — {name}',
+    commissionNone: 'brak',
+    commissionInactive: 'nie przyjmuje klientów',
+    commissionSave: 'Zapisz',
+    commissionSaveFor: 'Zapisz prowizję — {name}',
+    commissionSaved: 'Zapisano.',
+    commissionInvalid: 'Wpisz procent od 0 do 100, najwyżej jedno miejsce po przecinku (np. 42,5).',
     tillCloses: 'Zamknięcia kasy · różnica razem: {sum}',
     tillClosesRow: 'policzono {counted} · powinno być {expected} · {difference}',
     tillClosesMoves: 'wpłaty {in} · wypłaty {out}',

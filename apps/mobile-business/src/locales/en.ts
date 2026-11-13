@@ -771,6 +771,23 @@ export const en: Dictionary = {
     discountHint:
       'How much the salon gave away in discounts on the paid visits of this period. The revenue in the report is already after them.',
     tipsHint: 'They are not part of the salon’s revenue — the salon decides how to share them.',
+    commissions: 'Commissions',
+    commissionsTotal: 'Commissions: {amount}',
+    commissionRow: '{percent} · {amount}',
+    commissionsHint:
+      "A percentage of what the specialist's paid visits brought (price after discounts). Tips are not included.",
+    commissionsSet: 'Set commissions',
+    commissionsHide: 'Hide commissions',
+    commissionsSetHint:
+      'From 0 to 100, e.g. 40 or 42.5. Empty — no commission. Only the owner and managers see this; a specialist who can see their own results sees only theirs.',
+    commissionLabel: 'Commission, % — {name}',
+    commissionNone: 'none',
+    commissionInactive: 'not taking clients',
+    commissionSave: 'Save',
+    commissionSaveFor: 'Save commission — {name}',
+    commissionSaved: 'Saved.',
+    commissionInvalid:
+      'Enter a percentage from 0 to 100 with at most one decimal place (e.g. 42.5).',
     tillCloses: 'Till closes · total difference: {sum}',
     tillClosesRow: 'counted {counted} · should be {expected} · {difference}',
     tillClosesMoves: 'cash in {in} · cash out {out}',

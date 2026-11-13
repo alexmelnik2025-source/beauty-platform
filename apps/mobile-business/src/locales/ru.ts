@@ -771,6 +771,23 @@ export const ru: Dictionary = {
     discountHint:
       'Сколько салон отдал в скидках на оплаченных визитах этого периода. Выручка в отчёте уже после скидок.',
     tipsHint: 'Не входят в выручку салона — как их делить, решает салон.',
+    commissions: 'Комиссия специалистов',
+    commissionsTotal: 'Комиссия специалистов: {amount}',
+    commissionRow: '{percent} · {amount}',
+    commissionsHint:
+      'Процент от того, что принесли оплаченные визиты специалиста (цена после скидок). Чаевые не входят.',
+    commissionsSet: 'Задать проценты',
+    commissionsHide: 'Свернуть проценты',
+    commissionsSetHint:
+      'От 0 до 100, например 40 или 42,5. Пустое поле — без процента. Видят только владелец и менеджеры; специалист с доступом к своим результатам видит только свой.',
+    commissionLabel: 'Процент — {name}',
+    commissionNone: 'нет',
+    commissionInactive: 'не принимает клиентов',
+    commissionSave: 'Сохранить',
+    commissionSaveFor: 'Сохранить процент — {name}',
+    commissionSaved: 'Сохранено.',
+    commissionInvalid:
+      'Введите процент от 0 до 100, не больше одного знака после запятой (например 42,5).',
     tillCloses: 'Закрытия кассы · разница всего: {sum}',
     tillClosesRow: 'посчитано {counted} · должно быть {expected} · {difference}',
     tillClosesMoves: 'внесения {in} · выплаты {out}',

@@ -29,7 +29,7 @@ import { serveApp } from './mobile-app';
  * "Nowi klienci — wrócili" — new clients who came again or booked (task 246): 246, app 246-a.
  * "Co ile dni wracają klienci" — days between visits in a row (task 247): 247, app 247-a.
  * "Pokaż nowych klientów" — from the report to the new clients in "Klienci" (task 249): 249, 249-a.
- * "Prowizje" — each specialist's commission, set by the owner (task 374): 374.
+ * "Prowizje" — each specialist's commission, set by the owner (task 374): 374, app 375.
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -518,6 +518,19 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     expect(appFile).not.toContain('@example.com');
     await app.getByRole('button', { name: 'Pobierz CSV' }).scrollIntoViewIfNeeded();
     await shot(app, '75j-business-app-reports-csv');
+    // "Prowizje" in the app too (task 375): Ilian's 40% from the cabinet; the owner gives Marek
+    // 25% here (90 zł × 25% = 22,50 zł), the report is read again with both.
+    const commissions = app.getByTestId('report-commissions');
+    await commissions.getByText(/^Prowizje: 60,00\s*zł$/).scrollIntoViewIfNeeded();
+    await expect(commissions.getByText(/^40% · 60,00\s*zł$/)).toBeVisible();
+    await commissions.getByRole('button', { name: 'Ustaw prowizje' }).click();
+    await expect(app.getByLabel('Prowizja, % — Ilian')).toHaveValue('40');
+    await app.getByLabel('Prowizja, % — Marek').fill('25');
+    await app.getByRole('button', { name: 'Zapisz prowizję — Marek' }).click();
+    await expect(commissions.getByText('Zapisano.')).toBeVisible();
+    await expect(commissions.getByText(/^Prowizje: 82,50\s*zł$/)).toBeVisible();
+    await expect(commissions.getByText(/^25% · 22,50\s*zł$/)).toBeVisible();
+    await shot(app, '375-business-app-reports-commissions');
     // Monday to Sunday in the app too (task 32).
     await app.getByText('Dni tygodnia').scrollIntoViewIfNeeded();
     await expect(app.getByText('poniedziałek', { exact: true })).toBeVisible();
