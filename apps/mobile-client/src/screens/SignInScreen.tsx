@@ -5,6 +5,7 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import type { RecentSalon } from '../recent';
+import { RecentSalons } from './RecentSalons';
 import { Button, colors, ErrorText, Heading } from '../ui';
 
 /**
@@ -111,28 +112,12 @@ export function SignInScreen(props: {
         {/* Task 379: the catalogue with the best rated salons first. */}
         <Button kind="secondary" label={t.catalog.bestRated} onPress={props.onBestRated} />
       </View>
-      {props.recent && props.recent.length > 0 ? (
-        <View role="group" aria-label={t.catalog.recent} style={styles.recent}>
-          <Text role="heading" aria-level={2} style={styles.recentTitle}>
-            {t.catalog.recent}
-          </Text>
-          <View style={styles.recentRow}>
-            {props.recent.map((salon) => (
-              <Button
-                key={salon.slug}
-                kind="link"
-                label={salon.name}
-                onPress={() => props.onOpenRecent?.(salon)}
-              />
-            ))}
-          </View>
-          <Button
-            kind="link"
-            label={t.catalog.recentClear}
-            onPress={() => props.onClearRecent?.()}
-          />
-        </View>
-      ) : null}
+      <RecentSalons
+        t={t}
+        recent={props.recent ?? []}
+        onOpen={(salon) => props.onOpenRecent?.(salon)}
+        onClear={() => props.onClearRecent?.()}
+      />
       <Heading>{t.signIn.title}</Heading>
       {!sentTo ? (
         <>
@@ -207,9 +192,6 @@ export function SignInScreen(props: {
 }
 
 const styles = StyleSheet.create({
-  recent: { gap: 2, marginTop: -6 },
-  recentTitle: { color: colors.muted, fontSize: 13, fontWeight: '700', letterSpacing: 1 },
-  recentRow: { flexDirection: 'row', flexWrap: 'wrap', marginLeft: -8 },
   search: {
     gap: 10,
     paddingBottom: 18,

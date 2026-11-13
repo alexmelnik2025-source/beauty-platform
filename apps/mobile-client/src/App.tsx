@@ -181,6 +181,8 @@ export default function App() {
                 onBook={openBooking}
                 onOpenSalon={openSalonFromVisits}
                 favoritesVersion={favoritesVersion}
+                recent={recent}
+                onClearRecent={clearRecent}
               />
             )}
           </View>

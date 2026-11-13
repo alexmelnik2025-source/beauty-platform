@@ -1662,6 +1662,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     );
     await phone.getByRole('button', { name: '‹ Wróć' }).click();
     await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    // Task 415: "Ostatnio oglądane" in "Moje wizyty" too.
+    await expect(
+      phone
+        .getByRole('group', { name: 'Ostatnio oglądane' })
+        .getByRole('button', { name: 'Gestalt Barbershop', exact: true }),
+    ).toBeVisible();
     await phone.getByRole('tab', { name: 'Ulubione' }).click();
     await expect(phone.getByRole('tab', { name: 'Ulubione', selected: true })).toBeVisible();
     await expect(phone.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();

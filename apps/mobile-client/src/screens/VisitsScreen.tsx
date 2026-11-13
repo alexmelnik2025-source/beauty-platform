@@ -30,6 +30,8 @@ import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { BonusesView } from './BonusesView';
 import { FavoritesView } from './FavoritesView';
 import { VisitScreen } from './VisitScreen';
+import { RecentSalons } from './RecentSalons';
+import type { RecentSalon } from '../recent';
 
 /** The tabs of the screen: upcoming visits, history, bonuses, favourite salons. */
 type Tab = Scope | 'bonuses' | 'favorites';
@@ -52,6 +54,9 @@ export function VisitsScreen(props: {
   onOpenSalon: (slug: string, name: string) => void;
   /** Grows when a salon is saved or removed elsewhere (its page): "Favourites" reloads. */
   favoritesVersion: number;
+  /** Task 415: "Ostatnio oglądane" under "Znajdź salon", as on the start screen. */
+  recent?: RecentSalon[];
+  onClearRecent?: () => void;
   onSignOut: () => void;
   /** The server no longer accepts the session (signed out elsewhere, or it ended). */
   onSessionEnded: () => void;
@@ -360,6 +365,12 @@ export function VisitsScreen(props: {
         : null}
 
       <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
+      <RecentSalons
+        t={t}
+        recent={props.recent ?? []}
+        onOpen={(salon) => props.onOpenSalon(salon.slug, salon.name)}
+        onClear={() => props.onClearRecent?.()}
+      />
       <Text style={styles.muted}>{t.visits.downloadDataHint}</Text>
       <Button
         kind="link"
