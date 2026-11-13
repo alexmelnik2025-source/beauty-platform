@@ -126,5 +126,5 @@ export function payoutCsv(lines: PayoutCsvLine[], locale: CsvLocale): string {
       amount(sum.commission + sum.tips, locale),
     ].join(';'),
   );
-  return `﻿${out.join('\r\n')}\r\n`;
+  return `\uFEFF${out.join('\r\n')}\r\n`;
 }
