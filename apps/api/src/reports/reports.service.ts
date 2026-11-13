@@ -721,16 +721,6 @@ export class ReportsService {
             b.percent - a.percent ||
             a.displayName.localeCompare(b.displayName),
         ),
-      services: [...services.values()]
-        .map(({ id, name, sum: total, reviews }) => ({
-          id,
-          name,
-          reviews,
-          average: oneDecimal(total, reviews),
-        }))
-        .sort(
-          (a, b) => b.average - a.average || b.reviews - a.reviews || a.name.localeCompare(b.name),
-        ),
     };
   }
 
