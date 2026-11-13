@@ -10,6 +10,7 @@ import type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  Product,
   ProductList,
   SalonReport,
   StaffCommissions,
@@ -173,6 +174,7 @@ export type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  Product,
   ProductList,
   SalonReport,
   StaffCommissions,
@@ -653,6 +655,42 @@ export class BusinessApi {
     return this.authed<ProductList>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
+    );
+  }
+
+  /** Task 397: adds a product to the salon's list (owners and managers). */
+  addProduct(
+    orgId: string,
+    locationId: string,
+    name: string,
+    priceGrosze: number,
+  ): Promise<Product> {
+    return this.authed<Product>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
+      { name, priceGrosze },
+    );
+  }
+
+  /** Task 397: changes a product — name, price, or whether it is still sold. */
+  updateProduct(
+    orgId: string,
+    locationId: string,
+    productId: string,
+    changes: { name?: string; priceGrosze?: number; active?: boolean },
+  ): Promise<Product> {
+    return this.authed<Product>(
+      'PATCH',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}`,
+      changes,
+    );
+  }
+
+  /** Task 397: removes a product from the list; its past sales stay in the reports. */
+  async removeProduct(orgId: string, locationId: string, productId: string): Promise<void> {
+    await this.authed<void>(
+      'DELETE',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}`,
     );
   }
 

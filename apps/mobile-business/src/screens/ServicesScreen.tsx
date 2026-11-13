@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { ProductListSection } from './ProductListSection';
 import {
   BackHandler,
   Pressable,
@@ -951,6 +952,8 @@ export function ServicesScreen(props: {
           <View style={styles.row}>
             <Button label={u.addCategory} busy={busy} onPress={() => void addCategory()} />
           </View>
+          {/* Task 397: the products sold at a visit. */}
+          <ProductListSection api={api} t={t} locale={props.locale} salon={salon} />
         </View>
       ) : null}
       {groups && groups.length > 0 ? <Text style={styles.muted}>{u.hint}</Text> : null}

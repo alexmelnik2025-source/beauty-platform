@@ -15,7 +15,7 @@ import { serveApp } from './mobile-app';
  * 395), notes what the client bought in the card of a visit that took place (395-a) and sees
  * "Sprzedaż produktów" in "Raporty", apart from the visit revenue (395-b).
  * Task 396: the same in the business app — a tap on a product in the visit card (396) and
- * "Sprzedaż produktów" in its report (396-a).
+ * "Sprzedaż produktów" in its report (396-a); the list of products in "Usługi" (task 397, 397).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -196,6 +196,18 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // Task 397: "Usługi" → "Produkty" — a new product from the phone.
+    await app.getByRole('button', { name: 'Usługi' }).click();
+    const appList = app.getByTestId('products');
+    await appList.getByLabel('Nowy produkt').fill('Wosk');
+    await appList.getByLabel('Cena (PLN)').last().fill('25');
+    await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
+    await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
+    await expect(appList.getByText('Pomada matowa', { exact: true })).toBeVisible();
+    await appList.getByRole('button', { name: 'Dodaj produkt' }).scrollIntoViewIfNeeded();
+    await shot(app, '397-business-app-products');
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();
     for (let back = 0; back < 3 && !(await jan.isVisible()); back++) {

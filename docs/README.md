@@ -3080,7 +3080,7 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
 - 418: «Udostępnij wizytę» и на «Do zobaczenia!» клиентского приложения (`BookingScreen`, те же `visitShareMessage` и
   `shareTools`). e2e в `booking.spec.ts`.
 
-## «Do wypłaty», «CSV wypłat» и «Produkty» (задачи 390–396)
+## «Do wypłaty», «CSV wypłat» и «Produkty» (задачи 390–397)
 
 - «Do wypłaty» (390): в блоке «Prowizje» отчёта (кабинет `reports/Commissions.tsx`, приложение
   `CommissionsSection.tsx`) — napiwki специалиста из `report.tips.staff` и сумма prowizja + napiwki, внизу «Razem do
@@ -3097,3 +3097,5 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   только свои визиты). Кабинет: `components/products/ProductsSection.tsx` (в «Usługi»), `ProductSales.tsx` (карточка
   визита), раздел в «Raporty». Приложение: `ProductSalesSection.tsx` в карточке визита (тап по товару — продан
   один), раздел в «Raporty». Тесты `reports.spec.ts`, `isolation.spec.ts`, e2e `products.spec.ts` (395–396).
+- Список товаров в бизнес-приложении (397): `ProductListSection.tsx` внизу «Usługi» — добавить, изменить, «Nie
+  sprzedajemy», удалить с вопросом (`api.addProduct`, `updateProduct`, `removeProduct`). e2e `products.spec.ts` (397).
