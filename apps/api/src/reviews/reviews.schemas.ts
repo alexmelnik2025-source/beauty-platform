@@ -68,6 +68,7 @@ export const salonReviewsQuerySchema = listReviewsQuerySchema.extend({
     .transform((value) => value === 'true')
     .optional()
     .describe('Task 382: only reviews the salon has not answered yet'),
+  serviceId: z.uuid().optional().describe('Task 420: only reviews of visits for this service'),
 });
 export type SalonReviewsQuery = z.infer<typeof salonReviewsQuerySchema>;
 

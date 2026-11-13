@@ -1363,6 +1363,9 @@ export const en: Dictionary = {
     /** Task 383: the filter by specialist. */
     bySpecialist: 'Reviews by specialist',
     everyone: 'Everyone',
+    /** Task 420: the filter by service. */
+    byService: 'Reviews by service',
+    allServices: 'All services',
     /** Task 385: the reviews as a CSV file. */
     csv: 'Download reviews (CSV)',
     csvFailed: 'Could not save the file.',

@@ -7,6 +7,7 @@ import {
   reviewLine,
   reviewSettingsChanged,
   reviewSummary,
+  serviceReviewChip,
   staffReviewChip,
   starChips,
   stars,
@@ -74,6 +75,12 @@ describe('reviews in the business app (task 201)', () => {
     ).toBe('Kasia ★ 4,8 (12)');
   });
 
+  it('names a service with its stars (task 420)', () => {
+    expect(serviceReviewChip({ serviceId: 's', name: 'Broda', count: 6, average: 4.5 }, 'pl')).toBe(
+      'Broda ★ 4,5 (6)',
+    );
+  });
+
   it('shows chips only for the stars that have reviews (task 381)', () => {
     expect(starChips([2, 0, 1, 0, 9], null).map((c) => c.label)).toEqual([
       '★ 5 (9)',
@@ -92,6 +99,7 @@ describe('reviews in the business app (task 201)', () => {
       stars: [0, 0, 0, 0, 0],
       unanswered: 0,
       staff: [],
+      services: [],
       items: [],
       nextBefore: null,
     };
@@ -124,6 +132,7 @@ describe('reviews in the business app (task 201)', () => {
     await api.reviews('org-1', 'loc 1', { before: 'r-9' });
     await api.reviews('org-1', 'loc 1', { rating: 1 });
     await api.reviews('org-1', 'loc 1', { staffId: 's 1' });
+    await api.reviews('org-1', 'loc 1', { serviceId: 'v 1' });
     await api.reviews('org-1', 'loc 1', { unanswered: true, before: 'r-2' });
     await api.reviewsCsv('org-1', 'loc 1', 'uk', { rating: 1, unanswered: true });
     expect(calls.slice(1)).toEqual([
@@ -131,6 +140,7 @@ describe('reviews in the business app (task 201)', () => {
       'GET /v1/organizations/org-1/locations/loc%201/reviews?before=r-9',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?rating=1',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?staffId=s+1',
+      'GET /v1/organizations/org-1/locations/loc%201/reviews?serviceId=v+1',
       'GET /v1/organizations/org-1/locations/loc%201/reviews?before=r-2&unanswered=true',
       'GET /v1/organizations/org-1/locations/loc%201/reviews/export.csv?lang=uk&rating=1&unanswered=true',
     ]);

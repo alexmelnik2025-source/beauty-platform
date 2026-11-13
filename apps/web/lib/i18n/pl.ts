@@ -549,6 +549,9 @@ export const pl = {
     summary: '{avg} · opinie: {count}',
     bySpecialist: 'Opinie o specjalistach',
     everyone: 'Wszyscy',
+    /** Task 420: the filter by service. */
+    byService: 'Opinie według usług',
+    allServices: 'Wszystkie usługi',
     /** Task 380: the filter by stars. */
     byStars: 'Opinie według ocen',
     allStars: 'Wszystkie oceny',

@@ -800,6 +800,8 @@ export class BusinessApi {
       before?: string;
       /** Task 383: only the reviews of this specialist. */
       staffId?: string;
+      /** Task 420: only the reviews of visits for this service. */
+      serviceId?: string;
       /** Task 381: only the reviews with this many stars. */
       rating?: number;
       /** Task 382: only the reviews without the salon's answer. */
@@ -809,6 +811,7 @@ export class BusinessApi {
     const params = new URLSearchParams();
     if (filter.before) params.set('before', filter.before);
     if (filter.staffId) params.set('staffId', filter.staffId);
+    if (filter.serviceId) params.set('serviceId', filter.serviceId);
     if (filter.rating) params.set('rating', String(filter.rating));
     if (filter.unanswered) params.set('unanswered', 'true');
     const query = params.toString() ? `?${params.toString()}` : '';
@@ -1633,10 +1636,16 @@ export class BusinessApi {
     orgId: string,
     locationId: string,
     locale: Locale,
-    filter: { staffId?: string; rating?: number; unanswered?: boolean } = {},
+    filter: {
+      staffId?: string;
+      serviceId?: string;
+      rating?: number;
+      unanswered?: boolean;
+    } = {},
   ): Promise<CsvFile> {
     const params = new URLSearchParams({ lang: locale });
     if (filter.staffId) params.set('staffId', filter.staffId);
+    if (filter.serviceId) params.set('serviceId', filter.serviceId);
     if (filter.rating) params.set('rating', String(filter.rating));
     if (filter.unanswered) params.set('unanswered', 'true');
     return this.csvFile(

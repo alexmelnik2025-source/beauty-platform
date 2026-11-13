@@ -181,10 +181,13 @@ export class ReviewsService {
       locationId,
       ...(m.role === 'staff' && !m.permissions.viewAllAppointments ? { staff: { userId } } : {}),
     };
-    const where: Prisma.VisitReviewWhereInput = query.staffId
+    const ofStaff: Prisma.VisitReviewWhereInput = query.staffId
       ? { ...visible, staffId: query.staffId }
       : visible;
-    const [summary, byStars, unanswered, perStaff, staff, rows] = await Promise.all([
+    const where: Prisma.VisitReviewWhereInput = query.serviceId
+      ? { ...ofStaff, appointment: { serviceId: query.serviceId } }
+      : ofStaff;
+    const [summary, byStars, unanswered, perStaff, staff, services, rows] = await Promise.all([
       this.prisma.visitReview.aggregate({ where, _count: true, _avg: { rating: true } }),
       this.starCounts(where),
       this.prisma.visitReview.count({ where: { ...where, reply: null } }),
@@ -200,6 +203,7 @@ export class ReviewsService {
         select: { id: true, displayName: true },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       }),
+      this.serviceRatings(locationId, ofStaff),
       this.prisma.visitReview.findMany({
         where: {
           ...where,
@@ -230,9 +234,44 @@ export class ReviewsService {
             average: average(stats._avg.rating),
           };
         }),
+      services,
       items: page.map(toSalonReview),
       nextBefore: rows.length > PAGE ? page[page.length - 1]!.id : null,
     };
+  }
+
+  /**
+   * Task 420: the chips "Strzyżenie ★ 4,6 (9)" — every service (removed ones too) with reviews
+   * among `where` (the reviews the user may see, of the chosen specialist), salon order.
+   */
+  private async serviceRatings(
+    locationId: string,
+    where: Prisma.VisitReviewWhereInput,
+  ): Promise<SalonReviewsResponse['services']> {
+    const [rows, services] = await Promise.all([
+      this.prisma.visitReview.findMany({
+        where,
+        select: { rating: true, appointment: { select: { serviceId: true } } },
+      }),
+      this.prisma.service.findMany({
+        where: { locationId },
+        select: { id: true, name: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      }),
+    ]);
+    const stats = new Map<string, { count: number; sum: number }>();
+    for (const r of rows) {
+      const s = stats.get(r.appointment.serviceId) ?? { count: 0, sum: 0 };
+      s.count += 1;
+      s.sum += r.rating;
+      stats.set(r.appointment.serviceId, s);
+    }
+    return services
+      .filter((s) => stats.has(s.id))
+      .map((s) => {
+        const { count, sum } = stats.get(s.id)!;
+        return { serviceId: s.id, name: s.name, count, average: average(sum / count) };
+      });
   }
 
   /**
@@ -251,6 +290,7 @@ export class ReviewsService {
       where: {
         locationId,
         ...(query.staffId ? { staffId: query.staffId } : {}),
+        ...(query.serviceId ? { appointment: { serviceId: query.serviceId } } : {}),
         ...(query.rating ? { rating: query.rating } : {}),
         ...(query.unanswered ? { reply: null } : {}),
       },
@@ -387,6 +427,7 @@ export class ReviewsService {
         select: { id: true, displayName: true },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       }),
+      this.serviceRatings(locationId, ofStaff),
       this.prisma.visitReview.findMany({
         where: {
           ...where,

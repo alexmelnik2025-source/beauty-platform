@@ -29,6 +29,8 @@ import { serveApp } from './mobile-app';
  * specialist, in the cabinet (383) and in the business app (383-a). Task 384: each specialist's stars
  * at the choice of specialist when booking (384) and in the team of the salon in the client app (384-a).
  * Task 385: "Pobierz CSV opinii" in the cabinet (385) and in the business app (385-a).
+ * Task 420: the reviews of one service — Jan's visit was a beard trim (a service the salon has
+ * since removed) — in the cabinet (420) and in the business app (420-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -70,17 +72,18 @@ async function verifiedUser(api: APIRequestContext, email: string, name: string)
   return { Authorization: `Bearer ${login.accessToken}` };
 }
 
+/** Runs SQL on the test database (for what the API can't do: visits in the past). */
+function sql(statement: string) {
+  const url = (process.env.DATABASE_URL ?? '').replace(/\?.*$/, '');
+  execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-c', statement]);
+}
+
 /** Visits can't be booked in the past: the visit is moved 2 days back and marked as it went. */
 function tookPlace(appointmentId: string) {
-  const url = (process.env.DATABASE_URL ?? '').replace(/\?.*$/, '');
-  execFileSync('psql', [
-    url,
-    '-v',
-    'ON_ERROR_STOP=1',
-    '-c',
+  sql(
     `UPDATE appointment SET status = 'completed', start_at = start_at - interval '4 days', end_at = end_at - interval '4 days', blocked_until = blocked_until - interval '4 days' WHERE id = '${appointmentId}';
      UPDATE appointment_access_token SET expires_at = now() + interval '7 days' WHERE appointment_id = '${appointmentId}'`,
-  ]);
+  );
 }
 
 test('a client reviews the visit; the salon page shows the reviews', async ({
@@ -301,6 +304,22 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await shot(cabinet, '383-cabinet-reviews-specialist');
   await list.getByRole('button', { name: 'Wszyscy', exact: true }).click();
   await expect(list.locator('.list-row')).toHaveCount(3);
+  // Task 420: Jan's visit was a beard trim, a service the salon no longer offers.
+  sql(
+    `INSERT INTO service (id, location_id, name, duration_minutes, price_grosze, active, updated_at)
+       VALUES (gen_random_uuid(), '${location.id}', 'Broda', 30, 5000, false, now());
+     UPDATE appointment SET service_id = (SELECT id FROM service WHERE location_id = '${location.id}' AND name = 'Broda')
+       WHERE id = (SELECT appointment_id FROM visit_review WHERE location_id = '${location.id}' AND rating = 4)`,
+  );
+  await cabinet.reload();
+  await list.getByRole('button', { name: 'Broda ★ 4,0 (1)' }).click();
+  await expect(list.locator('.list-row')).toHaveCount(1);
+  await expect(list.locator('.list-row')).toContainText('Jan Kowalski');
+  await expect(list.locator('.list-row')).toContainText('Nazar · Broda');
+  await shot(cabinet, '420-cabinet-reviews-service');
+  await list.getByRole('button', { name: 'Wszystkie usługi' }).click();
+  await expect(list.locator('.list-row')).toHaveCount(3);
+  await expect(list.getByRole('button', { name: 'Strzyżenie fade ★ 5,0 (2)' })).toBeVisible();
   // Task 385: the reviews as a file for the owner.
   const csvButton = list.getByRole('button', { name: 'Pobierz CSV opinii' });
   const [reviewsCsv] = await Promise.all([cabinet.waitForEvent('download'), csvButton.click()]);
@@ -493,6 +512,14 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toHaveCount(0);
     await shot(app, '383-a-app-reviews-specialist');
     await app.getByRole('button', { name: 'Wszyscy', exact: true }).click();
+    // Task 420: only the reviews of the beard trims.
+    await app.getByRole('button', { name: 'Broda ★ 4,0 (1)' }).click();
+    await expect(app.getByText(/^Jan Kowalski · Broda u Nazar · /)).toBeVisible();
+    await expect(app.getByText('Dobra broda, polecam.')).toHaveCount(0);
+    await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toHaveCount(0);
+    await shot(app, '420-a-app-reviews-service');
+    await app.getByRole('button', { name: 'Wszystkie usługi' }).click();
+    await expect(app.getByText('Najlepszy fade w Warszawie. Polecam!')).toBeVisible();
     // Task 385: the reviews as a file on the phone (in the browser preview — a download).
     const appCsvButton = app.getByRole('button', { name: 'Pobierz CSV opinii' });
     const [appCsv] = await Promise.all([app.waitForEvent('download'), appCsvButton.click()]);

@@ -549,6 +549,9 @@ export const uk: Dict = {
     summary: '{avg} · відгуків: {count}',
     bySpecialist: 'Відгуки про майстрів',
     everyone: 'Усі',
+    /** Task 420: the filter by service. */
+    byService: 'Відгуки за послугами',
+    allServices: 'Усі послуги',
     /** Task 380: the filter by stars. */
     byStars: 'Відгуки за оцінками',
     allStars: 'Усі оцінки',

@@ -123,6 +123,11 @@ export class ReviewsController {
     description:
       'With the client’s name. Staff without “all appointments” see only reviews of their own visits.',
   })
+  @ApiQuery({
+    name: 'serviceId',
+    required: false,
+    description: 'Task 420: only reviews of visits for this service',
+  })
   @pageQueries()
   @ApiQuery({
     name: 'unanswered',
@@ -145,8 +150,9 @@ export class ReviewsController {
   @ApiOperation({
     summary: 'The reviews as a CSV file (owners and managers)',
     description:
-      'Task 385. The list’s filters (staffId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.',
+      'Task 385. The list’s filters (staffId, serviceId, rating, unanswered); newest first. Semicolon-separated, UTF-8 with a byte order mark (opens in Excel). Written to the audit log.',
   })
+  @ApiQuery({ name: 'serviceId', required: false, description: 'Task 420: only this service' })
   @ApiQuery({ name: 'staffId', required: false, description: 'Only reviews of this specialist' })
   @ApiQuery({ name: 'rating', required: false, type: Number, description: 'Only this many stars' })
   @ApiQuery({ name: 'unanswered', required: false, enum: ['true', 'false'] })
