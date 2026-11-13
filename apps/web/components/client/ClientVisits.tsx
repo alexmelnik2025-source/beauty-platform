@@ -14,10 +14,11 @@ import type {
 } from '@/lib/types';
 import { InstallApp } from '../InstallApp';
 import { ClientBonuses } from './ClientBonuses';
+import { ClientFavorites } from './ClientFavorites';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { ClientNav } from './ClientNav';
 
-type Scope = 'upcoming' | 'past' | 'bonuses';
+type Scope = 'upcoming' | 'past' | 'bonuses' | 'favorites';
 
 /** Code errors after which the client simply needs a fresh code. */
 const NEW_CODE_NEEDED = ['CODE_EXPIRED', 'CODE_NOT_SENT', 'TOO_MANY_ATTEMPTS'];
@@ -208,7 +209,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
     setSummary(null);
     setSalon(null);
     setError('');
-    if (scope === 'bonuses') return;
+    if (scope === 'bonuses' || scope === 'favorites') return;
     try {
       const list = (which: 'upcoming' | 'past') =>
         api<{ items: ClientAppointment[] }>('/v1/client/appointments', {
@@ -278,9 +279,15 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   return (
     <>
       <div className="tabs" role="group">
-        {(['upcoming', 'past', 'bonuses'] as const).map((s) => (
+        {(['upcoming', 'past', 'bonuses', 'favorites'] as const).map((s) => (
           <button key={s} type="button" aria-pressed={scope === s} onClick={() => setScope(s)}>
-            {s === 'upcoming' ? t.visits.upcoming : s === 'past' ? t.visits.past : t.bonuses.tab}
+            {s === 'upcoming'
+              ? t.visits.upcoming
+              : s === 'past'
+                ? t.visits.past
+                : s === 'bonuses'
+                  ? t.bonuses.tab
+                  : t.favorites.tab}
           </button>
         ))}
       </div>
@@ -325,6 +332,8 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
       ) : null}
       {scope === 'bonuses' ? (
         <ClientBonuses onSignedOut={onSignedOut} />
+      ) : scope === 'favorites' ? (
+        <ClientFavorites onSignedOut={onSignedOut} />
       ) : items === null ? (
         <Spinner />
       ) : items.length === 0 ? (

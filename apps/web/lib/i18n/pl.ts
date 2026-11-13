@@ -629,6 +629,18 @@ export const pl = {
       'Twoje wizyty zawsze pod ręką — z ikoną na ekranie telefonu, bez szukania linków w e-mailach.',
     appName: 'Wizyty',
   },
+  /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
+  favorites: {
+    tab: 'Ulubione',
+    empty:
+      'Nie masz jeszcze ulubionych salonów. Otwórz salon w katalogu i kliknij „♡ Dodaj do ulubionych”.',
+    add: '♡ Dodaj do ulubionych',
+    saved: '♥ W ulubionych',
+    remove: 'Usuń z ulubionych',
+    open: 'Zobacz salon',
+    notBookable: 'Salon wstrzymał rezerwacje online.',
+    tooMany: 'Masz już 100 ulubionych salonów. Usuń któryś, aby dodać nowy.',
+  },
   bonuses: {
     extraTitle: 'Więcej za wizytę',
     extraAt: 'u: {names}',
