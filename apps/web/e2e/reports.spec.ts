@@ -30,6 +30,7 @@ import { serveApp } from './mobile-app';
  * "Co ile dni wracają klienci" — days between visits in a row (task 247): 247, app 247-a.
  * "Pokaż nowych klientów" — from the report to the new clients in "Klienci" (task 249): 249, 249-a.
  * "Prowizje" — each specialist's commission, set by the owner (task 374): 374, app 375.
+ * "CSV wypłat" — commission, tips and the total by specialist for the accountant (task 392).
  * "Tydzień" in the business app — the week at a glance, a tap opens the day (task 214): 75e.
  */
 
@@ -432,6 +433,20 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(ilianRow).toContainText(/60,00\s*zł/);
   await expect(commissions.getByRole('row').filter({ hasText: 'Marek' })).toHaveCount(0);
   await shot(page, '374-owner-reports-commissions');
+
+  // "CSV wypłat" (task 392): what each specialist earned in the period, for the accountant.
+  const [payoutCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'CSV wypłat' }).click(),
+  ]);
+  expect(payoutCsv.suggestedFilename()).toMatch(/^payout-.+\.csv$/);
+  const payoutFile = readFileSync((await payoutCsv.path())!, 'utf8');
+  expect(payoutFile).toContain(
+    'Specjalista;Odbyte wizyty;Opłacone wizyty;Przychód;Prowizja %;Prowizja;Napiwki;Do wypłaty',
+  );
+  expect(payoutFile).toContain('Ilian;2;2;150,00;40;60,00;0,00;60,00');
+  expect(payoutFile).toContain('Marek;1;1;90,00;;;0,00;0,00');
+  expect(payoutFile).toContain('Razem;3;3;240,00;;60,00;0,00;60,00');
 
   // "Pobierz CSV": every visit of the period for the accountant, no client contacts (task 30).
   const [download] = await Promise.all([

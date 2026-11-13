@@ -1243,6 +1243,61 @@ describe('salon report', () => {
     await ctx.http().get(commissions).set(other.auth).expect(404);
   });
 
+  it('"CSV wypłat": commission, tips and the total by specialist, owners only (task 391)', async () => {
+    await ctx.prisma.staffMember.update({
+      where: { id: kasiaId },
+      data: { commissionPermille: 455 },
+    });
+    const d1 = addDays(today, -3);
+    await visit({ date: d1, status: 'completed', paid: true, tipGrosze: 1000 });
+    await visit({ date: d1, status: 'completed', paid: true, discountGrosze: 1000 });
+    await visit({
+      date: d1,
+      staffId: olaId,
+      serviceId: beardId,
+      status: 'completed',
+      paid: true,
+      tipGrosze: 250,
+    });
+    await visit({ date: d1, staffId: olaId, status: 'no_show' });
+    const csv = (q: object = {}, auth = owner.auth) =>
+      ctx
+        .http()
+        .get(`${base}/reports/payout-csv`)
+        .query({ from, to: today, ...q })
+        .set(auth)
+        .buffer(true)
+        .parse((res, done) => {
+          let text = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk: string) => (text += chunk));
+          res.on('end', () => done(null, text));
+        });
+    const res = await csv().expect(200);
+    expect(res.headers['content-disposition']).toMatch(
+      new RegExp(`^attachment; filename="payout-.+-${from}-${today}\\.csv"$`),
+    );
+    const text = res.body as string;
+    expect(text.startsWith('\uFEFF')).toBe(true);
+    // Kasia: 80 + 70 = 150 zł × 45,5% = 68,25 zł, plus a 10 zł tip. Ola: no commission set.
+    expect(text.slice(1).trimEnd().split('\r\n')).toEqual([
+      'Specjalista;Odbyte wizyty;Opłacone wizyty;Przychód;Prowizja %;Prowizja;Napiwki;Do wypłaty',
+      'Kasia;2;2;150,00;45,5;68,25;10,00;78,25',
+      'Ola;1;1;50,00;;;2,50;2,50',
+      'Razem;3;3;200,00;;68,25;12,50;80,75',
+    ]);
+    const english = (await csv({ locale: 'en' }).expect(200)).body as string;
+    expect(english).toContain('Kasia;2;2;150.00;45.5;68.25;10.00;78.25');
+
+    // A specialist cannot download it, even with own results.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    await csv({}, kasiaUser.auth).expect(403);
+    await csv({ from: today, to: from }).expect(400);
+  });
+
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {
     const d1 = addDays(today, -3);
     const first = await visit({

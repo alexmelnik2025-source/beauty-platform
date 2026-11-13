@@ -11656,6 +11656,73 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/payout-csv": {
+      "get": {
+        "description": "Task 391. Owners and managers of the location only (a specialist gets 403). One line for every specialist with a visit in the period, then a total. Same file format as visits-csv; no client data.",
+        "operationId": "ReportsController_payoutCsv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-30"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-01"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"CSV wypłat\": what each specialist earned in a period — commission, tips, total",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/reports/till-csv": {
       "get": {
         "description": "Task 238. Owners and managers of the location only (a specialist gets 403). One line for every cash put in or taken out and every till close, oldest first. Same file format as visits-csv.",

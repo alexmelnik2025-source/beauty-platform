@@ -3017,6 +3017,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/payout-csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "CSV wypłat": what each specialist earned in a period — commission, tips, total
+         * @description Task 391. Owners and managers of the location only (a specialist gets 403). One line for every specialist with a visit in the period, then a total. Same file format as visits-csv; no client data.
+         */
+        get: operations["ReportsController_payoutCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/reports/till-csv": {
         parameters: {
             query?: never;
@@ -11704,6 +11724,32 @@ export interface operations {
         };
     };
     ReportsController_visitsCsv: {
+        parameters: {
+            query: {
+                locale?: "pl" | "uk" | "ru" | "en";
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    ReportsController_payoutCsv: {
         parameters: {
             query: {
                 locale?: "pl" | "uk" | "ru" | "en";

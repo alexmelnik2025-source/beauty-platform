@@ -1439,6 +1439,9 @@ export const en: Dict = {
     colRevenue: 'Revenue',
     dayVisits: 'visits: {n}',
     csv: 'Download CSV',
+    payoutCsv: 'Payout CSV',
+    payoutCsvHint:
+      'For the accountant: every specialist with a visit in the period — visits, revenue, commission, tips and the total to pay out.',
     tillCsv: 'Till CSV',
     tillCsvHint:
       'Cash put in, taken out and till closes of this period — a cash journal for the accountant (Excel)',

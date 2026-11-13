@@ -1437,6 +1437,9 @@ export const pl = {
     colRevenue: 'Przychód',
     dayVisits: 'wizyty: {n}',
     csv: 'Pobierz CSV',
+    payoutCsv: 'CSV wypłat',
+    payoutCsvHint:
+      'Dla księgowej: każdy specjalista z wizytą w tym okresie — wizyty, przychód, prowizja, napiwki i razem do wypłaty.',
     tillCsv: 'CSV kasy',
     tillCsvHint:
       'Wpłaty, wypłaty i zamknięcia kasy z tego okresu — dziennik kasowy dla księgowej (Excel)',
