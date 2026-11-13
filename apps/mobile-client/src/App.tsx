@@ -226,6 +226,14 @@ export default function App() {
               onBook={(salon) => setFinder({ kind: 'book', salon })}
               signedIn={stage.kind === 'visits'}
               onFavoriteChanged={favoriteChanged}
+              onOpenSalon={(s) =>
+                setFinder({
+                  kind: 'salon',
+                  slug: s.slug,
+                  name: s.name,
+                  fromVisits: finder.fromVisits,
+                })
+              }
             />
           ) : null}
         </View>

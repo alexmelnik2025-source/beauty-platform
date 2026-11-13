@@ -255,6 +255,17 @@ describe('catalogue (no sign-in)', () => {
     expect((await api.directory({ openNow: true, bestRated: true })).total).toBe(4);
   });
 
+  it('asks for the salons nearest to a salon (task 401)', async () => {
+    const { fetchFn } = fakeServer({
+      ['GET /v1/public/locations?page=1&pageSize=3&nearSalon=gestalt-bema']: () => [
+        200,
+        { ...directory, total: 2 },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    expect((await api.directory({ nearSalon: 'gestalt-bema', pageSize: 3 })).total).toBe(2);
+  });
+
   it('opens a salon by its link name; a missing one is a 404', async () => {
     const { fetchFn } = fakeServer({
       'GET /v1/public/locations/gestalt%20bema': () => [200, { slug: 'gestalt bema' }],

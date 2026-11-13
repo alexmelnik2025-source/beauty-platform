@@ -326,6 +326,8 @@ export const tr: Dictionary = {
     otherServices: 'Diğer hizmetler',
     team: 'Uzmanlar',
     directions: 'Yol tarifi',
+    nearbyTitle: 'Yakındaki diğer salonlar',
+    nearbyDistance: '{km} km uzakta',
     call: 'Ara',
     noServices: 'Salonun henüz online randevuya açık hizmeti yok.',
     share: 'Arkadaşlarına öner',

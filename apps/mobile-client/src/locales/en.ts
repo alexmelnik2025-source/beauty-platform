@@ -320,6 +320,8 @@ export const en: Dictionary = {
     otherServices: 'Other services',
     team: 'Specialists',
     directions: 'Get directions',
+    nearbyTitle: 'Other salons nearby',
+    nearbyDistance: '{km} km away',
     call: 'Call',
     noServices: 'The salon has no services for online booking yet.',
     share: 'Recommend to friends',

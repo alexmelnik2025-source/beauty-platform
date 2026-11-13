@@ -324,6 +324,8 @@ export const ru: Dictionary = {
     otherServices: 'Другие услуги',
     team: 'Специалисты',
     directions: 'Как добраться',
+    nearbyTitle: 'Другие салоны рядом',
+    nearbyDistance: '{km} км отсюда',
     call: 'Позвонить',
     noServices: 'У салона пока нет услуг для онлайн-записи.',
     share: 'Посоветовать салон друзьям',

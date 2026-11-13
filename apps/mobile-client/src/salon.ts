@@ -208,3 +208,11 @@ export function openStatusText(
       return t.closedNow;
   }
 }
+
+/** Neighbours farther than this are not "nearby" (as on the site's salon page, task 400). */
+export const NEARBY_KM = 30;
+
+/** Task 401: the neighbours worth showing — with a place on the map, within 30 km. */
+export function nearbyOnly<T extends Pick<DirectorySalon, 'distanceKm'>>(salons: T[]): T[] {
+  return salons.filter((s) => s.distanceKm !== null && s.distanceKm <= NEARBY_KM);
+}

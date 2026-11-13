@@ -326,6 +326,8 @@ export const sq: Dictionary = {
     otherServices: 'Shërbime të tjera',
     team: 'Specialistët',
     directions: 'Si të arrini',
+    nearbyTitle: 'Sallone të tjera afër',
+    nearbyDistance: '{km} km larg',
     call: 'Telefono',
     noServices: 'Salloni nuk ka ende shërbime për rezervim online.',
     share: 'Rekomandoje te miqtë',

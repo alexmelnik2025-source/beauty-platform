@@ -10,7 +10,13 @@ import {
   Text,
   View,
 } from 'react-native';
-import { bookingUrl, type ClientApi, type Locale, type PublicLocation } from '../api';
+import {
+  bookingUrl,
+  type ClientApi,
+  type DirectorySalon,
+  type Locale,
+  type PublicLocation,
+} from '../api';
 import { catalogLanguagesStore } from '../storage';
 import { API_URL, WEB_URL } from '../config';
 import { errorText } from '../errors';
@@ -30,13 +36,15 @@ import {
 } from '../salon';
 import { QrView } from '../QrView';
 import { shareMessage, shareSalon, type ShareTools } from '../share';
+import { NearbySalons } from './NearbySalons';
 import { SalonReviews } from './SalonReviews';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
 /**
  * A salon's page: photos, address, languages, description, opening hours, price list and
  * specialists. "Book" starts the booking in the app. A signed-in client can save the salon to
- * "Favourites" (and take it off). Task 212: the salon's reviews at the bottom.
+ * "Favourites" (and take it off). Task 212: the salon's reviews at the bottom; task 401: the other
+ * salons nearby after them.
  */
 export function SalonScreen(props: {
   api: ClientApi;
@@ -50,6 +58,8 @@ export function SalonScreen(props: {
   signedIn: boolean;
   /** The salon was saved or removed: "Favourites" in "My visits" reloads. */
   onFavoriteChanged: () => void;
+  /** Task 401: a salon from "Inne salony w pobliżu" was tapped. */
+  onOpenSalon: (salon: DirectorySalon) => void;
 }) {
   const { api, t, locale, signedIn, onFavoriteChanged } = props;
   const [salon, setSalon] = useState<PublicLocation | null>(null);
@@ -326,6 +336,7 @@ export function SalonScreen(props: {
       ) : null}
 
       <SalonReviews api={api} t={t} locale={locale} slug={salon.slug} />
+      <NearbySalons api={api} t={t} locale={locale} slug={salon.slug} onOpen={props.onOpenSalon} />
     </ScrollView>
   );
 }

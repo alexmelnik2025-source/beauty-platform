@@ -321,6 +321,8 @@ export const uk: Dictionary = {
     otherServices: 'Інші послуги',
     team: 'Спеціалісти',
     directions: 'Як дістатися',
+    nearbyTitle: 'Інші салони поблизу',
+    nearbyDistance: '{km} км звідси',
     call: 'Зателефонувати',
     noServices: 'Салон ще не має послуг для онлайн-запису.',
     share: 'Порадити салон друзям',

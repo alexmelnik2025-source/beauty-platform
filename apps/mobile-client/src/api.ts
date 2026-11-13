@@ -529,6 +529,8 @@ export class ClientApi {
       openNow?: boolean;
       /** Task 378: "Najlepiej oceniane" — the salons with the best stars first. */
       bestRated?: boolean;
+      /** Task 401: "Inne salony w pobliżu" — the salons nearest to this salon (slug), without it. */
+      nearSalon?: string;
       pageSize?: number;
     } = {},
   ): Promise<PublicSalonDirectory> {
@@ -541,6 +543,7 @@ export class ClientApi {
     if (query.q?.trim()) params.set('q', query.q.trim());
     if (query.openNow) params.set('openNow', 'true');
     if (query.bestRated) params.set('sort', 'rating');
+    if (query.nearSalon) params.set('nearSalon', query.nearSalon);
     if (query.near) {
       const { latitude, longitude } = query.near;
       params.set('near', `${latitude.toFixed(4)},${longitude.toFixed(4)}`);

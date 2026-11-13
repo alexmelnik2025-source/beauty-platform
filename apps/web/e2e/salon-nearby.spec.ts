@@ -7,12 +7,14 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 400: "Inne salony w pobliżu" at the end of a salon page. Four salons of one owner in
  * Gdańsk, Sopot and Zakopane: the Gdańsk salon's page lists Wrzeszcz (2,3 km) and Sopot, not
  * itself and not Zakopane (farther than 30 km); a name opens that salon's page (screenshot 400).
- * The file name sorts after the specs that count every salon in the catalogue.
+ * Task 401: the same at the end of a salon page in the client app; a tap opens that salon
+ * (screenshot 401). The file name sorts after the specs that count every salon in the catalogue.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -66,7 +68,7 @@ async function salon(
       data: {
         name,
         addressLine: 'ul. Długa 1',
-        city: 'Gdańsk',
+        city: 'Gdynia',
         postalCode: '80-001',
         ...place,
         onlineBookingEnabled: true,
@@ -146,6 +148,35 @@ test('a salon page lists the other salons nearby, nearest first', async ({ brows
     await page.goto(`/pl/b/${main}?embed=1`);
     await expect(page.getByRole('heading', { level: 1, name: `${PREFIX} Główny` })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Inne salony w pobliżu' })).toHaveCount(0);
+
+    // Task 401: the client app.
+    const clientApp = await serveApp('mobile-client');
+    try {
+      const app = await phone.newPage();
+      await app.goto(clientApp.url);
+      await app.getByRole('button', { name: 'Znajdź salon' }).click();
+      await app
+        .getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica')
+        .fill(`${PREFIX} Główny`);
+      await app
+        .getByRole('article', { name: `${PREFIX} Główny` })
+        .getByRole('button', { name: 'Zobacz salon' })
+        .click();
+      await expect(app.getByRole('heading', { name: `${PREFIX} Główny` })).toBeVisible();
+      const title = app.getByRole('heading', { name: 'Inne salony w pobliżu' });
+      await title.scrollIntoViewIfNeeded();
+      await expect(title).toBeVisible();
+      const near = app.getByRole('link', { name: `${PREFIX} Wrzeszcz` });
+      await expect(near).toContainText('2,3 km stąd');
+      await expect(app.getByRole('link', { name: `${PREFIX} Sopot` })).toBeVisible();
+      await expect(app.getByRole('link', { name: `${PREFIX} Zakopane` })).toHaveCount(0);
+      await shot(app, '401-client-app-salon-nearby');
+      await near.click();
+      await expect(app.getByRole('heading', { name: `${PREFIX} Wrzeszcz` })).toBeVisible();
+      await app.close();
+    } finally {
+      clientApp.server.close();
+    }
   } finally {
     await phone.close();
   }

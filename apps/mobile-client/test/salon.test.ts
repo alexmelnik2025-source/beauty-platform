@@ -5,6 +5,7 @@ import {
   directionsUrl,
   durationText,
   filterSalons,
+  nearbyOnly,
   openingRows,
   openStatus,
   openStatusText,
@@ -264,5 +265,17 @@ describe('"Otwarte teraz" (task 362)', () => {
       weekday: 3,
       minute: 30,
     });
+  });
+});
+
+describe('nearbyOnly (task 401)', () => {
+  it('keeps the neighbours with a place on the map within 30 km, in their order', () => {
+    const salons = [
+      { slug: 'a', distanceKm: 2.3 },
+      { slug: 'b', distanceKm: 30 },
+      { slug: 'c', distanceKm: 30.1 },
+      { slug: 'd', distanceKm: null },
+    ];
+    expect(nearbyOnly(salons).map((s) => s.slug)).toEqual(['a', 'b']);
   });
 });

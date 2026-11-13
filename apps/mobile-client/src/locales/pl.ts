@@ -321,6 +321,8 @@ export const pl = {
     otherServices: 'Inne usługi',
     team: 'Specjaliści',
     directions: 'Jak dojechać',
+    nearbyTitle: 'Inne salony w pobliżu',
+    nearbyDistance: '{km} km stąd',
     call: 'Zadzwoń',
     noServices: 'Salon nie ma jeszcze usług do rezerwacji online.',
     share: 'Poleć salon znajomym',
