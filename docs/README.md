@@ -3073,3 +3073,7 @@ data-salon=… data-lang=…>` на языке салона, как в каби�
   клиентское приложение (`visitShareMessage` в `src/share.ts`, `screens/shareTools.ts`; без меню «Поделиться» копируется
   весь текст), сайт — `components/booking/ShareVisit.tsx` на странице визита и на «Do zobaczenia!». e2e в
   `booking.spec.ts`.
+- 416–417: «Ulubione» на главной сайта для вошедшего клиента (до шести салонов с онлайн-записью, «Wszystkie
+  ulubione» → `/c?tab=favorites`) и `FavoriteButton` на «Do zobaczenia!» для аккаунта, созданного при записи (если
+  клиент уже был вошедшим — кнопка в шапке салона). e2e `web-favorites.spec.ts`, `booking.spec.ts` (скриншоты 416,
+  417).
