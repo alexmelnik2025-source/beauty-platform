@@ -340,6 +340,9 @@ describe('public booking page', () => {
         },
       ],
       photoUrl: null,
+      // Task 384: no stars while the salon does not collect reviews.
+      rating: null,
+      reviewCount: 0,
     });
     expect(res.body).not.toHaveProperty('organizationId');
   });
