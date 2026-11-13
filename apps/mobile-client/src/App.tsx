@@ -13,7 +13,8 @@ import { OpenBooking } from './screens/OpenBooking';
 import { SalonScreen } from './screens/SalonScreen';
 import { SignInScreen } from './screens/SignInScreen';
 import { VisitsScreen } from './screens/VisitsScreen';
-import { tokenStore } from './storage';
+import { rememberViewed, type RecentSalon } from './recent';
+import { recentSalonsStore, tokenStore } from './storage';
 import { Button, colors, ErrorText } from './ui';
 
 type Stage =
@@ -70,6 +71,22 @@ export default function App() {
   const openBooking = useCallback(
     (slug: string, name: string, preset?: BookingPreset) =>
       setFinder({ kind: 'open', slug, name, ...(preset && { preset }) }),
+    [],
+  );
+  // Task 402: "Ostatnio oglądane" on the start screen — kept on this device only.
+  const [recent, setRecent] = useState<RecentSalon[]>([]);
+  useEffect(() => {
+    void recentSalonsStore.get().then(setRecent);
+  }, []);
+  const salonViewed = useCallback((salon: RecentSalon) => {
+    setRecent((list) => {
+      const next = rememberViewed(list, salon);
+      void recentSalonsStore.set(next);
+      return next;
+    });
+  }, []);
+  const openRecent = useCallback(
+    (salon: RecentSalon) => setFinder({ kind: 'salon', slug: salon.slug, name: salon.name }),
     [],
   );
   const t = DICTIONARIES[locale];
@@ -142,6 +159,8 @@ export default function App() {
                 onFindSalon={openCatalog}
                 onOpenNow={openCatalogOpenNow}
                 onBestRated={openCatalogBestRated}
+                recent={recent}
+                onOpenRecent={openRecent}
               />
             ) : (
               <VisitsScreen
@@ -226,6 +245,7 @@ export default function App() {
               onBook={(salon) => setFinder({ kind: 'book', salon })}
               signedIn={stage.kind === 'visits'}
               onFavoriteChanged={favoriteChanged}
+              onViewed={salonViewed}
               onOpenSalon={(s) =>
                 setFinder({
                   kind: 'salon',

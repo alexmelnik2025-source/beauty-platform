@@ -403,6 +403,7 @@ export const en: Dict = {
     searchWherePlaceholder: 'City or street',
     searchButton: 'Search',
     categories: 'Categories',
+    recent: 'Recently viewed',
     featured: 'Recommended salons',
     signInLater: 'Your account is created with your first booking.',
   },

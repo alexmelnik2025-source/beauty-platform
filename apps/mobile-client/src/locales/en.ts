@@ -294,6 +294,7 @@ export const en: Dictionary = {
     openNowEmpty: 'None of these salons is open right now — turn off “Open now” to see them all.',
     /** Task 378: the salons with the best stars first. */
     bestRated: '★ Top rated',
+    recent: 'Recently viewed',
     locating: 'Finding your location…',
     locationFailed: 'Could not find your location. Allow it in the settings or type a city.',
     distance: '{km} km from you',

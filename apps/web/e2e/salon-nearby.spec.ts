@@ -13,6 +13,8 @@ import { serveApp } from './mobile-app';
  * Task 400: "Inne salony w pobliżu" at the end of a salon page. Four salons of one owner in
  * Gdańsk, Sopot and Zakopane: the Gdańsk salon's page lists Wrzeszcz (2,3 km) and Sopot, not
  * itself and not Zakopane (farther than 30 km); a name opens that salon's page (screenshot 400).
+ * Tasks 402–403: "Ostatnio oglądane" on the client app's start screen (screenshot 402) and on
+ * the home page (403) — the salons opened last on this device.
  * Task 401: the same at the end of a salon page in the client app; a tap opens that salon
  * (screenshot 401). The file name sorts after the specs that count every salon in the catalogue.
  */
@@ -149,6 +151,15 @@ test('a salon page lists the other salons nearby, nearest first', async ({ brows
     await expect(page.getByRole('heading', { level: 1, name: `${PREFIX} Główny` })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Inne salony w pobliżu' })).toHaveCount(0);
 
+    // Task 403: "Ostatnio oglądane" on the home page — newest first, not the embed window.
+    await page.goto('/pl');
+    const recent = page.getByRole('region', { name: 'Ostatnio oglądane' });
+    await expect(recent.getByRole('link')).toHaveText([`${PREFIX} Wrzeszcz`, `${PREFIX} Główny`]);
+    await recent.scrollIntoViewIfNeeded();
+    await shot(page, '403-home-recent');
+    await recent.getByRole('link', { name: `${PREFIX} Główny` }).click();
+    await expect(page.getByRole('heading', { level: 1, name: `${PREFIX} Główny` })).toBeVisible();
+
     // Task 401: the client app.
     const clientApp = await serveApp('mobile-client');
     try {
@@ -173,6 +184,17 @@ test('a salon page lists the other salons nearby, nearest first', async ({ brows
       await shot(app, '401-client-app-salon-nearby');
       await near.click();
       await expect(app.getByRole('heading', { name: `${PREFIX} Wrzeszcz` })).toBeVisible();
+
+      // Task 402: the start screen remembers the salons opened on this device, newest first.
+      await app.reload();
+      const recentApp = app.getByRole('group', { name: 'Ostatnio oglądane' });
+      await expect(recentApp.getByRole('button')).toHaveText([
+        `${PREFIX} Wrzeszcz`,
+        `${PREFIX} Główny`,
+      ]);
+      await shot(app, '402-client-app-recent');
+      await recentApp.getByRole('button', { name: `${PREFIX} Główny` }).click();
+      await expect(app.getByRole('heading', { name: `${PREFIX} Główny` })).toBeVisible();
       await app.close();
     } finally {
       clientApp.server.close();

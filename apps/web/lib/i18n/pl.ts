@@ -405,6 +405,7 @@ export const pl = {
     searchWherePlaceholder: 'Miasto lub ulica',
     searchButton: 'Szukaj',
     categories: 'Kategorie',
+    recent: 'Ostatnio oglądane',
     featured: 'Polecane salony',
     signInLater: 'Konto założy się samo przy pierwszej rezerwacji.',
   },

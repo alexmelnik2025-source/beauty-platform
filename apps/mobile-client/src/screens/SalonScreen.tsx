@@ -60,6 +60,8 @@ export function SalonScreen(props: {
   onFavoriteChanged: () => void;
   /** Task 401: a salon from "Inne salony w pobliżu" was tapped. */
   onOpenSalon: (salon: DirectorySalon) => void;
+  /** Task 402: the salon's page opened — for "Ostatnio oglądane". */
+  onViewed?: (salon: { slug: string; name: string }) => void;
 }) {
   const { api, t, locale, signedIn, onFavoriteChanged } = props;
   const [salon, setSalon] = useState<PublicLocation | null>(null);
@@ -82,6 +84,8 @@ export function SalonScreen(props: {
   const [qrOpen, setQrOpen] = useState(false);
   const tRef = useRef(t);
   tRef.current = t;
+  const viewedRef = useRef(props.onViewed);
+  viewedRef.current = props.onViewed;
 
   const load = useCallback(async () => {
     setError('');
@@ -92,6 +96,7 @@ export function SalonScreen(props: {
       ]);
       // Task 160c: specialists speaking a language chosen in the catalogue come first.
       setSalon({ ...loaded, staff: speakersFirst(loaded.staff, chosen) });
+      viewedRef.current?.({ slug: loaded.slug, name: loaded.name });
       api
         .freeToday(props.slug)
         .then((res) => setFreeToday(new Set(res.staffIds)))

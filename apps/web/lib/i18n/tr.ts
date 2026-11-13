@@ -128,6 +128,7 @@ export const tr: Dict = {
     searchWherePlaceholder: 'Şehir veya sokak',
     searchButton: 'Ara',
     categories: 'Kategoriler',
+    recent: 'Son görüntülenenler',
     featured: 'Önerilen salonlar',
     signInLater: 'Hesabınız ilk rezervasyonda kendiliğinden oluşur.',
   },
