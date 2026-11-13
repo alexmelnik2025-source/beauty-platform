@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Pressable,
@@ -42,11 +42,15 @@ export function TeamHoursScreen(props: {
   /** Task 328: the name typed for a new specialist (null = the form is closed). */
   const [newName, setNewName] = useState<string | null>(null);
 
+  /** Task 372: only the latest read is shown — an older answer arriving later is dropped. */
+  const reads = useRef(0);
   const load = useCallback(async () => {
+    const n = ++reads.current;
     try {
-      setTeam(teamForProfiles(await api.staff(salon.orgId, salon.locationId)));
+      const staff = await api.staff(salon.orgId, salon.locationId);
+      if (n === reads.current) setTeam(teamForProfiles(staff));
     } catch (e) {
-      setError(errorText(e, t));
+      if (n === reads.current) setError(errorText(e, t));
     }
   }, [api, salon, t]);
 
@@ -72,7 +76,9 @@ export function TeamHoursScreen(props: {
     setError('');
     setInfo('');
     try {
-      setTeam(teamForProfiles(await api.reorderStaff(salon.orgId, salon.locationId, order)));
+      const saved = await api.reorderStaff(salon.orgId, salon.locationId, order);
+      reads.current++; // a list read started before the move is older than this one
+      setTeam(teamForProfiles(saved));
       setInfo(p.orderSaved);
     } catch (e) {
       setError(errorText(e, t));
@@ -120,6 +126,8 @@ export function TeamHoursScreen(props: {
         staffName={open.name}
         notice={open.notice}
         onRenamed={(name) => setOpen({ ...open, name })}
+        // Task 372: "‹ Wróć" pressed while the profile was still saving must not leave the old list.
+        onSaved={() => void load()}
         today={props.today}
         onBack={() => {
           setOpen(null);
