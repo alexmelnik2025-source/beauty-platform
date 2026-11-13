@@ -403,6 +403,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Masz teraz konto — wszystkie wizyty w „Moje wizyty”.',
   );
   await shot(client, '06-client-done');
+  // Task 417: the account made at booking can save the salon right away (and take it off).
+  await client.getByRole('button', { name: '♡ Dodaj do ulubionych' }).click();
+  await expect(client.getByRole('button', { name: 'Usuń z ulubionych' })).toHaveText(
+    '♥ W ulubionych',
+  );
+  await shot(client, '417-client-done-favorite');
+  await client.getByRole('button', { name: 'Usuń z ulubionych' }).click();
+  await expect(client.getByRole('button', { name: '♡ Dodaj do ulubionych' })).toBeVisible();
   // Task 413: "Udostępnij wizytę" right after booking (the test stands in for the share sheet).
   await client.evaluate(() => {
     Object.defineProperty(navigator, 'share', {

@@ -1064,6 +1064,8 @@ export function BookingFlow({ slug }: { slug: string }) {
             >
               {t.booking.manage}
             </Link>
+            {/* Task 417: right after booking, the signed-in client can save the salon. */}
+            {result.signedIn && !signedInAs && !embed ? <FavoriteButton slug={salon.slug} /> : null}
             {result.signedIn ? (
               <section className="install-app install-app--card" data-testid="account-ready">
                 <strong>{t.booking.accountReady}</strong>
