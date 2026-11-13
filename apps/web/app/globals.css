@@ -2293,6 +2293,23 @@ label.btn:focus-within {
   font-weight: 600;
 }
 
+/* Task 400: "Inne salony w pobliżu" at the end of a salon page. */
+.nearby-salons {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.nearby-salons h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.nearby-salons h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
 .directory-list > li[data-selected] {
   box-shadow: inset 3px 0 0 var(--ink);
   padding-left: 12px;

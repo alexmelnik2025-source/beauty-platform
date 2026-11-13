@@ -782,6 +782,71 @@ describe('public salon directory', () => {
     expect(shape.error?.issues ?? []).toEqual([]);
   });
 
+  it('"Inne salony w pobliżu" lists the salons nearest to a salon, without it (task 400)', async () => {
+    const owner = await signUp(ctx, 'neighbours@example.com');
+    const center = await createOrgWithLocation(ctx, owner, 'Center salon');
+    const praga = await createOrgWithLocation(ctx, owner, 'Praga salon');
+    const mokotow = await createOrgWithLocation(ctx, owner, 'Mokotow salon');
+    const krakow = await createOrgWithLocation(ctx, owner, 'Krakow salon');
+    const nowhere = await createOrgWithLocation(ctx, owner, 'Somewhere salon');
+    const closed = await createOrgWithLocation(ctx, owner, 'Closed salon');
+    for (const salon of [center, praga, mokotow, krakow, nowhere, closed]) {
+      await makeBookable(owner, salon);
+    }
+    const place = async (
+      salon: { locationId: string },
+      latitude: number | null,
+      longitude: number | null,
+      onlineBookingEnabled = true,
+    ) =>
+      ctx.prisma.location.update({
+        where: { id: salon.locationId },
+        data: { onlineBookingEnabled, ...LEGAL_TEXTS, latitude, longitude },
+      });
+    await place(center, 52.2297, 21.0122);
+    await place(praga, 52.2508, 21.0353);
+    await place(mokotow, 52.1934, 21.0346);
+    await place(krakow, 50.0614, 19.9366);
+    await place(nowhere, null, null);
+    // Not in the catalogue: never a neighbour, and has no neighbours itself.
+    await place(closed, 52.23, 21.013, false);
+
+    const res = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ nearSalon: center.slug, pageSize: 3 })
+      .expect(200);
+    expect(res.body.total).toBe(4);
+    expect(res.body.items.map((s: { slug: string; distanceKm: number | null }) => s.slug)).toEqual([
+      praga.slug,
+      mokotow.slug,
+      krakow.slug,
+    ]);
+    expect(res.body.items[0].distanceKm).toBeCloseTo(2.9, 0);
+    expect(res.body.items[1].distanceKm).toBeCloseTo(4.4, 0);
+    expect(res.body.items[2].distanceKm).toBeGreaterThan(250);
+    const shape = registeredResponseSchema('PublicSalonDirectory').safeParse(res.body);
+    expect(shape.error?.issues ?? []).toEqual([]);
+
+    // The other filters still apply (here: a search that finds only Krakow and the salon itself).
+    const krakowOnly = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ nearSalon: center.slug, q: 'krakow' })
+      .expect(200);
+    expect(krakowOnly.body.items.map((s: { slug: string }) => s.slug)).toEqual([krakow.slug]);
+
+    // No place on the map, a salon outside the catalogue or an unknown slug: nothing.
+    for (const slug of [nowhere.slug, closed.slug, 'no-such-salon']) {
+      const none = await ctx
+        .http()
+        .get('/v1/public/locations')
+        .query({ nearSalon: slug })
+        .expect(200);
+      expect(none.body).toMatchObject({ items: [], total: 0, pageCount: 0, openNowCount: 0 });
+    }
+  });
+
   it('rejects unsupported language filters and out-of-range pagination', async () => {
     await ctx.http().get('/v1/public/locations').query({ language: 'fr' }).expect(400);
     await ctx.http().get('/v1/public/locations').query({ page: 0 }).expect(400);

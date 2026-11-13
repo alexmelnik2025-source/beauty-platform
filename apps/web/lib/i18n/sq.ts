@@ -237,6 +237,8 @@ export const sq: Dict = {
     doneLeadApproval:
       "Salloni do ta konfirmojë vizitën — ora është mbajtur tashmë për ju. Do t'ju shkruajmë me email kur salloni ta pranojë.",
     directions: 'Si të arrini',
+    nearbyTitle: 'Sallone të tjera afër',
+    nearbyDistance: '{km} km larg',
     addToCalendar: 'Shto në kalendar',
     manage: 'Ndrysho ose anulo',
     salonClosed: 'Ky sallon nuk pranon rezervime online tani.',

@@ -57,6 +57,12 @@ export const publicDirectoryQuerySchema = z.strictObject({
    * order of `near` (the distance is still shown).
    */
   sort: z.enum(['rating']).optional(),
+  /**
+   * Task 400: "Inne salony w pobliżu" on a salon page — the salons nearest to this salon (by its
+   * slug), without it, with `distanceKm` from it. Nothing when it has no place on the map or is not
+   * in the catalogue. Used instead of `near`.
+   */
+  nearSalon: z.string().trim().min(1).max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(12),
 });

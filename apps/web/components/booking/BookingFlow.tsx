@@ -32,6 +32,7 @@ import { downloadIcs } from './ics';
 import { SalonGallery } from './SalonGallery';
 import { directionsLink, SalonProfile } from './SalonProfile';
 import { SalonReviews } from '../reviews/SalonReviews';
+import { NearbySalons } from './NearbySalons';
 import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import { WishPhotos } from '../wishes/WishPhotos';
@@ -601,6 +602,9 @@ export function BookingFlow({ slug }: { slug: string }) {
             }}
           />
         ) : null}
+
+        {/* Task 400: on the salon's own site (embed) the client stays with this salon. */}
+        {step === 'service' && !embed ? <NearbySalons slug={salon.slug} /> : null}
 
         {step === 'staff' && service ? (
           <section className="stack">

@@ -496,6 +496,8 @@ export const en: Dict = {
     doneLeadApproval:
       'The salon will confirm your visit — the time is already held for you. We will email you when the salon accepts it.',
     directions: 'Get directions',
+    nearbyTitle: 'Other salons nearby',
+    nearbyDistance: '{km} km away',
     addToCalendar: 'Add to calendar',
     manage: 'Change or cancel',
     salonClosed: 'This salon is not taking online bookings right now.',

@@ -48,6 +48,7 @@ function catalogueWhere(
   languages: Language[],
   specialty?: Kind,
   ids?: string[],
+  notId?: string,
 ): Prisma.LocationWhereInput {
   const and: Prisma.LocationWhereInput[] = [
     {
@@ -69,6 +70,8 @@ function catalogueWhere(
     and.push({ staffMembers: { some: { active: true, specialties: { has: specialty } } } });
   }
   if (ids) and.push({ id: { in: ids } });
+  // Task 400: the salon whose neighbours are listed is not one of them.
+  if (notId) and.push({ id: { not: notId } });
   return { AND: and };
 }
 
@@ -146,6 +149,14 @@ export class PublicDirectoryController {
     description:
       'Task 378: "Najlepiej oceniane" - the best average stars first, then more reviews; salons without stars last',
   })
+  @ApiQuery({
+    name: 'nearSalon',
+    required: false,
+    type: String,
+    example: 'gestalt-warszawa',
+    description:
+      'Task 400: "Inne salony w pobliżu" - the salons nearest to this salon (slug), without it; nothing when it has no place on the map',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, minimum: 1 })
   @ApiQuery({
     name: 'pageSize',
@@ -161,14 +172,27 @@ export class PublicDirectoryController {
     @Query(new ZodValidationPipe(publicDirectoryQuerySchema)) query: PublicDirectoryQuery,
   ): Promise<PublicDirectoryResponse> {
     this.limiter.hit(`public:directory:ip:${req.ip}`, 120, 60_000);
+    // Task 400: the neighbours of a salon — its place on the map is `near`, and it is left out.
+    const from = query.nearSalon
+      ? await this.prisma.location.findFirst({
+          where: { AND: [catalogueWhere([]), { slug: query.nearSalon }] },
+          select: { id: true, latitude: true, longitude: true },
+        })
+      : null;
+    const fromPlace =
+      from && from.latitude !== null && from.longitude !== null
+        ? { latitude: from.latitude, longitude: from.longitude }
+        : null;
+    if (query.nearSalon && !fromPlace) return this.nothing(query);
+    const notId = from?.id;
     const chosen = query.language ?? [];
     const found = query.q ? await this.matching(query.q) : undefined;
     // Task 365: the salons (found by `q`) open right now — for the chip's number and the filter.
-    const open = await this.openNow(catalogueWhere([], undefined, found));
+    const open = await this.openNow(catalogueWhere([], undefined, found, notId));
     const ids = query.openNow ? open.filter((id) => !found || found.includes(id)) : found;
-    const where = catalogueWhere(chosen, query.specialty, ids);
+    const where = catalogueWhere(chosen, query.specialty, ids, notId);
     // Task 180b: "W pobliżu" - the page is cut from all the salons found, nearest first.
-    const near = query.near;
+    const near = fromPlace ?? query.near;
     // Task 378: "Najlepiej oceniane" - the page is cut from all the salons found, best stars first.
     const pageIds =
       query.sort === 'rating'
@@ -218,12 +242,12 @@ export class PublicDirectoryController {
       }),
       // Task 160: the numbers on the language and kind-of-place chips.
       ...SPOKEN.map((code) =>
-        this.prisma.location.count({ where: catalogueWhere([code], query.specialty, ids) }),
+        this.prisma.location.count({ where: catalogueWhere([code], query.specialty, ids, notId) }),
       ),
       ...KINDS.map((kind) =>
-        this.prisma.location.count({ where: catalogueWhere(chosen, kind, ids) }),
+        this.prisma.location.count({ where: catalogueWhere(chosen, kind, ids, notId) }),
       ),
-      this.prisma.location.count({ where: catalogueWhere(chosen, query.specialty, open) }),
+      this.prisma.location.count({ where: catalogueWhere(chosen, query.specialty, open, notId) }),
     ]);
     const counts = rest as number[];
     if (pageIds) {
@@ -285,6 +309,23 @@ export class PublicDirectoryController {
       pageSize: query.pageSize,
       total,
       pageCount: Math.ceil(total / query.pageSize),
+    };
+  }
+
+  /** Task 400: an empty page — the salon asked about has no neighbours to show. */
+  private nothing(query: PublicDirectoryQuery): PublicDirectoryResponse {
+    return {
+      items: [],
+      languageCounts: Object.fromEntries(SPOKEN.map((code) => [code, 0])) as Record<
+        Language,
+        number
+      >,
+      specialtyCounts: Object.fromEntries(KINDS.map((kind) => [kind, 0])) as Record<Kind, number>,
+      openNowCount: 0,
+      page: query.page,
+      pageSize: query.pageSize,
+      total: 0,
+      pageCount: 0,
     };
   }
 

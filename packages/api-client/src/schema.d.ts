@@ -8242,6 +8242,8 @@ export interface operations {
             query?: {
                 pageSize?: number;
                 page?: number;
+                /** @description Task 400: "Inne salony w pobliżu" - the salons nearest to this salon (slug), without it; nothing when it has no place on the map */
+                nearSalon?: string;
                 /** @description Task 378: "Najlepiej oceniane" - the best average stars first, then more reviews; salons without stars last */
                 sort?: "rating";
                 /** @description Task 365: "Otwarte teraz" - only salons open right now by today's real hours, in their time zone */

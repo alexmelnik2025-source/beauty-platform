@@ -4159,6 +4159,16 @@
             }
           },
           {
+            "name": "nearSalon",
+            "required": false,
+            "in": "query",
+            "description": "Task 400: \"Inne salony w pobliżu\" - the salons nearest to this salon (slug), without it; nothing when it has no place on the map",
+            "schema": {
+              "example": "gestalt-warszawa",
+              "type": "string"
+            }
+          },
+          {
             "name": "sort",
             "required": false,
             "in": "query",

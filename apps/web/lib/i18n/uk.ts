@@ -497,6 +497,8 @@ export const uk: Dict = {
     doneLeadApproval:
       'Салон підтвердить візит — час уже заброньовано для вас. Ми напишемо на e-mail, коли салон його прийме.',
     directions: 'Як дістатися',
+    nearbyTitle: 'Інші салони поблизу',
+    nearbyDistance: '{km} км звідси',
     addToCalendar: 'Додати в календар',
     manage: 'Змінити або скасувати запис',
     salonClosed: 'Цей салон зараз не приймає онлайн-записи.',

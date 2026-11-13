@@ -497,6 +497,8 @@ export const pl = {
     doneLeadApproval:
       'Salon potwierdzi wizytę — termin jest już dla Ciebie zarezerwowany. Napiszemy e-mailem, gdy salon ją przyjmie.',
     directions: 'Jak dojechać',
+    nearbyTitle: 'Inne salony w pobliżu',
+    nearbyDistance: '{km} km stąd',
     addToCalendar: 'Dodaj do kalendarza',
     manage: 'Zmień lub odwołaj wizytę',
     salonClosed: 'Ten salon nie przyjmuje teraz rezerwacji online.',
