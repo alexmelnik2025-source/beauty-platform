@@ -779,6 +779,7 @@ export class CustomersService {
         usualPayment: null,
         ratings: null,
       },
+      products: { purchases: [], totals: [] },
     };
   }
 
