@@ -17333,6 +17333,88 @@
             ],
             "additionalProperties": false,
             "description": "Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)"
+          },
+          "products": {
+            "type": "object",
+            "properties": {
+              "purchases": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string",
+                      "description": "Start of the visit the product was sold at"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The product name at the time of the sale"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Quantity × the price at the time of the sale"
+                    },
+                    "currency": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "appointmentId",
+                    "start",
+                    "name",
+                    "quantity",
+                    "totalGrosze",
+                    "currency"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Latest visit first, at most 50"
+              },
+              "totals": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amountGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "amountGrosze",
+                    "quantity"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Everything the client bought, per currency (no limit)"
+              }
+            },
+            "required": [
+              "purchases",
+              "totals"
+            ],
+            "additionalProperties": false,
+            "description": "Task 424: \"Kupione produkty\" — products the client bought at the visits the caller may see (the same visits as `visits`)"
           }
         },
         "required": [
@@ -17349,7 +17431,8 @@
           "createdAt",
           "marketingConsent",
           "visits",
-          "summary"
+          "summary",
+          "products"
         ],
         "additionalProperties": false
       },

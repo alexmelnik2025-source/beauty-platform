@@ -322,6 +322,87 @@ describe('client summary on the card (task 98)', () => {
     expect((await card(kasia.auth)).body.summary.ratings).toEqual({ reviews: 1, average: 5 });
   });
 
+  it('"Kupione produkty": what the client bought, as far as the caller sees the visits (task 424)', async () => {
+    expect((await card(owner.auth)).body.products).toEqual({ purchases: [], totals: [] });
+    const product = async (name: string, priceGrosze: number) =>
+      (
+        await ctx
+          .http()
+          .post(`${base}/products`)
+          .set(owner.auth)
+          .send({ name, priceGrosze })
+          .expect(201)
+      ).body.id as string;
+    const pomade = await product('Pomada', 4500);
+    const shampoo = await product('Szampon', 3000);
+    const atKasia = await pastVisit(kasiaId, 30);
+    const atTomek = await pastVisit(tomekId, 5);
+    const sell = (visitId: string, productId: string, quantity = 1) =>
+      ctx
+        .http()
+        .post(`${base}/appointments/${visitId}/products`)
+        .set(owner.auth)
+        .send({ productId, quantity })
+        .expect(201);
+    await sell(atKasia, pomade, 2);
+    await sell(atTomek, shampoo);
+    await sell(atTomek, pomade);
+    // A later price change keeps what the client paid.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade}`)
+      .set(owner.auth)
+      .send({ priceGrosze: 9900 })
+      .expect(200);
+    // Another client's purchase does not count.
+    const keep = customerId;
+    customerId = (
+      await ctx
+        .http()
+        .post(customersBase)
+        .set(owner.auth)
+        .send({ name: 'Ewa', phone: '+48600000003' })
+        .expect(201)
+    ).body.id as string;
+    await sell(await pastVisit(kasiaId, 2), shampoo, 3);
+    customerId = keep;
+
+    const { body } = await card(owner.auth);
+    expect(registeredResponseSchema('CustomerDetail').safeParse(body).error?.issues ?? []).toEqual(
+      [],
+    );
+    // Latest visit first.
+    expect(body.products).toEqual({
+      purchases: [
+        expect.objectContaining({
+          appointmentId: atTomek,
+          name: 'Szampon',
+          quantity: 1,
+          totalGrosze: 3000,
+          currency: 'PLN',
+        }),
+        expect.objectContaining({ appointmentId: atTomek, name: 'Pomada', totalGrosze: 4500 }),
+        expect.objectContaining({
+          appointmentId: atKasia,
+          name: 'Pomada',
+          quantity: 2,
+          totalGrosze: 9000,
+        }),
+      ],
+      totals: [{ currency: 'PLN', amountGrosze: 16500, quantity: 4 }],
+    });
+    expect((await card(manager.auth)).body.products.totals).toEqual(body.products.totals);
+    // A specialist without the client history sees only what was bought at her own visits.
+    await ctx.prisma.membership.updateMany({
+      where: { userId: kasia.userId },
+      data: { permissionOverrides: { viewClientHistory: false } },
+    });
+    expect((await card(kasia.auth)).body.products).toEqual({
+      purchases: [expect.objectContaining({ appointmentId: atKasia, quantity: 2 })],
+      totals: [{ currency: 'PLN', amountGrosze: 9000, quantity: 2 }],
+    });
+  });
+
   it('salons in other currencies are summed separately', async () => {
     const id = await pastVisit(kasiaId, 10);
     const other = await ctx.prisma.location.create({

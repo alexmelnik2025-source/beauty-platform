@@ -797,6 +797,9 @@ function ClientSheet({
           )}
         </section>
       ) : null}
+      {client && client.products.purchases.length > 0 ? (
+        <ClientProducts products={client.products} tag={tag} />
+      ) : null}
       {client ? <ClientLoyalty orgId={orgId} customerId={client.id} /> : null}
       {client && session.role !== 'staff' ? (
         <ClientGuard orgId={orgId} customerId={client.id} />
@@ -1012,6 +1015,46 @@ function ClientSummary({ summary, tag }: { summary: CustomerDetail['summary']; t
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+/**
+ * Task 424: "Kupione produkty" — what the client bought at the visits the user may see (name and
+ * price as at the sale), latest first, with what it came to in total.
+ */
+function ClientProducts({ products, tag }: { products: CustomerDetail['products']; tag: string }) {
+  const { t } = useI18n();
+  const total = products.totals
+    .map((p) => formatPrice(p.amountGrosze, p.currency, tag))
+    .join(' + ');
+  return (
+    <section className="section" data-testid="client-products">
+      <h3>{fill(t.clients.products.title, { amount: total })}</h3>
+      <ul className="history">
+        {products.purchases.map((p, i) => (
+          <li key={`${p.appointmentId}-${i}`}>
+            <span>
+              {p.quantity > 1
+                ? fill(t.clients.products.row, { name: p.name, n: String(p.quantity) })
+                : p.name}
+              <span className="muted"> · {formatPrice(p.totalGrosze, p.currency, tag)}</span>
+            </span>
+            <span className="muted">
+              {new Intl.DateTimeFormat(tag, {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }).format(new Date(p.start))}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="small muted">
+        {fill(t.clients.products.hint, {
+          n: String(products.totals.reduce((sum, p) => sum + p.quantity, 0)),
+        })}
+      </p>
     </section>
   );
 }

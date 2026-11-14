@@ -447,7 +447,7 @@ export class CustomersService {
       ...(m.role === 'owner' ? {} : { locationId: { in: m.locationIds } }),
       ...(ownStaff ? { staffId: { in: ownStaff } } : {}),
     };
-    const [consent, visits, summary] = await Promise.all([
+    const [consent, visits, summary, products] = await Promise.all([
       this.prisma.consentRecord.findFirst({
         where: { customerId, type: 'marketing' },
         orderBy: { createdAt: 'desc' },
@@ -459,6 +459,7 @@ export class CustomersService {
         take: 100,
       }),
       this.summary(where, m.role !== 'staff'),
+      this.products(where),
     ]);
     return {
       ...toCustomer(customer, m),
@@ -472,6 +473,50 @@ export class CustomersService {
         staffName: a.staff.displayName,
       })),
       summary,
+      products,
+    };
+  }
+
+  /**
+   * Task 424: "Kupione produkty" — what the client bought at the visits the caller may see
+   * (task 394: name and price as at the time of the sale), latest visit first, with the totals.
+   */
+  private async products(
+    where: Prisma.AppointmentWhereInput,
+  ): Promise<CustomerDetailResponse['products']> {
+    const sales = await this.prisma.productSale.findMany({
+      where: { appointment: where },
+      select: {
+        appointmentId: true,
+        name: true,
+        quantity: true,
+        unitPriceGrosze: true,
+        appointment: { select: { startAt: true } },
+        location: { select: { currency: true } },
+      },
+      orderBy: [{ appointment: { startAt: 'desc' } }, { createdAt: 'asc' }, { id: 'asc' }],
+      take: 2000,
+    });
+    const totals = new Map<string, { amountGrosze: number; quantity: number }>();
+    for (const s of sales) {
+      const sum = totals.get(s.location.currency) ?? { amountGrosze: 0, quantity: 0 };
+      totals.set(s.location.currency, {
+        amountGrosze: sum.amountGrosze + s.quantity * s.unitPriceGrosze,
+        quantity: sum.quantity + s.quantity,
+      });
+    }
+    return {
+      purchases: sales.slice(0, 50).map((s) => ({
+        appointmentId: s.appointmentId,
+        start: s.appointment.startAt.toISOString(),
+        name: s.name,
+        quantity: s.quantity,
+        totalGrosze: s.quantity * s.unitPriceGrosze,
+        currency: s.location.currency,
+      })),
+      totals: [...totals]
+        .map(([currency, sum]) => ({ currency, ...sum }))
+        .sort((a, b) => b.amountGrosze - a.amountGrosze),
     };
   }
 

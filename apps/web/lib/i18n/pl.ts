@@ -1142,6 +1142,11 @@ export const pl = {
       next: 'Najbliższa zaplanowana wizyta',
       paid: 'Zapłacili najwięcej',
     },
+    products: {
+      title: 'Kupione produkty: {amount}',
+      row: '{name} × {n}',
+      hint: 'Wszystkie zakupy klienta przy wizytach: {n} szt. Cena z dnia sprzedaży; nie wliczamy ich do przychodu z wizyt.',
+    },
     summary: {
       completed: 'Odbyte wizyty',
       noShow: 'Nieobecności',

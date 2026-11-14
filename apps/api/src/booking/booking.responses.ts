@@ -328,6 +328,36 @@ export const customerDetailSchema = responseSchema(
       .describe(
         'Task 98: counted over all of the visits the caller may see (the same as `visits`, without the limit of 100)',
       ),
+    products: z
+      .strictObject({
+        purchases: z
+          .array(
+            z.strictObject({
+              appointmentId: z.string(),
+              start: z.string().describe('Start of the visit the product was sold at'),
+              name: z.string().describe('The product name at the time of the sale'),
+              quantity: z.number().int(),
+              totalGrosze: z
+                .number()
+                .int()
+                .describe('Quantity × the price at the time of the sale'),
+              currency: z.string(),
+            }),
+          )
+          .describe('Latest visit first, at most 50'),
+        totals: z
+          .array(
+            z.strictObject({
+              currency: z.string(),
+              amountGrosze: z.number().int(),
+              quantity: z.number().int(),
+            }),
+          )
+          .describe('Everything the client bought, per currency (no limit)'),
+      })
+      .describe(
+        'Task 424: "Kupione produkty" — products the client bought at the visits the caller may see (the same visits as `visits`)',
+      ),
   }),
 );
 export type CustomerDetailResponse = z.infer<typeof customerDetailSchema>;

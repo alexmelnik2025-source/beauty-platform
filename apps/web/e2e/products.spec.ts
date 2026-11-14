@@ -18,6 +18,7 @@ import { serveApp } from './mobile-app';
  * Task 396: the same in the business app — a tap on a product in the visit card (396) and
  * "Sprzedaż produktów" in its report (396-a); the list of products in "Usługi" (task 397, 397).
  * Task 422–423: "CSV produktów" — every sale of the period for the accountant (422), in the app too.
+ * Task 424: "Kupione produkty" in the client card of the cabinet (424).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -193,6 +194,18 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(productsFile).toContain('Razem;;;;2;;98,00');
   await page.getByRole('button', { name: 'CSV produktów' }).scrollIntoViewIfNeeded();
   await shot(page, '422-report-products-csv');
+
+  // The client card (task 424): what Jan bought, with the total.
+  await page.goto('/pl/app/clients');
+  await page.locator('.list .list-row').filter({ hasText: 'Jan Kowalski' }).click();
+  const bought = page.getByRole('dialog').getByTestId('client-products');
+  await bought.scrollIntoViewIfNeeded();
+  await expect(bought.getByRole('heading')).toHaveText(/Kupione produkty: 98,00\s*zł/);
+  await expect(bought).toContainText(/Pomada matowa × 2 · 98,00\s*zł/);
+  await expect(bought).not.toContainText('Szampon');
+  await expect(bought).toContainText('Wszystkie zakupy klienta przy wizytach: 2 szt.');
+  await shot(page, '424-client-products');
+  await page.keyboard.press('Escape');
   await context.close();
 
   // The business app (its web preview): one more shampoo in the visit card, then the report.

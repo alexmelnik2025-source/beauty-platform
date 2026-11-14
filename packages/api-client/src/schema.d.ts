@@ -4497,6 +4497,27 @@ export interface components {
                     average: number;
                 } | null;
             };
+            /** @description Task 424: "Kupione produkty" — products the client bought at the visits the caller may see (the same visits as `visits`) */
+            products: {
+                /** @description Latest visit first, at most 50 */
+                purchases: {
+                    appointmentId: string;
+                    /** @description Start of the visit the product was sold at */
+                    start: string;
+                    /** @description The product name at the time of the sale */
+                    name: string;
+                    quantity: number;
+                    /** @description Quantity × the price at the time of the sale */
+                    totalGrosze: number;
+                    currency: string;
+                }[];
+                /** @description Everything the client bought, per currency (no limit) */
+                totals: {
+                    currency: string;
+                    amountGrosze: number;
+                    quantity: number;
+                }[];
+            };
         };
         CustomerExport: {
             exportedAt: string;

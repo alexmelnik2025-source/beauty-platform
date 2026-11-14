@@ -1144,6 +1144,11 @@ export const en: Dict = {
       next: 'Nearest booked visit',
       paid: 'Paid the most',
     },
+    products: {
+      title: 'Products bought: {amount}',
+      row: '{name} × {n}',
+      hint: 'Everything the client bought at visits: {n} pcs. Prices as on the day of the sale; not part of the visit revenue.',
+    },
     summary: {
       completed: 'Visits that took place',
       noShow: 'No-shows',
