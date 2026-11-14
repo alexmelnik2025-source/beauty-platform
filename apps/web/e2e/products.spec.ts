@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
@@ -16,6 +17,7 @@ import { serveApp } from './mobile-app';
  * "Sprzedaż produktów" in "Raporty", apart from the visit revenue (395-b).
  * Task 396: the same in the business app — a tap on a product in the visit card (396) and
  * "Sprzedaż produktów" in its report (396-a); the list of products in "Usługi" (task 397, 397).
+ * Task 422–423: "CSV produktów" — every sale of the period for the accountant (422), in the app too.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -178,6 +180,19 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(report).toContainText('Pomada matowa');
   await expect(report).toContainText(/2 szt\. · 98,00\s*zł/);
   await shot(page, '395-b-report-products');
+  // "CSV produktów" (task 422): every sale of the period — date, specialist, quantity, price.
+  const [productsCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'CSV produktów' }).click(),
+  ]);
+  expect(productsCsv.suggestedFilename()).toMatch(/^products-.+\.csv$/);
+  const productsFile = readFileSync((await productsCsv.path())!, 'utf8');
+  expect(productsFile).toContain('Data;Godzina;Specjalista;Produkt;Ilość;Cena;Wartość');
+  expect(productsFile).toMatch(/;Pomada matowa;2;49,00;98,00\r\n/);
+  expect(productsFile).not.toContain('Szampon');
+  expect(productsFile).toContain('Razem;;;;2;;98,00');
+  await page.getByRole('button', { name: 'CSV produktów' }).scrollIntoViewIfNeeded();
+  await shot(page, '422-report-products-csv');
   await context.close();
 
   // The business app (its web preview): one more shampoo in the visit card, then the report.
@@ -229,6 +244,14 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appReport).toContainText(/Sprzedaż produktów: 128,50\s*zł/);
     await expect(appReport).toContainText(/1 szt\. · 30,50\s*zł/);
     await shot(app, '396-a-business-app-report-products');
+    // "CSV produktów" in the app too (task 423).
+    const [appCsv] = await Promise.all([
+      app.waitForEvent('download'),
+      appReport.getByRole('button', { name: 'CSV produktów' }).click(),
+    ]);
+    expect(appCsv.suggestedFilename()).toMatch(/^products-.+\.csv$/);
+    const appFile = readFileSync((await appCsv.path())!, 'utf8');
+    expect(appFile).toContain('Razem;;;;3;;128,50');
   } finally {
     businessApp.server.close();
   }

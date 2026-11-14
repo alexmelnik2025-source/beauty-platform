@@ -1502,6 +1502,9 @@ export const pl = {
     payoutCsv: 'CSV wypłat',
     payoutCsvHint:
       'Dla księgowej: każdy specjalista z wizytą w tym okresie — wizyty, przychód, prowizja, napiwki i razem do wypłaty.',
+    productsCsv: 'CSV produktów',
+    productsCsvHint:
+      'Dla księgowej: każdy produkt sprzedany przy wizytach w tym okresie — data, specjalista, ilość, cena i wartość.',
     tillCsv: 'CSV kasy',
     tillCsvHint:
       'Wpłaty, wypłaty i zamknięcia kasy z tego okresu — dziennik kasowy dla księgowej (Excel)',

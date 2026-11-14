@@ -3134,6 +3134,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/products-csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "CSV sprzedaży produktów": every product sold at the visits of a period
+         * @description Task 422. Same access as the report (a specialist with own results: only their own visits). One line for every sale — date, time, specialist, product, quantity, price, total — then a total. Same file format as visits-csv; no client data.
+         */
+        get: operations["ReportsController_productsCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/reports/till-csv": {
         parameters: {
             query?: never;
@@ -12144,6 +12164,32 @@ export interface operations {
         };
     };
     ReportsController_payoutCsv: {
+        parameters: {
+            query: {
+                locale?: "pl" | "uk" | "ru" | "en";
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    ReportsController_productsCsv: {
         parameters: {
             query: {
                 locale?: "pl" | "uk" | "ru" | "en";

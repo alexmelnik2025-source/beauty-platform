@@ -1697,6 +1697,20 @@ export class BusinessApi {
   }
 
   /**
+   * Task 423: "CSV produktów" — every product sold at the visits of the period: date,
+   * specialist, product, quantity, price and total. Same access as the report.
+   */
+  productsCsv(
+    orgId: string,
+    locationId: string,
+    from: string,
+    to: string,
+    locale: Locale,
+  ): Promise<CsvFile> {
+    return this.reportCsv('products', orgId, locationId, from, to, locale);
+  }
+
+  /**
    * Task 269: every client of the network as a CSV file — the same file as "Pobierz CSV" in the
    * cabinet's client list (contacts, consent, visits, no-shows, the next visit, what they paid).
    * Owners only (the server checks it); every download is written to the audit log.
@@ -1713,7 +1727,7 @@ export class BusinessApi {
   }
 
   private reportCsv(
-    file: 'visits' | 'till' | 'payout',
+    file: 'visits' | 'till' | 'payout' | 'products',
     orgId: string,
     locationId: string,
     from: string,

@@ -1460,6 +1460,82 @@ describe('salon report', () => {
     await ctx.http().get(`${base}/products`).set(other.auth).expect(404);
   });
 
+  it('"CSV sprzedaży produktów": every product sold in the period, own visits for a specialist (task 422)', async () => {
+    const product = async (name: string, priceGrosze: number) =>
+      (
+        await ctx
+          .http()
+          .post(`${base}/products`)
+          .set(owner.auth)
+          .send({ name, priceGrosze })
+          .expect(201)
+      ).body as { id: string };
+    const pomade = await product('Pomada; mocna', 4500);
+    const shampoo = await product('=Szampon', 3000);
+    const d1 = addDays(today, -3);
+    const d2 = addDays(today, -1);
+    const kasiaVisit = await visit({ date: d2, status: 'completed', paid: true });
+    const olaVisit = await visit({ date: d1, staffId: olaId, status: 'completed', paid: true });
+    const sell = (id: string, productId: string, quantity = 1) =>
+      ctx
+        .http()
+        .post(`${base}/appointments/${id}/products`)
+        .set(owner.auth)
+        .send({ productId, quantity })
+        .expect(201);
+    await sell(kasiaVisit, pomade.id, 2);
+    await sell(kasiaVisit, shampoo.id);
+    await sell(olaVisit, shampoo.id);
+    const csv = (q: object = {}, auth = owner.auth) =>
+      ctx
+        .http()
+        .get(`${base}/reports/products-csv`)
+        .query({ from, to: today, ...q })
+        .set(auth)
+        .buffer(true)
+        .parse((res, done) => {
+          let text = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk: string) => (text += chunk));
+          res.on('end', () => done(null, text));
+        });
+    const res = await csv().expect(200);
+    expect(res.headers['content-disposition']).toMatch(
+      new RegExp(`^attachment; filename="products-.+-${from}-${today}\\.csv"$`),
+    );
+    const text = res.body as string;
+    expect(text.startsWith('\uFEFF')).toBe(true);
+    const lines = text.slice(1).trimEnd().split('\r\n');
+    // Oldest visit first; a ";" is quoted and a leading "=" cannot run as a formula.
+    expect(lines).toEqual([
+      'Data;Godzina;Specjalista;Produkt;Ilość;Cena;Wartość',
+      expect.stringMatching(new RegExp(`^${d1};\\d\\d:\\d\\d;Ola;'=Szampon;1;30,00;30,00$`)),
+      expect.stringMatching(
+        new RegExp(`^${d2};\\d\\d:\\d\\d;Kasia;"Pomada; mocna";2;45,00;90,00$`),
+      ),
+      expect.stringMatching(new RegExp(`^${d2};\\d\\d:\\d\\d;Kasia;'=Szampon;1;30,00;30,00$`)),
+      'Razem;;;;4;;150,00',
+    ]);
+    const english = (await csv({ locale: 'en' }).expect(200)).body as string;
+    expect(english).toContain('Total;;;;4;;150.00');
+
+    // A specialist: only with own results, and then only her own visits.
+    await csv({}, kasiaUser.auth).expect(403);
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = (await csv({}, kasiaUser.auth).expect(200)).body as string;
+    expect(own).not.toContain('Ola');
+    expect(own).toContain('Razem;;;;3;;120,00');
+    await csv({ from: today, to: from }).expect(400);
+
+    // Another salon reaches nothing.
+    const other = await signUp(ctx, 'other@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await csv({}, other.auth).expect(404);
+  });
+
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {
     const d1 = addDays(today, -3);
     const first = await visit({

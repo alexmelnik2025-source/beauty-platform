@@ -150,6 +150,37 @@ export class ReportsController {
     res.send(csv);
   }
 
+  @Get('products-csv')
+  @ApiOperation({
+    summary: '"CSV sprzedaży produktów": every product sold at the visits of a period',
+    description:
+      'Task 422. Same access as the report (a specialist with own results: only their own visits). One line for every sale — date, time, specialist, product, quantity, price, total — then a total. Same file format as visits-csv; no client data.',
+  })
+  @ApiQuery({ name: 'from', example: '2026-11-01' })
+  @ApiQuery({ name: 'to', example: '2026-11-30' })
+  @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async productsCsv(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', locationIdPipe) locationId: string,
+    @Query(new ZodValidationPipe(visitsCsvQuerySchema)) query: VisitsCsvQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, fileName } = await this.reports.productsCsv(
+      m,
+      auth.userId,
+      locationId,
+      query,
+      query.locale,
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
+  }
+
   @Get('till-csv')
   @ApiOperation({
     summary: 'The till of a period as a CSV cash journal for the accountant',

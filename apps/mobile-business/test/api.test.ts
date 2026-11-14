@@ -489,6 +489,12 @@ describe('visit photos (task 80b)', () => {
       'https://api.test/v1/organizations/o1/locations/l1/reports/payout-csv?from=2026-11-01&to=2026-11-30&locale=pl',
     );
 
+    // Task 423: every product sold in the period.
+    await api.productsCsv('o1', 'l1', '2026-11-01', '2026-11-30', 'ru');
+    expect(seen[seen.length - 1]?.url).toBe(
+      'https://api.test/v1/organizations/o1/locations/l1/reports/products-csv?from=2026-11-01&to=2026-11-30&locale=ru',
+    );
+
     // Task 269: all clients of the network (owners) — the cabinet's file, in the app's language.
     const clients = await api.clientsCsv('o1', 'uk');
     expect(clients.csv.startsWith('\uFEFF')).toBe(true);

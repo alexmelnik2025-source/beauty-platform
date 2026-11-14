@@ -19,6 +19,7 @@ import { occupancy, occupancyPercent } from './occupancy';
 import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
 import { payoutCsv } from './payout-csv';
+import { productsCsv } from './products-csv';
 import { visitsCsv, type CsvLocale } from './visits-csv';
 
 /** Task 227: a payment method, or "unknown" when the staff did not say. */
@@ -1101,6 +1102,56 @@ export class ReportsService {
       locale,
     );
     return { csv, fileName: `payout-${location.slug}-${query.from}-${query.to}.csv` };
+  }
+
+  /**
+   * Task 422: every product sold at the visits of the period as CSV (same access as the report —
+   * a specialist with own results gets only their own visits), oldest visit first.
+   */
+  async productsCsv(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    query: ReportQuery,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const { location, staffIds, rangeStart, rangeEnd } = await this.scope(
+      m,
+      userId,
+      locationId,
+      query,
+    );
+    const sales = await this.prisma.productSale.findMany({
+      where: {
+        locationId,
+        appointment: {
+          startAt: { gte: rangeStart, lt: rangeEnd },
+          ...(staffIds ? { staffId: { in: staffIds } } : {}),
+        },
+      },
+      select: {
+        name: true,
+        quantity: true,
+        unitPriceGrosze: true,
+        appointment: { select: { startAt: true, staff: { select: { displayName: true } } } },
+      },
+      orderBy: [{ appointment: { startAt: 'asc' } }, { createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const csv = productsCsv(
+      sales.map((s) => {
+        const local = instantToLocal(s.appointment.startAt.getTime(), location.timezone);
+        return {
+          date: local.date,
+          time: local.time,
+          staff: s.appointment.staff.displayName,
+          product: s.name,
+          quantity: s.quantity,
+          unitPriceGrosze: s.unitPriceGrosze,
+        };
+      }),
+      locale,
+    );
+    return { csv, fileName: `products-${location.slug}-${query.from}-${query.to}.csv` };
   }
 
   /** Task 30: every visit of the period as CSV (same access as the report), oldest first. */

@@ -112,13 +112,20 @@ export function ReportsScreen(props: {
   // Task 220: the accountant's CSV of the period — saved in a browser, shared on a phone.
   // Task 238: "till" — the till's cash journal (owners and managers).
   // Task 393: "payout" — commission, tips and the total by specialist (owners and managers).
-  const downloadCsv = async (kind: 'visits' | 'till' | 'payout' = 'visits') => {
+  // Task 423: "products" — every product sold at the visits of the period (same as the report).
+  const downloadCsv = async (kind: 'visits' | 'till' | 'payout' | 'products' = 'visits') => {
     if (csvBusy) return;
     setCsvBusy(true);
     setCsvInfo('');
     try {
       const file = await (
-        kind === 'till' ? api.tillCsv : kind === 'payout' ? api.payoutCsv : api.visitsCsv
+        kind === 'till'
+          ? api.tillCsv
+          : kind === 'payout'
+            ? api.payoutCsv
+            : kind === 'products'
+              ? api.productsCsv
+              : api.visitsCsv
       ).call(api, salon.orgId, salon.locationId, range.from, range.to, props.locale);
       const result = await shareCsv(file, csvTools());
       setCsvInfo(result === 'failed' ? r.csvFailed : '');
@@ -454,6 +461,12 @@ export function ReportsScreen(props: {
                 </View>
               ))}
               <Text style={styles.muted}>{r.productsHint}</Text>
+              <Button
+                kind="secondary"
+                label={csvBusy ? t.loading : r.productsCsv}
+                onPress={() => void downloadCsv('products')}
+              />
+              <Text style={styles.small}>{r.productsCsvHint}</Text>
             </View>
           ) : null}
           {shown.discounts.totalGrosze > 0 ? (

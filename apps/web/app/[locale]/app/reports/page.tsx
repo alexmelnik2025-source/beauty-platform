@@ -109,8 +109,9 @@ export default function ReportsPage() {
    * Task 30: every visit of the period as a CSV file the accountant opens in Excel.
    * Task 238: "till" — the cash journal of the period (owners and managers).
    * Task 392: "payout" — what each specialist earned: commission, tips, total (same people).
+   * Task 422: "products" — every product sold at the visits of the period (same access as visits).
    */
-  async function downloadCsv(file: 'visits' | 'till' | 'payout' = 'visits') {
+  async function downloadCsv(file: 'visits' | 'till' | 'payout' | 'products' = 'visits') {
     setDownloading(true);
     setError('');
     try {
@@ -222,6 +223,18 @@ export default function ReportsPage() {
               onClick={() => void downloadCsv('payout')}
             >
               {t.reports.payoutCsv}
+            </button>
+          ) : null}
+          {report && report.products.quantity > 0 ? (
+            // Task 422: only when something was sold in the period.
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              title={t.reports.productsCsvHint}
+              disabled={invalid || downloading}
+              onClick={() => void downloadCsv('products')}
+            >
+              {t.reports.productsCsv}
             </button>
           ) : null}
         </div>

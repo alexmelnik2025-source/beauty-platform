@@ -731,6 +731,9 @@ export const en: Dictionary = {
     payoutCsv: 'Payout CSV',
     payoutCsvHint:
       'Every specialist with a visit in the period — revenue, commission, tips and the total to pay out — for the accountant.',
+    productsCsv: 'Products CSV',
+    productsCsvHint:
+      'Every product sold at the visits of this period — date, specialist, quantity and total — for the accountant.',
     tillCsv: 'Till CSV',
     tillCsvHint:
       'Cash put in, taken out and till closes of this period — a cash journal for the accountant.',
