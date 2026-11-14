@@ -68,5 +68,5 @@ export function productsCsv(lines: ProductsCsvLine[], locale: CsvLocale): string
     );
   }
   out.push([cell(t.total), '', '', '', String(quantity), '', amount(total, locale)].join(';'));
-  return `﻿${out.join('\r\n')}\r\n`;
+  return `\uFEFF${out.join('\r\n')}\r\n`;
 }
