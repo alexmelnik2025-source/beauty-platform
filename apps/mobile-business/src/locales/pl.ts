@@ -360,6 +360,10 @@ export const pl = {
     ratings: 'Oceny: ★ {stars} · opinie: {n}',
     upcoming: 'Najbliższe wizyty',
     history: 'Historia wizyt',
+    productsTitle: 'Kupione produkty: {amount}',
+    productsRow: '{name} × {n}',
+    productsHint:
+      'Wszystkie zakupy klienta przy wizytach: {n} szt. Cena z dnia sprzedaży; nie wliczamy ich do przychodu z wizyt.',
     noVisits: 'Brak wizyt w tym salonie.',
     ownOnly: 'Widzisz tylko swoje wizyty z tym klientem.',
     bonuses: 'Program lojalnościowy',

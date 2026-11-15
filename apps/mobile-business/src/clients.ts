@@ -154,3 +154,24 @@ export function parseBirthday(day: string, month: string): string | null | undef
   if (mn < 1 || mn > 12 || dn < 1 || dn > DAYS_IN_MONTH[mn - 1]!) return undefined;
   return `${String(mn).padStart(2, '0')}-${String(dn).padStart(2, '0')}`;
 }
+
+/**
+ * Task 425: "Kupione produkty" — the total the client spent on products ("150,00 zł + 20,00 €")
+ * and how many pieces they bought, from the server's per-currency totals.
+ */
+export function productsTotal(
+  products: CustomerDetail['products'],
+  locale: DayLocale,
+): { amount: string; pieces: number } {
+  return {
+    amount: products.totals
+      .map((p) =>
+        new Intl.NumberFormat(INTL_LOCALE[locale], {
+          style: 'currency',
+          currency: p.currency,
+        }).format(p.amountGrosze / 100),
+      )
+      .join(' + '),
+    pieces: products.totals.reduce((sum, p) => sum + p.quantity, 0),
+  };
+}

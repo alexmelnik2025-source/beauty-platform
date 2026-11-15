@@ -25,6 +25,7 @@ import {
   dateIn,
   addTag,
   parseTags,
+  productsTotal,
   splitVisits,
   suggestTags,
   visitWhen,
@@ -789,6 +790,36 @@ export function ClientScreen(props: {
       ) : (
         <Card>{past.map(visitRow)}</Card>
       )}
+      {/* Task 425: what the client bought at the visits the user may see (as 424 in the cabinet). */}
+      {client.products.purchases.length > 0 ? (
+        <>
+          <Text style={styles.section} testID="client-products">
+            {fill(c.productsTitle, { amount: productsTotal(client.products, props.locale).amount })}
+          </Text>
+          <Card>
+            {client.products.purchases.map((p, i) => (
+              <View key={`${p.appointmentId}-${i}`} style={styles.visit}>
+                <View style={styles.visitTop}>
+                  <Text style={styles.value}>
+                    {p.quantity > 1
+                      ? fill(c.productsRow, { name: p.name, n: String(p.quantity) })
+                      : p.name}
+                  </Text>
+                  <Text style={styles.muted}>
+                    {formatPrice(p.totalGrosze, p.currency, props.locale)}
+                  </Text>
+                </View>
+                <Text style={styles.muted}>{visitWhen(p.start, props.timeZone, props.locale)}</Text>
+              </View>
+            ))}
+          </Card>
+          <Text style={styles.small}>
+            {fill(c.productsHint, {
+              n: String(productsTotal(client.products, props.locale).pieces),
+            })}
+          </Text>
+        </>
+      ) : null}
     </ScrollView>
   );
 }

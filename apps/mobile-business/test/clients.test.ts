@@ -16,6 +16,7 @@ import {
   splitVisits,
   suggestTags,
   addTag,
+  productsTotal,
   visitWhen,
 } from '../src/clients';
 
@@ -237,5 +238,28 @@ describe('bonus part of the client card', () => {
       now,
     );
     expect(summary).toMatchObject({ mode: 'stamps', balance: 0, tier: 'Standard' });
+  });
+});
+
+describe('products the client bought (task 425)', () => {
+  const plain = (s: string) => s.replace(/\s/g, ' ');
+
+  it('adds up the totals of every currency and the pieces', () => {
+    const r = productsTotal(
+      {
+        purchases: [],
+        totals: [
+          { currency: 'PLN', amountGrosze: 15000, quantity: 2 },
+          { currency: 'EUR', amountGrosze: 2000, quantity: 1 },
+        ],
+      },
+      'pl',
+    );
+    expect(plain(r.amount)).toBe('150,00 zł + 20,00 €');
+    expect(r.pieces).toBe(3);
+  });
+
+  it('is empty when the client bought nothing', () => {
+    expect(productsTotal({ purchases: [], totals: [] }, 'en')).toEqual({ amount: '', pieces: 0 });
   });
 });

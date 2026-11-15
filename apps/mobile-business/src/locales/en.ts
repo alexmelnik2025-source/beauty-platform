@@ -364,6 +364,10 @@ export const en: Dictionary = {
     ratings: 'Ratings: ★ {stars} · reviews: {n}',
     upcoming: 'Upcoming visits',
     history: 'Visit history',
+    productsTitle: 'Products bought: {amount}',
+    productsRow: '{name} × {n}',
+    productsHint:
+      'Everything the client bought at visits: {n} pcs. Price as on the day of sale; not counted in visit revenue.',
     noVisits: 'No visits in this salon.',
     ownOnly: 'You see only your own visits with this client.',
     bonuses: 'Loyalty programme',
