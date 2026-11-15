@@ -1191,6 +1191,7 @@ export class ReportsService {
         customer: { select: { name: true } },
         staff: { select: { displayName: true, commissionPermille: true } },
         service: { select: { name: true, category: { select: { name: true } } } },
+        productSales: { select: { quantity: true, unitPriceGrosze: true } },
       },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
     });
@@ -1224,6 +1225,10 @@ export class ReportsService {
             a.paidAt === null
               ? null
               : commissionGrosze(a.priceGrosze - a.discountGrosze, a.staff.commissionPermille),
+          productsGrosze: a.productSales.reduce(
+            (sum, p) => sum + p.quantity * p.unitPriceGrosze,
+            0,
+          ),
         };
       }),
       locale,

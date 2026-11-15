@@ -33,6 +33,7 @@ interface CsvTexts {
     tier: string,
     happyHours: string,
     commission: string,
+    products: string,
   ];
   /** Task 227: how the client paid. */
   method: Record<PaymentMethod, string>;
@@ -67,6 +68,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Rabat poziomu',
       'Happy hours',
       'Prowizja',
+      'Produkty',
     ],
     method: {
       cash: 'gotówka',
@@ -109,6 +111,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Знижка рівня',
       'Happy hours',
       'Комісія',
+      'Товари',
     ],
     method: {
       cash: 'готівка',
@@ -151,6 +154,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Скидка уровня',
       'Happy hours',
       'Комиссия',
+      'Товары',
     ],
     method: {
       cash: 'наличные',
@@ -193,6 +197,7 @@ const TEXTS: Record<CsvLocale, CsvTexts> = {
       'Tier discount',
       'Happy hours',
       'Commission',
+      'Products',
     ],
     method: {
       cash: 'cash',
@@ -245,6 +250,11 @@ export interface CsvVisit {
    * (task 373), rounded to whole hundredths; null = not paid or no commission set.
    */
   commissionGrosze: number | null;
+  /**
+   * Task 426: what the products sold at this visit (task 394) came to — quantity × the price at
+   * the time of the sale; 0 = none. Not part of the visit's price.
+   */
+  productsGrosze: number;
 }
 
 /** One cell: quoted when it holds the separator, a quote or a line break; no formula injection. */
@@ -293,6 +303,7 @@ export function visitsCsv(visits: CsvVisit[], locale: CsvLocale): string {
         optional(v.tierDiscountGrosze, locale),
         optional(v.happyHourGrosze, locale),
         v.commissionGrosze === null ? '' : amount(v.commissionGrosze, locale),
+        optional(v.productsGrosze, locale),
       ]
         .map(cell)
         .join(';'),
