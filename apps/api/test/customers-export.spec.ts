@@ -163,6 +163,30 @@ describe('clients CSV export', () => {
         rating: 5,
       },
     });
+    // Task 427: Żaneta bought products at the visit — 2 × 15,25 + 15,00 = 45,50.
+    {
+      const sold = await ctx.prisma.appointment.findUniqueOrThrow({
+        where: { id: booked.body.id },
+      });
+      await ctx.prisma.productSale.createMany({
+        data: [
+          {
+            locationId: sold.locationId,
+            appointmentId: sold.id,
+            name: 'Wosk',
+            quantity: 2,
+            unitPriceGrosze: 1525,
+          },
+          {
+            locationId: sold.locationId,
+            appointmentId: sold.id,
+            name: 'Szampon',
+            quantity: 1,
+            unitPriceGrosze: 1500,
+          },
+        ],
+      });
+    }
     // Task 267: Żaneta is booked again in two days.
     await ctx
       .http()
@@ -247,6 +271,7 @@ describe('clients CSV export', () => {
         'Napiwki łącznie',
         'Średnia ocena',
         'Rabaty łącznie',
+        'Produkty łącznie',
         'Notatka',
       ],
       [
@@ -265,6 +290,7 @@ describe('clients CSV export', () => {
         '0,00',
         '0,00',
         '',
+        '0,00',
         '0,00',
         "'=1+1",
       ],
@@ -285,6 +311,7 @@ describe('clients CSV export', () => {
         '12,50',
         '5,0',
         '15,00',
+        '45,50',
         '',
       ],
     ]);
@@ -303,6 +330,8 @@ describe('clients CSV export', () => {
     expect(rows(english.text)[2]![14]).toBe('5.0');
     expect(rows(english.text)[0]![15]).toBe('Discounts in total');
     expect(rows(english.text)[2]![15]).toBe('15.00');
+    expect(rows(english.text)[0]![16]).toBe('Products in total');
+    expect(rows(english.text)[2]![16]).toBe('45.50');
     await ctx.http().get(`${exportUrl()}?lang=xx`).set(owner.auth).expect(400);
 
     const audit = await ctx.prisma.auditLog.findMany({
@@ -376,6 +405,7 @@ describe('clients CSV export', () => {
     expect(petr![header!.indexOf('Napiwki łącznie')]).toBe('20,00 CZK');
     // Task 309: no discounts — an empty cell when the salons use several currencies.
     expect(petr![header!.indexOf('Rabaty łącznie')]).toBe('');
+    expect(petr![header!.indexOf('Produkty łącznie')]).toBe('');
   });
 
   it('only the clients the filtered list shows, in its order (task 275)', async () => {
