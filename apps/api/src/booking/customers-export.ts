@@ -53,6 +53,7 @@ const HEADERS = {
       'Napiwki łącznie',
       'Średnia ocena',
       'Rabaty łącznie',
+      'Produkty łącznie',
       'Notatka',
     ],
     yes: 'tak',
@@ -76,6 +77,7 @@ const HEADERS = {
       'Чайові разом',
       'Середня оцінка',
       'Знижки разом',
+      'Товари разом',
       'Нотатка',
     ],
     yes: 'так',
@@ -99,6 +101,7 @@ const HEADERS = {
       'Чаевые всего',
       'Средняя оценка',
       'Скидки всего',
+      'Товары всего',
       'Заметка',
     ],
     yes: 'да',
@@ -122,6 +125,7 @@ const HEADERS = {
       'Tips in total',
       'Average rating',
       'Discounts in total',
+      'Products in total',
       'Note',
     ],
     yes: 'yes',
@@ -174,6 +178,7 @@ export class CustomersExportService {
       tipped,
       reviews,
       discounted,
+      sold,
     ] = await Promise.all([
       this.prisma.customer.findMany({
         where: { organizationId, ...(ids ? { id: { in: ids } } : {}) },
@@ -266,6 +271,16 @@ export class CustomersExportService {
           listPriceGrosze: true,
         },
       }),
+      // Task 427: the products the client bought at visits — as "Kupione produkty" in the card.
+      this.prisma.productSale.findMany({
+        where: { location: { organizationId }, appointment: { customerId: { not: null } } },
+        select: {
+          locationId: true,
+          quantity: true,
+          unitPriceGrosze: true,
+          appointment: { select: { customerId: true } },
+        },
+      }),
     ]);
     // Task 275: the filtered list keeps its own order (e.g. the most recently due first).
     const position = new Map((ids ?? []).map((id, index) => [id, index]));
@@ -317,6 +332,13 @@ export class CustomersExportService {
           (row.listPriceGrosze === null ? 0 : Math.max(0, row.listPriceGrosze - row.priceGrosze)),
       })),
     );
+    const productsBy = byCurrency(
+      sold.map((row) => ({
+        customerId: row.appointment.customerId,
+        locationId: row.locationId,
+        grosze: row.quantity * row.unitPriceGrosze,
+      })),
+    );
     // One currency in the network: a plain number the spreadsheet can add up ("80,00");
     // several: each with its currency ("80,00 PLN + 20,00 EUR"), the biggest first.
     const moneyCell = (by: Map<string, Map<string, number>>, customerId: string): string => {
@@ -365,6 +387,7 @@ export class CustomersExportService {
           moneyCell(tipsBy, c.id),
           ratingCell(c.id),
           moneyCell(discountsBy, c.id),
+          moneyCell(productsBy, c.id),
           c.note ?? '',
         ]
           .map(csvCell)
