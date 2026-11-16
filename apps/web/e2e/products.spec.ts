@@ -145,12 +145,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   }
   await expect(products.getByTestId('product-row')).toHaveCount(2);
   await products.getByLabel('Cena — Pomada matowa').fill('49');
+  // Task 430: the salon counts the pomades — two left in stock.
+  await products.getByLabel('W magazynie — Pomada matowa').fill('2');
   await products
     .getByTestId('product-row')
     .filter({ has: page.getByLabel('Nazwa — Pomada matowa') })
     .getByRole('button', { name: 'Zapisz' })
     .click();
   await expect(products.getByLabel('Cena — Pomada matowa')).toHaveValue('49');
+  await expect(products.getByLabel('W magazynie — Pomada matowa')).toHaveValue('2');
+  await expect(products.getByLabel('W magazynie — Szampon')).toHaveValue('');
   await shot(page, '395-owner-products');
 
   // The visit card: the client buys two pomades and a shampoo; one shampoo was a mistake.
@@ -159,10 +163,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   const card = page.getByRole('dialog');
   const sold = card.getByTestId('visit-products');
   // The list is by name: 1 = Pomada matowa, 2 = Szampon.
+  const options = sold.getByLabel('Wybierz produkt').locator('option');
+  await expect(options.nth(1)).toHaveText(/Pomada matowa · 49,00\s*zł · zostało 2 szt\./);
   await sold.getByLabel('Wybierz produkt').selectOption({ index: 1 });
   await sold.getByLabel('Ilość').fill('2');
   await sold.getByRole('button', { name: '+ Dodaj' }).click();
   await expect(sold).toContainText(/Pomada matowa × 2/);
+  // Task 430: both pomades are sold — none left to choose.
+  await expect(options.nth(1)).toHaveText(/Pomada matowa · .* · Brak w magazynie/);
+  await expect(options.nth(1)).toBeDisabled();
   await sold.getByLabel('Wybierz produkt').selectOption({ index: 2 });
   await sold.getByRole('button', { name: '+ Dodaj' }).click();
   await expect(sold).toContainText(/Produkty: 128,50\s*zł/);
@@ -171,6 +180,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await sold.scrollIntoViewIfNeeded();
   await shot(page, '395-a-visit-products');
   await page.keyboard.press('Escape');
+
+  // Task 430: "Brak w magazynie" next to the pomade in "Usługi" → "Produkty" (screenshot 430).
+  await page.goto('/pl/app/services');
+  await products.scrollIntoViewIfNeeded();
+  await expect(products.getByLabel('W magazynie — Pomada matowa')).toHaveValue('0');
+  await expect(products.getByTestId('product-out')).toHaveText('Brak w magazynie');
+  await shot(page, '430-owner-stock');
 
   // "Raporty": products apart from the visit revenue (the visit itself was not paid).
   await page.goto('/pl/app/reports');

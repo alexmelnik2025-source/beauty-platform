@@ -59,6 +59,11 @@ export function ProductSales({
     setError('');
     try {
       setSales(await action());
+      // Task 430: the pieces left in stock changed with the sale.
+      if (canChange) {
+        const list = await api<ProductList>(`${base}/products`);
+        setProducts(list.products.filter((x) => x.active));
+      }
     } catch (err) {
       setError(errorText(t, err));
     } finally {
@@ -125,8 +130,19 @@ export function ProductSales({
           >
             <option value="">{p.choose}</option>
             {products.map((x) => (
-              <option key={x.id} value={x.id}>
+              <option
+                key={x.id}
+                value={x.id}
+                disabled={x.stockQuantity !== null && x.stockQuantity < 1}
+              >
                 {x.name} · {money(x.priceGrosze)}
+                {x.stockQuantity === null
+                  ? ''
+                  : ` · ${
+                      x.stockQuantity > 0
+                        ? p.stockLeft.replace('{n}', String(x.stockQuantity))
+                        : p.stockNone
+                    }`}
               </option>
             ))}
           </select>

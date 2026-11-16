@@ -1468,6 +1468,13 @@ export const en: Dict = {
     quantity: 'Quantity',
     addSale: 'Add',
     removeSale: 'Remove',
+    stock: 'In stock',
+    pieces: 'pcs',
+    stockNew: 'In stock (pcs, empty — not counted)',
+    stockLeft: '{n} pcs left',
+    stockNone: 'Out of stock',
+    stockHint:
+      'An empty “In stock” field means the pieces are not counted. A sale at a visit lowers the stock, removing the sale puts it back.',
   },
   reports: {
     title: 'Reports',
