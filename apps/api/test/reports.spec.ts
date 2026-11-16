@@ -7,6 +7,7 @@ import { addDays, isoWeekday, localToday, zonedToInstant } from '../src/scheduli
 import {
   createOrgWithLocation,
   createTestApp,
+  expectError,
   resetState,
   signUp,
   type SignedInUser,
@@ -1458,6 +1459,96 @@ describe('salon report', () => {
     const other = await signUp(ctx, 'other@example.com');
     await createOrgWithLocation(ctx, other, 'Other');
     await ctx.http().get(`${base}/products`).set(other.auth).expect(404);
+  });
+
+  it('"Stan magazynowy": a sale takes pieces from stock, removing it puts them back (task 429)', async () => {
+    const pomade = (
+      await ctx
+        .http()
+        .post(`${base}/products`)
+        .set(owner.auth)
+        .send({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 3 })
+        .expect(201)
+    ).body as { id: string; stockQuantity: number | null };
+    expect(pomade.stockQuantity).toBe(3);
+    expect(registeredResponseSchema('Product').safeParse(pomade).error).toBeUndefined();
+    // Without a number the salon does not count the pieces.
+    const wax = (
+      await ctx
+        .http()
+        .post(`${base}/products`)
+        .set(owner.auth)
+        .send({ name: 'Wosk', priceGrosze: 3000 })
+        .expect(201)
+    ).body as { id: string; stockQuantity: number | null };
+    expect(wax.stockQuantity).toBeNull();
+    // A negative number is refused; only owners and managers change it.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ stockQuantity: -1 })
+      .expect(400);
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(kasiaUser.auth)
+      .send({ stockQuantity: 10 })
+      .expect(403);
+
+    const stock = async (id: string) =>
+      (
+        (await ctx.http().get(`${base}/products`).set(kasiaUser.auth).expect(200)).body as {
+          products: { id: string; stockQuantity: number | null }[];
+        }
+      ).products.find((p) => p.id === id)?.stockQuantity;
+    const kasiaVisit = await visit({ date: addDays(today, -1), status: 'completed', paid: true });
+    const sales = `${base}/appointments/${kasiaVisit}/products`;
+
+    const sold = await ctx
+      .http()
+      .post(sales)
+      .set(kasiaUser.auth)
+      .send({ productId: pomade.id, quantity: 2 })
+      .expect(201);
+    expect(await stock(pomade.id)).toBe(1);
+    // More than there is: refused, nothing changes.
+    const tooMany = await ctx
+      .http()
+      .post(sales)
+      .set(owner.auth)
+      .send({ productId: pomade.id, quantity: 2 })
+      .expect(409);
+    expectError(tooMany.body, 'OUT_OF_STOCK');
+    expect(await stock(pomade.id)).toBe(1);
+    expect((await ctx.http().get(sales).set(owner.auth).expect(200)).body.sales).toHaveLength(1);
+    // A product without a count is sold as before.
+    await ctx
+      .http()
+      .post(sales)
+      .set(owner.auth)
+      .send({ productId: wax.id, quantity: 5 })
+      .expect(201);
+    expect(await stock(wax.id)).toBeNull();
+
+    // Removing the sale noted by mistake puts the pieces back.
+    await ctx.http().delete(`${sales}/${sold.body.sales[0].id}`).set(owner.auth).expect(200);
+    expect(await stock(pomade.id)).toBe(3);
+    // The owner corrects the count after a delivery, or stops counting.
+    const updated = await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ stockQuantity: 12 })
+      .expect(200);
+    expect(updated.body.stockQuantity).toBe(12);
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ stockQuantity: null })
+      .expect(200);
+    expect(await stock(pomade.id)).toBeNull();
   });
 
   it('"CSV sprzedaży produktów": every product sold in the period, own visits for a specialist (task 422)', async () => {

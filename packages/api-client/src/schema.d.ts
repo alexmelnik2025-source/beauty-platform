@@ -1958,7 +1958,7 @@ export interface paths {
         put?: never;
         /**
          * Note a product sold at the visit
-         * @description Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts.
+         * @description Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts. Task 429: a product that counts its stock loses the pieces sold; more than there are → 409 OUT_OF_STOCK. Removing the sale puts them back.
          */
         post: operations["ProductsController_addSale"];
         delete?: never;
@@ -5423,6 +5423,8 @@ export interface components {
             priceGrosze: number;
             /** @description false = no longer sold; kept for the history of sales */
             active: boolean;
+            /** @description Pieces in stock (task 429); null = the salon does not count them */
+            stockQuantity: number | null;
         };
         ProductList: {
             /** @description The salon’s products, sold ones first, then by name */
@@ -5433,6 +5435,8 @@ export interface components {
                 priceGrosze: number;
                 /** @description false = no longer sold; kept for the history of sales */
                 active: boolean;
+                /** @description Pieces in stock (task 429); null = the salon does not count them */
+                stockQuantity: number | null;
             }[];
         };
         /** @description An appointment as the client sees it */
@@ -10218,6 +10222,7 @@ export interface operations {
                 "application/json": {
                     name: string;
                     priceGrosze: number;
+                    stockQuantity?: number | null;
                 };
             };
         };
@@ -10267,6 +10272,7 @@ export interface operations {
                 "application/json": {
                     name?: string;
                     priceGrosze?: number;
+                    stockQuantity?: number | null;
                     active?: boolean;
                 };
             };

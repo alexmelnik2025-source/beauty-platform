@@ -8053,6 +8053,18 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 10000000
+                  },
+                  "stockQuantity": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -8124,6 +8136,18 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 10000000
+                  },
+                  "stockQuantity": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "active": {
                     "type": "boolean"
@@ -8235,7 +8259,7 @@
         ]
       },
       "post": {
-        "description": "Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts.",
+        "description": "Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts. Task 429: a product that counts its stock loses the pieces sold; more than there are → 409 OUT_OF_STOCK. Removing the sale puts them back.",
         "operationId": "ProductsController_addSale",
         "parameters": [
           {
@@ -21059,13 +21083,21 @@
           "active": {
             "type": "boolean",
             "description": "false = no longer sold; kept for the history of sales"
+          },
+          "stockQuantity": {
+            "nullable": true,
+            "description": "Pieces in stock (task 429); null = the salon does not count them",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           }
         },
         "required": [
           "id",
           "name",
           "priceGrosze",
-          "active"
+          "active",
+          "stockQuantity"
         ],
         "additionalProperties": false
       },
@@ -21092,13 +21124,21 @@
                 "active": {
                   "type": "boolean",
                   "description": "false = no longer sold; kept for the history of sales"
+                },
+                "stockQuantity": {
+                  "nullable": true,
+                  "description": "Pieces in stock (task 429); null = the salon does not count them",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
                 "id",
                 "name",
                 "priceGrosze",
-                "active"
+                "active",
+                "stockQuantity"
               ],
               "additionalProperties": false
             },

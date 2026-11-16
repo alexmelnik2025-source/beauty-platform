@@ -23,6 +23,7 @@ export const pl = {
     WAITLIST_LIMIT: 'Możesz czekać najwyżej na 3 dni w tym salonie naraz.',
     WAITLIST_DATE: 'Wybierz dzień od dziś do ostatniego dnia, na który salon przyjmuje rezerwacje.',
     NOT_COMPLETED: 'Najpierw oznacz, że klient przyszedł.',
+    OUT_OF_STOCK: 'Za mało sztuk w magazynie — popraw stan w „Produkty”.',
     LOYALTY_MODE_LOCKED:
       'Rodzaju programu nie można zmienić, dopóki klienci mają pieczątki lub punkty.',
     LOYALTY_DISABLED: 'Program lojalnościowy jest wyłączony.',
