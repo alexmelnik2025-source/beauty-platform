@@ -24,6 +24,7 @@ export const en: Dict = {
     WAITLIST_LIMIT: 'You can wait for at most 3 days at this salon at a time.',
     WAITLIST_DATE: 'Choose a day from today to the last day the salon takes bookings for.',
     NOT_COMPLETED: 'First mark that the client came.',
+    OUT_OF_STOCK: 'Not enough pieces in stock — correct the stock in “Produkty”.',
     LOYALTY_MODE_LOCKED: "The program type can't be changed while clients have stamps or points.",
     LOYALTY_DISABLED: 'The loyalty program is switched off.',
     LOYALTY_NOT_ENOUGH: "The client doesn't have enough stamps or points for this reward.",

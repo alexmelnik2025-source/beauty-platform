@@ -116,7 +116,7 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Note a product sold at the visit',
     description:
-      'Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts.',
+      'Who may change the visit. Only at a visit that took place (409 NOT_COMPLETED). The price is the product’s at this moment; not part of the visit price, loyalty points or discounts. Task 429: a product that counts its stock loses the pieces sold; more than there are → 409 OUT_OF_STOCK. Removing the sale puts them back.',
   })
   @ApiZodBody(addProductSaleSchema)
   @ApiZodResponse(visitProductSalesSchema, HttpStatus.CREATED)

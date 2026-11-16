@@ -10,12 +10,15 @@ const money = (what: string) =>
 export const createProductSchema = z.object({
   name: z.string().trim().min(1).max(80),
   priceGrosze: z.number().int().min(0).max(10_000_000),
+  /** Task 429: pieces in stock; null (or left out) = the salon does not count them. */
+  stockQuantity: z.number().int().min(0).max(100_000).nullable().optional(),
 });
 
 export const updateProductSchema = z
   .object({
     name: createProductSchema.shape.name,
     priceGrosze: createProductSchema.shape.priceGrosze,
+    stockQuantity: z.number().int().min(0).max(100_000).nullable(),
     active: z.boolean(),
   })
   .partial();
@@ -37,6 +40,11 @@ const product = z.strictObject({
   name: z.string(),
   priceGrosze: money('Price of one'),
   active: z.boolean().describe('false = no longer sold; kept for the history of sales'),
+  stockQuantity: z
+    .number()
+    .int()
+    .nullable()
+    .describe('Pieces in stock (task 429); null = the salon does not count them'),
 });
 
 export const productListSchema = responseSchema(

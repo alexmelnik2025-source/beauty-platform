@@ -19,12 +19,17 @@ const toProduct = (p: Product): ProductResponse => ({
   name: p.name,
   priceGrosze: p.priceGrosze,
   active: p.active,
+  stockQuantity: p.stockQuantity,
 });
 
 /**
  * Task 394: "Produkty" — the salon's own list of products (pomade, shampoo…) and the ones sold
  * at a visit. A sale keeps the name and the price of that moment. Sales are not part of the
- * visit price, the loyalty points or the discounts; no stock and no payment systems.
+ * visit price, the loyalty points or the discounts; no payment systems.
+ *
+ * Task 429: a product may count its pieces in stock (`stockQuantity`, null = not counted). A sale
+ * takes them away — more than there are is refused (409 OUT_OF_STOCK) — and removing a sale puts
+ * them back, both in one transaction with the sale.
  *
  * The list: everyone in the salon reads it (to note a sale), owners and managers change it.
  * Sales: whoever may change the visit (own visits with "changeOwnAppointments", others' with
@@ -107,16 +112,33 @@ export class ProductsService {
       where: { id: input.productId, locationId, active: true },
     });
     if (!product) throw notFound('Product');
-    await this.prisma.productSale.create({
-      data: {
-        locationId,
-        appointmentId,
-        productId: product.id,
-        name: product.name,
-        quantity: input.quantity,
-        unitPriceGrosze: product.priceGrosze,
-        createdByUserId: userId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      if (product.stockQuantity !== null) {
+        // Only if there are enough pieces at this moment (a parallel sale may have taken some).
+        const taken = await tx.product.updateMany({
+          where: { id: product.id, stockQuantity: { gte: input.quantity } },
+          data: { stockQuantity: { decrement: input.quantity } },
+        });
+        if (taken.count !== 1) {
+          const left = await tx.product.findUnique({ where: { id: product.id } });
+          throw new AppException(
+            HttpStatus.CONFLICT,
+            'OUT_OF_STOCK',
+            `Only ${left?.stockQuantity ?? 0} in stock`,
+          );
+        }
+      }
+      await tx.productSale.create({
+        data: {
+          locationId,
+          appointmentId,
+          productId: product.id,
+          name: product.name,
+          quantity: input.quantity,
+          unitPriceGrosze: product.priceGrosze,
+          createdByUserId: userId,
+        },
+      });
     });
     return this.view(appointmentId);
   }
@@ -129,10 +151,22 @@ export class ProductsService {
     saleId: string,
   ): Promise<VisitProductSalesResponse> {
     await this.appointments.changeable(m, userId, locationId, appointmentId);
-    const result = await this.prisma.productSale.deleteMany({
-      where: { id: saleId, appointmentId, locationId },
+    await this.prisma.$transaction(async (tx) => {
+      const sale = await tx.productSale.findFirst({
+        where: { id: saleId, appointmentId, locationId },
+      });
+      const result = await tx.productSale.deleteMany({
+        where: { id: saleId, appointmentId, locationId },
+      });
+      if (!sale || result.count !== 1) throw notFound('Product sale');
+      // The pieces go back to stock if the product still counts them.
+      if (sale.productId) {
+        await tx.product.updateMany({
+          where: { id: sale.productId, stockQuantity: { not: null } },
+          data: { stockQuantity: { increment: sale.quantity } },
+        });
+      }
     });
-    if (result.count !== 1) throw notFound('Product sale');
     return this.view(appointmentId);
   }
 
