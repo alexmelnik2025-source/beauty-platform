@@ -1465,6 +1465,13 @@ export const pl = {
     quantity: 'Ilość',
     addSale: 'Dodaj',
     removeSale: 'Usuń',
+    stock: 'W magazynie',
+    pieces: 'szt.',
+    stockNew: 'W magazynie (szt., puste — nie liczymy)',
+    stockLeft: 'zostało {n} szt.',
+    stockNone: 'Brak w magazynie',
+    stockHint:
+      'Puste pole „W magazynie” — nie liczymy sztuk. Sprzedaż przy wizycie zmniejsza stan, usunięcie sprzedaży go przywraca.',
   },
   reports: {
     title: 'Raporty',

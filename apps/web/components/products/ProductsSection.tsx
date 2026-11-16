@@ -8,6 +8,15 @@ import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
 import { parseTip as parseAmount } from '../calendar/TipField';
 
+/** "" → null (not counted), "12" → 12; anything else → undefined (wrong). Task 430. */
+function parseStock(value: string): number | null | undefined {
+  const text = value.trim();
+  if (text === '') return null;
+  return /^\d{1,6}$/.test(text) && Number(text) <= 100_000 ? Number(text) : undefined;
+}
+
+const stockInput = (n: number | null) => (n === null ? '' : String(n));
+
 /** 4500 → "45", 4550 → "45,50" — for the price field. */
 function amountInput(hundredths: number): string {
   const whole = Math.floor(hundredths / 100);
@@ -19,15 +28,20 @@ function amountInput(hundredths: number): string {
  * Task 395: "Produkty" in "Usługi" — the salon's own list of products sold at a visit (pomade,
  * shampoo…): add, change the name or price, "Nie sprzedajemy", remove. Past sales keep the
  * name and price they had. Owners and managers (the page is theirs).
+ * Task 430: "W magazynie" — pieces in stock (empty = not counted); a sale at a visit takes them
+ * away, "Brak" when none are left.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t } = useI18n();
   const p = t.products;
   const { location } = useSession();
   const [products, setProducts] = useState<Product[] | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, { name: string; price: string }>>({});
+  const [drafts, setDrafts] = useState<
+    Record<string, { name: string; price: string; stock: string }>
+  >({});
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [stock, setStock] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -35,7 +49,10 @@ export function ProductsSection({ base }: { base: string }) {
     setProducts(list);
     setDrafts(
       Object.fromEntries(
-        list.map((x) => [x.id, { name: x.name, price: amountInput(x.priceGrosze) }]),
+        list.map((x) => [
+          x.id,
+          { name: x.name, price: amountInput(x.priceGrosze), stock: stockInput(x.stockQuantity) },
+        ]),
       ),
     );
   };
@@ -68,21 +85,35 @@ export function ProductsSection({ base }: { base: string }) {
   }
 
   const newPrice = parseAmount(price);
-  const canAdd = name.trim() !== '' && price.trim() !== '' && newPrice !== null && !busy;
+  const newStock = parseStock(stock);
+  const canAdd =
+    name.trim() !== '' &&
+    price.trim() !== '' &&
+    newPrice !== null &&
+    newStock !== undefined &&
+    !busy;
 
   return (
     <section className="page" data-testid="products">
       <h2>{p.title}</h2>
       <p className="small muted">{p.hint}</p>
+      <p className="small muted">{p.stockHint}</p>
       <ErrorBox>{error}</ErrorBox>
       {products && products.length === 0 ? <p className="note">{p.empty}</p> : null}
       {products && products.length > 0 ? (
         <ul className="commission-list">
           {products.map((x) => {
-            const draft = drafts[x.id] ?? { name: x.name, price: amountInput(x.priceGrosze) };
+            const draft = drafts[x.id] ?? {
+              name: x.name,
+              price: amountInput(x.priceGrosze),
+              stock: stockInput(x.stockQuantity),
+            };
             const draftPrice = parseAmount(draft.price);
+            const draftStock = parseStock(draft.stock);
             const changed =
-              draft.name.trim() !== x.name || (draftPrice !== null && draftPrice !== x.priceGrosze);
+              draft.name.trim() !== x.name ||
+              (draftPrice !== null && draftPrice !== x.priceGrosze) ||
+              (draftStock !== undefined && draftStock !== x.stockQuantity);
             return (
               <li key={x.id} className="commission-row" data-testid="product-row">
                 <input
@@ -106,15 +137,43 @@ export function ProductsSection({ base }: { base: string }) {
                   />
                   <span aria-hidden="true">{location.currency}</span>
                 </span>
+                <span className="commission-row__input">
+                  <input
+                    inputMode="numeric"
+                    aria-label={`${p.stock} — ${x.name}`}
+                    aria-invalid={draftStock === undefined}
+                    placeholder="—"
+                    value={draft.stock}
+                    onChange={(e) =>
+                      setDrafts({ ...drafts, [x.id]: { ...draft, stock: e.target.value } })
+                    }
+                  />
+                  <span aria-hidden="true">{p.pieces}</span>
+                </span>
+                {x.stockQuantity === 0 ? (
+                  <span className="badge" data-testid="product-out">
+                    {p.stockNone}
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className="btn btn--small"
-                  disabled={busy || !changed || draftPrice === null || draft.name.trim() === ''}
+                  disabled={
+                    busy ||
+                    !changed ||
+                    draftPrice === null ||
+                    draftStock === undefined ||
+                    draft.name.trim() === ''
+                  }
                   onClick={() =>
                     void run(() =>
                       api(`${base}/products/${x.id}`, {
                         method: 'PATCH',
-                        body: { name: draft.name.trim(), priceGrosze: draftPrice },
+                        body: {
+                          name: draft.name.trim(),
+                          priceGrosze: draftPrice,
+                          stockQuantity: draftStock,
+                        },
                       }),
                     )
                   }
@@ -163,12 +222,13 @@ export function ProductsSection({ base }: { base: string }) {
           void run(() =>
             api(`${base}/products`, {
               method: 'POST',
-              body: { name: name.trim(), priceGrosze: newPrice },
+              body: { name: name.trim(), priceGrosze: newPrice, stockQuantity: newStock },
             }),
           ).then((ok) => {
             if (ok) {
               setName('');
               setPrice('');
+              setStock('');
             }
           });
         }}
@@ -186,6 +246,16 @@ export function ProductsSection({ base }: { base: string }) {
             value={price}
             aria-invalid={price !== '' && newPrice === null}
             onChange={(e) => setPrice(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>{p.stockNew}</span>
+          <input
+            inputMode="numeric"
+            value={stock}
+            placeholder="—"
+            aria-invalid={newStock === undefined}
+            onChange={(e) => setStock(e.target.value)}
           />
         </label>
         <button type="submit" className="btn btn--small" disabled={!canAdd}>
