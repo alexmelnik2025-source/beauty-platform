@@ -27,9 +27,10 @@ export default function LoginPage() {
         body: { email, password, clientType: 'web' },
       });
       setAccessToken(res.accessToken);
-      // Only paths inside this site: never redirect to another address.
+      // Only paths inside this site: never redirect to another address. Without one — straight to
+      // the calendar (task 428: no extra hop through /app).
       const next = new URLSearchParams(window.location.search).get('next');
-      router.push(next && /^\/[a-z]{2}\//.test(next) ? next : `/${locale}/app`);
+      router.push(next && /^\/[a-z]{2}\//.test(next) ? next : `/${locale}/app/calendar`);
     } catch (err) {
       setError(errorText(t, err));
       setBusy(false);

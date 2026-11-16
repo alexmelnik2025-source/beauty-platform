@@ -130,7 +130,11 @@ test('every button and link on the cabinet pages has a name (task 386)', async (
     await page.getByLabel('E-mail').fill(OWNER);
     await page.getByLabel('Hasło').fill(PASSWORD);
     await page.getByRole('button', { name: 'Zaloguj się' }).click();
-    await page.waitForURL(/\/pl\/app\//);
+    // Task 428: signing in opens the calendar directly (it used to stop on /pl/app now and then).
+    await page.waitForURL(/\/pl\/app\/calendar/);
+    // …and the app's start address (/pl/app, the PWA start_url) leads to the calendar too.
+    await page.goto('/pl/app');
+    await page.waitForURL(/\/pl\/app\/calendar/);
     for (const path of PAGES) {
       await page.goto(`/pl/app/${path}`);
       await page.waitForLoadState('networkidle');
