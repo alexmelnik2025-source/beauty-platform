@@ -246,8 +246,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     const appList = app.getByTestId('products');
     await appList.getByLabel('Nowy produkt').fill('Wosk');
     await appList.getByLabel('Cena produktu (PLN)').last().fill('25');
+    // Task 431: five pieces in stock.
+    await appList.getByLabel('W magazynie (szt., puste — nie liczymy)').fill('5');
     await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
     await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
+    await expect(appList.getByText('zostało 5 szt.')).toBeVisible();
+    // Both pomades were sold in the cabinet: none left.
+    await expect(appList.getByText('Brak w magazynie')).toBeVisible();
     await expect(appList.getByText('Pomada matowa', { exact: true })).toBeVisible();
     await appList.getByRole('button', { name: 'Dodaj produkt' }).scrollIntoViewIfNeeded();
     await shot(app, '397-business-app-products');
@@ -265,6 +270,12 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appSold).toContainText(/PRODUKTY: 128,50\s*zł/);
     await appSold.scrollIntoViewIfNeeded();
     await shot(app, '396-business-app-visit-products');
+    // Task 431: the pieces left are on the buttons; a sold-out product cannot be added.
+    await expect(
+      appSold.getByRole('button', { name: 'Dodaj produkt — Pomada matowa' }),
+    ).toBeDisabled();
+    await expect(appSold).toContainText(/Wosk · 25,00\s*zł · zostało 5 szt\./);
+    await shot(app, '431-business-app-stock');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();

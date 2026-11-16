@@ -664,11 +664,13 @@ export class BusinessApi {
     locationId: string,
     name: string,
     priceGrosze: number,
+    /** Task 431: pieces in stock; null = not counted. */
+    stockQuantity: number | null = null,
   ): Promise<Product> {
     return this.authed<Product>(
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
-      { name, priceGrosze },
+      { name, priceGrosze, stockQuantity },
     );
   }
 
@@ -677,7 +679,12 @@ export class BusinessApi {
     orgId: string,
     locationId: string,
     productId: string,
-    changes: { name?: string; priceGrosze?: number; active?: boolean },
+    changes: {
+      name?: string;
+      priceGrosze?: number;
+      active?: boolean;
+      stockQuantity?: number | null;
+    },
   ): Promise<Product> {
     return this.authed<Product>(
       'PATCH',

@@ -675,6 +675,11 @@ export const pl = {
     soldHint:
       'Nie wchodzą do ceny wizyty, punktów ani rabatów. Listę produktów prowadzi się w kabinecie („Usługi”).',
     removeSale: 'Usuń',
+    stockIn: 'W magazynie (szt., puste — nie liczymy)',
+    stockInvalid: 'Wpisz liczbę sztuk albo zostaw puste.',
+    stockLeft: 'zostało {n} szt.',
+    stockNone: 'Brak w magazynie',
+    outOfStock: 'Za mało sztuk w magazynie — popraw stan produktu w „Usługi”.',
     removeSaleFor: 'Usuń produkt — {name}',
     addSaleFor: 'Dodaj produkt — {name}',
   },

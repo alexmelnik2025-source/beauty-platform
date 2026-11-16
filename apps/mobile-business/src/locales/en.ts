@@ -679,6 +679,11 @@ export const en: Dictionary = {
     soldHint:
       'Not part of the visit price, points or discounts. The list of products is kept in the cabinet ("Services").',
     removeSale: 'Remove',
+    stockIn: 'In stock (pcs, empty — not counted)',
+    stockInvalid: 'Enter the number of pieces or leave it empty.',
+    stockLeft: '{n} pcs left',
+    stockNone: 'Out of stock',
+    outOfStock: 'Not enough pieces in stock — correct the product’s stock in “Usługi”.',
     removeSaleFor: 'Remove product — {name}',
     addSaleFor: 'Add product — {name}',
   },

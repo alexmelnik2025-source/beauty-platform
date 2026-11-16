@@ -4,6 +4,7 @@ import type { BusinessApi, Locale, Product } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
+import { parseStock } from '../stock';
 import { parseTip as parseAmount, tipInput as amountInput } from '../tip';
 import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
@@ -12,6 +13,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 397: "Produkty" in "Usługi" of the business app — the salon's list of products sold at
  * a visit, as in the cabinet (task 395): add, change the name or price, «Nie sprzedajemy» /
  * «Sprzedajemy», remove (with a question; past sales stay in the reports).
+ * Task 431: "W magazynie" — pieces in stock (empty = not counted), as in the cabinet (430).
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -23,9 +25,9 @@ export function ProductListSection(props: {
   const p = t.products;
   const [products, setProducts] = useState<Product[] | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: '', price: '' });
+  const [draft, setDraft] = useState({ name: '', price: '', stock: '' });
   const [askRemove, setAskRemove] = useState<string | null>(null);
-  const [fresh, setFresh] = useState({ name: '', price: '' });
+  const [fresh, setFresh] = useState({ name: '', price: '', stock: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -60,6 +62,8 @@ export function ProductListSection(props: {
 
   const draftPrice = parseAmount(draft.price);
   const freshPrice = parseAmount(fresh.price);
+  const draftStock = parseStock(draft.stock);
+  const freshStock = parseStock(fresh.stock);
 
   return (
     <View style={{ gap: 8 }} testID="products">
@@ -86,16 +90,29 @@ export function ProductListSection(props: {
               style={[styles.input, { marginTop: 8 }]}
             />
             {draftPrice === null ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
+            <TextInput
+              accessibilityLabel={p.stockIn}
+              placeholder={p.stockIn}
+              placeholderTextColor={colors.placeholder}
+              keyboardType="number-pad"
+              value={draft.stock}
+              onChangeText={(stock) => setDraft({ ...draft, stock })}
+              style={[styles.input, { marginTop: 8 }]}
+            />
+            {draftStock === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
             <View style={styles.row}>
               <Button
                 label={p.save}
                 busy={busy}
-                disabled={draftPrice === null || draft.name.trim() === ''}
+                disabled={
+                  draftPrice === null || draftStock === undefined || draft.name.trim() === ''
+                }
                 onPress={() =>
                   void run(() =>
                     api.updateProduct(salon.orgId, salon.locationId, x.id, {
                       name: draft.name.trim(),
                       priceGrosze: draftPrice ?? x.priceGrosze,
+                      stockQuantity: draftStock ?? null,
                     }),
                   ).then((ok) => ok && setEditId(null))
                 }
@@ -110,6 +127,11 @@ export function ProductListSection(props: {
               <Text style={styles.name}>{money(x.priceGrosze)}</Text>
             </View>
             {x.active ? null : <Text style={styles.muted}>{p.notSold}</Text>}
+            {x.stockQuantity === null ? null : x.stockQuantity > 0 ? (
+              <Text style={styles.muted}>{fill(p.stockLeft, { n: String(x.stockQuantity) })}</Text>
+            ) : (
+              <Text style={styles.warn}>{p.stockNone}</Text>
+            )}
             {askRemove === x.id ? (
               <View style={{ gap: 6, marginTop: 6 }}>
                 <Text style={styles.text}>{fill(p.removeAsk, { name: x.name })}</Text>
@@ -133,7 +155,11 @@ export function ProductListSection(props: {
                   label={p.change}
                   a11yLabel={fill(p.changeFor, { name: x.name })}
                   onPress={() => {
-                    setDraft({ name: x.name, price: amountInput(x.priceGrosze) || '0' });
+                    setDraft({
+                      name: x.name,
+                      price: amountInput(x.priceGrosze) || '0',
+                      stock: x.stockQuantity === null ? '' : String(x.stockQuantity),
+                    });
                     setEditId(x.id);
                   }}
                 />
@@ -178,15 +204,36 @@ export function ProductListSection(props: {
         onChangeText={(price) => setFresh({ ...fresh, price })}
         style={styles.input}
       />
+      <TextInput
+        accessibilityLabel={p.stockIn}
+        placeholder={p.stockIn}
+        placeholderTextColor={colors.placeholder}
+        keyboardType="number-pad"
+        value={fresh.stock}
+        onChangeText={(stock) => setFresh({ ...fresh, stock })}
+        style={styles.input}
+      />
+      {freshStock === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
       <View style={styles.row}>
         <Button
           label={p.add}
           busy={busy}
-          disabled={fresh.name.trim() === '' || fresh.price.trim() === '' || freshPrice === null}
+          disabled={
+            fresh.name.trim() === '' ||
+            fresh.price.trim() === '' ||
+            freshPrice === null ||
+            freshStock === undefined
+          }
           onPress={() =>
             void run(() =>
-              api.addProduct(salon.orgId, salon.locationId, fresh.name.trim(), freshPrice ?? 0),
-            ).then((ok) => ok && setFresh({ name: '', price: '' }))
+              api.addProduct(
+                salon.orgId,
+                salon.locationId,
+                fresh.name.trim(),
+                freshPrice ?? 0,
+                freshStock ?? null,
+              ),
+            ).then((ok) => ok && setFresh({ name: '', price: '', stock: '' }))
           }
         />
       </View>

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { BusinessApi, Locale, ProductList, VisitProductSales } from '../api';
+import {
+  ApiError,
+  type BusinessApi,
+  type Locale,
+  type ProductList,
+  type VisitProductSales,
+} from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -53,8 +59,13 @@ export function ProductSalesSection(props: {
     setError('');
     try {
       setSales(await action());
+      // Task 431: the pieces left in stock changed with the sale.
+      if (canChange) {
+        const list = await api.products(salon.orgId, salon.locationId);
+        setProducts(list.products.filter((x) => x.active));
+      }
     } catch (e) {
-      setError(errorText(e, t));
+      setError(e instanceof ApiError && e.code === 'OUT_OF_STOCK' ? p.outOfStock : errorText(e, t));
     } finally {
       setBusy(false);
     }
@@ -95,9 +106,17 @@ export function ProductSalesSection(props: {
             <Button
               key={x.id}
               kind="secondary"
-              label={`+ ${x.name} · ${money(x.priceGrosze)}`}
+              label={`+ ${x.name} · ${money(x.priceGrosze)}${
+                x.stockQuantity === null
+                  ? ''
+                  : ` · ${
+                      x.stockQuantity > 0
+                        ? fill(p.stockLeft, { n: String(x.stockQuantity) })
+                        : p.stockNone
+                    }`
+              }`}
               a11yLabel={fill(p.addSaleFor, { name: x.name })}
-              disabled={busy}
+              disabled={busy || (x.stockQuantity !== null && x.stockQuantity < 1)}
               onPress={() =>
                 void run(() =>
                   api.addProductSale(salon.orgId, salon.locationId, appointmentId, x.id),
