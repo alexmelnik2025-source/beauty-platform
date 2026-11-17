@@ -3,6 +3,8 @@ import {
   test,
   type APIRequestContext,
   type APIResponse,
+  type Browser,
+  type BrowserContext,
   type Page,
 } from '@playwright/test';
 import { freshAddress } from './addresses';
@@ -99,6 +101,30 @@ async function salon(
   }
 }
 
+/**
+ * Task 432 (flaky run 43792120170): a step without its own time limit (the page waiting for the
+ * real OpenStreetMap tiles, a click on a page still loading) used the whole test time, and then
+ * closing the context in `finally` failed and hid which step it was. Every step now has its own
+ * limit, pages are counted as open once the document is there (the tiles are checked apart), and
+ * closing never replaces the real error.
+ */
+async function phoneContext(browser: Browser, extra: { timezoneId?: string } = {}) {
+  const context = await browser.newContext({
+    viewport: PHONE,
+    isMobile: true,
+    locale: 'pl-PL',
+    ...extra,
+  });
+  context.setDefaultTimeout(20_000);
+  context.setDefaultNavigationTimeout(30_000);
+  return context;
+}
+
+/** Closes a context; a failure to close never hides the error of the test itself. */
+async function closeQuietly(context: BrowserContext): Promise<void> {
+  await context.close().catch((error: unknown) => console.warn('context.close:', error));
+}
+
 /** Answers of the OpenStreetMap tile server that came back with a picture. */
 function countTiles(page: Page): () => number {
   let loaded = 0;
@@ -112,6 +138,8 @@ test('the catalogue map draws tiles and markers; salons without a place stay in 
   browser,
   request,
 }) => {
+  // Two salons with a verified owner, then two real map loads from the internet.
+  test.setTimeout(150_000);
   const auth = await owner(request);
   await salon(request, auth, ON_MAP, { latitude: 52.2297, longitude: 21.0122 }, [
     { name: 'Ilian', languages: ['pl'], specialties: ['barber'] },
@@ -121,30 +149,28 @@ test('the catalogue map draws tiles and markers; salons without a place stay in 
   ]);
 
   // ── The site: /pl/salons ──────────────────────────────────────────────
-  const site = await browser.newContext({ viewport: PHONE, isMobile: true, locale: 'pl-PL' });
-  const page = await site.newPage();
-  const siteTiles = countTiles(page);
-  await page.goto('/pl/salons');
-  const map = page.getByRole('img', { name: 'Mapa salonów' });
-  await expect(map).toBeVisible();
-  await expect(map.locator('circle.directory-marker').first()).toBeVisible();
-  await expect.poll(siteTiles, { timeout: 15_000 }).toBeGreaterThan(0);
-  await map.scrollIntoViewIfNeeded();
-  await shot(page, '191-catalogue-map-site');
-  await site.close();
+  const site = await phoneContext(browser);
+  try {
+    const page = await site.newPage();
+    const siteTiles = countTiles(page);
+    await page.goto('/pl/salons', { waitUntil: 'domcontentloaded' });
+    const map = page.getByRole('img', { name: 'Mapa salonów' });
+    await expect(map).toBeVisible();
+    await expect(map.locator('circle.directory-marker').first()).toBeVisible();
+    await expect.poll(siteTiles, { timeout: 15_000 }).toBeGreaterThan(0);
+    await map.scrollIntoViewIfNeeded();
+    await shot(page, '191-catalogue-map-site');
+  } finally {
+    await closeQuietly(site);
+  }
 
   // ── The client app (web preview) ─────────────────────────────────────
   const clientApp = await serveApp('mobile-client');
-  const phone = await browser.newContext({
-    viewport: PHONE,
-    isMobile: true,
-    locale: 'pl-PL',
-    timezoneId: 'Europe/Warsaw',
-  });
+  const phone = await phoneContext(browser, { timezoneId: 'Europe/Warsaw' });
   try {
     const app = await phone.newPage();
     const appTiles = countTiles(app);
-    await app.goto(clientApp.url);
+    await app.goto(clientApp.url, { waitUntil: 'domcontentloaded' });
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
     await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(ON_MAP);
     await expect(app.getByRole('img', { name: 'Mapa salonów' })).toBeVisible();
@@ -160,7 +186,7 @@ test('the catalogue map draws tiles and markers; salons without a place stay in 
     await expect(app.getByRole('button', { name: /^Salon na mapie:/ })).toHaveCount(0);
     await shot(app, '191b-client-app-map-no-place');
   } finally {
-    await phone.close();
+    await closeQuietly(phone);
     clientApp.server.close();
   }
 });
