@@ -122,7 +122,11 @@ async function phoneContext(browser: Browser, extra: { timezoneId?: string } = {
 
 /** Closes a context; a failure to close never hides the error of the test itself. */
 async function closeQuietly(context: BrowserContext): Promise<void> {
-  await context.close().catch((error: unknown) => console.warn('context.close:', error));
+  await context
+    .close()
+    .catch((error: unknown) =>
+      test.info().annotations.push({ type: 'context.close', description: String(error) }),
+    );
 }
 
 /** Answers of the OpenStreetMap tile server that came back with a picture. */
