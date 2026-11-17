@@ -114,7 +114,7 @@ export function ProductSalesSection(props: {
                         ? fill(p.stockLeft, { n: String(x.stockQuantity) })
                         : p.stockNone
                     }`
-              }`}
+              }${x.lowStock && x.stockQuantity !== 0 ? ` · ${p.lowBadge}` : ''}`}
               a11yLabel={fill(p.addSaleFor, { name: x.name })}
               disabled={busy || (x.stockQuantity !== null && x.stockQuantity < 1)}
               onPress={() =>

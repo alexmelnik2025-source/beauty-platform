@@ -666,11 +666,13 @@ export class BusinessApi {
     priceGrosze: number,
     /** Task 431: pieces in stock; null = not counted. */
     stockQuantity: number | null = null,
+    /** Task 435: "Kończy się" at this many pieces or fewer; null = no warning. */
+    lowStockAt: number | null = null,
   ): Promise<Product> {
     return this.authed<Product>(
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
-      { name, priceGrosze, stockQuantity },
+      { name, priceGrosze, stockQuantity, lowStockAt },
     );
   }
 
@@ -684,6 +686,7 @@ export class BusinessApi {
       priceGrosze?: number;
       active?: boolean;
       stockQuantity?: number | null;
+      lowStockAt?: number | null;
     },
   ): Promise<Product> {
     return this.authed<Product>(

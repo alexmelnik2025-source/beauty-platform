@@ -275,14 +275,22 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appList.getByLabel('Cena produktu (PLN)').last().fill('25');
     // Task 431: five pieces in stock.
     await appList.getByLabel('W magazynie (szt., puste — nie liczymy)').fill('5');
+    // Task 435: five waxes are already few for this salon.
+    await appList.getByLabel('Kończy się przy (szt., puste — bez ostrzeżenia)').fill('5');
     await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
     await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
-    await expect(appList.getByText('zostało 5 szt.')).toBeVisible();
+    await expect(appList.getByText('zostało 5 szt. · Kończy się')).toBeVisible();
     // Both pomades were sold in the cabinet: none left.
-    await expect(appList.getByText('Brak w magazynie')).toBeVisible();
+    await expect(appList.getByText('Brak w magazynie', { exact: true })).toBeVisible();
+    // Task 435: what to order — set in the cabinet (Szampon) and here (Wosk).
+    await expect(appList.getByTestId('products-to-order')).toHaveText(
+      'Do zamówienia: Pomada matowa (Brak w magazynie), Szampon (zostało 3 szt.), Wosk (zostało 5 szt.)',
+    );
     await expect(appList.getByText('Pomada matowa', { exact: true })).toBeVisible();
     await appList.getByRole('button', { name: 'Dodaj produkt' }).scrollIntoViewIfNeeded();
     await shot(app, '397-business-app-products');
+    await appList.getByTestId('products-to-order').scrollIntoViewIfNeeded();
+    await shot(app, '435-business-app-low-stock');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();
@@ -301,7 +309,8 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(
       appSold.getByRole('button', { name: 'Dodaj produkt — Pomada matowa' }),
     ).toBeDisabled();
-    await expect(appSold).toContainText(/Wosk · 25,00\s*zł · zostało 5 szt\./);
+    await expect(appSold).toContainText(/Wosk · 25,00\s*zł · zostało 5 szt\. · Kończy się/);
+    await expect(appSold).toContainText(/Szampon · 30,50\s*zł · zostało 2 szt\. · Kończy się/);
     await shot(app, '431-business-app-stock');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await app.getByRole('button', { name: 'Raporty' }).click();

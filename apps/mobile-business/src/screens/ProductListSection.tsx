@@ -14,6 +14,8 @@ import type { SalonChoice } from './SalonsScreen';
  * a visit, as in the cabinet (task 395): add, change the name or price, «Nie sprzedajemy» /
  * «Sprzedajemy», remove (with a question; past sales stay in the reports).
  * Task 431: "W magazynie" — pieces in stock (empty = not counted), as in the cabinet (430).
+ * Task 435: "Kończy się przy" — the salon's own number of pieces that is already few; such
+ * products say "Kończy się" and are listed in "Do zamówienia", as in the cabinet (434).
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -25,9 +27,9 @@ export function ProductListSection(props: {
   const p = t.products;
   const [products, setProducts] = useState<Product[] | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: '', price: '', stock: '' });
+  const [draft, setDraft] = useState({ name: '', price: '', stock: '', low: '' });
   const [askRemove, setAskRemove] = useState<string | null>(null);
-  const [fresh, setFresh] = useState({ name: '', price: '', stock: '' });
+  const [fresh, setFresh] = useState({ name: '', price: '', stock: '', low: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -64,6 +66,9 @@ export function ProductListSection(props: {
   const freshPrice = parseAmount(fresh.price);
   const draftStock = parseStock(draft.stock);
   const freshStock = parseStock(fresh.stock);
+  const draftLow = parseStock(draft.low);
+  const freshLow = parseStock(fresh.low);
+  const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
 
   return (
     <View style={{ gap: 8 }} testID="products">
@@ -71,6 +76,22 @@ export function ProductListSection(props: {
         {p.title}
       </Text>
       <Text style={styles.muted}>{p.listHint}</Text>
+      {toOrder.length > 0 ? (
+        <Text style={styles.warn} role="status" testID="products-to-order">
+          {fill(p.toOrder, {
+            names: toOrder
+              .map(
+                (x) =>
+                  `${x.name} (${
+                    x.stockQuantity === 0
+                      ? p.stockNone
+                      : fill(p.stockLeft, { n: String(x.stockQuantity) })
+                  })`,
+              )
+              .join(', '),
+          })}
+        </Text>
+      ) : null}
       {products && products.length === 0 ? <Text style={styles.muted}>{p.empty}</Text> : null}
       {(products ?? []).map((x) =>
         editId === x.id ? (
@@ -100,12 +121,25 @@ export function ProductListSection(props: {
               style={[styles.input, { marginTop: 8 }]}
             />
             {draftStock === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
+            <TextInput
+              accessibilityLabel={p.lowIn}
+              placeholder={p.lowIn}
+              placeholderTextColor={colors.placeholder}
+              keyboardType="number-pad"
+              value={draft.low}
+              onChangeText={(low) => setDraft({ ...draft, low })}
+              style={[styles.input, { marginTop: 8 }]}
+            />
+            {draftLow === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
             <View style={styles.row}>
               <Button
                 label={p.save}
                 busy={busy}
                 disabled={
-                  draftPrice === null || draftStock === undefined || draft.name.trim() === ''
+                  draftPrice === null ||
+                  draftStock === undefined ||
+                  draftLow === undefined ||
+                  draft.name.trim() === ''
                 }
                 onPress={() =>
                   void run(() =>
@@ -113,6 +147,7 @@ export function ProductListSection(props: {
                       name: draft.name.trim(),
                       priceGrosze: draftPrice ?? x.priceGrosze,
                       stockQuantity: draftStock ?? null,
+                      lowStockAt: draftLow ?? null,
                     }),
                   ).then((ok) => ok && setEditId(null))
                 }
@@ -128,7 +163,10 @@ export function ProductListSection(props: {
             </View>
             {x.active ? null : <Text style={styles.muted}>{p.notSold}</Text>}
             {x.stockQuantity === null ? null : x.stockQuantity > 0 ? (
-              <Text style={styles.muted}>{fill(p.stockLeft, { n: String(x.stockQuantity) })}</Text>
+              <Text style={x.lowStock ? styles.warn : styles.muted}>
+                {fill(p.stockLeft, { n: String(x.stockQuantity) })}
+                {x.lowStock ? ` · ${p.lowBadge}` : ''}
+              </Text>
             ) : (
               <Text style={styles.warn}>{p.stockNone}</Text>
             )}
@@ -159,6 +197,7 @@ export function ProductListSection(props: {
                       name: x.name,
                       price: amountInput(x.priceGrosze) || '0',
                       stock: x.stockQuantity === null ? '' : String(x.stockQuantity),
+                      low: x.lowStockAt === null ? '' : String(x.lowStockAt),
                     });
                     setEditId(x.id);
                   }}
@@ -214,6 +253,16 @@ export function ProductListSection(props: {
         style={styles.input}
       />
       {freshStock === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
+      <TextInput
+        accessibilityLabel={p.lowIn}
+        placeholder={p.lowIn}
+        placeholderTextColor={colors.placeholder}
+        keyboardType="number-pad"
+        value={fresh.low}
+        onChangeText={(low) => setFresh({ ...fresh, low })}
+        style={styles.input}
+      />
+      {freshLow === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
       <View style={styles.row}>
         <Button
           label={p.add}
@@ -222,7 +271,8 @@ export function ProductListSection(props: {
             fresh.name.trim() === '' ||
             fresh.price.trim() === '' ||
             freshPrice === null ||
-            freshStock === undefined
+            freshStock === undefined ||
+            freshLow === undefined
           }
           onPress={() =>
             void run(() =>
@@ -232,8 +282,9 @@ export function ProductListSection(props: {
                 fresh.name.trim(),
                 freshPrice ?? 0,
                 freshStock ?? null,
+                freshLow ?? null,
               ),
-            ).then((ok) => ok && setFresh({ name: '', price: '', stock: '' }))
+            ).then((ok) => ok && setFresh({ name: '', price: '', stock: '', low: '' }))
           }
         />
       </View>
