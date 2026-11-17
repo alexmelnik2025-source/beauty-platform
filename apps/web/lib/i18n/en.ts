@@ -1473,6 +1473,12 @@ export const en: Dict = {
     stockNew: 'In stock (pcs, empty — not counted)',
     stockLeft: '{n} pcs left',
     stockNone: 'Out of stock',
+    low: 'Running low at',
+    lowNew: 'Running low at (pcs, empty — no warning)',
+    lowBadge: 'Running low',
+    toOrder: 'To order: {names}',
+    lowHint:
+      '“Running low at” — how many pieces is already few; the product gets the “Running low” mark.',
     stockHint:
       'An empty “In stock” field means the pieces are not counted. A sale at a visit lowers the stock, removing the sale puts it back.',
   },

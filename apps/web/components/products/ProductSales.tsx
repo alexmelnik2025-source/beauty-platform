@@ -143,6 +143,7 @@ export function ProductSales({
                         ? p.stockLeft.replace('{n}', String(x.stockQuantity))
                         : p.stockNone
                     }`}
+                {x.lowStock && x.stockQuantity !== 0 ? ` · ${p.lowBadge}` : ''}
               </option>
             ))}
           </select>

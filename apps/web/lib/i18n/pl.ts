@@ -1470,6 +1470,11 @@ export const pl = {
     stockNew: 'W magazynie (szt., puste — nie liczymy)',
     stockLeft: 'zostało {n} szt.',
     stockNone: 'Brak w magazynie',
+    low: 'Kończy się przy',
+    lowNew: 'Kończy się przy (szt., puste — bez ostrzeżenia)',
+    lowBadge: 'Kończy się',
+    toOrder: 'Do zamówienia: {names}',
+    lowHint: '„Kończy się przy” — ile sztuk to już mało; produkt dostanie znak „Kończy się”.',
     stockHint:
       'Puste pole „W magazynie” — nie liczymy sztuk. Sprzedaż przy wizycie zmniejsza stan, usunięcie sprzedaży go przywraca.',
   },

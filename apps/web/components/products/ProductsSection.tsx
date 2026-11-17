@@ -30,6 +30,8 @@ function amountInput(hundredths: number): string {
  * name and price they had. Owners and managers (the page is theirs).
  * Task 430: "W magazynie" — pieces in stock (empty = not counted); a sale at a visit takes them
  * away, "Brak" when none are left.
+ * Task 434: "Kończy się przy" — the salon's own number of pieces that is already few; such products
+ * get "Kończy się", and the ones to order are listed above.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t } = useI18n();
@@ -37,11 +39,12 @@ export function ProductsSection({ base }: { base: string }) {
   const { location } = useSession();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [drafts, setDrafts] = useState<
-    Record<string, { name: string; price: string; stock: string }>
+    Record<string, { name: string; price: string; stock: string; low: string }>
   >({});
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
+  const [low, setLow] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -51,7 +54,12 @@ export function ProductsSection({ base }: { base: string }) {
       Object.fromEntries(
         list.map((x) => [
           x.id,
-          { name: x.name, price: amountInput(x.priceGrosze), stock: stockInput(x.stockQuantity) },
+          {
+            name: x.name,
+            price: amountInput(x.priceGrosze),
+            stock: stockInput(x.stockQuantity),
+            low: stockInput(x.lowStockAt),
+          },
         ]),
       ),
     );
@@ -86,11 +94,14 @@ export function ProductsSection({ base }: { base: string }) {
 
   const newPrice = parseAmount(price);
   const newStock = parseStock(stock);
+  const newLow = parseStock(low);
+  const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
   const canAdd =
     name.trim() !== '' &&
     price.trim() !== '' &&
     newPrice !== null &&
     newStock !== undefined &&
+    newLow !== undefined &&
     !busy;
 
   return (
@@ -98,7 +109,25 @@ export function ProductsSection({ base }: { base: string }) {
       <h2>{p.title}</h2>
       <p className="small muted">{p.hint}</p>
       <p className="small muted">{p.stockHint}</p>
+      <p className="small muted">{p.lowHint}</p>
       <ErrorBox>{error}</ErrorBox>
+      {toOrder.length > 0 ? (
+        <p className="note" role="status" data-testid="products-to-order">
+          {p.toOrder.replace(
+            '{names}',
+            toOrder
+              .map(
+                (x) =>
+                  `${x.name} (${
+                    x.stockQuantity === 0
+                      ? p.stockNone
+                      : p.stockLeft.replace('{n}', String(x.stockQuantity))
+                  })`,
+              )
+              .join(', '),
+          )}
+        </p>
+      ) : null}
       {products && products.length === 0 ? <p className="note">{p.empty}</p> : null}
       {products && products.length > 0 ? (
         <ul className="commission-list">
@@ -107,13 +136,16 @@ export function ProductsSection({ base }: { base: string }) {
               name: x.name,
               price: amountInput(x.priceGrosze),
               stock: stockInput(x.stockQuantity),
+              low: stockInput(x.lowStockAt),
             };
             const draftPrice = parseAmount(draft.price);
             const draftStock = parseStock(draft.stock);
+            const draftLow = parseStock(draft.low);
             const changed =
               draft.name.trim() !== x.name ||
               (draftPrice !== null && draftPrice !== x.priceGrosze) ||
-              (draftStock !== undefined && draftStock !== x.stockQuantity);
+              (draftStock !== undefined && draftStock !== x.stockQuantity) ||
+              (draftLow !== undefined && draftLow !== x.lowStockAt);
             return (
               <li key={x.id} className="commission-row" data-testid="product-row">
                 <input
@@ -150,9 +182,26 @@ export function ProductsSection({ base }: { base: string }) {
                   />
                   <span aria-hidden="true">{p.pieces}</span>
                 </span>
+                <span className="commission-row__input">
+                  <input
+                    inputMode="numeric"
+                    aria-label={`${p.low} — ${x.name}`}
+                    aria-invalid={draftLow === undefined}
+                    placeholder="—"
+                    value={draft.low}
+                    onChange={(e) =>
+                      setDrafts({ ...drafts, [x.id]: { ...draft, low: e.target.value } })
+                    }
+                  />
+                  <span aria-hidden="true">{p.pieces}</span>
+                </span>
                 {x.stockQuantity === 0 ? (
                   <span className="badge" data-testid="product-out">
                     {p.stockNone}
+                  </span>
+                ) : x.lowStock ? (
+                  <span className="badge" data-testid="product-low">
+                    {p.lowBadge}
                   </span>
                 ) : null}
                 <button
@@ -163,6 +212,7 @@ export function ProductsSection({ base }: { base: string }) {
                     !changed ||
                     draftPrice === null ||
                     draftStock === undefined ||
+                    draftLow === undefined ||
                     draft.name.trim() === ''
                   }
                   onClick={() =>
@@ -173,6 +223,7 @@ export function ProductsSection({ base }: { base: string }) {
                           name: draft.name.trim(),
                           priceGrosze: draftPrice,
                           stockQuantity: draftStock,
+                          lowStockAt: draftLow,
                         },
                       }),
                     )
@@ -222,13 +273,19 @@ export function ProductsSection({ base }: { base: string }) {
           void run(() =>
             api(`${base}/products`, {
               method: 'POST',
-              body: { name: name.trim(), priceGrosze: newPrice, stockQuantity: newStock },
+              body: {
+                name: name.trim(),
+                priceGrosze: newPrice,
+                stockQuantity: newStock,
+                lowStockAt: newLow,
+              },
             }),
           ).then((ok) => {
             if (ok) {
               setName('');
               setPrice('');
               setStock('');
+              setLow('');
             }
           });
         }}
@@ -256,6 +313,16 @@ export function ProductsSection({ base }: { base: string }) {
             placeholder="—"
             aria-invalid={newStock === undefined}
             onChange={(e) => setStock(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>{p.lowNew}</span>
+          <input
+            inputMode="numeric"
+            value={low}
+            placeholder="—"
+            aria-invalid={newLow === undefined}
+            onChange={(e) => setLow(e.target.value)}
           />
         </label>
         <button type="submit" className="btn btn--small" disabled={!canAdd}>

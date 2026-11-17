@@ -188,6 +188,33 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByTestId('product-out')).toHaveText('Brak w magazynie');
   await shot(page, '430-owner-stock');
 
+  // Task 434: "Kończy się przy" — three shampoos are already few; both go to "Do zamówienia".
+  const shampooRow = products
+    .getByTestId('product-row')
+    .filter({ has: page.getByLabel('Nazwa — Szampon') });
+  await products.getByLabel('W magazynie — Szampon').fill('3');
+  await products.getByLabel('Kończy się przy — Szampon').fill('3');
+  await shampooRow.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(shampooRow.getByTestId('product-low')).toHaveText('Kończy się');
+  await expect(products.getByTestId('products-to-order')).toHaveText(
+    'Do zamówienia: Pomada matowa (Brak w magazynie), Szampon (zostało 3 szt.)',
+  );
+  await expect(products.getByLabel('Kończy się przy — Pomada matowa')).toHaveValue('');
+  await products.scrollIntoViewIfNeeded();
+  await shot(page, '434-owner-low-stock');
+  // The visit card says it too.
+  await page.goto(`/pl/app/calendar?date=${visit.date}`);
+  await page.getByRole('button', { name: /Jan Kowalski/ }).click();
+  await expect(
+    page
+      .getByRole('dialog')
+      .getByTestId('visit-products')
+      .getByLabel('Wybierz produkt')
+      .locator('option')
+      .nth(2),
+  ).toHaveText(/Szampon · 30,50\s*zł · zostało 3 szt\. · Kończy się/);
+  await page.keyboard.press('Escape');
+
   // "Raporty": products apart from the visit revenue (the visit itself was not paid).
   await page.goto('/pl/app/reports');
   await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
