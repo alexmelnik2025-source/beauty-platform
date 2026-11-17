@@ -12,6 +12,8 @@ export const createProductSchema = z.object({
   priceGrosze: z.number().int().min(0).max(10_000_000),
   /** Task 429: pieces in stock; null (or left out) = the salon does not count them. */
   stockQuantity: z.number().int().min(0).max(100_000).nullable().optional(),
+  /** Task 433: "Kończy się" at this many pieces or fewer; null (or left out) = no warning. */
+  lowStockAt: z.number().int().min(0).max(100_000).nullable().optional(),
 });
 
 export const updateProductSchema = z
@@ -19,6 +21,7 @@ export const updateProductSchema = z
     name: createProductSchema.shape.name,
     priceGrosze: createProductSchema.shape.priceGrosze,
     stockQuantity: z.number().int().min(0).max(100_000).nullable(),
+    lowStockAt: z.number().int().min(0).max(100_000).nullable(),
     active: z.boolean(),
   })
   .partial();
@@ -45,6 +48,14 @@ const product = z.strictObject({
     .int()
     .nullable()
     .describe('Pieces in stock (task 429); null = the salon does not count them'),
+  lowStockAt: z
+    .number()
+    .int()
+    .nullable()
+    .describe('"Kończy się" at this many pieces or fewer (task 433); null = no warning'),
+  lowStock: z
+    .boolean()
+    .describe('The salon counts the pieces and there are lowStockAt or fewer left (task 433)'),
 });
 
 export const productListSchema = responseSchema(

@@ -20,6 +20,8 @@ const toProduct = (p: Product): ProductResponse => ({
   priceGrosze: p.priceGrosze,
   active: p.active,
   stockQuantity: p.stockQuantity,
+  lowStockAt: p.lowStockAt,
+  lowStock: p.stockQuantity !== null && p.lowStockAt !== null && p.stockQuantity <= p.lowStockAt,
 });
 
 /**
@@ -30,6 +32,9 @@ const toProduct = (p: Product): ProductResponse => ({
  * Task 429: a product may count its pieces in stock (`stockQuantity`, null = not counted). A sale
  * takes them away — more than there are is refused (409 OUT_OF_STOCK) — and removing a sale puts
  * them back, both in one transaction with the sale.
+ *
+ * Task 433: with `lowStockAt` the product says "Kończy się" (`lowStock`) once that many pieces or
+ * fewer are left, so the owner orders more in time.
  *
  * The list: everyone in the salon reads it (to note a sale), owners and managers change it.
  * Sales: whoever may change the visit (own visits with "changeOwnAppointments", others' with

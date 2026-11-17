@@ -1488,6 +1488,8 @@ model Product {
   /// Task 429: pieces in stock; null = the salon does not count them. A sale takes them away,
   /// removing the sale puts them back.
   stockQuantity Int?     @map("stock_quantity")
+  /// Task 433: "Kończy się" when stockQuantity ≤ this; null = no warning.
+  lowStockAt    Int?     @map("low_stock_at")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -8065,6 +8065,18 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "lowStockAt": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -8138,6 +8150,18 @@
                     "maximum": 10000000
                   },
                   "stockQuantity": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lowStockAt": {
                     "anyOf": [
                       {
                         "type": "integer",
@@ -21090,6 +21114,17 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "lowStockAt": {
+            "nullable": true,
+            "description": "\"Kończy się\" at this many pieces or fewer (task 433); null = no warning",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "lowStock": {
+            "type": "boolean",
+            "description": "The salon counts the pieces and there are lowStockAt or fewer left (task 433)"
           }
         },
         "required": [
@@ -21097,7 +21132,9 @@
           "name",
           "priceGrosze",
           "active",
-          "stockQuantity"
+          "stockQuantity",
+          "lowStockAt",
+          "lowStock"
         ],
         "additionalProperties": false
       },
@@ -21131,6 +21168,17 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "lowStockAt": {
+                  "nullable": true,
+                  "description": "\"Kończy się\" at this many pieces or fewer (task 433); null = no warning",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "lowStock": {
+                  "type": "boolean",
+                  "description": "The salon counts the pieces and there are lowStockAt or fewer left (task 433)"
                 }
               },
               "required": [
@@ -21138,7 +21186,9 @@
                 "name",
                 "priceGrosze",
                 "active",
-                "stockQuantity"
+                "stockQuantity",
+                "lowStockAt",
+                "lowStock"
               ],
               "additionalProperties": false
             },

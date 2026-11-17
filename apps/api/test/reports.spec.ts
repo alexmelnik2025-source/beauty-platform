@@ -1551,6 +1551,86 @@ describe('salon report', () => {
     expect(await stock(pomade.id)).toBeNull();
   });
 
+  it('"Kończy się": a product warns at its own number of pieces or fewer (task 433)', async () => {
+    const created = await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(owner.auth)
+      .send({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 3, lowStockAt: 1 })
+      .expect(201);
+    const pomade = created.body as { id: string; lowStockAt: number | null; lowStock: boolean };
+    expect(pomade).toMatchObject({ lowStockAt: 1, lowStock: false });
+    expect(registeredResponseSchema('Product').safeParse(pomade).error).toBeUndefined();
+    // Without numbers there is no warning.
+    const wax = (
+      await ctx
+        .http()
+        .post(`${base}/products`)
+        .set(owner.auth)
+        .send({ name: 'Wosk', priceGrosze: 3000, lowStockAt: 5 })
+        .expect(201)
+    ).body as { id: string };
+    // A negative number is refused; only owners and managers change it.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ lowStockAt: -1 })
+      .expect(400);
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(kasiaUser.auth)
+      .send({ lowStockAt: 2 })
+      .expect(403);
+
+    const read = async (id: string) => {
+      const list = (await ctx.http().get(`${base}/products`).set(kasiaUser.auth).expect(200))
+        .body as {
+        products: { id: string; stockQuantity: number | null; lowStock: boolean }[];
+      };
+      expect(registeredResponseSchema('ProductList').safeParse(list).error).toBeUndefined();
+      return list.products.find((p) => p.id === id)!;
+    };
+    expect((await read(wax.id)).lowStock).toBe(false);
+
+    // Two pieces sold: one left — "Kończy się"; the sale removed — no longer.
+    const sales = `${base}/appointments/${await visit({ date: addDays(today, -1), status: 'completed', paid: true })}/products`;
+    const sold = await ctx
+      .http()
+      .post(sales)
+      .set(kasiaUser.auth)
+      .send({ productId: pomade.id, quantity: 2 })
+      .expect(201);
+    expect(await read(pomade.id)).toMatchObject({ stockQuantity: 1, lowStock: true });
+    await ctx.http().delete(`${sales}/${sold.body.sales[0].id}`).set(owner.auth).expect(200);
+    expect(await read(pomade.id)).toMatchObject({ stockQuantity: 3, lowStock: false });
+
+    // The owner raises the number; then turns the warning off.
+    const raised = await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ lowStockAt: 3 })
+      .expect(200);
+    expect(raised.body).toMatchObject({ lowStockAt: 3, lowStock: true });
+    const off = await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ lowStockAt: null })
+      .expect(200);
+    expect(off.body).toMatchObject({ lowStockAt: null, lowStock: false });
+    // Not counting the pieces any more: no warning either.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ lowStockAt: 10, stockQuantity: null })
+      .expect(200);
+    expect((await read(pomade.id)).lowStock).toBe(false);
+  });
+
   it('"CSV sprzedaży produktów": every product sold in the period, own visits for a specialist (task 422)', async () => {
     const product = async (name: string, priceGrosze: number) =>
       (

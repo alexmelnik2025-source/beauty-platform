@@ -5425,6 +5425,10 @@ export interface components {
             active: boolean;
             /** @description Pieces in stock (task 429); null = the salon does not count them */
             stockQuantity: number | null;
+            /** @description "Kończy się" at this many pieces or fewer (task 433); null = no warning */
+            lowStockAt: number | null;
+            /** @description The salon counts the pieces and there are lowStockAt or fewer left (task 433) */
+            lowStock: boolean;
         };
         ProductList: {
             /** @description The salon’s products, sold ones first, then by name */
@@ -5437,6 +5441,10 @@ export interface components {
                 active: boolean;
                 /** @description Pieces in stock (task 429); null = the salon does not count them */
                 stockQuantity: number | null;
+                /** @description "Kończy się" at this many pieces or fewer (task 433); null = no warning */
+                lowStockAt: number | null;
+                /** @description The salon counts the pieces and there are lowStockAt or fewer left (task 433) */
+                lowStock: boolean;
             }[];
         };
         /** @description An appointment as the client sees it */
@@ -10223,6 +10231,7 @@ export interface operations {
                     name: string;
                     priceGrosze: number;
                     stockQuantity?: number | null;
+                    lowStockAt?: number | null;
                 };
             };
         };
@@ -10273,6 +10282,7 @@ export interface operations {
                     name?: string;
                     priceGrosze?: number;
                     stockQuantity?: number | null;
+                    lowStockAt?: number | null;
                     active?: boolean;
                 };
             };
