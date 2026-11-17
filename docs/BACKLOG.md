@@ -1516,6 +1516,10 @@
       e2e + скриншот.
 - [x] **435. Бизнес-приложение: «Kończy się»** — готово 17.11.2026 (скриншот 435) — то же в «Usługi» → «Produkty» и на кнопках продажи в карточке визита.
       e2e + скриншот.
+- [ ] **436. «CSV stanu magazynowego» — API** — `GET …/products/export.csv` (владелец/менеджер): товар, цена,
+      «sprzedajemy», w magazynie, kończy się przy, «do zamówienia» (tak/nie); 4 языка колонок, формат как у других CSV.
+      Тест на PostgreSQL. Нужен для заказа у поставщика.
+- [ ] **437. Кнопка «CSV stanu magazynowego»** — в «Usługi» → «Produkty» кабинета и бизнес-приложения. e2e.
 
 ## Вопросы владельцу
 
