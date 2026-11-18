@@ -1934,7 +1934,7 @@ export interface paths {
         };
         /**
          * "CSV stanu magazynowego": the products with what is in stock, for ordering
-         * @description Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes when it has run low). Same file format as visits-csv; an empty cell where the pieces are not counted.
+         * @description Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out). Same file format as visits-csv; an empty cell where the pieces are not counted.
          */
         get: operations["ProductsController_stockCsv"];
         put?: never;

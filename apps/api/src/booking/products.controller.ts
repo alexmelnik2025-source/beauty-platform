@@ -76,7 +76,7 @@ export class ProductsController {
   @ApiOperation({
     summary: '"CSV stanu magazynowego": the products with what is in stock, for ordering',
     description:
-      'Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes when it has run low). Same file format as visits-csv; an empty cell where the pieces are not counted.',
+      'Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out). Same file format as visits-csv; an empty cell where the pieces are not counted.',
   })
   @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
   @ApiProduces('text/csv')

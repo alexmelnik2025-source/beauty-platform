@@ -8112,7 +8112,7 @@
     },
     "/v1/organizations/{orgId}/locations/{locationId}/products/export.csv": {
       "get": {
-        "description": "Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes when it has run low). Same file format as visits-csv; an empty cell where the pieces are not counted.",
+        "description": "Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out). Same file format as visits-csv; an empty cell where the pieces are not counted.",
         "operationId": "ProductsController_stockCsv",
         "parameters": [
           {

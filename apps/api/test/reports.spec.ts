@@ -1637,6 +1637,7 @@ describe('salon report', () => {
     await add({ name: 'Pomada; mocna', priceGrosze: 4500, stockQuantity: 1, lowStockAt: 2 });
     await add({ name: '=Aloes', priceGrosze: 3000, stockQuantity: 10, lowStockAt: 2 });
     await add({ name: 'Wosk', priceGrosze: 2550 });
+    await add({ name: 'Żel', priceGrosze: 2000, stockQuantity: 0 });
     const old = (await add({ name: 'Olejek', priceGrosze: 5000, stockQuantity: 0 })).body as {
       id: string;
     };
@@ -1673,6 +1674,8 @@ describe('salon report', () => {
       "'=Aloes;30,00;tak;10;2;nie",
       '"Pomada; mocna";45,00;tak;1;2;tak',
       'Wosk;25,50;tak;;;nie',
+      // Sold out: to order even without "Kończy się przy"; not when it is no longer sold.
+      'Żel;20,00;tak;0;;tak',
       'Olejek;50,00;nie;0;;nie',
     ]);
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
