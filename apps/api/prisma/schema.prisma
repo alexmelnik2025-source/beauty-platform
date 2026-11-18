@@ -1493,11 +1493,44 @@ model Product {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  sales    ProductSale[]
+  location       Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  sales          ProductSale[]
+  stockMovements StockMovement[]
 
   @@index([locationId])
   @@map("product")
+}
+
+/// Task 440: why the pieces in stock changed.
+enum StockMovementKind {
+  /// Sold at a visit.
+  sale
+  /// A sale noted by mistake was removed: the pieces came back.
+  sale_removed
+  /// "Dostawa": pieces that arrived from the supplier.
+  delivery
+  /// The owner or a manager wrote another number (or started / stopped counting).
+  correction
+
+  @@map("stock_movement_kind")
+}
+
+/// Task 440: "Historia magazynu" — every change of a product's pieces in stock, who and when.
+model StockMovement {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  productId       String            @map("product_id") @db.Uuid
+  kind            StockMovementKind
+  /// Pieces added (+) or taken (−).
+  change          Int
+  /// Pieces in stock after the change; null = the salon stopped counting.
+  quantityAfter   Int?              @map("quantity_after")
+  createdByUserId String?           @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+  @@map("stock_movement")
 }
 
 /// Task 394: a product sold at a visit, with its name and price at the time of the sale.

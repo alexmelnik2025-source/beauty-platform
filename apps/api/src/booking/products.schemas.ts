@@ -95,6 +95,35 @@ export const visitProductSalesSchema = responseSchema(
   }),
 );
 
+export const STOCK_MOVEMENT_KINDS = ['sale', 'sale_removed', 'delivery', 'correction'] as const;
+
+export const stockHistorySchema = responseSchema(
+  'StockHistory',
+  z.strictObject({
+    movements: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          kind: z
+            .enum(STOCK_MOVEMENT_KINDS)
+            .describe(
+              'sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand',
+            ),
+          change: z.number().int().describe('Pieces added (+) or taken (−)'),
+          quantityAfter: z
+            .number()
+            .int()
+            .nullable()
+            .describe('Pieces in stock after the change; null = the salon stopped counting'),
+          at: z.iso.datetime(),
+          byName: z.string().nullable().describe('Who did it; null when unknown'),
+        }),
+      )
+      .describe('Newest first, at most 100'),
+  }),
+);
+
+export type StockHistoryResponse = z.infer<typeof stockHistorySchema>;
 export type ProductListResponse = z.infer<typeof productListSchema>;
 export type ProductResponse = z.infer<typeof productSchema>;
 export type VisitProductSalesResponse = z.infer<typeof visitProductSalesSchema>;

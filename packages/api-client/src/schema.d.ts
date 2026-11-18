@@ -1986,6 +1986,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/stock-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Historia magazynu": the last changes of the pieces in stock
+         * @description Task 440. Owners and managers. Sales, removed sales, deliveries and numbers written by hand — with who and when, newest first (at most 100).
+         */
+        get: operations["ProductsController_stockHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products": {
         parameters: {
             query?: never;
@@ -6433,6 +6453,25 @@ export interface components {
                 durationMinutes: number;
             }[];
         };
+        StockHistory: {
+            /** @description Newest first, at most 100 */
+            movements: {
+                id: string;
+                /**
+                 * @description sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand
+                 * @enum {string}
+                 */
+                kind: "sale" | "sale_removed" | "delivery" | "correction";
+                /** @description Pieces added (+) or taken (−) */
+                change: number;
+                /** @description Pieces in stock after the change; null = the salon stopped counting */
+                quantityAfter: number | null;
+                /** Format: date-time */
+                at: string;
+                /** @description Who did it; null when unknown */
+                byName: string | null;
+            }[];
+        };
         TillClose: {
             date: string;
             currency: string;
@@ -10386,6 +10425,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Product"];
+                };
+            };
+        };
+    };
+    ProductsController_stockHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockHistory"];
                 };
             };
         };

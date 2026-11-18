@@ -8355,6 +8355,51 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/stock-history": {
+      "get": {
+        "description": "Task 440. Owners and managers. Sales, removed sales, deliveries and numbers written by hand — with who and when, newest first (at most 100).",
+        "operationId": "ProductsController_stockHistory",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockHistory"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Historia magazynu\": the last changes of the pieces in stock",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products": {
       "get": {
         "operationId": "ProductsController_sales",
@@ -25133,6 +25178,69 @@
         "required": [
           "prices",
           "durations"
+        ],
+        "additionalProperties": false
+      },
+      "StockHistory": {
+        "type": "object",
+        "properties": {
+          "movements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "sale",
+                    "sale_removed",
+                    "delivery",
+                    "correction"
+                  ],
+                  "description": "sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — \"Dostawa\"; correction — the number written by hand"
+                },
+                "change": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Pieces added (+) or taken (−)"
+                },
+                "quantityAfter": {
+                  "nullable": true,
+                  "description": "Pieces in stock after the change; null = the salon stopped counting",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "byName": {
+                  "nullable": true,
+                  "description": "Who did it; null when unknown",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "change",
+                "quantityAfter",
+                "at",
+                "byName"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Newest first, at most 100"
+          }
+        },
+        "required": [
+          "movements"
         ],
         "additionalProperties": false
       },

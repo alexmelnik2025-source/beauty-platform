@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
-import type { Product } from '../generated/prisma/client';
+import type { Prisma, Product, StockMovementKind } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { instantToLocal } from '../scheduling/time';
@@ -12,6 +12,7 @@ import type {
   AddProductSaleInput,
   CreateProductInput,
   RestockProductInput,
+  StockHistoryResponse,
   ProductListResponse,
   ProductResponse,
   UpdateProductInput,
@@ -20,6 +21,20 @@ import type {
 
 /** The most pieces a product may have in stock (as in the product form). */
 const MAX_STOCK = 100_000;
+
+/** Task 440: writes down one change of the pieces in stock. */
+function movement(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  kind: StockMovementKind,
+  change: number,
+  quantityAfter: number | null,
+  userId: string,
+) {
+  return tx.stockMovement.create({
+    data: { productId, kind, change, quantityAfter, createdByUserId: userId },
+  });
+}
 
 const toProduct = (p: Product): ProductResponse => ({
   id: p.id,
@@ -43,6 +58,9 @@ const toProduct = (p: Product): ProductResponse => ({
  * Task 438: "Dostawa" adds the pieces that arrived to what is in stock in one step, so the owner
  * does not count by hand (and a sale at the same moment is not lost); a product that did not count
  * its pieces starts counting with them.
+ *
+ * Task 440: every change of the pieces in stock is written down ("Historia magazynu"): a sale, a
+ * sale removed, a delivery, a number written by hand — with who and when, in the same transaction.
  *
  * Task 433: with `lowStockAt` the product says "Kończy się" (`lowStock`) once that many pieces or
  * fewer are left, so the owner orders more in time.
@@ -88,61 +106,134 @@ export class ProductsService {
 
   async create(
     m: MembershipContext,
+    userId: string,
     locationId: string,
     input: CreateProductInput,
   ): Promise<ProductResponse> {
     await this.access.writable(m, locationId);
-    return toProduct(await this.prisma.product.create({ data: { ...input, locationId } }));
+    return toProduct(
+      await this.prisma.$transaction(async (tx) => {
+        const product = await tx.product.create({ data: { ...input, locationId } });
+        if (product.stockQuantity !== null && product.stockQuantity > 0) {
+          await movement(
+            tx,
+            product.id,
+            'correction',
+            product.stockQuantity,
+            product.stockQuantity,
+            userId,
+          );
+        }
+        return product;
+      }),
+    );
   }
 
   async update(
     m: MembershipContext,
+    userId: string,
     locationId: string,
     productId: string,
     input: UpdateProductInput,
   ): Promise<ProductResponse> {
     await this.access.writable(m, locationId);
-    const result = await this.prisma.product.updateMany({
-      where: { id: productId, locationId },
-      data: input,
-    });
-    if (result.count !== 1) throw notFound('Product');
-    return toProduct(await this.prisma.product.findUniqueOrThrow({ where: { id: productId } }));
+    return toProduct(
+      await this.prisma.$transaction(async (tx) => {
+        const before = await tx.product.findFirst({ where: { id: productId, locationId } });
+        if (!before) throw notFound('Product');
+        const result = await tx.product.updateMany({
+          where: { id: productId, locationId },
+          data: input,
+        });
+        if (result.count !== 1) throw notFound('Product');
+        const after = await tx.product.findUniqueOrThrow({ where: { id: productId } });
+        // Task 440: a number written by hand (a sale at the same moment is its own movement).
+        if (input.stockQuantity !== undefined && after.stockQuantity !== before.stockQuantity) {
+          await movement(
+            tx,
+            productId,
+            'correction',
+            (after.stockQuantity ?? 0) - (before.stockQuantity ?? 0),
+            after.stockQuantity,
+            userId,
+          );
+        }
+        return after;
+      }),
+    );
   }
 
   async restock(
     m: MembershipContext,
+    userId: string,
     locationId: string,
     productId: string,
     input: RestockProductInput,
   ): Promise<ProductResponse> {
     await this.access.writable(m, locationId);
-    const added = await this.prisma.product.updateMany({
-      where: {
-        id: productId,
-        locationId,
-        stockQuantity: { not: null, lte: MAX_STOCK - input.quantity },
-      },
-      data: { stockQuantity: { increment: input.quantity } },
-    });
-    if (added.count !== 1) {
-      const started = await this.prisma.product.updateMany({
-        where: { id: productId, locationId, stockQuantity: null },
-        data: { stockQuantity: input.quantity },
+    const product = await this.prisma.$transaction(async (tx) => {
+      const added = await tx.product.updateMany({
+        where: {
+          id: productId,
+          locationId,
+          stockQuantity: { not: null, lte: MAX_STOCK - input.quantity },
+        },
+        data: { stockQuantity: { increment: input.quantity } },
       });
-      if (started.count !== 1) {
-        const product = await this.prisma.product.findFirst({
-          where: { id: productId, locationId },
+      if (added.count !== 1) {
+        const started = await tx.product.updateMany({
+          where: { id: productId, locationId, stockQuantity: null },
+          data: { stockQuantity: input.quantity },
         });
-        if (!product) throw notFound('Product');
-        throw new AppException(
-          HttpStatus.CONFLICT,
-          'STOCK_LIMIT',
-          `At most ${MAX_STOCK} pieces in stock`,
-        );
+        if (started.count !== 1) {
+          const found = await tx.product.findFirst({ where: { id: productId, locationId } });
+          if (!found) throw notFound('Product');
+          throw new AppException(
+            HttpStatus.CONFLICT,
+            'STOCK_LIMIT',
+            `At most ${MAX_STOCK} pieces in stock`,
+          );
+        }
       }
-    }
-    return toProduct(await this.prisma.product.findUniqueOrThrow({ where: { id: productId } }));
+      const after = await tx.product.findUniqueOrThrow({ where: { id: productId } });
+      await movement(tx, productId, 'delivery', input.quantity, after.stockQuantity, userId);
+      return after;
+    });
+    return toProduct(product);
+  }
+
+  /** Task 440: "Historia magazynu" — the last 100 changes of the pieces in stock, newest first. */
+  async stockHistory(
+    m: MembershipContext,
+    locationId: string,
+    productId: string,
+  ): Promise<StockHistoryResponse> {
+    await this.access.writable(m, locationId);
+    const product = await this.prisma.product.findFirst({ where: { id: productId, locationId } });
+    if (!product) throw notFound('Product');
+    const rows = await this.prisma.stockMovement.findMany({
+      where: { productId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+    });
+    const userIds = [
+      ...new Set(rows.flatMap((r) => (r.createdByUserId ? [r.createdByUserId] : []))),
+    ];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(users.map((u) => [u.id, u.name]));
+    return {
+      movements: rows.map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        change: r.change,
+        quantityAfter: r.quantityAfter,
+        at: r.createdAt.toISOString(),
+        byName: (r.createdByUserId && names.get(r.createdByUserId)) || null,
+      })),
+    };
   }
 
   /** Removes a product from the list; its past sales keep their name and price. */
@@ -196,6 +287,8 @@ export class ProductsService {
             `Only ${left?.stockQuantity ?? 0} in stock`,
           );
         }
+        const left = await tx.product.findUniqueOrThrow({ where: { id: product.id } });
+        await movement(tx, product.id, 'sale', -input.quantity, left.stockQuantity, userId);
       }
       await tx.productSale.create({
         data: {
@@ -230,10 +323,21 @@ export class ProductsService {
       if (!sale || result.count !== 1) throw notFound('Product sale');
       // The pieces go back to stock if the product still counts them.
       if (sale.productId) {
-        await tx.product.updateMany({
+        const back = await tx.product.updateMany({
           where: { id: sale.productId, stockQuantity: { not: null } },
           data: { stockQuantity: { increment: sale.quantity } },
         });
+        if (back.count === 1) {
+          const after = await tx.product.findUniqueOrThrow({ where: { id: sale.productId } });
+          await movement(
+            tx,
+            sale.productId,
+            'sale_removed',
+            sale.quantity,
+            after.stockQuantity,
+            userId,
+          );
+        }
       }
     });
     return this.view(appointmentId);

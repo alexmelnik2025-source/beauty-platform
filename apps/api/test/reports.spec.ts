@@ -1592,6 +1592,91 @@ describe('salon report', () => {
     expect(list.products.find((p) => p.id === pomade.id)?.stockQuantity).toBe(100_000);
   });
 
+  it('"Historia magazynu": every change of the stock with who and when (task 440)', async () => {
+    const pomade = (
+      await ctx
+        .http()
+        .post(`${base}/products`)
+        .set(owner.auth)
+        .send({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 3 })
+        .expect(201)
+    ).body as { id: string };
+    const history = (auth = owner.auth) =>
+      ctx.http().get(`${base}/products/${pomade.id}/stock-history`).set(auth);
+    // A sale by Kasia, the sale removed by the owner, a delivery, a number written by hand.
+    const sales = `${base}/appointments/${await visit({ date: addDays(today, -1), status: 'completed', paid: true })}/products`;
+    const sold = await ctx
+      .http()
+      .post(sales)
+      .set(kasiaUser.auth)
+      .send({ productId: pomade.id, quantity: 2 })
+      .expect(201);
+    await ctx.http().delete(`${sales}/${sold.body.sales[0].id}`).set(owner.auth).expect(200);
+    await ctx
+      .http()
+      .post(`${base}/products/${pomade.id}/restock`)
+      .set(owner.auth)
+      .send({ quantity: 5 })
+      .expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ stockQuantity: 7 })
+      .expect(200);
+    // Only the name or the price: no movement; not counting any more: one.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ priceGrosze: 4600, stockQuantity: 7 })
+      .expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ stockQuantity: null })
+      .expect(200);
+
+    const res = await history().expect(200);
+    expect(registeredResponseSchema('StockHistory').safeParse(res.body).error).toBeUndefined();
+    const rows = (
+      res.body as {
+        movements: { kind: string; change: number; quantityAfter: number | null; byName: string }[];
+      }
+    ).movements.map(({ kind, change, quantityAfter, byName }) => ({
+      kind,
+      change,
+      quantityAfter,
+      byName,
+    }));
+    const ownerName = (
+      await ctx.prisma.user.findFirstOrThrow({ where: { email: 'owner@example.com' } })
+    ).name;
+    const kasiaName = (
+      await ctx.prisma.user.findFirstOrThrow({ where: { email: 'kasia@example.com' } })
+    ).name;
+    expect(rows).toEqual([
+      { kind: 'correction', change: -7, quantityAfter: null, byName: ownerName },
+      { kind: 'correction', change: -1, quantityAfter: 7, byName: ownerName },
+      { kind: 'delivery', change: 5, quantityAfter: 8, byName: ownerName },
+      { kind: 'sale_removed', change: 2, quantityAfter: 3, byName: ownerName },
+      { kind: 'sale', change: -2, quantityAfter: 1, byName: kasiaName },
+      { kind: 'correction', change: 3, quantityAfter: 3, byName: ownerName },
+    ]);
+
+    // Only owners and managers; another salon's product is not found.
+    await history(kasiaUser.auth).expect(403);
+    const other = await signUp(ctx, 'other-history@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await history(other.auth).expect(404);
+    await ctx
+      .http()
+      .get(`${base}/products/00000000-0000-4000-8000-000000000000/stock-history`)
+      .set(owner.auth)
+      .expect(404);
+  });
+
   it('"Kończy się": a product warns at its own number of pieces or fewer (task 433)', async () => {
     const created = await ctx
       .http()

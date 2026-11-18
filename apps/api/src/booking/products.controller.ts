@@ -39,6 +39,7 @@ import {
   productListSchema,
   productSchema,
   restockProductSchema,
+  stockHistorySchema,
   stockCsvQuerySchema,
   updateProductSchema,
   visitProductSalesSchema,
@@ -47,6 +48,7 @@ import {
   type ProductListResponse,
   type ProductResponse,
   type RestockProductInput,
+  type StockHistoryResponse,
   type StockCsvQuery,
   type UpdateProductInput,
   type VisitProductSalesResponse,
@@ -102,11 +104,12 @@ export class ProductsController {
   @ApiZodBody(createProductSchema)
   @ApiZodResponse(productSchema, HttpStatus.CREATED)
   create(
+    @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
     @Body(new ZodValidationPipe(createProductSchema)) body: CreateProductInput,
   ): Promise<ProductResponse> {
-    return this.products.create(m, locationId, body);
+    return this.products.create(m, auth.userId, locationId, body);
   }
 
   @Patch('products/:productId')
@@ -118,12 +121,13 @@ export class ProductsController {
   @ApiZodBody(updateProductSchema)
   @ApiZodResponse(productSchema)
   update(
+    @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
     @Param('productId', uuid('Product')) productId: string,
     @Body(new ZodValidationPipe(updateProductSchema)) body: UpdateProductInput,
   ): Promise<ProductResponse> {
-    return this.products.update(m, locationId, productId, body);
+    return this.products.update(m, auth.userId, locationId, productId, body);
   }
 
   @Post('products/:productId/restock')
@@ -137,12 +141,29 @@ export class ProductsController {
   @ApiZodBody(restockProductSchema)
   @ApiZodResponse(productSchema)
   restock(
+    @CurrentAuth() auth: AuthContext,
     @CurrentMembership() m: MembershipContext,
     @Param('locationId', uuid('Location')) locationId: string,
     @Param('productId', uuid('Product')) productId: string,
     @Body(new ZodValidationPipe(restockProductSchema)) body: RestockProductInput,
   ): Promise<ProductResponse> {
-    return this.products.restock(m, locationId, productId, body);
+    return this.products.restock(m, auth.userId, locationId, productId, body);
+  }
+
+  @Get('products/:productId/stock-history')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: '"Historia magazynu": the last changes of the pieces in stock',
+    description:
+      'Task 440. Owners and managers. Sales, removed sales, deliveries and numbers written by hand — with who and when, newest first (at most 100).',
+  })
+  @ApiZodResponse(stockHistorySchema)
+  stockHistory(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('productId', uuid('Product')) productId: string,
+  ): Promise<StockHistoryResponse> {
+    return this.products.stockHistory(m, locationId, productId);
   }
 
   @Delete('products/:productId')
