@@ -33,10 +33,16 @@ export const addProductSaleSchema = z.object({
   quantity: z.number().int().min(1).max(99).default(1),
 });
 
+/** Task 438: "Dostawa" — pieces that arrived from the supplier, added to what is in stock. */
+export const restockProductSchema = z.object({
+  quantity: z.number().int().min(1).max(100_000),
+});
+
 /** Task 436: the language of the stock CSV's columns. */
 export const stockCsvQuerySchema = z.object({ locale: z.enum(CSV_LOCALES).default('pl') });
 
 export type StockCsvQuery = z.infer<typeof stockCsvQuerySchema>;
+export type RestockProductInput = z.infer<typeof restockProductSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type AddProductSaleInput = z.infer<typeof addProductSaleSchema>;

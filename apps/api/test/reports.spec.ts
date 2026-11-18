@@ -1551,6 +1551,47 @@ describe('salon report', () => {
     expect(await stock(pomade.id)).toBeNull();
   });
 
+  it('"Dostawa": the pieces that arrived are added to the stock (task 438)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({
+      name: 'Pomada',
+      priceGrosze: 4500,
+      stockQuantity: 2,
+      lowStockAt: 3,
+    });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000 });
+    const restock = (id: string, quantity: unknown, auth = owner.auth) =>
+      ctx.http().post(`${base}/products/${id}/restock`).set(auth).send({ quantity });
+
+    const res = await restock(pomade.id, 10).expect(200);
+    expect(res.body).toMatchObject({ stockQuantity: 12, lowStock: false });
+    expect(registeredResponseSchema('Product').safeParse(res.body).error).toBeUndefined();
+    // A product that did not count its pieces starts counting with the delivery.
+    expect((await restock(wax.id, 4).expect(200)).body).toMatchObject({ stockQuantity: 4 });
+
+    // Nothing, a negative or a broken number is refused; too many in stock too.
+    await restock(pomade.id, 0).expect(400);
+    await restock(pomade.id, -2).expect(400);
+    await restock(pomade.id, 'pięć').expect(400);
+    expectError((await restock(pomade.id, 99_990).expect(409)).body, 'STOCK_LIMIT');
+    await restock(pomade.id, 99_988).expect(200);
+
+    // Only owners and managers; another salon's or a missing product is not found.
+    await restock(wax.id, 1, kasiaUser.auth).expect(403);
+    await restock('00000000-0000-4000-8000-000000000000', 1).expect(404);
+    const other = await signUp(ctx, 'other-restock@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await restock(wax.id, 1, other.auth).expect(404);
+    const list = (await ctx.http().get(`${base}/products`).set(owner.auth).expect(200)).body as {
+      products: { id: string; stockQuantity: number | null }[];
+    };
+    expect(list.products.find((p) => p.id === wax.id)?.stockQuantity).toBe(4);
+    expect(list.products.find((p) => p.id === pomade.id)?.stockQuantity).toBe(100_000);
+  });
+
   it('"Kończy się": a product warns at its own number of pieces or fewer (task 433)', async () => {
     const created = await ctx
       .http()

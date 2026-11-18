@@ -38,6 +38,7 @@ import {
   createProductSchema,
   productListSchema,
   productSchema,
+  restockProductSchema,
   stockCsvQuerySchema,
   updateProductSchema,
   visitProductSalesSchema,
@@ -45,6 +46,7 @@ import {
   type CreateProductInput,
   type ProductListResponse,
   type ProductResponse,
+  type RestockProductInput,
   type StockCsvQuery,
   type UpdateProductInput,
   type VisitProductSalesResponse,
@@ -122,6 +124,25 @@ export class ProductsController {
     @Body(new ZodValidationPipe(updateProductSchema)) body: UpdateProductInput,
   ): Promise<ProductResponse> {
     return this.products.update(m, locationId, productId, body);
+  }
+
+  @Post('products/:productId/restock')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Dostawa": add the pieces that arrived to what is in stock',
+    description:
+      'Task 438. In one step, so a sale at the same moment is not lost. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT.',
+  })
+  @ApiZodBody(restockProductSchema)
+  @ApiZodResponse(productSchema)
+  restock(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('productId', uuid('Product')) productId: string,
+    @Body(new ZodValidationPipe(restockProductSchema)) body: RestockProductInput,
+  ): Promise<ProductResponse> {
+    return this.products.restock(m, locationId, productId, body);
   }
 
   @Delete('products/:productId')

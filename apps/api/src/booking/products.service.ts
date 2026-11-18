@@ -11,11 +11,15 @@ import type { CsvLocale } from '../reports/visits-csv';
 import type {
   AddProductSaleInput,
   CreateProductInput,
+  RestockProductInput,
   ProductListResponse,
   ProductResponse,
   UpdateProductInput,
   VisitProductSalesResponse,
 } from './products.schemas';
+
+/** The most pieces a product may have in stock (as in the product form). */
+const MAX_STOCK = 100_000;
 
 const toProduct = (p: Product): ProductResponse => ({
   id: p.id,
@@ -35,6 +39,10 @@ const toProduct = (p: Product): ProductResponse => ({
  * Task 429: a product may count its pieces in stock (`stockQuantity`, null = not counted). A sale
  * takes them away — more than there are is refused (409 OUT_OF_STOCK) — and removing a sale puts
  * them back, both in one transaction with the sale.
+ *
+ * Task 438: "Dostawa" adds the pieces that arrived to what is in stock in one step, so the owner
+ * does not count by hand (and a sale at the same moment is not lost); a product that did not count
+ * its pieces starts counting with them.
  *
  * Task 433: with `lowStockAt` the product says "Kończy się" (`lowStock`) once that many pieces or
  * fewer are left, so the owner orders more in time.
@@ -99,6 +107,41 @@ export class ProductsService {
       data: input,
     });
     if (result.count !== 1) throw notFound('Product');
+    return toProduct(await this.prisma.product.findUniqueOrThrow({ where: { id: productId } }));
+  }
+
+  async restock(
+    m: MembershipContext,
+    locationId: string,
+    productId: string,
+    input: RestockProductInput,
+  ): Promise<ProductResponse> {
+    await this.access.writable(m, locationId);
+    const added = await this.prisma.product.updateMany({
+      where: {
+        id: productId,
+        locationId,
+        stockQuantity: { not: null, lte: MAX_STOCK - input.quantity },
+      },
+      data: { stockQuantity: { increment: input.quantity } },
+    });
+    if (added.count !== 1) {
+      const started = await this.prisma.product.updateMany({
+        where: { id: productId, locationId, stockQuantity: null },
+        data: { stockQuantity: input.quantity },
+      });
+      if (started.count !== 1) {
+        const product = await this.prisma.product.findFirst({
+          where: { id: productId, locationId },
+        });
+        if (!product) throw notFound('Product');
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'STOCK_LIMIT',
+          `At most ${MAX_STOCK} pieces in stock`,
+        );
+      }
+    }
     return toProduct(await this.prisma.product.findUniqueOrThrow({ where: { id: productId } }));
   }
 

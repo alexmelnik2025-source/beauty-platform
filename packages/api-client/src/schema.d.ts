@@ -1966,6 +1966,26 @@ export interface paths {
         patch: operations["ProductsController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/restock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Dostawa": add the pieces that arrived to what is in stock
+         * @description Task 438. In one step, so a sale at the same moment is not lost. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT.
+         */
+        post: operations["ProductsController_restock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products": {
         parameters: {
             query?: never;
@@ -10328,6 +10348,34 @@ export interface operations {
                     stockQuantity?: number | null;
                     lowStockAt?: number | null;
                     active?: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+        };
+    };
+    ProductsController_restock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    quantity: number;
                 };
             };
         };

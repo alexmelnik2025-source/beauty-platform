@@ -8290,6 +8290,71 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/restock": {
+      "post": {
+        "description": "Task 438. In one step, so a sale at the same moment is not lost. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT.",
+        "operationId": "ProductsController_restock",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "quantity"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Dostawa\": add the pieces that arrived to what is in stock",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products": {
       "get": {
         "operationId": "ProductsController_sales",
