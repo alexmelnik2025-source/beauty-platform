@@ -1477,6 +1477,9 @@ export const en: Dict = {
     lowNew: 'Running low at (pcs, empty — no warning)',
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
+    stockCsv: 'Stock CSV',
+    stockCsvHint:
+      'All products: price, in stock, runs low at and what to order — to send to the supplier.',
     lowHint:
       '“Running low at” — how many pieces is already few; the product gets the “Running low” mark.',
     stockHint:

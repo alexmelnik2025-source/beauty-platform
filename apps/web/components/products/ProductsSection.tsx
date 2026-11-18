@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, apiResponse } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import type { Product, ProductList } from '@/lib/types';
 import { useSession } from '../Session';
@@ -32,9 +32,10 @@ function amountInput(hundredths: number): string {
  * away, "Brak" when none are left.
  * Task 434: "Kończy się przy" — the salon's own number of pieces that is already few; such products
  * get "Kończy się", and the ones to order are listed above.
+ * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier.
  */
 export function ProductsSection({ base }: { base: string }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const p = t.products;
   const { location } = useSession();
   const [products, setProducts] = useState<Product[] | null>(null);
@@ -92,6 +93,27 @@ export function ProductsSection({ base }: { base: string }) {
     }
   }
 
+  /** Task 437: the stock list as a CSV file (the server names it). */
+  async function downloadStock() {
+    setBusy(true);
+    setError('');
+    try {
+      const res = await apiResponse(`${base}/products/export.csv`, { query: { locale } });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(await res.blob());
+      link.download =
+        /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'stock.csv';
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const newPrice = parseAmount(price);
   const newStock = parseStock(stock);
   const newLow = parseStock(low);
@@ -129,6 +151,19 @@ export function ProductsSection({ base }: { base: string }) {
         </p>
       ) : null}
       {products && products.length === 0 ? <p className="note">{p.empty}</p> : null}
+      {products && products.length > 0 ? (
+        <p>
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            title={p.stockCsvHint}
+            disabled={busy}
+            onClick={() => void downloadStock()}
+          >
+            {p.stockCsv}
+          </button>
+        </p>
+      ) : null}
       {products && products.length > 0 ? (
         <ul className="commission-list">
           {products.map((x) => {

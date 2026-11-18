@@ -1474,6 +1474,9 @@ export const pl = {
     lowNew: 'Kończy się przy (szt., puste — bez ostrzeżenia)',
     lowBadge: 'Kończy się',
     toOrder: 'Do zamówienia: {names}',
+    stockCsv: 'CSV stanu magazynowego',
+    stockCsvHint:
+      'Wszystkie produkty: cena, w magazynie, kończy się przy i co zamówić — do wysłania dostawcy.',
     lowHint: '„Kończy się przy” — ile sztuk to już mało; produkt dostanie znak „Kończy się”.',
     stockHint:
       'Puste pole „W magazynie” — nie liczymy sztuk. Sprzedaż przy wizycie zmniejsza stan, usunięcie sprzedaży go przywraca.',

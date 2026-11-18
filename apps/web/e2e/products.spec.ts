@@ -202,6 +202,19 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByLabel('Kończy się przy — Pomada matowa')).toHaveValue('');
   await products.scrollIntoViewIfNeeded();
   await shot(page, '434-owner-low-stock');
+  // Task 437: "CSV stanu magazynowego" — the list for the supplier, with what to order.
+  const [stockCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    products.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
+  ]);
+  expect(stockCsv.suggestedFilename()).toMatch(/^stock-.+-\d{4}-\d{2}-\d{2}\.csv$/);
+  const stockFile = readFileSync((await stockCsv.path())!, 'utf8');
+  expect(stockFile).toContain(
+    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia\r\n',
+  );
+  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak\r\n');
+  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak\r\n');
+  await shot(page, '437-owner-stock-csv');
   // The visit card says it too.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
