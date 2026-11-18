@@ -19,6 +19,8 @@ import { serveApp } from './mobile-app';
  * "Sprzedaż produktów" in its report (396-a); the list of products in "Usługi" (task 397, 397).
  * Task 422–423: "CSV produktów" — every sale of the period for the accountant (422), in the app too.
  * Task 424: "Kupione produkty" in the client card of the cabinet (424).
+ * Task 436–441: "CSV stanu magazynowego" (437), "Dostawa" (438, 439) and "Historia magazynu" (441)
+ * in the cabinet and the business app.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -225,6 +227,12 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('4');
   await expect(products.getByLabel('Dostawa — Zestaw')).toHaveValue('');
   await shot(page, '438-owner-restock');
+  // Task 441: "Historia" — the delivery, with who and when.
+  await products.getByRole('button', { name: 'Historia magazynu — Zestaw' }).click();
+  const zestawHistory = products.getByTestId('stock-history');
+  await expect(zestawHistory).toContainText(/Dostawa · \+4 szt\. → 4/);
+  await zestawHistory.scrollIntoViewIfNeeded();
+  await shot(page, '441-owner-stock-history');
   // The visit card says it too.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
@@ -370,6 +378,14 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appList.getByText('zostało 6 szt.', { exact: true })).toBeVisible();
     await appList.getByText('zostało 6 szt.', { exact: true }).scrollIntoViewIfNeeded();
     await shot(app, '439-business-app-restock');
+    // Task 441: "Historia" in the app — the cabinet's sale and correction, the delivery.
+    await appList.getByRole('button', { name: 'Historia magazynu — Pomada matowa' }).click();
+    const appHistory = appList.getByTestId('stock-history');
+    await expect(appHistory).toContainText(/Dostawa · \+6 szt\. → 6/);
+    await expect(appHistory).toContainText(/Sprzedaż przy wizycie · -2 szt\. → 0/);
+    await expect(appHistory).toContainText(/Zmiana ręczna · \+2 szt\. → 2/);
+    await appHistory.scrollIntoViewIfNeeded();
+    await shot(app, '441-business-app-stock-history');
   } finally {
     businessApp.server.close();
   }

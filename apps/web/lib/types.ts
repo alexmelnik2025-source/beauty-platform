@@ -117,6 +117,7 @@ export type {
   Role,
   Product,
   ProductList,
+  StockHistory,
   SalonReport,
   StaffCommissions,
   TillClose,

@@ -115,6 +115,8 @@ export type StaffCommissions = Schemas['StaffCommissions'];
 /** "Produkty": the salon's products and the ones sold at a visit (task 394). */
 export type Product = Schemas['Product'];
 export type ProductList = Schemas['ProductList'];
+/** "Historia magazynu": the changes of a product's pieces in stock (task 440). */
+export type StockHistory = Schemas['StockHistory'];
 export type VisitProductSales = Schemas['VisitProductSales'];
 /** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
 export type TillClose = Schemas['TillClose'];

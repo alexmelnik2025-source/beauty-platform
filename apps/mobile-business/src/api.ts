@@ -13,6 +13,7 @@ import type {
   Product,
   ProductList,
   SalonReport,
+  StockHistory,
   StaffCommissions,
   TillClose,
   Tokens,
@@ -177,6 +178,7 @@ export type {
   Product,
   ProductList,
   SalonReport,
+  StockHistory,
   StaffCommissions,
   TillClose,
   Tokens,
@@ -702,6 +704,14 @@ export class BusinessApi {
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}/restock`,
       { quantity },
+    );
+  }
+
+  /** Task 441: "Historia magazynu" — the product's last stock changes. Owners and managers. */
+  stockHistory(orgId: string, locationId: string, productId: string): Promise<StockHistory> {
+    return this.authed<StockHistory>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}/stock-history`,
     );
   }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import type { BusinessApi, Locale, Product } from '../api';
+import type { BusinessApi, Locale, Product, StockHistory } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -18,6 +18,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 431: "W magazynie" — pieces in stock (empty = not counted), as in the cabinet (430).
  * Task 435: "Kończy się przy" — the salon's own number of pieces that is already few; such
  * products say "Kończy się" and are listed in "Do zamówienia", as in the cabinet (434).
+ * Task 441: "Historia" — the product's last stock changes (sale, delivery, by hand), who and when.
  * Task 439: "Dostawa" — how many pieces arrived; the server adds them to the stock.
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier (shared on a phone,
  * saved in a browser).
@@ -34,6 +35,10 @@ export function ProductListSection(props: {
   const [editId, setEditId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: '', price: '', stock: '', low: '' });
   const [askRemove, setAskRemove] = useState<string | null>(null);
+  const [history, setHistory] = useState<{
+    id: string;
+    rows: StockHistory['movements'];
+  } | null>(null);
   const [deliveryId, setDeliveryId] = useState<string | null>(null);
   const [delivery, setDelivery] = useState('');
   const [fresh, setFresh] = useState({ name: '', price: '', stock: '', low: '' });
@@ -62,6 +67,13 @@ export function ProductListSection(props: {
     try {
       await action();
       await load();
+      if (history) {
+        // The open history shows the change too (gone with a removed product).
+        const res = await api
+          .stockHistory(salon.orgId, salon.locationId, history.id)
+          .catch(() => null);
+        setHistory(res ? { id: history.id, rows: res.movements } : null);
+      }
       return true;
     } catch (e) {
       setError(errorText(e, t));
@@ -92,6 +104,20 @@ export function ProductListSection(props: {
   const freshStock = parseStock(fresh.stock);
   const draftLow = parseStock(draft.low);
   const freshLow = parseStock(fresh.low);
+  const toggleHistory = async (id: string) => {
+    if (history?.id === id) {
+      setHistory(null);
+      return;
+    }
+    setError('');
+    try {
+      const res = await api.stockHistory(salon.orgId, salon.locationId, id);
+      setHistory({ id, rows: res.movements });
+    } catch (e) {
+      setError(errorText(e, t));
+    }
+  };
+
   const deliveryCount = parseStock(delivery);
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
 
@@ -251,6 +277,12 @@ export function ProductListSection(props: {
               <View style={styles.row}>
                 <Button
                   kind="secondary"
+                  label={p.history}
+                  a11yLabel={fill(p.historyFor, { name: x.name })}
+                  onPress={() => void toggleHistory(x.id)}
+                />
+                <Button
+                  kind="secondary"
                   label={p.restock}
                   a11yLabel={fill(p.restockFor, { name: x.name })}
                   disabled={busy}
@@ -294,6 +326,24 @@ export function ProductListSection(props: {
                 />
               </View>
             )}
+            {history?.id === x.id ? (
+              <View style={{ gap: 4, marginTop: 8 }} testID="stock-history">
+                <Text style={styles.text}>{fill(p.historyFor, { name: x.name })}</Text>
+                {history.rows.length === 0 ? (
+                  <Text style={styles.muted}>{p.historyEmpty}</Text>
+                ) : (
+                  history.rows.map((r) => (
+                    <Text key={r.id} style={styles.muted}>
+                      {`${r.date} ${r.time} · ${p.historyKinds[r.kind]} · ${fill(p.historyRow, {
+                        change: r.change > 0 ? `+${r.change}` : String(r.change),
+                        after:
+                          r.quantityAfter === null ? p.historyNotCounted : String(r.quantityAfter),
+                      })}${r.byName ? ` · ${r.byName}` : ''}`}
+                    </Text>
+                  ))
+                )}
+              </View>
+            ) : null}
           </Card>
         ),
       )}

@@ -1477,6 +1477,17 @@ export const en: Dict = {
     lowNew: 'Running low at (pcs, empty — no warning)',
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
+    history: 'History',
+    historyFor: 'Stock history — {name}',
+    historyEmpty: 'No stock changes yet.',
+    historyKinds: {
+      sale: 'Sold at a visit',
+      sale_removed: 'Sale removed',
+      delivery: 'Delivery',
+      correction: 'Changed by hand',
+    },
+    historyRow: '{change} pcs → {after}',
+    historyNotCounted: 'not counted',
     restock: 'Delivery',
     restockAdd: 'Receive',
     restockHint:

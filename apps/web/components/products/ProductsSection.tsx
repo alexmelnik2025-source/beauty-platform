@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, apiResponse } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
-import type { Product, ProductList } from '@/lib/types';
+import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
 import { parseTip as parseAmount } from '../calendar/TipField';
@@ -34,6 +34,7 @@ function amountInput(hundredths: number): string {
  * get "Kończy się", and the ones to order are listed above.
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier.
  * Task 438: "Dostawa" — the pieces that arrived are added to the stock by the server in one step.
+ * Task 441: "Historia" — the product's last stock changes (sale, delivery, by hand), who and when.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -47,6 +48,10 @@ export function ProductsSection({ base }: { base: string }) {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [low, setLow] = useState('');
+  const [historyOf, setHistoryOf] = useState<{
+    id: string;
+    rows: StockHistory['movements'];
+  } | null>(null);
   const [deliveries, setDeliveries] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +91,13 @@ export function ProductsSection({ base }: { base: string }) {
     try {
       await action();
       await load();
+      if (historyOf) {
+        // The open history shows the change too (gone with a removed product).
+        const res = await api<StockHistory>(`${base}/products/${historyOf.id}/stock-history`).catch(
+          () => null,
+        );
+        setHistoryOf(res ? { id: historyOf.id, rows: res.movements } : null);
+      }
       return true;
     } catch (err) {
       setError(errorText(t, err));
@@ -113,6 +125,20 @@ export function ProductsSection({ base }: { base: string }) {
       setError(errorText(t, err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function toggleHistory(id: string) {
+    if (historyOf?.id === id) {
+      setHistoryOf(null);
+      return;
+    }
+    setError('');
+    try {
+      const res = await api<StockHistory>(`${base}/products/${id}/stock-history`);
+      setHistoryOf({ id, rows: res.movements });
+    } catch (err) {
+      setError(errorText(t, err));
     }
   }
 
@@ -313,6 +339,15 @@ export function ProductsSection({ base }: { base: string }) {
                 <button
                   type="button"
                   className="link-btn small"
+                  aria-expanded={historyOf?.id === x.id}
+                  aria-label={p.historyFor.replace('{name}', x.name)}
+                  onClick={() => void toggleHistory(x.id)}
+                >
+                  {p.history}
+                </button>
+                <button
+                  type="button"
+                  className="link-btn small"
                   disabled={busy}
                   onClick={() => {
                     if (window.confirm(p.removeAsk.replace('{name}', x.name))) {
@@ -322,6 +357,31 @@ export function ProductsSection({ base }: { base: string }) {
                 >
                   {p.remove}
                 </button>
+                {historyOf?.id === x.id ? (
+                  <div style={{ flexBasis: '100%' }} data-testid="stock-history">
+                    <h3 className="small">{p.historyFor.replace('{name}', x.name)}</h3>
+                    {historyOf.rows.length === 0 ? (
+                      <p className="small muted">{p.historyEmpty}</p>
+                    ) : (
+                      <ul className="small" style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                        {historyOf.rows.map((r) => (
+                          <li key={r.id}>
+                            {r.date} {r.time} · {p.historyKinds[r.kind]} ·{' '}
+                            {p.historyRow
+                              .replace('{change}', r.change > 0 ? `+${r.change}` : String(r.change))
+                              .replace(
+                                '{after}',
+                                r.quantityAfter === null
+                                  ? p.historyNotCounted
+                                  : String(r.quantityAfter),
+                              )}
+                            {r.byName ? ` · ${r.byName}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : null}
               </li>
             );
           })}
