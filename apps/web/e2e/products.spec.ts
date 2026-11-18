@@ -304,6 +304,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await shot(app, '397-business-app-products');
     await appList.getByTestId('products-to-order').scrollIntoViewIfNeeded();
     await shot(app, '435-business-app-low-stock');
+    // Task 437: "CSV stanu magazynowego" from the phone (saved in the web preview).
+    const [appStock] = await Promise.all([
+      app.waitForEvent('download'),
+      appList.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
+    ]);
+    expect(appStock.suggestedFilename()).toMatch(/^stock-.+\.csv$/);
+    const appStockFile = readFileSync((await appStock.path())!, 'utf8');
+    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak\r\n');
+    await appList.getByRole('button', { name: 'CSV stanu magazynowego' }).scrollIntoViewIfNeeded();
+    await shot(app, '437-business-app-stock-csv');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();

@@ -658,6 +658,18 @@ export class BusinessApi {
     );
   }
 
+  /**
+   * Task 437: "CSV stanu magazynowego" — every product with its price, pieces in stock, "Kończy
+   * się przy" and whether to order it, for the supplier. Owners and managers only.
+   */
+  stockCsv(orgId: string, locationId: string, locale: Locale): Promise<CsvFile> {
+    const query = new URLSearchParams({ locale }).toString();
+    return this.csvFile(
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/export.csv?${query}`,
+      'stock.csv',
+    );
+  }
+
   /** Task 397: adds a product to the salon's list (owners and managers). */
   addProduct(
     orgId: string,

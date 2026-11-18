@@ -4,9 +4,11 @@ import type { BusinessApi, Locale, Product } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
+import { shareCsv } from '../share';
 import { parseStock } from '../stock';
 import { parseTip as parseAmount, tipInput as amountInput } from '../tip';
 import { Button, Card, colors, ErrorText } from '../ui';
+import { csvTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -16,6 +18,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 431: "W magazynie" — pieces in stock (empty = not counted), as in the cabinet (430).
  * Task 435: "Kończy się przy" — the salon's own number of pieces that is already few; such
  * products say "Kończy się" and are listed in "Do zamówienia", as in the cabinet (434).
+ * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier (shared on a phone,
+ * saved in a browser).
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -32,6 +36,8 @@ export function ProductListSection(props: {
   const [fresh, setFresh] = useState({ name: '', price: '', stock: '', low: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvInfo, setCsvInfo] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
   const load = useCallback(async () => {
@@ -59,6 +65,21 @@ export function ProductListSection(props: {
       return false;
     } finally {
       setBusy(false);
+    }
+  };
+
+  const downloadCsv = async () => {
+    if (csvBusy) return;
+    setCsvBusy(true);
+    setCsvInfo('');
+    try {
+      const file = await api.stockCsv(salon.orgId, salon.locationId, props.locale);
+      const result = await shareCsv(file, csvTools());
+      setCsvInfo(result === 'failed' ? p.stockCsvFailed : '');
+    } catch (e) {
+      setCsvInfo(errorText(e, t));
+    } finally {
+      setCsvBusy(false);
     }
   };
 
@@ -93,6 +114,17 @@ export function ProductListSection(props: {
         </Text>
       ) : null}
       {products && products.length === 0 ? <Text style={styles.muted}>{p.empty}</Text> : null}
+      {products && products.length > 0 ? (
+        <View style={{ gap: 4 }}>
+          <Button
+            kind="secondary"
+            label={csvBusy ? t.loading : p.stockCsv}
+            onPress={() => void downloadCsv()}
+          />
+          <Text style={styles.muted}>{p.stockCsvHint}</Text>
+          {csvInfo ? <Text style={styles.warn}>{csvInfo}</Text> : null}
+        </View>
+      ) : null}
       {(products ?? []).map((x) =>
         editId === x.id ? (
           <Card key={x.id}>
