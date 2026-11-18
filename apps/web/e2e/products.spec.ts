@@ -215,6 +215,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak\r\n');
   expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak\r\n');
   await shot(page, '437-owner-stock-csv');
+  // Task 438: "Dostawa" — a new set without a count gets four pieces delivered.
+  await products.getByLabel('Nowy produkt').fill('Zestaw');
+  await products.getByLabel(/^Cena \(/).fill('80');
+  await products.getByRole('button', { name: '+ Dodaj produkt' }).click();
+  await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('');
+  await products.getByLabel('Dostawa — Zestaw').fill('4');
+  await products.getByRole('button', { name: 'Przyjmij — Zestaw' }).click();
+  await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('4');
+  await expect(products.getByLabel('Dostawa — Zestaw')).toHaveValue('');
+  await shot(page, '438-owner-restock');
   // The visit card says it too.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
@@ -351,6 +361,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     expect(appCsv.suggestedFilename()).toMatch(/^products-.+\.csv$/);
     const appFile = readFileSync((await appCsv.path())!, 'utf8');
     expect(appFile).toContain('Razem;;;;3;;128,50');
+    // Task 439: "Dostawa" from the phone — six pomades arrived.
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Usługi' }).click();
+    await appList.getByRole('button', { name: 'Dostawa — Pomada matowa' }).click();
+    await appList.getByLabel('Dostawa — Pomada matowa').fill('6');
+    await appList.getByRole('button', { name: 'Przyjmij' }).click();
+    await expect(appList.getByText('zostało 6 szt.', { exact: true })).toBeVisible();
+    await appList.getByText('zostało 6 szt.', { exact: true }).scrollIntoViewIfNeeded();
+    await shot(app, '439-business-app-restock');
   } finally {
     businessApp.server.close();
   }

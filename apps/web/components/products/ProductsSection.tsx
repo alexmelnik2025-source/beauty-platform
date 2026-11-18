@@ -33,6 +33,7 @@ function amountInput(hundredths: number): string {
  * Task 434: "Kończy się przy" — the salon's own number of pieces that is already few; such products
  * get "Kończy się", and the ones to order are listed above.
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier.
+ * Task 438: "Dostawa" — the pieces that arrived are added to the stock by the server in one step.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -46,6 +47,7 @@ export function ProductsSection({ base }: { base: string }) {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [low, setLow] = useState('');
+  const [deliveries, setDeliveries] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -132,6 +134,7 @@ export function ProductsSection({ base }: { base: string }) {
       <p className="small muted">{p.hint}</p>
       <p className="small muted">{p.stockHint}</p>
       <p className="small muted">{p.lowHint}</p>
+      <p className="small muted">{p.restockHint}</p>
       <ErrorBox>{error}</ErrorBox>
       {toOrder.length > 0 ? (
         <p className="note" role="status" data-testid="products-to-order">
@@ -229,6 +232,31 @@ export function ProductsSection({ base }: { base: string }) {
                     }
                   />
                   <span aria-hidden="true">{p.pieces}</span>
+                </span>
+                <span className="commission-row__input">
+                  <input
+                    inputMode="numeric"
+                    aria-label={`${p.restock} — ${x.name}`}
+                    placeholder="+"
+                    value={deliveries[x.id] ?? ''}
+                    onChange={(e) => setDeliveries({ ...deliveries, [x.id]: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--quiet btn--small"
+                    aria-label={`${p.restockAdd} — ${x.name}`}
+                    disabled={busy || !parseStock(deliveries[x.id] ?? '')}
+                    onClick={() =>
+                      void run(() =>
+                        api(`${base}/products/${x.id}/restock`, {
+                          method: 'POST',
+                          body: { quantity: parseStock(deliveries[x.id] ?? '') },
+                        }),
+                      ).then((ok) => ok && setDeliveries({ ...deliveries, [x.id]: '' }))
+                    }
+                  >
+                    {p.restockAdd}
+                  </button>
                 </span>
                 {x.stockQuantity === 0 ? (
                   <span className="badge" data-testid="product-out">

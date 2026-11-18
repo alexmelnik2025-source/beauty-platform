@@ -1474,6 +1474,9 @@ export const pl = {
     lowNew: 'Kończy się przy (szt., puste — bez ostrzeżenia)',
     lowBadge: 'Kończy się',
     toOrder: 'Do zamówienia: {names}',
+    restock: 'Dostawa',
+    restockAdd: 'Przyjmij',
+    restockHint: 'Dostawa: wpisz, ile sztuk przyszło, i „Przyjmij” — doliczymy je do magazynu.',
     stockCsv: 'CSV stanu magazynowego',
     stockCsvHint:
       'Wszystkie produkty: cena, w magazynie, kończy się przy i co zamówić — do wysłania dostawcy.',

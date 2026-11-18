@@ -688,6 +688,23 @@ export class BusinessApi {
     );
   }
 
+  /**
+   * Task 439: "Dostawa" — the pieces that arrived are added to the stock by the server in one
+   * step (a product that did not count its pieces starts counting). Owners and managers.
+   */
+  restockProduct(
+    orgId: string,
+    locationId: string,
+    productId: string,
+    quantity: number,
+  ): Promise<Product> {
+    return this.authed<Product>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}/restock`,
+      { quantity },
+    );
+  }
+
   /** Task 397: changes a product — name, price, or whether it is still sold. */
   updateProduct(
     orgId: string,

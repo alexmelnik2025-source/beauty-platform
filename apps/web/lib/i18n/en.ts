@@ -1477,6 +1477,10 @@ export const en: Dict = {
     lowNew: 'Running low at (pcs, empty — no warning)',
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
+    restock: 'Delivery',
+    restockAdd: 'Receive',
+    restockHint:
+      'Delivery: enter how many pieces arrived and “Receive” — they are added to the stock.',
     stockCsv: 'Stock CSV',
     stockCsvHint:
       'All products: price, in stock, runs low at and what to order — to send to the supplier.',

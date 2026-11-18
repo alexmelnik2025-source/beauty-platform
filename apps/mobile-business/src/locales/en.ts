@@ -686,6 +686,10 @@ export const en: Dictionary = {
     lowIn: 'Running low at (pcs, empty — no warning)',
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
+    restock: 'Delivery',
+    restockFor: 'Delivery — {name}',
+    restockIn: 'How many pieces arrived',
+    restockAdd: 'Receive',
     stockCsv: 'Stock CSV',
     stockCsvHint:
       'All products: price, in stock, runs low at and what to order — to send to the supplier.',

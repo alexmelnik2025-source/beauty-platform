@@ -18,6 +18,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 431: "W magazynie" — pieces in stock (empty = not counted), as in the cabinet (430).
  * Task 435: "Kończy się przy" — the salon's own number of pieces that is already few; such
  * products say "Kończy się" and are listed in "Do zamówienia", as in the cabinet (434).
+ * Task 439: "Dostawa" — how many pieces arrived; the server adds them to the stock.
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier (shared on a phone,
  * saved in a browser).
  */
@@ -33,6 +34,8 @@ export function ProductListSection(props: {
   const [editId, setEditId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: '', price: '', stock: '', low: '' });
   const [askRemove, setAskRemove] = useState<string | null>(null);
+  const [deliveryId, setDeliveryId] = useState<string | null>(null);
+  const [delivery, setDelivery] = useState('');
   const [fresh, setFresh] = useState({ name: '', price: '', stock: '', low: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -89,6 +92,7 @@ export function ProductListSection(props: {
   const freshStock = parseStock(fresh.stock);
   const draftLow = parseStock(draft.low);
   const freshLow = parseStock(fresh.low);
+  const deliveryCount = parseStock(delivery);
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
 
   return (
@@ -202,7 +206,32 @@ export function ProductListSection(props: {
             ) : (
               <Text style={styles.warn}>{p.stockNone}</Text>
             )}
-            {askRemove === x.id ? (
+            {deliveryId === x.id ? (
+              <View style={{ gap: 6, marginTop: 6 }}>
+                <TextInput
+                  accessibilityLabel={fill(p.restockFor, { name: x.name })}
+                  placeholder={p.restockIn}
+                  placeholderTextColor={colors.placeholder}
+                  keyboardType="number-pad"
+                  value={delivery}
+                  onChangeText={setDelivery}
+                  style={styles.input}
+                />
+                <View style={styles.row}>
+                  <Button
+                    label={p.restockAdd}
+                    busy={busy}
+                    disabled={!deliveryCount}
+                    onPress={() =>
+                      void run(() =>
+                        api.restockProduct(salon.orgId, salon.locationId, x.id, deliveryCount ?? 0),
+                      ).then((ok) => ok && setDeliveryId(null))
+                    }
+                  />
+                  <Button kind="secondary" label={p.cancel} onPress={() => setDeliveryId(null)} />
+                </View>
+              </View>
+            ) : askRemove === x.id ? (
               <View style={{ gap: 6, marginTop: 6 }}>
                 <Text style={styles.text}>{fill(p.removeAsk, { name: x.name })}</Text>
                 <View style={styles.row}>
@@ -220,6 +249,17 @@ export function ProductListSection(props: {
               </View>
             ) : (
               <View style={styles.row}>
+                <Button
+                  kind="secondary"
+                  label={p.restock}
+                  a11yLabel={fill(p.restockFor, { name: x.name })}
+                  disabled={busy}
+                  onPress={() => {
+                    setDelivery('');
+                    setAskRemove(null);
+                    setDeliveryId(x.id);
+                  }}
+                />
                 <Button
                   kind="secondary"
                   label={p.change}
