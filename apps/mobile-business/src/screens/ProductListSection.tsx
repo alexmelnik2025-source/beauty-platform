@@ -18,6 +18,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 431: "W magazynie" — pieces in stock (empty = not counted), as in the cabinet (430).
  * Task 435: "Kończy się przy" — the salon's own number of pieces that is already few; such
  * products say "Kończy się" and are listed in "Do zamówienia", as in the cabinet (434).
+ * Task 442: "Wartość magazynu" — what the pieces in stock are worth at the selling prices.
  * Task 441: "Historia" — the product's last stock changes (sale, delivery, by hand), who and when.
  * Task 439: "Dostawa" — how many pieces arrived; the server adds them to the stock.
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier (shared on a phone,
@@ -119,6 +120,9 @@ export function ProductListSection(props: {
   };
 
   const deliveryCount = parseStock(delivery);
+  const counted = (products ?? []).filter((x) => x.stockQuantity !== null);
+  const stockPieces = counted.reduce((n, x) => n + (x.stockQuantity ?? 0), 0);
+  const stockValue = counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * x.priceGrosze, 0);
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
 
   return (
@@ -141,6 +145,11 @@ export function ProductListSection(props: {
               )
               .join(', '),
           })}
+        </Text>
+      ) : null}
+      {counted.length > 0 ? (
+        <Text style={styles.text} testID="products-stock-value">
+          {fill(p.stockValue, { amount: money(stockValue), n: String(stockPieces) })}
         </Text>
       ) : null}
       {products && products.length === 0 ? <Text style={styles.muted}>{p.empty}</Text> : null}

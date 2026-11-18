@@ -1471,6 +1471,7 @@ export const uk: Dict = {
     lowNew: 'Закінчується при (шт., порожньо — без попередження)',
     lowBadge: 'Закінчується',
     toOrder: 'Замовити: {names}',
+    stockValue: 'Вартість складу: {amount} ({n} шт.) — за цінами продажу.',
     history: 'Історія',
     historyFor: 'Історія складу — {name}',
     historyEmpty: 'Змін на складі ще немає.',

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api, apiResponse } from '@/lib/api';
-import { errorText, useI18n } from '@/lib/i18n';
+import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { formatPrice } from '@/lib/time';
 import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
@@ -34,6 +35,7 @@ function amountInput(hundredths: number): string {
  * get "Kończy się", and the ones to order are listed above.
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier.
  * Task 438: "Dostawa" — the pieces that arrived are added to the stock by the server in one step.
+ * Task 442: "Wartość magazynu" — what the pieces in stock are worth at the selling prices.
  * Task 441: "Historia" — the product's last stock changes (sale, delivery, by hand), who and when.
  */
 export function ProductsSection({ base }: { base: string }) {
@@ -145,6 +147,9 @@ export function ProductsSection({ base }: { base: string }) {
   const newPrice = parseAmount(price);
   const newStock = parseStock(stock);
   const newLow = parseStock(low);
+  const counted = (products ?? []).filter((x) => x.stockQuantity !== null);
+  const stockPieces = counted.reduce((n, x) => n + (x.stockQuantity ?? 0), 0);
+  const stockValue = counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * x.priceGrosze, 0);
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
   const canAdd =
     name.trim() !== '' &&
@@ -177,6 +182,13 @@ export function ProductsSection({ base }: { base: string }) {
               )
               .join(', '),
           )}
+        </p>
+      ) : null}
+      {counted.length > 0 ? (
+        <p className="small" data-testid="products-stock-value">
+          {p.stockValue
+            .replace('{amount}', formatPrice(stockValue, location.currency, LOCALE_TAGS[locale]))
+            .replace('{n}', String(stockPieces))}
         </p>
       ) : null}
       {products && products.length === 0 ? <p className="note">{p.empty}</p> : null}

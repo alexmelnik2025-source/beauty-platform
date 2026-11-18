@@ -233,6 +233,10 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(zestawHistory).toContainText(/Dostawa · \+4 szt\. → 4/);
   await zestawHistory.scrollIntoViewIfNeeded();
   await shot(page, '441-owner-stock-history');
+  // Task 442: "Wartość magazynu" — 3 shampoos × 30,50 + 4 sets × 80 (no pomades left).
+  await expect(products.getByTestId('products-stock-value')).toHaveText(
+    /^Wartość magazynu: 411,50\s*zł \(7 szt\.\) — w cenach sprzedaży\.$/,
+  );
   // The visit card says it too.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
@@ -386,6 +390,12 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appHistory).toContainText(/Zmiana ręczna · \+2 szt\. → 2/);
     await appHistory.scrollIntoViewIfNeeded();
     await shot(app, '441-business-app-stock-history');
+    // Task 442: 6 pomades × 49 + 2 shampoos × 30,50 + 5 waxes × 25 + 4 sets × 80.
+    await expect(appList.getByTestId('products-stock-value')).toHaveText(
+      /^Wartość magazynu: 800,00\s*zł \(17 szt\.\) — w cenach sprzedaży\.$/,
+    );
+    await appList.getByTestId('products-stock-value').scrollIntoViewIfNeeded();
+    await shot(app, '442-business-app-stock-value');
   } finally {
     businessApp.server.close();
   }

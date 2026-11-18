@@ -1478,6 +1478,7 @@ export const ru: Dict = {
     lowNew: 'Заканчивается при (шт., пусто — без предупреждения)',
     lowBadge: 'Заканчивается',
     toOrder: 'Заказать: {names}',
+    stockValue: 'Стоимость склада: {amount} ({n} шт.) — по ценам продажи.',
     history: 'История',
     historyFor: 'История склада — {name}',
     historyEmpty: 'Изменений на складе пока нет.',
