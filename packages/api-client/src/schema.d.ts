@@ -6468,6 +6468,10 @@ export interface components {
                 quantityAfter: number | null;
                 /** Format: date-time */
                 at: string;
+                /** @description The day in the salon’s own time, YYYY-MM-DD */
+                date: string;
+                /** @description The time in the salon’s own time, HH:MM */
+                time: string;
                 /** @description Who did it; null when unknown */
                 byName: string | null;
             }[];

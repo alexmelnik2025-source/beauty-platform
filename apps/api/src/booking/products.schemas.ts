@@ -116,6 +116,8 @@ export const stockHistorySchema = responseSchema(
             .nullable()
             .describe('Pieces in stock after the change; null = the salon stopped counting'),
           at: z.iso.datetime(),
+          date: z.string().describe('The day in the salon’s own time, YYYY-MM-DD'),
+          time: z.string().describe('The time in the salon’s own time, HH:MM'),
           byName: z.string().nullable().describe('Who did it; null when unknown'),
         }),
       )

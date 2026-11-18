@@ -1640,6 +1640,10 @@ describe('salon report', () => {
 
     const res = await history().expect(200);
     expect(registeredResponseSchema('StockHistory').safeParse(res.body).error).toBeUndefined();
+    expect(res.body.movements[0]).toMatchObject({
+      date: today,
+      time: expect.stringMatching(/^\d\d:\d\d$/),
+    });
     const rows = (
       res.body as {
         movements: { kind: string; change: number; quantityAfter: number | null; byName: string }[];

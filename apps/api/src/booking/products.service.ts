@@ -208,7 +208,7 @@ export class ProductsService {
     locationId: string,
     productId: string,
   ): Promise<StockHistoryResponse> {
-    await this.access.writable(m, locationId);
+    const location = await this.access.writable(m, locationId);
     const product = await this.prisma.product.findFirst({ where: { id: productId, locationId } });
     if (!product) throw notFound('Product');
     const rows = await this.prisma.stockMovement.findMany({
@@ -225,14 +225,19 @@ export class ProductsService {
     });
     const names = new Map(users.map((u) => [u.id, u.name]));
     return {
-      movements: rows.map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        change: r.change,
-        quantityAfter: r.quantityAfter,
-        at: r.createdAt.toISOString(),
-        byName: (r.createdByUserId && names.get(r.createdByUserId)) || null,
-      })),
+      movements: rows.map((r) => {
+        const local = instantToLocal(r.createdAt.getTime(), location.timezone);
+        return {
+          id: r.id,
+          kind: r.kind,
+          change: r.change,
+          quantityAfter: r.quantityAfter,
+          at: r.createdAt.toISOString(),
+          date: local.date,
+          time: local.time,
+          byName: (r.createdByUserId && names.get(r.createdByUserId)) || null,
+        };
+      }),
     };
   }
 
