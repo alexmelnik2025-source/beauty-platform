@@ -1925,6 +1925,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/products/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "CSV stanu magazynowego": the products with what is in stock, for ordering
+         * @description Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes when it has run low). Same file format as visits-csv; an empty cell where the pieces are not counted.
+         */
+        get: operations["ProductsController_stockCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}": {
         parameters: {
             query?: never;
@@ -10242,6 +10262,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Product"];
+                };
+            };
+        };
+    };
+    ProductsController_stockCsv: {
+        parameters: {
+            query?: {
+                locale?: "pl" | "uk" | "ru" | "en";
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };

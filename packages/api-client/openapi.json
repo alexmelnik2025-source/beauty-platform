@@ -8110,6 +8110,57 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/products/export.csv": {
+      "get": {
+        "description": "Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes when it has run low). Same file format as visits-csv; an empty cell where the pieces are not counted.",
+        "operationId": "ProductsController_stockCsv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"CSV stanu magazynowego\": the products with what is in stock, for ordering",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}": {
       "patch": {
         "description": "Past sales keep the name and price they had.",

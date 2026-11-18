@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { responseSchema } from '../common/openapi';
+import { CSV_LOCALES } from '../reports/visits-csv';
 
 const money = (what: string) =>
   z.number().int().describe(`${what}, in hundredths of the salon currency`);
@@ -32,6 +33,10 @@ export const addProductSaleSchema = z.object({
   quantity: z.number().int().min(1).max(99).default(1),
 });
 
+/** Task 436: the language of the stock CSV's columns. */
+export const stockCsvQuerySchema = z.object({ locale: z.enum(CSV_LOCALES).default('pl') });
+
+export type StockCsvQuery = z.infer<typeof stockCsvQuerySchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type AddProductSaleInput = z.infer<typeof addProductSaleSchema>;

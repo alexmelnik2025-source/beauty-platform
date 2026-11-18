@@ -4,7 +4,10 @@ import type { MembershipContext } from '../common/request-context';
 import type { Product } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { instantToLocal } from '../scheduling/time';
 import { AppointmentsService } from './appointments.service';
+import { stockCsv } from './stock-csv';
+import type { CsvLocale } from '../reports/visits-csv';
 import type {
   AddProductSaleInput,
   CreateProductInput,
@@ -55,6 +58,24 @@ export class ProductsService {
       orderBy: [{ active: 'desc' }, { name: 'asc' }, { id: 'asc' }],
     });
     return { products: products.map(toProduct) };
+  }
+
+  /** Task 436: the list as a CSV for ordering from the supplier (owners and managers). */
+  async stockCsv(
+    m: MembershipContext,
+    locationId: string,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const location = await this.access.writable(m, locationId);
+    const products = await this.prisma.product.findMany({
+      where: { locationId },
+      orderBy: [{ active: 'desc' }, { name: 'asc' }, { id: 'asc' }],
+    });
+    const day = instantToLocal(Date.now(), location.timezone).date;
+    return {
+      csv: stockCsv(products.map(toProduct), locale),
+      fileName: `stock-${location.slug}-${day}.csv`,
+    };
   }
 
   async create(

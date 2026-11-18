@@ -1631,6 +1631,62 @@ describe('salon report', () => {
     expect((await read(pomade.id)).lowStock).toBe(false);
   });
 
+  it('"CSV stanu magazynowego": the products with stock and what to order (task 436)', async () => {
+    const add = (body: object) =>
+      ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201);
+    await add({ name: 'Pomada; mocna', priceGrosze: 4500, stockQuantity: 1, lowStockAt: 2 });
+    await add({ name: '=Aloes', priceGrosze: 3000, stockQuantity: 10, lowStockAt: 2 });
+    await add({ name: 'Wosk', priceGrosze: 2550 });
+    const old = (await add({ name: 'Olejek', priceGrosze: 5000, stockQuantity: 0 })).body as {
+      id: string;
+    };
+    await ctx
+      .http()
+      .patch(`${base}/products/${old.id}`)
+      .set(owner.auth)
+      .send({ active: false })
+      .expect(200);
+
+    const csv = (q: object = {}, auth = owner.auth) =>
+      ctx
+        .http()
+        .get(`${base}/products/export.csv`)
+        .query(q)
+        .set(auth)
+        .buffer(true)
+        .parse((res, done) => {
+          let text = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk: string) => (text += chunk));
+          res.on('end', () => done(null, text));
+        });
+    const res = await csv().expect(200);
+    expect(res.headers['content-type']).toMatch(/^text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(
+      /^attachment; filename="stock-.+-\d{4}-\d{2}-\d{2}\.csv"$/,
+    );
+    const text = res.body as string;
+    expect(text.startsWith('\uFEFF')).toBe(true);
+    // Sold products first, by name; a ";" is quoted and a leading "=" cannot run as a formula.
+    expect(text.slice(1).trimEnd().split('\r\n')).toEqual([
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia',
+      "'=Aloes;30,00;tak;10;2;nie",
+      '"Pomada; mocna";45,00;tak;1;2;tak',
+      'Wosk;25,50;tak;;;nie',
+      'Olejek;50,00;nie;0;;nie',
+    ]);
+    const english = (await csv({ locale: 'en' }).expect(200)).body as string;
+    expect(english).toContain('Product;Price;Sold;In stock;Runs low at;To order');
+    expect(english).toContain('Wosk;25.50;yes;;;no');
+    await csv({ locale: 'de' }).expect(400);
+
+    // A specialist cannot download it; another salon reaches nothing.
+    await csv({}, kasiaUser.auth).expect(403);
+    const other = await signUp(ctx, 'other-stock@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await csv({}, other.auth).expect(404);
+  });
+
   it('"CSV sprzedaży produktów": every product sold in the period, own visits for a specialist (task 422)', async () => {
     const product = async (name: string, priceGrosze: number) =>
       (

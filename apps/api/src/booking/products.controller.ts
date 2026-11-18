@@ -9,14 +9,25 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import type { AuthContext, MembershipContext } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { CSV_LOCALES } from '../reports/visits-csv';
 import {
   CurrentMembership,
   MembershipGuard,
@@ -27,12 +38,14 @@ import {
   createProductSchema,
   productListSchema,
   productSchema,
+  stockCsvQuerySchema,
   updateProductSchema,
   visitProductSalesSchema,
   type AddProductSaleInput,
   type CreateProductInput,
   type ProductListResponse,
   type ProductResponse,
+  type StockCsvQuery,
   type UpdateProductInput,
   type VisitProductSalesResponse,
 } from './products.schemas';
@@ -56,6 +69,29 @@ export class ProductsController {
     @Param('locationId', uuid('Location')) locationId: string,
   ): Promise<ProductListResponse> {
     return this.products.list(m, locationId);
+  }
+
+  @Get('products/export.csv')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: '"CSV stanu magazynowego": the products with what is in stock, for ordering',
+    description:
+      'Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes when it has run low). Same file format as visits-csv; an empty cell where the pieces are not counted.',
+  })
+  @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async stockCsv(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Query(new ZodValidationPipe(stockCsvQuerySchema)) query: StockCsvQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, fileName } = await this.products.stockCsv(m, locationId, query.locale);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
   }
 
   @Post('products')
