@@ -72,7 +72,8 @@ const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
  *
  * Task 456: "Inwentaryzacja" — the owner counts what is on the shelf and writes the numbers for many
  * products at once; each number that differs is written down as a "stocktake" movement, so the
- * history shows what was missing or extra. The products are locked while they are changed, so a
+ * history shows what was missing or extra (a product that did not count its pieces only starts
+ * counting: a "correction", as when the number is written by hand). The products are locked while they are changed, so a
  * sale at the same moment is counted before or after, never lost.
  *
  * Task 448: "Cena zakupu" — owners and managers may write what the salon pays for one; a sale keeps
@@ -244,7 +245,15 @@ export class ProductsService {
         if (was === quantity) continue;
         await tx.product.update({ where: { id: productId }, data: { stockQuantity: quantity } });
         const change = quantity - (was ?? 0);
-        await movement(tx, productId, 'stocktake', change, quantity, userId);
+        // A product that did not count its pieces only starts counting: no difference to show.
+        await movement(
+          tx,
+          productId,
+          was === null ? 'correction' : 'stocktake',
+          change,
+          quantity,
+          userId,
+        );
         changed += 1;
         if (was !== null && change < 0) missingPieces -= change;
         if (was !== null && change > 0) extraPieces += change;

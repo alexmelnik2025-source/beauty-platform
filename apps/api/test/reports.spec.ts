@@ -1793,6 +1793,17 @@ describe('salon report', () => {
       products: { id: string; stockQuantity: number | null }[];
     };
     expect(stock(list)[pomade.id]).toBe(6);
+    // Wax only started counting: a number written by hand, not a stocktake difference.
+    const waxHistory = await ctx
+      .http()
+      .get(`${base}/products/${wax.id}/stock-history`)
+      .set(owner.auth)
+      .expect(200);
+    expect(
+      (waxHistory.body as { movements: { kind: string; change: number }[] }).movements.map(
+        ({ kind, change }) => ({ kind, change }),
+      ),
+    ).toEqual([{ kind: 'correction', change: 4 }]);
 
     // "Historia magazynu" shows each counted difference.
     const history = await ctx
