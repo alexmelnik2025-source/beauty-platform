@@ -251,7 +251,7 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     await expect(phone.getByRole('heading', { name: 'Bony podarunkowe' })).toBeVisible();
     await expect(phone.getByText('Jak klient zapłacił za bon').first()).toBeVisible();
     await expect(phone.getByText(/Dla: Ewa · zapłacono: Gotówka/)).toBeVisible();
-    await expect(phone.getByText(/Dla: Marek · zapłacono: Karta/)).toBeVisible();
+    await expect(phone.getByText(/Dla: Marek · zapłacono: BLIK/)).toBeVisible();
     await phone.getByText(/Dla: Ewa · zapłacono: Gotówka/).scrollIntoViewIfNeeded();
     await shot(phone, '548-a-business-app-voucher-payment');
   } finally {
