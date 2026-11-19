@@ -12998,6 +12998,9 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "nonCashChecked": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -27679,6 +27682,10 @@
                 "nullable": true,
                 "type": "string"
               },
+              "nonCashChecked": {
+                "type": "boolean",
+                "description": "Task 554: \"Sprawdzono z terminalem i kontem\" — the payments not in cash were checked at the close"
+              },
               "closedByName": {
                 "type": "string"
               },
@@ -27691,6 +27698,7 @@
               "expectedCashGrosze",
               "differenceGrosze",
               "note",
+              "nonCashChecked",
               "closedByName",
               "closedAt"
             ],

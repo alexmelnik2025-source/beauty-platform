@@ -3570,3 +3570,13 @@ termin» — сколько осталось неиспользованным н
 та же сумма, что «Bez gotówki» в «Zamknij kasę» (задача 552), посчитанная сейчас. API: `nonCashGrosze` в
 `tillCloses.days` отчёта; общий расчёт — `otherPaymentsOfDay()` в `apps/api/src/reports/till-close.service.ts`.
 Тесты `apps/api/test/till-close.spec.ts`, e2e `till-vouchers.spec.ts` (скриншот 553).
+
+## «Sprawdzono z terminalem i kontem» (задача 554)
+
+Если день принёс что-то не наличными («Bez gotówki» в «Zamknij kasę», задача 552), в форме закрытия кассы (кабинет и
+бизнес-приложение) есть галочка «Sprawdzono z terminalem i kontem» — владелец или менеджер отмечает, что сверил суммы
+с терминалом и банком. Отметка сохраняется с закрытием: в закрытой кассе «✓ bez gotówki sprawdzone z terminalem»; при
+«Policz ponownie» галочка уже стоит, сохранение без неё — снимает. Только отметка, к терминалу и банку приложение не
+подключается. API: `nonCashChecked` в `PUT …/reports/till-close` (не передано — не отмечено) и в `close` ответа;
+колонка `till_close.non_cash_checked` (миграция `20261128010000_till_close_non_cash_checked`). Тесты
+`apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/api.test.ts`; e2e `till-vouchers.spec.ts` (скриншот 554).

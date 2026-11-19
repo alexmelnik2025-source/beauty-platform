@@ -369,7 +369,12 @@ describe('"Zamknij kasę" (task 232)', () => {
     await expect(api.closeTill('o1', 'l1', '2026-11-06', 8000, 'Reszta')).resolves.toMatchObject({
       close: { differenceGrosze: -1000 },
     });
-    expect(sent).toEqual([{ date: '2026-11-06', countedCashGrosze: 8000, note: 'Reszta' }]);
+    // Task 554: "Sprawdzono z terminalem i kontem".
+    await api.closeTill('o1', 'l1', '2026-11-06', 8000, null, true);
+    expect(sent).toEqual([
+      { date: '2026-11-06', countedCashGrosze: 8000, note: 'Reszta' },
+      { date: '2026-11-06', countedCashGrosze: 8000, note: null, nonCashChecked: true },
+    ]);
   });
 
   it('notes cash put in or taken out and removes a mistake (task 236)', async () => {

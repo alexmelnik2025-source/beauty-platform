@@ -19,7 +19,8 @@ import { serveApp } from './mobile-app';
  * Task 548: the same in the business app — the till of that day and how vouchers were paid (548,
  * 548-a). Task 552: "Bez gotówki" — the voucher sold by card that day, to check with the terminal
  * (552, and in the business app 552-a). Task 553: that day in "Zamknięcia kasy" of the report with
- * its "Bez gotówki" column (553).
+ * its "Bez gotówki" column (553). Task 554: "Sprawdzono z terminalem i kontem" ticked at the close
+ * (554), seen in the business app too.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -184,13 +185,23 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
   await expect(form).toContainText(/Za wizyty zapłacono bonami: 50,00\s*zł/);
   await shot(page, '546-till-with-vouchers');
   await form.getByLabel(/Gotówka w kasie/).fill('140');
+  // Task 554: the card payment was checked with the terminal — noted with the close.
+  await form.getByLabel('Sprawdzono z terminalem i kontem').check();
   await form.getByRole('button', { name: 'Zapisz' }).click();
   await expect(till.getByTestId('till-diff')).toHaveText('zgadza się');
+  await expect(till.getByTestId('till-noncash-checked')).toContainText(
+    'bez gotówki sprawdzone z terminalem',
+  );
   // Task 552: what the day brought not in cash — Jan's birthday voucher was sold by card.
   await expect(till.getByTestId('till-other')).toContainText(
     /Bez gotówki — sprawdź z terminalem i kontem: Karta 50,00\s*zł \(bony: 1\)/,
   );
   await shot(page, '552-till-other-payments');
+  // Counted again: the mark is still ticked in the form.
+  await till.getByRole('button', { name: 'Policz ponownie' }).click();
+  await expect(form.getByLabel('Sprawdzono z terminalem i kontem')).toBeChecked();
+  await shot(page, '554-till-non-cash-checked');
+  await form.getByRole('button', { name: 'Anuluj' }).click();
   // Task 553: the closed day in "Zamknięcia kasy" of the report, with what it brought not in cash.
   await page.getByRole('link', { name: 'Raporty' }).click();
   await page.waitForURL(/\/pl\/app\/reports$/);
@@ -254,6 +265,10 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
       await phone.waitForTimeout(800);
     }
     await expect(appTill.getByTestId('till-diff')).toHaveText('Zgadza się');
+    // Task 554: the mark saved in the cabinet.
+    await expect(appTill.getByTestId('till-noncash-checked')).toContainText(
+      'bez gotówki sprawdzone z terminalem',
+    );
     await expect(appTill.getByTestId('till-other')).toContainText(
       /Bez gotówki — sprawdź z terminalem i kontem: Karta 50,00\s*zł \(bony: 1\)/,
     );
@@ -262,6 +277,9 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     await expect(appForm).toContainText(/Powinno być w kasie: 140,00\s*zł/);
     await expect(appForm).toContainText(/Bony podarunkowe sprzedane za gotówkę: 100,00\s*zł/);
     await expect(appForm).toContainText(/Za wizyty zapłacono bonami: 50,00\s*zł/);
+    await expect(
+      appForm.getByRole('checkbox', { name: 'Sprawdzono z terminalem i kontem' }),
+    ).toBeChecked();
     await appForm.scrollIntoViewIfNeeded();
     await shot(phone, '548-business-app-till-with-vouchers');
 

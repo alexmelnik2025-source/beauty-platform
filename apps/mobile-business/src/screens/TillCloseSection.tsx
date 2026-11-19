@@ -322,10 +322,14 @@ function TillCount(props: PartProps) {
   const money = (hundredths: number) => formatPrice(hundredths, view.currency, props.locale);
   const parsed = parseCash(amount);
   const close = view.close;
+  // Task 554: "Sprawdzono z terminalem i kontem" only when the day brought something not in cash.
+  const nonCash = view.otherPayments.length > 0;
+  const [checked, setChecked] = useState(false);
 
   const start = () => {
     setAmount(close ? cashInput(close.countedCashGrosze) : '');
     setNote(close?.note ?? '');
+    setChecked(close?.nonCashChecked ?? false);
     setError('');
     setOpen(true);
   };
@@ -336,7 +340,14 @@ function TillCount(props: PartProps) {
     setError('');
     try {
       onChange(
-        await api.closeTill(salon.orgId, salon.locationId, date, parsed, note.trim() || null),
+        await api.closeTill(
+          salon.orgId,
+          salon.locationId,
+          date,
+          parsed,
+          note.trim() || null,
+          nonCash ? checked : undefined,
+        ),
       );
       setOpen(false);
     } catch (e) {
@@ -370,6 +381,21 @@ function TillCount(props: PartProps) {
           onChangeText={setNote}
           style={styles.input}
         />
+        {nonCash ? (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityLabel={d.tillNonCashChecked}
+            accessibilityState={{ checked }}
+            onPress={() => setChecked(!checked)}
+            style={styles.check}
+            testID="till-noncash-check"
+          >
+            <Text style={[styles.checkBox, checked && styles.checkBoxOn]}>
+              {checked ? '✓' : ''}
+            </Text>
+            <Text style={styles.checkLabel}>{d.tillNonCashChecked}</Text>
+          </Pressable>
+        ) : null}
         {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={styles.row}>
           <Button
@@ -410,6 +436,11 @@ function TillCount(props: PartProps) {
             })}
       </Text>
       {close.note ? <Text style={styles.muted}>{close.note}</Text> : null}
+      {close.nonCashChecked ? (
+        <Text style={styles.muted} testID="till-noncash-checked">
+          ✓ {d.tillNonCashCheckedDone}
+        </Text>
+      ) : null}
       <Text style={styles.muted}>
         {fill(d.tillClosedBy, {
           name: close.closedByName,
@@ -434,6 +465,19 @@ function TillCount(props: PartProps) {
 
 const styles = StyleSheet.create({
   box: { gap: 6, paddingTop: 8 },
+  check: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  checkBox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderRadius: 4,
+    textAlign: 'center',
+    lineHeight: 20,
+    color: '#fff',
+  },
+  checkBoxOn: { backgroundColor: colors.ink },
+  checkLabel: { color: colors.ink, fontSize: 15, flexShrink: 1 },
   reminder: {
     gap: 4,
     marginTop: 8,

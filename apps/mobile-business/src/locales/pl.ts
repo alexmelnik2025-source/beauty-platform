@@ -122,6 +122,8 @@ export const pl = {
       'Za wizyty zapłacono bonami: {sum} — tych pieniędzy nie ma w kasie (salon dostał je przy sprzedaży bonu).',
     status: { confirmed: 'Potwierdzona', completed: 'Zakończona', no_show: 'Nie przyszedł' },
     tillOther: 'Bez gotówki — sprawdź z terminalem i kontem:',
+    tillNonCashChecked: 'Sprawdzono z terminalem i kontem',
+    tillNonCashCheckedDone: 'bez gotówki sprawdzone z terminalem',
     tillOtherRow: '{method} {sum} ({parts})',
     tillOtherVisits: 'wizyty: {n}',
     tillOtherVouchers: 'bony: {n}',

@@ -125,6 +125,7 @@ export class TillCloseService {
       countedCashGrosze: input.countedCashGrosze,
       expectedCashGrosze: expected,
       note: input.note?.trim() || null,
+      nonCashChecked: input.nonCashChecked ?? false,
       closedByUserId: userId,
       closedByName: await this.userName(userId),
       closedAt: new Date(),
@@ -285,6 +286,7 @@ export class TillCloseService {
             expectedCashGrosze: row.expectedCashGrosze,
             differenceGrosze: row.countedCashGrosze - row.expectedCashGrosze,
             note: row.note,
+            nonCashChecked: row.nonCashChecked,
             closedByName: row.closedByName,
             closedAt: row.closedAt.toISOString(),
           }

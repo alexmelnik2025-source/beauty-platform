@@ -1436,6 +1436,8 @@ model TillClose {
   /// What the visits paid in cash that day brought when the till was counted.
   expectedCashGrosze Int      @map("expected_cash_grosze")
   note               String?
+  /// Task 554: the payments not in cash of the day were checked with the terminal and the account.
+  nonCashChecked     Boolean  @default(false) @map("non_cash_checked")
   closedByUserId     String?  @map("closed_by_user_id") @db.Uuid
   closedByName       String   @map("closed_by_name")
   closedAt           DateTime @map("closed_at") @db.Timestamptz(3)

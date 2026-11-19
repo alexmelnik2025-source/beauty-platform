@@ -672,4 +672,24 @@ describe('"Inne płatności" — what the day brought not in cash (task 552)', (
     // Not on another day.
     expect((await till(DAY).expect(200)).body.otherPayments).toEqual([]);
   });
+
+  it('"Sprawdzono z terminalem i kontem" is kept with the close; counting again replaces it (task 554)', async () => {
+    await walkIn(at(10), { paid: true, paymentMethod: 'card' }).expect(201);
+    const before = (await till().expect(200)).body;
+    expect(before.close).toBeNull();
+
+    const checked = (
+      await close({ date: DAY, countedCashGrosze: 0, nonCashChecked: true }).expect(200)
+    ).body;
+    expect(registeredResponseSchema('TillClose').safeParse(checked).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(checked.close).toMatchObject({ countedCashGrosze: 0, nonCashChecked: true });
+    expect((await till().expect(200)).body.close.nonCashChecked).toBe(true);
+
+    // Counted again without the mark — not checked any more.
+    const again = (await close({ date: DAY, countedCashGrosze: 0 }).expect(200)).body;
+    expect(again.close.nonCashChecked).toBe(false);
+    await close({ date: DAY, countedCashGrosze: 0, nonCashChecked: 'yes' }).expect(400);
+  });
 });

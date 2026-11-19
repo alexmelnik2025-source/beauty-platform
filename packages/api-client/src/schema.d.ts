@@ -7160,6 +7160,8 @@ export interface components {
                 /** @description Counted minus expected: below zero — cash is missing, above — too much */
                 differenceGrosze: number;
                 note: string | null;
+                /** @description Task 554: "Sprawdzono z terminalem i kontem" — the payments not in cash were checked at the close */
+                nonCashChecked: boolean;
                 closedByName: string;
                 closedAt: string;
             } | null;
@@ -13271,6 +13273,7 @@ export interface operations {
                     date: string;
                     countedCashGrosze: number;
                     note?: string | null;
+                    nonCashChecked?: boolean;
                 };
             };
         };

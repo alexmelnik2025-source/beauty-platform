@@ -1869,18 +1869,24 @@ export class BusinessApi {
     );
   }
 
-  /** Task 232: "Zamknij kasę" — the cash counted at the end of the day; again replaces it. */
+  /**
+   * Task 232: "Zamknij kasę" — the cash counted at the end of the day; again replaces it.
+   * Task 554: `nonCashChecked` — "Sprawdzono z terminalem i kontem" (left out — not checked).
+   */
   closeTill(
     orgId: string,
     locationId: string,
     date: string,
     countedCashGrosze: number,
     note: string | null,
+    nonCashChecked?: boolean,
   ): Promise<TillClose> {
     return this.authed<TillClose>(
       'PUT',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/till-close`,
-      { date, countedCashGrosze, note },
+      nonCashChecked === undefined
+        ? { date, countedCashGrosze, note }
+        : { date, countedCashGrosze, note, nonCashChecked },
     );
   }
 

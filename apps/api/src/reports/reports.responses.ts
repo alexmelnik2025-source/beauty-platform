@@ -700,6 +700,11 @@ export const tillCloseSchema = responseSchema(
           .int()
           .describe('Counted minus expected: below zero — cash is missing, above — too much'),
         note: z.string().nullable(),
+        nonCashChecked: z
+          .boolean()
+          .describe(
+            'Task 554: "Sprawdzono z terminalem i kontem" — the payments not in cash were checked at the close',
+          ),
         closedByName: z.string(),
         closedAt: z.string(),
       })

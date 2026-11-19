@@ -268,6 +268,8 @@ export const uk: Dict = {
     tillVisitsVouchers:
       'За візити оплачено сертифікатами: {sum} — цих грошей немає в касі (салон отримав їх під час продажу сертифіката).',
     tillOther: 'Без готівки — звірте з терміналом і рахунком:',
+    tillNonCashChecked: 'Звірено з терміналом і рахунком',
+    tillNonCashCheckedDone: 'безготівкові звірено з терміналом',
     tillOtherRow: '{method} {sum} ({parts})',
     tillOtherVisits: 'візити: {n}',
     tillOtherVouchers: 'сертифікати: {n}',

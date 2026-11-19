@@ -28,6 +28,7 @@ const closed = (counted: number, expected: number, now = expected): TillClose =>
     expectedCashGrosze: expected,
     differenceGrosze: counted - expected,
     note: null,
+    nonCashChecked: false,
     closedByName: 'Anna',
     closedAt: '2026-11-06T19:00:00.000Z',
   },

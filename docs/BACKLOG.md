@@ -12,8 +12,8 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **19.11.2026, ~20:15 UTC — 553 в работе** («Bez gotówki» у закрытых дней в отчёте и в «CSV kasy»). Ветка
-  `agent/553-till-closes-non-cash`.
+- **19.11.2026, ~20:45 UTC — 553–554** («Bez gotówki» у закрытых дней в отчёте и в «CSV kasy»; галочка «Sprawdzono z
+  terminalem i kontem» при закрытии кассы). Ветки `agent/553-till-closes-non-cash`, `agent/554-till-terminal-checked`.
 
 - **19.11.2026, ~18:30 UTC — влиты 546–550** (боны в «Zamknij kasę»: оплата бонами за визит не считается наличными,
   бон за наличные — считается; «Jak klient zapłacił za bon» при продаже и в «Zmień bon»; колонка «Sposób płatności» в
@@ -1923,6 +1923,12 @@
       строки «Zamknięcie kasy» в «CSV kasy»: сколько день принёс картой, BLIK, переводом или иначе (визиты без части,
       оплаченной бонами, и проданные так боны — как в задаче 552). API `nonCashGrosze` в `tillCloses.days`. Тест на
       PostgreSQL, e2e. Ветка `agent/553-till-closes-non-cash`.
+- [x] **554. «Sprawdzono z terminalem i kontem» в «Zamknij kasę»** — готово 19.11.2026 (скриншот 554) — если день
+      принёс что-то не наличными (задача 552), в форме закрытия кассы галочка «Sprawdzono z terminalem i kontem»;
+      сохраняется с закрытием («✓ bez gotówki sprawdzone z terminalem» в закрытой кассе), при «Policz ponownie» —
+      уже отмечена, без галочки — снимается. В кабинете и бизнес-приложении. API `nonCashChecked` в
+      `PUT …/reports/till-close` и в `close`, миграция. Тест на PostgreSQL, unit-тест, e2e. Ветка
+      `agent/554-till-terminal-checked`.
 
 ## Вопросы владельцу
 

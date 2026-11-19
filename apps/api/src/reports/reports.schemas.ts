@@ -34,6 +34,8 @@ export const closeTillSchema = z.object({
   date: localDateSchema,
   countedCashGrosze: z.number().int().min(0).max(100_000_000),
   note: z.string().max(500).nullish(),
+  /** Task 554: "Sprawdzono z terminalem i kontem"; left out — not checked. */
+  nonCashChecked: z.boolean().optional(),
 });
 
 export type TillCloseQuery = z.infer<typeof tillCloseQuerySchema>;

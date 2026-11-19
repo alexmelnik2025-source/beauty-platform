@@ -14,6 +14,8 @@ import { parseTip } from './TipField';
  * see or save it, so the strip shows it only for the whole salon.
  * Task 236: "Wpłata / wypłata" — cash put into or taken out of the till, with the reason; the
  * till should then hold the cash visits plus what was put in minus what was taken out.
+ * Task 554: "Sprawdzono z terminalem i kontem" — a mark at the close that the payments not in
+ * cash of the day were checked.
  */
 export function TillClose({
   base,
@@ -323,10 +325,14 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
   const money = (hundredths: number) => formatPrice(hundredths, currency, tag);
   const parsed = amount.trim() === '' ? null : parseTip(amount);
   const close = view.close;
+  // Task 554: "Sprawdzono z terminalem i kontem" only when the day brought something not in cash.
+  const nonCash = view.otherPayments.length > 0;
+  const [checked, setChecked] = useState(false);
 
   const start = () => {
     setAmount(close ? (close.countedCashGrosze / 100).toFixed(2).replace('.', ',') : '');
     setNote(close?.note ?? '');
+    setChecked(close?.nonCashChecked ?? false);
     setError(null);
     setOpen(true);
   };
@@ -338,7 +344,12 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
     try {
       const saved = await api<TillCloseView>(`${base}/reports/till-close`, {
         method: 'PUT',
-        body: { date, countedCashGrosze: parsed, note: note.trim() || null },
+        body: {
+          date,
+          countedCashGrosze: parsed,
+          note: note.trim() || null,
+          ...(nonCash ? { nonCashChecked: checked } : {}),
+        },
       });
       onChange(saved);
       setOpen(false);
@@ -385,6 +396,16 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
           onChange={(e) => setNote(e.target.value)}
           style={{ maxWidth: 260 }}
         />
+        {nonCash ? (
+          <label className="small">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => setChecked(e.target.checked)}
+            />{' '}
+            {t.calendar.tillNonCashChecked}
+          </label>
+        ) : null}
         <button type="submit" className="btn btn--small" disabled={busy || parsed === null}>
           {t.calendar.tillSave}
         </button>
@@ -433,6 +454,12 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
             })}
       </span>
       {close.note ? <span className="muted"> · {close.note}</span> : null}
+      {close.nonCashChecked ? (
+        <span className="muted" data-testid="till-noncash-checked">
+          {' '}
+          · ✓ {t.calendar.tillNonCashCheckedDone}
+        </span>
+      ) : null}
       <span className="muted small">
         {' '}
         ·{' '}
