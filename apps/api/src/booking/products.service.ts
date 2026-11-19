@@ -38,7 +38,10 @@ function movement(
   });
 }
 
-const toProduct = (p: Product): ProductResponse => ({
+/** Task 448: only owners and managers see what the salon pays for its products. */
+const seesPurchasePrice = (m: MembershipContext) => m.role !== 'staff';
+
+const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
   id: p.id,
   name: p.name,
   priceGrosze: p.priceGrosze,
@@ -46,6 +49,7 @@ const toProduct = (p: Product): ProductResponse => ({
   stockQuantity: p.stockQuantity,
   lowStockAt: p.lowStockAt,
   lowStock: p.stockQuantity !== null && p.lowStockAt !== null && p.stockQuantity <= p.lowStockAt,
+  purchasePriceGrosze: purchasePrice ? p.purchasePriceGrosze : null,
 });
 
 /**
@@ -63,6 +67,9 @@ const toProduct = (p: Product): ProductResponse => ({
  *
  * Task 440: every change of the pieces in stock is written down ("Historia magazynu"): a sale, a
  * sale removed, a delivery, a number written by hand — with who and when, in the same transaction.
+ *
+ * Task 448: "Cena zakupu" — owners and managers may write what the salon pays for one; a sale keeps
+ * it (like the sale price) for the margin in the report. Specialists never see it.
  *
  * Task 433: with `lowStockAt` the product says "Kończy się" (`lowStock`) once that many pieces or
  * fewer are left, so the owner orders more in time.
@@ -85,7 +92,8 @@ export class ProductsService {
       where: { locationId },
       orderBy: [{ active: 'desc' }, { name: 'asc' }, { id: 'asc' }],
     });
-    return { products: products.map(toProduct) };
+    const purchasePrice = seesPurchasePrice(m);
+    return { products: products.map((p) => toProduct(p, purchasePrice)) };
   }
 
   /** Task 436: the list as a CSV for ordering from the supplier (owners and managers). */
@@ -101,7 +109,10 @@ export class ProductsService {
     });
     const day = instantToLocal(Date.now(), location.timezone).date;
     return {
-      csv: stockCsv(products.map(toProduct), locale),
+      csv: stockCsv(
+        products.map((p) => toProduct(p)),
+        locale,
+      ),
       fileName: `stock-${location.slug}-${day}.csv`,
     };
   }
@@ -351,6 +362,7 @@ export class ProductsService {
           name: product.name,
           quantity: input.quantity,
           unitPriceGrosze: product.priceGrosze,
+          unitCostGrosze: product.purchasePriceGrosze,
           createdByUserId: userId,
         },
       });

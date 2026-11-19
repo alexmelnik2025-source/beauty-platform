@@ -7,6 +7,12 @@ import { fill, type Dictionary } from '../i18n';
 import { shareCsv } from '../share';
 import { parseStock } from '../stock';
 import { parseTip as parseAmount, tipInput as amountInput } from '../tip';
+
+/** Task 448: "" → null (not written), "20,50" → 2050; anything else → undefined (wrong). */
+function parseCost(text: string): number | null | undefined {
+  if (text.trim() === '') return null;
+  return parseAmount(text) ?? undefined;
+}
 import { Button, Card, colors, ErrorText } from '../ui';
 import { csvTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
@@ -34,7 +40,7 @@ export function ProductListSection(props: {
   const p = t.products;
   const [products, setProducts] = useState<Product[] | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: '', price: '', stock: '', low: '' });
+  const [draft, setDraft] = useState({ name: '', price: '', cost: '', stock: '', low: '' });
   const [askRemove, setAskRemove] = useState<string | null>(null);
   const [history, setHistory] = useState<{
     id: string;
@@ -44,7 +50,7 @@ export function ProductListSection(props: {
   const [delivery, setDelivery] = useState('');
   const [writeOffId, setWriteOffId] = useState<string | null>(null);
   const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
-  const [fresh, setFresh] = useState({ name: '', price: '', stock: '', low: '' });
+  const [fresh, setFresh] = useState({ name: '', price: '', cost: '', stock: '', low: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
@@ -103,6 +109,8 @@ export function ProductListSection(props: {
 
   const draftPrice = parseAmount(draft.price);
   const freshPrice = parseAmount(fresh.price);
+  const draftCost = parseCost(draft.cost);
+  const freshCost = parseCost(fresh.cost);
   const draftStock = parseStock(draft.stock);
   const freshStock = parseStock(fresh.stock);
   const draftLow = parseStock(draft.low);
@@ -126,6 +134,10 @@ export function ProductListSection(props: {
   const counted = (products ?? []).filter((x) => x.stockQuantity !== null);
   const stockPieces = counted.reduce((n, x) => n + (x.stockQuantity ?? 0), 0);
   const stockValue = counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * x.priceGrosze, 0);
+  // Task 448: at purchase prices — only when every counted product has one.
+  const stockCost = counted.every((x) => x.purchasePriceGrosze !== null)
+    ? counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * (x.purchasePriceGrosze ?? 0), 0)
+    : null;
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
 
   return (
@@ -134,6 +146,7 @@ export function ProductListSection(props: {
         {p.title}
       </Text>
       <Text style={styles.muted}>{p.listHint}</Text>
+      <Text style={styles.muted}>{p.costHint}</Text>
       {toOrder.length > 0 ? (
         <Text style={styles.warn} role="status" testID="products-to-order">
           {fill(p.toOrder, {
@@ -153,6 +166,7 @@ export function ProductListSection(props: {
       {counted.length > 0 ? (
         <Text style={styles.text} testID="products-stock-value">
           {fill(p.stockValue, { amount: money(stockValue), n: String(stockPieces) })}
+          {stockCost !== null ? ` ${fill(p.stockCostValue, { amount: money(stockCost) })}` : ''}
         </Text>
       ) : null}
       {products && products.length === 0 ? <Text style={styles.muted}>{p.empty}</Text> : null}
@@ -186,6 +200,16 @@ export function ProductListSection(props: {
             />
             {draftPrice === null ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
             <TextInput
+              accessibilityLabel={`${p.costNew} (${salon.currency})`}
+              placeholder={`${p.costNew} (${salon.currency})`}
+              placeholderTextColor={colors.placeholder}
+              keyboardType="decimal-pad"
+              value={draft.cost}
+              onChangeText={(cost) => setDraft({ ...draft, cost })}
+              style={[styles.input, { marginTop: 8 }]}
+            />
+            {draftCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
+            <TextInput
               accessibilityLabel={p.stockIn}
               placeholder={p.stockIn}
               placeholderTextColor={colors.placeholder}
@@ -211,6 +235,7 @@ export function ProductListSection(props: {
                 busy={busy}
                 disabled={
                   draftPrice === null ||
+                  draftCost === undefined ||
                   draftStock === undefined ||
                   draftLow === undefined ||
                   draft.name.trim() === ''
@@ -220,6 +245,7 @@ export function ProductListSection(props: {
                     api.updateProduct(salon.orgId, salon.locationId, x.id, {
                       name: draft.name.trim(),
                       priceGrosze: draftPrice ?? x.priceGrosze,
+                      purchasePriceGrosze: draftCost ?? null,
                       stockQuantity: draftStock ?? null,
                       lowStockAt: draftLow ?? null,
                     }),
@@ -236,6 +262,11 @@ export function ProductListSection(props: {
               <Text style={styles.name}>{money(x.priceGrosze)}</Text>
             </View>
             {x.active ? null : <Text style={styles.muted}>{p.notSold}</Text>}
+            {x.purchasePriceGrosze === null ? null : (
+              <Text style={styles.muted} testID="product-cost">
+                {`${p.cost}: ${money(x.purchasePriceGrosze)}`}
+              </Text>
+            )}
             {x.stockQuantity === null ? null : x.stockQuantity > 0 ? (
               <Text style={x.lowStock ? styles.warn : styles.muted}>
                 {fill(p.stockLeft, { n: String(x.stockQuantity) })}
@@ -368,6 +399,10 @@ export function ProductListSection(props: {
                     setDraft({
                       name: x.name,
                       price: amountInput(x.priceGrosze) || '0',
+                      cost:
+                        x.purchasePriceGrosze === null
+                          ? ''
+                          : amountInput(x.purchasePriceGrosze) || '0',
                       stock: x.stockQuantity === null ? '' : String(x.stockQuantity),
                       low: x.lowStockAt === null ? '' : String(x.lowStockAt),
                     });
@@ -434,6 +469,16 @@ export function ProductListSection(props: {
         style={styles.input}
       />
       <TextInput
+        accessibilityLabel={`${p.costNew} (${salon.currency})`}
+        placeholder={`${p.costNew} (${salon.currency})`}
+        placeholderTextColor={colors.placeholder}
+        keyboardType="decimal-pad"
+        value={fresh.cost}
+        onChangeText={(cost) => setFresh({ ...fresh, cost })}
+        style={styles.input}
+      />
+      {freshCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
+      <TextInput
         accessibilityLabel={p.stockIn}
         placeholder={p.stockIn}
         placeholderTextColor={colors.placeholder}
@@ -461,6 +506,7 @@ export function ProductListSection(props: {
             fresh.name.trim() === '' ||
             fresh.price.trim() === '' ||
             freshPrice === null ||
+            freshCost === undefined ||
             freshStock === undefined ||
             freshLow === undefined
           }
@@ -473,8 +519,9 @@ export function ProductListSection(props: {
                 freshPrice ?? 0,
                 freshStock ?? null,
                 freshLow ?? null,
+                freshCost ?? null,
               ),
-            ).then((ok) => ok && setFresh({ name: '', price: '', stock: '', low: '' }))
+            ).then((ok) => ok && setFresh({ name: '', price: '', cost: '', stock: '', low: '' }))
           }
         />
       </View>

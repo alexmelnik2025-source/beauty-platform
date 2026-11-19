@@ -683,6 +683,11 @@ export const pl = {
     lowBadge: 'Kończy się',
     toOrder: 'Do zamówienia: {names}',
     stockValue: 'Wartość magazynu: {amount} ({n} szt.) — w cenach sprzedaży.',
+    cost: 'Cena zakupu',
+    costNew: 'Cena zakupu (puste — nie wpisujemy)',
+    stockCostValue: 'W cenach zakupu: {amount}.',
+    costHint:
+      'Cena zakupu: ile salon płaci dostawcy za sztukę — widzą ją tylko właściciel i menedżer; z niej liczymy marżę w raportach.',
     history: 'Historia',
     historyFor: 'Historia magazynu — {name}',
     historyEmpty: 'Brak zmian w magazynie.',
@@ -845,6 +850,8 @@ export const pl = {
     products: 'Sprzedaż produktów: {amount}',
     productsRow: '{n} szt. · {amount}',
     writeOffs: 'Odpisy z magazynu: {amount} ({n} szt.)',
+    margin: 'Marża: {amount} ({n} szt. z ceną zakupu: sprzedaż {sales}, zakup {cost})',
+    marginItem: 'marża {amount}',
     writeOffsHint:
       'Sztuki zużyte w salonie, uszkodzone lub zgubione w tym okresie — w dzisiejszych cenach sprzedaży.',
     productsHint:

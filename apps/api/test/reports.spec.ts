@@ -1428,13 +1428,14 @@ describe('salon report', () => {
       totalGrosze: 15000,
       quantity: 4,
       items: [
-        { name: 'Pomada', quantity: 2, totalGrosze: 9000 },
-        { name: 'Szampon', quantity: 2, totalGrosze: 6000 },
+        { name: 'Pomada', quantity: 2, totalGrosze: 9000, marginGrosze: null },
+        { name: 'Szampon', quantity: 2, totalGrosze: 6000, marginGrosze: null },
       ],
       staff: [
         { id: kasiaId, displayName: 'Kasia', quantity: 3, totalGrosze: 12000 },
         { id: olaId, displayName: 'Ola', quantity: 1, totalGrosze: 3000 },
       ],
+      margin: null,
     });
     // Not part of the visit revenue.
     expect(res.body.totals.revenueGrosze).toBe(2 * 8000);
@@ -1549,6 +1550,96 @@ describe('salon report', () => {
       .send({ stockQuantity: null })
       .expect(200);
     expect(await stock(pomade.id)).toBeNull();
+  });
+
+  it('"Cena zakupu": only owners and managers see it; a sale keeps it for the "Marża" (tasks 448-449)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+        purchasePriceGrosze: number | null;
+      };
+    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, purchasePriceGrosze: 2000 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000 });
+    expect(pomade.purchasePriceGrosze).toBe(2000);
+    expect(wax.purchasePriceGrosze).toBeNull();
+    expect(registeredResponseSchema('Product').safeParse(pomade).error).toBeUndefined();
+    await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(owner.auth)
+      .send({ name: 'Żel', priceGrosze: 100, purchasePriceGrosze: -1 })
+      .expect(400);
+    // A specialist reads the list but never what the salon pays.
+    const listed = async (auth: { Authorization: string }) =>
+      (
+        (await ctx.http().get(`${base}/products`).set(auth).expect(200)).body as {
+          products: { id: string; purchasePriceGrosze: number | null }[];
+        }
+      ).products;
+    expect((await listed(owner.auth)).find((p) => p.id === pomade.id)?.purchasePriceGrosze).toBe(
+      2000,
+    );
+    expect((await listed(kasiaUser.auth)).every((p) => p.purchasePriceGrosze === null)).toBe(true);
+    await ctx
+      .http()
+      .patch(`${base}/products/${wax.id}`)
+      .set(kasiaUser.auth)
+      .send({ purchasePriceGrosze: 100 })
+      .expect(403);
+
+    const kasiaVisit = await visit({ date: addDays(today, -1), status: 'completed', paid: true });
+    const sales = `${base}/appointments/${kasiaVisit}/products`;
+    const sell = (productId: string, quantity: number) =>
+      ctx.http().post(sales).set(kasiaUser.auth).send({ productId, quantity }).expect(201);
+    await sell(pomade.id, 2);
+    await sell(wax.id, 1);
+    // A later price does not change what was sold before: the sale keeps the price of its moment.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ purchasePriceGrosze: 2500 })
+      .expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/products/${wax.id}`)
+      .set(owner.auth)
+      .send({ purchasePriceGrosze: 1000 })
+      .expect(200);
+    await sell(wax.id, 1);
+
+    const res = await report().expect(200);
+    expect(res.body.products.items).toEqual([
+      { name: 'Pomada', quantity: 2, totalGrosze: 9000, marginGrosze: 5000 },
+      { name: 'Wosk', quantity: 2, totalGrosze: 6000, marginGrosze: 2000 },
+    ]);
+    expect(res.body.products.margin).toEqual({
+      quantity: 3,
+      salesGrosze: 12000,
+      costGrosze: 5000,
+      marginGrosze: 7000,
+    });
+    // A specialist's own report: her sales, but not the salon's purchase prices.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    const own = await report(kasiaUser.auth).expect(200);
+    expect(own.body.products.totalGrosze).toBe(15000);
+    expect(own.body.products.margin).toBeNull();
+    expect(
+      own.body.products.items.every(
+        (i: { marginGrosze: number | null }) => i.marginGrosze === null,
+      ),
+    ).toBe(true);
+    // Writing the price down again: the owner can also clear it.
+    const cleared = await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ purchasePriceGrosze: null })
+      .expect(200);
+    expect(cleared.body.purchasePriceGrosze).toBeNull();
   });
 
   it('"Dostawa": the pieces that arrived are added to the stock (task 438)', async () => {

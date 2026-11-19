@@ -487,7 +487,7 @@ export class ReportsService {
         ),
       },
       weekdays,
-      products: await this.products(locationId, staffIds, rangeStart, rangeEnd),
+      products: await this.products(locationId, staffIds, rangeStart, rangeEnd, own),
       writeOffs: own
         ? { quantity: 0, valueGrosze: 0, items: [] }
         : await this.writeOffs(locationId, rangeStart, rangeEnd),
@@ -1283,6 +1283,7 @@ export class ReportsService {
     staffIds: string[] | null,
     rangeStart: Date,
     rangeEnd: Date,
+    own: boolean,
   ): Promise<SalonReport['products']> {
     const sales = await this.prisma.productSale.findMany({
       where: {
@@ -1296,10 +1297,16 @@ export class ReportsService {
         name: true,
         quantity: true,
         unitPriceGrosze: true,
+        unitCostGrosze: true,
         appointment: { select: { staff: { select: { id: true, displayName: true } } } },
       },
     });
-    const items = new Map<string, { name: string; quantity: number; totalGrosze: number }>();
+    const items = new Map<
+      string,
+      { name: string; quantity: number; totalGrosze: number; marginGrosze: number | null }
+    >();
+    // Task 449: "Marża" — what the salon paid stays with the owner (not in an own report).
+    const margin = { quantity: 0, salesGrosze: 0, costGrosze: 0, marginGrosze: 0 };
     const staff = new Map<
       string,
       { id: string; displayName: string; quantity: number; totalGrosze: number }
@@ -1312,9 +1319,19 @@ export class ReportsService {
       quantity += s.quantity;
       const item =
         items.get(s.name) ??
-        items.set(s.name, { name: s.name, quantity: 0, totalGrosze: 0 }).get(s.name)!;
+        items
+          .set(s.name, { name: s.name, quantity: 0, totalGrosze: 0, marginGrosze: null })
+          .get(s.name)!;
       item.quantity += s.quantity;
       item.totalGrosze += sum;
+      if (!own && s.unitCostGrosze !== null) {
+        const cost = s.quantity * s.unitCostGrosze;
+        item.marginGrosze = (item.marginGrosze ?? 0) + sum - cost;
+        margin.quantity += s.quantity;
+        margin.salesGrosze += sum;
+        margin.costGrosze += cost;
+        margin.marginGrosze += sum - cost;
+      }
       const who = s.appointment.staff;
       const row =
         staff.get(who.id) ??
@@ -1331,6 +1348,7 @@ export class ReportsService {
       quantity,
       items: [...items.values()].sort(byMoney((r) => r.name)),
       staff: [...staff.values()].sort(byMoney((r) => r.displayName)),
+      margin: margin.quantity > 0 ? margin : null,
     };
   }
 

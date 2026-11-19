@@ -1472,6 +1472,12 @@ export const uk: Dict = {
     lowBadge: 'Закінчується',
     toOrder: 'Замовити: {names}',
     stockValue: 'Вартість складу: {amount} ({n} шт.) — за цінами продажу.',
+    cost: 'Закупівельна ціна',
+    costPlaceholder: 'закуп',
+    costNew: 'Закупівельна ціна (порожньо — не вказуємо)',
+    stockCostValue: 'За закупівельними цінами: {amount}.',
+    costHint:
+      'Закупівельна ціна: скільки салон платить постачальнику за штуку — її бачать лише власник і менеджер; за нею звіти рахують маржу.',
     history: 'Історія',
     historyFor: 'Історія складу — {name}',
     historyEmpty: 'Змін на складі ще немає.',
@@ -1640,6 +1646,8 @@ export const uk: Dict = {
     products: 'Продаж товарів: {amount}',
     productsRow: '{n} шт. · {amount}',
     writeOffs: 'Списання зі складу: {amount} ({n} шт.)',
+    margin: 'Маржа: {amount} ({n} шт. із закупівельною ціною: продаж {sales}, закупівля {cost})',
+    marginItem: 'маржа {amount}',
     writeOffsHint:
       'Штуки, використані в салоні, пошкоджені чи загублені за цей період, — за сьогоднішніми цінами продажу.',
     productsHint:

@@ -150,6 +150,8 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await products.getByLabel('Cena — Pomada matowa').fill('49');
   // Task 430: the salon counts the pomades — two left in stock.
   await products.getByLabel('W magazynie — Pomada matowa').fill('2');
+  // Task 448: "Cena zakupu" — the salon pays 20 zł for a pomade (only the owner sees it).
+  await products.getByLabel('Cena zakupu — Pomada matowa').fill('20');
   await products
     .getByTestId('product-row')
     .filter({ has: page.getByLabel('Nazwa — Pomada matowa') })
@@ -158,7 +160,10 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByLabel('Cena — Pomada matowa')).toHaveValue('49');
   await expect(products.getByLabel('W magazynie — Pomada matowa')).toHaveValue('2');
   await expect(products.getByLabel('W magazynie — Szampon')).toHaveValue('');
+  await expect(products.getByLabel('Cena zakupu — Pomada matowa')).toHaveValue('20');
+  await expect(products.getByLabel('Cena zakupu — Szampon')).toHaveValue('');
   await shot(page, '395-owner-products');
+  await shot(page, '448-owner-purchase-price');
 
   // The visit card: the client buys two pomades and a shampoo; one shampoo was a mistake.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
@@ -268,8 +273,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await report.scrollIntoViewIfNeeded();
   await expect(report.getByRole('heading')).toHaveText(/Sprzedaż produktów: 98,00\s*zł/);
   await expect(report).toContainText('Pomada matowa');
-  await expect(report).toContainText(/2 szt\. · 98,00\s*zł/);
+  await expect(report).toContainText(/2 szt\. · 98,00\s*zł · marża 58,00\s*zł/);
+  // Task 449: "Marża" — 2 pomades × (49 − 20); the shampoo had no purchase price.
+  await expect(report.getByTestId('report-products-margin')).toHaveText(
+    /^Marża: 58,00\s*zł \(2 szt\. z ceną zakupu: sprzedaż 98,00\s*zł, zakup 40,00\s*zł\)$/,
+  );
   await shot(page, '395-b-report-products');
+  await shot(page, '449-report-margin');
   // "CSV produktów" (task 422): every sale of the period — date, specialist, quantity, price.
   const [productsCsv] = await Promise.all([
     page.waitForEvent('download'),
@@ -331,9 +341,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appList.getByLabel('W magazynie (szt., puste — nie liczymy)').fill('5');
     // Task 435: five waxes are already few for this salon.
     await appList.getByLabel('Kończy się przy (szt., puste — bez ostrzeżenia)').fill('5');
+    // Task 448: "Cena zakupu" from the phone.
+    await appList.getByLabel('Cena zakupu (puste — nie wpisujemy) (PLN)').last().fill('10');
     await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
     await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
     await expect(appList.getByText('zostało 5 szt. · Kończy się')).toBeVisible();
+    await expect(appList.getByText(/^Cena zakupu: 10,00\s*zł$/)).toBeVisible();
+    await expect(appList.getByText(/^Cena zakupu: 20,00\s*zł$/)).toBeVisible();
     // Both pomades were sold in the cabinet: none left.
     await expect(appList.getByText('Brak w magazynie', { exact: true })).toBeVisible();
     // Task 435: what to order — set in the cabinet (Szampon) and here (Wosk).
@@ -383,7 +397,12 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appReport.scrollIntoViewIfNeeded();
     await expect(appReport).toContainText(/Sprzedaż produktów: 128,50\s*zł/);
     await expect(appReport).toContainText(/1 szt\. · 30,50\s*zł/);
+    // Task 449: the margin in the app's report too.
+    await expect(appReport.getByTestId('report-products-margin')).toHaveText(
+      /^Marża: 58,00\s*zł \(2 szt\. z ceną zakupu: sprzedaż 98,00\s*zł, zakup 40,00\s*zł\)$/,
+    );
     await shot(app, '396-a-business-app-report-products');
+    await shot(app, '449-business-app-margin');
     // "CSV produktów" in the app too (task 423).
     const [appCsv] = await Promise.all([
       app.waitForEvent('download'),

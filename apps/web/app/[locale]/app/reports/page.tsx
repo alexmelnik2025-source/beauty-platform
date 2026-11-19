@@ -519,6 +519,9 @@ export default function ReportsPage() {
                           n: String(item.quantity),
                           amount: money(item.totalGrosze),
                         })}
+                        {item.marginGrosze === null
+                          ? ''
+                          : ` · ${fill(t.reports.marginItem, { amount: money(item.marginGrosze) })}`}
                       </span>
                     </li>
                   ))}
@@ -528,6 +531,17 @@ export default function ReportsPage() {
                     {report.products.staff
                       .map((s) => `${s.displayName}: ${money(s.totalGrosze)}`)
                       .join(' · ')}
+                  </p>
+                ) : null}
+                {report.products.margin ? (
+                  // Task 449: "Marża" — only pieces sold with a purchase price.
+                  <p className="small" data-testid="report-products-margin">
+                    {fill(t.reports.margin, {
+                      amount: money(report.products.margin.marginGrosze),
+                      n: String(report.products.margin.quantity),
+                      sales: money(report.products.margin.salesGrosze),
+                      cost: money(report.products.margin.costGrosze),
+                    })}
                   </p>
                 ) : null}
                 <p className="small muted">{t.reports.productsHint}</p>

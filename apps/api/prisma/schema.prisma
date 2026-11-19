@@ -1490,6 +1490,9 @@ model Product {
   stockQuantity Int?     @map("stock_quantity")
   /// Task 433: "Kończy się" when stockQuantity ≤ this; null = no warning.
   lowStockAt    Int?     @map("low_stock_at")
+  /// Task 448: "Cena zakupu" — what the salon pays the supplier for one; null = not written.
+  /// Seen only by owners and managers.
+  purchasePriceGrosze Int? @map("purchase_price_grosze")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -1548,6 +1551,8 @@ model ProductSale {
   name            String
   quantity        Int
   unitPriceGrosze Int      @map("unit_price_grosze")
+  /// Task 448: the product's purchase price at the time of the sale; null = not written then.
+  unitCostGrosze  Int?     @map("unit_cost_grosze")
   createdByUserId String?  @map("created_by_user_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 

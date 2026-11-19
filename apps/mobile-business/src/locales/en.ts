@@ -687,6 +687,11 @@ export const en: Dictionary = {
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
     stockValue: 'Stock value: {amount} ({n} pcs) — at selling prices.',
+    cost: 'Purchase price',
+    costNew: 'Purchase price (empty — not written)',
+    stockCostValue: 'At purchase prices: {amount}.',
+    costHint:
+      'Purchase price: what the salon pays the supplier for one — only the owner and managers see it; the reports count the margin from it.',
     history: 'History',
     historyFor: 'Stock history — {name}',
     historyEmpty: 'No stock changes yet.',
@@ -848,6 +853,8 @@ export const en: Dictionary = {
     products: 'Products sold: {amount}',
     productsRow: '{n} pcs · {amount}',
     writeOffs: 'Written off: {amount} ({n} pcs)',
+    margin: 'Margin: {amount} ({n} pcs with a purchase price: sales {sales}, cost {cost})',
+    marginItem: 'margin {amount}',
     writeOffsHint:
       'Pieces used in the salon, damaged or lost in this period — at today’s sale prices.',
     productsHint: 'Products sold at the visits. Not part of the visit revenue or the commissions.',

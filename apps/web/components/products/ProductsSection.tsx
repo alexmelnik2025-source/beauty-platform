@@ -18,6 +18,14 @@ function parseStock(value: string): number | null | undefined {
 
 const stockInput = (n: number | null) => (n === null ? '' : String(n));
 
+/** Task 448: "" → null (not written), "20,50" → 2050; anything else → undefined (wrong). */
+function parseCost(value: string): number | null | undefined {
+  if (value.trim() === '') return null;
+  return parseAmount(value) ?? undefined;
+}
+
+const costInput = (n: number | null) => (n === null ? '' : amountInput(n));
+
 /** 4500 → "45", 4550 → "45,50" — for the price field. */
 function amountInput(hundredths: number): string {
   const whole = Math.floor(hundredths / 100);
@@ -37,6 +45,8 @@ function amountInput(hundredths: number): string {
  * Task 438: "Dostawa" — the pieces that arrived are added to the stock by the server in one step.
  * Task 442: "Wartość magazynu" — what the pieces in stock are worth at the selling prices.
  * Task 441: "Historia" — the product's last stock changes (sale, delivery, by hand), who and when.
+ * Task 448: "Cena zakupu" — what the salon pays for one (empty = not written); the stock value is
+ * also shown at these prices, and the report counts the margin of the products sold.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -44,10 +54,11 @@ export function ProductsSection({ base }: { base: string }) {
   const { location } = useSession();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [drafts, setDrafts] = useState<
-    Record<string, { name: string; price: string; stock: string; low: string }>
+    Record<string, { name: string; price: string; cost: string; stock: string; low: string }>
   >({});
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [cost, setCost] = useState('');
   const [stock, setStock] = useState('');
   const [low, setLow] = useState('');
   const [historyOf, setHistoryOf] = useState<{
@@ -68,6 +79,7 @@ export function ProductsSection({ base }: { base: string }) {
           {
             name: x.name,
             price: amountInput(x.priceGrosze),
+            cost: costInput(x.purchasePriceGrosze),
             stock: stockInput(x.stockQuantity),
             low: stockInput(x.lowStockAt),
           },
@@ -147,16 +159,22 @@ export function ProductsSection({ base }: { base: string }) {
   }
 
   const newPrice = parseAmount(price);
+  const newCost = parseCost(cost);
   const newStock = parseStock(stock);
   const newLow = parseStock(low);
   const counted = (products ?? []).filter((x) => x.stockQuantity !== null);
   const stockPieces = counted.reduce((n, x) => n + (x.stockQuantity ?? 0), 0);
   const stockValue = counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * x.priceGrosze, 0);
+  // Task 448: at purchase prices — only when every counted product has one.
+  const stockCost = counted.every((x) => x.purchasePriceGrosze !== null)
+    ? counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * (x.purchasePriceGrosze ?? 0), 0)
+    : null;
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
   const canAdd =
     name.trim() !== '' &&
     price.trim() !== '' &&
     newPrice !== null &&
+    newCost !== undefined &&
     newStock !== undefined &&
     newLow !== undefined &&
     !busy;
@@ -169,6 +187,7 @@ export function ProductsSection({ base }: { base: string }) {
       <p className="small muted">{p.lowHint}</p>
       <p className="small muted">{p.restockHint}</p>
       <p className="small muted">{p.writeOffHint}</p>
+      <p className="small muted">{p.costHint}</p>
       <ErrorBox>{error}</ErrorBox>
       {toOrder.length > 0 ? (
         <p className="note" role="status" data-testid="products-to-order">
@@ -192,6 +211,12 @@ export function ProductsSection({ base }: { base: string }) {
           {p.stockValue
             .replace('{amount}', formatPrice(stockValue, location.currency, LOCALE_TAGS[locale]))
             .replace('{n}', String(stockPieces))}
+          {stockCost !== null
+            ? ` ${p.stockCostValue.replace(
+                '{amount}',
+                formatPrice(stockCost, location.currency, LOCALE_TAGS[locale]),
+              )}`
+            : ''}
         </p>
       ) : null}
       {products && products.length === 0 ? <p className="note">{p.empty}</p> : null}
@@ -214,15 +239,18 @@ export function ProductsSection({ base }: { base: string }) {
             const draft = drafts[x.id] ?? {
               name: x.name,
               price: amountInput(x.priceGrosze),
+              cost: costInput(x.purchasePriceGrosze),
               stock: stockInput(x.stockQuantity),
               low: stockInput(x.lowStockAt),
             };
             const draftPrice = parseAmount(draft.price);
+            const draftCost = parseCost(draft.cost);
             const draftStock = parseStock(draft.stock);
             const draftLow = parseStock(draft.low);
             const changed =
               draft.name.trim() !== x.name ||
               (draftPrice !== null && draftPrice !== x.priceGrosze) ||
+              (draftCost !== undefined && draftCost !== x.purchasePriceGrosze) ||
               (draftStock !== undefined && draftStock !== x.stockQuantity) ||
               (draftLow !== undefined && draftLow !== x.lowStockAt);
             return (
@@ -244,6 +272,19 @@ export function ProductsSection({ base }: { base: string }) {
                     value={draft.price}
                     onChange={(e) =>
                       setDrafts({ ...drafts, [x.id]: { ...draft, price: e.target.value } })
+                    }
+                  />
+                  <span aria-hidden="true">{location.currency}</span>
+                </span>
+                <span className="commission-row__input">
+                  <input
+                    inputMode="decimal"
+                    aria-label={`${p.cost} — ${x.name}`}
+                    aria-invalid={draftCost === undefined}
+                    placeholder={p.costPlaceholder}
+                    value={draft.cost}
+                    onChange={(e) =>
+                      setDrafts({ ...drafts, [x.id]: { ...draft, cost: e.target.value } })
                     }
                   />
                   <span aria-hidden="true">{location.currency}</span>
@@ -315,6 +356,7 @@ export function ProductsSection({ base }: { base: string }) {
                     busy ||
                     !changed ||
                     draftPrice === null ||
+                    draftCost === undefined ||
                     draftStock === undefined ||
                     draftLow === undefined ||
                     draft.name.trim() === ''
@@ -326,6 +368,7 @@ export function ProductsSection({ base }: { base: string }) {
                         body: {
                           name: draft.name.trim(),
                           priceGrosze: draftPrice,
+                          purchasePriceGrosze: draftCost,
                           stockQuantity: draftStock,
                           lowStockAt: draftLow,
                         },
@@ -465,6 +508,7 @@ export function ProductsSection({ base }: { base: string }) {
               body: {
                 name: name.trim(),
                 priceGrosze: newPrice,
+                purchasePriceGrosze: newCost,
                 stockQuantity: newStock,
                 lowStockAt: newLow,
               },
@@ -473,6 +517,7 @@ export function ProductsSection({ base }: { base: string }) {
             if (ok) {
               setName('');
               setPrice('');
+              setCost('');
               setStock('');
               setLow('');
             }
@@ -492,6 +537,18 @@ export function ProductsSection({ base }: { base: string }) {
             value={price}
             aria-invalid={price !== '' && newPrice === null}
             onChange={(e) => setPrice(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>
+            {p.costNew} ({location.currency})
+          </span>
+          <input
+            inputMode="decimal"
+            value={cost}
+            placeholder="—"
+            aria-invalid={newCost === undefined}
+            onChange={(e) => setCost(e.target.value)}
           />
         </label>
         <label className="field">

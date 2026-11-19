@@ -5509,6 +5509,8 @@ export interface components {
             lowStockAt: number | null;
             /** @description The salon counts the pieces and there are lowStockAt or fewer left (task 433) */
             lowStock: boolean;
+            /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
+            purchasePriceGrosze: number | null;
         };
         ProductList: {
             /** @description The salon’s products, sold ones first, then by name */
@@ -5525,6 +5527,8 @@ export interface components {
                 lowStockAt: number | null;
                 /** @description The salon counts the pieces and there are lowStockAt or fewer left (task 433) */
                 lowStock: boolean;
+                /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
+                purchasePriceGrosze: number | null;
             }[];
         };
         /** @description An appointment as the client sees it */
@@ -5936,6 +5940,8 @@ export interface components {
                     quantity: number;
                     /** @description What this product brought, in hundredths of the salon currency */
                     totalGrosze: number;
+                    /** @description null when no piece had a purchase price, and always in a specialist’s own report */
+                    marginGrosze: number | null;
                 }[];
                 /** @description By specialist of the visit, most money first */
                 staff: {
@@ -5945,6 +5951,17 @@ export interface components {
                     /** @description Products sold at this specialist’s visits, in hundredths of the salon currency */
                     totalGrosze: number;
                 }[];
+                /** @description Task 449: "Marża" — only pieces whose purchase price was written when sold; null when none, and always in a specialist’s own report */
+                margin: {
+                    /** @description Pieces sold with a known purchase price */
+                    quantity: number;
+                    /** @description What these pieces brought, in hundredths of the salon currency */
+                    salesGrosze: number;
+                    /** @description What the salon paid for them, in hundredths of the salon currency */
+                    costGrosze: number;
+                    /** @description salesGrosze − costGrosze, in hundredths of the salon currency */
+                    marginGrosze: number;
+                } | null;
             };
             /** @description Task 446: "Odpisy z magazynu" — pieces used in the salon, damaged or lost; for the whole salon only (empty in a specialist’s own report) */
             writeOffs: {
@@ -10351,6 +10368,7 @@ export interface operations {
                     priceGrosze: number;
                     stockQuantity?: number | null;
                     lowStockAt?: number | null;
+                    purchasePriceGrosze?: number | null;
                 };
             };
         };
@@ -10426,6 +10444,7 @@ export interface operations {
                     priceGrosze?: number;
                     stockQuantity?: number | null;
                     lowStockAt?: number | null;
+                    purchasePriceGrosze?: number | null;
                     active?: boolean;
                 };
             };

@@ -122,6 +122,13 @@ export const salonReportSchema = responseSchema(
               name: z.string(),
               quantity: z.number().int(),
               totalGrosze: money('What this product brought'),
+              marginGrosze: money(
+                'Sale price minus purchase price of the pieces whose purchase price was known (task 449)',
+              )
+                .nullable()
+                .describe(
+                  'null when no piece had a purchase price, and always in a specialist’s own report',
+                ),
             }),
           )
           .describe('By product name, most money first'),
@@ -135,6 +142,17 @@ export const salonReportSchema = responseSchema(
             }),
           )
           .describe('By specialist of the visit, most money first'),
+        margin: z
+          .strictObject({
+            quantity: z.number().int().describe('Pieces sold with a known purchase price'),
+            salesGrosze: money('What these pieces brought'),
+            costGrosze: money('What the salon paid for them'),
+            marginGrosze: money('salesGrosze − costGrosze'),
+          })
+          .nullable()
+          .describe(
+            'Task 449: "Marża" — only pieces whose purchase price was written when sold; null when none, and always in a specialist’s own report',
+          ),
       })
       .describe('Task 394: "Sprzedaż produktów" — not part of the visit revenue'),
     writeOffs: z

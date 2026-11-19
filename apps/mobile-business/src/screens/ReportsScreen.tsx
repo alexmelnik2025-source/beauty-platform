@@ -457,9 +457,23 @@ export function ReportsScreen(props: {
                       n: String(item.quantity),
                       amount: money(item.totalGrosze),
                     })}
+                    {item.marginGrosze === null
+                      ? ''
+                      : ` · ${fill(r.marginItem, { amount: money(item.marginGrosze) })}`}
                   </Text>
                 </View>
               ))}
+              {shown.products.margin ? (
+                // Task 449: "Marża" — only pieces sold with a purchase price.
+                <Text style={styles.name} testID="report-products-margin">
+                  {fill(r.margin, {
+                    amount: money(shown.products.margin.marginGrosze),
+                    n: String(shown.products.margin.quantity),
+                    sales: money(shown.products.margin.salesGrosze),
+                    cost: money(shown.products.margin.costGrosze),
+                  })}
+                </Text>
+              ) : null}
               <Text style={styles.muted}>{r.productsHint}</Text>
               <Button
                 kind="secondary"

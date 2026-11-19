@@ -8077,6 +8077,18 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "purchasePriceGrosze": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -8218,6 +8230,18 @@
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "purchasePriceGrosze": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000000
                       },
                       {
                         "type": "null"
@@ -21355,6 +21379,13 @@
           "lowStock": {
             "type": "boolean",
             "description": "The salon counts the pieces and there are lowStockAt or fewer left (task 433)"
+          },
+          "purchasePriceGrosze": {
+            "nullable": true,
+            "description": "\"Cena zakupu\" — what the salon pays for one (task 448); null = not written, and always null for a specialist",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -21364,7 +21395,8 @@
           "active",
           "stockQuantity",
           "lowStockAt",
-          "lowStock"
+          "lowStock",
+          "purchasePriceGrosze"
         ],
         "additionalProperties": false
       },
@@ -21409,6 +21441,13 @@
                 "lowStock": {
                   "type": "boolean",
                   "description": "The salon counts the pieces and there are lowStockAt or fewer left (task 433)"
+                },
+                "purchasePriceGrosze": {
+                  "nullable": true,
+                  "description": "\"Cena zakupu\" — what the salon pays for one (task 448); null = not written, and always null for a specialist",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
@@ -21418,7 +21457,8 @@
                 "active",
                 "stockQuantity",
                 "lowStockAt",
-                "lowStock"
+                "lowStock",
+                "purchasePriceGrosze"
               ],
               "additionalProperties": false
             },
@@ -23061,12 +23101,20 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991,
                       "description": "What this product brought, in hundredths of the salon currency"
+                    },
+                    "marginGrosze": {
+                      "nullable": true,
+                      "description": "null when no piece had a purchase price, and always in a specialist’s own report",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
                     "name",
                     "quantity",
-                    "totalGrosze"
+                    "totalGrosze",
+                    "marginGrosze"
                   ],
                   "additionalProperties": false
                 },
@@ -23104,13 +23152,52 @@
                   "additionalProperties": false
                 },
                 "description": "By specialist of the visit, most money first"
+              },
+              "margin": {
+                "nullable": true,
+                "description": "Task 449: \"Marża\" — only pieces whose purchase price was written when sold; null when none, and always in a specialist’s own report",
+                "type": "object",
+                "properties": {
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Pieces sold with a known purchase price"
+                  },
+                  "salesGrosze": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "What these pieces brought, in hundredths of the salon currency"
+                  },
+                  "costGrosze": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "What the salon paid for them, in hundredths of the salon currency"
+                  },
+                  "marginGrosze": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "salesGrosze − costGrosze, in hundredths of the salon currency"
+                  }
+                },
+                "required": [
+                  "quantity",
+                  "salesGrosze",
+                  "costGrosze",
+                  "marginGrosze"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
               "totalGrosze",
               "quantity",
               "items",
-              "staff"
+              "staff",
+              "margin"
             ],
             "additionalProperties": false,
             "description": "Task 394: \"Sprzedaż produktów\" — not part of the visit revenue"
