@@ -254,6 +254,26 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(zestawWriteOff.getByLabel('Ile sztuk — Zestaw')).toHaveValue('');
   await zestawHistory.scrollIntoViewIfNeeded();
   await shot(page, '444-owner-write-off');
+  // Task 457: "Inwentaryzacja" — only two sets are on the shelf; the difference goes to the history.
+  await products.getByRole('button', { name: 'Inwentaryzacja', exact: true }).click();
+  const stocktake = products.getByTestId('stocktake');
+  await expect(stocktake.getByLabel('Na półce — Zestaw')).toHaveValue('3');
+  await stocktake.getByLabel('Na półce — Zestaw').fill('2');
+  await expect(stocktake.getByTestId('stocktake-diff')).toHaveText('brakuje 1 szt.');
+  await stocktake.scrollIntoViewIfNeeded();
+  await shot(page, '457-a-owner-stocktake');
+  await stocktake.getByRole('button', { name: 'Zapisz inwentaryzację' }).click();
+  await expect(products.getByTestId('stocktake-done')).toHaveText(
+    'Inwentaryzacja zapisana: zmienione produkty: 1, brakuje 1 szt., nadwyżka 0 szt.',
+  );
+  await expect(stocktake).toHaveCount(0);
+  await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('2');
+  await products.getByRole('button', { name: 'Historia magazynu — Zestaw' }).click();
+  await expect(products.getByTestId('stock-history')).toContainText(
+    /Inwentaryzacja · -1 szt\. → 2/,
+  );
+  await products.getByTestId('stocktake-done').scrollIntoViewIfNeeded();
+  await shot(page, '457-owner-stocktake');
   // The visit card says it too.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
@@ -320,6 +340,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(historyFile).toContain('Data;Godzina;Produkt;Zmiana;Sztuk;Stan po;Kto;Powód\r\n');
   expect(historyFile).toMatch(/;Zestaw;Dostawa;\+4;4;[^;\r\n]+;\r\n/);
   expect(historyFile).toMatch(/;Zestaw;Odpis;-1;3;[^;\r\n]+;uszkodzone\r\n/);
+  expect(historyFile).toMatch(/;Zestaw;Inwentaryzacja;-1;2;[^;\r\n]+;\r\n/);
   expect(historyFile).toMatch(/;Pomada matowa;Sprzedaż przy wizycie;-2;0;/);
   await page.getByRole('button', { name: 'CSV historii magazynu' }).scrollIntoViewIfNeeded();
   await shot(page, '455-report-stock-history-csv');
@@ -450,9 +471,10 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appHistory).toContainText(/Zmiana ręczna · \+2 szt\. → 2/);
     await appHistory.scrollIntoViewIfNeeded();
     await shot(app, '441-business-app-stock-history');
-    // Task 442: 6 pomades × 49 + 2 shampoos × 30,50 + 5 waxes × 25 + 3 sets × 80 (one written off).
+    // Task 442: 6 pomades × 49 + 2 shampoos × 30,50 + 5 waxes × 25 + 2 sets × 80 (one written off,
+    // one missing at the stocktake).
     await expect(appList.getByTestId('products-stock-value')).toHaveText(
-      /^Wartość magazynu: 720,00\s*zł \(16 szt\.\) — w cenach sprzedaży\.$/,
+      /^Wartość magazynu: 640,00\s*zł \(15 szt\.\) — w cenach sprzedaży\.$/,
     );
     await appList.getByTestId('products-stock-value').scrollIntoViewIfNeeded();
     await shot(app, '442-business-app-stock-value');

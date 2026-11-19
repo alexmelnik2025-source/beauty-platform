@@ -1505,6 +1505,18 @@ export const pl = {
     restockAdd: 'Przyjmij',
     restockHint: 'Dostawa: wpisz, ile sztuk przyszło, i „Przyjmij” — doliczymy je do magazynu.',
     stockCsv: 'CSV stanu magazynowego',
+    stocktake: 'Inwentaryzacja',
+    stocktakeTitle: 'Inwentaryzacja',
+    stocktakeHint:
+      'Policz, co stoi na półce, i wpisz liczby. Różnice zapiszemy w historii magazynu; puste pole — produktu teraz nie liczymy.',
+    stocktakeWas: 'w systemie: {n} szt.',
+    stocktakeWasNone: 'nie liczymy',
+    stocktakeCount: 'Na półce — {name}',
+    stocktakeMissing: 'brakuje {n} szt.',
+    stocktakeExtra: 'nadwyżka {n} szt.',
+    stocktakeSave: 'Zapisz inwentaryzację',
+    stocktakeDone:
+      'Inwentaryzacja zapisana: zmienione produkty: {changed}, brakuje {missing} szt., nadwyżka {extra} szt.',
     stockCsvHint:
       'Wszystkie produkty: cena, w magazynie, kończy się przy, co zamówić i cena zakupu — do zamówienia u dostawcy.',
     lowHint: '„Kończy się przy” — ile sztuk to już mało; produkt dostanie znak „Kończy się”.',

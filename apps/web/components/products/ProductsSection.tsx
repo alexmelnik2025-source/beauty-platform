@@ -8,6 +8,7 @@ import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
 import { parseTip as parseAmount } from '../calendar/TipField';
+import { StocktakePanel } from './StocktakePanel';
 
 /** "" → null (not counted), "12" → 12; anything else → undefined (wrong). Task 430. */
 function parseStock(value: string): number | null | undefined {
@@ -45,6 +46,7 @@ function amountInput(hundredths: number): string {
  * Task 438: "Dostawa" — the pieces that arrived are added to the stock by the server in one step.
  * Task 442: "Wartość magazynu" — what the pieces in stock are worth at the selling prices.
  * Task 441: "Historia" — the product's last stock changes (sale, delivery, by hand), who and when.
+ * Task 457: "Inwentaryzacja" — the numbers counted on the shelf for all products at once.
  * Task 448: "Cena zakupu" — what the salon pays for one (empty = not written); the stock value is
  * also shown at these prices, and the report counts the margin of the products sold.
  */
@@ -69,6 +71,8 @@ export function ProductsSection({ base }: { base: string }) {
   const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [stocktake, setStocktake] = useState(false);
+  const [stocktakeDone, setStocktakeDone] = useState('');
 
   const show = (list: Product[]) => {
     setProducts(list);
@@ -230,8 +234,42 @@ export function ProductsSection({ base }: { base: string }) {
             onClick={() => void downloadStock()}
           >
             {p.stockCsv}
+          </button>{' '}
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            aria-expanded={stocktake}
+            disabled={busy}
+            onClick={() => {
+              setStocktake(!stocktake);
+              setStocktakeDone('');
+            }}
+          >
+            {p.stocktake}
           </button>
         </p>
+      ) : null}
+      {stocktakeDone ? (
+        <p className="note" role="status" data-testid="stocktake-done">
+          {stocktakeDone}
+        </p>
+      ) : null}
+      {stocktake && products && products.length > 0 ? (
+        <StocktakePanel
+          base={base}
+          products={products}
+          onSaved={(result) => {
+            show(result.products);
+            setStocktake(false);
+            setHistoryOf(null);
+            setStocktakeDone(
+              p.stocktakeDone
+                .replace('{changed}', String(result.changed))
+                .replace('{missing}', String(result.missingPieces))
+                .replace('{extra}', String(result.extraPieces)),
+            );
+          }}
+        />
       ) : null}
       {products && products.length > 0 ? (
         <ul className="commission-list">

@@ -118,6 +118,7 @@ export type {
   Product,
   ProductList,
   StockHistory,
+  Stocktake,
   SalonReport,
   StaffCommissions,
   TillClose,
