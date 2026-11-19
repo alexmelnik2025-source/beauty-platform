@@ -3,7 +3,7 @@ import { ApiError } from '../src/api';
 import { pl } from '../src/locales/pl';
 import { parseValidUntil, voucherErrorText, voucherLine, voucherStatus } from '../src/vouchers';
 
-const nbsp = (s: string) => s.replace(/ /g, ' ');
+const nbsp = (s: string) => s.replace(/\s/g, ' ');
 
 describe('gift vouchers in the business app (task 492)', () => {
   it('says what is left and until when', () => {
