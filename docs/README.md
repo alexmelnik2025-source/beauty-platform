@@ -3467,3 +3467,12 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   «Cofnięta 19 lis · Anna».
 - Тесты: `apps/api/test/gift-vouchers.spec.ts` (права, возврат один раз, отчёт, чужой бон, отменённый бон),
   `isolation.spec.ts`; e2e `gift-vouchers.spec.ts` — скриншоты 531 (кабинет), 532 (приложение).
+
+## «CSV płatności bonami» (задачи 533–535)
+
+- `GET …/gift-vouchers/uses.csv?locale=pl|uk|ru|en` — владелец/менеджер: каждая оплата бонами салона, старые сверху —
+  дата и время (салона), код бона, для кого, сумма, «Za co», кто принял, «Cofnięta» (день отмены по задаче 530 или
+  пусто). Формат как у «CSV bonów» (`voucherUsesCsv()` в `apps/api/src/vouchers/vouchers-csv.ts`).
+- Кнопка «Pobierz CSV płatności bonami» рядом с «Pobierz CSV bonów» в кабинете и в бизнес-приложении
+  (`api.giftVoucherUsesCsv`, «Поделиться» на телефоне).
+- Тесты: `apps/api/test/gift-vouchers.spec.ts`, e2e `gift-vouchers.spec.ts`.
