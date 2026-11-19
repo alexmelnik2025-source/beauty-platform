@@ -206,6 +206,9 @@ export const pl = {
     otherService: 'Inna usługa lub specjalista',
     serviceGone: 'Tej usługi nie można już zarezerwować online — wybierz inną.',
     staffGone: 'Ten specjalista nie wykonuje już tej usługi — wybierz innego.',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Rezerwujesz u: {name}',
+    qrStaffAny: 'Inny specjalista',
     pickService: 'Wybierz usługę',
     pickStaff: 'Wybierz specjalistę',
     speaksFilter: 'Mówi po',

@@ -210,6 +210,9 @@ export const ru: Dictionary = {
     otherService: 'Другая услуга или мастер',
     serviceGone: 'Эту услугу больше нельзя забронировать онлайн — выберите другую.',
     staffGone: 'Этот мастер больше не делает эту услугу — выберите другого.',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Вы записываетесь к: {name}',
+    qrStaffAny: 'Другой специалист',
     pickService: 'Выберите услугу',
     pickStaff: 'Выберите мастера',
     speaksFilter: 'Говорит на',

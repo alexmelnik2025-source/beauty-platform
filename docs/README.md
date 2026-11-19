@@ -3664,6 +3664,10 @@ doc `claude/Beauty_Platform_одобрение_функций.md`, в код и�
 Бизнес-приложение «Link do rezerwacji» → карточка «Kod QR specjalisty»: имена-кнопки, нажатие рисует код выбранного
 специалиста (тот же кодировщик `qr.ts`, без зависимостей) с кнопкой «Udostępnij link specjalisty» (на телефоне — лист
 «Поделиться», в браузере — копирование); уволенные специалисты не предлагаются. `share.ts` → `staffQrLink`.
-Тексты в 6 словарях сайта и 4 словарях приложения. e2e `staff-qr.spec.ts` (скриншоты Q2-staff-qr, Q2-staff-qr-page,
-Q2-staff-qr-time) и `staff-qr-app.spec.ts` (Q2-a-business-app-staff-qr); unit `share.test.ts`. После публикации
+Клиентское приложение (часть 8): `parseDeepLink` понимает ссылку только со специалистом
+(`…/s/{salon}?utm_source=qr&staff={id}`, `beauty-client://b/{salon}?staff=…`) — `bookingStart` открывает список услуг с
+строкой «Rezerwujesz u: …» («Inny specjalista» убирает её), а после выбора услуги, которую этот мастер делает, сразу его
+время (`BookingPreset.serviceId` стал необязательным). Тексты в 6 словарях сайта, 4 словарях бизнес-приложения и 6
+словарях клиентского приложения. e2e `staff-qr.spec.ts` (скриншоты Q2-staff-qr, Q2-staff-qr-page,
+Q2-staff-qr-time) и `staff-qr-app.spec.ts` (Q2-a-business-app-staff-qr); `visits-app-deep-link.spec.ts` (Q2-app-link-qr-staff); unit `share.test.ts`, `deepLink.test.ts`, `booking.test.ts`. После публикации
 приложений — universal links (предложение N32), чтобы QR открывал сразу приложение, если оно установлено.

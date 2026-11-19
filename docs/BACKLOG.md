@@ -18,7 +18,10 @@
   «Rezerwujesz u: …» и после услуги сразу открывает время этого мастера; e2e `staff-qr.spec.ts` (скриншоты
   Q2-staff-qr, Q2-staff-qr-page, Q2-staff-qr-time); бизнес-приложение «Link do rezerwacji» → «Kod QR specjalisty»
   (имена-кнопки → код выбранного специалиста на экране, «Udostępnij link specjalisty»; e2e `staff-qr-app.spec.ts`,
-  скриншот Q2-a-business-app-staff-qr).
+  скриншот Q2-a-business-app-staff-qr); клиентское приложение: ссылка/QR только со специалистом
+  (`?staff=…` без услуги) открывает запись с «Rezerwujesz u: …» и после услуги — его время (e2e
+  `visits-app-deep-link.spec.ts`, скриншот Q2-app-link-qr-staff). Этим Q2 закрыта; дальше по QR — только N32
+  (universal links после публикации) и N33 («Zeskanuj kod QR» в приложении), ждут «да».
 
 - **19.11.2026, ~22:30 UTC — Q2 часть 5 (ветка `agent/566-app-deep-link`)**: клиентское приложение открывается по
   ссылке на салон (`beauty-client://b/{салон}?service=…&staff=…`, адрес страницы записи, короткая ссылка) сразу на
