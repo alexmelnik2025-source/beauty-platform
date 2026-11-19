@@ -21,7 +21,11 @@ export interface VoucherCsvLine {
   validUntil: string | null;
   status: VoucherCsvStatus;
   note: string | null;
+  /** Task 549: how the client paid for it, or null when not noted. */
+  paymentMethod: VoucherCsvPayment | null;
 }
+
+export type VoucherCsvPayment = 'cash' | 'card' | 'blik' | 'transfer' | 'other';
 
 interface VoucherCsvTexts {
   header: [
@@ -35,8 +39,10 @@ interface VoucherCsvTexts {
     validUntil: string,
     status: string,
     note: string,
+    payment: string,
   ];
   status: Record<VoucherCsvStatus, string>;
+  payment: Record<VoucherCsvPayment, string>;
 }
 
 const TEXTS: Record<CsvLocale, VoucherCsvTexts> = {
@@ -52,6 +58,7 @@ const TEXTS: Record<CsvLocale, VoucherCsvTexts> = {
       'Ważny do',
       'Status',
       'Notatka',
+      'Sposób płatności',
     ],
     status: {
       active: 'Aktywny',
@@ -59,6 +66,7 @@ const TEXTS: Record<CsvLocale, VoucherCsvTexts> = {
       expired: 'Wygasł',
       cancelled: 'Anulowany',
     },
+    payment: { cash: 'Gotówka', card: 'Karta', blik: 'BLIK', transfer: 'Przelew', other: 'Inna' },
   },
   uk: {
     header: [
@@ -72,6 +80,7 @@ const TEXTS: Record<CsvLocale, VoucherCsvTexts> = {
       'Дійсний до',
       'Статус',
       'Нотатка',
+      'Спосіб оплати',
     ],
     status: {
       active: 'Активний',
@@ -79,6 +88,7 @@ const TEXTS: Record<CsvLocale, VoucherCsvTexts> = {
       expired: 'Термін минув',
       cancelled: 'Скасований',
     },
+    payment: { cash: 'Готівка', card: 'Картка', blik: 'BLIK', transfer: 'Переказ', other: 'Інше' },
   },
   ru: {
     header: [
@@ -92,12 +102,20 @@ const TEXTS: Record<CsvLocale, VoucherCsvTexts> = {
       'Действует до',
       'Статус',
       'Заметка',
+      'Способ оплаты',
     ],
     status: {
       active: 'Активен',
       used: 'Использован',
       expired: 'Срок истёк',
       cancelled: 'Отменён',
+    },
+    payment: {
+      cash: 'Наличные',
+      card: 'Карта',
+      blik: 'BLIK',
+      transfer: 'Перевод',
+      other: 'Другое',
     },
   },
   en: {
@@ -112,8 +130,10 @@ const TEXTS: Record<CsvLocale, VoucherCsvTexts> = {
       'Valid until',
       'Status',
       'Note',
+      'Payment',
     ],
     status: { active: 'Active', used: 'Used', expired: 'Expired', cancelled: 'Cancelled' },
+    payment: { cash: 'Cash', card: 'Card', blik: 'BLIK', transfer: 'Transfer', other: 'Other' },
   },
 };
 
@@ -133,6 +153,7 @@ export function vouchersCsv(lines: VoucherCsvLine[], locale: CsvLocale): string 
         cell(l.validUntil ?? ''),
         cell(t.status[l.status]),
         cell(l.note ?? ''),
+        cell(l.paymentMethod ? t.payment[l.paymentMethod] : ''),
       ].join(';'),
     );
   }

@@ -153,6 +153,7 @@ export class VouchersService {
         validUntil: v.validUntil,
         status: v.status,
         note: v.note,
+        paymentMethod: v.paymentMethod,
       };
     });
     const day = instantToLocal(Date.now(), location.timezone).date;

@@ -522,7 +522,12 @@ describe('"CSV bonów" (task 494)', () => {
         .http()
         .post(base)
         .set(owner.auth)
-        .send({ amountGrosze: 20000, recipient: 'Jan Kowalski', note: 'Na urodziny' })
+        .send({
+          amountGrosze: 20000,
+          recipient: 'Jan Kowalski',
+          note: 'Na urodziny',
+          paymentMethod: 'cash',
+        })
         .expect(201)
     ).body as Voucher;
     await ctx
@@ -560,6 +565,7 @@ describe('"CSV bonów" (task 494)', () => {
         'Ważny do',
         'Status',
         'Notatka',
+        'Sposób płatności',
       ],
       [
         first.code,
@@ -572,14 +578,29 @@ describe('"CSV bonów" (task 494)', () => {
         '',
         'Aktywny',
         'Na urodziny',
+        'Gotówka',
       ],
-      [second.code, today, 'Anna Owner', '', '100,00', '0,00', '100,00', lastDay, 'Anulowany', ''],
+      [
+        second.code,
+        today,
+        'Anna Owner',
+        '',
+        '100,00',
+        '0,00',
+        '100,00',
+        lastDay,
+        'Anulowany',
+        '',
+        '',
+      ],
     ]);
 
     const en = rows((await csv(owner.auth, 'en').expect(200)).body as string);
     expect(en[0]![0]).toBe('Code');
     expect(en[1]!.slice(4, 7)).toEqual(['200.00', '50.50', '149.50']);
     expect(en[2]![8]).toBe('Cancelled');
+    expect(en[1]![10]).toBe('Cash');
+    expect(en[0]![10]).toBe('Payment');
   });
 
   it('is for owners and managers only', async () => {
