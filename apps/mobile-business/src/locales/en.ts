@@ -689,6 +689,13 @@ export const en: Dictionary = {
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
     toOrderNoSupplier: 'no supplier',
+    orderSend: 'Send the order',
+    orderTitle: 'Order',
+    orderPieces: '{n} pcs',
+    orderHint:
+      'Quantities — for ~30 days of sales and above “Running low at”. You can change them before sending.',
+    orderCopied: 'Order copied — paste it into a message to the supplier.',
+    orderFailed: 'Could not send the order.',
     stockValue: 'Stock value: {amount} ({n} pcs) — at selling prices.',
     cost: 'Purchase price',
     costNew: 'Purchase price (empty — not written)',

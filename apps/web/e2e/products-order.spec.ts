@@ -1,0 +1,159 @@
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type APIResponse,
+  type Page,
+} from '@playwright/test';
+import { freshAddress } from './addresses';
+import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
+
+/**
+ * Task 473: "Tekst zamówienia" in "Usługi" → "Produkty" of the cabinet — the products to order as
+ * a message for each supplier, with suggested numbers of pieces; the owner changes one and
+ * copies it (screenshot 473). Task 474: "Wyślij zamówienie" in the business app — the same text
+ * goes to the share sheet, in the web preview to the clipboard (screenshot 474).
+ */
+
+const PASSWORD = 'e2e-password-123';
+const run = Date.now().toString(36);
+const OWNER = `order-owner-${run}@example.com`;
+
+const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
+
+async function json<T>(res: APIResponse): Promise<T> {
+  expect(res.ok(), `${res.url()} → ${res.status()} ${await res.text()}`).toBeTruthy();
+  return (res.status() === 204 ? undefined : await res.json()) as T;
+}
+
+async function verifiedUser(api: APIRequestContext, email: string, name: string) {
+  await json(
+    await api.post('/v1/auth/register', {
+      headers: freshAddress(),
+      data: { email, password: PASSWORD, name },
+    }),
+  );
+  const mail = await waitForEmail(email, /Potwierdź adres/);
+  const token = /token=([^\s&]+)/.exec(mail.text)?.[1];
+  expect(token, 'verification link').toBeTruthy();
+  await json(
+    await api.post('/v1/auth/verify-email', { data: { token: decodeURIComponent(token!) } }),
+  );
+  const login = await json<{ accessToken: string }>(
+    await api.post('/v1/auth/login', {
+      headers: freshAddress(),
+      data: { email, password: PASSWORD, clientType: 'mobile' },
+    }),
+  );
+  return { Authorization: `Bearer ${login.accessToken}` };
+}
+
+const EXPECTED =
+  'Zamówienie — Barber Hurt:\n- Wosk — 4 szt.\n\n' +
+  'Zamówienie — Hairgum:\n- Pomada matowa — 5 szt.\n\n' +
+  'Zamówienie — bez dostawcy:\n- Szampon — 1 szt.';
+
+test('the owner sends the order for the products to order to each supplier', async ({
+  browser,
+  request,
+}) => {
+  const owner = await verifiedUser(request, OWNER, 'Aleksander Owner');
+  const org = await json<{ id: string }>(
+    await request.post('/v1/organizations', { headers: owner, data: { name: 'GESTALT' } }),
+  );
+  const location = await json<{ id: string }>(
+    await request.post(`/v1/organizations/${org.id}/locations`, {
+      headers: owner,
+      data: {
+        name: 'Gestalt Barbershop',
+        addressLine: 'ul. Józefa Bema 91',
+        city: 'Warszawa',
+        postalCode: '01-233',
+      },
+    }),
+  );
+  const base = `/v1/organizations/${org.id}/locations/${location.id}`;
+  for (const product of [
+    // None left, few at 4 → 5 to get above the warning.
+    {
+      name: 'Pomada matowa',
+      priceGrosze: 4900,
+      stockQuantity: 0,
+      lowStockAt: 4,
+      supplier: 'Hairgum',
+    },
+    // 3 left, few at 3 → one more.
+    { name: 'Szampon', priceGrosze: 3050, stockQuantity: 3, lowStockAt: 3 },
+    // 2 left, few at 5 → 4 more.
+    { name: 'Wosk', priceGrosze: 2500, stockQuantity: 2, lowStockAt: 5, supplier: 'Barber Hurt' },
+    // Plenty: not in the order.
+    { name: 'Olejek', priceGrosze: 4000, stockQuantity: 9, lowStockAt: 2, supplier: 'Hairgum' },
+  ]) {
+    await json(await request.post(`${base}/products`, { headers: owner, data: product }));
+  }
+
+  // The cabinet: "Tekst zamówienia" under "Do zamówienia".
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'pl-PL',
+    permissions: ['clipboard-read', 'clipboard-write'],
+  });
+  const page = await context.newPage();
+  await page.goto('/pl/login');
+  await page.getByLabel('E-mail').fill(OWNER);
+  await page.getByLabel('Hasło').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Zaloguj się' }).click();
+  await page.waitForURL(/\/pl\/app\/calendar/);
+  await page.goto('/pl/app/services');
+  const products = page.getByTestId('products');
+  await expect(products.getByTestId('products-to-order')).toContainText('Barber Hurt — Wosk');
+  await products.getByRole('button', { name: 'Tekst zamówienia' }).click();
+  const text = products.getByRole('textbox', { name: 'Tekst zamówienia' });
+  await expect(text).toHaveValue(EXPECTED);
+  // The owner wants more wax this time.
+  await text.fill(EXPECTED.replace('Wosk — 4 szt.', 'Wosk — 6 szt.'));
+  await products.getByRole('button', { name: 'Kopiuj', exact: true }).click();
+  await expect(products.getByText('Skopiowano — wklej w wiadomości do dostawcy.')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    EXPECTED.replace('Wosk — 4 szt.', 'Wosk — 6 szt.'),
+  );
+  await products.getByTestId('products-order').scrollIntoViewIfNeeded();
+  await shot(page, '473-owner-order-text');
+  await context.close();
+
+  // The business app (its web preview): "Wyślij zamówienie" copies the same text.
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const appContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'pl-PL',
+      isMobile: true,
+      permissions: ['clipboard-read', 'clipboard-write'],
+    });
+    const app = await appContext.newPage();
+    // No share menu in this browser: the order goes to the clipboard.
+    await app.addInitScript(() => {
+      Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    });
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Usługi' }).click();
+    const appList = app.getByTestId('products');
+    await appList.getByRole('button', { name: 'Wyślij zamówienie' }).click();
+    await expect(
+      appList.getByText('Zamówienie skopiowane — wklej je w wiadomości do dostawcy.'),
+    ).toBeVisible();
+    expect(await app.evaluate(() => navigator.clipboard.readText())).toBe(EXPECTED);
+    await appList.getByTestId('products-order').scrollIntoViewIfNeeded();
+    await shot(app, '474-business-app-order');
+    await appContext.close();
+  } finally {
+    businessApp.server.close();
+  }
+});

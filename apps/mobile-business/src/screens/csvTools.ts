@@ -1,5 +1,5 @@
 import { Platform, Share } from 'react-native';
-import type { CsvShareTools } from '../share';
+import type { CsvShareTools, TextShareTools } from '../share';
 
 /**
  * What this platform can do with the CSV: save the file in a browser, the share sheet on a phone.
@@ -20,5 +20,20 @@ export function csvTools(type = 'text/csv;charset=utf-8'): CsvShareTools {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
+  };
+}
+
+/**
+ * Task 474: a text (the order for the supplier) — the share sheet on a phone; in the web preview
+ * the browser's share menu or the clipboard (as the day plan, task 351).
+ */
+export function orderShareTools(): TextShareTools {
+  if (Platform.OS !== 'web') {
+    return { native: (c) => Share.share({ message: c.message, title: c.title }) };
+  }
+  const nav = typeof navigator === 'undefined' ? undefined : navigator;
+  return {
+    webShare: nav?.share ? (data) => nav.share(data) : undefined,
+    copy: nav?.clipboard ? (text) => nav.clipboard.writeText(text) : undefined,
   };
 }
