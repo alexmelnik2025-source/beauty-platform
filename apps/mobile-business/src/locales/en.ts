@@ -715,6 +715,18 @@ export const en: Dictionary = {
     restockIn: 'How many pieces arrived',
     restockAdd: 'Receive',
     stockCsv: 'Stock CSV',
+    stocktake: 'Stocktake',
+    stocktakeTitle: 'Stocktake',
+    stocktakeHint:
+      'Count what is on the shelf and write the numbers. Differences go to the stock history; an empty field — the product is not counted now.',
+    stocktakeWas: 'in the system: {n} pcs',
+    stocktakeWasNone: 'not counted',
+    stocktakeCount: 'On the shelf — {name}',
+    stocktakeMissing: '{n} pcs missing',
+    stocktakeExtra: '{n} pcs extra',
+    stocktakeSave: 'Save the stocktake',
+    stocktakeDone:
+      'Stocktake saved: products changed: {changed}, {missing} pcs missing, {extra} pcs extra.',
     stockCsvHint:
       'All products: price, in stock, runs low at, what to order and the purchase price — for ordering from the supplier.',
     stockCsvFailed: 'Could not save the file.',

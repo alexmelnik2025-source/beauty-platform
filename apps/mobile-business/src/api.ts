@@ -14,6 +14,7 @@ import type {
   ProductList,
   SalonReport,
   StockHistory,
+  Stocktake,
   StaffCommissions,
   TillClose,
   Tokens,
@@ -179,6 +180,7 @@ export type {
   ProductList,
   SalonReport,
   StockHistory,
+  Stocktake,
   StaffCommissions,
   TillClose,
   Tokens,
@@ -722,6 +724,19 @@ export class BusinessApi {
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}/write-off`,
       note ? { quantity, note } : { quantity },
+    );
+  }
+
+  /** Task 458: "Inwentaryzacja" — the pieces counted on the shelf replace what was written. */
+  stocktake(
+    orgId: string,
+    locationId: string,
+    counts: { productId: string; quantity: number }[],
+  ): Promise<Stocktake> {
+    return this.authed<Stocktake>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/stocktake`,
+      { counts },
     );
   }
 

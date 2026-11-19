@@ -713,6 +713,18 @@ export const ru: Dictionary = {
     restockIn: 'Сколько штук пришло',
     restockAdd: 'Принять',
     stockCsv: 'CSV остатков',
+    stocktake: 'Инвентаризация',
+    stocktakeTitle: 'Инвентаризация',
+    stocktakeHint:
+      'Посчитайте, что стоит на полке, и впишите числа. Разницу запишем в историю склада; пустое поле — товар сейчас не считаем.',
+    stocktakeWas: 'в системе: {n} шт.',
+    stocktakeWasNone: 'не считаем',
+    stocktakeCount: 'На полке — {name}',
+    stocktakeMissing: 'не хватает {n} шт.',
+    stocktakeExtra: 'излишек {n} шт.',
+    stocktakeSave: 'Сохранить инвентаризацию',
+    stocktakeDone:
+      'Инвентаризация сохранена: изменено товаров: {changed}, не хватает {missing} шт., излишек {extra} шт.',
     stockCsvHint:
       'Все товары: цена, на складе, заканчивается при, что заказать и закупочная цена — для заказа у поставщика.',
     stockCsvFailed: 'Не удалось сохранить файл.',

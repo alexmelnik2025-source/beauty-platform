@@ -487,6 +487,21 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appHistory).toContainText(/Odpis · -1 szt\. → 5 · .+ · zużyte w salonie/);
     await appHistory.scrollIntoViewIfNeeded();
     await shot(app, '445-business-app-write-off');
+    // Task 458: "Inwentaryzacja" from the phone — one wax more on the shelf than written.
+    await appList.getByRole('button', { name: 'Inwentaryzacja', exact: true }).click();
+    const appStocktake = appList.getByTestId('stocktake');
+    await appStocktake.getByLabel('Na półce — Wosk').fill('6');
+    await expect(appStocktake.getByText('w systemie: 5 szt. · nadwyżka 1 szt.')).toBeVisible();
+    await appStocktake.scrollIntoViewIfNeeded();
+    await shot(app, '458-a-business-app-stocktake');
+    await appStocktake.getByRole('button', { name: 'Zapisz inwentaryzację' }).click();
+    await expect(appList.getByTestId('stocktake-done')).toHaveText(
+      'Inwentaryzacja zapisana: zmienione produkty: 1, brakuje 0 szt., nadwyżka 1 szt.',
+    );
+    // Six waxes are no longer few (the salon's "Kończy się przy" is five).
+    await expect(appList.getByText('zostało 6 szt.', { exact: true })).toBeVisible();
+    await appList.getByTestId('stocktake-done').scrollIntoViewIfNeeded();
+    await shot(app, '458-business-app-stocktake');
     // Task 447: "Odpisy z magazynu" in the app's report — the set and the pomade.
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await app.getByRole('button', { name: 'Raporty' }).click();

@@ -15,6 +15,7 @@ function parseCost(text: string): number | null | undefined {
 }
 import { Button, Card, colors, ErrorText } from '../ui';
 import { csvTools } from './csvTools';
+import { StocktakeCard } from './StocktakeCard';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -29,6 +30,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 439: "Dostawa" — how many pieces arrived; the server adds them to the stock.
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier (shared on a phone,
  * saved in a browser).
+ * Task 458: "Inwentaryzacja" — the numbers counted on the shelf for all products on one card.
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -55,6 +57,8 @@ export function ProductListSection(props: {
   const [error, setError] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
+  const [stocktake, setStocktake] = useState(false);
+  const [stocktakeDone, setStocktakeDone] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
   const load = useCallback(async () => {
@@ -179,7 +183,40 @@ export function ProductListSection(props: {
           />
           <Text style={styles.muted}>{p.stockCsvHint}</Text>
           {csvInfo ? <Text style={styles.warn}>{csvInfo}</Text> : null}
+          <Button
+            kind="secondary"
+            label={p.stocktake}
+            onPress={() => {
+              setStocktake(!stocktake);
+              setStocktakeDone('');
+            }}
+          />
         </View>
+      ) : null}
+      {stocktakeDone ? (
+        <Text style={styles.text} role="status" testID="stocktake-done">
+          {stocktakeDone}
+        </Text>
+      ) : null}
+      {stocktake && products && products.length > 0 ? (
+        <StocktakeCard
+          api={api}
+          t={t}
+          salon={salon}
+          products={products}
+          onSaved={(result) => {
+            setProducts(result.products);
+            setStocktake(false);
+            setHistory(null);
+            setStocktakeDone(
+              fill(p.stocktakeDone, {
+                changed: String(result.changed),
+                missing: String(result.missingPieces),
+                extra: String(result.extraPieces),
+              }),
+            );
+          }}
+        />
       ) : null}
       {(products ?? []).map((x) =>
         editId === x.id ? (
