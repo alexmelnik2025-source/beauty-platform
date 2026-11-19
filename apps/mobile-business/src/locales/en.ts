@@ -1701,6 +1701,8 @@ export const en: Dictionary = {
     listTitle: 'Vouchers sold',
     empty: 'No vouchers sold yet.',
     activeTotal: 'Left on valid vouchers: {amount}',
+    csv: 'Download vouchers CSV',
+    csvFailed: 'Could not save the file.',
     soldOn: 'Sold {date}',
     cancel: 'Cancel voucher',
     cancelAsk: 'Cancel voucher {code}? It can no longer be used to pay.',

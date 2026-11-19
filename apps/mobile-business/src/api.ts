@@ -864,6 +864,14 @@ export class BusinessApi {
     return this.authed<GiftVoucherList>('GET', voucherPath(orgId, locationId));
   }
 
+  /** Task 495: "CSV bonów" — every voucher for the accountant (owners and managers). */
+  giftVouchersCsv(orgId: string, locationId: string, locale: Locale): Promise<CsvFile> {
+    return this.csvFile(
+      `${voucherPath(orgId, locationId)}/export.csv?${new URLSearchParams({ locale }).toString()}`,
+      'vouchers.csv',
+    );
+  }
+
   /** Task 492: "Nowy bon" — sold at the salon's till; the server makes the code. */
   sellGiftVoucher(
     orgId: string,

@@ -17,7 +17,7 @@ import { serveApp } from './mobile-app';
  * Task 494: "Pobierz CSV bonów" (screenshot 494).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
- * sold on the phone (screenshots 492, 492a).
+ * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -235,6 +235,17 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
     ).toBeVisible();
     await expect(phone.getByText(/Do wykorzystania na ważnych bonach: 200,00\s?zł/)).toBeVisible();
     await shot(phone, '492a');
+
+    // Task 495: "Pobierz CSV bonów" on the phone (in the browser preview — a download).
+    const [appCsv] = await Promise.all([
+      phone.waitForEvent('download'),
+      phone.getByRole('button', { name: 'Pobierz CSV bonów' }).click(),
+    ]);
+    const appCsvText = await readFile((await appCsv.path())!, 'utf8');
+    expect(appCsvText).toContain(`${voucher.code};`);
+    expect(appCsvText).toContain(';Ola;150,00;50,00;100,00;');
+    expect(appCsvText).toContain(';Piotr;100,00;0,00;100,00;');
+    await shot(phone, '495');
     await context.close();
   } finally {
     businessApp.server.close();

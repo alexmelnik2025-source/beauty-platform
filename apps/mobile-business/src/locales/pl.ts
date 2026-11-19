@@ -1699,6 +1699,8 @@ export const pl = {
     listTitle: 'Sprzedane bony',
     empty: 'Nie sprzedano jeszcze żadnego bonu.',
     activeTotal: 'Do wykorzystania na ważnych bonach: {amount}',
+    csv: 'Pobierz CSV bonów',
+    csvFailed: 'Nie udało się zapisać pliku.',
     soldOn: 'Sprzedany {date}',
     cancel: 'Anuluj bon',
     cancelAsk: 'Anulować bon {code}? Nie będzie można nim płacić.',

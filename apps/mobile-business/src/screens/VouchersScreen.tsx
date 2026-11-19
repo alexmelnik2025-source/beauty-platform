@@ -6,6 +6,8 @@ import { fill, type Dictionary } from '../i18n';
 import { parseTip as parseAmount } from '../tip';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { parseValidUntil, voucherErrorText, voucherLine, voucherStatus } from '../vouchers';
+import { shareCsv } from '../share';
+import { csvTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
 
 function Input(props: {
@@ -149,6 +151,8 @@ export function VouchersScreen(props: {
   const [selling, setSelling] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [info, setInfo] = useState('');
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvInfo, setCsvInfo] = useState('');
 
   const load = useCallback(async () => {
     if (!manager) return;
@@ -172,6 +176,22 @@ export function VouchersScreen(props: {
     });
     return () => sub.remove();
   }, [onBack]);
+
+  /** Task 495: "CSV bonów" — shared or saved like the other CSV files of the app. */
+  async function downloadCsv() {
+    if (csvBusy) return;
+    setCsvBusy(true);
+    setCsvInfo('');
+    try {
+      const file = await api.giftVouchersCsv(salon.orgId, salon.locationId, locale);
+      const result = await shareCsv(file, csvTools());
+      setCsvInfo(result === 'failed' ? v.csvFailed : '');
+    } catch (e) {
+      setCsvInfo(voucherErrorText(e, t));
+    } finally {
+      setCsvBusy(false);
+    }
+  }
 
   async function check() {
     if (!code.trim()) return;
@@ -290,6 +310,12 @@ export function VouchersScreen(props: {
               <Text style={styles.text}>
                 {fill(v.activeTotal, { amount: money(list.activeBalanceGrosze) })}
               </Text>
+              <Button
+                kind="secondary"
+                label={csvBusy ? t.loading : v.csv}
+                onPress={() => void downloadCsv()}
+              />
+              {csvInfo ? <Text style={styles.muted}>{csvInfo}</Text> : null}
               <Card>
                 {list.vouchers.map((x, i) => (
                   <View key={x.id} style={[styles.row, i > 0 && styles.divider]}>
