@@ -736,6 +736,12 @@ export function ReportsScreen(props: {
                       })}
                     </Text>
                   ) : null}
+                  {d.nonCashGrosze > 0 ? (
+                    // Task 553: what that day brought not in cash — to check with the terminal.
+                    <Text style={styles.muted}>
+                      {fill(r.tillClosesNonCash, { sum: money(d.nonCashGrosze) })}
+                    </Text>
+                  ) : null}
                 </View>
               ))}
               <Text style={styles.muted}>{r.tillClosesHint}</Text>

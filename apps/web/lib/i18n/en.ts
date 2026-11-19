@@ -1871,6 +1871,7 @@ export const en: Dict = {
     colCashOut: 'Cash out',
     colCounted: 'Counted',
     colDifference: 'Difference',
+    colNonCash: 'Not in cash',
     tillClosesTotal: 'Total difference: {sum}',
     tillClosesHint:
       'Days whose till was closed in "Till": the cash counted and what should have been there (visits paid in cash plus cash in minus cash out). Minus — cash was missing.',

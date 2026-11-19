@@ -316,6 +316,9 @@ export const salonReportSchema = responseSchema(
               differenceGrosze: z.number().int().describe('Counted minus expected'),
               cashInGrosze: money('Task 237: cash put into the till that day (now)'),
               cashOutGrosze: money('Task 237: cash taken out of the till that day (now)'),
+              nonCashGrosze: money(
+                'Task 553: what that day brought not in cash — card, BLIK, transfer, other (visits and gift vouchers sold, task 552), now',
+              ),
             }),
           )
           .describe('Days of the period whose till was counted, oldest first'),

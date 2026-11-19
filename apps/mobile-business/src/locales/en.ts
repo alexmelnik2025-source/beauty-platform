@@ -969,6 +969,7 @@ export const en: Dictionary = {
     tillCloses: 'Till closes · total difference: {sum}',
     tillClosesRow: 'counted {counted} · should be {expected} · {difference}',
     tillClosesMoves: 'cash in {in} · cash out {out}',
+    tillClosesNonCash: 'not in cash {sum} — check with the terminal',
     tillClosesHint: 'Days whose till was closed. Minus — cash was missing.',
     paymentsUnknown: 'Not given',
     paymentsRow: '{amount} · visits: {n}',

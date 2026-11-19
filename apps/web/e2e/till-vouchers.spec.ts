@@ -18,7 +18,8 @@ import { serveApp } from './mobile-app';
  * Task 550: how it was paid, fixed in "Zmień bon" (550).
  * Task 548: the same in the business app — the till of that day and how vouchers were paid (548,
  * 548-a). Task 552: "Bez gotówki" — the voucher sold by card that day, to check with the terminal
- * (552, and in the business app 552-a).
+ * (552, and in the business app 552-a). Task 553: that day in "Zamknięcia kasy" of the report with
+ * its "Bez gotówki" column (553).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -190,6 +191,15 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     /Bez gotówki — sprawdź z terminalem i kontem: Karta 50,00\s*zł \(bony: 1\)/,
   );
   await shot(page, '552-till-other-payments');
+  // Task 553: the closed day in "Zamknięcia kasy" of the report, with what it brought not in cash.
+  await page.getByRole('link', { name: 'Raporty' }).click();
+  await page.waitForURL(/\/pl\/app\/reports$/);
+  await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+  const closes = page.getByTestId('report-till-closes');
+  await closes.scrollIntoViewIfNeeded();
+  await expect(closes.getByRole('columnheader', { name: 'Bez gotówki' })).toBeVisible();
+  await expect(closes.getByRole('row').nth(1)).toContainText(/140,00\s*zł.*50,00\s*zł/);
+  await shot(page, '553-report-till-non-cash');
 
   // Task 547: "Nowy bon" — how the client paid for it.
   await page.goto('/pl/app/vouchers');

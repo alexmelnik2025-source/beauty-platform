@@ -3559,3 +3559,14 @@ termin» — сколько осталось неиспользованным н
 «Inna»; цена минус скидка минус оплаченное бонами) и боны, проданные в этот день тем же способом (без отменённых).
 Способы без денег не показываются; порядок: Karta, BLIK, Przelew, Inna. API: `otherPayments` в
 `GET …/reports/till-close` (`method`, `visits`, `visitsGrosze`, `vouchers`, `vouchersGrosze`, `totalGrosze`).
+
+## «Bez gotówki» в «Zamknięcia kasy» и «CSV kasy» (задача 553)
+
+Чтобы сверить прошлые дни с выпиской терминала и банка: в отчёте (кабинет «Raporty» — колонка «Bez gotówki» в таблице
+«Zamknięcia kasy», если хоть один закрытый день что-то принёс не наличными; бизнес-приложение — строка «bez gotówki
+50,00 zł — sprawdź z terminalem» у дня) и в «CSV kasy» (последняя колонка «Bez gotówki» / «Безготівково» /
+«Безналично» / «Not in cash» у строки «Zamknięcie kasy», у wpłat и wypłat — пусто) — сколько день принёс картой, BLIK,
+переводом или «Inna»: визиты дня без части, оплаченной бонами, и боны, проданные так в этот день (не отменённые), —
+та же сумма, что «Bez gotówki» в «Zamknij kasę» (задача 552), посчитанная сейчас. API: `nonCashGrosze` в
+`tillCloses.days` отчёта; общий расчёт — `otherPaymentsOfDay()` в `apps/api/src/reports/till-close.service.ts`.
+Тесты `apps/api/test/till-close.spec.ts`, e2e `till-vouchers.spec.ts` (скриншот 553).

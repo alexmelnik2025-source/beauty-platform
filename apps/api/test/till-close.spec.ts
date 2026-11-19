@@ -192,8 +192,10 @@ describe('till close (task 232)', () => {
     expect((await till().expect(200)).body.close.countedCashGrosze).toBe(100);
   });
 
-  it("the report lists the counted days of the period; not in a specialist's own report (tasks 233, 237)", async () => {
+  it("the report lists the counted days of the period; not in a specialist's own report (tasks 233, 237, 553)", async () => {
     await walkIn(at(10), { paid: true, paymentMethod: 'cash' }).expect(201);
+    // Task 553: a BLIK visit that day — "Bez gotówki", not in the till.
+    await walkIn(at(12), { paid: true, paymentMethod: 'blik' }).expect(201);
     // Task 237: cash put in and taken out that day is shown beside the close.
     for (const [kind, amountGrosze] of [
       ['in', 5000],
@@ -230,6 +232,7 @@ describe('till close (task 232)', () => {
           differenceGrosze: 500,
           cashInGrosze: 0,
           cashOutGrosze: 0,
+          nonCashGrosze: 0,
         },
         {
           date: DAY,
@@ -238,6 +241,7 @@ describe('till close (task 232)', () => {
           differenceGrosze: -1000,
           cashInGrosze: 5000,
           cashOutGrosze: 5000,
+          nonCashGrosze: 8000,
         },
       ],
       differenceGrosze: -500,
@@ -398,6 +402,8 @@ describe('the till as a CSV cash journal (task 238)', () => {
 
   it('every cash put in or taken out and every close of the period, oldest first', async () => {
     await walkIn(at(10), { paid: true, paymentMethod: 'cash' }).expect(201); // 80,00
+    // Task 553: a card visit — "Bez gotówki" of the close, not in the till.
+    await walkIn(at(11), { paid: true, paymentMethod: 'card' }).expect(201);
     const move = (body: Record<string, unknown>) =>
       ctx
         .http()
@@ -421,18 +427,22 @@ describe('the till as a CSV cash journal (task 238)', () => {
     const text = res.body as string;
     expect(text.startsWith('\uFEFF')).toBe(true);
     const lines = text.slice(1).trimEnd().split('\r\n');
-    expect(lines[0]).toBe('Data;Godzina;Rodzaj;Kwota;Powinno być;Różnica;Powód / notatka;Kto');
+    expect(lines[0]).toBe(
+      'Data;Godzina;Rodzaj;Kwota;Powinno być;Różnica;Powód / notatka;Kto;Bez gotówki',
+    );
     const rows = lines.slice(1).map((l) => l.replace(/;\d\d:\d\d;/, ';HH:MM;'));
     expect(rows).toEqual([
-      `${earlier};HH:MM;Wypłata z kasy;5,00;;;Kawa;Anna Właścicielka`,
-      `${DAY};HH:MM;Wpłata do kasy;100,00;;;Reszta na początek;Anna Właścicielka`,
-      `${DAY};HH:MM;Wypłata z kasy;15,50;;;"'=Ręczniki; ""Biedronka""";Anna Właścicielka`,
-      `${DAY};HH:MM;Zamknięcie kasy;150,00;164,50;-14,50;Brak;Anna Właścicielka`,
+      `${earlier};HH:MM;Wypłata z kasy;5,00;;;Kawa;Anna Właścicielka;`,
+      `${DAY};HH:MM;Wpłata do kasy;100,00;;;Reszta na początek;Anna Właścicielka;`,
+      `${DAY};HH:MM;Wypłata z kasy;15,50;;;"'=Ręczniki; ""Biedronka""";Anna Właścicielka;`,
+      `${DAY};HH:MM;Zamknięcie kasy;150,00;164,50;-14,50;Brak;Anna Właścicielka;80,00`,
     ]);
 
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
-    expect(english).toContain('Date;Time;Entry;Amount;Should be;Difference;Reason / note;By');
-    expect(english).toContain(';Till closed;150.00;164.50;-14.50;Brak;');
+    expect(english).toContain(
+      'Date;Time;Entry;Amount;Should be;Difference;Reason / note;By;Not in cash',
+    );
+    expect(english).toContain(';Till closed;150.00;164.50;-14.50;Brak;Anna Właścicielka;80.00');
     for (const locale of ['uk', 'ru']) {
       expect(((await csv({ locale }).expect(200)).body as string).split('\r\n')).toHaveLength(6);
     }

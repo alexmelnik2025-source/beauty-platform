@@ -967,6 +967,7 @@ export const uk: Dictionary = {
     tillCloses: 'Закриття каси · різниця разом: {sum}',
     tillClosesRow: 'пораховано {counted} · має бути {expected} · {difference}',
     tillClosesMoves: 'внесення {in} · виплати {out}',
+    tillClosesNonCash: 'безготівково {sum} — звірте з терміналом',
     tillClosesHint: 'Дні, коли закрили касу. Мінус — бракувало готівки.',
     paymentsUnknown: 'Не вказано',
     paymentsRow: '{amount} · візити: {n}',

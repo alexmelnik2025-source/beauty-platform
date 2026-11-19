@@ -6514,6 +6514,8 @@ export interface components {
                     cashInGrosze: number;
                     /** @description Task 237: cash taken out of the till that day (now), in hundredths of the salon currency */
                     cashOutGrosze: number;
+                    /** @description Task 553: what that day brought not in cash — card, BLIK, transfer, other (visits and gift vouchers sold, task 552), now, in hundredths of the salon currency */
+                    nonCashGrosze: number;
                 }[];
                 /** @description All the differences of the period added up (below zero — cash missing) */
                 differenceGrosze: number;

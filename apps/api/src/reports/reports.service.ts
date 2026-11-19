@@ -22,6 +22,7 @@ import type { ReportQuery } from './reports.schemas';
 import { payoutCsv } from './payout-csv';
 import { productsCsv } from './products-csv';
 import { stockHistoryCsv } from './stock-history-csv';
+import { otherPaymentsOfDay } from './till-close.service';
 import { visitsCsv, type CsvLocale } from './visits-csv';
 
 /** Task 227: a payment method, or "unknown" when the staff did not say. */
@@ -514,7 +515,7 @@ export class ReportsService {
             expiredGrosze: 0,
           }
         : await this.giftVouchers(locationId, tz, rangeStart, rangeEnd, query),
-      tillCloses: await this.tillCloses(locationId, own, query),
+      tillCloses: await this.tillCloses(location, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
         await this.occupancy(locationId, staffIds, tz, query, rangeStart, rangeEnd),
@@ -1327,11 +1328,12 @@ export class ReportsService {
    */
   /** Task 233: the days of the period whose till was counted (task 232) — not in an own report. */
   private async tillCloses(
-    locationId: string,
+    location: Location,
     own: boolean,
     query: ReportQuery,
   ): Promise<SalonReport['tillCloses']> {
     if (own) return { days: [], differenceGrosze: 0 };
+    const locationId = location.id;
     const rows = await this.prisma.tillClose.findMany({
       where: {
         locationId,
@@ -1355,7 +1357,13 @@ export class ReportsService {
       differenceGrosze: r.countedCashGrosze - r.expectedCashGrosze,
       cashInGrosze: moved(r.date, 'in'),
       cashOutGrosze: moved(r.date, 'out'),
+      nonCashGrosze: 0,
     }));
+    // Task 553: what each counted day brought not in cash (task 552) — to check with the terminal.
+    for (const d of days) {
+      const rows = await otherPaymentsOfDay(this.prisma, location, d.date);
+      d.nonCashGrosze = rows.reduce((sum, r) => sum + r.totalGrosze, 0);
+    }
     return { days, differenceGrosze: days.reduce((sum, d) => sum + d.differenceGrosze, 0) };
   }
 

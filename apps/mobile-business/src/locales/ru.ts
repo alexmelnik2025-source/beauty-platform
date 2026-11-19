@@ -969,6 +969,7 @@ export const ru: Dictionary = {
     tillCloses: 'Закрытия кассы · разница всего: {sum}',
     tillClosesRow: 'посчитано {counted} · должно быть {expected} · {difference}',
     tillClosesMoves: 'внесения {in} · выплаты {out}',
+    tillClosesNonCash: 'безналично {sum} — сверьте с терминалом',
     tillClosesHint: 'Дни, когда закрыли кассу. Минус — не хватало наличных.',
     paymentsUnknown: 'Не указано',
     paymentsRow: '{amount} · визиты: {n}',

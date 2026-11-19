@@ -147,6 +147,8 @@ export default function ReportsPage() {
   /** Task 237: "Wpłaty" / "Wypłaty" columns only when cash was put in or taken out. */
   const tillMoves =
     report?.tillCloses.days.some((d) => d.cashInGrosze > 0 || d.cashOutGrosze > 0) ?? false;
+  /** Task 553: "Bez gotówki" column only when a counted day brought something not in cash. */
+  const tillNonCash = report?.tillCloses.days.some((d) => d.nonCashGrosze > 0) ?? false;
   const totals = report?.totals;
   const notCancelled = totals
     ? totals.visits - totals.cancelledByClient - totals.cancelledBySalon
@@ -860,6 +862,7 @@ export default function ReportsPage() {
                         ) : null}
                         <th scope="col">{t.reports.colCounted}</th>
                         <th scope="col">{t.reports.colDifference}</th>
+                        {tillNonCash ? <th scope="col">{t.reports.colNonCash}</th> : null}
                       </tr>
                     </thead>
                     <tbody>
@@ -875,6 +878,7 @@ export default function ReportsPage() {
                           ) : null}
                           <td>{money(d.countedCashGrosze)}</td>
                           <td>{signedMoney(d.differenceGrosze)}</td>
+                          {tillNonCash ? <td>{money(d.nonCashGrosze)}</td> : null}
                         </tr>
                       ))}
                     </tbody>

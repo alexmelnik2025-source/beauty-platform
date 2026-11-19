@@ -1865,6 +1865,7 @@ export const pl = {
     colCashOut: 'Wypłaty',
     colCounted: 'Policzono',
     colDifference: 'Różnica',
+    colNonCash: 'Bez gotówki',
     tillClosesTotal: 'Różnica razem: {sum}',
     tillClosesHint:
       'Dni, w których zamknięto kasę w „Kasa dnia”: gotówka policzona w kasie i to, co powinno w niej być (wizyty opłacone gotówką plus wpłaty minus wypłaty). Minus — brakowało gotówki.',
