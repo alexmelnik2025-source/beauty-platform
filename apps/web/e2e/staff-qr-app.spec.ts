@@ -57,6 +57,8 @@ test('the business app shows a QR code for each specialist (task Q2)', async ({
         city: 'Warszawa',
         postalCode: '01-233',
         onlineBookingEnabled: true,
+        bookingTerms: '# Regulamin\n\nWizyta jest bezpłatna do odwołania.',
+        privacyPolicy: `# Prywatność\n\nAdministratorem danych jest ${NAME}.`,
       },
     }),
   );
