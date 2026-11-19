@@ -604,7 +604,7 @@ describe('"CSV płatności bonami" (task 533)', () => {
 
   const rows = (text: string): string[][] =>
     text
-      .replace(/^﻿/, '')
+      .replace(/^\uFEFF/, '')
       .trimEnd()
       .split('\r\n')
       .map((line) => line.split(';').map((c) => c.replace(/^"|"$/g, '')));
