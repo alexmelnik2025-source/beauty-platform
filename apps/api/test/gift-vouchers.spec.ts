@@ -496,6 +496,9 @@ describe('"Bony podarunkowe" in the report (task 493)', () => {
       payments: 2,
       paidGrosze: 22000,
       activeBalanceGrosze: 8000 + 3000,
+      soldByPayment: [{ method: 'unknown', sold: 2, soldGrosze: 30000 }],
+      expired: 0,
+      expiredGrosze: 0,
     });
 
     // A period without them: nothing sold or paid, what is left today is the same.
@@ -511,6 +514,104 @@ describe('"Bony podarunkowe" in the report (task 493)', () => {
       payments: 0,
       paidGrosze: 0,
       activeBalanceGrosze: 11000,
+      soldByPayment: [],
+      expired: 0,
+      expiredGrosze: 0,
+    });
+  });
+
+  it('splits the vouchers sold by how they were paid and counts what expired (task 551)', async () => {
+    const sell = async (amountGrosze: number, paymentMethod?: string) =>
+      (
+        await ctx
+          .http()
+          .post(base)
+          .set(owner.auth)
+          .send({ amountGrosze, ...(paymentMethod ? { paymentMethod } : {}) })
+          .expect(201)
+      ).body as Voucher;
+    await sell(10000, 'cash');
+    await sell(5000, 'cash');
+    await sell(20000, 'card');
+    await sell(30000);
+    const cancelled = await sell(40000, 'blik');
+    await ctx.http().post(`${base}/${cancelled.id}/cancel`).set(owner.auth).expect(200);
+
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    // Sold long ago (outside the period), the last day was two days ago: 7000 left on it.
+    const gone = await sell(9000);
+    await ctx
+      .http()
+      .post(`${base}/${gone.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 2000 })
+      .expect(200);
+    const old = new Date('2025-01-15T12:00:00Z');
+    const day = (d: string) => new Date(`${d}T00:00:00.000Z`);
+    await ctx.prisma.giftVoucher.update({
+      where: { id: gone.id },
+      data: { createdAt: old, validUntil: day(addDays(today, -2)) },
+    });
+    // The last day is today: it may still be used, so it has not expired.
+    const lastDay = await sell(4000);
+    await ctx.prisma.giftVoucher.update({
+      where: { id: lastDay.id },
+      data: { createdAt: old, validUntil: day(today) },
+    });
+    // Used up before its last day, or cancelled: nothing was lost.
+    const used = await sell(1000);
+    await ctx
+      .http()
+      .post(`${base}/${used.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 1000 })
+      .expect(200);
+    const gave = await sell(6000);
+    await ctx.http().post(`${base}/${gave.id}/cancel`).set(owner.auth).expect(200);
+    for (const id of [used.id, gave.id]) {
+      await ctx.prisma.giftVoucher.update({
+        where: { id },
+        data: { createdAt: old, validUntil: day(addDays(today, -1)) },
+      });
+    }
+    // Expired before the period: not in this report.
+    const before = await sell(8000);
+    await ctx.prisma.giftVoucher.update({
+      where: { id: before.id },
+      data: { createdAt: old, validUntil: day(addDays(today, -30)) },
+    });
+
+    const reports = base.replace('/gift-vouchers', '/reports');
+    const report = await ctx
+      .http()
+      .get(reports)
+      .query({ from: addDays(today, -6), to: today })
+      .set(owner.auth)
+      .expect(200);
+    expectShape('SalonReport', report.body);
+    expect(report.body.giftVouchers).toMatchObject({
+      sold: 4,
+      soldGrosze: 65000,
+      soldByPayment: [
+        { method: 'card', sold: 1, soldGrosze: 20000 },
+        { method: 'cash', sold: 2, soldGrosze: 15000 },
+        { method: 'unknown', sold: 1, soldGrosze: 30000 },
+      ],
+      expired: 1,
+      expiredGrosze: 7000,
+    });
+
+    // The month it expired before: counted there.
+    const month = await ctx
+      .http()
+      .get(reports)
+      .query({ from: addDays(today, -40), to: addDays(today, -20) })
+      .set(owner.auth)
+      .expect(200);
+    expect(month.body.giftVouchers).toMatchObject({
+      soldByPayment: [],
+      expired: 1,
+      expiredGrosze: 8000,
     });
   });
 });

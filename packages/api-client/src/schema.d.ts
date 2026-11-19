@@ -6482,6 +6482,22 @@ export interface components {
                 paidGrosze: number;
                 /** @description What is left today on the vouchers that may still be used, in hundredths of the salon currency */
                 activeBalanceGrosze: number;
+                /** @description Task 551: the vouchers sold in the period by how the client paid, most money first, unknown last */
+                soldByPayment: {
+                    /**
+                     * @description How the client paid for the voucher; unknown = the staff did not say
+                     * @enum {string}
+                     */
+                    method: "cash" | "card" | "blik" | "transfer" | "other" | "unknown";
+                    /** @description Vouchers sold in the period paid this way */
+                    sold: number;
+                    /** @description What they were worth, in hundredths of the salon currency */
+                    soldGrosze: number;
+                }[];
+                /** @description Task 551: vouchers (not cancelled) whose last day fell in the period and has passed, with money left on them */
+                expired: number;
+                /** @description Task 551: what was left on them ("Przepadło"), in hundredths of the salon currency */
+                expiredGrosze: number;
             };
             /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
             tillCloses: {

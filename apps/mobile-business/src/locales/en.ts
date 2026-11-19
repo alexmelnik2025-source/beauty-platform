@@ -937,6 +937,8 @@ export const en: Dictionary = {
     vouchersSold: 'Vouchers sold: {n} ({amount})',
     vouchersPaid: 'Paid with vouchers: {amount} (payments: {n})',
     vouchersLeft: 'Left on valid vouchers today: {amount}',
+    vouchersSoldBy: 'of which {method}: {n} ({amount})',
+    vouchersExpired: 'Lost on vouchers that ran out: {amount} (vouchers: {n})',
     vouchersHint:
       'Vouchers sold in this period (cancelled ones left out) and payments with vouchers in this period. The salon gets the money for a voucher when it is sold — paying with a voucher is not new income.',
     productsHint: 'Products sold at the visits. Not part of the visit revenue or the commissions.',

@@ -3542,3 +3542,11 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   или пусто.
 - Тесты: `apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/tillClose.test.ts`, e2e `till-vouchers.spec.ts`
   (скриншоты 546, 547, 548, 548-a).
+
+## «Bony podarunkowe» в отчёте: как заплатили и что сгорело (задача 551)
+
+В отчёте (кабинет «Raporty» и бизнес-приложение) раздел «Bony podarunkowe» показывает проданные за период боны
+по способу оплаты («w tym Gotówka: 2 (150,00 zł)», «Nie podano» — последним) и «Przepadło na bonach, którym minął
+termin» — сколько осталось неиспользованным на неотменённых бонах, чей последний день попал в период и уже прошёл
+(бон с последним днём «сегодня» ещё действует). API: `giftVouchers.soldByPayment`, `giftVouchers.expired`,
+`giftVouchers.expiredGrosze` в `GET …/reports`; в отчёте специалиста — пусто и нули.

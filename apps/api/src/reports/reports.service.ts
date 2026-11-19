@@ -503,8 +503,17 @@ export class ReportsService {
         ? { quantity: 0, valueGrosze: 0, items: [] }
         : await this.idleProducts(locationId, tz, rangeStart, rangeEnd),
       giftVouchers: own
-        ? { sold: 0, soldGrosze: 0, payments: 0, paidGrosze: 0, activeBalanceGrosze: 0 }
-        : await this.giftVouchers(locationId, tz, rangeStart, rangeEnd),
+        ? {
+            sold: 0,
+            soldGrosze: 0,
+            payments: 0,
+            paidGrosze: 0,
+            activeBalanceGrosze: 0,
+            soldByPayment: [],
+            expired: 0,
+            expiredGrosze: 0,
+          }
+        : await this.giftVouchers(locationId, tz, rangeStart, rangeEnd, query),
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
@@ -1634,12 +1643,15 @@ export class ReportsService {
    * Task 493: "Bony podarunkowe" — vouchers sold in the period (cancelled ones left out), the
    * payments taken with any voucher in the period, and what is left today on the vouchers that
    * may still be used.
+   * Task 551: the vouchers sold by how the client paid for them, and what was left on the
+   * vouchers whose last day fell in the period and has passed ("Przepadło").
    */
   private async giftVouchers(
     locationId: string,
     tz: string,
     rangeStart: Date,
     rangeEnd: Date,
+    query: ReportQuery,
   ): Promise<SalonReport['giftVouchers']> {
     const sold = await this.prisma.giftVoucher.aggregate({
       where: { locationId, cancelledAt: null, createdAt: { gte: rangeStart, lt: rangeEnd } },
@@ -1666,12 +1678,49 @@ export class ReportsService {
       },
       _sum: { balanceGrosze: true },
     });
+    const byMethod = await this.prisma.giftVoucher.groupBy({
+      by: ['paymentMethod'],
+      where: { locationId, cancelledAt: null, createdAt: { gte: rangeStart, lt: rangeEnd } },
+      _count: { _all: true },
+      _sum: { amountGrosze: true },
+    });
+    const soldByPayment = byMethod
+      .map((g) => ({
+        method: (g.paymentMethod ?? 'unknown') as PaymentKey,
+        sold: g._count._all,
+        soldGrosze: g._sum.amountGrosze ?? 0,
+      }))
+      .sort(
+        (x, y) =>
+          Number(x.method === 'unknown') - Number(y.method === 'unknown') ||
+          y.soldGrosze - x.soldGrosze ||
+          x.method.localeCompare(y.method),
+      );
+    // The last day is in the salon's own dates; it has passed when it is before today.
+    const lastDay = new Date(`${query.to}T00:00:00.000Z`);
+    const expired = await this.prisma.giftVoucher.aggregate({
+      where: {
+        locationId,
+        cancelledAt: null,
+        balanceGrosze: { gt: 0 },
+        validUntil: {
+          gte: new Date(`${query.from}T00:00:00.000Z`),
+          lte: lastDay,
+          lt: today,
+        },
+      },
+      _count: { _all: true },
+      _sum: { balanceGrosze: true },
+    });
     return {
       sold: sold._count._all,
       soldGrosze: sold._sum.amountGrosze ?? 0,
       payments: paid._count._all,
       paidGrosze: paid._sum.amountGrosze ?? 0,
       activeBalanceGrosze: active._sum.balanceGrosze ?? 0,
+      soldByPayment,
+      expired: expired._count._all,
+      expiredGrosze: expired._sum.balanceGrosze ?? 0,
     };
   }
 

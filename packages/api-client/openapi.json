@@ -25013,6 +25013,57 @@
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991,
                 "description": "What is left today on the vouchers that may still be used, in hundredths of the salon currency"
+              },
+              "soldByPayment": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "cash",
+                        "card",
+                        "blik",
+                        "transfer",
+                        "other",
+                        "unknown"
+                      ],
+                      "description": "How the client paid for the voucher; unknown = the staff did not say"
+                    },
+                    "sold": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Vouchers sold in the period paid this way"
+                    },
+                    "soldGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "What they were worth, in hundredths of the salon currency"
+                    }
+                  },
+                  "required": [
+                    "method",
+                    "sold",
+                    "soldGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Task 551: the vouchers sold in the period by how the client paid, most money first, unknown last"
+              },
+              "expired": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Task 551: vouchers (not cancelled) whose last day fell in the period and has passed, with money left on them"
+              },
+              "expiredGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Task 551: what was left on them (\"Przepadło\"), in hundredths of the salon currency"
               }
             },
             "required": [
@@ -25020,7 +25071,10 @@
               "soldGrosze",
               "payments",
               "paidGrosze",
-              "activeBalanceGrosze"
+              "activeBalanceGrosze",
+              "soldByPayment",
+              "expired",
+              "expiredGrosze"
             ],
             "additionalProperties": false,
             "description": "Task 493: \"Bony podarunkowe\" — sold and paid with in the period, what is left today; for the whole salon only (zeros in a specialist’s own report)"

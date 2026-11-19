@@ -19,7 +19,8 @@ import { serveApp } from './mobile-app';
  * Task 499: "Zmień bon" — a last day and the names fixed (screenshot 499).
  * Tasks 501–502: "Kończą się w ciągu 30 dni", the list filtered and searched (screenshots 501, 502).
  * Task 531: "Cofnij płatność" — a payment noted by mistake is undone (screenshot 531).
- * Task 493: the vouchers in the cabinet's report (screenshot 493).
+ * Task 493: the vouchers in the cabinet's report (screenshot 493); task 551: by how they were paid
+ * (screenshot 551).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
  * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495),
  * task 535: "Pobierz CSV płatności bonami";
@@ -239,8 +240,13 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(
     section.getByText(/Do wykorzystania na ważnych bonach dziś: 80,00\s?zł/),
   ).toBeVisible();
+  // Task 551: the voucher sold by how the client paid for it (not given here).
+  await expect(section.getByTestId('report-vouchers-sold-by')).toHaveText(
+    /w tym Nie podano: 1 \(200,00\s?zł\)/,
+  );
   await section.scrollIntoViewIfNeeded();
   await section.screenshot({ path: 'e2e/screenshots/493.png' });
+  await section.screenshot({ path: 'e2e/screenshots/551.png' });
 
   // Task 501: a voucher for Marek that ends in 10 days.
   const soonDay = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);

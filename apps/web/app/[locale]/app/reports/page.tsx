@@ -743,7 +743,8 @@ export default function ReportsPage() {
 
             {report.giftVouchers.sold > 0 ||
             report.giftVouchers.payments > 0 ||
-            report.giftVouchers.activeBalanceGrosze > 0 ? (
+            report.giftVouchers.activeBalanceGrosze > 0 ||
+            report.giftVouchers.expired > 0 ? (
               // Task 493: gift vouchers sold and paid with in the period, what is left today.
               <section className="section" data-testid="report-gift-vouchers">
                 <h2>{t.reports.vouchersTitle}</h2>
@@ -756,6 +757,21 @@ export default function ReportsPage() {
                       })}
                     </span>
                   </li>
+                  {/* Task 551: how the clients paid for the vouchers sold. */}
+                  {report.giftVouchers.soldByPayment.map((p) => (
+                    <li key={p.method} data-testid="report-vouchers-sold-by">
+                      <span className="small muted">
+                        {fill(t.reports.vouchersSoldBy, {
+                          method:
+                            p.method === 'unknown'
+                              ? t.reports.paymentsUnknown
+                              : t.appointment.paymentMethods[p.method],
+                          n: String(p.sold),
+                          amount: money(p.soldGrosze),
+                        })}
+                      </span>
+                    </li>
+                  ))}
                   <li>
                     <span className="small">
                       {fill(t.reports.vouchersPaid, {
@@ -771,6 +787,17 @@ export default function ReportsPage() {
                       })}
                     </span>
                   </li>
+                  {report.giftVouchers.expired > 0 ? (
+                    // Task 551: what was left on the vouchers whose last day passed in the period.
+                    <li data-testid="report-vouchers-expired">
+                      <span className="small">
+                        {fill(t.reports.vouchersExpired, {
+                          n: String(report.giftVouchers.expired),
+                          amount: money(report.giftVouchers.expiredGrosze),
+                        })}
+                      </span>
+                    </li>
+                  ) : null}
                 </ol>
                 <p className="small muted">{t.reports.vouchersHint}</p>
               </section>

@@ -1823,6 +1823,8 @@ export const pl = {
     vouchersSold: 'Sprzedane bony: {n} ({amount})',
     vouchersPaid: 'Zapłacono bonami: {amount} (płatności: {n})',
     vouchersLeft: 'Do wykorzystania na ważnych bonach dziś: {amount}',
+    vouchersSoldBy: 'w tym {method}: {n} ({amount})',
+    vouchersExpired: 'Przepadło na bonach, którym minął termin: {amount} (bony: {n})',
     vouchersHint:
       'Bony sprzedane w tym okresie (bez anulowanych) i płatności bonami w tym okresie. Pieniądze za bon salon dostaje przy sprzedaży — płatność bonem nie jest nowym przychodem.',
     productsHint:

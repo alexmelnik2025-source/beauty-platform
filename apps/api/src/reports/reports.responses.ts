@@ -281,6 +281,26 @@ export const salonReportSchema = responseSchema(
         payments: z.number().int().describe('Payments taken with vouchers in the period'),
         paidGrosze: money('What was paid with vouchers in the period'),
         activeBalanceGrosze: money('What is left today on the vouchers that may still be used'),
+        soldByPayment: z
+          .array(
+            z.strictObject({
+              method: z
+                .enum([...paymentMethodSchema.options, 'unknown'])
+                .describe('How the client paid for the voucher; unknown = the staff did not say'),
+              sold: z.number().int().describe('Vouchers sold in the period paid this way'),
+              soldGrosze: money('What they were worth'),
+            }),
+          )
+          .describe(
+            'Task 551: the vouchers sold in the period by how the client paid, most money first, unknown last',
+          ),
+        expired: z
+          .number()
+          .int()
+          .describe(
+            'Task 551: vouchers (not cancelled) whose last day fell in the period and has passed, with money left on them',
+          ),
+        expiredGrosze: money('Task 551: what was left on them ("Przepadło")'),
       })
       .describe(
         'Task 493: "Bony podarunkowe" — sold and paid with in the period, what is left today; for the whole salon only (zeros in a specialist’s own report)',

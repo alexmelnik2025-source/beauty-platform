@@ -649,7 +649,8 @@ export function ReportsScreen(props: {
           ) : null}
           {shown.giftVouchers.sold > 0 ||
           shown.giftVouchers.payments > 0 ||
-          shown.giftVouchers.activeBalanceGrosze > 0 ? (
+          shown.giftVouchers.activeBalanceGrosze > 0 ||
+          shown.giftVouchers.expired > 0 ? (
             // Task 493: gift vouchers sold and paid with in the period, what is left today.
             <View style={{ gap: 6 }} testID="report-gift-vouchers">
               <Text style={styles.section}>{r.vouchersTitle}</Text>
@@ -659,6 +660,17 @@ export function ReportsScreen(props: {
                   amount: money(shown.giftVouchers.soldGrosze),
                 })}
               </Text>
+              {/* Task 551: how the clients paid for the vouchers sold. */}
+              {shown.giftVouchers.soldByPayment.map((p) => (
+                <Text key={p.method} style={styles.muted}>
+                  {fill(r.vouchersSoldBy, {
+                    method:
+                      p.method === 'unknown' ? r.paymentsUnknown : t.visit.paymentMethods[p.method],
+                    n: String(p.sold),
+                    amount: money(p.soldGrosze),
+                  })}
+                </Text>
+              ))}
               <Text style={styles.name}>
                 {fill(r.vouchersPaid, {
                   n: String(shown.giftVouchers.payments),
@@ -668,6 +680,15 @@ export function ReportsScreen(props: {
               <Text style={styles.name}>
                 {fill(r.vouchersLeft, { amount: money(shown.giftVouchers.activeBalanceGrosze) })}
               </Text>
+              {shown.giftVouchers.expired > 0 ? (
+                // Task 551: what was left on the vouchers whose last day passed in the period.
+                <Text style={styles.name} testID="report-vouchers-expired">
+                  {fill(r.vouchersExpired, {
+                    n: String(shown.giftVouchers.expired),
+                    amount: money(shown.giftVouchers.expiredGrosze),
+                  })}
+                </Text>
+              ) : null}
               <Text style={styles.muted}>{r.vouchersHint}</Text>
             </View>
           ) : null}
