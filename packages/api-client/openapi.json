@@ -12573,6 +12573,73 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/stock-history-csv": {
+      "get": {
+        "description": "Task 454. Owners and managers only (a specialist gets 403). One line for every change — date, time, product, what happened (sale, sale removed, delivery, changed by hand, write-off), ± pieces, pieces after it, who, the reason of a write-off — oldest first. Same file format as visits-csv; no client data.",
+        "operationId": "ReportsController_stockHistoryCsv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-30"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-01"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"CSV historii magazynu\": every change of the pieces in stock in a period",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/reports/till-csv": {
       "get": {
         "description": "Task 238. Owners and managers of the location only (a specialist gets 403). One line for every cash put in or taken out and every till close, oldest first. Same file format as visits-csv.",

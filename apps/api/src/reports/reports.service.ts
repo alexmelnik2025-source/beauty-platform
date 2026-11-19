@@ -20,6 +20,7 @@ import type { SalonReport } from './reports.responses';
 import type { ReportQuery } from './reports.schemas';
 import { payoutCsv } from './payout-csv';
 import { productsCsv } from './products-csv';
+import { stockHistoryCsv } from './stock-history-csv';
 import { visitsCsv, type CsvLocale } from './visits-csv';
 
 /** Task 227: a payment method, or "unknown" when the staff did not say. */
@@ -1162,6 +1163,59 @@ export class ReportsService {
       !own,
     );
     return { csv, fileName: `products-${location.slug}-${query.from}-${query.to}.csv` };
+  }
+
+  /**
+   * Task 454: every change of the pieces in stock in the period as CSV, oldest first. The salon's
+   * stock is for owners and managers only: a specialist (even with own results) gets 403.
+   */
+  async stockHistoryCsv(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    query: ReportQuery,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const { location, own, rangeStart, rangeEnd } = await this.scope(m, userId, locationId, query);
+    if (own) throw forbidden();
+    const rows = await this.prisma.stockMovement.findMany({
+      where: { createdAt: { gte: rangeStart, lt: rangeEnd }, product: { locationId } },
+      select: {
+        kind: true,
+        change: true,
+        quantityAfter: true,
+        note: true,
+        createdAt: true,
+        createdByUserId: true,
+        product: { select: { name: true } },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const userIds = [
+      ...new Set(rows.flatMap((r) => (r.createdByUserId ? [r.createdByUserId] : []))),
+    ];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(users.map((u) => [u.id, u.name]));
+    const csv = stockHistoryCsv(
+      rows.map((r) => {
+        const local = instantToLocal(r.createdAt.getTime(), location.timezone);
+        return {
+          date: local.date,
+          time: local.time,
+          product: r.product.name,
+          kind: r.kind,
+          change: r.change,
+          quantityAfter: r.quantityAfter,
+          byName: (r.createdByUserId && names.get(r.createdByUserId)) || null,
+          note: r.note,
+        };
+      }),
+      locale,
+    );
+    return { csv, fileName: `stock-history-${location.slug}-${query.from}-${query.to}.csv` };
   }
 
   /** Task 30: every visit of the period as CSV (same access as the report), oldest first. */

@@ -3234,6 +3234,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/reports/stock-history-csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "CSV historii magazynu": every change of the pieces in stock in a period
+         * @description Task 454. Owners and managers only (a specialist gets 403). One line for every change — date, time, product, what happened (sale, sale removed, delivery, changed by hand, write-off), ± pieces, pieces after it, who, the reason of a write-off — oldest first. Same file format as visits-csv; no client data.
+         */
+        get: operations["ReportsController_stockHistoryCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/reports/till-csv": {
         parameters: {
             query?: never;
@@ -12482,6 +12502,32 @@ export interface operations {
         };
     };
     ReportsController_productsCsv: {
+        parameters: {
+            query: {
+                locale?: "pl" | "uk" | "ru" | "en";
+                to: unknown;
+                from: unknown;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    ReportsController_stockHistoryCsv: {
         parameters: {
             query: {
                 locale?: "pl" | "uk" | "ru" | "en";

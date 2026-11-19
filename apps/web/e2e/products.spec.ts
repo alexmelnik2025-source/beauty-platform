@@ -20,7 +20,8 @@ import { serveApp } from './mobile-app';
  * Task 422–423: "CSV produktów" — every sale of the period for the accountant (422), in the app too.
  * Task 424: "Kupione produkty" in the client card of the cabinet (424).
  * Task 436–441: "CSV stanu magazynowego" (437), "Dostawa" (438, 439) and "Historia magazynu" (441);
- * task 444–447: "Odpis" and "Odpisy z magazynu" in the reports; task 452–453: "Dostawy na magazyn"
+ * task 444–447: "Odpis" and "Odpisy z magazynu" in the reports; task 452–453: "Dostawy na magazyn";
+ * task 455: "CSV historii magazynu"
  * in the cabinet and the business app.
  */
 
@@ -309,6 +310,19 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(deliveries).toContainText(/Zestaw\s*4 szt\./);
   await expect(deliveries.getByTestId('report-deliveries-cost')).toHaveCount(0);
   await shot(page, '452-report-deliveries');
+  // Task 455: "CSV historii magazynu" — every change of the stock, with who and why.
+  const [historyCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'CSV historii magazynu' }).click(),
+  ]);
+  expect(historyCsv.suggestedFilename()).toMatch(/^stock-history-.+\.csv$/);
+  const historyFile = readFileSync((await historyCsv.path())!, 'utf8');
+  expect(historyFile).toContain('Data;Godzina;Produkt;Zmiana;Sztuk;Stan po;Kto;Powód\r\n');
+  expect(historyFile).toMatch(/;Zestaw;Dostawa;\+4;4;[^;\r\n]+;\r\n/);
+  expect(historyFile).toMatch(/;Zestaw;Odpis;-1;3;[^;\r\n]+;uszkodzone\r\n/);
+  expect(historyFile).toMatch(/;Pomada matowa;Sprzedaż przy wizycie;-2;0;/);
+  await page.getByRole('button', { name: 'CSV historii magazynu' }).scrollIntoViewIfNeeded();
+  await shot(page, '455-report-stock-history-csv');
 
   // The client card (task 424): what Jan bought, with the total.
   await page.goto('/pl/app/clients');
@@ -471,6 +485,17 @@ test('the owner sells a product at a visit; the report counts it apart', async (
       /^Razem w cenach zakupu: 120,00\s*zł$/,
     );
     await shot(app, '453-business-app-deliveries');
+    // Task 455: "CSV historii magazynu" from the phone (saved in the web preview).
+    const [appHistoryCsv] = await Promise.all([
+      app.waitForEvent('download'),
+      app.getByRole('button', { name: 'CSV historii magazynu' }).click(),
+    ]);
+    expect(appHistoryCsv.suggestedFilename()).toMatch(/^stock-history-.+\.csv$/);
+    const appHistoryFile = readFileSync((await appHistoryCsv.path())!, 'utf8');
+    expect(appHistoryFile).toMatch(/;Pomada matowa;Dostawa;\+6;6;/);
+    expect(appHistoryFile).toMatch(/;Pomada matowa;Odpis;-1;5;[^;\r\n]+;zużyte w salonie\r\n/);
+    await app.getByRole('button', { name: 'CSV historii magazynu' }).scrollIntoViewIfNeeded();
+    await shot(app, '455-business-app-stock-history-csv');
   } finally {
     businessApp.server.close();
   }

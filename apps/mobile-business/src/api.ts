@@ -1778,6 +1778,20 @@ export class BusinessApi {
   }
 
   /**
+   * Task 455: "CSV historii magazynu" — every change of the stock in the period: date, product,
+   * what happened, ± pieces, pieces after it, who and why. Owners and managers only.
+   */
+  stockHistoryCsv(
+    orgId: string,
+    locationId: string,
+    from: string,
+    to: string,
+    locale: Locale,
+  ): Promise<CsvFile> {
+    return this.reportCsv('stock-history', orgId, locationId, from, to, locale);
+  }
+
+  /**
    * Task 269: every client of the network as a CSV file — the same file as "Pobierz CSV" in the
    * cabinet's client list (contacts, consent, visits, no-shows, the next visit, what they paid).
    * Owners only (the server checks it); every download is written to the audit log.
@@ -1794,7 +1808,7 @@ export class BusinessApi {
   }
 
   private reportCsv(
-    file: 'visits' | 'till' | 'payout' | 'products',
+    file: 'visits' | 'till' | 'payout' | 'products' | 'stock-history',
     orgId: string,
     locationId: string,
     from: string,

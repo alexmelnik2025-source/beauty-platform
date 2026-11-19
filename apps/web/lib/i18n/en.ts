@@ -1560,6 +1560,9 @@ export const en: Dict = {
     productsCsv: 'Products CSV',
     productsCsvHint:
       'For the accountant: every product sold at the visits of this period — date, specialist, quantity, price and total.',
+    stockHistoryCsv: 'Stock history CSV',
+    stockHistoryCsvHint:
+      'Every change of the stock in this period — sales, deliveries, write-offs and changes by hand, who and when (Excel).',
     tillCsv: 'Till CSV',
     tillCsvHint:
       'Cash put in, taken out and till closes of this period — a cash journal for the accountant (Excel)',

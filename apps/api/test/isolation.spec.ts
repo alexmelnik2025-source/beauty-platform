@@ -244,6 +244,7 @@ function urlFor(route: Route, ids: Ids): string {
       '/till-csv',
       '/payout-csv',
       '/products-csv',
+      '/stock-history-csv',
     ].some((end) => path.endsWith(end))
   ) {
     return `${path}?from=${DATE}&to=${DATE}`;

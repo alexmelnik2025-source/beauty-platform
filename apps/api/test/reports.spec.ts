@@ -2196,6 +2196,91 @@ describe('salon report', () => {
     await csv({}, other.auth).expect(404);
   });
 
+  it('"CSV historii magazynu": every change of the stock in the period, owners and managers only (task 454)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({ name: 'Pomada; mocna', priceGrosze: 4500, stockQuantity: 2 });
+    const wax = await add({ name: '=Wosk', priceGrosze: 3000 });
+    await ctx
+      .http()
+      .post(`${base}/products/${wax.id}/restock`)
+      .set(owner.auth)
+      .send({ quantity: 5 })
+      .expect(200);
+    await ctx
+      .http()
+      .post(`${base}/products/${pomade.id}/write-off`)
+      .set(owner.auth)
+      .send({ quantity: 1, note: 'uszkodzone' })
+      .expect(200);
+    // An older change is outside the period.
+    await ctx
+      .http()
+      .post(`${base}/products/${wax.id}/restock`)
+      .set(owner.auth)
+      .send({ quantity: 7 })
+      .expect(200);
+    await ctx.prisma.stockMovement.updateMany({
+      where: { productId: wax.id, change: 7 },
+      data: { createdAt: new Date(`${addDays(from, -3)}T12:00:00Z`) },
+    });
+    // Oldest first, whatever order the rows were written in.
+    const first = await ctx.prisma.stockMovement.findFirstOrThrow({
+      where: { productId: pomade.id, kind: 'correction' },
+    });
+    await ctx.prisma.stockMovement.update({
+      where: { id: first.id },
+      data: { createdAt: new Date(Date.now() - 60_000) },
+    });
+    const csv = (q: object = {}, auth = owner.auth) =>
+      ctx
+        .http()
+        .get(`${base}/reports/stock-history-csv`)
+        .query({ from, to: today, ...q })
+        .set(auth)
+        .buffer(true)
+        .parse((res, done) => {
+          let text = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk: string) => (text += chunk));
+          res.on('end', () => done(null, text));
+        });
+    const res = await csv().expect(200);
+    expect(res.headers['content-disposition']).toMatch(
+      new RegExp(`^attachment; filename="stock-history-.+-${from}-${today}\\.csv"$`),
+    );
+    const text = res.body as string;
+    expect(text.startsWith('\uFEFF')).toBe(true);
+    const lines = text.slice(1).trimEnd().split('\r\n');
+    const d = '\\d{4}-\\d\\d-\\d\\d;\\d\\d:\\d\\d';
+    // A ";" is quoted and a leading "=" cannot run as a formula; who did it, the reason.
+    expect(lines).toEqual([
+      'Data;Godzina;Produkt;Zmiana;Sztuk;Stan po;Kto;Powód',
+      expect.stringMatching(new RegExp(`^${d};"Pomada; mocna";Zmiana ręczna;\\+2;2;[^;]+;$`)),
+      expect.stringMatching(new RegExp(`^${d};'=Wosk;Dostawa;\\+5;5;[^;]+;$`)),
+      expect.stringMatching(new RegExp(`^${d};"Pomada; mocna";Odpis;-1;1;[^;]+;uszkodzone$`)),
+    ]);
+    const english = (await csv({ locale: 'en' }).expect(200)).body as string;
+    expect(english).toContain('Date;Time;Product;Change;Pieces;In stock after;By;Reason');
+    expect(english).toContain(';Write-off;-1;1;');
+
+    // A specialist never gets the salon's stock, even with own results.
+    await csv({}, kasiaUser.auth).expect(403);
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    await csv({}, kasiaUser.auth).expect(403);
+    await csv({ from: today, to: from }).expect(400);
+
+    // Another salon reaches nothing.
+    const other = await signUp(ctx, 'other@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await csv({}, other.auth).expect(404);
+  });
+
   it('every visit of the period as CSV for the accountant, without client contacts', async () => {
     const d1 = addDays(today, -3);
     const first = await visit({

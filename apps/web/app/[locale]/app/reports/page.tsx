@@ -110,8 +110,11 @@ export default function ReportsPage() {
    * Task 238: "till" — the cash journal of the period (owners and managers).
    * Task 392: "payout" — what each specialist earned: commission, tips, total (same people).
    * Task 422: "products" — every product sold at the visits of the period (same access as visits).
+   * Task 455: "stock-history" — every change of the stock in the period (owners and managers).
    */
-  async function downloadCsv(file: 'visits' | 'till' | 'payout' | 'products' = 'visits') {
+  async function downloadCsv(
+    file: 'visits' | 'till' | 'payout' | 'products' | 'stock-history' = 'visits',
+  ) {
     setDownloading(true);
     setError('');
     try {
@@ -223,6 +226,18 @@ export default function ReportsPage() {
               onClick={() => void downloadCsv('payout')}
             >
               {t.reports.payoutCsv}
+            </button>
+          ) : null}
+          {report?.scope === 'location' ? (
+            // Task 455: the stock's history — the salon's stock is for owners and managers.
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              title={t.reports.stockHistoryCsvHint}
+              disabled={invalid || downloading}
+              onClick={() => void downloadCsv('stock-history')}
+            >
+              {t.reports.stockHistoryCsv}
             </button>
           ) : null}
           {report && report.products.quantity > 0 ? (

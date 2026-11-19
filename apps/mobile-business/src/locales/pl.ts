@@ -773,6 +773,9 @@ export const pl = {
     productsCsv: 'CSV produktów',
     productsCsvHint:
       'Każdy produkt sprzedany przy wizytach w tym okresie — data, specjalista, ilość i wartość — dla księgowej.',
+    stockHistoryCsv: 'CSV historii magazynu',
+    stockHistoryCsvHint:
+      'Każda zmiana w magazynie z tego okresu — sprzedaż, dostawy, odpisy i zmiany ręczne, kto i kiedy (Excel).',
     tillCsv: 'CSV kasy',
     tillCsvHint: 'Wpłaty, wypłaty i zamknięcia kasy z tego okresu — dziennik kasowy dla księgowej.',
     csvFailed: 'Nie udało się zapisać pliku.',

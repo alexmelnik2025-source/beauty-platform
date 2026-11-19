@@ -3253,3 +3253,13 @@ CSV produktów (451): у владельца и менеджера ещё две 
 отчёте всего салона; в «своём» отчёте мастера — пусто. Код — `ReportsService.deliveries`, тест —
 `apps/api/test/reports.spec.ts`. Раздел «Dostawy na magazyn: 10 szt.» с «Razem w cenach zakupu: …» в «Raporty»
 кабинета и бизнес-приложения (когда за период что-то пришло). e2e `products.spec.ts`, скриншоты 452, 453.
+
+## «CSV historii magazynu» (задачи 454–455)
+
+`GET …/reports/stock-history-csv?from&to&locale` — каждое изменение остатка за период, сначала старые: дата, время,
+товар, что случилось («Sprzedaż przy wizycie», «Sprzedaż usunięta», «Dostawa», «Zmiana ręczna», «Odpis»), ±штук,
+«Stan po», кто и причина списания. Формат как у других CSV (BOM, «;», защита от формул), 4 языка колонок, без данных
+клиентов. Только владелец и менеджер: мастер получает 403 даже с «своими результатами». Код —
+`apps/api/src/reports/stock-history-csv.ts`, `ReportsService.stockHistoryCsv`, тест — `apps/api/test/reports.spec.ts`.
+Кнопка «CSV historii magazynu» в «Raporty» кабинета (рядом с «CSV wypłat») и бизнес-приложения. e2e `products.spec.ts`,
+скриншоты 455.

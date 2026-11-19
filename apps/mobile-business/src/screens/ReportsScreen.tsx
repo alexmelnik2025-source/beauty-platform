@@ -113,7 +113,10 @@ export function ReportsScreen(props: {
   // Task 238: "till" — the till's cash journal (owners and managers).
   // Task 393: "payout" — commission, tips and the total by specialist (owners and managers).
   // Task 423: "products" — every product sold at the visits of the period (same as the report).
-  const downloadCsv = async (kind: 'visits' | 'till' | 'payout' | 'products' = 'visits') => {
+  // Task 455: "stock-history" — every change of the stock in the period (owners and managers).
+  const downloadCsv = async (
+    kind: 'visits' | 'till' | 'payout' | 'products' | 'stock-history' = 'visits',
+  ) => {
     if (csvBusy) return;
     setCsvBusy(true);
     setCsvInfo('');
@@ -125,7 +128,9 @@ export function ReportsScreen(props: {
             ? api.payoutCsv
             : kind === 'products'
               ? api.productsCsv
-              : api.visitsCsv
+              : kind === 'stock-history'
+                ? api.stockHistoryCsv
+                : api.visitsCsv
       ).call(api, salon.orgId, salon.locationId, range.from, range.to, props.locale);
       const result = await shareCsv(file, csvTools());
       setCsvInfo(result === 'failed' ? r.csvFailed : '');
@@ -349,6 +354,12 @@ export function ReportsScreen(props: {
                 onPress={() => void downloadCsv('payout')}
               />
               <Text style={styles.small}>{r.payoutCsvHint}</Text>
+              <Button
+                kind="secondary"
+                label={csvBusy ? t.loading : r.stockHistoryCsv}
+                onPress={() => void downloadCsv('stock-history')}
+              />
+              <Text style={styles.small}>{r.stockHistoryCsvHint}</Text>
             </View>
           ) : null}
 

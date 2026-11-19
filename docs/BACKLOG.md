@@ -1588,11 +1588,11 @@
       Ветка `agent/452-deliveries-report`.
 - [x] **453. «Dostawy na magazyn» в отчёте бизнес-приложения** — готово 19.11.2026 (скриншот 453). e2e. Ветка
       `agent/452-deliveries-report`.
-- [ ] **454. «CSV historii magazynu» — API** — `GET …/products/stock-history.csv?from&to` (владелец/менеджер): все
+- [x] **454. «CSV historii magazynu» — API** — готово 19.11.2026 — `GET …/reports/stock-history-csv?from&to` (владелец/менеджер): все
       изменения остатка за период (дата, время, товар, что случилось, ±штук, стало, кто, причина), 4 языка колонок,
-      формат как у других CSV. Тест на PostgreSQL, изоляция салонов.
-- [ ] **455. Кнопка «CSV historii magazynu»** — в «Raporty» кабинета и бизнес-приложения рядом с «Dostawy na
-      magazyn» / «Odpisy z magazynu». e2e.
+      формат как у других CSV. Тест на PostgreSQL, изоляция салонов. Ветка `agent/454-stock-history-csv`.
+- [x] **455. Кнопка «CSV historii magazynu»** — готово 19.11.2026 (скриншоты 455) — в «Raporty» кабинета (рядом с
+      «CSV wypłat») и бизнес-приложения. e2e. Ветка `agent/454-stock-history-csv`.
 
 ## Вопросы владельцу
 
