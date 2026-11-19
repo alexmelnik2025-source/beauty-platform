@@ -493,7 +493,7 @@ export class ReportsService {
         ? { quantity: 0, valueGrosze: 0, items: [] }
         : await this.writeOffs(locationId, rangeStart, rangeEnd),
       deliveries: own
-        ? { quantity: 0, costGrosze: null, items: [] }
+        ? { quantity: 0, costGrosze: null, items: [], suppliers: [] }
         : await this.deliveries(locationId, rangeStart, rangeEnd),
       stocktakes: own
         ? { missingQuantity: 0, missingGrosze: 0, extraQuantity: 0, extraGrosze: 0, items: [] }
@@ -1476,10 +1476,17 @@ export class ReportsService {
       },
       select: {
         change: true,
-        product: { select: { id: true, name: true, purchasePriceGrosze: true } },
+        product: {
+          select: { id: true, name: true, purchasePriceGrosze: true, supplier: true },
+        },
       },
     });
     const items = new Map<string, { name: string; quantity: number; costGrosze: number | null }>();
+    // Task 467: by supplier — the key is the name in lower case, '' for products without one.
+    const suppliers = new Map<
+      string,
+      { supplier: string | null; quantity: number; costGrosze: number | null }
+    >();
     let quantity = 0;
     let costGrosze: number | null = null;
     for (const r of rows) {
@@ -1499,6 +1506,13 @@ export class ReportsService {
           .get(r.product.id)!;
       item.quantity += pieces;
       if (cost !== null) item.costGrosze = (item.costGrosze ?? 0) + cost;
+      const name = r.product.supplier?.trim() || null;
+      const key = name?.toLocaleLowerCase() ?? '';
+      const group =
+        suppliers.get(key) ??
+        suppliers.set(key, { supplier: name, quantity: 0, costGrosze: null }).get(key)!;
+      group.quantity += pieces;
+      if (cost !== null) group.costGrosze = (group.costGrosze ?? 0) + cost;
     }
     return {
       quantity,
@@ -1508,6 +1522,13 @@ export class ReportsService {
           b.quantity - a.quantity ||
           (b.costGrosze ?? 0) - (a.costGrosze ?? 0) ||
           a.name.localeCompare(b.name),
+      ),
+      suppliers: [...suppliers.values()].sort(
+        (a, b) =>
+          Number(a.supplier === null) - Number(b.supplier === null) ||
+          b.quantity - a.quantity ||
+          (b.costGrosze ?? 0) - (a.costGrosze ?? 0) ||
+          (a.supplier ?? '').localeCompare(b.supplier ?? ''),
       ),
     };
   }

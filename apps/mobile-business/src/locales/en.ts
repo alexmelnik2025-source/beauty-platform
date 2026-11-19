@@ -886,6 +886,8 @@ export const en: Dictionary = {
     deliveriesPieces: '{n} pcs',
     deliveriesRow: '{n} pcs · cost {amount}',
     deliveriesCost: 'Total at purchase prices: {amount}',
+    deliveriesBySupplier: 'By supplier',
+    deliveriesNoSupplier: 'no supplier',
     deliveriesHint:
       'Pieces received with “Delivery” in this period. Amounts at today’s purchase prices; products without a purchase price are not in the total.',
     stocktakes:

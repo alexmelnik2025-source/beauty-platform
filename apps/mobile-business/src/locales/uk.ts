@@ -884,6 +884,8 @@ export const uk: Dictionary = {
     deliveriesPieces: '{n} шт.',
     deliveriesRow: '{n} шт. · закупівля {amount}',
     deliveriesCost: 'Разом за закупівельними цінами: {amount}',
+    deliveriesBySupplier: 'За постачальниками',
+    deliveriesNoSupplier: 'без постачальника',
     deliveriesHint:
       'Штуки, прийняті кнопкою «Поставка» за цей період. Суми — за сьогоднішніми закупівельними цінами; товари без закупівельної ціни до суми не входять.',
     stocktakes:

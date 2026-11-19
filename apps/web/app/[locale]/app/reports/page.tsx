@@ -615,6 +615,29 @@ export default function ReportsPage() {
                     })}
                   </p>
                 ) : null}
+                {report.deliveries.suppliers.some((x) => x.supplier !== null) ? (
+                  // Task 468: the same pieces by supplier — how much came from whom.
+                  <>
+                    <h3 className="small">{t.reports.deliveriesBySupplier}</h3>
+                    <ol className="report-days" data-testid="report-deliveries-suppliers">
+                      {report.deliveries.suppliers.map((group) => (
+                        <li key={group.supplier ?? ''}>
+                          <span className="small">
+                            {group.supplier ?? t.reports.deliveriesNoSupplier}
+                          </span>
+                          <span className="small">
+                            {group.costGrosze === null
+                              ? fill(t.reports.deliveriesPieces, { n: String(group.quantity) })
+                              : fill(t.reports.deliveriesRow, {
+                                  n: String(group.quantity),
+                                  amount: money(group.costGrosze),
+                                })}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                ) : null}
                 <p className="small muted">{t.reports.deliveriesHint}</p>
               </section>
             ) : null}

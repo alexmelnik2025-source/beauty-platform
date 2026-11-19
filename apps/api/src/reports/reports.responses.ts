@@ -189,6 +189,22 @@ export const salonReportSchema = responseSchema(
             }),
           )
           .describe('By product, most pieces first'),
+        suppliers: z
+          .array(
+            z.strictObject({
+              supplier: z
+                .string()
+                .nullable()
+                .describe('The product’s "Dostawca" today; null — products without one'),
+              quantity: z.number().int(),
+              costGrosze: money('Pieces × today’s purchase price')
+                .nullable()
+                .describe('null when none of these products has a purchase price'),
+            }),
+          )
+          .describe(
+            'Task 467: the same pieces by supplier (any letter case), most pieces first, those without a supplier last',
+          ),
       })
       .describe(
         'Task 452: "Dostawy na magazyn" — pieces that arrived from suppliers; for the whole salon only (empty in a specialist’s own report)',

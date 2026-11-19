@@ -1686,6 +1686,8 @@ export const ru: Dict = {
     deliveriesPieces: '{n} шт.',
     deliveriesRow: '{n} шт. · закупка {amount}',
     deliveriesCost: 'Всего по закупочным ценам: {amount}',
+    deliveriesBySupplier: 'По поставщикам',
+    deliveriesNoSupplier: 'без поставщика',
     deliveriesHint:
       'Штуки, принятые кнопкой «Поставка» за этот период. Суммы — по сегодняшним закупочным ценам; товары без закупочной цены в сумму не входят.',
     stocktakes:

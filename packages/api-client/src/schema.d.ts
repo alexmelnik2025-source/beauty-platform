@@ -6040,6 +6040,14 @@ export interface components {
                     /** @description null when the product has no purchase price */
                     costGrosze: number | null;
                 }[];
+                /** @description Task 467: the same pieces by supplier (any letter case), most pieces first, those without a supplier last */
+                suppliers: {
+                    /** @description The product’s "Dostawca" today; null — products without one */
+                    supplier: string | null;
+                    quantity: number;
+                    /** @description null when none of these products has a purchase price */
+                    costGrosze: number | null;
+                }[];
             };
             /** @description Task 459: "Różnice inwentaryzacji" — what the stocktakes of the period found missing or extra; for the whole salon only (empty in a specialist’s own report) */
             stocktakes: {

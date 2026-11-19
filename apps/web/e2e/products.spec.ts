@@ -362,6 +362,8 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(deliveries.getByRole('heading')).toHaveText('Dostawy na magazyn: 4 szt.');
   await expect(deliveries).toContainText(/Zestaw\s*4 szt\./);
   await expect(deliveries.getByTestId('report-deliveries-cost')).toHaveCount(0);
+  // Task 468: the set has no supplier — no "Według dostawców" for one group without a name.
+  await expect(deliveries.getByTestId('report-deliveries-suppliers')).toHaveCount(0);
   await shot(page, '452-report-deliveries');
   // Task 459: "Różnice inwentaryzacji" — the set missing at the stocktake, at today's price.
   const stocktakes = page.getByTestId('report-stocktakes');
@@ -617,6 +619,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
       /^Razem w cenach zakupu: 120,00\s*zł$/,
     );
     await shot(app, '453-business-app-deliveries');
+    // Task 468: by supplier — the pomades came from Hairgum, the sets from nobody written.
+    const appBySupplier = appDeliveries.getByTestId('report-deliveries-suppliers');
+    await expect(appBySupplier).toContainText('Według dostawców');
+    await expect(appBySupplier).toContainText(/Hairgum\s*6 szt\. · zakup 120,00\s*zł/);
+    await expect(appBySupplier).toContainText(/bez dostawcy\s*4 szt\./);
+    await appBySupplier.scrollIntoViewIfNeeded();
+    await shot(app, '468-business-app-deliveries-suppliers');
     // Task 455: "CSV historii magazynu" from the phone (saved in the web preview).
     const [appHistoryCsv] = await Promise.all([
       app.waitForEvent('download'),

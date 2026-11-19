@@ -541,6 +541,25 @@ export function ReportsScreen(props: {
                   {fill(r.deliveriesCost, { amount: money(shown.deliveries.costGrosze) })}
                 </Text>
               ) : null}
+              {shown.deliveries.suppliers.some((x) => x.supplier !== null) ? (
+                // Task 468: the same pieces by supplier — how much came from whom.
+                <View style={{ gap: 6 }} testID="report-deliveries-suppliers">
+                  <Text style={styles.name}>{r.deliveriesBySupplier}</Text>
+                  {shown.deliveries.suppliers.map((group) => (
+                    <View key={group.supplier ?? ''} style={styles.cardTop}>
+                      <Text style={styles.name}>{group.supplier ?? r.deliveriesNoSupplier}</Text>
+                      <Text style={styles.muted}>
+                        {group.costGrosze === null
+                          ? fill(r.deliveriesPieces, { n: String(group.quantity) })
+                          : fill(r.deliveriesRow, {
+                              n: String(group.quantity),
+                              amount: money(group.costGrosze),
+                            })}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               <Text style={styles.muted}>{r.deliveriesHint}</Text>
             </View>
           ) : null}

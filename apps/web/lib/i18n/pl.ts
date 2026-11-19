@@ -1681,6 +1681,8 @@ export const pl = {
     deliveriesPieces: '{n} szt.',
     deliveriesRow: '{n} szt. · zakup {amount}',
     deliveriesCost: 'Razem w cenach zakupu: {amount}',
+    deliveriesBySupplier: 'Według dostawców',
+    deliveriesNoSupplier: 'bez dostawcy',
     deliveriesHint:
       'Sztuki przyjęte przyciskiem «Dostawa» w tym okresie. Kwoty — w dzisiejszych cenach zakupu; produkty bez ceny zakupu nie wchodzą do sumy.',
     stocktakes:

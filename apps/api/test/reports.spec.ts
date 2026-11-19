@@ -1886,7 +1886,19 @@ describe('salon report', () => {
       (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
         id: string;
       };
-    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, purchasePriceGrosze: 2000 });
+    const pomade = await add({
+      name: 'Pomada',
+      priceGrosze: 4500,
+      purchasePriceGrosze: 2000,
+      supplier: 'Hairgum',
+    });
+    // Task 467: the same supplier in another letter case.
+    const clay = await add({
+      name: 'Glinka',
+      priceGrosze: 5000,
+      purchasePriceGrosze: 1000,
+      supplier: 'hairgum',
+    });
     const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 1 });
     const restock = (id: string, quantity: number) =>
       ctx
@@ -1899,6 +1911,7 @@ describe('salon report', () => {
       quantity: 0,
       costGrosze: null,
       items: [],
+      suppliers: [],
     });
     // Without a purchase price the pieces count, the money does not.
     await restock(wax.id, 3);
@@ -1906,9 +1919,11 @@ describe('salon report', () => {
       quantity: 3,
       costGrosze: null,
       items: [{ name: 'Wosk', quantity: 3, costGrosze: null }],
+      suppliers: [{ supplier: null, quantity: 3, costGrosze: null }],
     });
     await restock(pomade.id, 2);
     await restock(pomade.id, 4);
+    await restock(clay.id, 1);
     // A write-off or a hand-written number is not a delivery.
     await ctx
       .http()
@@ -1932,11 +1947,17 @@ describe('salon report', () => {
     const res = await report().expect(200);
     expect(registeredResponseSchema('SalonReport').safeParse(res.body).error).toBeUndefined();
     expect(res.body.deliveries).toEqual({
-      quantity: 9,
-      costGrosze: 6 * 2000,
+      quantity: 10,
+      costGrosze: 6 * 2000 + 1000,
       items: [
         { name: 'Pomada', quantity: 6, costGrosze: 12000 },
         { name: 'Wosk', quantity: 3, costGrosze: null },
+        { name: 'Glinka', quantity: 1, costGrosze: 1000 },
+      ],
+      // Task 467: by supplier — Hairgum in any letter case together, without a supplier last.
+      suppliers: [
+        { supplier: 'Hairgum', quantity: 7, costGrosze: 13000 },
+        { supplier: null, quantity: 3, costGrosze: null },
       ],
     });
     // A specialist's own report has no salon stock in it.
@@ -1948,6 +1969,7 @@ describe('salon report', () => {
       quantity: 0,
       costGrosze: null,
       items: [],
+      suppliers: [],
     });
   });
 

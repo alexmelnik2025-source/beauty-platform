@@ -23511,12 +23511,45 @@
                   "additionalProperties": false
                 },
                 "description": "By product, most pieces first"
+              },
+              "suppliers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "supplier": {
+                      "nullable": true,
+                      "description": "The product’s \"Dostawca\" today; null — products without one",
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "costGrosze": {
+                      "nullable": true,
+                      "description": "null when none of these products has a purchase price",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "supplier",
+                    "quantity",
+                    "costGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Task 467: the same pieces by supplier (any letter case), most pieces first, those without a supplier last"
               }
             },
             "required": [
               "quantity",
               "costGrosze",
-              "items"
+              "items",
+              "suppliers"
             ],
             "additionalProperties": false,
             "description": "Task 452: \"Dostawy na magazyn\" — pieces that arrived from suppliers; for the whole salon only (empty in a specialist’s own report)"
