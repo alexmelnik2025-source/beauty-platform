@@ -11,6 +11,8 @@ import type { CsvLocale } from '../reports/visits-csv';
 import type {
   AddProductSaleInput,
   CreateProductInput,
+  DeliveryInput,
+  DeliveryResponse,
   RestockProductInput,
   StocktakeInput,
   StocktakeResponse,
@@ -305,6 +307,44 @@ export class ProductsService {
     });
     const { products } = await this.list(m, locationId);
     return { ...result, products };
+  }
+
+  /**
+   * Task 475: "Przyjmij dostawę" — the pieces of the whole order added in one transaction, each
+   * as a "delivery" in "Historia magazynu" (as task 438 for one product). The products are locked
+   * while they are changed, so a sale at the same moment is counted before or after, never lost.
+   * More than 100000 in stock for any of them → 409 STOCK_LIMIT and nothing is changed.
+   */
+  async delivery(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    input: DeliveryInput,
+  ): Promise<DeliveryResponse> {
+    await this.access.writable(m, locationId);
+    const ids = input.items.map((c) => c.productId);
+    let pieces = 0;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM product WHERE id = ANY(${ids}::uuid[]) AND location_id = ${locationId}::uuid ORDER BY id FOR UPDATE`;
+      const found = await tx.product.findMany({ where: { id: { in: ids }, locationId } });
+      if (found.length !== ids.length) throw notFound('Product');
+      const before = new Map(found.map((p) => [p.id, p.stockQuantity]));
+      for (const { productId, quantity } of input.items) {
+        const after = (before.get(productId) ?? 0) + quantity;
+        if (after > MAX_STOCK) {
+          throw new AppException(
+            HttpStatus.CONFLICT,
+            'STOCK_LIMIT',
+            `At most ${MAX_STOCK} pieces in stock`,
+          );
+        }
+        await tx.product.update({ where: { id: productId }, data: { stockQuantity: after } });
+        await movement(tx, productId, 'delivery', quantity, after, userId);
+        pieces += quantity;
+      }
+    });
+    const { products } = await this.list(m, locationId);
+    return { products: input.items.length, pieces, list: products };
   }
 
   /** Task 443: "Odpis" — pieces used in the salon, damaged or lost, taken from the stock in one step. */

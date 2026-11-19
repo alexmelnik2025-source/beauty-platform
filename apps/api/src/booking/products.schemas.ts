@@ -67,6 +67,25 @@ export const stocktakeSchema = z.object({
     }),
 });
 
+/**
+ * Task 475: "Przyjmij dostawę" — the pieces that arrived from the supplier for many products at
+ * once (the whole order), each added to what is in stock.
+ */
+export const deliverySchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.uuid(),
+        quantity: z.number().int().min(1).max(100_000),
+      }),
+    )
+    .min(1)
+    .max(500)
+    .refine((items) => new Set(items.map((c) => c.productId)).size === items.length, {
+      message: 'Each product only once',
+    }),
+});
+
 /** Task 436: the language of the stock CSV's columns. */
 export const stockCsvQuerySchema = z.object({
   locale: z.enum(CSV_LOCALES).default('pl'),
@@ -81,6 +100,7 @@ export const stockCsvQuerySchema = z.object({
 
 export type StockCsvQuery = z.infer<typeof stockCsvQuerySchema>;
 export type StocktakeInput = z.infer<typeof stocktakeSchema>;
+export type DeliveryInput = z.infer<typeof deliverySchema>;
 export type RestockProductInput = z.infer<typeof restockProductSchema>;
 export type WriteOffProductInput = z.infer<typeof writeOffProductSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
@@ -214,7 +234,18 @@ export const stocktakeResultSchema = responseSchema(
   }),
 );
 
+/** Task 475: what "Przyjmij dostawę" added, and the list after it. */
+export const deliveryResultSchema = responseSchema(
+  'StockDelivery',
+  z.strictObject({
+    products: z.number().int().describe('Products that got pieces'),
+    pieces: z.number().int().describe('Pieces added in all'),
+    list: z.array(product).describe('The salon’s products after the delivery, as in the list'),
+  }),
+);
+
 export type StocktakeResponse = z.infer<typeof stocktakeResultSchema>;
+export type DeliveryResponse = z.infer<typeof deliveryResultSchema>;
 export type StockHistoryResponse = z.infer<typeof stockHistorySchema>;
 export type ProductListResponse = z.infer<typeof productListSchema>;
 export type ProductResponse = z.infer<typeof productSchema>;

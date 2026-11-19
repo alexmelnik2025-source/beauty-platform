@@ -1986,6 +1986,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/products/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Przyjmij dostawę": add the pieces that arrived, for many products at once
+         * @description Task 475. Owners and managers. Each number is added to what is in stock and written to "Historia magazynu" as a delivery, in one transaction. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT; a product of another salon or a missing one → 404; nothing is changed then.
+         */
+        post: operations["ProductsController_delivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/restock": {
         parameters: {
             query?: never;
@@ -6616,6 +6636,31 @@ export interface components {
                 durationMinutes: number;
             }[];
         };
+        StockDelivery: {
+            /** @description Products that got pieces */
+            products: number;
+            /** @description Pieces added in all */
+            pieces: number;
+            /** @description The salon’s products after the delivery, as in the list */
+            list: {
+                id: string;
+                name: string;
+                /** @description Price of one, in hundredths of the salon currency */
+                priceGrosze: number;
+                /** @description false = no longer sold; kept for the history of sales */
+                active: boolean;
+                /** @description Pieces in stock (task 429); null = the salon does not count them */
+                stockQuantity: number | null;
+                /** @description "Kończy się" at this many pieces or fewer (task 433); null = no warning */
+                lowStockAt: number | null;
+                /** @description The salon counts the pieces and there are lowStockAt or fewer left (task 433) */
+                lowStock: boolean;
+                /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
+                purchasePriceGrosze: number | null;
+                /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
+                supplier: string | null;
+            }[];
+        };
         StockHistory: {
             /** @description Newest first, at most 100 */
             movements: {
@@ -10630,6 +10675,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Stocktake"];
+                };
+            };
+        };
+    };
+    ProductsController_delivery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        /** Format: uuid */
+                        productId: string;
+                        quantity: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockDelivery"];
                 };
             };
         };

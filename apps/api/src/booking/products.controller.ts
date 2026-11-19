@@ -36,6 +36,8 @@ import {
 import {
   addProductSaleSchema,
   createProductSchema,
+  deliveryResultSchema,
+  deliverySchema,
   productListSchema,
   productSchema,
   restockProductSchema,
@@ -48,6 +50,8 @@ import {
   writeOffProductSchema,
   type AddProductSaleInput,
   type CreateProductInput,
+  type DeliveryInput,
+  type DeliveryResponse,
   type ProductListResponse,
   type ProductResponse,
   type RestockProductInput,
@@ -161,6 +165,25 @@ export class ProductsController {
     @Body(new ZodValidationPipe(stocktakeSchema)) body: StocktakeInput,
   ): Promise<StocktakeResponse> {
     return this.products.stocktake(m, auth.userId, locationId, body);
+  }
+
+  @Post('products/delivery')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Przyjmij dostawę": add the pieces that arrived, for many products at once',
+    description:
+      'Task 475. Owners and managers. Each number is added to what is in stock and written to "Historia magazynu" as a delivery, in one transaction. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT; a product of another salon or a missing one → 404; nothing is changed then.',
+  })
+  @ApiZodBody(deliverySchema)
+  @ApiZodResponse(deliveryResultSchema)
+  delivery(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(deliverySchema)) body: DeliveryInput,
+  ): Promise<DeliveryResponse> {
+    return this.products.delivery(m, auth.userId, locationId, body);
   }
 
   @Post('products/:productId/restock')

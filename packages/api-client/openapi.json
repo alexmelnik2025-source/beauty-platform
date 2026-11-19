@@ -8434,6 +8434,82 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/products/delivery": {
+      "post": {
+        "description": "Task 475. Owners and managers. Each number is added to what is in stock and written to \"Historia magazynu\" as a delivery, in one transaction. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT; a product of another salon or a missing one → 404; nothing is changed then.",
+        "operationId": "ProductsController_delivery",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "productId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100000
+                        }
+                      },
+                      "required": [
+                        "productId",
+                        "quantity"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "items"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockDelivery"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Przyjmij dostawę\": add the pieces that arrived, for many products at once",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/restock": {
       "post": {
         "description": "Task 438. In one step, so a sale at the same moment is not lost. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT.",
@@ -25844,6 +25920,96 @@
         "required": [
           "prices",
           "durations"
+        ],
+        "additionalProperties": false
+      },
+      "StockDelivery": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products that got pieces"
+          },
+          "pieces": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Pieces added in all"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one, in hundredths of the salon currency"
+                },
+                "active": {
+                  "type": "boolean",
+                  "description": "false = no longer sold; kept for the history of sales"
+                },
+                "stockQuantity": {
+                  "nullable": true,
+                  "description": "Pieces in stock (task 429); null = the salon does not count them",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "lowStockAt": {
+                  "nullable": true,
+                  "description": "\"Kończy się\" at this many pieces or fewer (task 433); null = no warning",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "lowStock": {
+                  "type": "boolean",
+                  "description": "The salon counts the pieces and there are lowStockAt or fewer left (task 433)"
+                },
+                "purchasePriceGrosze": {
+                  "nullable": true,
+                  "description": "\"Cena zakupu\" — what the salon pays for one (task 448); null = not written, and always null for a specialist",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "supplier": {
+                  "nullable": true,
+                  "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "priceGrosze",
+                "active",
+                "stockQuantity",
+                "lowStockAt",
+                "lowStock",
+                "purchasePriceGrosze",
+                "supplier"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The salon’s products after the delivery, as in the list"
+          }
+        },
+        "required": [
+          "products",
+          "pieces",
+          "list"
         ],
         "additionalProperties": false
       },
