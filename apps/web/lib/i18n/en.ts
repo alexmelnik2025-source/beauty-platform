@@ -1679,6 +1679,12 @@ export const en: Dict = {
     deliveriesCost: 'Total at purchase prices: {amount}',
     deliveriesHint:
       'Pieces received with “Delivery” in this period. Amounts at today’s purchase prices; products without a purchase price are not in the total.',
+    stocktakes:
+      'Stocktake differences: {missing} pcs missing ({missingAmount}), {extra} pcs extra ({extraAmount})',
+    stocktakesMissing: '{n} pcs missing · {amount}',
+    stocktakesExtra: '{n} pcs extra · {amount}',
+    stocktakesHint:
+      'What the stocktakes of this period found: how many pieces were missing from the shelf and how many more than written. Amounts at today’s sale prices.',
     productsHint:
       'Products sold at the visits of the period. Not part of the visit revenue or the commissions.',
     tipsVisits: 'visits with a tip: {n}',

@@ -6031,6 +6031,29 @@ export interface components {
                     costGrosze: number | null;
                 }[];
             };
+            /** @description Task 459: "Różnice inwentaryzacji" — what the stocktakes of the period found missing or extra; for the whole salon only (empty in a specialist’s own report) */
+            stocktakes: {
+                /** @description Pieces fewer on the shelf than written */
+                missingQuantity: number;
+                /** @description Their worth at today’s sale prices, in hundredths of the salon currency */
+                missingGrosze: number;
+                /** @description Pieces more on the shelf than written */
+                extraQuantity: number;
+                /** @description Their worth at today’s sale prices, in hundredths of the salon currency */
+                extraGrosze: number;
+                /** @description By product, most pieces first */
+                items: {
+                    name: string;
+                    /** @description Pieces missing */
+                    missing: number;
+                    /** @description Pieces extra */
+                    extra: number;
+                    /** @description Missing pieces × today’s price, in hundredths of the salon currency */
+                    missingGrosze: number;
+                    /** @description Extra pieces × today’s price, in hundredths of the salon currency */
+                    extraGrosze: number;
+                }[];
+            };
             /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
             tillCloses: {
                 /** @description Days of the period whose till was counted, oldest first */

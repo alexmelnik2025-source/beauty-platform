@@ -330,6 +330,14 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(deliveries).toContainText(/Zestaw\s*4 szt\./);
   await expect(deliveries.getByTestId('report-deliveries-cost')).toHaveCount(0);
   await shot(page, '452-report-deliveries');
+  // Task 459: "Różnice inwentaryzacji" — the set missing at the stocktake, at today's price.
+  const stocktakes = page.getByTestId('report-stocktakes');
+  await stocktakes.scrollIntoViewIfNeeded();
+  await expect(stocktakes.getByRole('heading')).toHaveText(
+    /^Różnice inwentaryzacji: brakuje 1 szt\. \(80,00\s*zł\), nadwyżka 0 szt\. \(0,00\s*zł\)$/,
+  );
+  await expect(stocktakes).toContainText(/Zestaw\s*brakuje 1 szt\. · 80,00\s*zł/);
+  await shot(page, '459-report-stocktakes');
   // Task 455: "CSV historii magazynu" — every change of the stock, with who and why.
   const [historyCsv] = await Promise.all([
     page.waitForEvent('download'),
@@ -512,6 +520,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appWriteOffs).toContainText(/Zestaw\s*1 szt\. · 80,00\s*zł/);
     await expect(appWriteOffs).toContainText(/Pomada matowa\s*1 szt\. · 49,00\s*zł/);
     await shot(app, '447-business-app-write-offs');
+    // Task 459: the set missing in the cabinet's stocktake, the wax extra in the app's.
+    const appStocktakes = app.getByTestId('report-stocktakes');
+    await appStocktakes.scrollIntoViewIfNeeded();
+    await expect(appStocktakes).toContainText(
+      /Różnice inwentaryzacji: brakuje 1 szt\. \(80,00\s*zł\), nadwyżka 1 szt\. \(25,00\s*zł\)/,
+    );
+    await expect(appStocktakes).toContainText(/Wosk\s*nadwyżka 1 szt\. · 25,00\s*zł/);
+    await expect(appStocktakes).toContainText(/Zestaw\s*brakuje 1 szt\. · 80,00\s*zł/);
+    await shot(app, '459-a-business-app-stocktakes');
     // Task 453: "Dostawy na magazyn" in the app — six pomades at 20 zł and the four sets.
     const appDeliveries = app.getByTestId('report-deliveries');
     await appDeliveries.scrollIntoViewIfNeeded();

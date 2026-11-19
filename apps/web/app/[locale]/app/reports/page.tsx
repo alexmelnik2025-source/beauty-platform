@@ -619,6 +619,46 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.stocktakes.missingQuantity + report.stocktakes.extraQuantity > 0 ? (
+              // Task 459: what the stocktakes found missing or extra — at today's prices.
+              <section className="section" data-testid="report-stocktakes">
+                <h2>
+                  {fill(t.reports.stocktakes, {
+                    missing: String(report.stocktakes.missingQuantity),
+                    missingAmount: money(report.stocktakes.missingGrosze),
+                    extra: String(report.stocktakes.extraQuantity),
+                    extraAmount: money(report.stocktakes.extraGrosze),
+                  })}
+                </h2>
+                <ol className="report-days">
+                  {report.stocktakes.items.map((item) => (
+                    <li key={item.name}>
+                      <span className="small">{item.name}</span>
+                      <span className="small">
+                        {[
+                          item.missing > 0
+                            ? fill(t.reports.stocktakesMissing, {
+                                n: String(item.missing),
+                                amount: money(item.missingGrosze),
+                              })
+                            : '',
+                          item.extra > 0
+                            ? fill(t.reports.stocktakesExtra, {
+                                n: String(item.extra),
+                                amount: money(item.extraGrosze),
+                              })
+                            : '',
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="small muted">{t.reports.stocktakesHint}</p>
+              </section>
+            ) : null}
+
             {report.discounts.totalGrosze > 0 ? (
               // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
               <section className="section" data-testid="report-discounts">

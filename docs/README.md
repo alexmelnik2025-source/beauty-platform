@@ -3279,3 +3279,12 @@ CSV produktów (451): у владельца и менеджера ещё две 
 и показывает итог («Inwentaryzacja zapisana: zmienione produkty: 1, brakuje 1 szt., nadwyżka 0 szt.»). Компонент
 `apps/web/components/products/StocktakePanel.tsx`. Бизнес-приложение (458): та же кнопка в «Usługi» → «Produkty»,
 карточка `StocktakeCard.tsx`. e2e `products.spec.ts`, скриншоты 457, 458.
+
+## «Różnice inwentaryzacji» в отчёте (задача 459)
+
+`stocktakes` в `GET …/reports` — `{ missingQuantity, missingGrosze, extraQuantity, extraGrosze, items: [{ name, missing,
+extra, missingGrosze, extraGrosze }] }`: сколько штук не хватило и сколько оказалось лишних при инвентаризациях периода
+(записи вида `stocktake`), по товарам, по сегодняшней цене продажи. Товар, который только начал считаться, сюда не
+попадает (это `correction`). Только в отчёте всего салона; в «своём» отчёте мастера — нули. Код —
+`ReportsService.stocktakes`, тест — `apps/api/test/reports.spec.ts`. Раздел «Różnice inwentaryzacji: brakuje 1 szt.
+(80,00 zł), nadwyżka 0 szt. (0,00 zł)» в «Raporty» кабинета и бизнес-приложения. e2e `products.spec.ts`, скриншоты 459.

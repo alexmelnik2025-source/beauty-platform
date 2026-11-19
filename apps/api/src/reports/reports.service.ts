@@ -495,6 +495,9 @@ export class ReportsService {
       deliveries: own
         ? { quantity: 0, costGrosze: null, items: [] }
         : await this.deliveries(locationId, rangeStart, rangeEnd),
+      stocktakes: own
+        ? { missingQuantity: 0, missingGrosze: 0, extraQuantity: 0, extraGrosze: 0, items: [] }
+        : await this.stocktakes(locationId, rangeStart, rangeEnd),
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
@@ -1502,6 +1505,58 @@ export class ReportsService {
           b.quantity - a.quantity ||
           (b.costGrosze ?? 0) - (a.costGrosze ?? 0) ||
           a.name.localeCompare(b.name),
+      ),
+    };
+  }
+
+  /** Task 459: "Różnice inwentaryzacji" — pieces missing or extra at the period's stocktakes. */
+  private async stocktakes(
+    locationId: string,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['stocktakes']> {
+    const rows = await this.prisma.stockMovement.findMany({
+      where: {
+        kind: 'stocktake',
+        createdAt: { gte: rangeStart, lt: rangeEnd },
+        product: { locationId },
+      },
+      select: {
+        change: true,
+        product: { select: { id: true, name: true, priceGrosze: true } },
+      },
+    });
+    const items = new Map<string, SalonReport['stocktakes']['items'][number]>();
+    const total = { missingQuantity: 0, missingGrosze: 0, extraQuantity: 0, extraGrosze: 0 };
+    for (const r of rows) {
+      const item =
+        items.get(r.product.id) ??
+        items
+          .set(r.product.id, {
+            name: r.product.name,
+            missing: 0,
+            extra: 0,
+            missingGrosze: 0,
+            extraGrosze: 0,
+          })
+          .get(r.product.id)!;
+      const value = Math.abs(r.change) * r.product.priceGrosze;
+      if (r.change < 0) {
+        item.missing -= r.change;
+        item.missingGrosze += value;
+        total.missingQuantity -= r.change;
+        total.missingGrosze += value;
+      } else {
+        item.extra += r.change;
+        item.extraGrosze += value;
+        total.extraQuantity += r.change;
+        total.extraGrosze += value;
+      }
+    }
+    return {
+      ...total,
+      items: [...items.values()].sort(
+        (a, b) => b.missing + b.extra - (a.missing + a.extra) || a.name.localeCompare(b.name),
       ),
     };
   }

@@ -1951,6 +1951,65 @@ describe('salon report', () => {
     });
   });
 
+  it('"Różnice inwentaryzacji": pieces missing or extra at the stocktakes of the period (task 459)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 5 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 2 });
+    const gel = await add({ name: 'Żel', priceGrosze: 2500 });
+    const empty = {
+      missingQuantity: 0,
+      missingGrosze: 0,
+      extraQuantity: 0,
+      extraGrosze: 0,
+      items: [],
+    };
+    expect((await report().expect(200)).body.stocktakes).toEqual(empty);
+    const count = (counts: { productId: string; quantity: number }[]) =>
+      ctx.http().post(`${base}/products/stocktake`).set(owner.auth).send({ counts }).expect(200);
+    // Two pomades missing, one wax extra; the gel only starts counting (not a difference).
+    await count([
+      { productId: pomade.id, quantity: 3 },
+      { productId: wax.id, quantity: 3 },
+      { productId: gel.id, quantity: 4 },
+    ]);
+    // A later count of the same product adds up; a write-off is not a difference.
+    await count([{ productId: pomade.id, quantity: 2 }]);
+    await ctx
+      .http()
+      .post(`${base}/products/${wax.id}/write-off`)
+      .set(owner.auth)
+      .send({ quantity: 1 })
+      .expect(200);
+    // An older stocktake is outside the period.
+    await count([{ productId: wax.id, quantity: 9 }]);
+    await ctx.prisma.stockMovement.updateMany({
+      where: { productId: wax.id, kind: 'stocktake', quantityAfter: 9 },
+      data: { createdAt: new Date(`${addDays(from, -3)}T12:00:00Z`) },
+    });
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error).toBeUndefined();
+    expect(res.body.stocktakes).toEqual({
+      missingQuantity: 3,
+      missingGrosze: 3 * 4500,
+      extraQuantity: 1,
+      extraGrosze: 3000,
+      items: [
+        { name: 'Pomada', missing: 3, extra: 0, missingGrosze: 13500, extraGrosze: 0 },
+        { name: 'Wosk', missing: 0, extra: 1, missingGrosze: 0, extraGrosze: 3000 },
+      ],
+    });
+    // A specialist's own report has no salon stock in it.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    expect((await report(kasiaUser.auth).expect(200)).body.stocktakes).toEqual(empty);
+  });
+
   it('"Historia magazynu": every change of the stock with who and when (task 440)', async () => {
     const pomade = (
       await ctx

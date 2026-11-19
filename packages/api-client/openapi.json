@@ -23453,6 +23453,88 @@
             "additionalProperties": false,
             "description": "Task 452: \"Dostawy na magazyn\" — pieces that arrived from suppliers; for the whole salon only (empty in a specialist’s own report)"
           },
+          "stocktakes": {
+            "type": "object",
+            "properties": {
+              "missingQuantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Pieces fewer on the shelf than written"
+              },
+              "missingGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Their worth at today’s sale prices, in hundredths of the salon currency"
+              },
+              "extraQuantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Pieces more on the shelf than written"
+              },
+              "extraGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Their worth at today’s sale prices, in hundredths of the salon currency"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "missing": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Pieces missing"
+                    },
+                    "extra": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Pieces extra"
+                    },
+                    "missingGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Missing pieces × today’s price, in hundredths of the salon currency"
+                    },
+                    "extraGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Extra pieces × today’s price, in hundredths of the salon currency"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "missing",
+                    "extra",
+                    "missingGrosze",
+                    "extraGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By product, most pieces first"
+              }
+            },
+            "required": [
+              "missingQuantity",
+              "missingGrosze",
+              "extraQuantity",
+              "extraGrosze",
+              "items"
+            ],
+            "additionalProperties": false,
+            "description": "Task 459: \"Różnice inwentaryzacji\" — what the stocktakes of the period found missing or extra; for the whole salon only (empty in a specialist’s own report)"
+          },
           "tillCloses": {
             "type": "object",
             "properties": {
@@ -24354,6 +24436,7 @@
           "products",
           "writeOffs",
           "deliveries",
+          "stocktakes",
           "tillCloses",
           "weekdays",
           "previous",

@@ -544,6 +544,43 @@ export function ReportsScreen(props: {
               <Text style={styles.muted}>{r.deliveriesHint}</Text>
             </View>
           ) : null}
+          {shown.stocktakes.missingQuantity + shown.stocktakes.extraQuantity > 0 ? (
+            // Task 459: what the stocktakes found missing or extra — at today's prices.
+            <View style={{ gap: 6 }} testID="report-stocktakes">
+              <Text style={styles.section}>
+                {fill(r.stocktakes, {
+                  missing: String(shown.stocktakes.missingQuantity),
+                  missingAmount: money(shown.stocktakes.missingGrosze),
+                  extra: String(shown.stocktakes.extraQuantity),
+                  extraAmount: money(shown.stocktakes.extraGrosze),
+                })}
+              </Text>
+              {shown.stocktakes.items.map((item) => (
+                <View key={item.name} style={styles.cardTop}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.muted}>
+                    {[
+                      item.missing > 0
+                        ? fill(r.stocktakesMissing, {
+                            n: String(item.missing),
+                            amount: money(item.missingGrosze),
+                          })
+                        : '',
+                      item.extra > 0
+                        ? fill(r.stocktakesExtra, {
+                            n: String(item.extra),
+                            amount: money(item.extraGrosze),
+                          })
+                        : '',
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.muted}>{r.stocktakesHint}</Text>
+            </View>
+          ) : null}
           {shown.discounts.totalGrosze > 0 ? (
             // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
             <View style={{ gap: 6 }} testID="report-discounts">

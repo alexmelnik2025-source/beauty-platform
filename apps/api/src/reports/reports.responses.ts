@@ -193,6 +193,27 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 452: "Dostawy na magazyn" — pieces that arrived from suppliers; for the whole salon only (empty in a specialist’s own report)',
       ),
+    stocktakes: z
+      .strictObject({
+        missingQuantity: z.number().int().describe('Pieces fewer on the shelf than written'),
+        missingGrosze: money('Their worth at today’s sale prices'),
+        extraQuantity: z.number().int().describe('Pieces more on the shelf than written'),
+        extraGrosze: money('Their worth at today’s sale prices'),
+        items: z
+          .array(
+            z.strictObject({
+              name: z.string(),
+              missing: z.number().int().describe('Pieces missing'),
+              extra: z.number().int().describe('Pieces extra'),
+              missingGrosze: money('Missing pieces × today’s price'),
+              extraGrosze: money('Extra pieces × today’s price'),
+            }),
+          )
+          .describe('By product, most pieces first'),
+      })
+      .describe(
+        'Task 459: "Różnice inwentaryzacji" — what the stocktakes of the period found missing or extra; for the whole salon only (empty in a specialist’s own report)',
+      ),
     tillCloses: z
       .strictObject({
         days: z

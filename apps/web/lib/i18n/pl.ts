@@ -1674,6 +1674,12 @@ export const pl = {
     deliveriesCost: 'Razem w cenach zakupu: {amount}',
     deliveriesHint:
       'Sztuki przyjęte przyciskiem «Dostawa» w tym okresie. Kwoty — w dzisiejszych cenach zakupu; produkty bez ceny zakupu nie wchodzą do sumy.',
+    stocktakes:
+      'Różnice inwentaryzacji: brakuje {missing} szt. ({missingAmount}), nadwyżka {extra} szt. ({extraAmount})',
+    stocktakesMissing: 'brakuje {n} szt. · {amount}',
+    stocktakesExtra: 'nadwyżka {n} szt. · {amount}',
+    stocktakesHint:
+      'Co pokazały inwentaryzacje w tym okresie: ilu sztuk zabrakło na półce, a ile było więcej, niż zapisano. Kwoty — w dzisiejszych cenach sprzedaży.',
     productsHint:
       'Produkty sprzedane przy wizytach z tego okresu. Nie wchodzą do przychodu z wizyt ani do prowizji.',
     tipsVisits: 'wizyty z napiwkiem: {n}',
