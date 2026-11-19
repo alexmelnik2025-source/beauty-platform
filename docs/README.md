@@ -3395,3 +3395,16 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
 доход (деньги салон получил при продаже). Тесты: `apps/api/test/gift-vouchers.spec.ts`, изоляция салонов в
 `isolation.spec.ts`, unit `apps/mobile-business/test/vouchers.test.ts`; e2e `gift-vouchers.spec.ts`, скриншоты 491,
 491a, 491b, 492, 492a, 493.
+
+## «CSV bonów», «Drukuj bon», «Wyślij bon» (задачи 494–497)
+
+- `GET …/gift-vouchers/export.csv?locale=pl|uk|ru|en` — владелец/менеджер: все боны салона, старые сверху (код, дата
+  продажи, кто продал, для кого, сумма, использовано, остаток, «Ważny do», статус, заметка). Формат как у CSV визитов
+  (UTF-8 с BOM, «;», десятичная запятая; точка для en). Код — `apps/api/src/vouchers/vouchers-csv.ts`. Кнопка «Pobierz
+  CSV bonów» над списком в кабинете и в бизнес-приложении (`api.giftVouchersCsv`, «Поделиться» на телефоне).
+- «Drukuj bon» (кабинет): у действующего бона — карточка для клиента (салон, сумма, для кого, код «ABCD-EFGH», срок);
+  печатается только она (`html.print-voucher` в `globals.css`), на странице карточка появляется только на время печати.
+- «Wyślij bon» (бизнес-приложение): тот же бон сообщением через «Поделиться» (в веб-версии — в буфер обмена);
+  текст — `voucherText()` в `apps/mobile-business/src/vouchers.ts`; если бонем уже платили — «Zostało … z …».
+- Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-business/test/vouchers.test.ts`, e2e
+  `gift-vouchers.spec.ts` (скриншоты 494–497).
