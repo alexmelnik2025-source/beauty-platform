@@ -14,14 +14,15 @@ import { serveApp } from './mobile-app';
  * Task 491: "Bony podarunkowe" in the cabinet. The owner sells a 200 zł voucher for Jan, finds it
  * by the code typed in small letters, takes 120 zł with it and sees 80 zł left in the list
  * (screenshots 491, 491a); then cancels a voucher sold by mistake (screenshot 491b).
- * Task 494: "Pobierz CSV bonów" (screenshot 494).
+ * Task 494: "Pobierz CSV bonów" (screenshot 494); task 534: "Pobierz CSV płatności bonami".
  * Task 496: "Drukuj bon" — the card to hand to the client (screenshot 496).
  * Task 499: "Zmień bon" — a last day and the names fixed (screenshot 499).
  * Tasks 501–502: "Kończą się w ciągu 30 dni", the list filtered and searched (screenshots 501, 502).
  * Task 531: "Cofnij płatność" — a payment noted by mistake is undone (screenshot 531).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
- * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495);
+ * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495),
+ * task 535: "Pobierz CSV płatności bonami";
  * task 497: "Wyślij bon" as a message (screenshot 497); task 500: "Zmień bon" (screenshot 500);
  * tasks 501, 503: "Wkrótce wygasa" and "Pokaż" in the list (screenshots 501a, 503); task 532:
  * "Cofnij płatność" (screenshot 532).
@@ -213,6 +214,19 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   expect(vouchersText).toContain(';Anulowany;');
   await shot(page, '494');
 
+  // Task 534: "Pobierz CSV płatności bonami" — every payment, the undone one with its day.
+  const [usesCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    list.getByRole('button', { name: 'Pobierz CSV płatności bonami' }).click(),
+  ]);
+  expect(usesCsv.suggestedFilename()).toMatch(/^voucher-payments-.+-\d{4}-\d{2}-\d{2}\.csv$/);
+  const usesText = await readFile((await usesCsv.path())!, 'utf8');
+  expect(usesText).toContain('Data;Godzina;Kod bonu;Dla kogo;Kwota;Za co;Przyjął(a);Cofnięta');
+  expect(usesText).toContain(
+    `;${code!};Jan i Ola Kowalscy;120,00;Strzyżenie i broda;Aleksander Owner;\r\n`,
+  );
+  expect(usesText).toMatch(/;Jan i Ola Kowalscy;30,00;;Aleksander Owner;\d{4}-\d{2}-\d{2}\r\n/);
+
   // Task 493: the report — one voucher sold (the cancelled one left out), 120 zł paid with
   // vouchers, 80 zł left today.
   await page.goto('/pl/app/reports');
@@ -387,6 +401,15 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
     expect(appCsvText).toContain(';Ola Nowak;150,00;50,00;100,00;');
     expect(appCsvText).toContain(';Piotr;100,00;0,00;100,00;');
     await shot(phone, '495');
+
+    // Task 535: "Pobierz CSV płatności bonami" on the phone — the undone 20 zł with its day.
+    const [appUses] = await Promise.all([
+      phone.waitForEvent('download'),
+      phone.getByRole('button', { name: 'Pobierz CSV płatności bonami' }).click(),
+    ]);
+    const appUsesText = await readFile((await appUses.path())!, 'utf8');
+    expect(appUsesText).toContain(`;${voucher.code};Ola Nowak;50,00;;Aleksander Owner;\r\n`);
+    expect(appUsesText).toMatch(/;Ola Nowak;20,00;;Aleksander Owner;\d{4}-\d{2}-\d{2}\r\n/);
 
     // Tasks 501, 503: a voucher for Marek that ends in 10 days — marked in the list and opened
     // from it without typing the code.

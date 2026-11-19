@@ -1711,6 +1711,7 @@ export const pl = {
     empty: 'Nie sprzedano jeszcze żadnego bonu.',
     activeTotal: 'Do wykorzystania na ważnych bonach: {amount}',
     csv: 'Pobierz CSV bonów',
+    usesCsv: 'Pobierz CSV płatności bonami',
     csvFailed: 'Nie udało się zapisać pliku.',
     share: 'Wyślij bon',
     shareTitle: 'Bon podarunkowy — {salon}',

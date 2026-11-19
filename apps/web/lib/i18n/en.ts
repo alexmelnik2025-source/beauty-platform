@@ -913,6 +913,7 @@ export const en: Dict = {
     empty: 'No vouchers sold yet.',
     activeTotal: 'Left on valid vouchers: {amount}',
     csv: 'Download vouchers CSV',
+    usesCsv: 'Download voucher payments CSV',
     soldOn: 'Sold {date}',
     soldBy: 'by {name}',
     show: 'Show',

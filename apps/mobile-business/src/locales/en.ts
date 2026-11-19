@@ -1713,6 +1713,7 @@ export const en: Dictionary = {
     empty: 'No vouchers sold yet.',
     activeTotal: 'Left on valid vouchers: {amount}',
     csv: 'Download vouchers CSV',
+    usesCsv: 'Download voucher payments CSV',
     csvFailed: 'Could not save the file.',
     share: 'Send voucher',
     shareTitle: 'Gift voucher — {salon}',

@@ -875,6 +875,14 @@ export class BusinessApi {
     );
   }
 
+  /** Task 535: "CSV płatności bonami" — every payment with the salon's vouchers (owners and managers). */
+  giftVoucherUsesCsv(orgId: string, locationId: string, locale: Locale): Promise<CsvFile> {
+    return this.csvFile(
+      `${voucherPath(orgId, locationId)}/uses.csv?${new URLSearchParams({ locale }).toString()}`,
+      'voucher-payments.csv',
+    );
+  }
+
   /** Task 492: "Nowy bon" — sold at the salon's till; the server makes the code. */
   sellGiftVoucher(
     orgId: string,

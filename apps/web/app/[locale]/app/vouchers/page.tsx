@@ -598,14 +598,17 @@ export default function VouchersPage() {
 
   const [exporting, setExporting] = useState(false);
 
-  /** Task 494: "CSV bonów" — every voucher for the accountant (column names in the cabinet language). */
-  async function exportCsv(): Promise<void> {
+  /**
+   * Task 494: "CSV bonów" — every voucher for the accountant (column names in the cabinet language);
+   * task 534: "CSV płatności bonami" — every payment taken with them.
+   */
+  async function exportCsv(file: 'export.csv' | 'uses.csv' = 'export.csv'): Promise<void> {
     if (exporting) return;
     setExporting(true);
     setError('');
     try {
       const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
-      const res = await apiResponse(`${base}/export.csv`, { query: { locale: lang } });
+      const res = await apiResponse(`${base}/${file}`, { query: { locale: lang } });
       const name =
         /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'bony.csv';
       const link = document.createElement('a');
@@ -695,6 +698,14 @@ export default function VouchersPage() {
                       onClick={() => void exportCsv()}
                     >
                       {t.vouchers.csv}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--quiet btn--small"
+                      disabled={exporting}
+                      onClick={() => void exportCsv('uses.csv')}
+                    >
+                      {t.vouchers.usesCsv}
                     </button>
                   </div>
                   {list.expiringSoon.count > 0 ? (

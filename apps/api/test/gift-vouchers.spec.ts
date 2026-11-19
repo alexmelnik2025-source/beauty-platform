@@ -586,3 +586,121 @@ describe('"CSV bonów" (task 494)', () => {
     expect(empty).toHaveLength(1);
   });
 });
+
+describe('"CSV płatności bonami" (task 533)', () => {
+  const csv = (auth: Record<string, string>, locale?: string, at = base) =>
+    ctx
+      .http()
+      .get(`${at}/uses.csv`)
+      .query(locale ? { locale } : {})
+      .set(auth)
+      .buffer(true)
+      .parse((res, done) => {
+        let text = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk: string) => (text += chunk));
+        res.on('end', () => done(null, text));
+      });
+
+  const rows = (text: string): string[][] =>
+    text
+      .replace(/^﻿/, '')
+      .trimEnd()
+      .split('\r\n')
+      .map((line) => line.split(';').map((c) => c.replace(/^"|"$/g, '')));
+
+  it('lists every payment, oldest first, with the undone ones marked', async () => {
+    const voucher = (
+      await ctx
+        .http()
+        .post(base)
+        .set(owner.auth)
+        .send({ amountGrosze: 20000, recipient: 'Jan Kowalski' })
+        .expect(201)
+    ).body as Voucher;
+    const pay = (amountGrosze: number, auth: Record<string, string>, note?: string) =>
+      ctx
+        .http()
+        .post(`${base}/${voucher.id}/redeem`)
+        .set(auth)
+        .send({ amountGrosze, ...(note ? { note } : {}) })
+        .expect(200);
+    const first = await pay(5050, staffUser.auth, 'Strzyżenie');
+    const firstUse = (first.body.uses as { id: string }[])[0]!;
+    await ctx.prisma.giftVoucherUse.update({
+      where: { id: firstUse.id },
+      data: { createdAt: new Date('2026-03-02T09:15:00Z') },
+    });
+    const second = await pay(3000, owner.auth);
+    const secondUse = (second.body.uses as { id: string; amountGrosze: number }[]).find(
+      (u) => u.amountGrosze === 3000,
+    )!;
+    await ctx
+      .http()
+      .post(`${base}/${voucher.id}/uses/${secondUse.id}/undo`)
+      .set(owner.auth)
+      .expect(200);
+
+    const res = await csv(owner.auth).expect(200);
+    expect(res.headers['content-type']).toMatch(/^text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(
+      /attachment; filename="voucher-payments-.+\.csv"/,
+    );
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    const lines = rows(res.body as string);
+    expect(lines[0]).toEqual([
+      'Data',
+      'Godzina',
+      'Kod bonu',
+      'Dla kogo',
+      'Kwota',
+      'Za co',
+      'Przyjął(a)',
+      'Cofnięta',
+    ]);
+    expect(lines[1]).toEqual([
+      '2026-03-02',
+      '10:15',
+      voucher.code,
+      'Jan Kowalski',
+      '50,50',
+      'Strzyżenie',
+      'Kasia',
+      '',
+    ]);
+    expect(lines[2]!.slice(0, 1)).toEqual([today]);
+    expect(lines[2]!.slice(2)).toEqual([
+      voucher.code,
+      'Jan Kowalski',
+      '30,00',
+      '',
+      'Anna Owner',
+      today,
+    ]);
+    expect(lines).toHaveLength(3);
+
+    const en = rows((await csv(owner.auth, 'en').expect(200)).body as string);
+    expect(en[0]![2]).toBe('Voucher code');
+    expect(en[1]![4]).toBe('50.50');
+  });
+
+  it('is for owners and managers only, and only for the salon’s own vouchers', async () => {
+    await csv(staffUser.auth).expect(403);
+    const voucher = (
+      await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 9000 }).expect(201)
+    ).body as Voucher;
+    await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 1000 })
+      .expect(200);
+    const other = await signUp(ctx, 'other@example.com');
+    const theirs = await createOrgWithLocation(ctx, other, 'Other');
+    const theirBase = `/v1/organizations/${theirs.orgId}/locations/${theirs.locationId}/gift-vouchers`;
+    expect(
+      rows((await csv(other.auth, undefined, theirBase).expect(200)).body as string),
+    ).toHaveLength(1);
+    await csv(other.auth, undefined, base).expect(404);
+  });
+});

@@ -912,6 +912,7 @@ export const pl = {
     empty: 'Nie sprzedano jeszcze żadnego bonu.',
     activeTotal: 'Do wykorzystania na ważnych bonach: {amount}',
     csv: 'Pobierz CSV bonów',
+    usesCsv: 'Pobierz CSV płatności bonami',
     soldOn: 'Sprzedany {date}',
     soldBy: 'przez {name}',
     show: 'Pokaż',

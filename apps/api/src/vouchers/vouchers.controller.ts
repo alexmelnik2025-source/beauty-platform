@@ -116,6 +116,29 @@ export class VouchersController {
     res.send(csv);
   }
 
+  @Get('uses.csv')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: '"CSV płatności bonami": every payment with the salon’s gift vouchers',
+    description:
+      'Task 533. Owners and managers. One line per payment, oldest first — date, time, voucher code, for whom, amount, paid for, taken by, the day it was undone (empty if not). Same file format as visits-csv.',
+  })
+  @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async usesCsv(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Query(new ZodValidationPipe(vouchersCsvQuerySchema)) query: VouchersCsvQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, fileName } = await this.vouchers.usesCsv(m, locationId, query.locale);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
+  }
+
   @Get('code/:code')
   @ApiOperation({
     summary: '"Sprawdź bon": a voucher by the code the client shows, with its payments',

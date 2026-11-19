@@ -318,13 +318,18 @@ export function VouchersScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
-  /** Task 495: "CSV bonów" — shared or saved like the other CSV files of the app. */
-  async function downloadCsv() {
+  /**
+   * Task 495: "CSV bonów" — shared or saved like the other CSV files of the app; task 535: "CSV
+   * płatności bonami" the same way.
+   */
+  async function downloadCsv(uses = false) {
     if (csvBusy) return;
     setCsvBusy(true);
     setCsvInfo('');
     try {
-      const file = await api.giftVouchersCsv(salon.orgId, salon.locationId, locale);
+      const file = uses
+        ? await api.giftVoucherUsesCsv(salon.orgId, salon.locationId, locale)
+        : await api.giftVouchersCsv(salon.orgId, salon.locationId, locale);
       const result = await shareCsv(file, csvTools());
       setCsvInfo(result === 'failed' ? v.csvFailed : '');
     } catch (e) {
@@ -479,6 +484,11 @@ export function VouchersScreen(props: {
                 kind="secondary"
                 label={csvBusy ? t.loading : v.csv}
                 onPress={() => void downloadCsv()}
+              />
+              <Button
+                kind="secondary"
+                label={csvBusy ? t.loading : v.usesCsv}
+                onPress={() => void downloadCsv(true)}
               />
               {csvInfo ? <Text style={styles.muted}>{csvInfo}</Text> : null}
               <Card>

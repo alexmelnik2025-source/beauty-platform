@@ -918,6 +918,7 @@ export const ru: Dict = {
     empty: 'Сертификатов ещё не продавали.',
     activeTotal: 'Остаток на действующих сертификатах: {amount}',
     csv: 'Скачать CSV сертификатов',
+    usesCsv: 'Скачать CSV оплат сертификатами',
     soldOn: 'Продан {date}',
     soldBy: 'продал(а) {name}',
     show: 'Открыть',

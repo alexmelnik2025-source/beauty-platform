@@ -13624,6 +13624,57 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/uses.csv": {
+      "get": {
+        "description": "Task 533. Owners and managers. One line per payment, oldest first — date, time, voucher code, for whom, amount, paid for, taken by, the day it was undone (empty if not). Same file format as visits-csv.",
+        "operationId": "VouchersController_usesCsv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"CSV płatności bonami\": every payment with the salon’s gift vouchers",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/code/{code}": {
       "get": {
         "description": "Task 490. Everyone in the salon. Letter case, spaces and dashes do not matter. Unknown code → 404.",

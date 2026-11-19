@@ -7,7 +7,7 @@ import { LocationAccessService } from '../organizations/location-access.service'
 import { PrismaService } from '../prisma/prisma.service';
 import type { CsvLocale } from '../reports/visits-csv';
 import { addDays, instantToLocal, localToday } from '../scheduling/time';
-import { vouchersCsv } from './vouchers-csv';
+import { voucherUsesCsv, vouchersCsv } from './vouchers-csv';
 import type {
   CreateGiftVoucherInput,
   GiftVoucherDetailsResponse,
@@ -152,6 +152,44 @@ export class VouchersService {
     });
     const day = instantToLocal(Date.now(), location.timezone).date;
     return { csv: vouchersCsv(lines, locale), fileName: `vouchers-${location.slug}-${day}.csv` };
+  }
+
+  /**
+   * Task 533: "CSV płatności bonami" — every payment with the salon's vouchers, oldest first,
+   * undone ones with the day they were undone (owners and managers).
+   */
+  async usesCsv(
+    m: MembershipContext,
+    locationId: string,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const location = await this.access.writable(m, locationId);
+    const uses = await this.prisma.giftVoucherUse.findMany({
+      where: { voucher: { locationId } },
+      include: { voucher: { select: { code: true, recipient: true } } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const names = await this.names(uses.map((u) => u.createdByUserId));
+    const lines = uses.map((u) => {
+      const at = instantToLocal(u.createdAt.getTime(), location.timezone);
+      return {
+        date: at.date,
+        time: at.time,
+        code: u.voucher.code,
+        recipient: u.voucher.recipient,
+        amountGrosze: u.amountGrosze,
+        note: u.note,
+        by: (u.createdByUserId && names.get(u.createdByUserId)) || '',
+        undoneDate: u.undoneAt
+          ? instantToLocal(u.undoneAt.getTime(), location.timezone).date
+          : null,
+      };
+    });
+    const day = instantToLocal(Date.now(), location.timezone).date;
+    return {
+      csv: voucherUsesCsv(lines, locale),
+      fileName: `voucher-payments-${location.slug}-${day}.csv`,
+    };
   }
 
   async create(

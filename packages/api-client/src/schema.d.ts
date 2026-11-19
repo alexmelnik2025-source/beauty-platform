@@ -3555,6 +3555,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/uses.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "CSV płatności bonami": every payment with the salon’s gift vouchers
+         * @description Task 533. Owners and managers. One line per payment, oldest first — date, time, voucher code, for whom, amount, paid for, taken by, the day it was undone (empty if not). Same file format as visits-csv.
+         */
+        get: operations["VouchersController_usesCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/code/{code}": {
         parameters: {
             query?: never;
@@ -13394,6 +13414,30 @@ export interface operations {
         };
     };
     VouchersController_csv: {
+        parameters: {
+            query?: {
+                locale?: "pl" | "uk" | "ru" | "en";
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    VouchersController_usesCsv: {
         parameters: {
             query?: {
                 locale?: "pl" | "uk" | "ru" | "en";
