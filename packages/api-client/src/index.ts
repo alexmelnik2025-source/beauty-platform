@@ -118,6 +118,8 @@ export type ProductList = Schemas['ProductList'];
 /** "Historia magazynu": the changes of a product's pieces in stock (task 440). */
 export type StockHistory = Schemas['StockHistory'];
 export type Stocktake = Schemas['Stocktake'];
+/** Task 475: "Przyjmij dostawę" — what was added and the list after it. */
+export type StockDelivery = Schemas['StockDelivery'];
 export type VisitProductSales = Schemas['VisitProductSales'];
 /** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
 export type TillClose = Schemas['TillClose'];
