@@ -153,6 +153,27 @@ export const salonReportSchema = responseSchema(
           .describe(
             'Task 449: "Marża" — only pieces whose purchase price was written when sold; null when none, and always in a specialist’s own report',
           ),
+        suppliers: z
+          .array(
+            z.strictObject({
+              supplier: z
+                .string()
+                .nullable()
+                .describe(
+                  'The product’s "Dostawca" today; null — products without one or removed from the list',
+                ),
+              quantity: z.number().int(),
+              totalGrosze: money('What these products brought'),
+              marginGrosze: money(
+                'Sale price minus purchase price of the pieces whose purchase price was known',
+              )
+                .nullable()
+                .describe('null when no piece had a purchase price'),
+            }),
+          )
+          .describe(
+            'Task 471: the same sales by supplier (any letter case), most money first, those without a supplier last; empty in a specialist’s own report',
+          ),
       })
       .describe('Task 394: "Sprzedaż produktów" — not part of the visit revenue'),
     writeOffs: z

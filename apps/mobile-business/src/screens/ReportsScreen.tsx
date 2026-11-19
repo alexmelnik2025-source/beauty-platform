@@ -474,6 +474,26 @@ export function ReportsScreen(props: {
                   </Text>
                 </View>
               ))}
+              {shown.products.suppliers.some((x) => x.supplier !== null) ? (
+                // Task 472: the same sales by supplier — whose products sell.
+                <View style={{ gap: 6 }} testID="report-products-suppliers">
+                  <Text style={styles.name}>{r.deliveriesBySupplier}</Text>
+                  {shown.products.suppliers.map((group) => (
+                    <View key={group.supplier ?? ''} style={styles.cardTop}>
+                      <Text style={styles.name}>{group.supplier ?? r.deliveriesNoSupplier}</Text>
+                      <Text style={styles.muted}>
+                        {fill(r.productsRow, {
+                          n: String(group.quantity),
+                          amount: money(group.totalGrosze),
+                        })}
+                        {group.marginGrosze === null
+                          ? ''
+                          : ` · ${fill(r.marginItem, { amount: money(group.marginGrosze) })}`}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               {shown.products.margin ? (
                 // Task 449: "Marża" — only pieces sold with a purchase price.
                 <Text style={styles.name} testID="report-products-margin">

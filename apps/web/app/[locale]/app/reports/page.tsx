@@ -548,6 +548,30 @@ export default function ReportsPage() {
                       .join(' · ')}
                   </p>
                 ) : null}
+                {report.products.suppliers.some((x) => x.supplier !== null) ? (
+                  // Task 472: the same sales by supplier — whose products sell.
+                  <>
+                    <h3 className="small">{t.reports.deliveriesBySupplier}</h3>
+                    <ol className="report-days" data-testid="report-products-suppliers">
+                      {report.products.suppliers.map((group) => (
+                        <li key={group.supplier ?? ''}>
+                          <span className="small">
+                            {group.supplier ?? t.reports.deliveriesNoSupplier}
+                          </span>
+                          <span className="small">
+                            {fill(t.reports.productsRow, {
+                              n: String(group.quantity),
+                              amount: money(group.totalGrosze),
+                            })}
+                            {group.marginGrosze === null
+                              ? ''
+                              : ` · ${fill(t.reports.marginItem, { amount: money(group.marginGrosze) })}`}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                ) : null}
                 {report.products.margin ? (
                   // Task 449: "Marża" — only pieces sold with a purchase price.
                   <p className="small" data-testid="report-products-margin">

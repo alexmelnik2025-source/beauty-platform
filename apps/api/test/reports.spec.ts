@@ -1436,6 +1436,8 @@ describe('salon report', () => {
         { id: olaId, displayName: 'Ola', quantity: 1, totalGrosze: 3000 },
       ],
       margin: null,
+      // Task 471: no supplier written, and the shampoo is removed — one line without a supplier.
+      suppliers: [{ supplier: null, quantity: 4, totalGrosze: 15000, marginGrosze: null }],
     });
     // Not part of the visit revenue.
     expect(res.body.totals.revenueGrosze).toBe(2 * 8000);
@@ -1632,6 +1634,35 @@ describe('salon report', () => {
         (i: { marginGrosze: number | null }) => i.marginGrosze === null,
       ),
     ).toBe(true);
+    // Task 471: the sales by today's supplier; the products without one last, even with more money.
+    expect(own.body.products.suppliers).toEqual([]);
+    await ctx
+      .http()
+      .patch(`${base}/products/${wax.id}`)
+      .set(owner.auth)
+      .send({ supplier: 'Barber' })
+      .expect(200);
+    const bySupplier = await report().expect(200);
+    expect(bySupplier.body.products.suppliers).toEqual([
+      { supplier: 'Barber', quantity: 2, totalGrosze: 6000, marginGrosze: 2000 },
+      { supplier: null, quantity: 2, totalGrosze: 9000, marginGrosze: 5000 },
+    ]);
+    // The same supplier in another letter case is one line.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ supplier: 'BARBER' })
+      .expect(200);
+    const merged = (await report().expect(200)).body.products.suppliers as {
+      supplier: string;
+      quantity: number;
+      totalGrosze: number;
+      marginGrosze: number | null;
+    }[];
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({ quantity: 4, totalGrosze: 15000, marginGrosze: 7000 });
+    expect(merged[0]?.supplier.toLowerCase()).toBe('barber');
     // Writing the price down again: the owner can also clear it.
     const cleared = await ctx
       .http()

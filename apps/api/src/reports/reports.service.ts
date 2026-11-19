@@ -1344,7 +1344,10 @@ export class ReportsService {
     return { days, differenceGrosze: days.reduce((sum, d) => sum + d.differenceGrosze, 0) };
   }
 
-  /** Task 394: products sold at the visits of the period, by product and by specialist. */
+  /**
+   * Task 394: products sold at the visits of the period, by product and by specialist.
+   * Task 471: and by the product's supplier today (whole salon only).
+   */
   private async products(
     locationId: string,
     staffIds: string[] | null,
@@ -1365,9 +1368,20 @@ export class ReportsService {
         quantity: true,
         unitPriceGrosze: true,
         unitCostGrosze: true,
+        product: { select: { supplier: true } },
         appointment: { select: { staff: { select: { id: true, displayName: true } } } },
       },
     });
+    // Task 471: by supplier — the key is the name in lower case, '' for products without one.
+    const suppliers = new Map<
+      string,
+      {
+        supplier: string | null;
+        quantity: number;
+        totalGrosze: number;
+        marginGrosze: number | null;
+      }
+    >();
     const items = new Map<
       string,
       { name: string; quantity: number; totalGrosze: number; marginGrosze: number | null }
@@ -1399,6 +1413,20 @@ export class ReportsService {
         margin.costGrosze += cost;
         margin.marginGrosze += sum - cost;
       }
+      if (!own) {
+        const name = s.product?.supplier?.trim() || null;
+        const key = name?.toLocaleLowerCase() ?? '';
+        const group =
+          suppliers.get(key) ??
+          suppliers
+            .set(key, { supplier: name, quantity: 0, totalGrosze: 0, marginGrosze: null })
+            .get(key)!;
+        group.quantity += s.quantity;
+        group.totalGrosze += sum;
+        if (s.unitCostGrosze !== null) {
+          group.marginGrosze = (group.marginGrosze ?? 0) + sum - s.quantity * s.unitCostGrosze;
+        }
+      }
       const who = s.appointment.staff;
       const row =
         staff.get(who.id) ??
@@ -1416,6 +1444,13 @@ export class ReportsService {
       items: [...items.values()].sort(byMoney((r) => r.name)),
       staff: [...staff.values()].sort(byMoney((r) => r.displayName)),
       margin: margin.quantity > 0 ? margin : null,
+      suppliers: [...suppliers.values()].sort(
+        (a, b) =>
+          Number(a.supplier === null) - Number(b.supplier === null) ||
+          byMoney<{ supplier: string | null; quantity: number; totalGrosze: number }>(
+            (r) => r.supplier ?? '',
+          )(a, b),
+      ),
     };
   }
 

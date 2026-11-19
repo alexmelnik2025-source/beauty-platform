@@ -347,6 +347,12 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   );
   await shot(page, '395-b-report-products');
   await shot(page, '449-report-margin');
+  // Task 472: the sales by supplier — the pomades come from Hairgum.
+  const reportBySupplier = report.getByTestId('report-products-suppliers');
+  await expect(reportBySupplier).toContainText('Według dostawców');
+  await expect(reportBySupplier).toContainText(/Hairgum\s*2 szt\. · 98,00\s*zł · marża 58,00\s*zł/);
+  await reportBySupplier.scrollIntoViewIfNeeded();
+  await shot(page, '472-report-products-suppliers');
   // "CSV produktów" (task 422): every sale of the period — date, specialist, quantity, price.
   const [productsCsv] = await Promise.all([
     page.waitForEvent('download'),
@@ -615,6 +621,14 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+    // Task 472: the sales by supplier in the app — the pomades from Hairgum, the shampoo from nobody.
+    const appSalesBySupplier = app.getByTestId('report-products-suppliers');
+    await appSalesBySupplier.scrollIntoViewIfNeeded();
+    await expect(appSalesBySupplier).toContainText(
+      /Hairgum\s*2 szt\. · 98,00\s*zł · marża 58,00\s*zł/,
+    );
+    await expect(appSalesBySupplier).toContainText(/bez dostawcy\s*1 szt\. · 30,50\s*zł/);
+    await shot(app, '472-business-app-products-suppliers');
     const appWriteOffs = app.getByTestId('report-write-offs');
     await appWriteOffs.scrollIntoViewIfNeeded();
     await expect(appWriteOffs).toContainText(/Odpisy z magazynu: 129,00\s*zł \(2 szt\.\)/);

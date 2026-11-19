@@ -6032,6 +6032,16 @@ export interface components {
                     /** @description salesGrosze − costGrosze, in hundredths of the salon currency */
                     marginGrosze: number;
                 } | null;
+                /** @description Task 471: the same sales by supplier (any letter case), most money first, those without a supplier last; empty in a specialist’s own report */
+                suppliers: {
+                    /** @description The product’s "Dostawca" today; null — products without one or removed from the list */
+                    supplier: string | null;
+                    quantity: number;
+                    /** @description What these products brought, in hundredths of the salon currency */
+                    totalGrosze: number;
+                    /** @description null when no piece had a purchase price */
+                    marginGrosze: number | null;
+                }[];
             };
             /** @description Task 446: "Odpisy z magazynu" — pieces used in the salon, damaged or lost; for the whole salon only (empty in a specialist’s own report) */
             writeOffs: {

@@ -23489,6 +23489,45 @@
                   "marginGrosze"
                 ],
                 "additionalProperties": false
+              },
+              "suppliers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "supplier": {
+                      "nullable": true,
+                      "description": "The product’s \"Dostawca\" today; null — products without one or removed from the list",
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "What these products brought, in hundredths of the salon currency"
+                    },
+                    "marginGrosze": {
+                      "nullable": true,
+                      "description": "null when no piece had a purchase price",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "supplier",
+                    "quantity",
+                    "totalGrosze",
+                    "marginGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Task 471: the same sales by supplier (any letter case), most money first, those without a supplier last; empty in a specialist’s own report"
               }
             },
             "required": [
@@ -23496,7 +23535,8 @@
               "quantity",
               "items",
               "staff",
-              "margin"
+              "margin",
+              "suppliers"
             ],
             "additionalProperties": false,
             "description": "Task 394: \"Sprzedaż produktów\" — not part of the visit revenue"
