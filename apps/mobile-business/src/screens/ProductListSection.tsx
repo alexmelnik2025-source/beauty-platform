@@ -76,6 +76,8 @@ export function ProductListSection(props: {
   const [csvInfo, setCsvInfo] = useState('');
   /** Task 464: "" = the stock CSV of all suppliers. */
   const [csvSupplier, setCsvSupplier] = useState('');
+  /** Task 470: the stock CSV with only the products to order. */
+  const [csvToOrder, setCsvToOrder] = useState(false);
   const [stocktake, setStocktake] = useState(false);
   const [stocktakeDone, setStocktakeDone] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -138,7 +140,13 @@ export function ProductListSection(props: {
     setCsvBusy(true);
     setCsvInfo('');
     try {
-      const file = await api.stockCsv(salon.orgId, salon.locationId, props.locale, csvFor || null);
+      const file = await api.stockCsv(
+        salon.orgId,
+        salon.locationId,
+        props.locale,
+        csvFor || null,
+        csvToOrder,
+      );
       const result = await shareCsv(file, csvTools());
       setCsvInfo(result === 'failed' ? p.stockCsvFailed : '');
     } catch (e) {
@@ -227,6 +235,16 @@ export function ProductListSection(props: {
             onPress={() => void downloadCsv()}
           />
           <Text style={styles.muted}>{p.stockCsvHint}</Text>
+          <View style={styles.row} testID="stock-csv-to-order">
+            {[false, true].map((only) => (
+              <Button
+                key={String(only)}
+                kind={csvToOrder === only ? 'primary' : 'secondary'}
+                label={only ? p.csvToOrder : p.csvAll}
+                onPress={() => setCsvToOrder(only)}
+              />
+            ))}
+          </View>
           {suppliers.length > 0 ? (
             <View style={styles.row} testID="stock-csv-supplier">
               <Text style={styles.muted}>{`${p.supplierCsv}:`}</Text>

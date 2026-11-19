@@ -500,6 +500,11 @@ describe('visit photos (task 80b)', () => {
     expect(seen[seen.length - 1]?.url).toBe(
       'https://api.test/v1/organizations/o1/locations/l1/products/export.csv?locale=uk',
     );
+    // Task 470: only what to order, for one supplier.
+    await api.stockCsv('o1', 'l1', 'pl', 'Hairgum', true);
+    expect(seen[seen.length - 1]?.url).toBe(
+      'https://api.test/v1/organizations/o1/locations/l1/products/export.csv?locale=pl&supplier=Hairgum&toOrder=true',
+    );
 
     // Task 269: all clients of the network (owners) — the cabinet's file, in the app's language.
     const clients = await api.clientsCsv('o1', 'uk');

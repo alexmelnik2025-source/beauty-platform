@@ -86,10 +86,11 @@ export class ProductsController {
   @ApiOperation({
     summary: '"CSV stanu magazynowego": the products with what is in stock, for ordering',
     description:
-      'Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out), purchase price, supplier (task 462). Same file format as visits-csv; an empty cell where the pieces are not counted. With `supplier`, only that supplier’s products.',
+      'Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out), purchase price, supplier (task 462), pieces sold at the visits of the last 30 days (task 469). Same file format as visits-csv; an empty cell where the pieces are not counted. With `supplier`, only that supplier’s products; with `toOrder=true`, only the products to order (task 469).',
   })
   @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
   @ApiQuery({ name: 'supplier', required: false, type: String })
+  @ApiQuery({ name: 'toOrder', required: false, enum: ['true', 'false'] })
   @ApiProduces('text/csv')
   @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
   async stockCsv(
@@ -103,6 +104,7 @@ export class ProductsController {
       locationId,
       query.locale,
       query.supplier,
+      query.toOrder ?? false,
     );
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);

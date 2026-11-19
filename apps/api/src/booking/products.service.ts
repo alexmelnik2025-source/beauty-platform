@@ -6,7 +6,7 @@ import { LocationAccessService } from '../organizations/location-access.service'
 import { PrismaService } from '../prisma/prisma.service';
 import { instantToLocal } from '../scheduling/time';
 import { AppointmentsService } from './appointments.service';
-import { stockCsv } from './stock-csv';
+import { stockCsv, toOrder } from './stock-csv';
 import type { CsvLocale } from '../reports/visits-csv';
 import type {
   AddProductSaleInput,
@@ -106,8 +106,17 @@ export class ProductsService {
       where: { locationId },
       orderBy: [{ active: 'desc' }, { name: 'asc' }, { id: 'asc' }],
     });
-    const purchasePrice = seesPurchasePrice(m);
-    // Task 461: how fast each product sells — the visits of the last 30 days, up to now.
+    const sold = await this.sold30Days(locationId);
+    return {
+      products: products.map((p) => toProduct(p, seesPurchasePrice(m))),
+      sold30Days: [...sold]
+        .map(([productId, quantity]) => ({ productId, quantity }))
+        .sort((a, b) => a.productId.localeCompare(b.productId)),
+    };
+  }
+
+  /** Task 461: how fast each product sells — pieces sold at the visits of the last 30 days, up to now. */
+  private async sold30Days(locationId: string): Promise<Map<string, number>> {
     const now = new Date();
     const sold = await this.prisma.productSale.groupBy({
       by: ['productId'],
@@ -118,24 +127,27 @@ export class ProductsService {
       },
       _sum: { quantity: true },
     });
-    return {
-      products: products.map((p) => toProduct(p, purchasePrice)),
-      sold30Days: sold
-        .filter((s) => s.productId !== null && (s._sum.quantity ?? 0) > 0)
-        .map((s) => ({ productId: s.productId!, quantity: s._sum.quantity ?? 0 }))
-        .sort((a, b) => a.productId.localeCompare(b.productId)),
-    };
+    const out = new Map<string, number>();
+    for (const s of sold) {
+      if (s.productId !== null && (s._sum.quantity ?? 0) > 0) {
+        out.set(s.productId, s._sum.quantity ?? 0);
+      }
+    }
+    return out;
   }
 
   /**
    * Task 436: the list as a CSV for ordering from the supplier (owners and managers).
    * Task 462: with `supplier`, only that supplier's products (any letter case).
+   * Task 469: with `onlyToOrder`, only the products to order; each line says how many were sold in
+   * the last 30 days.
    */
   async stockCsv(
     m: MembershipContext,
     locationId: string,
     locale: CsvLocale,
     supplier?: string,
+    onlyToOrder = false,
   ): Promise<{ csv: string; fileName: string }> {
     const location = await this.access.writable(m, locationId);
     const products = await this.prisma.product.findMany({
@@ -146,11 +158,12 @@ export class ProductsService {
       orderBy: [{ active: 'desc' }, { name: 'asc' }, { id: 'asc' }],
     });
     const day = instantToLocal(Date.now(), location.timezone).date;
+    const sold = await this.sold30Days(locationId);
+    const lines = products
+      .map((p) => ({ ...toProduct(p), sold30Days: sold.get(p.id) ?? 0 }))
+      .filter((l) => !onlyToOrder || toOrder(l));
     return {
-      csv: stockCsv(
-        products.map((p) => toProduct(p)),
-        locale,
-      ),
+      csv: stockCsv(lines, locale),
       fileName: `stock-${location.slug}-${day}.csv`,
     };
   }

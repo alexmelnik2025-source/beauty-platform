@@ -672,8 +672,14 @@ export class BusinessApi {
     locale: Locale,
     /** Task 464: only this supplier's products; null = all. */
     supplier: string | null = null,
+    /** Task 470: only the products to order. */
+    toOrder = false,
   ): Promise<CsvFile> {
-    const query = new URLSearchParams(supplier ? { locale, supplier } : { locale }).toString();
+    const query = new URLSearchParams({
+      locale,
+      ...(supplier ? { supplier } : {}),
+      ...(toOrder ? { toOrder: 'true' } : {}),
+    }).toString();
     return this.csvFile(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/export.csv?${query}`,
       'stock.csv',

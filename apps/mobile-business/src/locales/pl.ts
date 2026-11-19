@@ -692,6 +692,8 @@ export const pl = {
     supplierNew: 'Dostawca (puste — nie wpisujemy)',
     supplierCsv: 'Dostawca w pliku CSV',
     supplierAll: 'Wszyscy dostawcy',
+    csvAll: 'Wszystkie produkty',
+    csvToOrder: 'Tylko do zamówienia',
     supplierHint:
       'Dostawca: od kogo salon zamawia produkt — widzi go cały zespół; „CSV stanu magazynowego” można pobrać dla jednego dostawcy.',
     stockCostValue: 'W cenach zakupu: {amount}.',
@@ -733,7 +735,7 @@ export const pl = {
     stocktakeDone:
       'Inwentaryzacja zapisana: zmienione produkty: {changed}, brakuje {missing} szt., nadwyżka {extra} szt.',
     stockCsvHint:
-      'Wszystkie produkty: cena, w magazynie, kończy się przy, co zamówić i cena zakupu — do zamówienia u dostawcy.',
+      'Wszystkie produkty: cena, w magazynie, kończy się przy, co zamówić, cena zakupu i ile sprzedano w 30 dni — do zamówienia u dostawcy.',
     stockCsvFailed: 'Nie udało się zapisać pliku.',
     outOfStock: 'Za mało sztuk w magazynie — popraw stan produktu w „Usługi”.',
     removeSaleFor: 'Usuń produkt — {name}',

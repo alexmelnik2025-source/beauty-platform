@@ -8,6 +8,8 @@
  * Task 450: the last column is the purchase price ("Cena zakupu"), empty when not written — the
  * file is only for owners and managers.
  * Task 462: then the supplier ("Dostawca"), empty when not written.
+ * Task 469: then how many pieces were sold at the visits of the last 30 days ("Sprzedano w 30
+ * dni"), so the owner sees how many to order.
  */
 
 import { amount, cell, type CsvLocale } from '../reports/visits-csv';
@@ -21,6 +23,7 @@ export interface StockCsvLine {
   lowStock: boolean;
   purchasePriceGrosze: number | null;
   supplier: string | null;
+  sold30Days: number;
 }
 
 type Header = [
@@ -32,6 +35,7 @@ type Header = [
   toOrder: string,
   purchasePrice: string,
   supplier: string,
+  sold30Days: string,
 ];
 
 const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
@@ -45,6 +49,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Do zamówienia',
       'Cena zakupu',
       'Dostawca',
+      'Sprzedano w 30 dni',
     ],
     yes: 'tak',
     no: 'nie',
@@ -59,6 +64,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Замовити',
       'Закупівельна ціна',
       'Постачальник',
+      'Продано за 30 днів',
     ],
     yes: 'так',
     no: 'ні',
@@ -73,6 +79,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Заказать',
       'Закупочная цена',
       'Поставщик',
+      'Продано за 30 дней',
     ],
     yes: 'да',
     no: 'нет',
@@ -87,6 +94,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'To order',
       'Purchase price',
       'Supplier',
+      'Sold in 30 days',
     ],
     yes: 'yes',
     no: 'no',
@@ -94,6 +102,10 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
 };
 
 const count = (n: number | null): string => (n === null ? '' : String(n));
+
+/** Task 436: a sold product that has run low or out — the "Do zamówienia" column. */
+export const toOrder = (l: StockCsvLine): boolean =>
+  l.active && (l.lowStock || l.stockQuantity === 0);
 
 export function stockCsv(lines: StockCsvLine[], locale: CsvLocale): string {
   const t = TEXTS[locale];
@@ -106,9 +118,10 @@ export function stockCsv(lines: StockCsvLine[], locale: CsvLocale): string {
         l.active ? t.yes : t.no,
         count(l.stockQuantity),
         count(l.lowStockAt),
-        l.active && (l.lowStock || l.stockQuantity === 0) ? t.yes : t.no,
+        toOrder(l) ? t.yes : t.no,
         l.purchasePriceGrosze === null ? '' : amount(l.purchasePriceGrosze, locale),
         l.supplier === null ? '' : cell(l.supplier),
+        String(l.sold30Days),
       ].join(';'),
     );
   }

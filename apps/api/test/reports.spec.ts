@@ -2294,14 +2294,29 @@ describe('salon report', () => {
   it('"CSV stanu magazynowego": the products with stock and what to order (task 436)', async () => {
     const add = (body: object) =>
       ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201);
-    await add({
-      name: 'Pomada; mocna',
-      priceGrosze: 4500,
-      stockQuantity: 1,
-      lowStockAt: 2,
-      purchasePriceGrosze: 2050,
-      supplier: 'Hairgum',
-    });
+    const pomade = (
+      await add({
+        name: 'Pomada; mocna',
+        priceGrosze: 4500,
+        stockQuantity: 4,
+        lowStockAt: 2,
+        purchasePriceGrosze: 2050,
+        supplier: 'Hairgum',
+      })
+    ).body as { id: string };
+    // Task 469: pieces sold at the visits of the last 30 days — a sale of 40 days ago is not counted.
+    for (const [days, quantity] of [
+      [-3, 2],
+      [-40, 1],
+    ] as const) {
+      const id = await visit({ date: addDays(today, days), status: 'completed', paid: true });
+      await ctx
+        .http()
+        .post(`${base}/appointments/${id}/products`)
+        .set(owner.auth)
+        .send({ productId: pomade.id, quantity })
+        .expect(201);
+    }
     await add({ name: '=Aloes', priceGrosze: 3000, stockQuantity: 10, lowStockAt: 2 });
     await add({ name: 'Wosk', priceGrosze: 2550, supplier: 'Barber; Hurt' });
     await add({ name: 'Żel', priceGrosze: 2000, stockQuantity: 0 });
@@ -2337,31 +2352,45 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     // Sold products first, by name; a ";" is quoted and a leading "=" cannot run as a formula.
     expect(text.slice(1).trimEnd().split('\r\n')).toEqual([
-      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca',
-      "'=Aloes;30,00;tak;10;2;nie;;",
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni',
+      "'=Aloes;30,00;tak;10;2;nie;;;0",
       // Task 450: the purchase price; empty when not written. Task 462: then the supplier.
-      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum',
-      'Wosk;25,50;tak;;;nie;;"Barber; Hurt"',
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2',
+      'Wosk;25,50;tak;;;nie;;"Barber; Hurt";0',
       // Sold out: to order even without "Kończy się przy"; not when it is no longer sold.
-      'Żel;20,00;tak;0;;tak;;',
-      'Olejek;50,00;nie;0;;nie;;',
+      'Żel;20,00;tak;0;;tak;;;0',
+      'Olejek;50,00;nie;0;;nie;;;0',
     ]);
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
     expect(english).toContain(
-      'Product;Price;Sold;In stock;Runs low at;To order;Purchase price;Supplier',
+      'Product;Price;Sold;In stock;Runs low at;To order;Purchase price;Supplier;Sold in 30 days',
     );
-    expect(english).toContain('Wosk;25.50;yes;;;no;;"Barber; Hurt"');
-    expect(english).toContain('"Pomada; mocna";45.00;yes;1;2;yes;20.50;Hairgum');
+    expect(english).toContain('Wosk;25.50;yes;;;no;;"Barber; Hurt";0');
+    expect(english).toContain('"Pomada; mocna";45.00;yes;1;2;yes;20.50;Hairgum;2');
     await csv({ locale: 'de' }).expect(400);
 
     // Task 462: the list for one supplier only — the name in any letter case.
     const hairgum = (await csv({ supplier: 'HAIRGUM' }).expect(200)).body as string;
     expect(hairgum.slice(1).trimEnd().split('\r\n')).toEqual([
-      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca',
-      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum',
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni',
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2',
     ]);
     const nobody = (await csv({ supplier: 'Nikt' }).expect(200)).body as string;
     expect(nobody.slice(1).trimEnd().split('\r\n')).toHaveLength(1);
+
+    // Task 469: only what to order — sold products that have run low or out.
+    const toOrder = (await csv({ toOrder: 'true' }).expect(200)).body as string;
+    expect(toOrder.slice(1).trimEnd().split('\r\n')).toEqual([
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni',
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2',
+      'Żel;20,00;tak;0;;tak;;;0',
+    ]);
+    const all = (await csv({ toOrder: 'false' }).expect(200)).body as string;
+    expect(all.slice(1).trimEnd().split('\r\n')).toHaveLength(6);
+    const hairgumToOrder = (await csv({ toOrder: 'true', supplier: 'hairgum' }).expect(200))
+      .body as string;
+    expect(hairgumToOrder.slice(1).trimEnd().split('\r\n')).toHaveLength(2);
+    await csv({ toOrder: 'yes' }).expect(400);
 
     // A specialist cannot download it; another salon reaches nothing.
     await csv({}, kasiaUser.auth).expect(403);

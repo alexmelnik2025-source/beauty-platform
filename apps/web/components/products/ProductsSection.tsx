@@ -73,6 +73,8 @@ export function ProductsSection({ base }: { base: string }) {
   const [supplier, setSupplier] = useState('');
   /** Task 463: "" = the stock CSV of all suppliers. */
   const [csvSupplier, setCsvSupplier] = useState('');
+  /** Task 470: the stock CSV with only the products to order. */
+  const [csvToOrder, setCsvToOrder] = useState(false);
   const [historyOf, setHistoryOf] = useState<{
     id: string;
     rows: StockHistory['movements'];
@@ -145,7 +147,11 @@ export function ProductsSection({ base }: { base: string }) {
     setError('');
     try {
       const res = await apiResponse(`${base}/products/export.csv`, {
-        query: { locale, ...(csvFor ? { supplier: csvFor } : {}) },
+        query: {
+          locale,
+          ...(csvFor ? { supplier: csvFor } : {}),
+          ...(csvToOrder ? { toOrder: 'true' } : {}),
+        },
       });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(await res.blob());
@@ -290,6 +296,15 @@ export function ProductsSection({ base }: { base: string }) {
               </select>{' '}
             </>
           ) : null}
+          <label className="check small">
+            <input
+              type="checkbox"
+              checked={csvToOrder}
+              disabled={busy}
+              onChange={(e) => setCsvToOrder(e.target.checked)}
+            />{' '}
+            {p.csvToOrder}
+          </label>{' '}
           <button
             type="button"
             className="btn btn--quiet btn--small"

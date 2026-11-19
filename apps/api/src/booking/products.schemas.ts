@@ -72,6 +72,11 @@ export const stockCsvQuerySchema = z.object({
   locale: z.enum(CSV_LOCALES).default('pl'),
   /** Task 462: only the products of this supplier (the name as written, any letter case). */
   supplier: z.string().trim().min(1).max(80).optional(),
+  /** Task 469: only the products to order ("Do zamówienia"). */
+  toOrder: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
 });
 
 export type StockCsvQuery = z.infer<typeof stockCsvQuerySchema>;

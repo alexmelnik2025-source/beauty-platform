@@ -228,10 +228,10 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(stockCsv.suggestedFilename()).toMatch(/^stock-.+-\d{4}-\d{2}-\d{2}\.csv$/);
   const stockFile = readFileSync((await stockCsv.path())!, 'utf8');
   expect(stockFile).toContain(
-    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca\r\n',
+    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni\r\n',
   );
-  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;\r\n');
-  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;;\r\n');
+  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;;2\r\n');
+  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;;;0\r\n');
   await shot(page, '437-owner-stock-csv');
   // Task 463: "Dostawca" — the pomade comes from Hairgum; the CSV for that supplier only.
   await expect(products.getByLabel('Dostawca w pliku CSV')).toHaveCount(0);
@@ -253,7 +253,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     products.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
   ]);
   const supplierFile = readFileSync((await supplierCsv.path())!, 'utf8');
-  expect(supplierFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum\r\n');
+  expect(supplierFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum;2\r\n');
   expect(supplierFile).not.toContain('Szampon');
   await products.getByLabel('Dostawca w pliku CSV').scrollIntoViewIfNeeded();
   await shot(page, '463-owner-supplier');
@@ -307,6 +307,19 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   );
   await products.getByTestId('stocktake-done').scrollIntoViewIfNeeded();
   await shot(page, '457-owner-stocktake');
+  // Task 470: "Tylko do zamówienia" — the file for the supplier without the set (enough of it).
+  await products.getByLabel('Dostawca w pliku CSV').selectOption({ label: 'Wszyscy dostawcy' });
+  await products.getByLabel('Tylko do zamówienia').check();
+  const [toOrderCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    products.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
+  ]);
+  const toOrderFile = readFileSync((await toOrderCsv.path())!, 'utf8');
+  expect(toOrderFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum;2\r\n');
+  expect(toOrderFile).toContain('Szampon;30,50;tak;3;3;tak;;;0\r\n');
+  expect(toOrderFile).not.toContain('Zestaw');
+  await products.getByLabel('Tylko do zamówienia').scrollIntoViewIfNeeded();
+  await shot(page, '470-owner-stock-csv-to-order');
   // The visit card says it too.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
@@ -468,7 +481,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     ]);
     expect(appStock.suggestedFilename()).toMatch(/^stock-.+\.csv$/);
     const appStockFile = readFileSync((await appStock.path())!, 'utf8');
-    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt\r\n');
+    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0\r\n');
     await appList.getByRole('button', { name: 'CSV stanu magazynowego' }).scrollIntoViewIfNeeded();
     await shot(app, '437-business-app-stock-csv');
     // Task 464: the file for one supplier only.
@@ -480,10 +493,26 @@ test('the owner sells a product at a visit; the report counts it apart', async (
       appList.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
     ]);
     const appSupplierFile = readFileSync((await appSupplierStock.path())!, 'utf8');
-    expect(appSupplierFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt\r\n');
+    expect(appSupplierFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0\r\n');
     expect(appSupplierFile).not.toContain('Pomada matowa');
     await appList.getByTestId('stock-csv-supplier').scrollIntoViewIfNeeded();
     await shot(app, '464-business-app-supplier');
+    // Task 470: only what to order, from every supplier — not the set (enough of it).
+    await appList
+      .getByRole('button', { name: 'Dostawca w pliku CSV: Wszyscy dostawcy', exact: true })
+      .click();
+    await appList.getByRole('button', { name: 'Tylko do zamówienia', exact: true }).click();
+    const [appToOrder] = await Promise.all([
+      app.waitForEvent('download'),
+      appList.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
+    ]);
+    const appToOrderFile = readFileSync((await appToOrder.path())!, 'utf8');
+    expect(appToOrderFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0\r\n');
+    expect(appToOrderFile).toContain('Szampon;30,50;tak;3;3;tak;;;0\r\n');
+    expect(appToOrderFile).toContain('Pomada matowa;');
+    expect(appToOrderFile).not.toContain('Zestaw');
+    await appList.getByTestId('stock-csv-to-order').scrollIntoViewIfNeeded();
+    await shot(app, '470-business-app-stock-csv-to-order');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();

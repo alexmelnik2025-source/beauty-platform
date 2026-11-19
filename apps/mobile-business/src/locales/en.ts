@@ -696,6 +696,8 @@ export const en: Dictionary = {
     supplierNew: 'Supplier (empty — not written)',
     supplierCsv: 'Supplier in the CSV file',
     supplierAll: 'All suppliers',
+    csvAll: 'All products',
+    csvToOrder: 'Only to order',
     supplierHint:
       'Supplier: whom the salon orders the product from — the whole team sees it; the "Stock CSV" can be downloaded for one supplier.',
     stockCostValue: 'At purchase prices: {amount}.',
@@ -737,7 +739,7 @@ export const en: Dictionary = {
     stocktakeDone:
       'Stocktake saved: products changed: {changed}, {missing} pcs missing, {extra} pcs extra.',
     stockCsvHint:
-      'All products: price, in stock, runs low at, what to order and the purchase price — for ordering from the supplier.',
+      'All products: price, in stock, runs low at, what to order, the purchase price and how many were sold in 30 days — for ordering from the supplier.',
     stockCsvFailed: 'Could not save the file.',
     outOfStock: 'Not enough pieces in stock — correct the product’s stock in “Usługi”.',
     removeSaleFor: 'Remove product — {name}',
