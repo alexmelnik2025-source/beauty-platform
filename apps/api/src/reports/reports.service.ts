@@ -1266,6 +1266,7 @@ export class ReportsService {
         staff: { select: { displayName: true, commissionPermille: true } },
         service: { select: { name: true, category: { select: { name: true } } } },
         productSales: { select: { quantity: true, unitPriceGrosze: true } },
+        voucherUses: { where: { undoneAt: null }, select: { amountGrosze: true } },
       },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
     });
@@ -1303,6 +1304,7 @@ export class ReportsService {
             (sum, p) => sum + p.quantity * p.unitPriceGrosze,
             0,
           ),
+          voucherGrosze: a.voucherUses.reduce((sum, u) => sum + u.amountGrosze, 0),
         };
       }),
       locale,

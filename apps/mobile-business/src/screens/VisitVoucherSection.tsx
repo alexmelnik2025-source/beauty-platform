@@ -5,7 +5,7 @@ import { formatPrice } from '../day';
 import { fill, type Dictionary } from '../i18n';
 import { parseTip as parseAmount } from '../tip';
 import { Button, colors, ErrorText } from '../ui';
-import { printedCode, visitVoucherAmount, voucherErrorText } from '../vouchers';
+import { printedCode, visitVoucherAmount, visitVoucherLeft, voucherErrorText } from '../vouchers';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -77,6 +77,7 @@ export function VisitVoucherSection(props: {
   };
 
   if (!payments) return error ? <ErrorText>{error}</ErrorText> : null;
+  const left = visitVoucherLeft(props.toPayGrosze, payments.totalGrosze);
 
   return (
     <View style={{ gap: 6 }} testID="visit-vouchers">
@@ -85,6 +86,11 @@ export function VisitVoucherSection(props: {
           <Text style={styles.label}>
             {fill(v.visitPaid, { amount: money(payments.totalGrosze) })}
           </Text>
+          {left === null ? null : (
+            <Text style={styles.label} testID="visit-voucher-left">
+              {left > 0 ? fill(v.visitLeft, { amount: money(left) }) : v.visitCovered}
+            </Text>
+          )}
           {payments.payments.map((p) => (
             <View key={p.id} style={styles.row}>
               <Text style={[styles.name, p.undoneDate ? styles.undone : null]}>

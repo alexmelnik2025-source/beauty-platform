@@ -2843,6 +2843,18 @@ describe('salon report', () => {
         { locationId, appointmentId: first, name: 'Szampon', quantity: 1, unitPriceGrosze: 2000 },
       ],
     });
+    // Task 544: 30,00 paid for Kasia's visit with a gift voucher; a payment undone by
+    // "Cofnij płatność" and one at the till without a visit do not count.
+    const voucher = await ctx.prisma.giftVoucher.create({
+      data: { locationId, code: 'CSV544AB', amountGrosze: 10000, balanceGrosze: 5000 },
+    });
+    await ctx.prisma.giftVoucherUse.createMany({
+      data: [
+        { voucherId: voucher.id, amountGrosze: 3000, appointmentId: first },
+        { voucherId: voucher.id, amountGrosze: 1000, appointmentId: first, undoneAt: new Date() },
+        { voucherId: voucher.id, amountGrosze: 2000 },
+      ],
+    });
     const res = await csv().expect(200);
     expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
     expect(res.headers['content-disposition']).toMatch(
@@ -2852,10 +2864,10 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     const lines = text.slice(1).trimEnd().split('\r\n');
     expect(lines).toEqual([
-      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności;Napiwek;Kategoria;Odwołano (kiedy);Kupony;Rabat poziomu;Happy hours;Prowizja;Produkty',
-      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta;10,00;Włosy;;11,50;4,00;20,00;25,80;70,00`,
-      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;;0,00;;${addDays(d1, -1)} 18:30;;;;;`,
-      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;;0,00;Włosy;;;;;;`,
+      'Data;Godzina;Specjalista;Usługa;Klient;Status;Rezerwacja;Cena;Rabat;Do zapłaty;Opłacono;Sposób płatności;Napiwek;Kategoria;Odwołano (kiedy);Kupony;Rabat poziomu;Happy hours;Prowizja;Produkty;Zapłacono bonem',
+      `${d1};12:00;Kasia;Strzyżenie;Jan Nowak;Odbyła się;Online;80,00;15,50;64,50;tak;karta;10,00;Włosy;;11,50;4,00;20,00;25,80;70,00;30,00`,
+      `${d1};12:00;Ola;Broda;Jan Nowak;Odwołana przez klienta;Salon;50,00;0,00;50,00;nie;;0,00;;${addDays(d1, -1)} 18:30;;;;;;`,
+      `${addDays(today, -1)};12:00;Ola;Strzyżenie;Jan Nowak;Nie przyszedł;Salon;80,00;0,00;80,00;nie;;0,00;Włosy;;;;;;;`,
     ]);
     expect(text).not.toContain('+48600000002');
     expect(text).not.toContain('@example.com');
@@ -2863,10 +2875,10 @@ describe('salon report', () => {
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
     expect(english).toContain('Date;Time;Specialist;Service;Client;Status;Booked;Price');
     expect(english).toContain(
-      'To pay;Paid;Payment method;Tip;Category;Cancelled at;Coupons;Tier discount;Happy hours;Commission;Products',
+      'To pay;Paid;Payment method;Tip;Category;Cancelled at;Coupons;Tier discount;Happy hours;Commission;Products;Paid with voucher',
     );
     expect(english).toContain(
-      ';Completed;Online;80.00;15.50;64.50;yes;card;10.00;Włosy;;11.50;4.00;20.00;25.80;70.00',
+      ';Completed;Online;80.00;15.50;64.50;yes;card;10.00;Włosy;;11.50;4.00;20.00;25.80;70.00;30.00',
     );
 
     // The same access as the report.
@@ -2903,9 +2915,10 @@ describe('salon report', () => {
       happyHourGrosze: 0,
       commissionGrosze: null,
       productsGrosze: 0,
+      voucherGrosze: 0,
     };
     expect(visitsCsv([row], 'pl').split('\r\n')[1]).toBe(
-      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;;0,00;'-Hair;;;;;;`,
+      `2026-11-03;10:00;Kasia;"Cut; wash";"'=HYPERLINK(""x"")";Odbyła się;Salon;1,00;0,00;1,00;tak;;0,00;'-Hair;;;;;;;`,
     );
   });
 });

@@ -1734,6 +1734,8 @@ export const uk: Dictionary = {
     undoneMark: 'Скасована {date}',
     visitOpen: 'Клієнт платить подарунковим сертифікатом?',
     visitPaid: 'Оплачено сертифікатом: {amount}',
+    visitLeft: 'Доплатити за візит: {amount}',
+    visitCovered: 'Сертифікат покрив увесь візит.',
     errorBalance: 'На сертифікаті залишилося менше — введіть суму не більшу за залишок.',
     errorExpired: 'Термін дії сертифіката минув.',
     errorCancelled: 'Цей сертифікат скасовано.',

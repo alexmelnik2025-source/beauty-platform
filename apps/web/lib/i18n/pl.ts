@@ -953,6 +953,8 @@ export const pl = {
     noMatch: 'Żaden bon nie pasuje.',
     visitOpen: 'Klient płaci bonem podarunkowym?',
     visitPaid: 'Zapłacono bonem: {amount}',
+    visitLeft: 'Do dopłaty za wizytę: {amount}',
+    visitCovered: 'Bon pokrył całą wizytę.',
   },
   waitingList: {
     title: 'Lista oczekujących',

@@ -959,6 +959,8 @@ export const ru: Dict = {
     noMatch: 'Ни один сертификат не подходит.',
     visitOpen: 'Клиент платит подарочным сертификатом?',
     visitPaid: 'Оплачено сертификатом: {amount}',
+    visitLeft: 'Доплатить за визит: {amount}',
+    visitCovered: 'Сертификат покрыл весь визит.',
   },
   waitingList: {
     title: 'Лист ожидания',

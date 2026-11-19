@@ -117,6 +117,12 @@ export function VisitVouchers({
           <span className="small muted">
             {fill(v.visitPaid, { amount: money(payments.totalGrosze) })}
           </span>
+          {/* Task 545: what the client still pays for the visit after the vouchers. */}
+          {left === null || payments.totalGrosze <= 0 ? null : (
+            <span className="small" data-testid="visit-voucher-left">
+              {left > 0 ? fill(v.visitLeft, { amount: money(left) }) : v.visitCovered}
+            </span>
+          )}
           <ul className="commission-list">
             {payments.payments.map((p) => (
               <li

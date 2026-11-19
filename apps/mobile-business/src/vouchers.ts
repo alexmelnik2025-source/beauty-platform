@@ -123,6 +123,15 @@ export function voucherCheckLink(bookingPage: string, code: string): string {
  * Task 542: what the amount field of "Zapłać bonem" in the visit card starts with — what is left to
  * pay for the visit ("90" or "49,50"); empty when the price is hidden or all is paid.
  */
+/**
+ * Task 545: what the client still pays for the visit after the gift vouchers (0 = the vouchers
+ * covered it); null when there is nothing to say — no voucher payment or no visit price.
+ */
+export function visitVoucherLeft(toPayGrosze: number | null, paidGrosze: number): number | null {
+  if (toPayGrosze === null || paidGrosze <= 0) return null;
+  return Math.max(0, toPayGrosze - paidGrosze);
+}
+
 export function visitVoucherAmount(toPayGrosze: number | null, paidGrosze: number): string {
   if (toPayGrosze === null) return '';
   const left = toPayGrosze - paidGrosze;

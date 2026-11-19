@@ -3510,3 +3510,14 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
 - Тесты: `apps/api/test/gift-vouchers.spec.ts` (права, чужой салон, итог без отменённых, CSV),
   `apps/mobile-business/test/vouchers.test.ts`, e2e `visit-voucher.spec.ts` (скриншоты 541, 542) и
   `gift-vouchers.spec.ts`.
+
+## «Zapłacono bonem» в CSV визитов и «Do dopłaty» в карточке визита (задачи 544–545)
+
+- CSV визитов (`visitsCsv()` в `apps/api/src/reports/visits-csv.ts`): последняя колонка «Zapłacono bonem» /
+  «Оплачено сертифікатом» / «Оплачено сертификатом» / «Paid with voucher» — сумма оплат бонами за визит
+  (`gift_voucher_use.appointment_id`), без отменённых «Cofnij płatność»; пусто, если бонами не платили. Деньги за бон
+  салон получил при продаже — колонка помогает бухгалтеру не посчитать визит дважды.
+- Карточка визита (кабинет `VisitVouchers.tsx`, бизнес-приложение `VisitVoucherSection.tsx`, `visitVoucherLeft()` в
+  `apps/mobile-business/src/vouchers.ts`): после оплаты бонем под «Zapłacono bonem: …» — «Do dopłaty za wizytę:
+  40,00 zł» (цена после скидок минус оплаченное бонами) или «Bon pokrył całą wizytę.». Товары и чаевые — отдельно.
+- Тесты: `apps/api/test/reports.spec.ts`, `apps/mobile-business/test/vouchers.test.ts`, e2e `visit-voucher.spec.ts`.

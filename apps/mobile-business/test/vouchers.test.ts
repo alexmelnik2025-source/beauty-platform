@@ -6,6 +6,7 @@ import {
   parseValidUntil,
   printedCode,
   visitVoucherAmount,
+  visitVoucherLeft,
   voucherErrorText,
   voucherLine,
   voucherStatus,
@@ -143,6 +144,14 @@ describe('"Zapłać bonem" in the visit card (task 542)', () => {
     expect(visitVoucherAmount(9000, 9000)).toBe('');
     expect(visitVoucherAmount(9000, 10000)).toBe('');
     expect(visitVoucherAmount(null, 0)).toBe('');
+  });
+
+  it('says what is left to pay after the vouchers (task 545)', () => {
+    expect(visitVoucherLeft(9000, 5000)).toBe(4000);
+    expect(visitVoucherLeft(9000, 9000)).toBe(0);
+    expect(visitVoucherLeft(9000, 12000)).toBe(0);
+    expect(visitVoucherLeft(9000, 0)).toBeNull();
+    expect(visitVoucherLeft(null, 5000)).toBeNull();
   });
 
   it('writes the code as printed on the voucher', () => {

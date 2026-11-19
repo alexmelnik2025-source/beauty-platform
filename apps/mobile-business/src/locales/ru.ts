@@ -1737,6 +1737,8 @@ export const ru: Dictionary = {
     undoneMark: 'Отменена {date}',
     visitOpen: 'Клиент платит подарочным сертификатом?',
     visitPaid: 'Оплачено сертификатом: {amount}',
+    visitLeft: 'Доплатить за визит: {amount}',
+    visitCovered: 'Сертификат покрыл весь визит.',
     errorBalance: 'На сертификате осталось меньше — введите сумму не больше остатка.',
     errorExpired: 'Срок действия сертификата истёк.',
     errorCancelled: 'Этот сертификат отменён.',

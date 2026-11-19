@@ -1738,6 +1738,8 @@ export const en: Dictionary = {
     undoneMark: 'Undone {date}',
     visitOpen: 'Paying with a gift voucher?',
     visitPaid: 'Paid with a voucher: {amount}',
+    visitLeft: 'Left to pay for the visit: {amount}',
+    visitCovered: 'The voucher covered the whole visit.',
     errorBalance: 'Less is left on the voucher — enter an amount no bigger than what is left.',
     errorExpired: 'This voucher is no longer valid.',
     errorCancelled: 'This voucher was cancelled.',

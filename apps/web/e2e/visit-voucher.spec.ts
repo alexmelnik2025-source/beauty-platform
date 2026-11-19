@@ -16,6 +16,8 @@ import { serveApp } from './mobile-app';
  * filled in from the visit price and changed; the payment is listed in the card (screenshot
  * 541) and in the voucher's own history, marked with the service. A code of no voucher is named.
  * Task 542: the same in the business app — the other 40 zł from a second voucher (screenshot 542).
+ * Task 545: the card says what is left to pay ("Do dopłaty za wizytę: 40,00 zł") or that the
+ * vouchers covered the whole visit.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -155,6 +157,10 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
     /Zapłacono bonem 50,00\s?zł\. Zostało 0,00\s?zł\./,
   );
   await expect(card).toContainText(/Zapłacono bonem: 50,00\s?zł/);
+  // Task 545: what the client still pays for the visit.
+  await expect(card.getByTestId('visit-voucher-left')).toHaveText(
+    /Do dopłaty za wizytę: 40,00\s?zł/,
+  );
   await expect(card.getByText(printed)).toBeVisible();
   await card.scrollIntoViewIfNeeded();
   await shot(page, '541-visit-paid-with-voucher');
@@ -212,6 +218,7 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
     await section.getByRole('button', { name: 'Zapłać bonem' }).click();
     await expect(section).toContainText(/Zapłacono bonem 40,00\s?zł\. Zostało 60,00\s?zł\./);
     await expect(section).toContainText(/Zapłacono bonem: 90,00\s?zł/);
+    await expect(section.getByTestId('visit-voucher-left')).toHaveText('Bon pokrył całą wizytę.');
     await expect(section).toContainText(`${second.code.slice(0, 4)}-${second.code.slice(4)}`);
     await section.scrollIntoViewIfNeeded();
     await shot(app, '542-business-app-visit-paid-with-voucher');

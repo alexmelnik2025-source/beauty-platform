@@ -954,6 +954,8 @@ export const en: Dict = {
     noMatch: 'No voucher matches.',
     visitOpen: 'Paying with a gift voucher?',
     visitPaid: 'Paid with a voucher: {amount}',
+    visitLeft: 'Left to pay for the visit: {amount}',
+    visitCovered: 'The voucher covered the whole visit.',
   },
   waitingList: {
     title: 'Waiting list',

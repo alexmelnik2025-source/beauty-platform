@@ -953,6 +953,8 @@ export const uk: Dict = {
     noMatch: 'Жоден сертифікат не підходить.',
     visitOpen: 'Клієнт платить подарунковим сертифікатом?',
     visitPaid: 'Оплачено сертифікатом: {amount}',
+    visitLeft: 'Доплатити за візит: {amount}',
+    visitCovered: 'Сертифікат покрив увесь візит.',
   },
   waitingList: {
     title: 'Лист очікування',
