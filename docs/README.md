@@ -3492,3 +3492,21 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   бизнес-приложении добавляет строку «Sprawdź, ile zostało: …» (`voucherCheckLink` в `apps/mobile-business/src/vouchers.ts`).
 - Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-client/test/api.test.ts`,
   `apps/mobile-business/test/vouchers.test.ts`, e2e `voucher-check.spec.ts` (скриншоты 537, 538, 539).
+
+## «Zapłać bonem» в карточке визита (задачи 540–543)
+
+- `POST …/gift-vouchers/:id/redeem` принимает `appointmentId` — оплата бонем за этот визит (только визит, который
+  сотрудник видит по своим правам; иначе 404 и с бона ничего не списано). Колонка `gift_voucher_use.appointment_id`
+  (при удалении визита — `NULL`, оплата остаётся). В карточке бона у оплаты — `appointmentId`.
+- `GET …/appointments/:appointmentId/gift-voucher-payments` (`VisitVouchersController`) — оплаты бонами за визит,
+  старые сверху: код, сумма, время, кто принял, `undoneDate`; `totalGrosze` — без отменённых («Cofnij płatność»).
+- Кабинет (`components/vouchers/VisitVouchers.tsx` в `AppointmentSheet`) и бизнес-приложение
+  (`screens/VisitVoucherSection.tsx` в `VisitScreen`): у визита «Przyszedł» — «Klient płaci bonem podarunkowym?» →
+  код с бона (регистр и дефис не важны) и сумма (подставлено: цена визита минус скидка минус уже оплаченное бонами) →
+  «Zapłać bonem». Сначала бон ищется по коду, потом оплата с `appointmentId`; «Za co» — название услуги. Список оплат
+  и «Zapłacono bonem: …» — в карточке визита. Отмена оплаты — как раньше, в карточке бона (владелец/менеджер).
+- «CSV płatności bonami» (задача 543): последние колонки «Wizyta» (дата и время визита салона) и «Specjalista wizyty»,
+  пусто для оплаты на кассе без визита.
+- Тесты: `apps/api/test/gift-vouchers.spec.ts` (права, чужой салон, итог без отменённых, CSV),
+  `apps/mobile-business/test/vouchers.test.ts`, e2e `visit-voucher.spec.ts` (скриншоты 541, 542) и
+  `gift-vouchers.spec.ts`.
