@@ -197,6 +197,8 @@ export const sq: Dict = {
     waitlistSubmit: 'Më shtoni në listë',
     waitlistDone: 'Jeni në listën e pritjes. Kur të lirohet një orar, do t’ju shkruajmë me email.',
     bookVisit: 'Rezervo një takim',
+    qrStaff: 'Rezervim te: {name}',
+    qrStaffChange: 'Një specialist tjetër',
     stepService: 'Shërbimi',
     stepStaff: 'Specialisti',
     stepTime: 'Ora',

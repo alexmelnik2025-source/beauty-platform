@@ -3645,3 +3645,16 @@ doc `claude/Beauty_Platform_одобрение_функций.md`, в код и�
 и событие `url` в `App.tsx`. Чужие адреса ничего не делают. e2e `visits-app-deep-link.spec.ts` (веб-превью приложения;
 скриншоты Q2-app-link-staff, Q2-app-link-time, Q2-app-link-salon). Регистрация universal links (`apple-app-site-association`,
 `assetlinks.json`) — после публикации приложений, когда будут Team ID и подпись.
+
+## QR-код каждого мастера (задача Q2, часть 3)
+
+В кабинете («Ustawienia» → «Instagram i Twoja strona») под QR-кодом салона — «Kod QR specjalisty»: кнопка с именем
+каждого активного мастера открывает его код (та же карточка: PNG ≈1400 px, SVG, «Drukuj» — на карточке название салона
+и имя мастера; файлы `qr-{салон}-{имя}.png/svg`). То же в бизнес-приложении, «Link do rezerwacji» → карточка «Kod QR
+specjalisty». Ссылка кода — `/s/{салон}?utm_source=qr&staff={id}`: страница записи показывает над прайсом строку
+«Umawiasz się do: Kasia · Inny specjalista» и после выбора услуги, которую делает этот мастер, сразу открывает его
+свободное время (шаг «Specjalista» пропускается); «Inny specjalista» или услуга, которую мастер не делает, — обычный
+выбор. Отчёт «Skąd przyszli» считает записи с кода каждого мастера (часть 2). Код: `apps/web/components/ShareBooking.tsx`
+(`StaffQr`), `BookingFlow.tsx` (`qrStaff`), `apps/mobile-business/src/share.ts` (`staffQrLink`) и
+`screens/BookingLinkScreen.tsx`; тесты `apps/mobile-business/test/share.test.ts`; e2e `staff-qr.spec.ts` (скриншоты
+Q2-staff-qr-cabinet, Q2-staff-qr-booking, Q2-staff-qr-app).

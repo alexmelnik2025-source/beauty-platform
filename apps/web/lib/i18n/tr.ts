@@ -196,6 +196,8 @@ export const tr: Dict = {
     waitlistSubmit: 'Beni listeye ekleyin',
     waitlistDone: 'Bekleme listesindesiniz. Bir saat boşaldığında size e-posta göndereceğiz.',
     bookVisit: 'Randevu al',
+    qrStaff: 'Randevu: {name}',
+    qrStaffChange: 'Başka bir uzman',
     stepService: 'Hizmet',
     stepStaff: 'Uzman',
     stepTime: 'Saat',

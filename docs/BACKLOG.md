@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **19.11.2026, ~23:15 UTC — Q2 часть 3 (ветка `agent/568-staff-qr`)**: QR-код каждого мастера — кабинет
+  («Kod QR specjalisty» в «Instagram i Twoja strona»: PNG/SVG/печать) и бизнес-приложение («Link do rezerwacji»);
+  страница записи по `?staff=` показывает «Umawiasz się do: …» и после выбора услуги сразу время этого мастера.
+  e2e `staff-qr.spec.ts` (Q2-staff-qr-cabinet, Q2-staff-qr-booking, Q2-staff-qr-app). После этого Q2 закрыта
+  (кроме universal links после публикации — N32).
+
 - **19.11.2026, ~23:25 UTC — влиты Q2 части 4–5** (баннер «Zainstaluj aplikację» на странице записи: одна строка,
   «×» прячет на 30 дней, PWA «Moje wizyty» / шаги iPhone / ссылки сторов из `.env`; «Dokończ rezerwację» в «Moje
   wizyty»; клиентское приложение открывается по ссылке `beauty-client://b/{салон}?service=…&staff=…` сразу на нужном

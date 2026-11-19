@@ -473,6 +473,8 @@ export const pl = {
     waitlistSubmit: 'Zapisz mnie na listę',
     waitlistDone: 'Jesteś na liście oczekujących. Gdy zwolni się termin, napiszemy na e-mail.',
     bookVisit: 'Umów wizytę',
+    qrStaff: 'Umawiasz się do: {name}',
+    qrStaffChange: 'Inny specjalista',
     stepService: 'Usługa',
     stepStaff: 'Specjalista',
     stepTime: 'Termin',
@@ -1339,6 +1341,11 @@ export const pl = {
     qrPrint: 'Drukuj',
     qrHint:
       'Na lustro, ladę, drzwi lub wizytówkę. Klient skanuje telefonem i od razu widzi wolne terminy. PNG — do Canvy i drukarni, SVG — ostry w każdym rozmiarze.',
+    staffQr: 'Kod QR specjalisty',
+    staffQrTitle: 'Kod QR: {name}',
+    staffQrAlt: 'Kod QR rezerwacji u {name}',
+    staffQrHint:
+      'Na lustro lub wizytówkę specjalisty: klient po zeskanowaniu umawia się właśnie do tej osoby, a w raporcie „Skąd przyszli” widać wizyty z każdego kodu.',
   },
   wishes: {
     title: 'Życzenia klienta',

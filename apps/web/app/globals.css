@@ -1841,6 +1841,19 @@ fieldset.field > legend {
   gap: 4px;
 }
 
+/* Task Q2: "Booking with: Kasia · Another specialist" above the price list (the specialist's QR code). */
+.qr-staff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--fog);
+}
+
 /* Task Q2: "Install the app" — one small row above the salon's booking page, closes with one tap. */
 .install-banner {
   display: grid;

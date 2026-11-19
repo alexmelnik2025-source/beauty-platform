@@ -25,6 +25,18 @@ export function qrLink(webUrl: string, location: Pick<Location, 'slug'>): string
 }
 
 /**
+ * Task Q2: the QR code of one specialist — the salon's QR link with their id, so the booking
+ * page offers them first and "Skąd przyszli" counts the visits from this very code.
+ */
+export function staffQrLink(
+  webUrl: string,
+  location: Pick<Location, 'slug'>,
+  staffId: string,
+): string {
+  return `${qrLink(webUrl, location)}&staff=${encodeURIComponent(staffId)}`;
+}
+
+/**
  * Task 355: the salon's short link for an Instagram bio or a business card — opens booking in
  * the language of the client's phone (as "Krótki link" in the cabinet), e.g. https://…/s/gestalt.
  */

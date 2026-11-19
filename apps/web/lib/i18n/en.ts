@@ -472,6 +472,8 @@ export const en: Dict = {
     waitlistSubmit: 'Put me on the list',
     waitlistDone: 'You are on the waiting list. We will email you when a time becomes free.',
     bookVisit: 'Book a visit',
+    qrStaff: 'Booking with: {name}',
+    qrStaffChange: 'Another specialist',
     stepService: 'Service',
     stepStaff: 'Specialist',
     stepTime: 'Time',
@@ -1341,6 +1343,11 @@ export const en: Dict = {
     qrPrint: 'Print',
     qrHint:
       'For a mirror, the counter, the door or a business card. Clients scan it with their phone and see free times right away. PNG for Canva and print shops, SVG stays sharp at any size.',
+    staffQr: 'Specialist’s QR code',
+    staffQrTitle: 'QR code: {name}',
+    staffQrAlt: 'Booking QR code for {name}',
+    staffQrHint:
+      'For the specialist’s mirror or business card: after scanning, the client books with this very person, and the report’s “Where they came from” shows the visits from each code.',
   },
   wishes: {
     title: "Client's wishes",

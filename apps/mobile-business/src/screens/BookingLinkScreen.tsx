@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
-import { BackHandler, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import type { BusinessApi, Location } from '../api';
+import {
+  BackHandler,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import type { BusinessApi, Location, StaffList } from '../api';
 import { WEB_URL } from '../config';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -12,6 +21,7 @@ import {
   shareLink,
   shareText,
   shortLink,
+  staffQrLink,
   type ShareTools,
   type TextShareTools,
 } from '../share';
@@ -24,6 +34,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 354: below it the salon's QR code — shown at the front desk or screenshotted for print.
  * Task 355: the short link (Instagram bio, business card) and the booking button for the salon's
  * own website, as in the cabinet's "Udostępnij".
+ * Task Q2: the QR code of each specialist (their mirror, their business card) — the client books
+ * with that person, and "Skąd przyszli" in the reports counts the visits from each code.
  */
 export function BookingLinkScreen(props: {
   api: BusinessApi;
@@ -34,6 +46,8 @@ export function BookingLinkScreen(props: {
   const { api, t, salon, onBack } = props;
   const b = t.bookingLink;
   const [location, setLocation] = useState<Location | null>(null);
+  const [staff, setStaff] = useState<StaffList>([]);
+  const [qrStaff, setQrStaff] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [shortInfo, setShortInfo] = useState('');
@@ -41,7 +55,12 @@ export function BookingLinkScreen(props: {
 
   const load = useCallback(async () => {
     try {
-      setLocation(await api.location(salon.orgId, salon.locationId));
+      const [loc, team] = await Promise.all([
+        api.location(salon.orgId, salon.locationId),
+        api.staff(salon.orgId, salon.locationId).catch(() => [] as StaffList),
+      ]);
+      setLocation(loc);
+      setStaff(team.filter((s) => s.active));
       setError('');
     } catch (e) {
       setError(errorText(e, t));
@@ -135,6 +154,44 @@ export function BookingLinkScreen(props: {
             ) : null}
           </Card>
           <SalonQr link={qrLink(WEB_URL, location)} name={location.name} t={t} />
+          {staff.length > 0 ? (
+            <Card>
+              <Text role="heading" style={styles.qrTitle}>
+                {b.staffQrTitle}
+              </Text>
+              <View style={styles.chips} role="group" accessibilityLabel={b.staffQrTitle}>
+                {staff.map((s) => {
+                  const on = s.id === qrStaff;
+                  return (
+                    <Pressable
+                      key={s.id}
+                      accessibilityRole="button"
+                      aria-pressed={on}
+                      accessibilityState={{ selected: on }}
+                      onPress={() => setQrStaff(on ? '' : s.id)}
+                      style={[styles.chip, on && styles.chipOn]}
+                    >
+                      <Text style={[styles.chipText, on && { color: '#fff' }]}>
+                        {s.displayName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {staff
+                .filter((s) => s.id === qrStaff)
+                .map((s) => (
+                  <SalonQr
+                    key={s.id}
+                    link={staffQrLink(WEB_URL, location, s.id)}
+                    name={location.name}
+                    staffName={s.displayName}
+                    t={t}
+                  />
+                ))}
+              <Text style={styles.muted}>{b.staffQrHint}</Text>
+            </Card>
+          ) : null}
           <Card>
             <Text role="heading" style={styles.qrTitle}>
               {b.embedTitle}
@@ -162,8 +219,8 @@ const MODULE = 7;
 const QUIET = 4;
 
 /** The QR code drawn with plain Views — one per horizontal run of dark modules. */
-function SalonQr(props: { link: string; name: string; t: Dictionary }) {
-  const { link, name, t } = props;
+function SalonQr(props: { link: string; name: string; staffName?: string; t: Dictionary }) {
+  const { link, name, staffName, t } = props;
   const b = t.bookingLink;
   const qr = useMemo(() => encodeQr(link), [link]);
   const runs = useMemo(() => qrRuns(qr), [qr]);
@@ -181,24 +238,30 @@ function SalonQr(props: { link: string; name: string; t: Dictionary }) {
       ]}
     />
   ));
+  const code = (
+    <View style={styles.qrCard}>
+      <View
+        role="img"
+        accessibilityLabel={staffName ? fill(b.staffQrAlt, { name: staffName }) : b.qrAlt}
+        testID={staffName ? 'staff-qr' : 'salon-qr'}
+        style={[styles.qr, { width: side, height: side }]}
+      >
+        {modules}
+      </View>
+      <Text style={styles.qrName}>{name}</Text>
+      {staffName ? <Text style={styles.qrName}>{staffName}</Text> : null}
+      <Text style={styles.qrScan}>{b.qrScan}</Text>
+      <Text style={styles.muted}>{link.replace(/^https?:\/\//, '').replace(/\?.*$/, '')}</Text>
+    </View>
+  );
+  // A specialist's code sits inside the "Kod QR specjalisty" card.
+  if (staffName) return code;
   return (
     <Card>
       <Text role="heading" style={styles.qrTitle}>
         {b.qrTitle}
       </Text>
-      <View style={styles.qrCard}>
-        <View
-          role="img"
-          accessibilityLabel={b.qrAlt}
-          testID="salon-qr"
-          style={[styles.qr, { width: side, height: side }]}
-        >
-          {modules}
-        </View>
-        <Text style={styles.qrName}>{name}</Text>
-        <Text style={styles.qrScan}>{b.qrScan}</Text>
-        <Text style={styles.muted}>{link.replace(/^https?:\/\//, '').replace(/\?.*$/, '')}</Text>
-      </View>
+      {code}
       <Text style={styles.muted}>{b.qrHint}</Text>
     </Card>
   );
@@ -240,6 +303,17 @@ const styles = StyleSheet.create({
   qr: { backgroundColor: '#fff', position: 'relative' },
   module: { position: 'absolute', height: MODULE, backgroundColor: '#000' },
   qrName: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.card,
+  },
+  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipText: { fontSize: 15, color: colors.ink },
   qrScan: { fontSize: 15, color: colors.ink },
   code: {
     fontSize: 13,

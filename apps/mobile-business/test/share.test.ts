@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DICTIONARIES, fill } from '../src/i18n';
-import { bookingLink, embedCode, shareCsv, shareLink, shortLink } from '../src/share';
+import {
+  bookingLink,
+  embedCode,
+  qrLink,
+  shareCsv,
+  shareLink,
+  shortLink,
+  staffQrLink,
+} from '../src/share';
 
 const url = bookingLink('https://app.example.com/', {
   slug: 'gestalt-barbershop',
@@ -88,5 +96,19 @@ describe('short link and website button (task 355)', () => {
     expect(
       embedCode('http://localhost:3000', { slug: 'kyiv-barber', defaultLocale: 'uk' }),
     ).toContain('data-lang="uk"');
+  });
+});
+
+describe('QR code of a specialist (task Q2)', () => {
+  it('is the salon’s QR link with the specialist’s id', () => {
+    const salon = { slug: 'gestalt-barbershop' };
+    expect(qrLink('https://app.example.com', salon)).toBe(
+      'https://app.example.com/s/gestalt-barbershop?utm_source=qr',
+    );
+    expect(
+      staffQrLink('https://app.example.com', salon, '7c9e6679-7425-40de-944b-e07fc1f90ae7'),
+    ).toBe(
+      'https://app.example.com/s/gestalt-barbershop?utm_source=qr&staff=7c9e6679-7425-40de-944b-e07fc1f90ae7',
+    );
   });
 });

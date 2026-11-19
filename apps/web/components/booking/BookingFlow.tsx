@@ -177,6 +177,8 @@ export function BookingFlow({
    * specialist (?utm_source=qr&staff=…) also whose code it was.
    */
   const [channel, setChannel] = useState<{ channel: string; channelStaffId?: string }>();
+  /** Task Q2: the specialist whose QR code the client scanned — their times right after the service. */
+  const [qrStaff, setQrStaff] = useState<PublicLocation['staff'][number] | null>(null);
   const [remember, setRemember] = useState(false);
   /** Task 180d: the client is already signed in to "My visits" on this device. */
   const [signedInAs, setSignedInAs] = useState<string | null>(null);
@@ -258,7 +260,12 @@ export function BookingFlow({
         // "Book again" from the client app: ?service=…&staff=… skips straight to the times.
         const params = new URLSearchParams(window.location.search);
         const preService = loaded.services.find((s) => s.id === params.get('service'));
-        if (!preService) return;
+        if (!preService) {
+          // Task Q2: the QR code of one specialist (?staff=… alone) — the client books with them.
+          const qr = loaded.staff.find((s) => s.id === params.get('staff'));
+          if (qr) setQrStaff(qr);
+          return;
+        }
         setServiceId(preService.id);
         const preStaff = loaded.staff.find(
           (s) => s.id === params.get('staff') && s.serviceIds.includes(preService.id),
@@ -624,6 +631,15 @@ export function BookingFlow({
 
         <ErrorBox>{error}</ErrorBox>
 
+        {/* Task Q2: scanned at one specialist's mirror — booking with them, unless the client changes it. */}
+        {step === 'service' && qrStaff ? (
+          <p className="qr-staff" data-testid="qr-staff">
+            <span>{fill(t.booking.qrStaff, { name: qrStaff.displayName })}</span>
+            <button type="button" className="link-btn" onClick={() => setQrStaff(null)}>
+              {t.booking.qrStaffChange}
+            </button>
+          </p>
+        ) : null}
         {step === 'service' ? (
           <ServiceList
             salon={salon}
@@ -640,9 +656,15 @@ export function BookingFlow({
                 setStep('time');
                 return;
               }
-              setStaffId(undefined);
               setRowStaff([]);
               setFromList(false);
+              if (qrStaff && qrStaff.serviceIds.includes(id)) {
+                // The specialist's own QR code: straight to their free times.
+                setStaffId(qrStaff.id);
+                setStep('time');
+                return;
+              }
+              setStaffId(undefined);
               setStep('staff');
             }}
           />
