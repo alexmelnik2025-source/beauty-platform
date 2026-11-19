@@ -347,6 +347,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   );
   await expect(stocktakes).toContainText(/Zestaw\s*brakuje 1 szt\. · 80,00\s*zł/);
   await shot(page, '459-report-stocktakes');
+  // Task 460: "Leżą bez sprzedaży" — the sets and the shampoos lie on the shelf unsold.
+  const idle = page.getByTestId('report-idle-products');
+  await idle.scrollIntoViewIfNeeded();
+  await expect(idle.getByRole('heading')).toHaveText(
+    /^Leżą bez sprzedaży: 5 szt\. \(251,50\s*zł\)$/,
+  );
+  await expect(idle).toContainText(/Zestaw\s*2 szt\. · 160,00\s*zł · jeszcze nie sprzedany/);
+  await expect(idle).toContainText(/Szampon\s*3 szt\. · 91,50\s*zł/);
+  await expect(idle).not.toContainText('Pomada matowa');
+  await shot(page, '460-report-idle-products');
   // Task 455: "CSV historii magazynu" — every change of the stock, with who and why.
   const [historyCsv] = await Promise.all([
     page.waitForEvent('download'),
@@ -546,6 +556,14 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appStocktakes).toContainText(/Wosk\s*nadwyżka 1 szt\. · 25,00\s*zł/);
     await expect(appStocktakes).toContainText(/Zestaw\s*brakuje 1 szt\. · 80,00\s*zł/);
     await shot(app, '459-a-business-app-stocktakes');
+    // Task 460: the shampoo sold from the phone; the sets and the waxes still lie unsold.
+    const appIdle = app.getByTestId('report-idle-products');
+    await appIdle.scrollIntoViewIfNeeded();
+    await expect(appIdle).toContainText(/Leżą bez sprzedaży: 8 szt\. \(310,00\s*zł\)/);
+    await expect(appIdle).toContainText(/Zestaw\s*2 szt\. · 160,00\s*zł · jeszcze nie sprzedany/);
+    await expect(appIdle).toContainText(/Wosk\s*6 szt\. · 150,00\s*zł · jeszcze nie sprzedany/);
+    await expect(appIdle).not.toContainText('Szampon');
+    await shot(app, '460-a-business-app-idle-products');
     // Task 453: "Dostawy na magazyn" in the app — six pomades at 20 zł and the four sets.
     const appDeliveries = app.getByTestId('report-deliveries');
     await appDeliveries.scrollIntoViewIfNeeded();

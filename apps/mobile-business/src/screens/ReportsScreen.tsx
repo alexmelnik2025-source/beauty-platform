@@ -581,6 +581,33 @@ export function ReportsScreen(props: {
               <Text style={styles.muted}>{r.stocktakesHint}</Text>
             </View>
           ) : null}
+          {shown.idleProducts.items.length > 0 ? (
+            // Task 460: counted products on the shelf that no visit of the period sold.
+            <View style={{ gap: 6 }} testID="report-idle-products">
+              <Text style={styles.section}>
+                {fill(r.idleProducts, {
+                  n: String(shown.idleProducts.quantity),
+                  amount: money(shown.idleProducts.valueGrosze),
+                })}
+              </Text>
+              {shown.idleProducts.items.map((item) => (
+                <View key={item.name} style={styles.cardTop}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.muted}>
+                    {fill(r.idleProductsItem, {
+                      n: String(item.stock),
+                      amount: money(item.valueGrosze),
+                    })}
+                    {' · '}
+                    {item.lastSoldOn
+                      ? fill(r.idleProductsLast, { day: shortDay(item.lastSoldOn, props.locale) })
+                      : r.idleProductsNever}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.muted}>{r.idleProductsHint}</Text>
+            </View>
+          ) : null}
           {shown.discounts.totalGrosze > 0 ? (
             // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
             <View style={{ gap: 6 }} testID="report-discounts">

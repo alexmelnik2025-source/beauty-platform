@@ -659,6 +659,38 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.idleProducts.items.length > 0 ? (
+              // Task 460: counted products on the shelf that no visit of the period sold.
+              <section className="section" data-testid="report-idle-products">
+                <h2>
+                  {fill(t.reports.idleProducts, {
+                    n: String(report.idleProducts.quantity),
+                    amount: money(report.idleProducts.valueGrosze),
+                  })}
+                </h2>
+                <ol className="report-days">
+                  {report.idleProducts.items.map((item) => (
+                    <li key={item.name}>
+                      <span className="small">{item.name}</span>
+                      <span className="small">
+                        {fill(t.reports.idleProductsItem, {
+                          n: String(item.stock),
+                          amount: money(item.valueGrosze),
+                        })}
+                        {' · '}
+                        {item.lastSoldOn
+                          ? fill(t.reports.idleProductsLast, {
+                              day: formatDay(item.lastSoldOn, tag, { short: true }),
+                            })
+                          : t.reports.idleProductsNever}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="small muted">{t.reports.idleProductsHint}</p>
+              </section>
+            ) : null}
+
             {report.discounts.totalGrosze > 0 ? (
               // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
               <section className="section" data-testid="report-discounts">

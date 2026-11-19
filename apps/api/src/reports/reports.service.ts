@@ -498,6 +498,9 @@ export class ReportsService {
       stocktakes: own
         ? { missingQuantity: 0, missingGrosze: 0, extraQuantity: 0, extraGrosze: 0, items: [] }
         : await this.stocktakes(locationId, rangeStart, rangeEnd),
+      idleProducts: own
+        ? { quantity: 0, valueGrosze: 0, items: [] }
+        : await this.idleProducts(locationId, tz, rangeStart, rangeEnd),
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
@@ -1557,6 +1560,57 @@ export class ReportsService {
       ...total,
       items: [...items.values()].sort(
         (a, b) => b.missing + b.extra - (a.missing + a.extra) || a.name.localeCompare(b.name),
+      ),
+    };
+  }
+
+  /**
+   * Task 460: "Leżą bez sprzedaży" — counted, active products with pieces on the shelf that no
+   * visit of the period sold; with the day they were last sold before it.
+   */
+  private async idleProducts(
+    locationId: string,
+    tz: string,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['idleProducts']> {
+    const products = await this.prisma.product.findMany({
+      where: {
+        locationId,
+        active: true,
+        stockQuantity: { gt: 0 },
+        sales: { none: { appointment: { startAt: { gte: rangeStart, lt: rangeEnd } } } },
+      },
+      select: { id: true, name: true, priceGrosze: true, stockQuantity: true },
+    });
+    const earlier = await this.prisma.productSale.findMany({
+      where: {
+        productId: { in: products.map((p) => p.id) },
+        appointment: { startAt: { lt: rangeStart } },
+      },
+      select: { productId: true, appointment: { select: { startAt: true } } },
+    });
+    const last = new Map<string, number>();
+    for (const s of earlier) {
+      const at = s.appointment.startAt.getTime();
+      if (s.productId && at > (last.get(s.productId) ?? -Infinity)) last.set(s.productId, at);
+    }
+    const items = products.map((p) => {
+      const stock = p.stockQuantity ?? 0;
+      const at = last.get(p.id);
+      return {
+        name: p.name,
+        stock,
+        valueGrosze: stock * p.priceGrosze,
+        lastSoldOn: at === undefined ? null : instantToLocal(at, tz).date,
+      };
+    });
+    return {
+      quantity: items.reduce((sum, i) => sum + i.stock, 0),
+      valueGrosze: items.reduce((sum, i) => sum + i.valueGrosze, 0),
+      items: items.sort(
+        (a, b) =>
+          b.valueGrosze - a.valueGrosze || b.stock - a.stock || a.name.localeCompare(b.name),
       ),
     };
   }

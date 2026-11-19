@@ -1682,6 +1682,12 @@ export const pl = {
     stocktakesExtra: 'nadwyżka {n} szt. · {amount}',
     stocktakesHint:
       'Co pokazały inwentaryzacje w tym okresie: ilu sztuk zabrakło na półce, a ile było więcej, niż zapisano. Kwoty — w dzisiejszych cenach sprzedaży.',
+    idleProducts: 'Leżą bez sprzedaży: {n} szt. ({amount})',
+    idleProductsItem: '{n} szt. · {amount}',
+    idleProductsLast: 'ostatnio sprzedany {day}',
+    idleProductsNever: 'jeszcze nie sprzedany',
+    idleProductsHint:
+      'Produkty z liczonym stanem, które leżą na półce, a nie zostały sprzedane przy żadnej wizycie z tego okresu. Sztuki — stan na dziś, kwoty — w dzisiejszych cenach sprzedaży.',
     productsHint:
       'Produkty sprzedane przy wizytach z tego okresu. Nie wchodzą do przychodu z wizyt ani do prowizji.',
     tipsVisits: 'wizyty z napiwkiem: {n}',

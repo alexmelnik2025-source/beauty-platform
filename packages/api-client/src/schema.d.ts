@@ -6060,6 +6060,23 @@ export interface components {
                     extraGrosze: number;
                 }[];
             };
+            /** @description Task 460: "Leżą bez sprzedaży" — counted products with pieces on the shelf that were not sold at any visit of the period; for the whole salon only (empty in a specialist’s own report) */
+            idleProducts: {
+                /** @description Pieces on the shelf now of the products not sold */
+                quantity: number;
+                /** @description Their worth at today’s sale prices, in hundredths of the salon currency */
+                valueGrosze: number;
+                /** @description By product, most money first */
+                items: {
+                    name: string;
+                    /** @description Pieces on the shelf now */
+                    stock: number;
+                    /** @description Pieces × today’s price, in hundredths of the salon currency */
+                    valueGrosze: number;
+                    /** @description Day of the last visit it was sold at, before the period; null = never sold */
+                    lastSoldOn: string | null;
+                }[];
+            };
             /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
             tillCloses: {
                 /** @description Days of the period whose till was counted, oldest first */

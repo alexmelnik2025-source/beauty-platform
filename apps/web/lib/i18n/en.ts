@@ -1687,6 +1687,12 @@ export const en: Dict = {
     stocktakesExtra: '{n} pcs extra · {amount}',
     stocktakesHint:
       'What the stocktakes of this period found: how many pieces were missing from the shelf and how many more than written. Amounts at today’s sale prices.',
+    idleProducts: 'Not selling: {n} pcs ({amount})',
+    idleProductsItem: '{n} pcs · {amount}',
+    idleProductsLast: 'last sold {day}',
+    idleProductsNever: 'not sold yet',
+    idleProductsHint:
+      'Counted products on the shelf that were not sold at any visit of this period. Pieces are today’s stock, amounts at today’s sale prices.',
     productsHint:
       'Products sold at the visits of the period. Not part of the visit revenue or the commissions.',
     tipsVisits: 'visits with a tip: {n}',

@@ -214,6 +214,29 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 459: "Różnice inwentaryzacji" — what the stocktakes of the period found missing or extra; for the whole salon only (empty in a specialist’s own report)',
       ),
+    idleProducts: z
+      .strictObject({
+        quantity: z.number().int().describe('Pieces on the shelf now of the products not sold'),
+        valueGrosze: money('Their worth at today’s sale prices'),
+        items: z
+          .array(
+            z.strictObject({
+              name: z.string(),
+              stock: z.number().int().describe('Pieces on the shelf now'),
+              valueGrosze: money('Pieces × today’s price'),
+              lastSoldOn: z
+                .string()
+                .nullable()
+                .describe(
+                  'Day of the last visit it was sold at, before the period; null = never sold',
+                ),
+            }),
+          )
+          .describe('By product, most money first'),
+      })
+      .describe(
+        'Task 460: "Leżą bez sprzedaży" — counted products with pieces on the shelf that were not sold at any visit of the period; for the whole salon only (empty in a specialist’s own report)',
+      ),
     tillCloses: z
       .strictObject({
         days: z

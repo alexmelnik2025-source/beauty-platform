@@ -23559,6 +23559,66 @@
             "additionalProperties": false,
             "description": "Task 459: \"Różnice inwentaryzacji\" — what the stocktakes of the period found missing or extra; for the whole salon only (empty in a specialist’s own report)"
           },
+          "idleProducts": {
+            "type": "object",
+            "properties": {
+              "quantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Pieces on the shelf now of the products not sold"
+              },
+              "valueGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Their worth at today’s sale prices, in hundredths of the salon currency"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "stock": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Pieces on the shelf now"
+                    },
+                    "valueGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Pieces × today’s price, in hundredths of the salon currency"
+                    },
+                    "lastSoldOn": {
+                      "nullable": true,
+                      "description": "Day of the last visit it was sold at, before the period; null = never sold",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "stock",
+                    "valueGrosze",
+                    "lastSoldOn"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By product, most money first"
+              }
+            },
+            "required": [
+              "quantity",
+              "valueGrosze",
+              "items"
+            ],
+            "additionalProperties": false,
+            "description": "Task 460: \"Leżą bez sprzedaży\" — counted products with pieces on the shelf that were not sold at any visit of the period; for the whole salon only (empty in a specialist’s own report)"
+          },
           "tillCloses": {
             "type": "object",
             "properties": {
@@ -24461,6 +24521,7 @@
           "writeOffs",
           "deliveries",
           "stocktakes",
+          "idleProducts",
           "tillCloses",
           "weekdays",
           "previous",

@@ -2050,6 +2050,56 @@ describe('salon report', () => {
     expect((await report(kasiaUser.auth).expect(200)).body.stocktakes).toEqual(empty);
   });
 
+  it('"Leżą bez sprzedaży": counted products with pieces that no visit of the period sold (task 460)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 5 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 2 });
+    await add({ name: 'Żel', priceGrosze: 2500, stockQuantity: 4 });
+    // Not counted, nothing on the shelf, or no longer sold — not in the list.
+    await add({ name: 'Olejek', priceGrosze: 2000 });
+    await add({ name: 'Szampon', priceGrosze: 3500, stockQuantity: 0 });
+    const comb = await add({ name: 'Grzebień', priceGrosze: 1500, stockQuantity: 3 });
+    await ctx.prisma.product.update({ where: { id: comb.id }, data: { active: false } });
+
+    const sell = async (date: string, productId: string) => {
+      const id = await visit({ date, status: 'completed', paid: true });
+      await ctx
+        .http()
+        .post(`${base}/appointments/${id}/products`)
+        .set(owner.auth)
+        .send({ productId, quantity: 1 })
+        .expect(201);
+    };
+    // The pomade sold in the period; the wax only before it.
+    await sell(addDays(today, -2), pomade.id);
+    await sell(addDays(from, -3), wax.id);
+    await sell(addDays(from, -20), wax.id);
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error).toBeUndefined();
+    expect(res.body.idleProducts).toEqual({
+      quantity: 5,
+      valueGrosze: 4 * 2500 + 3000,
+      items: [
+        { name: 'Żel', stock: 4, valueGrosze: 10000, lastSoldOn: null },
+        { name: 'Wosk', stock: 1, valueGrosze: 3000, lastSoldOn: addDays(from, -3) },
+      ],
+    });
+    // A specialist's own report has no salon stock in it.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    expect((await report(kasiaUser.auth).expect(200)).body.idleProducts).toEqual({
+      quantity: 0,
+      valueGrosze: 0,
+      items: [],
+    });
+  });
+
   it('"Historia magazynu": every change of the stock with who and when (task 440)', async () => {
     const pomade = (
       await ctx

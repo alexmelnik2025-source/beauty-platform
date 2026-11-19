@@ -3289,6 +3289,15 @@ extra, missingGrosze, extraGrosze }] }`: сколько штук не хвати
 `ReportsService.stocktakes`, тест — `apps/api/test/reports.spec.ts`. Раздел «Różnice inwentaryzacji: brakuje 1 szt.
 (80,00 zł), nadwyżka 0 szt. (0,00 zł)» в «Raporty» кабинета и бизнес-приложения. e2e `products.spec.ts`, скриншоты 459.
 
+## «Leżą bez sprzedaży» в отчёте (задача 460)
+
+`idleProducts` в `GET …/reports` — `{ quantity, valueGrosze, items: [{ name, stock, valueGrosze, lastSoldOn }] }`:
+активные товары с учётом остатка и штуками на полке (остаток на сегодня), которые не проданы ни на одном визите периода
+(по дате визита, как «Sprzedaż produktów»). `valueGrosze` — штуки × сегодняшняя цена продажи, `lastSoldOn` — день
+(в часовом поясе салона) последнего визита до периода, на котором товар продали; `null` — ещё не продавался. Порядок —
+больше денег первыми. Только в отчёте всего салона; в «своём» отчёте мастера — пусто. Код — `ReportsService.idleProducts`,
+тест — `apps/api/test/reports.spec.ts`. Раздел «Leżą bez sprzedaży: 5 szt. (251,50 zł)» в «Raporty» кабинета и
+бизнес-приложения («Zestaw · 2 szt. · 160,00 zł · jeszcze nie sprzedany»). e2e `products.spec.ts`, скриншоты 460.
 ## «Starczy na ~N dni» в списке товаров (задача 461)
 
 `sold30Days` в `GET …/products` — `[{ productId, quantity }]`: сколько штук каждого товара продано на визитах
