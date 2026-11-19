@@ -171,7 +171,7 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await edit.getByRole('button', { name: 'Zapisz' }).click();
   await expect(card.getByRole('status')).toHaveText(`Zapisano zmiany bonu ${code!}.`);
   await expect(card.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
-  await expect(card.getByText(new RegExp(`Ważny do .*${year}`))).toBeVisible();
+  await expect(card.getByText(/Ważny do .*30 czerwca/)).toBeVisible();
   await expect(card.getByText(/Zostało 80,00\s?zł z 200,00\s?zł/)).toBeVisible();
   await expect(list.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
   await shot(page, '499a');
