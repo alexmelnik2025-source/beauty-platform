@@ -97,6 +97,8 @@ test('the owner sends the order for the products to order to each supplier', asy
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     locale: 'pl-PL',
+    // Password sign-ins are limited per address (task 153): this one comes from its own.
+    extraHTTPHeaders: freshAddress(),
     permissions: ['clipboard-read', 'clipboard-write'],
   });
   const page = await context.newPage();
@@ -129,6 +131,7 @@ test('the owner sends the order for the products to order to each supplier', asy
       viewport: { width: 390, height: 844 },
       locale: 'pl-PL',
       isMobile: true,
+      extraHTTPHeaders: freshAddress(),
       permissions: ['clipboard-read', 'clipboard-write'],
     });
     const app = await appContext.newPage();
