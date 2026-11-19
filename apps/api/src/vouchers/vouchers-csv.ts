@@ -136,5 +136,5 @@ export function vouchersCsv(lines: VoucherCsvLine[], locale: CsvLocale): string 
       ].join(';'),
     );
   }
-  return `﻿${out.join('\r\n')}\r\n`;
+  return `\uFEFF${out.join('\r\n')}\r\n`;
 }

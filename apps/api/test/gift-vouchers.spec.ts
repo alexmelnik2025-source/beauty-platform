@@ -287,7 +287,7 @@ describe('"CSV bonów" (task 494)', () => {
 
   const rows = (text: string): string[][] =>
     text
-      .replace(/^﻿/, '')
+      .replace(/^\uFEFF/, '')
       .trimEnd()
       .split('\r\n')
       .map((line) => line.split(';').map((c) => c.replace(/^"|"$/g, '')));
@@ -322,7 +322,7 @@ describe('"CSV bonów" (task 494)', () => {
     expect(res.headers['content-type']).toMatch(/^text\/csv/);
     expect(res.headers['content-disposition']).toMatch(/attachment; filename="vouchers-.+\.csv"/);
     const text = res.body as string;
-    expect(text.startsWith('﻿')).toBe(true);
+    expect(text.startsWith('\uFEFF')).toBe(true);
     const today = localToday(Date.now(), 'Europe/Warsaw');
     expect(rows(text)).toEqual([
       [
