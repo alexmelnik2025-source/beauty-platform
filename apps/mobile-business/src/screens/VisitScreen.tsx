@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ProductSalesSection } from './ProductSalesSection';
+import { VisitVoucherSection } from './VisitVoucherSection';
 import {
   BackHandler,
   Image,
@@ -420,6 +421,20 @@ export function VisitScreen(props: {
           salon={salon}
           appointmentId={visit.id}
           canChange={props.canChange}
+        />
+      ) : null}
+      {visit.status === 'completed' ? (
+        // Task 542: the client pays the visit (or a part) with a gift voucher.
+        <VisitVoucherSection
+          api={api}
+          t={t}
+          locale={props.locale}
+          salon={salon}
+          appointmentId={visit.id}
+          toPayGrosze={
+            visit.priceGrosze === null ? null : visit.priceGrosze - (visit.discountGrosze ?? 0)
+          }
+          serviceName={visit.service.name}
         />
       ) : null}
 

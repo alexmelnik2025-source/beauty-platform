@@ -4,6 +4,8 @@ import { pl } from '../src/locales/pl';
 import {
   endsSoon,
   parseValidUntil,
+  printedCode,
+  visitVoucherAmount,
   voucherErrorText,
   voucherLine,
   voucherStatus,
@@ -131,5 +133,19 @@ describe('"Wkrótce wygasa" (task 501)', () => {
     expect(endsSoon({ status: 'active', validUntil: null }, until)).toBe(false);
     expect(endsSoon({ status: 'used', validUntil: '2026-12-01' }, until)).toBe(false);
     expect(endsSoon({ status: 'expired', validUntil: '2026-11-01' }, until)).toBe(false);
+  });
+});
+
+describe('"Zapłać bonem" in the visit card (task 542)', () => {
+  it('starts with what is left to pay for the visit', () => {
+    expect(visitVoucherAmount(9000, 0)).toBe('90');
+    expect(visitVoucherAmount(9000, 4050)).toBe('49,50');
+    expect(visitVoucherAmount(9000, 9000)).toBe('');
+    expect(visitVoucherAmount(9000, 10000)).toBe('');
+    expect(visitVoucherAmount(null, 0)).toBe('');
+  });
+
+  it('writes the code as printed on the voucher', () => {
+    expect(printedCode('ABCDEFGH')).toBe('ABCD-EFGH');
   });
 });

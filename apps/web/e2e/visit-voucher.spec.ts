@@ -8,12 +8,14 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 541: "Zapłać bonem" in the visit card. Jan came for a 90 zł haircut and pays 50 zł of it
  * with the 50 zł voucher he got for his birthday: the code typed as it is printed, the amount
  * filled in from the visit price and changed; the payment is listed in the card (screenshot
  * 541) and in the voucher's own history, marked with the service. A code of no voucher is named.
+ * Task 542: the same in the business app — the other 40 zł from a second voucher (screenshot 542).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -165,4 +167,48 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
     }),
   ]);
   await context.close();
+
+  // Task 542: the business app — the 40 zł left are paid with a second voucher.
+  const second = await json<{ id: string; code: string }>(
+    await request.post(`${base}/gift-vouchers`, {
+      headers: owner,
+      data: { amountGrosze: 10000 },
+    }),
+  );
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const phone = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'pl-PL',
+      isMobile: true,
+    });
+    const app = await phone.newPage();
+    await app.goto(businessApp.url);
+    await app.getByLabel('E-mail lub telefon').fill(OWNER);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();
+    for (let back = 0; back < 3 && !(await jan.isVisible()); back++) {
+      await app.getByRole('button', { name: 'Poprzedni dzień' }).click();
+      await app.waitForTimeout(800);
+    }
+    await jan.click();
+    const section = app.getByTestId('visit-vouchers');
+    await expect(section).toContainText(/Zapłacono bonem: 50,00\s?zł/);
+    await section.getByRole('button', { name: 'Klient płaci bonem podarunkowym?' }).click();
+    await expect(section.getByTestId('visit-voucher-amount')).toHaveValue('40');
+    await section.getByTestId('visit-voucher-code').fill(second.code);
+    await section.getByRole('button', { name: 'Zapłać bonem' }).click();
+    await expect(section).toContainText(/Zapłacono bonem 40,00\s?zł\. Zostało 60,00\s?zł\./);
+    await expect(section).toContainText(/Zapłacono bonem: 90,00\s?zł/);
+    await expect(section).toContainText(`${second.code.slice(0, 4)}-${second.code.slice(4)}`);
+    await section.scrollIntoViewIfNeeded();
+    await shot(app, '542-business-app-visit-paid-with-voucher');
+    await phone.close();
+  } finally {
+    businessApp.server.close();
+  }
 });

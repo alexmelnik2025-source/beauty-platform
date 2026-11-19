@@ -56,6 +56,8 @@ export type VisitCoupons = components['schemas']['VisitCoupons'];
 export type GiftVoucher = components['schemas']['GiftVoucher'];
 export type GiftVoucherList = components['schemas']['GiftVoucherList'];
 export type GiftVoucherDetails = components['schemas']['GiftVoucherDetails'];
+/** Task 542: what was paid with gift vouchers for one visit. */
+export type VisitVoucherPayments = components['schemas']['VisitVoucherPayments'];
 export type LoyaltyTiers = components['schemas']['LoyaltyTiers'];
 export type LoyaltyBonusRules = components['schemas']['LoyaltyBonusRules'];
 /** Task 206: the salon's loyalty program, its rewards and operations. */
@@ -917,11 +919,29 @@ export class BusinessApi {
     voucherId: string,
     amountGrosze: number,
     note: string,
+    /** Task 542: the visit it pays for ("Zapłać bonem" in the visit card). */
+    appointmentId?: string,
   ): Promise<GiftVoucherDetails> {
     return this.authed<GiftVoucherDetails>(
       'POST',
       `${voucherPath(orgId, locationId)}/${voucherId}/redeem`,
-      { amountGrosze, ...(note.trim() ? { note: note.trim() } : {}) },
+      {
+        amountGrosze,
+        ...(note.trim() ? { note: note.trim().slice(0, 120) } : {}),
+        ...(appointmentId ? { appointmentId } : {}),
+      },
+    );
+  }
+
+  /** Task 542: what was paid with gift vouchers for the visit (whoever sees it). */
+  visitVoucherPayments(
+    orgId: string,
+    locationId: string,
+    appointmentId: string,
+  ): Promise<VisitVoucherPayments> {
+    return this.authed<VisitVoucherPayments>(
+      'GET',
+      `${appointmentPath(orgId, locationId, appointmentId)}/gift-voucher-payments`,
     );
   }
 

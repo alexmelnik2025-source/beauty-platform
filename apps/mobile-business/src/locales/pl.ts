@@ -1734,6 +1734,8 @@ export const pl = {
     undoNo: 'Nie',
     undone: 'Płatność {amount} cofnięta — na bonie zostało {left}.',
     undoneMark: 'Cofnięta {date}',
+    visitOpen: 'Klient płaci bonem podarunkowym?',
+    visitPaid: 'Zapłacono bonem: {amount}',
     errorBalance: 'Na bonie zostało mniej — wpisz kwotę nie większą niż pozostała.',
     errorExpired: 'Ten bon jest już nieważny.',
     errorCancelled: 'Ten bon został anulowany.',
