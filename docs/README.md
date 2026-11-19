@@ -3559,4 +3559,3 @@ termin» — сколько осталось неиспользованным н
 «Inna»; цена минус скидка минус оплаченное бонами) и боны, проданные в этот день тем же способом (без отменённых).
 Способы без денег не показываются; порядок: Karta, BLIK, Przelew, Inna. API: `otherPayments` в
 `GET …/reports/till-close` (`method`, `visits`, `visitsGrosze`, `vouchers`, `vouchersGrosze`, `totalGrosze`).
-
