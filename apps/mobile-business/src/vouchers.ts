@@ -53,6 +53,14 @@ export function voucherLine(
   return `${left} · ${until}`;
 }
 
+/** Task 501: may be used now and ends by `until` (30 days from the salon's today, from the API). */
+export function endsSoon(
+  voucher: Pick<GiftVoucher, 'status' | 'validUntil'>,
+  until: string,
+): boolean {
+  return voucher.status === 'active' && voucher.validUntil !== null && voucher.validUntil <= until;
+}
+
 /** "2026-12-31" or empty: what was typed in "Ważny do" (RRRR-MM-DD); undefined = not a day. */
 export function parseValidUntil(text: string): string | null | undefined {
   const typed = text.trim();

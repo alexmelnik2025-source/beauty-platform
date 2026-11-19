@@ -1726,6 +1726,9 @@ export const en: Dictionary = {
     editSave: 'Save changes',
     editCancel: 'Cancel',
     edited: 'Voucher {code} changes saved.',
+    expiringTotal: 'Ending within 30 days: {count}, {amount} left on them',
+    expiringMark: 'Ends soon',
+    show: 'Show',
   },
   error: {
     network: 'No connection to the server. Check the internet and try again.',

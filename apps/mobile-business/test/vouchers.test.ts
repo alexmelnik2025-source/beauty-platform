@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiError } from '../src/api';
 import { pl } from '../src/locales/pl';
 import {
+  endsSoon,
   parseValidUntil,
   voucherErrorText,
   voucherLine,
@@ -92,5 +93,17 @@ describe('"Wyślij bon" (task 497)', () => {
       'Kod: ABCD-2345',
       'Bez terminu ważności',
     ]);
+  });
+});
+
+describe('"Wkrótce wygasa" (task 501)', () => {
+  const until = '2026-12-19';
+  it('marks the valid vouchers that end by the day the API gives', () => {
+    expect(endsSoon({ status: 'active', validUntil: '2026-12-19' }, until)).toBe(true);
+    expect(endsSoon({ status: 'active', validUntil: '2026-11-19' }, until)).toBe(true);
+    expect(endsSoon({ status: 'active', validUntil: '2026-12-20' }, until)).toBe(false);
+    expect(endsSoon({ status: 'active', validUntil: null }, until)).toBe(false);
+    expect(endsSoon({ status: 'used', validUntil: '2026-12-01' }, until)).toBe(false);
+    expect(endsSoon({ status: 'expired', validUntil: '2026-11-01' }, until)).toBe(false);
   });
 });

@@ -81,6 +81,17 @@ export const giftVoucherListSchema = responseSchema(
   z.strictObject({
     vouchers: z.array(giftVoucher).describe('Newest first, at most 500'),
     activeBalanceGrosze: money('What is left on all the vouchers that may still be used'),
+    expiringSoon: z
+      .strictObject({
+        until: z
+          .string()
+          .describe('30 days from today in the salon’s own time, YYYY-MM-DD (included)'),
+        count: z.number().int().describe('Vouchers that may be used now and end by `until`'),
+        balanceGrosze: money('What is left on them'),
+      })
+      .describe(
+        'Task 501: "Wygasają w ciągu 30 dni" — so the salon reminds the client or gives more time',
+      ),
   }),
 );
 

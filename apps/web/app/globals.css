@@ -2458,6 +2458,12 @@ li[data-bookable='false'] .directory-salon h2 {
   background: var(--ink);
 }
 
+/* Task 501: a gift voucher that ends within 30 days. */
+.chip--warn {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
 .chip--ready {
   border-color: var(--ink);
   background: var(--ink);

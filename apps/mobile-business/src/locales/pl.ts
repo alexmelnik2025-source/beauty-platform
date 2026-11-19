@@ -1724,6 +1724,9 @@ export const pl = {
     editSave: 'Zapisz zmiany',
     editCancel: 'Anuluj',
     edited: 'Zapisano zmiany bonu {code}.',
+    expiringTotal: 'Kończą się w ciągu 30 dni: {count} szt., do wykorzystania {amount}',
+    expiringMark: 'Wkrótce wygasa',
+    show: 'Pokaż',
   },
   error: {
     network: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',

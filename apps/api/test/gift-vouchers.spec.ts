@@ -276,6 +276,51 @@ describe('gift vouchers (task 490)', () => {
       .then((r) => expectError(r.body, 'VOUCHER_CANCELLED'));
   });
 
+  it('"Wygasają w ciągu 30 dni": the valid vouchers that end within 30 days (task 501)', async () => {
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    const sell = async (amountGrosze: number, validUntil: string | null) =>
+      (await ctx.http().post(base).set(owner.auth).send({ amountGrosze, validUntil }).expect(201))
+        .body as Voucher;
+    const empty = await ctx.http().get(base).set(owner.auth).expect(200);
+    expect(empty.body.expiringSoon).toEqual({
+      until: addDays(today, 30),
+      count: 0,
+      balanceGrosze: 0,
+    });
+    await sell(5000, today); // its last day is today
+    const part = await sell(8000, addDays(today, 30)); // the 30th day still counts
+    await sell(9000, addDays(today, 31)); // not yet
+    await sell(4000, null); // no end
+    const cancelled = await sell(3000, addDays(today, 10));
+    await ctx.http().post(`${base}/${cancelled.id}/cancel`).set(owner.auth).expect(200);
+    const used = await sell(2000, addDays(today, 10));
+    await ctx
+      .http()
+      .post(`${base}/${used.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 2000 })
+      .expect(200);
+    const expired = await sell(6000, today);
+    await ctx.prisma.giftVoucher.update({
+      where: { id: expired.id },
+      data: { validUntil: new Date(`${addDays(today, -1)}T00:00:00.000Z`) },
+    });
+    await ctx
+      .http()
+      .post(`${base}/${part.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 1500 })
+      .expect(200);
+
+    const list = await ctx.http().get(base).set(owner.auth).expect(200);
+    expectShape('GiftVoucherList', list.body);
+    expect(list.body.expiringSoon).toEqual({
+      until: addDays(today, 30),
+      count: 2,
+      balanceGrosze: 5000 + 6500,
+    });
+  });
+
   it('keeps the vouchers of each salon to itself', async () => {
     const voucher = (
       await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 9000 }).expect(201)

@@ -1725,6 +1725,9 @@ export const ru: Dictionary = {
     editSave: 'Сохранить изменения',
     editCancel: 'Отмена',
     edited: 'Изменения сертификата {code} сохранены.',
+    expiringTotal: 'Заканчиваются в ближайшие 30 дней: {count} шт., к использованию {amount}',
+    expiringMark: 'Скоро истекает',
+    show: 'Показать',
   },
   error: {
     network: 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.',

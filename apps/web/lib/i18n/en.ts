@@ -919,6 +919,13 @@ export const en: Dict = {
     edit: 'Change voucher',
     editHint: 'The amount cannot be changed. An empty date means no end.',
     edited: 'Voucher {code} changes saved.',
+    expiringTotal: 'Ending within 30 days: {count}, {amount} left on them',
+    expiringChip: 'Ends soon',
+    filter: 'Show',
+    filterAll: 'All',
+    filterSoon: 'Ending soon',
+    search: 'Search: code or for whom',
+    noMatch: 'No voucher matches.',
   },
   waitingList: {
     title: 'Waiting list',

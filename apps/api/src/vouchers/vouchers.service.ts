@@ -6,7 +6,7 @@ import type { GiftVoucher, Location } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CsvLocale } from '../reports/visits-csv';
-import { instantToLocal, localToday } from '../scheduling/time';
+import { addDays, instantToLocal, localToday } from '../scheduling/time';
 import { vouchersCsv } from './vouchers-csv';
 import type {
   CreateGiftVoucherInput,
@@ -106,11 +106,18 @@ export class VouchersService {
       select: { balanceGrosze: true, validUntil: true },
     });
     const today = localToday(Date.now(), location.timezone);
+    const valid = active.filter((v) => !v.validUntil || dateString(v.validUntil) >= today);
+    // Task 501: the valid ones whose last day is within 30 days.
+    const until = addDays(today, 30);
+    const soon = valid.filter((v) => v.validUntil && dateString(v.validUntil) <= until);
     return {
       vouchers,
-      activeBalanceGrosze: active
-        .filter((v) => !v.validUntil || dateString(v.validUntil) >= today)
-        .reduce((sum, v) => sum + v.balanceGrosze, 0),
+      activeBalanceGrosze: valid.reduce((sum, v) => sum + v.balanceGrosze, 0),
+      expiringSoon: {
+        until,
+        count: soon.length,
+        balanceGrosze: soon.reduce((sum, v) => sum + v.balanceGrosze, 0),
+      },
     };
   }
 

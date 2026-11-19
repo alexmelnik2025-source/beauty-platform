@@ -19290,11 +19290,40 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "What is left on all the vouchers that may still be used, in hundredths of the salon currency"
+          },
+          "expiringSoon": {
+            "type": "object",
+            "properties": {
+              "until": {
+                "type": "string",
+                "description": "30 days from today in the salon’s own time, YYYY-MM-DD (included)"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Vouchers that may be used now and end by `until`"
+              },
+              "balanceGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What is left on them, in hundredths of the salon currency"
+              }
+            },
+            "required": [
+              "until",
+              "count",
+              "balanceGrosze"
+            ],
+            "additionalProperties": false,
+            "description": "Task 501: \"Wygasają w ciągu 30 dni\" — so the salon reminds the client or gives more time"
           }
         },
         "required": [
           "vouchers",
-          "activeBalanceGrosze"
+          "activeBalanceGrosze",
+          "expiringSoon"
         ],
         "additionalProperties": false
       },

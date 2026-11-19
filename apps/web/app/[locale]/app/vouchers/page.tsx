@@ -48,6 +48,32 @@ function VoucherSummary({ voucher }: { voucher: GiftVoucher }) {
   );
 }
 
+/** Task 501: a voucher that may be used now and ends by `until` (30 days from the salon's today). */
+const endsSoon = (voucher: GiftVoucher, until: string) =>
+  voucher.status === 'active' && voucher.validUntil !== null && voucher.validUntil <= until;
+
+type Filter = 'all' | 'soon' | GiftVoucher['status'];
+
+/** Task 502: what the list shows — by status (or "ending soon") and by code or for whom. */
+function filterVouchers(
+  vouchers: GiftVoucher[],
+  filter: Filter,
+  search: string,
+  until: string,
+): GiftVoucher[] {
+  const typed = search.trim().toLowerCase();
+  const code = typed.toUpperCase().replace(/[\s-]/g, '');
+  return vouchers.filter((v) => {
+    if (filter === 'soon' ? !endsSoon(v, until) : filter !== 'all' && v.status !== filter) {
+      return false;
+    }
+    if (!typed) return true;
+    return (
+      (code !== '' && v.code.includes(code)) || (v.recipient ?? '').toLowerCase().includes(typed)
+    );
+  });
+}
+
 /** "ABCD-EFGH": easier to read off paper; the dash does not matter when the code is checked. */
 const printedCode = (code: string) =>
   code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
@@ -485,6 +511,8 @@ export default function VouchersPage() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [search, setSearch] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
   const load = useCallback(async () => {
@@ -559,6 +587,8 @@ export default function VouchersPage() {
     }
   }
 
+  const shown = list ? filterVouchers(list.vouchers, filter, search, list.expiringSoon.until) : [];
+
   return (
     <>
       <div className="page-head">
@@ -599,11 +629,47 @@ export default function VouchersPage() {
                       {t.vouchers.csv}
                     </button>
                   </div>
+                  {list.expiringSoon.count > 0 ? (
+                    <p className="small" data-testid="vouchers-expiring">
+                      {fill(t.vouchers.expiringTotal, {
+                        count: String(list.expiringSoon.count),
+                        amount: money(list.expiringSoon.balanceGrosze),
+                      })}
+                    </p>
+                  ) : null}
+                  <div className="row">
+                    <label className="field">
+                      <span>{t.vouchers.filter}</span>
+                      <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
+                        <option value="all">{t.vouchers.filterAll}</option>
+                        <option value="active">{t.vouchers.statusActive}</option>
+                        <option value="soon">{t.vouchers.filterSoon}</option>
+                        <option value="used">{t.vouchers.statusUsed}</option>
+                        <option value="expired">{t.vouchers.statusExpired}</option>
+                        <option value="cancelled">{t.vouchers.statusCancelled}</option>
+                      </select>
+                    </label>
+                    <label className="field grow">
+                      <span>{t.vouchers.search}</span>
+                      <input
+                        type="search"
+                        maxLength={80}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  {shown.length === 0 ? <p className="note">{t.vouchers.noMatch}</p> : null}
                   <ul className="list">
-                    {list.vouchers.map((v) => (
+                    {shown.map((v) => (
                       <li key={v.id} className="list-row">
                         <span className="grow">
                           <VoucherSummary voucher={v} />
+                          {endsSoon(v, list.expiringSoon.until) ? (
+                            <span>
+                              <span className="chip chip--warn">{t.vouchers.expiringChip}</span>
+                            </span>
+                          ) : null}
                           <span className="small muted">
                             {fill(t.vouchers.soldOn, { date: formatDay(v.soldDate, tag) })}
                             {v.soldByName

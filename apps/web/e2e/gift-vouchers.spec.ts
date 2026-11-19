@@ -17,10 +17,12 @@ import { serveApp } from './mobile-app';
  * Task 494: "Pobierz CSV bonów" (screenshot 494).
  * Task 496: "Drukuj bon" — the card to hand to the client (screenshot 496).
  * Task 499: "Zmień bon" — a last day and the names fixed (screenshot 499).
+ * Tasks 501–502: "Kończą się w ciągu 30 dni", the list filtered and searched (screenshots 501, 502).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
  * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495);
- * task 497: "Wyślij bon" as a message (screenshot 497); task 500: "Zmień bon" (screenshot 500).
+ * task 497: "Wyślij bon" as a message (screenshot 497); task 500: "Zmień bon" (screenshot 500);
+ * tasks 501, 503: "Wkrótce wygasa" and "Pokaż" in the list (screenshots 501a, 503).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -207,6 +209,38 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   ).toBeVisible();
   await section.scrollIntoViewIfNeeded();
   await section.screenshot({ path: 'e2e/screenshots/493.png' });
+
+  // Task 501: a voucher for Marek that ends in 10 days.
+  const soonDay = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+  const soon = await json<{ code: string }>(
+    await request.post(`/v1/organizations/${org.id}/locations/${location.id}/gift-vouchers`, {
+      headers: owner,
+      data: { amountGrosze: 3000, recipient: 'Marek', validUntil: soonDay },
+    }),
+  );
+  await page.goto('/pl/app/vouchers');
+  const all = page.getByRole('region', { name: 'Sprzedane bony' });
+  await expect(all.getByTestId('vouchers-expiring')).toHaveText(
+    /Kończą się w ciągu 30 dni: 1 szt\., do wykorzystania 30,00\s?zł/,
+  );
+  const soonRow = all.getByRole('listitem').filter({ hasText: soon.code });
+  await expect(soonRow.getByText('Wkrótce wygasa')).toBeVisible();
+  await expect(all.getByRole('listitem')).toHaveCount(3);
+  await shot(page, '501');
+
+  // Task 502: only the ones ending soon; then a search by name over all of them.
+  await all.getByLabel('Pokaż', { exact: true }).selectOption({ label: 'Wkrótce wygasają' });
+  await expect(all.getByRole('listitem')).toHaveCount(1);
+  await expect(all.getByText(soon.code)).toBeVisible();
+  await all.getByLabel('Pokaż', { exact: true }).selectOption({ label: 'Wszystkie' });
+  await all.getByLabel('Szukaj: kod lub dla kogo').fill('kowal');
+  await expect(all.getByRole('listitem')).toHaveCount(1);
+  await expect(all.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
+  await shot(page, '502');
+  await all.getByLabel('Szukaj: kod lub dla kogo').fill(mistake.code.slice(0, 4).toLowerCase());
+  await expect(all.getByRole('listitem')).toHaveCount(1);
+  await all.getByLabel('Pokaż', { exact: true }).selectOption({ label: 'Ważny' });
+  await expect(all.getByText('Żaden bon nie pasuje.')).toBeVisible();
   await desk.close();
 });
 
@@ -322,6 +356,29 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
     expect(appCsvText).toContain(';Ola Nowak;150,00;50,00;100,00;');
     expect(appCsvText).toContain(';Piotr;100,00;0,00;100,00;');
     await shot(phone, '495');
+
+    // Tasks 501, 503: a voucher for Marek that ends in 10 days — marked in the list and opened
+    // from it without typing the code.
+    const soonDay = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+    const soon = await json<{ code: string }>(
+      await request.post(`/v1/organizations/${org.id}/locations/${location.id}/gift-vouchers`, {
+        headers: owner,
+        data: { amountGrosze: 3000, recipient: 'Marek', validUntil: soonDay },
+      }),
+    );
+    await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await phone.getByRole('button', { name: 'Bony podarunkowe' }).click();
+    await expect(
+      phone.getByText(/Kończą się w ciągu 30 dni: 1 szt\., do wykorzystania 30,00\s?zł/),
+    ).toBeVisible();
+    await expect(phone.getByText('Wkrótce wygasa')).toHaveCount(1);
+    await shot(phone, '501a');
+    await phone.getByRole('button', { name: `Pokaż ${soon.code}` }).click();
+    await expect(phone.getByText(`${soon.code} · Ważny`).first()).toBeVisible();
+    await expect(phone.getByRole('button', { name: 'Zapłać bonem' })).toBeVisible();
+    await expect(phone.getByText('Bonem jeszcze nie płacono.')).toBeVisible();
+    await expect(phone.getByLabel('Kod bonu')).toHaveValue(soon.code);
+    await shot(phone, '503');
     await context.close();
   } finally {
     businessApp.server.close();

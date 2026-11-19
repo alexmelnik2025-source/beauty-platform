@@ -1,11 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  BackHandler,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type ScrollViewInstance,
+} from 'react-native';
 import type { BusinessApi, GiftVoucher, GiftVoucherDetails, GiftVoucherList, Locale } from '../api';
 import { dayTitle, formatPrice } from '../day';
 import { fill, type Dictionary } from '../i18n';
 import { parseTip as parseAmount } from '../tip';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import {
+  endsSoon,
   parseValidUntil,
   voucherErrorText,
   voucherLine,
@@ -229,6 +238,7 @@ export function VouchersScreen(props: {
   const [info, setInfo] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
+  const scroll = useRef<ScrollViewInstance>(null);
 
   const load = useCallback(async () => {
     if (!manager) return;
@@ -311,6 +321,18 @@ export function VouchersScreen(props: {
     }
   }
 
+  /** Task 503: "Pokaż" — the voucher's card from the list, without typing the code. */
+  async function show(voucher: GiftVoucher) {
+    setCheckError('');
+    try {
+      setFound(await api.giftVoucher(salon.orgId, salon.locationId, voucher.id));
+      setCode(voucher.code);
+      scroll.current?.scrollTo({ y: 0, animated: true });
+    } catch (e) {
+      setListError(voucherErrorText(e, t));
+    }
+  }
+
   async function cancel(voucher: GiftVoucher) {
     setInfo('');
     try {
@@ -324,7 +346,11 @@ export function VouchersScreen(props: {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      ref={scroll}
+      contentContainerStyle={styles.screen}
+      keyboardShouldPersistTaps="handled"
+    >
       <Button kind="link" label={v.back} onPress={onBack} />
       <Heading>{v.title}</Heading>
       <Text style={styles.muted}>{v.hint}</Text>
@@ -386,6 +412,14 @@ export function VouchersScreen(props: {
               <Text style={styles.text}>
                 {fill(v.activeTotal, { amount: money(list.activeBalanceGrosze) })}
               </Text>
+              {list.expiringSoon.count > 0 ? (
+                <Text style={styles.warn}>
+                  {fill(v.expiringTotal, {
+                    count: String(list.expiringSoon.count),
+                    amount: money(list.expiringSoon.balanceGrosze),
+                  })}
+                </Text>
+              ) : null}
               <Button
                 kind="secondary"
                 label={csvBusy ? t.loading : v.csv}
@@ -399,10 +433,19 @@ export function VouchersScreen(props: {
                       {x.code} · {voucherStatus(x, t)}
                     </Text>
                     <Text style={styles.text}>{voucherLine(x, t, salon.currency, locale)}</Text>
+                    {endsSoon(x, list.expiringSoon.until) ? (
+                      <Text style={styles.warn}>{v.expiringMark}</Text>
+                    ) : null}
                     <Text style={styles.muted}>
                       {fill(v.soldOn, { date: dayTitle(x.soldDate, locale) })}
                       {x.recipient ? ` · ${fill(v.forWhom, { name: x.recipient })}` : ''}
                     </Text>
+                    <Button
+                      kind="link"
+                      label={v.show}
+                      a11yLabel={`${v.show} ${x.code}`}
+                      onPress={() => void show(x)}
+                    />
                     {x.status === 'active' ? (
                       confirm === x.id ? (
                         <View style={styles.confirm}>
@@ -462,6 +505,7 @@ const styles = StyleSheet.create({
   text: { color: colors.ink, fontSize: 15 },
   muted: { color: colors.muted, fontSize: 14 },
   info: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+  warn: { color: colors.danger, fontSize: 14, fontWeight: '600' },
   row: { paddingVertical: 10, gap: 4 },
   divider: { borderTopWidth: 1, borderTopColor: colors.line },
   confirm: { gap: 6 },

@@ -4991,6 +4991,15 @@ export interface components {
             }[];
             /** @description What is left on all the vouchers that may still be used, in hundredths of the salon currency */
             activeBalanceGrosze: number;
+            /** @description Task 501: "Wygasają w ciągu 30 dni" — so the salon reminds the client or gives more time */
+            expiringSoon: {
+                /** @description 30 days from today in the salon’s own time, YYYY-MM-DD (included) */
+                until: string;
+                /** @description Vouchers that may be used now and end by `until` */
+                count: number;
+                /** @description What is left on them, in hundredths of the salon currency */
+                balanceGrosze: number;
+            };
         };
         GuardedClient: {
             customerId: string;

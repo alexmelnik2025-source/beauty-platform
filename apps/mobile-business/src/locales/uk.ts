@@ -1722,6 +1722,9 @@ export const uk: Dictionary = {
     editSave: 'Зберегти зміни',
     editCancel: 'Скасувати',
     edited: 'Зміни сертифіката {code} збережено.',
+    expiringTotal: 'Закінчуються протягом 30 днів: {count} шт., до використання {amount}',
+    expiringMark: 'Скоро закінчується',
+    show: 'Показати',
   },
   error: {
     network: "Немає з'єднання із сервером. Перевірте інтернет і спробуйте ще раз.",

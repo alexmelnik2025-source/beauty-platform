@@ -894,6 +894,11 @@ export class BusinessApi {
     );
   }
 
+  /** Task 503: one voucher from the list, with its payments ("Pokaż"). */
+  giftVoucher(orgId: string, locationId: string, voucherId: string): Promise<GiftVoucherDetails> {
+    return this.authed<GiftVoucherDetails>('GET', `${voucherPath(orgId, locationId)}/${voucherId}`);
+  }
+
   /** Task 492: "Zapłać bonem" — part or all of what is left (409 VOUCHER_… otherwise). */
   redeemGiftVoucher(
     orgId: string,

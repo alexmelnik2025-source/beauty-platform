@@ -918,6 +918,13 @@ export const pl = {
     edit: 'Zmień bon',
     editHint: 'Kwoty bonu nie zmienisz. Pusta data — bez terminu ważności.',
     edited: 'Zapisano zmiany bonu {code}.',
+    expiringTotal: 'Kończą się w ciągu 30 dni: {count} szt., do wykorzystania {amount}',
+    expiringChip: 'Wkrótce wygasa',
+    filter: 'Pokaż',
+    filterAll: 'Wszystkie',
+    filterSoon: 'Wkrótce wygasają',
+    search: 'Szukaj: kod lub dla kogo',
+    noMatch: 'Żaden bon nie pasuje.',
   },
   waitingList: {
     title: 'Lista oczekujących',
