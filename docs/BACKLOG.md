@@ -12,11 +12,14 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **19.11.2026, ~23:15 UTC — Q2 часть 3 (ветка `agent/568-staff-qr`)**: QR-код каждого мастера — кабинет
-  («Kod QR specjalisty» в «Instagram i Twoja strona»: PNG/SVG/печать) и бизнес-приложение («Link do rezerwacji»);
-  страница записи по `?staff=` показывает «Umawiasz się do: …» и после выбора услуги сразу время этого мастера.
-  e2e `staff-qr.spec.ts` (Q2-staff-qr-cabinet, Q2-staff-qr-booking, Q2-staff-qr-app). После этого Q2 закрыта
-  (кроме universal links после публикации — N32).
+- **19.11.2026, ~23:50 UTC — влита Q2 часть 3** (QR-код каждого мастера: кабинет «Kod QR specjalisty» с PNG/SVG/печатью,
+  бизнес-приложение «Link do rezerwacji», страница записи по `?staff=` — «Umawiasz się do: …» и сразу время мастера
+  после выбора услуги; e2e `staff-qr.spec.ts`, скриншоты Q2-staff-qr-cabinet, Q2-staff-qr-booking, Q2-staff-qr-app).
+  Ветки `agent/567-docs-q2-merged`, `agent/568-staff-qr` уже в main (удалить может владелец). **Q2 закрыта.**
+  Параллельная ветка второго запуска `agent/568-staff-qr-cabinet` (та же задача, части «6–8», CI красный) после этого
+  не вливается целиком — из неё стоит перенести отдельной задачей только то, чего нет в main: «Udostępnij link
+  specjalisty» в бизнес-приложении и ссылку `?staff=` без услуги в клиентском приложении («Rezerwujesz u: …»).
+  Дальше по QR — только после «да» владельца: N32 (universal links после публикации), N33 («Zeskanuj kod QR»).
 
 - **19.11.2026, ~23:25 UTC — влиты Q2 части 4–5** (баннер «Zainstaluj aplikację» на странице записи: одна строка,
   «×» прячет на 30 дней, PWA «Moje wizyty» / шаги iPhone / ссылки сторов из `.env`; «Dokończ rezerwację» в «Moje
