@@ -120,7 +120,13 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
     }),
   );
 
-  const context = await browser.newContext({ viewport: DESKTOP, locale: 'pl-PL' });
+  const context = await browser.newContext({
+    viewport: DESKTOP,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    // Sign-ins from an address of its own: the API limits them per address.
+    extraHTTPHeaders: freshAddress(),
+  });
   const page = await context.newPage();
   await page.goto('/pl/login');
   await page.getByLabel('E-mail').fill(OWNER);
@@ -180,7 +186,9 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
     const phone = await browser.newContext({
       viewport: { width: 390, height: 844 },
       locale: 'pl-PL',
+      timezoneId: 'Europe/Warsaw',
       isMobile: true,
+      extraHTTPHeaders: freshAddress(),
     });
     const app = await phone.newPage();
     await app.goto(businessApp.url);

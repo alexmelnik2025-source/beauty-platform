@@ -410,8 +410,8 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
       phone.getByRole('button', { name: 'Pobierz CSV płatności bonami' }).click(),
     ]);
     const appUsesText = await readFile((await appUses.path())!, 'utf8');
-    expect(appUsesText).toContain(`;${voucher.code};Ola Nowak;50,00;;Aleksander Owner;\r\n`);
-    expect(appUsesText).toMatch(/;Ola Nowak;20,00;;Aleksander Owner;\d{4}-\d{2}-\d{2}\r\n/);
+    expect(appUsesText).toContain(`;${voucher.code};Ola Nowak;50,00;;Aleksander Owner;;;\r\n`);
+    expect(appUsesText).toMatch(/;Ola Nowak;20,00;;Aleksander Owner;\d{4}-\d{2}-\d{2};;\r\n/);
 
     // Tasks 501, 503: a voucher for Marek that ends in 10 days — marked in the list and opened
     // from it without typing the code.
