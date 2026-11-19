@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
-import { toOrderNames } from '@/lib/to-order';
+import { orderText, toOrderNames } from '@/lib/to-order';
 import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
@@ -51,6 +51,8 @@ function amountInput(hundredths: number): string {
  * Task 448: "Cena zakupu" — what the salon pays for one (empty = not written); the stock value is
  * also shown at these prices, and the report counts the margin of the products sold.
  * Task 463: "Dostawca" — whom the salon orders the product from; the stock CSV for one supplier.
+ * Task 473: "Tekst zamówienia" — the products to order as a message for each supplier, with
+ * suggested numbers of pieces; the owner changes what they like and copies it.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -85,6 +87,9 @@ export function ProductsSection({ base }: { base: string }) {
   const [error, setError] = useState('');
   const [stocktake, setStocktake] = useState(false);
   const [stocktakeDone, setStocktakeDone] = useState('');
+  /** Task 473: the order text being prepared (null = closed) and what copying it said. */
+  const [order, setOrder] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState('');
 
   const show = (list: Product[]) => {
     setProducts(list);
@@ -253,6 +258,66 @@ export function ProductsSection({ base }: { base: string }) {
             ),
           )}
         </p>
+      ) : null}
+      {toOrder.length > 0 ? (
+        <div data-testid="products-order">
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            aria-expanded={order !== null}
+            onClick={() => {
+              setOrderStatus('');
+              setOrder(
+                order !== null
+                  ? null
+                  : orderText(toOrder, sold30, {
+                      title: p.orderTitle,
+                      noSupplier: p.toOrderNoSupplier,
+                      pieces: p.orderPieces,
+                    }),
+              );
+            }}
+          >
+            {p.orderOpen}
+          </button>
+          {order !== null ? (
+            <>
+              <p className="small muted">{p.orderHint}</p>
+              <textarea
+                aria-label={p.orderOpen}
+                value={order}
+                rows={Math.min(order.split('\n').length + 1, 16)}
+                style={{ width: '100%', maxWidth: 560, fontFamily: 'inherit' }}
+                onChange={(e) => {
+                  setOrder(e.target.value);
+                  setOrderStatus('');
+                }}
+              />
+              <p>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => {
+                    const text = order;
+                    void (async () => {
+                      try {
+                        await navigator.clipboard.writeText(text);
+                        setOrderStatus(p.orderCopied);
+                      } catch {
+                        setOrderStatus(p.orderCopyFailed);
+                      }
+                    })();
+                  }}
+                >
+                  {p.orderCopy}
+                </button>{' '}
+                <span className="small" role="status">
+                  {orderStatus}
+                </span>
+              </p>
+            </>
+          ) : null}
+        </div>
       ) : null}
       {counted.length > 0 ? (
         <p className="small" data-testid="products-stock-value">

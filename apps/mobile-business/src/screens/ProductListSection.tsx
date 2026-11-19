@@ -4,8 +4,8 @@ import type { BusinessApi, Locale, Product, StockHistory } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { shareCsv } from '../share';
-import { parseStock, toOrderNames } from '../stock';
+import { shareCsv, shareText } from '../share';
+import { orderText, parseStock, toOrderNames } from '../stock';
 import { parseTip as parseAmount, tipInput as amountInput } from '../tip';
 
 /** Task 448: "" → null (not written), "20,50" → 2050; anything else → undefined (wrong). */
@@ -14,7 +14,7 @@ function parseCost(text: string): number | null | undefined {
   return parseAmount(text) ?? undefined;
 }
 import { Button, Card, colors, ErrorText } from '../ui';
-import { csvTools } from './csvTools';
+import { csvTools, orderShareTools } from './csvTools';
 import { StocktakeCard } from './StocktakeCard';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -32,6 +32,8 @@ import type { SalonChoice } from './SalonsScreen';
  * saved in a browser).
  * Task 458: "Inwentaryzacja" — the numbers counted on the shelf for all products on one card.
  * Task 464: "Dostawca" — whom the salon orders the product from; the stock CSV for one supplier.
+ * Task 474: "Wyślij zamówienie" — the products to order as a message for each supplier, with
+ * suggested numbers of pieces, through the share sheet (copied in the web preview).
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -78,6 +80,8 @@ export function ProductListSection(props: {
   const [csvSupplier, setCsvSupplier] = useState('');
   /** Task 470: the stock CSV with only the products to order. */
   const [csvToOrder, setCsvToOrder] = useState(false);
+  /** Task 474: what sending the order said. */
+  const [orderInfo, setOrderInfo] = useState('');
   const [stocktake, setStocktake] = useState(false);
   const [stocktakeDone, setStocktakeDone] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -219,6 +223,32 @@ export function ProductListSection(props: {
             ),
           })}
         </Text>
+      ) : null}
+      {toOrder.length > 0 ? (
+        <View style={{ gap: 4 }} testID="products-order">
+          <Button
+            kind="secondary"
+            label={p.orderSend}
+            onPress={() => {
+              setOrderInfo('');
+              const message = orderText(toOrder, sold30, {
+                title: p.orderTitle,
+                noSupplier: p.toOrderNoSupplier,
+                pieces: p.orderPieces,
+              });
+              void shareText({ title: p.orderTitle, message }, orderShareTools()).then((result) => {
+                if (result === 'copied') setOrderInfo(p.orderCopied);
+                if (result === 'failed') setOrderInfo(p.orderFailed);
+              });
+            }}
+          />
+          <Text style={styles.muted}>{p.orderHint}</Text>
+          {orderInfo ? (
+            <Text style={styles.text} role="status">
+              {orderInfo}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
       {counted.length > 0 ? (
         <Text style={styles.text} testID="products-stock-value">

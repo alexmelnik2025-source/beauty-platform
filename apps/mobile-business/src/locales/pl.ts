@@ -685,6 +685,13 @@ export const pl = {
     lowBadge: 'Kończy się',
     toOrder: 'Do zamówienia: {names}',
     toOrderNoSupplier: 'bez dostawcy',
+    orderSend: 'Wyślij zamówienie',
+    orderTitle: 'Zamówienie',
+    orderPieces: '{n} szt.',
+    orderHint:
+      'Ilości — na ~30 dni sprzedaży i ponad „Kończy się przy”. Możesz je zmienić przed wysłaniem.',
+    orderCopied: 'Zamówienie skopiowane — wklej je w wiadomości do dostawcy.',
+    orderFailed: 'Nie udało się wysłać zamówienia.',
     stockValue: 'Wartość magazynu: {amount} ({n} szt.) — w cenach sprzedaży.',
     cost: 'Cena zakupu',
     costNew: 'Cena zakupu (puste — nie wpisujemy)',
