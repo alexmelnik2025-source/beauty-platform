@@ -10,6 +10,7 @@
  * Task 462: then the supplier ("Dostawca"), empty when not written.
  * Task 469: then how many pieces were sold at the visits of the last 30 days ("Sprzedano w 30
  * dni"), so the owner sees how many to order.
+ * Task 523: last, the barcode ("Kod kreskowy"), empty when not written — to order by EAN.
  */
 
 import { amount, cell, type CsvLocale } from '../reports/visits-csv';
@@ -24,6 +25,7 @@ export interface StockCsvLine {
   purchasePriceGrosze: number | null;
   supplier: string | null;
   sold30Days: number;
+  barcode: string | null;
 }
 
 type Header = [
@@ -36,6 +38,7 @@ type Header = [
   purchasePrice: string,
   supplier: string,
   sold30Days: string,
+  barcode: string,
 ];
 
 const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
@@ -50,6 +53,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Cena zakupu',
       'Dostawca',
       'Sprzedano w 30 dni',
+      'Kod kreskowy',
     ],
     yes: 'tak',
     no: 'nie',
@@ -65,6 +69,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Закупівельна ціна',
       'Постачальник',
       'Продано за 30 днів',
+      'Штрихкод',
     ],
     yes: 'так',
     no: 'ні',
@@ -80,6 +85,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Закупочная цена',
       'Поставщик',
       'Продано за 30 дней',
+      'Штрихкод',
     ],
     yes: 'да',
     no: 'нет',
@@ -95,6 +101,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Purchase price',
       'Supplier',
       'Sold in 30 days',
+      'Barcode',
     ],
     yes: 'yes',
     no: 'no',
@@ -122,6 +129,7 @@ export function stockCsv(lines: StockCsvLine[], locale: CsvLocale): string {
         l.purchasePriceGrosze === null ? '' : amount(l.purchasePriceGrosze, locale),
         l.supplier === null ? '' : cell(l.supplier),
         String(l.sold30Days),
+        l.barcode === null ? '' : cell(l.barcode),
       ].join(';'),
     );
   }

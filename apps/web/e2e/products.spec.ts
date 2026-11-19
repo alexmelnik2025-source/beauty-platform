@@ -229,10 +229,10 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(stockCsv.suggestedFilename()).toMatch(/^stock-.+-\d{4}-\d{2}-\d{2}\.csv$/);
   const stockFile = readFileSync((await stockCsv.path())!, 'utf8');
   expect(stockFile).toContain(
-    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni\r\n',
+    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni;Kod kreskowy\r\n',
   );
-  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;;2\r\n');
-  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;;;0\r\n');
+  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;;2;\r\n');
+  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;;;0;\r\n');
   await shot(page, '437-owner-stock-csv');
   // Task 463: "Dostawca" — the pomade comes from Hairgum; the CSV for that supplier only.
   await expect(products.getByLabel('Dostawca w pliku CSV')).toHaveCount(0);
@@ -254,7 +254,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     products.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
   ]);
   const supplierFile = readFileSync((await supplierCsv.path())!, 'utf8');
-  expect(supplierFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum;2\r\n');
+  expect(supplierFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum;2;\r\n');
   expect(supplierFile).not.toContain('Szampon');
   await products.getByLabel('Dostawca w pliku CSV').scrollIntoViewIfNeeded();
   await shot(page, '463-owner-supplier');
@@ -352,8 +352,8 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     products.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
   ]);
   const toOrderFile = readFileSync((await toOrderCsv.path())!, 'utf8');
-  expect(toOrderFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum;2\r\n');
-  expect(toOrderFile).toContain('Szampon;30,50;tak;3;3;tak;;;0\r\n');
+  expect(toOrderFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum;2;5901234123457\r\n');
+  expect(toOrderFile).toContain('Szampon;30,50;tak;3;3;tak;;;0;\r\n');
   expect(toOrderFile).not.toContain('Zestaw');
   await products.getByLabel('Tylko do zamówienia').scrollIntoViewIfNeeded();
   await shot(page, '470-owner-stock-csv-to-order');
@@ -526,7 +526,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     ]);
     expect(appStock.suggestedFilename()).toMatch(/^stock-.+\.csv$/);
     const appStockFile = readFileSync((await appStock.path())!, 'utf8');
-    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0\r\n');
+    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0;GSTWOSK1\r\n');
     await appList.getByRole('button', { name: 'CSV stanu magazynowego' }).scrollIntoViewIfNeeded();
     await shot(app, '437-business-app-stock-csv');
     // Task 464: the file for one supplier only.
@@ -538,7 +538,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
       appList.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
     ]);
     const appSupplierFile = readFileSync((await appSupplierStock.path())!, 'utf8');
-    expect(appSupplierFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0\r\n');
+    expect(appSupplierFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0;GSTWOSK1\r\n');
     expect(appSupplierFile).not.toContain('Pomada matowa');
     await appList.getByTestId('stock-csv-supplier').scrollIntoViewIfNeeded();
     await shot(app, '464-business-app-supplier');
@@ -552,8 +552,8 @@ test('the owner sells a product at a visit; the report counts it apart', async (
       appList.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
     ]);
     const appToOrderFile = readFileSync((await appToOrder.path())!, 'utf8');
-    expect(appToOrderFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0\r\n');
-    expect(appToOrderFile).toContain('Szampon;30,50;tak;3;3;tak;;;0\r\n');
+    expect(appToOrderFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt;0;GSTWOSK1\r\n');
+    expect(appToOrderFile).toContain('Szampon;30,50;tak;3;3;tak;;;0;\r\n');
     expect(appToOrderFile).toContain('Pomada matowa;');
     expect(appToOrderFile).not.toContain('Zestaw');
     await appList.getByTestId('stock-csv-to-order').scrollIntoViewIfNeeded();

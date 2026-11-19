@@ -3445,6 +3445,7 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   отправляет форму). Логика — `apps/web/lib/barcode.ts`.
 - Бизнес-приложение: то же в «Usługi» → «Produkty» (`apps/mobile-business/src/barcode.ts`, сообщение для
   `BARCODE_TAKEN`). Сканирование камерой телефона — не делали (нужна новая зависимость `expo-camera`).
+- «CSV stanu magazynowego» (задача 523): последняя колонка «Kod kreskowy» / «Штрихкод» / «Barcode», пусто без кода.
 - Карточка визита (задача 524, кабинет `ProductSales.tsx` и приложение `ProductSalesSection.tsx`): поле «Kod kreskowy
   produktu», когда у товаров салона есть коды; код (Enter со сканера или кнопка) добавляет 1 шт. товара с этим кодом
   тем же `POST …/appointments/:id/products`; неизвестный код — «Nie ma produktu z kodem …».

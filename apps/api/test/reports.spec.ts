@@ -2333,6 +2333,8 @@ describe('salon report', () => {
         lowStockAt: 2,
         purchasePriceGrosze: 2050,
         supplier: 'Hairgum',
+        // Task 523: the barcode is the last column.
+        barcode: '5901234123457',
       })
     ).body as { id: string };
     // Task 469: pieces sold at the visits of the last 30 days — a sale of 40 days ago is not counted.
@@ -2383,28 +2385,28 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     // Sold products first, by name; a ";" is quoted and a leading "=" cannot run as a formula.
     expect(text.slice(1).trimEnd().split('\r\n')).toEqual([
-      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni',
-      "'=Aloes;30,00;tak;10;2;nie;;;0",
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni;Kod kreskowy',
+      "'=Aloes;30,00;tak;10;2;nie;;;0;",
       // Task 450: the purchase price; empty when not written. Task 462: then the supplier.
-      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2',
-      'Wosk;25,50;tak;;;nie;;"Barber; Hurt";0',
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2;5901234123457',
+      'Wosk;25,50;tak;;;nie;;"Barber; Hurt";0;',
       // Sold out: to order even without "Kończy się przy"; not when it is no longer sold.
-      'Żel;20,00;tak;0;;tak;;;0',
-      'Olejek;50,00;nie;0;;nie;;;0',
+      'Żel;20,00;tak;0;;tak;;;0;',
+      'Olejek;50,00;nie;0;;nie;;;0;',
     ]);
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
     expect(english).toContain(
-      'Product;Price;Sold;In stock;Runs low at;To order;Purchase price;Supplier;Sold in 30 days',
+      'Product;Price;Sold;In stock;Runs low at;To order;Purchase price;Supplier;Sold in 30 days;Barcode',
     );
-    expect(english).toContain('Wosk;25.50;yes;;;no;;"Barber; Hurt";0');
-    expect(english).toContain('"Pomada; mocna";45.00;yes;1;2;yes;20.50;Hairgum;2');
+    expect(english).toContain('Wosk;25.50;yes;;;no;;"Barber; Hurt";0;');
+    expect(english).toContain('"Pomada; mocna";45.00;yes;1;2;yes;20.50;Hairgum;2;5901234123457');
     await csv({ locale: 'de' }).expect(400);
 
     // Task 462: the list for one supplier only — the name in any letter case.
     const hairgum = (await csv({ supplier: 'HAIRGUM' }).expect(200)).body as string;
     expect(hairgum.slice(1).trimEnd().split('\r\n')).toEqual([
-      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni',
-      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2',
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni;Kod kreskowy',
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2;5901234123457',
     ]);
     const nobody = (await csv({ supplier: 'Nikt' }).expect(200)).body as string;
     expect(nobody.slice(1).trimEnd().split('\r\n')).toHaveLength(1);
@@ -2412,9 +2414,9 @@ describe('salon report', () => {
     // Task 469: only what to order — sold products that have run low or out.
     const toOrder = (await csv({ toOrder: 'true' }).expect(200)).body as string;
     expect(toOrder.slice(1).trimEnd().split('\r\n')).toEqual([
-      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni',
-      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2',
-      'Żel;20,00;tak;0;;tak;;;0',
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca;Sprzedano w 30 dni;Kod kreskowy',
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum;2;5901234123457',
+      'Żel;20,00;tak;0;;tak;;;0;',
     ]);
     const all = (await csv({ toOrder: 'false' }).expect(200)).body as string;
     expect(all.slice(1).trimEnd().split('\r\n')).toHaveLength(6);
