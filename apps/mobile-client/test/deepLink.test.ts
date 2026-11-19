@@ -15,9 +15,16 @@ describe('links that open the app at a salon (task Q2)', () => {
     expect(parseDeepLink('beauty-client://b/gestalt-barbershop')).toEqual({
       slug: 'gestalt-barbershop',
     });
+  });
+
+  it('a specialist’s QR code (only who) starts the booking with that specialist (task Q2)', () => {
     expect(parseDeepLink(`beauty-client://b/gestalt-barbershop?staff=${STAFF}`)).toEqual({
       slug: 'gestalt-barbershop',
+      preset: { staffId: STAFF },
     });
+    expect(
+      parseDeepLink(`https://app.example.com/s/gestalt-barbershop?utm_source=qr&staff=${STAFF}`),
+    ).toEqual({ slug: 'gestalt-barbershop', preset: { staffId: STAFF } });
   });
 
   it('reads the booking page and the short link of the web app', () => {

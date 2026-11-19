@@ -120,7 +120,8 @@ export function priceRows(
 
 /** "Book again" / "Book" from a loyalty card: start with this service and specialist. */
 export interface BookingPreset {
-  serviceId: string;
+  /** Missing (task Q2): a specialist's QR code or link — only who, the service is still chosen. */
+  serviceId?: string;
   staffId?: string | null;
 }
 
@@ -137,8 +138,16 @@ export function bookingStart(
   serviceId: string;
   staffId?: string;
   gone?: 'service' | 'staff';
+  /** Task Q2: the specialist of the QR code — their times open straight after the service. */
+  qrStaffId?: string;
 } {
   if (!preset) return { step: 'service', serviceId: '' };
+  if (!preset.serviceId) {
+    const qr = salon.staff.find((s) => s.id === preset.staffId);
+    return qr
+      ? { step: 'service', serviceId: '', qrStaffId: qr.id }
+      : { step: 'service', serviceId: '' };
+  }
   if (!salon.services.some((s) => s.id === preset.serviceId)) {
     return { step: 'service', serviceId: '', gone: 'service' };
   }

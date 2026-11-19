@@ -206,6 +206,9 @@ export const uk: Dictionary = {
     otherService: 'Інша послуга або майстер',
     serviceGone: 'Цю послугу вже не можна забронювати онлайн — оберіть іншу.',
     staffGone: 'Цей майстер більше не виконує цю послугу — оберіть іншого.',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Записуєтесь до: {name}',
+    qrStaffAny: 'Інший спеціаліст',
     pickService: 'Оберіть послугу',
     pickStaff: 'Оберіть майстра',
     speaksFilter: 'Говорить',
