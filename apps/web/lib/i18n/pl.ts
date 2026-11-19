@@ -267,6 +267,10 @@ export const pl = {
     tillVouchersSold: 'Bony podarunkowe sprzedane za gotówkę: {sum}',
     tillVisitsVouchers:
       'Za wizyty zapłacono bonami: {sum} — tych pieniędzy nie ma w kasie (salon dostał je przy sprzedaży bonu).',
+    tillOther: 'Bez gotówki — sprawdź z terminalem i kontem:',
+    tillOtherRow: '{method} {sum} ({parts})',
+    tillOtherVisits: 'wizyty: {n}',
+    tillOtherVouchers: 'bony: {n}',
   },
   appointment: {
     title: 'Wizyta',

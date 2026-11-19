@@ -123,6 +123,10 @@ export const en: Dictionary = {
     tillVisitsVouchers:
       'Paid for visits with gift vouchers: {sum} — this money is not in the till (the salon took it when the voucher was sold).',
     status: { confirmed: 'Confirmed', completed: 'Completed', no_show: 'No-show' },
+    tillOther: 'Not in cash — check with the card terminal and the bank:',
+    tillOtherRow: '{method} {sum} ({parts})',
+    tillOtherVisits: 'visits: {n}',
+    tillOtherVouchers: 'vouchers: {n}',
   },
   week: {
     open: 'Week',

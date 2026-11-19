@@ -121,6 +121,10 @@ export const uk: Dictionary = {
     tillVisitsVouchers:
       'За візити оплачено сертифікатами: {sum} — цих грошей немає в касі (салон отримав їх під час продажу сертифіката).',
     status: { confirmed: 'Підтверджено', completed: 'Завершено', no_show: 'Не прийшов' },
+    tillOther: 'Без готівки — звірте з терміналом і рахунком:',
+    tillOtherRow: '{method} {sum} ({parts})',
+    tillOtherVisits: 'візити: {n}',
+    tillOtherVouchers: 'сертифікати: {n}',
   },
   week: {
     open: 'Тиждень',

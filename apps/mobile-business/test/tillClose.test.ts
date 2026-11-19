@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { TillClose } from '../src/api';
+import { pl } from '../src/locales/pl';
 import {
   cashInput,
   changedSinceClose,
   expectedParts,
   movementReady,
+  otherPaymentsLine,
   parseCash,
   signed,
   tillDifference,
@@ -17,6 +19,7 @@ const closed = (counted: number, expected: number, now = expected): TillClose =>
   visitsCashGrosze: now,
   visitsVoucherGrosze: 0,
   vouchersCashGrosze: 0,
+  otherPayments: [],
   cashInGrosze: 0,
   cashOutGrosze: 0,
   movements: [],
@@ -123,5 +126,37 @@ describe('"Wpłata / wypłata" (task 236)', () => {
     expect(movementReady(parseCash('0'), 'Ręczniki')).toBe(false);
     expect(movementReady(parseCash('10x'), 'Ręczniki')).toBe(false);
     expect(movementReady(parseCash('10'), '  ')).toBe(false);
+  });
+});
+
+describe('"Bez gotówki" (task 552)', () => {
+  const money = (hundredths: number) => `${(hundredths / 100).toFixed(2).replace('.', ',')} zł`;
+
+  it('lists card, BLIK, transfer and other with visits and vouchers; nothing when empty', () => {
+    expect(otherPaymentsLine(closed(0, 0), pl, money)).toBeNull();
+    const view: TillClose = {
+      ...closed(0, 0),
+      otherPayments: [
+        {
+          method: 'card',
+          visits: 2,
+          visitsGrosze: 13_000,
+          vouchers: 1,
+          vouchersGrosze: 5000,
+          totalGrosze: 18_000,
+        },
+        {
+          method: 'transfer',
+          visits: 0,
+          visitsGrosze: 0,
+          vouchers: 1,
+          vouchersGrosze: 8000,
+          totalGrosze: 8000,
+        },
+      ],
+    };
+    expect(otherPaymentsLine(view, pl, money)).toBe(
+      'Bez gotówki — sprawdź z terminalem i kontem: Karta 180,00 zł (wizyty: 2, bony: 1) · Przelew 80,00 zł (bony: 1)',
+    );
   });
 });

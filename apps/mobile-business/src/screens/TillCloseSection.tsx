@@ -9,6 +9,7 @@ import {
   changedSinceClose,
   expectedParts,
   movementReady,
+  otherPaymentsLine,
   parseCash,
   tillDifference,
 } from '../tillClose';
@@ -56,6 +57,7 @@ export function TillCloseSection(props: {
     <View style={styles.box}>
       <TillMovements {...props} view={view} onChange={setView} />
       <TillCount {...props} view={view} onChange={setView} />
+      <OtherPayments {...props} view={view} onChange={setView} />
     </View>
   );
 }
@@ -138,6 +140,22 @@ function ExpectedText({ view, t, locale }: PartProps) {
         </Text>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Task 552: what the day brought not in cash — card, BLIK, transfer, other — to check with the
+ * card terminal and the bank account at the end of the day.
+ */
+function OtherPayments({ view, t, locale }: PartProps) {
+  const line = otherPaymentsLine(view, t, (hundredths) =>
+    formatPrice(hundredths, view.currency, locale),
+  );
+  if (!line) return null;
+  return (
+    <Text style={styles.muted} testID="till-other">
+      {line}
+    </Text>
   );
 }
 

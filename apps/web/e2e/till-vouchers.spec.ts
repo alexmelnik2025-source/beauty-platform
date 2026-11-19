@@ -17,7 +17,8 @@ import { serveApp } from './mobile-app';
  * sold in "Bony podarunkowe" with "Jak klient zapłacił za bon" shows how it was paid (547).
  * Task 550: how it was paid, fixed in "Zmień bon" (550).
  * Task 548: the same in the business app — the till of that day and how vouchers were paid (548,
- * 548-a).
+ * 548-a). Task 552: "Bez gotówki" — the voucher sold by card that day, to check with the terminal
+ * (552, and in the business app 552-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -184,6 +185,11 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
   await form.getByLabel(/Gotówka w kasie/).fill('140');
   await form.getByRole('button', { name: 'Zapisz' }).click();
   await expect(till.getByTestId('till-diff')).toHaveText('zgadza się');
+  // Task 552: what the day brought not in cash — Jan's birthday voucher was sold by card.
+  await expect(till.getByTestId('till-other')).toContainText(
+    /Bez gotówki — sprawdź z terminalem i kontem: Karta 50,00\s*zł \(bony: 1\)/,
+  );
+  await shot(page, '552-till-other-payments');
 
   // Task 547: "Nowy bon" — how the client paid for it.
   await page.goto('/pl/app/vouchers');
@@ -238,6 +244,9 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
       await phone.waitForTimeout(800);
     }
     await expect(appTill.getByTestId('till-diff')).toHaveText('Zgadza się');
+    await expect(appTill.getByTestId('till-other')).toContainText(
+      /Bez gotówki — sprawdź z terminalem i kontem: Karta 50,00\s*zł \(bony: 1\)/,
+    );
     await appTill.getByRole('button', { name: 'Policz ponownie' }).click();
     const appForm = phone.getByTestId('till-close-form');
     await expect(appForm).toContainText(/Powinno być w kasie: 140,00\s*zł/);

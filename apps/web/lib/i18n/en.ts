@@ -264,6 +264,10 @@ export const en: Dict = {
     tillVouchersSold: 'Gift vouchers sold for cash: {sum}',
     tillVisitsVouchers:
       'Paid for visits with gift vouchers: {sum} — this money is not in the till (the salon took it when the voucher was sold).',
+    tillOther: 'Not in cash — check with the card terminal and the bank:',
+    tillOtherRow: '{method} {sum} ({parts})',
+    tillOtherVisits: 'visits: {n}',
+    tillOtherVouchers: 'vouchers: {n}',
   },
   appointment: {
     title: 'Appointment',

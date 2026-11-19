@@ -580,3 +580,86 @@ describe('gift vouchers in the till (tasks 546–547)', () => {
     expect((await till(DAY).expect(200)).body.vouchersCashGrosze).toBe(10_000);
   });
 });
+
+describe('"Inne płatności" — what the day brought not in cash (task 552)', () => {
+  const vouchers = () => `${base}/gift-vouchers`;
+  const sell = (body: Record<string, unknown>) =>
+    ctx.http().post(vouchers()).set(owner.auth).send(body);
+
+  it('card, BLIK, transfer and other visits and vouchers of the day, by way of paying', async () => {
+    // Nothing yet.
+    expect((await till().expect(200)).body.otherPayments).toEqual([]);
+
+    const card = (await walkIn(at(9), { paid: true, paymentMethod: 'card' }).expect(201)).body;
+    await walkIn(at(10), { paid: true, paymentMethod: 'card' }).expect(201);
+    await walkIn(at(11), { paid: true, paymentMethod: 'transfer' }).expect(201);
+    await walkIn(at(12), { paid: true, paymentMethod: 'cash' }).expect(201); // cash — not here
+    await walkIn(at(13)).expect(201); // not paid — not here
+
+    // A card visit paid partly with a voucher: only the rest went through the terminal.
+    const voucher = (await sell({ amountGrosze: 10_000 }).expect(201)).body;
+    await ctx
+      .http()
+      .post(`${vouchers()}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 3000, appointmentId: card.id })
+      .expect(200);
+
+    const res = await till().expect(200);
+    expect(registeredResponseSchema('TillClose').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body.otherPayments).toEqual([
+      {
+        method: 'card',
+        visits: 2,
+        visitsGrosze: 13_000, // 80,00 − 30,00 + 80,00
+        vouchers: 0,
+        vouchersGrosze: 0,
+        totalGrosze: 13_000,
+      },
+      {
+        method: 'transfer',
+        visits: 1,
+        visitsGrosze: 8000,
+        vouchers: 0,
+        vouchersGrosze: 0,
+        totalGrosze: 8000,
+      },
+    ]);
+    // Cash stays where it was.
+    expect(res.body.visitsCashGrosze).toBe(8000);
+  });
+
+  it('vouchers sold that day by card or BLIK; a cancelled one is left out', async () => {
+    const today = localToday(Date.now(), TZ);
+    await sell({ amountGrosze: 15_000, paymentMethod: 'blik' }).expect(201);
+    await sell({ amountGrosze: 5000, paymentMethod: 'blik' }).expect(201);
+    await sell({ amountGrosze: 7000, paymentMethod: 'card' }).expect(201);
+    await sell({ amountGrosze: 2000 }).expect(201); // not noted — not here
+    const cancelled = (await sell({ amountGrosze: 4000, paymentMethod: 'card' }).expect(201)).body;
+    await ctx.http().post(`${vouchers()}/${cancelled.id}/cancel`).set(owner.auth).expect(200);
+
+    const res = await till(today).expect(200);
+    expect(res.body.otherPayments).toEqual([
+      {
+        method: 'card',
+        visits: 0,
+        visitsGrosze: 0,
+        vouchers: 1,
+        vouchersGrosze: 7000,
+        totalGrosze: 7000,
+      },
+      {
+        method: 'blik',
+        visits: 0,
+        visitsGrosze: 0,
+        vouchers: 2,
+        vouchersGrosze: 20_000,
+        totalGrosze: 20_000,
+      },
+    ]);
+    // Not on another day.
+    expect((await till(DAY).expect(200)).body.otherPayments).toEqual([]);
+  });
+});

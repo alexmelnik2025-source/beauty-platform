@@ -7118,6 +7118,21 @@ export interface components {
             visitsVoucherGrosze: number;
             /** @description Task 547: gift vouchers sold that day for cash (not cancelled), in hundredths of the salon currency */
             vouchersCashGrosze: number;
+            /** @description Task 552: what the day brought not in cash — card, BLIK, transfer, other — to check with the card terminal and the bank; only ways with money, in that order */
+            otherPayments: {
+                /** @enum {string} */
+                method: "card" | "blik" | "transfer" | "other";
+                /** @description Visits of the day that took place, paid this way */
+                visits: number;
+                /** @description What those visits brought (price minus discounts minus what was paid with gift vouchers), in hundredths of the salon currency */
+                visitsGrosze: number;
+                /** @description Gift vouchers sold that day paid this way */
+                vouchers: number;
+                /** @description What those vouchers brought (not cancelled), in hundredths of the salon currency */
+                vouchersGrosze: number;
+                /** @description Visits plus vouchers, in hundredths of the salon currency */
+                totalGrosze: number;
+            }[];
             /** @description Task 236: cash put into the till that day, in hundredths of the salon currency */
             cashInGrosze: number;
             /** @description Task 236: cash taken out of the till that day, in hundredths of the salon currency */

@@ -1,4 +1,5 @@
 import type { TillClose } from './api';
+import { fill, type Dictionary } from './i18n';
 
 /**
  * Task 232: "Zamknij kasę" — the cash counted in the till at the end of the day, beside what
@@ -64,4 +65,28 @@ export function expectedParts(
 /** Task 236: a movement can be saved with an amount above zero and a reason. */
 export function movementReady(amount: number | null, note: string): boolean {
   return amount !== null && amount > 0 && note.trim() !== '';
+}
+
+/**
+ * Task 552: "Bez gotówki — sprawdź z terminalem i kontem: Karta 130,00 zł (wizyty: 2) · …" —
+ * what the day brought by card, BLIK, transfer or another way; null when nothing.
+ */
+export function otherPaymentsLine(
+  view: TillClose,
+  t: Dictionary,
+  money: (hundredths: number) => string,
+): string | null {
+  if (view.otherPayments.length === 0) return null;
+  const rows = view.otherPayments.map((row) => {
+    const parts = [
+      row.visits > 0 ? fill(t.day.tillOtherVisits, { n: String(row.visits) }) : null,
+      row.vouchers > 0 ? fill(t.day.tillOtherVouchers, { n: String(row.vouchers) }) : null,
+    ].filter(Boolean);
+    return fill(t.day.tillOtherRow, {
+      method: t.visit.paymentMethods[row.method],
+      sum: money(row.totalGrosze),
+      parts: parts.join(', '),
+    });
+  });
+  return `${t.day.tillOther} ${rows.join(' · ')}`;
 }

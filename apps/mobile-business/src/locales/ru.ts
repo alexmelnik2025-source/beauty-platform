@@ -123,6 +123,10 @@ export const ru: Dictionary = {
     tillVisitsVouchers:
       'За визиты оплачено сертификатами: {sum} — этих денег нет в кассе (салон получил их при продаже сертификата).',
     status: { confirmed: 'Подтверждён', completed: 'Завершён', no_show: 'Не пришёл' },
+    tillOther: 'Без наличных — сверьте с терминалом и счётом:',
+    tillOtherRow: '{method} {sum} ({parts})',
+    tillOtherVisits: 'визиты: {n}',
+    tillOtherVouchers: 'сертификаты: {n}',
   },
   week: {
     open: 'Неделя',

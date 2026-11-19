@@ -47,6 +47,7 @@ export function TillClose({
     <>
       <TillMovements base={base} view={view} currency={currency} onChange={setView} />
       <TillCount base={base} view={view} currency={currency} onChange={setView} />
+      <OtherPayments view={view} currency={currency} />
     </>
   );
 }
@@ -95,6 +96,37 @@ function ExpectedLine({ view, currency }: { view: TillCloseView; currency: strin
         </span>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Task 552: what the day brought not in cash — card, BLIK, transfer, other (visits without the
+ * part paid with gift vouchers, plus vouchers sold that way) — to check with the card terminal
+ * and the bank account at the end of the day.
+ */
+function OtherPayments({ view, currency }: { view: TillCloseView; currency: string }) {
+  const { t } = useI18n();
+  const money = useMoney(currency);
+  if (view.otherPayments.length === 0) return null;
+  return (
+    <span className="small muted till-close__line" data-testid="till-other">
+      {t.calendar.tillOther}{' '}
+      {view.otherPayments
+        .map((row) => {
+          const parts = [
+            row.visits > 0 ? fill(t.calendar.tillOtherVisits, { n: String(row.visits) }) : null,
+            row.vouchers > 0
+              ? fill(t.calendar.tillOtherVouchers, { n: String(row.vouchers) })
+              : null,
+          ].filter(Boolean);
+          return fill(t.calendar.tillOtherRow, {
+            method: t.appointment.paymentMethods[row.method],
+            sum: money(row.totalGrosze),
+            parts: parts.join(', '),
+          });
+        })
+        .join(' · ')}
+    </span>
   );
 }
 

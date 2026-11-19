@@ -27532,6 +27532,63 @@
             "maximum": 9007199254740991,
             "description": "Task 547: gift vouchers sold that day for cash (not cancelled), in hundredths of the salon currency"
           },
+          "otherPayments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "card",
+                    "blik",
+                    "transfer",
+                    "other"
+                  ]
+                },
+                "visits": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits of the day that took place, paid this way"
+                },
+                "visitsGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What those visits brought (price minus discounts minus what was paid with gift vouchers), in hundredths of the salon currency"
+                },
+                "vouchers": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Gift vouchers sold that day paid this way"
+                },
+                "vouchersGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What those vouchers brought (not cancelled), in hundredths of the salon currency"
+                },
+                "totalGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Visits plus vouchers, in hundredths of the salon currency"
+                }
+              },
+              "required": [
+                "method",
+                "visits",
+                "visitsGrosze",
+                "vouchers",
+                "vouchersGrosze",
+                "totalGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 552: what the day brought not in cash — card, BLIK, transfer, other — to check with the card terminal and the bank; only ways with money, in that order"
+          },
           "cashInGrosze": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -27645,6 +27702,7 @@
           "visitsCashGrosze",
           "visitsVoucherGrosze",
           "vouchersCashGrosze",
+          "otherPayments",
           "cashInGrosze",
           "cashOutGrosze",
           "movements",

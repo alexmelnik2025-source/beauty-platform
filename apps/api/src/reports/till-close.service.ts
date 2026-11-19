@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
-import type { Location } from '../generated/prisma/client';
+import type { Location, PaymentMethod } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, instantToLocal, localToday, zonedToInstant } from '../scheduling/time';
@@ -11,6 +11,9 @@ import { tillCsv, type TillCsvLine } from './till-csv';
 
 /** Task 239: how far back "Kasa nie została zamknięta" looks for a day with cash. */
 const UNCLOSED_LOOKBACK_DAYS = 14;
+
+/** Task 552: the ways of paying that are not cash, in the order "Zamknij kasę" lists them. */
+const OTHER_METHODS = ['card', 'blik', 'transfer', 'other'] as const;
 
 const dayNotStarted = (): AppException =>
   new AppException(
@@ -189,6 +192,7 @@ export class TillCloseService {
       visitsCashGrosze: cash.visits,
       visitsVoucherGrosze: cash.visitsVouchers,
       vouchersCashGrosze: cash.vouchers,
+      otherPayments: await this.otherPayments(location, date),
       cashInGrosze: cash.cashIn,
       cashOutGrosze: cash.cashOut,
       movements: cash.movements.map((mv) => ({
@@ -340,6 +344,68 @@ export class TillCloseService {
       vouchers += byVoucher;
     }
     return { cash, vouchers };
+  }
+
+  /**
+   * Task 552: what the day brought not in cash — the visits that took place and were paid by card,
+   * BLIK, transfer or another way (price minus discounts minus what was paid with gift vouchers,
+   * like the cash visits) and the gift vouchers sold that day paid that way (not cancelled). Only
+   * ways with something in them, in a fixed order — what the owner checks with the card terminal
+   * and the bank at the end of the day.
+   */
+  private async otherPayments(
+    location: Location,
+    date: string,
+  ): Promise<TillCloseResponse['otherPayments']> {
+    const methods: PaymentMethod[] = [...OTHER_METHODS];
+    const from = new Date(zonedToInstant(date, 0, location.timezone));
+    const to = new Date(zonedToInstant(addDays(date, 1), 0, location.timezone));
+    const [visits, vouchers] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: {
+          locationId: location.id,
+          status: 'completed',
+          paidAt: { not: null },
+          paymentMethod: { in: methods },
+          startAt: { gte: from, lt: to },
+        },
+        select: {
+          paymentMethod: true,
+          priceGrosze: true,
+          discountGrosze: true,
+          voucherUses: { where: { undoneAt: null }, select: { amountGrosze: true } },
+        },
+      }),
+      this.prisma.giftVoucher.groupBy({
+        by: ['paymentMethod'],
+        where: {
+          locationId: location.id,
+          paymentMethod: { in: methods },
+          cancelledAt: null,
+          createdAt: { gte: from, lt: to },
+        },
+        _count: { _all: true },
+        _sum: { amountGrosze: true },
+      }),
+    ]);
+    return OTHER_METHODS.map((method) => {
+      const own = visits.filter((a) => a.paymentMethod === method);
+      const visitsGrosze = own.reduce((sum, a) => {
+        const price = Math.max(0, a.priceGrosze - a.discountGrosze);
+        const byVoucher = a.voucherUses.reduce((s, u) => s + u.amountGrosze, 0);
+        return sum + Math.max(0, price - byVoucher);
+      }, 0);
+      const sold = vouchers.find((v) => v.paymentMethod === method);
+      const vouchersGrosze = sold?._sum.amountGrosze ?? 0;
+      return {
+        method,
+        visits: own.length,
+        visitsGrosze,
+        vouchers: sold?._count._all ?? 0,
+        vouchersGrosze,
+        totalGrosze: visitsGrosze + vouchersGrosze,
+      };
+    }).filter((row) => row.visits > 0 || row.vouchers > 0);
   }
 
   /**
