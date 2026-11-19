@@ -566,7 +566,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await app.getByRole('button', { name: 'Usługi' }).click();
     await appList.getByRole('button', { name: 'Dostawa — Pomada matowa' }).click();
     await appList.getByLabel('Dostawa — Pomada matowa').fill('6');
-    await appList.getByRole('button', { name: 'Przyjmij' }).click();
+    await appList.getByRole('button', { name: 'Przyjmij', exact: true }).click();
     await expect(appList.getByText('zostało 6 szt.', { exact: true })).toBeVisible();
     await appList.getByText('zostało 6 szt.', { exact: true }).scrollIntoViewIfNeeded();
     await shot(app, '439-business-app-restock');
