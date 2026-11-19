@@ -18,10 +18,12 @@ import {
   parseValidUntil,
   voucherErrorText,
   voucherLine,
+  voucherCheckLink,
   voucherStatus,
   voucherText,
 } from '../vouchers';
-import { shareCsv, shareText } from '../share';
+import { WEB_URL } from '../config';
+import { bookingLink, shareCsv, shareText } from '../share';
 import { csvTools, orderShareTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -73,6 +75,25 @@ function VoucherCard(props: {
   const [editNote, setEditNote] = useState('');
   // Task 532: the payment the owner or a manager is asked about before undoing it.
   const [undoing, setUndoing] = useState<string | null>(null);
+  // Task 539: while the salon page is public, "Wyślij bon" adds the link that shows what is left.
+  const [checkUrl, setCheckUrl] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    api
+      .location(salon.orgId, salon.locationId)
+      .then((location) => {
+        if (!live) return;
+        setCheckUrl(
+          location.onlineBookingEnabled
+            ? voucherCheckLink(bookingLink(WEB_URL, location), voucher.code)
+            : undefined,
+        );
+      })
+      .catch(() => live && setCheckUrl(undefined));
+    return () => {
+      live = false;
+    };
+  }, [api, salon.orgId, salon.locationId, voucher.code]);
 
   async function undo(useId: string, amountGrosze: number) {
     setError('');
@@ -176,7 +197,14 @@ function VoucherCard(props: {
             onPress={() => {
               setError('');
               setInfo('');
-              const message = voucherText(voucher, salon.locationName, t, salon.currency, locale);
+              const message = voucherText(
+                voucher,
+                salon.locationName,
+                t,
+                salon.currency,
+                locale,
+                checkUrl,
+              );
               void shareText(
                 { title: fill(v.shareTitle, { salon: salon.locationName }), message },
                 orderShareTools(),

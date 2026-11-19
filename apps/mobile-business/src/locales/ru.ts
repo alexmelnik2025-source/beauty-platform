@@ -1718,6 +1718,7 @@ export const ru: Dictionary = {
     shareTitle: 'Подарочный сертификат — {salon}',
     shareAmount: 'Сумма: {amount}',
     shareCode: 'Код: {code}',
+    shareCheck: 'Проверить остаток: {url}',
     shareCopied: 'Сертификат скопирован — вставьте его в сообщение.',
     shareFailed: 'Не удалось отправить сертификат.',
     soldOn: 'Продан {date}',

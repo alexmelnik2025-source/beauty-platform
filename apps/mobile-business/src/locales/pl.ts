@@ -1717,6 +1717,7 @@ export const pl = {
     shareTitle: 'Bon podarunkowy — {salon}',
     shareAmount: 'Kwota: {amount}',
     shareCode: 'Kod: {code}',
+    shareCheck: 'Sprawdź, ile zostało: {url}',
     shareCopied: 'Bon skopiowany — wklej go w wiadomości.',
     shareFailed: 'Nie udało się wysłać bonu.',
     soldOn: 'Sprzedany {date}',

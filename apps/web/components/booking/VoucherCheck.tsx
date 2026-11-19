@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
@@ -20,7 +20,8 @@ function dayWithYear(date: string, tag: string): string {
 /**
  * Task 537: "Sprawdź bon" on the salon page — a client with a gift voucher of this salon types its
  * code and sees what is left and until when. Only the value and the dates: who it is for and the
- * payments stay in the salon. Folded until the client opens it.
+ * payments stay in the salon. Folded until the client opens it, or opened with the code from
+ * `?bon=` (task 539).
  */
 export function VoucherCheck({ slug }: { slug: string }) {
   const { t, locale } = useI18n();
@@ -31,27 +32,46 @@ export function VoucherCheck({ slug }: { slug: string }) {
   const [error, setError] = useState('');
   const [voucher, setVoucher] = useState<PublicGiftVoucher | null>(null);
 
-  async function check(event: FormEvent) {
+  const lookUp = useCallback(
+    async (typed: string) => {
+      setBusy(true);
+      setError('');
+      setVoucher(null);
+      try {
+        setVoucher(
+          await api<PublicGiftVoucher>(
+            `/v1/public/locations/${encodeURIComponent(slug)}/gift-vouchers/${encodeURIComponent(typed)}`,
+            { auth: false },
+          ),
+        );
+      } catch (err) {
+        setError(
+          err instanceof ApiError && err.status === 404
+            ? t.voucherCheck.notFound
+            : errorText(t, err),
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [slug, t],
+  );
+
+  // Task 539: the QR code on a printed voucher opens the page with `?bon=<code>` — the answer is
+  // shown at once.
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.search).get('bon')?.trim() ?? '';
+    if (fromLink.length < 4) return;
+    setOpen(true);
+    setCode(fromLink);
+    void lookUp(fromLink);
+  }, [lookUp]);
+
+  function check(event: FormEvent) {
     event.preventDefault();
     const typed = code.trim();
     if (typed.length < 4 || busy) return;
-    setBusy(true);
-    setError('');
-    setVoucher(null);
-    try {
-      setVoucher(
-        await api<PublicGiftVoucher>(
-          `/v1/public/locations/${encodeURIComponent(slug)}/gift-vouchers/${encodeURIComponent(typed)}`,
-          { auth: false },
-        ),
-      );
-    } catch (err) {
-      setError(
-        err instanceof ApiError && err.status === 404 ? t.voucherCheck.notFound : errorText(t, err),
-      );
-    } finally {
-      setBusy(false);
-    }
+    void lookUp(typed);
   }
 
   if (!open) {
@@ -78,7 +98,7 @@ export function VoucherCheck({ slug }: { slug: string }) {
     <section className="stack voucher-check" aria-labelledby="voucher-check-title">
       <h2 id="voucher-check-title">{t.voucherCheck.title}</h2>
       <p className="small muted">{t.voucherCheck.hint}</p>
-      <form className="voucher-check-form" onSubmit={(e) => void check(e)}>
+      <form className="voucher-check-form" onSubmit={check}>
         <label className="field">
           <span>{t.voucherCheck.code}</span>
           <input

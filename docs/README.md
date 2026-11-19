@@ -3477,7 +3477,7 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   (`api.giftVoucherUsesCsv`, «Поделиться» на телефоне).
 - Тесты: `apps/api/test/gift-vouchers.spec.ts`, e2e `gift-vouchers.spec.ts`.
 
-## «Sprawdź bon» для клиента (задачи 536–538)
+## «Sprawdź bon» для клиента (задачи 536–539)
 
 - `GET /v1/public/locations/:slug/gift-vouchers/:code` — без входа (`PublicVouchersController`): номинал, остаток,
   валюта, «Ważny do» и статус. Для кого, заметка и оплаты остаются в салоне. Только салоны с открытой страницей
@@ -3487,5 +3487,8 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   zostało» → код → «Zostało 150,00 zł z 200,00 zł», статус, срок с годом, «Bonem płacisz w salonie, przy wizycie»
   (`components/booking/VoucherCheck.tsx`, словари `voucherCheck` на 6 языках).
 - Клиентское приложение: то же на экране салона перед отзывами (`screens/VoucherCheck.tsx`, `api.voucherBalance`).
-- Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-client/test/api.test.ts`, e2e `voucher-check.spec.ts`
-  (скриншоты 537, 538).
+- Задача 539: ссылка `/b/<salon>?bon=<код>` сразу показывает остаток. Пока страница салона открыта, на «Drukuj bon»
+  в кабинете печатается QR-код с этой ссылкой («Zeskanuj, aby sprawdzić, ile zostało na bonie»), а «Wyślij bon» в
+  бизнес-приложении добавляет строку «Sprawdź, ile zostało: …» (`voucherCheckLink` в `apps/mobile-business/src/vouchers.ts`).
+- Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-client/test/api.test.ts`,
+  `apps/mobile-business/test/vouchers.test.ts`, e2e `voucher-check.spec.ts` (скриншоты 537, 538, 539).

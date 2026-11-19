@@ -81,6 +81,8 @@ export function printedCode(code: string): string {
 /**
  * Task 497: "Wyślij bon" — the voucher as a message for the client (or whoever gives it):
  * the salon, the amount (what is left, once paid with), for whom, the code and the last day.
+ * Task 539: `checkUrl` — while the salon page is public, the link where the client sees what is
+ * left (`/b/<salon>?bon=<code>`).
  */
 export function voucherText(
   voucher: Pick<
@@ -91,6 +93,7 @@ export function voucherText(
   t: Dictionary,
   currency: string,
   locale: DayLocale,
+  checkUrl?: string,
 ): string {
   const v = t.vouchers;
   return [
@@ -107,5 +110,11 @@ export function voucherText(
     voucher.validUntil
       ? fill(v.validUntil, { date: dayTitle(voucher.validUntil, locale) })
       : v.noEnd,
+    ...(checkUrl ? [fill(v.shareCheck, { url: checkUrl })] : []),
   ].join('\n');
+}
+
+/** Task 539: the salon page with the voucher code filled in — the client sees what is left. */
+export function voucherCheckLink(bookingPage: string, code: string): string {
+  return `${bookingPage}?bon=${encodeURIComponent(code)}`;
 }

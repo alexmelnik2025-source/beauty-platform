@@ -1719,6 +1719,7 @@ export const en: Dictionary = {
     shareTitle: 'Gift voucher — {salon}',
     shareAmount: 'Amount: {amount}',
     shareCode: 'Code: {code}',
+    shareCheck: 'Check what is left: {url}',
     shareCopied: 'Voucher copied — paste it into a message.',
     shareFailed: 'Could not send the voucher.',
     soldOn: 'Sold {date}',

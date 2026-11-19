@@ -940,6 +940,7 @@ export const pl = {
     cancelled: 'Bon {code} anulowany.',
     print: 'Drukuj bon',
     printTitle: 'Bon podarunkowy',
+    printCheck: 'Zeskanuj, aby sprawdzić, ile zostało na bonie',
     edit: 'Zmień bon',
     editHint: 'Kwoty bonu nie zmienisz. Pusta data — bez terminu ważności.',
     edited: 'Zapisano zmiany bonu {code}.',

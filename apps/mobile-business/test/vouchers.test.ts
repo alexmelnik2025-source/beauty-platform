@@ -7,6 +7,7 @@ import {
   voucherErrorText,
   voucherLine,
   voucherStatus,
+  voucherCheckLink,
   voucherText,
 } from '../src/vouchers';
 
@@ -49,6 +50,31 @@ describe('gift vouchers in the business app (task 492)', () => {
     expect(parseValidUntil(' 2026-12-31 ')).toBe('2026-12-31');
     expect(parseValidUntil('2026-02-30')).toBeUndefined();
     expect(parseValidUntil('31.12.2026')).toBeUndefined();
+  });
+});
+
+describe('"Sprawdź, ile zostało" in "Wyślij bon" (task 539)', () => {
+  it('ends the message with the salon page that shows what is left', () => {
+    const link = voucherCheckLink('https://example.com/pl/b/gestalt', 'ABCD2345');
+    expect(link).toBe('https://example.com/pl/b/gestalt?bon=ABCD2345');
+    expect(
+      voucherText(
+        {
+          code: 'ABCD2345',
+          amountGrosze: 5000,
+          balanceGrosze: 5000,
+          recipient: null,
+          validUntil: null,
+        },
+        'Gestalt',
+        pl,
+        'PLN',
+        'pl',
+        link,
+      )
+        .split('\n')
+        .at(-1),
+    ).toBe('Sprawdź, ile zostało: https://example.com/pl/b/gestalt?bon=ABCD2345');
   });
 });
 

@@ -10,6 +10,7 @@ import { serveApp } from './mobile-app';
  * and sees "Zostało 150,00 zł z 200,00 zł" and the last day (screenshot 537). Nothing about who the
  * voucher is for is shown.
  * Task 538: the same on the salon screen of the client app (screenshot 538).
+ * Task 539: the link from a printed voucher (`?bon=<code>`) shows the answer at once (screenshot 539).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -126,6 +127,17 @@ test('the client checks what is left on a gift voucher on the salon page', async
   await expect(page.getByText('Jan Kowalski')).toHaveCount(0);
   await section.scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'e2e/screenshots/537.png' });
+
+  // Task 539: the QR code of a printed voucher (or the link in "Wyślij bon") opens the page with
+  // the code filled in — the answer is there at once.
+  await page.goto(`/pl/b/${location.slug}?bon=${voucher.code}`);
+  const fromLink = page
+    .getByRole('region', { name: 'Sprawdź bon podarunkowy' })
+    .getByRole('status');
+  await expect(fromLink).toContainText(/Zostało 150,00\s?zł z 200,00\s?zł/);
+  await expect(page.getByLabel('Kod bonu')).toHaveValue(voucher.code);
+  await fromLink.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'e2e/screenshots/539.png' });
   await context.close();
 
   // Task 538: the client app — the salon found in the catalogue, the voucher checked there.

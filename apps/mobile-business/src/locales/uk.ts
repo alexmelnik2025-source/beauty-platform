@@ -1715,6 +1715,7 @@ export const uk: Dictionary = {
     shareTitle: 'Подарунковий сертифікат — {salon}',
     shareAmount: 'Сума: {amount}',
     shareCode: 'Код: {code}',
+    shareCheck: 'Перевірити залишок: {url}',
     shareCopied: 'Сертифікат скопійовано — вставте його в повідомлення.',
     shareFailed: 'Не вдалося надіслати сертифікат.',
     soldOn: 'Продано {date}',

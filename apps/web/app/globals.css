@@ -3211,6 +3211,17 @@ ul.wish-photos {
     font-weight: 700;
   }
 
+  html.print-voucher .voucher-print__check {
+    display: grid;
+    justify-items: center;
+    gap: 2mm;
+  }
+
+  html.print-voucher .voucher-print__check svg {
+    width: 30mm;
+    height: 30mm;
+  }
+
   html.print-voucher .voucher-print__code {
     font-family: ui-monospace, monospace;
     font-size: 24pt;

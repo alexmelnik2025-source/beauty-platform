@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { parseTip as parseAmount } from '@/components/calendar/TipField';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
+import { encodeQr, qrSvg } from '@/lib/qr';
 import { formatDay, formatPrice } from '@/lib/time';
 import type { GiftVoucher, GiftVoucherDetails, GiftVoucherList } from '@/lib/types';
 import { useSubmitLock } from '@/lib/submit-lock';
@@ -81,6 +82,8 @@ const printedCode = (code: string) =>
 /**
  * Task 496: "Drukuj bon" — the voucher as a card to hand to the client: the salon, the amount, for
  * whom, the code and the last day. Only the card is printed (`html.print-voucher` in globals.css).
+ * Task 539: while the salon page is public, a QR code on the card opens it with the code filled in
+ * (`/b/<salon>?bon=<code>`) — the client sees what is left without asking the salon.
  */
 function VoucherPrint({ voucher }: { voucher: GiftVoucher }) {
   const { t, locale } = useI18n();
@@ -88,6 +91,11 @@ function VoucherPrint({ voucher }: { voucher: GiftVoucher }) {
   const { location } = useSession();
   // The card is on the page only while it is printed (its words would repeat the summary's).
   const [printing, setPrinting] = useState(false);
+  const checkSvg = useMemo(() => {
+    if (!printing || !location.onlineBookingEnabled) return '';
+    const url = `${window.location.origin}/${location.defaultLocale}/b/${location.slug}?bon=${voucher.code}`;
+    return qrSvg(encodeQr(url), t.vouchers.printCheck);
+  }, [printing, location, voucher.code, t.vouchers.printCheck]);
   useEffect(() => {
     const done = () => {
       document.documentElement.classList.remove('print-voucher');
@@ -119,6 +127,13 @@ function VoucherPrint({ voucher }: { voucher: GiftVoucher }) {
               ? fill(t.vouchers.validUntil, { date: formatDay(voucher.validUntil, tag) })
               : t.vouchers.noEnd}
           </small>
+          {checkSvg ? (
+            <div className="voucher-print__check">
+              {/* The SVG carries its own name (<title>). */}
+              <div dangerouslySetInnerHTML={{ __html: checkSvg }} />
+              <small>{t.vouchers.printCheck}</small>
+            </div>
+          ) : null}
         </div>
       ) : null}
       <button type="button" className="btn btn--quiet btn--small" onClick={() => setPrinting(true)}>
