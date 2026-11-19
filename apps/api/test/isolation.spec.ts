@@ -46,7 +46,9 @@ type Ids = Record<
   | 'reviewId'
   | 'movementId'
   | 'productId'
-  | 'saleId',
+  | 'saleId'
+  | 'voucherId'
+  | 'code',
   string
 >;
 
@@ -138,6 +140,9 @@ function validBody(route: Route): object {
   if (p.endsWith('/appointments/:appointmentId/products')) {
     return { productId: currentIds?.productId };
   }
+  if (p.endsWith('/gift-vouchers/:voucherId/redeem')) return { amountGrosze: 100 };
+  if (p.endsWith('/gift-vouchers/:voucherId/cancel')) return {};
+  if (p.endsWith('/gift-vouchers')) return { amountGrosze: 10000 };
   if (p.endsWith('/products/stocktake')) {
     return { counts: [{ productId: currentIds?.productId, quantity: 7 }] };
   }
@@ -506,6 +511,15 @@ async function seedLocation(
       unitPriceGrosze: 4500,
     },
   });
+  // A gift voucher with what is left on it (task 490).
+  const voucher = await ctx.prisma.giftVoucher.create({
+    data: {
+      locationId: org.locationId,
+      code: org.locationId.slice(0, 8).toUpperCase(),
+      amountGrosze: 10000,
+      balanceGrosze: 10000,
+    },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -529,6 +543,8 @@ async function seedLocation(
     movementId: movement.id,
     productId: product.id,
     saleId: sale.id,
+    voucherId: voucher.id,
+    code: voucher.code,
   };
 }
 
@@ -576,6 +592,10 @@ async function snapshotOf(ids: Ids) {
     }),
     products: await ctx.prisma.product.findMany({ where: { locationId: ids.locationId } }),
     productSales: await ctx.prisma.productSale.findMany({ where: { locationId: ids.locationId } }),
+    giftVouchers: await ctx.prisma.giftVoucher.findMany({
+      where: { locationId: ids.locationId },
+      include: { uses: true },
+    }),
   };
 }
 
