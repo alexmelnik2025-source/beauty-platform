@@ -142,6 +142,7 @@ function validBody(route: Route): object {
   }
   if (p.endsWith('/gift-vouchers/:voucherId/redeem')) return { amountGrosze: 100 };
   if (p.endsWith('/gift-vouchers/:voucherId/cancel')) return {};
+  if (p.endsWith('/gift-vouchers/:voucherId')) return { recipient: 'Jan' };
   if (p.endsWith('/gift-vouchers')) return { amountGrosze: 10000 };
   if (p.endsWith('/products/stocktake')) {
     return { counts: [{ productId: currentIds?.productId, quantity: 7 }] };
