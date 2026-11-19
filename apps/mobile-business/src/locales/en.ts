@@ -722,6 +722,9 @@ export const en: Dictionary = {
       'Barcode: type the code on the package (e.g. EAN) — then find the product by typing the code in “Search”. One code — one product of the salon.',
     barcodeTaken: 'Another product of the salon already has this barcode.',
     search: 'Search: name or barcode',
+    saleByCode: 'Product barcode',
+    codeUnknown: 'No product has the code {code} — add the code in “Usługi” → “Produkty”.',
+    addByCode: '+ Add by code',
     searchNone: 'Nothing found — check the name or the code.',
     stockCostValue: 'At purchase prices: {amount}.',
     costHint:

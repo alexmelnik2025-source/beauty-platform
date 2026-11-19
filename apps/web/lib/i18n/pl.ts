@@ -1569,6 +1569,8 @@ export const pl = {
       'Kod kreskowy: wpisz albo zeskanuj czytnikiem kod z opakowania (np. EAN) — potem znajdziesz produkt, wpisując lub skanując kod w „Szukaj”. Jeden kod — jeden produkt salonu.',
     search: 'Szukaj: nazwa lub kod kreskowy',
     searchNone: 'Nic nie znaleziono — sprawdź nazwę albo kod.',
+    saleByCode: 'Kod kreskowy produktu (zeskanuj lub wpisz)',
+    codeUnknown: 'Nie ma produktu z kodem {code} — dopisz kod w „Usługi” → „Produkty”.',
     searchClear: 'Wyczyść',
     costNew: 'Cena zakupu (puste — nie wpisujemy)',
     stockCostValue: 'W cenach zakupu: {amount}.',

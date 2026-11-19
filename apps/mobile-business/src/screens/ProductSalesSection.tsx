@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -7,6 +7,7 @@ import {
   type ProductList,
   type VisitProductSales,
 } from '../api';
+import { parseBarcode } from '../barcode';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -17,6 +18,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 396: "Produkty" in the card of a visit that took place — the same as in the cabinet
  * (task 395): a tap on a product of the salon's list notes one sold, «Usuń» removes a
  * mistake. Not part of the visit price, loyalty points or discounts.
+ * Task 524: "Kod kreskowy" — a code typed (or from a scanner) adds one piece of the product with
+ * that code, as in the cabinet; shown when some product of the salon has a code.
  */
 export function ProductSalesSection(props: {
   api: BusinessApi;
@@ -30,6 +33,7 @@ export function ProductSalesSection(props: {
   const p = t.products;
   const [products, setProducts] = useState<ProductList['products']>([]);
   const [sales, setSales] = useState<VisitProductSales | null>(null);
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -71,6 +75,21 @@ export function ProductSalesSection(props: {
     }
   };
 
+  /** Task 524: one piece of the product with this code, or "no such product". */
+  const sellByCode = () => {
+    const wanted = parseBarcode(code);
+    if (!wanted) return;
+    const found = products.find((x) => x.barcode === wanted);
+    if (!found) {
+      setError(fill(p.codeUnknown, { code: wanted }));
+      return;
+    }
+    void run(() => api.addProductSale(salon.orgId, salon.locationId, appointmentId, found.id)).then(
+      () => setCode(''),
+    );
+  };
+  const withCodes = products.some((x) => x.barcode !== null);
+
   if (!sales) return null;
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
 
@@ -100,6 +119,29 @@ export function ProductSalesSection(props: {
           ) : null}
         </View>
       ))}
+      {canChange && withCodes ? (
+        <View style={styles.row}>
+          <TextInput
+            accessibilityLabel={p.saleByCode}
+            placeholder={p.saleByCode}
+            placeholderTextColor={colors.placeholder}
+            value={code}
+            maxLength={40}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            onChangeText={setCode}
+            onSubmitEditing={sellByCode}
+            style={styles.input}
+            testID="visit-products-code"
+          />
+          <Button
+            kind="secondary"
+            label={p.addByCode}
+            disabled={busy || !parseBarcode(code)}
+            onPress={sellByCode}
+          />
+        </View>
+      ) : null}
       {canChange && products.length > 0 ? (
         <View style={styles.chips}>
           {products.map((x) => (
@@ -138,4 +180,17 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, color: colors.ink, flexShrink: 1, flexGrow: 1 },
   muted: { color: colors.muted, fontSize: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  input: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 160,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: colors.ink,
+  },
 });

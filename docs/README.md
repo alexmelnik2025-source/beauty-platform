@@ -3434,7 +3434,7 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
 - Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-business/test/vouchers.test.ts`, e2e `gift-vouchers.spec.ts`
   — скриншоты 501, 501a, 502, 503.
 
-## «Kod kreskowy» и «Szukaj» в товарах (задачи 520–522)
+## «Kod kreskowy» и «Szukaj» в товарах (задачи 520–522, 524)
 
 - `barcode` у товара (`POST/PATCH …/products`, владелец/менеджер; видят все в салоне): код с упаковки (EAN или свой),
   3–32 цифры, буквы или «-»; пробелы сервер убирает, буквы делает заглавными. Один код — один товар в салоне
@@ -3445,5 +3445,8 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   отправляет форму). Логика — `apps/web/lib/barcode.ts`.
 - Бизнес-приложение: то же в «Usługi» → «Produkty» (`apps/mobile-business/src/barcode.ts`, сообщение для
   `BARCODE_TAKEN`). Сканирование камерой телефона — не делали (нужна новая зависимость `expo-camera`).
+- Карточка визита (задача 524, кабинет `ProductSales.tsx` и приложение `ProductSalesSection.tsx`): поле «Kod kreskowy
+  produktu», когда у товаров салона есть коды; код (Enter со сканера или кнопка) добавляет 1 шт. товара с этим кодом
+  тем же `POST …/appointments/:id/products`; неизвестный код — «Nie ma produktu z kodem …».
 - Тесты: `apps/api/test/reports.spec.ts` («Kod kreskowy»), `apps/mobile-business/test/barcode.test.ts`, e2e
-  `products.spec.ts` (скриншоты 521, 522).
+  `products.spec.ts` (скриншоты 521, 522, 524, 524-a).

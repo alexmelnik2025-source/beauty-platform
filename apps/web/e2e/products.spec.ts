@@ -23,7 +23,7 @@ import { serveApp } from './mobile-app';
  * task 444–447: "Odpis" and "Odpisy z magazynu" in the reports; task 452–453: "Dostawy na magazyn";
  * task 455: "CSV historii magazynu"
  * in the cabinet and the business app; task 521–522: "Kod kreskowy" and "Szukaj" in the cabinet (521)
- * and the business app (522).
+ * and the business app (522); task 524: a product added in the visit card by its code (524, 524-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -277,6 +277,23 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   );
   await products.getByRole('button', { name: 'Wyczyść' }).click();
   await expect(products.getByTestId('product-row')).toHaveCount(2);
+  // Task 524: in the visit card the code from the scanner adds the product — the pomade is sold
+  // out (the server says so, nothing is added); an unknown code is named.
+  await page.goto(`/pl/app/calendar?date=${visit.date}`);
+  await page.getByRole('button', { name: /Jan Kowalski/ }).click();
+  const codeSold = page.getByRole('dialog').getByTestId('visit-products');
+  await codeSold.getByTestId('visit-products-code').fill('5901234123457');
+  await codeSold.getByTestId('visit-products-code').press('Enter');
+  await expect(codeSold).toContainText('Za mało sztuk w magazynie');
+  await codeSold.getByTestId('visit-products-code').fill('abc 123');
+  await codeSold.getByTestId('visit-products-code').press('Enter');
+  await expect(codeSold).toContainText('Nie ma produktu z kodem ABC123');
+  await expect(codeSold).toContainText(/Produkty: 98,00\s*zł/);
+  await codeSold.scrollIntoViewIfNeeded();
+  await shot(page, '524-owner-sale-by-code');
+  await page.keyboard.press('Escape');
+  await page.goto('/pl/app/services');
+  await expect(products.getByLabel('Kod kreskowy — Pomada matowa')).toHaveValue('5901234123457');
   // Task 438: "Dostawa" — a new set without a count gets four pieces delivered.
   await products.getByLabel('Nowy produkt').fill('Zestaw');
   await products.getByLabel(/^Cena \(/).fill('80');
@@ -578,6 +595,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appSold).toContainText(/Wosk · 25,00\s*zł · zostało 5 szt\. · Kończy się/);
     await expect(appSold).toContainText(/Szampon · 30,50\s*zł · zostało 2 szt\. · Kończy się/);
     await shot(app, '431-business-app-stock');
+    // Task 524: the code typed in the visit card — the pomade is sold out, nothing is added.
+    await appSold.getByTestId('visit-products-code').fill('5901234123457');
+    await appSold.getByRole('button', { name: '+ Dodaj po kodzie' }).click();
+    await expect(appSold).toContainText('Za mało sztuk w magazynie');
+    await appSold.getByTestId('visit-products-code').fill('abc123');
+    await appSold.getByRole('button', { name: '+ Dodaj po kodzie' }).click();
+    await expect(appSold).toContainText('Nie ma produktu z kodem ABC123');
+    await expect(appSold).toContainText(/PRODUKTY: 128,50\s*zł/);
+    await appSold.scrollIntoViewIfNeeded();
+    await shot(app, '524-a-business-app-sale-by-code');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();

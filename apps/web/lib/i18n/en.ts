@@ -1572,6 +1572,8 @@ export const en: Dict = {
       'Barcode: type or scan the code on the package (e.g. EAN) — then find the product by typing or scanning the code in “Search”. One code — one product of the salon.',
     search: 'Search: name or barcode',
     searchNone: 'Nothing found — check the name or the code.',
+    saleByCode: 'Product barcode (scan or type)',
+    codeUnknown: 'No product has the code {code} — add the code in “Usługi” → “Produkty”.',
     searchClear: 'Clear',
     costNew: 'Purchase price (empty — not written)',
     stockCostValue: 'At purchase prices: {amount}.',

@@ -5,12 +5,15 @@ import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { Product, ProductList, VisitProductSales } from '@/lib/types';
+import { parseBarcode } from '@/lib/barcode';
 import { ErrorBox } from '../ui';
 
 /**
  * Task 395: "Produkty" in the card of a visit that took place — what the client bought (pomade,
  * shampoo…) from the salon's list, with "Usuń" for a mistake. Not part of the visit price,
  * loyalty points or discounts. `canChange` = may change this visit (the server checks it too).
+ * Task 524: "Kod kreskowy" — a code typed or scanned (a scanner types it and presses Enter) adds
+ * one piece of the product with that code; shown when some product of the salon has a code.
  */
 export function ProductSales({
   base,
@@ -30,6 +33,7 @@ export function ProductSales({
   const [sales, setSales] = useState<VisitProductSales | null>(null);
   const [productId, setProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const url = `${base}/appointments/${appointmentId}/products`;
@@ -71,6 +75,21 @@ export function ProductSales({
     }
   }
 
+  /** Task 524: one piece of the product with this code, or "no such product". */
+  function sellByCode() {
+    const wanted = parseBarcode(code);
+    if (!wanted) return;
+    const found = products.find((x) => x.barcode === wanted);
+    if (!found) {
+      setError(p.codeUnknown.replace('{code}', wanted));
+      return;
+    }
+    void run(() =>
+      api<VisitProductSales>(url, { method: 'POST', body: { productId: found.id, quantity: 1 } }),
+    ).then(() => setCode(''));
+  }
+  const withCodes = products.some((x) => x.barcode !== null);
+
   if (!sales) return null;
   // Nothing sold and nothing to sell: no section at all.
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
@@ -106,6 +125,34 @@ export function ProductSales({
             </li>
           ))}
         </ul>
+      ) : null}
+      {canChange && withCodes ? (
+        <form
+          className="row"
+          style={{ gap: 8, alignItems: 'center' }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            sellByCode();
+          }}
+        >
+          <input
+            aria-label={p.saleByCode}
+            placeholder={p.saleByCode}
+            value={code}
+            maxLength={40}
+            autoComplete="off"
+            onChange={(e) => setCode(e.target.value)}
+            style={{ flex: '1 1 12rem' }}
+            data-testid="visit-products-code"
+          />
+          <button
+            type="submit"
+            className="btn btn--quiet btn--small"
+            disabled={busy || !parseBarcode(code)}
+          >
+            + {p.addSale}
+          </button>
+        </form>
       ) : null}
       {canChange && products.length > 0 ? (
         <form
