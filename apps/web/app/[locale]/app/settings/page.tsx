@@ -390,7 +390,7 @@ export default function SettingsPage() {
             </p>
           ) : null}
         </section>
-        <ShareBooking slug={loc.slug} name={loc.name} />
+        <ShareBooking slug={loc.slug} name={loc.name} staffUrl={`${url}/staff`} />
         <section className="section">
           <h2>{t.settings.salon}</h2>
           <label className="field">

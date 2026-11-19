@@ -266,6 +266,9 @@ export const tr: Dict = {
     appLead:
       '“Randevularım”da randevuyu taşıyabilir, iptal edebilir ve yeniden randevu alabilirsiniz. Telefonunuzun ana ekranında bir simgeyle hep elinizin altında olması için uygulamayı yükleyin.',
     installApp: 'Uygulamayı yükle',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Randevu: {name}',
+    qrStaffAny: 'Başka bir uzman',
   },
   manage: {
     title: 'Randevunuz',

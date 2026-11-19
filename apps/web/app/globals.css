@@ -1803,6 +1803,12 @@ fieldset.field > legend {
     visibility: visible;
   }
 
+  /* Task Q2: with the salon's and a specialist's card on the page, only the chosen one prints. */
+  html.print-qr .qr-print:not(.qr-print--printing),
+  html.print-qr .qr-print:not(.qr-print--printing) * {
+    visibility: hidden;
+  }
+
   html.print-qr .qr-print {
     position: fixed;
     top: 15mm;

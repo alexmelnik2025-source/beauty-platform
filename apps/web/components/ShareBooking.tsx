@@ -1,11 +1,24 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useI18n } from '@/lib/i18n';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@/lib/api';
+import { fill, useI18n } from '@/lib/i18n';
 import { encodeQr, qrSvg, type QrCode } from '@/lib/qr';
+import type { Staff } from '@/lib/types';
 
-/** Short link (Instagram bio, business card), QR code and the booking button for the salon's own site. */
-export function ShareBooking({ slug, name }: { slug: string; name: string }) {
+/**
+ * Short link (Instagram bio, business card), QR code and the booking button for the salon's own
+ * site. Task Q2: `staffUrl` (the salon's staff list in the API) adds a QR code for each specialist.
+ */
+export function ShareBooking({
+  slug,
+  name,
+  staffUrl,
+}: {
+  slug: string;
+  name: string;
+  staffUrl?: string;
+}) {
   const { t, locale } = useI18n();
   const origin = window.location.origin;
   const shortLink = `${origin}/s/${slug}`;
@@ -18,7 +31,18 @@ export function ShareBooking({ slug, name }: { slug: string; name: string }) {
         <CopyField value={shortLink} labelledBy="share-short" />
         <small className="muted">{t.share.shortHint}</small>
       </div>
-      <SalonQr link={`${shortLink}?utm_source=qr`} slug={slug} name={name} />
+      <QrCard
+        id="share-qr"
+        title={t.share.qrTitle}
+        alt={t.share.qrAlt}
+        link={`${shortLink}?utm_source=qr`}
+        file={`qr-${slug}`}
+        name={name}
+        hint={t.share.qrHint}
+      />
+      {staffUrl ? (
+        <StaffQr staffUrl={staffUrl} shortLink={shortLink} slug={slug} name={name} />
+      ) : null}
       <div className="field">
         <span id="share-embed">{t.share.embed}</span>
         <CopyField value={embedCode} labelledBy="share-embed" multiline />
@@ -109,32 +133,134 @@ function pngBlob(qr: QrCode): Promise<Blob | null> {
 }
 
 /**
- * QR code of the short link for a mirror, the counter, the door or a business card: PNG, SVG and
- * a printable card (only the card is printed — `html.print-qr` in globals.css).
+ * Task Q2: a QR code for each specialist — the salon's short link with `utm_source=qr&staff=…`,
+ * so the client lands on that specialist's services and times, and the report "Skąd przyszli"
+ * knows whose code it was. Nothing is shown until a specialist is chosen (one code at a time).
  */
-function SalonQr({ link, slug, name }: { link: string; slug: string; name: string }) {
+function StaffQr({
+  staffUrl,
+  shortLink,
+  slug,
+  name,
+}: {
+  staffUrl: string;
+  shortLink: string;
+  slug: string;
+  name: string;
+}) {
+  const { t } = useI18n();
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [staffId, setStaffId] = useState('');
+  useEffect(() => {
+    api<Staff[]>(staffUrl)
+      .then((list) => setStaff(list.filter((s) => s.active)))
+      // Only an extra: without the list the salon's own code is still there.
+      .catch(() => setStaff([]));
+  }, [staffUrl]);
+  if (staff.length === 0) return null;
+  const chosen = staff.find((s) => s.id === staffId);
+  return (
+    <div className="field">
+      <label className="field">
+        <span>{t.share.staffQrTitle}</span>
+        <select
+          className="input"
+          value={staffId}
+          onChange={(e) => setStaffId(e.target.value)}
+          aria-label={t.share.staffQrPick}
+        >
+          <option value="">{t.share.staffQrNone}</option>
+          {staff.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.displayName}
+            </option>
+          ))}
+        </select>
+      </label>
+      {chosen ? (
+        <QrCard
+          id={`share-qr-staff`}
+          alt={fill(t.share.staffQrAlt, { name: chosen.displayName })}
+          link={`${shortLink}?utm_source=qr&staff=${chosen.id}`}
+          file={`qr-${slug}-${fileName(chosen.displayName)}`}
+          name={chosen.displayName}
+          sub={name}
+        />
+      ) : null}
+      <small className="muted">{t.share.staffQrHint}</small>
+    </div>
+  );
+}
+
+/** "Anna Kowalska-Nowak" → "anna-kowalska-nowak" for the downloaded file's name. */
+function fileName(text: string): string {
+  const plain = text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/Ł/g, 'L')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return plain || 'specjalista';
+}
+
+/**
+ * QR code of a link for a mirror, the counter, the door or a business card: PNG, SVG and a
+ * printable card (only this card is printed — `html.print-qr` and `.qr-print--printing` in
+ * globals.css). `name` is the big line of the card, `sub` a smaller one under it.
+ */
+function QrCard({
+  id,
+  title,
+  alt,
+  link,
+  file,
+  name,
+  sub,
+  hint,
+}: {
+  id: string;
+  title?: string;
+  alt: string;
+  link: string;
+  file: string;
+  name: string;
+  sub?: string;
+  hint?: string;
+}) {
   const { t } = useI18n();
   const qr = useMemo(() => encodeQr(link), [link]);
   const svg = useMemo(() => qrSvg(qr, link), [qr, link]);
+  const card = useRef<HTMLElement>(null);
   useEffect(() => {
-    const done = () => document.documentElement.classList.remove('print-qr');
+    const done = () => {
+      document.documentElement.classList.remove('print-qr');
+      card.current?.classList.remove('qr-print--printing');
+    };
     window.addEventListener('afterprint', done);
     return () => window.removeEventListener('afterprint', done);
   }, []);
   return (
     <div className="field">
-      <span id="share-qr">{t.share.qrTitle}</span>
+      {title ? <span id={id}>{title}</span> : null}
       <div className="salon-qr">
-        <figure className="qr-print" aria-labelledby="share-qr">
+        <figure
+          ref={card}
+          className="qr-print"
+          aria-labelledby={title ? id : undefined}
+          aria-label={title ? undefined : alt}
+        >
           <div
             className="qr-print__code"
             role="img"
-            aria-label={t.share.qrAlt}
+            aria-label={alt}
             data-qr-version={qr.version}
             dangerouslySetInnerHTML={{ __html: svg }}
           />
           <figcaption>
             <strong>{name}</strong>
+            {sub ? <span>{sub}</span> : null}
             <span>{t.share.qrScan}</span>
             <small>{link.replace(/^https?:\/\//, '').replace(/\?.*$/, '')}</small>
           </figcaption>
@@ -147,7 +273,7 @@ function SalonQr({ link, slug, name }: { link: string; slug: string; name: strin
               void pngBlob(qr).then((blob) => {
                 if (!blob) return;
                 const url = URL.createObjectURL(blob);
-                download(url, `qr-${slug}.png`);
+                download(url, `${file}.png`);
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
               });
             }}
@@ -159,7 +285,7 @@ function SalonQr({ link, slug, name }: { link: string; slug: string; name: strin
             className="btn btn--quiet"
             onClick={() => {
               const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-              download(url, `qr-${slug}.svg`);
+              download(url, `${file}.svg`);
               setTimeout(() => URL.revokeObjectURL(url), 1000);
             }}
           >
@@ -169,6 +295,8 @@ function SalonQr({ link, slug, name }: { link: string; slug: string; name: strin
             type="button"
             className="btn btn--quiet"
             onClick={() => {
+              // Straight on the DOM: the print dialog takes the page before React re-renders.
+              card.current?.classList.add('qr-print--printing');
               document.documentElement.classList.add('print-qr');
               window.print();
             }}
@@ -177,7 +305,7 @@ function SalonQr({ link, slug, name }: { link: string; slug: string; name: strin
           </button>
         </div>
       </div>
-      <small className="muted">{t.share.qrHint}</small>
+      {hint ? <small className="muted">{hint}</small> : null}
     </div>
   );
 }

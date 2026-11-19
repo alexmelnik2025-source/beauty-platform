@@ -543,6 +543,9 @@ export const pl = {
     appLead:
       'W „Moich wizytach” zmienisz lub odwołasz wizytę i umówisz się ponownie. Zainstaluj aplikację — będzie pod ręką z ikoną na ekranie telefonu.',
     installApp: 'Zainstaluj aplikację',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Rezerwujesz u: {name}',
+    qrStaffAny: 'Inny specjalista',
   },
   manage: {
     title: 'Twoja wizyta',
@@ -1339,6 +1342,13 @@ export const pl = {
     qrPrint: 'Drukuj',
     qrHint:
       'Na lustro, ladę, drzwi lub wizytówkę. Klient skanuje telefonem i od razu widzi wolne terminy. PNG — do Canvy i drukarni, SVG — ostry w każdym rozmiarze.',
+    /** Task Q2: a QR code for each specialist. */
+    staffQrTitle: 'Kod QR specjalisty',
+    staffQrPick: 'Specjalista',
+    staffQrNone: '— wybierz —',
+    staffQrAlt: 'Kod QR rezerwacji u {name}',
+    staffQrHint:
+      'Każdy specjalista może mieć własny kod — na stanowisku, w Instagramie, na wizytówce. Klient od razu widzi jego usługi i wolne terminy, a w raporcie „Skąd przyszli” widać, czyj kod zadziałał.',
   },
   wishes: {
     title: 'Życzenia klienta',

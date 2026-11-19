@@ -154,6 +154,11 @@ export function BookingFlow({
   const [rowStaff, setRowStaff] = useState<string[]>([]);
   /** The client came from the price list straight to the times: "Back" returns there. */
   const [fromList, setFromList] = useState(false);
+  /**
+   * Task Q2: the client came by a specialist's QR code (?staff=… without a service): the service
+   * step says so, and after the service their times open at once — no "who" step.
+   */
+  const [qrStaffId, setQrStaffId] = useState<string | undefined>(undefined);
   /** Task 81: "Speaks EN" — only specialists who speak the chosen language (task 192: any of several). */
   const [speaks, setSpeaks] = useState<Spoken[]>([]);
   const [slots, setSlots] = useState<Slot[] | null>(null);
@@ -258,7 +263,12 @@ export function BookingFlow({
         // "Book again" from the client app: ?service=…&staff=… skips straight to the times.
         const params = new URLSearchParams(window.location.search);
         const preService = loaded.services.find((s) => s.id === params.get('service'));
-        if (!preService) return;
+        if (!preService) {
+          // A specialist's QR code or link: ?staff=… alone.
+          const byQr = loaded.staff.find((s) => s.id === params.get('staff'));
+          if (byQr) setQrStaffId(byQr.id);
+          return;
+        }
         setServiceId(preService.id);
         const preStaff = loaded.staff.find(
           (s) => s.id === params.get('staff') && s.serviceIds.includes(preService.id),
@@ -535,6 +545,8 @@ export function BookingFlow({
   ];
   const newTab = embed ? { target: '_blank', rel: 'noopener' } : {};
   const staffOfService = salon.staff.filter((s) => s.serviceIds.includes(serviceId));
+  const qrStaff = qrStaffId ? salon.staff.find((s) => s.id === qrStaffId) : undefined;
+  const chosenStaff = staffId ? salon.staff.find((s) => s.id === staffId) : undefined;
   // Languages worth filtering by: spoken by some, not by all, specialists of this service.
   const filterLanguages = SPOKEN.filter((code) => {
     const n = staffOfService.filter((s) => (s.languages ?? []).includes(code)).length;
@@ -624,6 +636,15 @@ export function BookingFlow({
 
         <ErrorBox>{error}</ErrorBox>
 
+        {step === 'service' && qrStaff ? (
+          <p className="note qr-staff" role="status" data-testid="qr-staff">
+            <span>{fill(t.booking.qrStaff, { name: qrStaff.displayName })}</span>{' '}
+            <button type="button" className="link-btn" onClick={() => setQrStaffId(undefined)}>
+              {t.booking.qrStaffAny}
+            </button>
+          </p>
+        ) : null}
+
         {step === 'service' ? (
           <ServiceList
             salon={salon}
@@ -632,6 +653,14 @@ export function BookingFlow({
             onPick={(id, row) => {
               setServiceId(id);
               setError('');
+              if (qrStaff && qrStaff.serviceIds.includes(id)) {
+                // Task Q2: the specialist of the QR code does this service → straight to their times.
+                setStaffId(qrStaff.id);
+                setRowStaff([]);
+                setFromList(false);
+                setStep('time');
+                return;
+              }
               if (row) {
                 // A price row: one specialist → their times; several → "any of these" first.
                 setStaffId(row.length === 1 ? row[0] : undefined);
@@ -765,6 +794,12 @@ export function BookingFlow({
         {step === 'time' && service ? (
           <section className="stack">
             <h2>{service.name}</h2>
+            {/* Task Q2: whose times these are, when one specialist is chosen. */}
+            {chosenStaff && rowStaff.length <= 1 ? (
+              <p className="muted">
+                {fill(t.booking.staffTimes, { name: chosenStaff.displayName })}
+              </p>
+            ) : null}
             {rowStaff.length > 1 ? (
               // Task 70b: the row's specialists over the calendar, "Dowolny" first (as in Booksy).
               <div className="row-staff" role="group" aria-label={t.booking.stepStaff}>

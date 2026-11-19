@@ -267,6 +267,9 @@ export const sq: Dict = {
     appLead:
       'Te “Takimet e mia” mund ta zhvendosni ose anuloni takimin dhe të rezervoni përsëri. Instaloni aplikacionin që ta keni gjithmonë pranë me një ikonë në ekranin kryesor të telefonit.',
     installApp: 'Instalo aplikacionin',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Rezervon te: {name}',
+    qrStaffAny: 'Specialist tjetër',
   },
   manage: {
     title: 'Takimi juaj',

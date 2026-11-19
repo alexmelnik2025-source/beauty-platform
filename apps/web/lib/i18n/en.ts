@@ -542,6 +542,9 @@ export const en: Dict = {
     appLead:
       'In “My visits” you can move or cancel the visit and book again. Install the app to keep it at hand with an icon on your phone’s home screen.',
     installApp: 'Install the app',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Booking with: {name}',
+    qrStaffAny: 'Another specialist',
   },
   manage: {
     title: 'Your appointment',
@@ -1341,6 +1344,13 @@ export const en: Dict = {
     qrPrint: 'Print',
     qrHint:
       'For a mirror, the counter, the door or a business card. Clients scan it with their phone and see free times right away. PNG for Canva and print shops, SVG stays sharp at any size.',
+    /** Task Q2: a QR code for each specialist. */
+    staffQrTitle: 'A specialist’s QR code',
+    staffQrPick: 'Specialist',
+    staffQrNone: '— choose —',
+    staffQrAlt: 'QR code for booking with {name}',
+    staffQrHint:
+      'Every specialist can have their own code — at their station, on Instagram, on a business card. The client sees their services and free times straight away, and “Where they came from” shows whose code worked.',
   },
   wishes: {
     title: "Client's wishes",
