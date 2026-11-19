@@ -11,6 +11,7 @@ import { serveApp } from './mobile-app';
 
 /**
  * Task Q2 (part 5): a link opens the client app (web preview of apps/mobile-client) at a salon.
+ * (The file name keeps this after booking.spec.ts, which counts the salons of the catalogue.)
  * With `?service=…` the booking starts straight at the specialists of that service; with
  * `?service=…&staff=…` — at the free times of that specialist; a plain salon link opens the
  * salon's page. Screenshots Q2-app-link-staff, Q2-app-link-time, Q2-app-link-salon.
@@ -80,6 +81,13 @@ async function onlineSalon(
       data: { displayName: 'Kasia', serviceIds: [service.id] },
     }),
   );
+  // A second specialist: with one, the app would skip the "who" step (as the web page does).
+  await json(
+    await api.post(`${base}/staff`, {
+      headers: owner,
+      data: { displayName: 'Marek', serviceIds: [service.id] },
+    }),
+  );
   return { slug: location.slug, serviceId: service.id, staffId: staff.id };
 }
 
@@ -96,6 +104,7 @@ test('a link opens the client app at the salon, service and specialist (task Q2)
     await app.goto(`${clientApp.url}/pl/b/${slug}?service=${serviceId}`);
     await expect(app.getByRole('heading', { name: 'Wybierz specjalistę' })).toBeVisible();
     await expect(app.getByRole('button', { name: /Kasia/ })).toBeVisible();
+    await expect(app.getByRole('button', { name: /Marek/ })).toBeVisible();
     await shot(app, 'Q2-app-link-staff');
 
     // With the specialist too: straight to the free times.

@@ -3642,6 +3642,6 @@ doc `claude/Beauty_Platform_одобрение_функций.md`, в код и�
 С `service` запись начинается сразу с выбора специалиста, с `service` и `staff` — сразу со свободного времени этого
 мастера (та же логика, что «Umów ponownie»); без услуги открывается страница салона. Разбор ссылки —
 `apps/mobile-client/src/deepLink.ts` (без React Native, тесты `test/deepLink.test.ts`); приём — `Linking.getInitialURL`
-и событие `url` в `App.tsx`. Чужие адреса ничего не делают. e2e `app-deep-link.spec.ts` (веб-превью приложения;
+и событие `url` в `App.tsx`. Чужие адреса ничего не делают. e2e `visits-app-deep-link.spec.ts` (веб-превью приложения;
 скриншоты Q2-app-link-staff, Q2-app-link-time, Q2-app-link-salon). Регистрация universal links (`apple-app-site-association`,
 `assetlinks.json`) — после публикации приложений, когда будут Team ID и подпись.
