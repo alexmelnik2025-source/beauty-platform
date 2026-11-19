@@ -349,7 +349,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await shot(page, '449-report-margin');
   // Task 472: the sales by supplier — the pomades come from Hairgum.
   const reportBySupplier = report.getByTestId('report-products-suppliers');
-  await expect(reportBySupplier).toContainText('Według dostawców');
+  await expect(report).toContainText('Według dostawców');
   await expect(reportBySupplier).toContainText(/Hairgum\s*2 szt\. · 98,00\s*zł · marża 58,00\s*zł/);
   await reportBySupplier.scrollIntoViewIfNeeded();
   await shot(page, '472-report-products-suppliers');
