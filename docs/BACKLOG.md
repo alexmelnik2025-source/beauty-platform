@@ -16,8 +16,9 @@
   кабинет «Instagram i Twoja strona» → «Kod QR specjalisty» (выбор специалиста → карточка PNG/SVG/печать только
   этой карточки; ссылка `/s/{salon}?utm_source=qr&staff={id}`); страница записи по такой ссылке показывает
   «Rezerwujesz u: …» и после услуги сразу открывает время этого мастера; e2e `staff-qr.spec.ts` (скриншоты
-  Q2-staff-qr, Q2-staff-qr-page, Q2-staff-qr-time). Дальше: тот же QR специалиста в бизнес-приложении
-  («Link do rezerwacji»).
+  Q2-staff-qr, Q2-staff-qr-page, Q2-staff-qr-time); бизнес-приложение «Link do rezerwacji» → «Kod QR specjalisty»
+  (имена-кнопки → код выбранного специалиста на экране, «Udostępnij link specjalisty»; e2e `staff-qr-app.spec.ts`,
+  скриншот Q2-a-business-app-staff-qr).
 
 - **19.11.2026, ~22:30 UTC — Q2 часть 5 (ветка `agent/566-app-deep-link`)**: клиентское приложение открывается по
   ссылке на салон (`beauty-client://b/{салон}?service=…&staff=…`, адрес страницы записи, короткая ссылка) сразу на

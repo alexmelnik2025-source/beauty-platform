@@ -25,6 +25,19 @@ export function qrLink(webUrl: string, location: Pick<Location, 'slug'>): string
 }
 
 /**
+ * Task Q2: what a specialist's QR code opens — the salon's QR link plus whose code it is, as in
+ * the cabinet's "Kod QR specjalisty", e.g. https://…/s/gestalt?utm_source=qr&staff=<id>. The
+ * booking page then opens that specialist's times straight after the service.
+ */
+export function staffQrLink(
+  webUrl: string,
+  location: Pick<Location, 'slug'>,
+  staffId: string,
+): string {
+  return `${qrLink(webUrl, location)}&staff=${encodeURIComponent(staffId)}`;
+}
+
+/**
  * Task 355: the salon's short link for an Instagram bio or a business card — opens booking in
  * the language of the client's phone (as "Krótki link" in the cabinet), e.g. https://…/s/gestalt.
  */

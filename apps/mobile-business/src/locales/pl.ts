@@ -1697,6 +1697,13 @@ export const pl = {
     qrScan: 'Zeskanuj i umów wizytę',
     qrHint:
       'Pokaż klientowi przy recepcji albo zrób zrzut ekranu i wydrukuj — prowadzi do tej samej strony rezerwacji.',
+    /** Task Q2: a QR code for each specialist. */
+    staffQrTitle: 'Kod QR specjalisty',
+    staffQrHint:
+      'Dotknij imienia — kod tego specjalisty do pokazania lub zrzutu ekranu. Klient od razu widzi jego usługi i terminy, a w „Skąd przyszli” widać, czyj kod zadziałał.',
+    staffQrAlt: 'Kod QR rezerwacji u {name}',
+    staffQrShare: 'Udostępnij link specjalisty',
+    staffQrMessage: '{name} ({salon}) — umów się online: {url}',
     offline:
       'Rezerwacja online jest wyłączona — klienci zobaczą stronę salonu, ale nie zapiszą się. Włącz ją w ustawieniach salonu.',
   },

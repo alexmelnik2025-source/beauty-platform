@@ -1699,6 +1699,13 @@ export const en: Dictionary = {
     qrScan: 'Scan to book a visit',
     qrHint:
       'Show it to a client at the front desk, or take a screenshot and print it — it opens the same booking page.',
+    /** Task Q2: a QR code for each specialist. */
+    staffQrTitle: 'A specialist’s QR code',
+    staffQrHint:
+      'Tap a name — that specialist’s code to show or screenshot. The client sees their services and times straight away, and “Where they came from” shows whose code worked.',
+    staffQrAlt: 'QR code for booking with {name}',
+    staffQrShare: 'Share the specialist’s link',
+    staffQrMessage: '{name} ({salon}) — book online: {url}',
     offline:
       'Online booking is off — clients will see the salon page but cannot book. Switch it on in the salon settings.',
   },
