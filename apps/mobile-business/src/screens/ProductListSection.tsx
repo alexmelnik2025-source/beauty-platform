@@ -31,6 +31,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 437: "CSV stanu magazynowego" — the list as a file for the supplier (shared on a phone,
  * saved in a browser).
  * Task 458: "Inwentaryzacja" — the numbers counted on the shelf for all products on one card.
+ * Task 464: "Dostawca" — whom the salon orders the product from; the stock CSV for one supplier.
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -44,7 +45,14 @@ export function ProductListSection(props: {
   /** Task 461: pieces sold at the visits of the last 30 days, by product. */
   const [sold30, setSold30] = useState<Map<string, number>>(new Map());
   const [editId, setEditId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: '', price: '', cost: '', stock: '', low: '' });
+  const [draft, setDraft] = useState({
+    name: '',
+    price: '',
+    cost: '',
+    stock: '',
+    low: '',
+    supplier: '',
+  });
   const [askRemove, setAskRemove] = useState<string | null>(null);
   const [history, setHistory] = useState<{
     id: string;
@@ -54,11 +62,20 @@ export function ProductListSection(props: {
   const [delivery, setDelivery] = useState('');
   const [writeOffId, setWriteOffId] = useState<string | null>(null);
   const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
-  const [fresh, setFresh] = useState({ name: '', price: '', cost: '', stock: '', low: '' });
+  const [fresh, setFresh] = useState({
+    name: '',
+    price: '',
+    cost: '',
+    stock: '',
+    low: '',
+    supplier: '',
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
+  /** Task 464: "" = the stock CSV of all suppliers. */
+  const [csvSupplier, setCsvSupplier] = useState('');
   const [stocktake, setStocktake] = useState(false);
   const [stocktakeDone, setStocktakeDone] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -121,7 +138,7 @@ export function ProductListSection(props: {
     setCsvBusy(true);
     setCsvInfo('');
     try {
-      const file = await api.stockCsv(salon.orgId, salon.locationId, props.locale);
+      const file = await api.stockCsv(salon.orgId, salon.locationId, props.locale, csvFor || null);
       const result = await shareCsv(file, csvTools());
       setCsvInfo(result === 'failed' ? p.stockCsvFailed : '');
     } catch (e) {
@@ -162,6 +179,15 @@ export function ProductListSection(props: {
   const stockCost = counted.every((x) => x.purchasePriceGrosze !== null)
     ? counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * (x.purchasePriceGrosze ?? 0), 0)
     : null;
+  /** Task 464: the suppliers written at the products, each once (any letter case), by name. */
+  const suppliers = [
+    ...new Map(
+      (products ?? [])
+        .filter((x) => x.supplier !== null)
+        .map((x) => [x.supplier!.toLocaleLowerCase(), x.supplier!]),
+    ).values(),
+  ].sort((a, b) => a.localeCompare(b));
+  const csvFor = suppliers.includes(csvSupplier) ? csvSupplier : '';
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
 
   return (
@@ -171,6 +197,7 @@ export function ProductListSection(props: {
       </Text>
       <Text style={styles.muted}>{p.listHint}</Text>
       <Text style={styles.muted}>{p.costHint}</Text>
+      <Text style={styles.muted}>{p.supplierHint}</Text>
       {toOrder.length > 0 ? (
         <Text style={styles.warn} role="status" testID="products-to-order">
           {fill(p.toOrder, {
@@ -202,6 +229,20 @@ export function ProductListSection(props: {
             onPress={() => void downloadCsv()}
           />
           <Text style={styles.muted}>{p.stockCsvHint}</Text>
+          {suppliers.length > 0 ? (
+            <View style={styles.row} testID="stock-csv-supplier">
+              <Text style={styles.muted}>{`${p.supplierCsv}:`}</Text>
+              {['', ...suppliers].map((name) => (
+                <Button
+                  key={name || '*'}
+                  kind={csvFor === name ? 'primary' : 'secondary'}
+                  label={name || p.supplierAll}
+                  a11yLabel={`${p.supplierCsv}: ${name || p.supplierAll}`}
+                  onPress={() => setCsvSupplier(name)}
+                />
+              ))}
+            </View>
+          ) : null}
           {csvInfo ? <Text style={styles.warn}>{csvInfo}</Text> : null}
           <Button
             kind="secondary"
@@ -267,6 +308,15 @@ export function ProductListSection(props: {
             />
             {draftCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
             <TextInput
+              accessibilityLabel={p.supplierNew}
+              placeholder={p.supplierNew}
+              placeholderTextColor={colors.placeholder}
+              value={draft.supplier}
+              maxLength={80}
+              onChangeText={(supplier) => setDraft({ ...draft, supplier })}
+              style={[styles.input, { marginTop: 8 }]}
+            />
+            <TextInput
               accessibilityLabel={p.stockIn}
               placeholder={p.stockIn}
               placeholderTextColor={colors.placeholder}
@@ -305,6 +355,7 @@ export function ProductListSection(props: {
                       purchasePriceGrosze: draftCost ?? null,
                       stockQuantity: draftStock ?? null,
                       lowStockAt: draftLow ?? null,
+                      supplier: draft.supplier.trim() || null,
                     }),
                   ).then((ok) => ok && setEditId(null))
                 }
@@ -322,6 +373,11 @@ export function ProductListSection(props: {
             {x.purchasePriceGrosze === null ? null : (
               <Text style={styles.muted} testID="product-cost">
                 {`${p.cost}: ${money(x.purchasePriceGrosze)}`}
+              </Text>
+            )}
+            {x.supplier === null ? null : (
+              <Text style={styles.muted} testID="product-supplier">
+                {`${p.supplier}: ${x.supplier}`}
               </Text>
             )}
             {x.stockQuantity === null ? null : x.stockQuantity > 0 ? (
@@ -467,6 +523,7 @@ export function ProductListSection(props: {
                           : amountInput(x.purchasePriceGrosze) || '0',
                       stock: x.stockQuantity === null ? '' : String(x.stockQuantity),
                       low: x.lowStockAt === null ? '' : String(x.lowStockAt),
+                      supplier: x.supplier ?? '',
                     });
                     setEditId(x.id);
                   }}
@@ -541,6 +598,15 @@ export function ProductListSection(props: {
       />
       {freshCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
       <TextInput
+        accessibilityLabel={p.supplierNew}
+        placeholder={p.supplierNew}
+        placeholderTextColor={colors.placeholder}
+        value={fresh.supplier}
+        maxLength={80}
+        onChangeText={(supplier) => setFresh({ ...fresh, supplier })}
+        style={styles.input}
+      />
+      <TextInput
         accessibilityLabel={p.stockIn}
         placeholder={p.stockIn}
         placeholderTextColor={colors.placeholder}
@@ -582,8 +648,12 @@ export function ProductListSection(props: {
                 freshStock ?? null,
                 freshLow ?? null,
                 freshCost ?? null,
+                fresh.supplier.trim() || null,
               ),
-            ).then((ok) => ok && setFresh({ name: '', price: '', cost: '', stock: '', low: '' }))
+            ).then(
+              (ok) =>
+                ok && setFresh({ name: '', price: '', cost: '', stock: '', low: '', supplier: '' }),
+            )
           }
         />
       </View>

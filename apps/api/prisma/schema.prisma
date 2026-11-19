@@ -1493,6 +1493,8 @@ model Product {
   /// Task 448: "Cena zakupu" — what the salon pays the supplier for one; null = not written.
   /// Seen only by owners and managers.
   purchasePriceGrosze Int? @map("purchase_price_grosze")
+  /// Task 462: "Dostawca" — whom the salon orders it from, in its own words; null = not written.
+  supplier      String?
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -1482,6 +1482,12 @@ export const en: Dict = {
     stockValue: 'Stock value: {amount} ({n} pcs) — at selling prices.',
     cost: 'Purchase price',
     costPlaceholder: 'cost',
+    supplier: 'Supplier',
+    supplierNew: 'Supplier (empty — not written)',
+    supplierCsv: 'Supplier in the CSV file',
+    supplierAll: 'All suppliers',
+    supplierHint:
+      'Supplier: whom the salon orders the product from — the whole team sees it; the "Stock CSV" can be downloaded for one supplier.',
     costNew: 'Purchase price (empty — not written)',
     stockCostValue: 'At purchase prices: {amount}.',
     costHint:

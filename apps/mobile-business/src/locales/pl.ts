@@ -687,6 +687,12 @@ export const pl = {
     stockValue: 'Wartość magazynu: {amount} ({n} szt.) — w cenach sprzedaży.',
     cost: 'Cena zakupu',
     costNew: 'Cena zakupu (puste — nie wpisujemy)',
+    supplier: 'Dostawca',
+    supplierNew: 'Dostawca (puste — nie wpisujemy)',
+    supplierCsv: 'Dostawca w pliku CSV',
+    supplierAll: 'Wszyscy dostawcy',
+    supplierHint:
+      'Dostawca: od kogo salon zamawia produkt — widzi go cały zespół; „CSV stanu magazynowego” można pobrać dla jednego dostawcy.',
     stockCostValue: 'W cenach zakupu: {amount}.',
     costHint:
       'Cena zakupu: ile salon płaci dostawcy za sztukę — widzą ją tylko właściciel i menedżer; z niej liczymy marżę w raportach.',

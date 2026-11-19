@@ -691,6 +691,12 @@ export const en: Dictionary = {
     stockValue: 'Stock value: {amount} ({n} pcs) — at selling prices.',
     cost: 'Purchase price',
     costNew: 'Purchase price (empty — not written)',
+    supplier: 'Supplier',
+    supplierNew: 'Supplier (empty — not written)',
+    supplierCsv: 'Supplier in the CSV file',
+    supplierAll: 'All suppliers',
+    supplierHint:
+      'Supplier: whom the salon orders the product from — the whole team sees it; the "Stock CSV" can be downloaded for one supplier.',
     stockCostValue: 'At purchase prices: {amount}.',
     costHint:
       'Purchase price: what the salon pays the supplier for one — only the owner and managers see it; the reports count the margin from it.',

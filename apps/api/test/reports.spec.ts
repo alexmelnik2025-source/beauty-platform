@@ -2278,9 +2278,10 @@ describe('salon report', () => {
       stockQuantity: 1,
       lowStockAt: 2,
       purchasePriceGrosze: 2050,
+      supplier: 'Hairgum',
     });
     await add({ name: '=Aloes', priceGrosze: 3000, stockQuantity: 10, lowStockAt: 2 });
-    await add({ name: 'Wosk', priceGrosze: 2550 });
+    await add({ name: 'Wosk', priceGrosze: 2550, supplier: 'Barber; Hurt' });
     await add({ name: 'Żel', priceGrosze: 2000, stockQuantity: 0 });
     const old = (await add({ name: 'Olejek', priceGrosze: 5000, stockQuantity: 0 })).body as {
       id: string;
@@ -2314,26 +2315,98 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     // Sold products first, by name; a ";" is quoted and a leading "=" cannot run as a formula.
     expect(text.slice(1).trimEnd().split('\r\n')).toEqual([
-      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu',
-      "'=Aloes;30,00;tak;10;2;nie;",
-      // Task 450: the purchase price last; empty when not written.
-      '"Pomada; mocna";45,00;tak;1;2;tak;20,50',
-      'Wosk;25,50;tak;;;nie;',
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca',
+      "'=Aloes;30,00;tak;10;2;nie;;",
+      // Task 450: the purchase price; empty when not written. Task 462: then the supplier.
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum',
+      'Wosk;25,50;tak;;;nie;;"Barber; Hurt"',
       // Sold out: to order even without "Kończy się przy"; not when it is no longer sold.
-      'Żel;20,00;tak;0;;tak;',
-      'Olejek;50,00;nie;0;;nie;',
+      'Żel;20,00;tak;0;;tak;;',
+      'Olejek;50,00;nie;0;;nie;;',
     ]);
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
-    expect(english).toContain('Product;Price;Sold;In stock;Runs low at;To order;Purchase price');
-    expect(english).toContain('Wosk;25.50;yes;;;no;');
-    expect(english).toContain('"Pomada; mocna";45.00;yes;1;2;yes;20.50');
+    expect(english).toContain(
+      'Product;Price;Sold;In stock;Runs low at;To order;Purchase price;Supplier',
+    );
+    expect(english).toContain('Wosk;25.50;yes;;;no;;"Barber; Hurt"');
+    expect(english).toContain('"Pomada; mocna";45.00;yes;1;2;yes;20.50;Hairgum');
     await csv({ locale: 'de' }).expect(400);
+
+    // Task 462: the list for one supplier only — the name in any letter case.
+    const hairgum = (await csv({ supplier: 'HAIRGUM' }).expect(200)).body as string;
+    expect(hairgum.slice(1).trimEnd().split('\r\n')).toEqual([
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca',
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50;Hairgum',
+    ]);
+    const nobody = (await csv({ supplier: 'Nikt' }).expect(200)).body as string;
+    expect(nobody.slice(1).trimEnd().split('\r\n')).toHaveLength(1);
 
     // A specialist cannot download it; another salon reaches nothing.
     await csv({}, kasiaUser.auth).expect(403);
     const other = await signUp(ctx, 'other-stock@example.com');
     await createOrgWithLocation(ctx, other, 'Other');
     await csv({}, other.auth).expect(404);
+  });
+
+  it('"Dostawca": whom the salon orders a product from; everyone in the salon sees it (task 462)', async () => {
+    const created = await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(owner.auth)
+      .send({ name: 'Pomada', priceGrosze: 4500, supplier: '  Hairgum  ' })
+      .expect(201);
+    expect(created.body).toMatchObject({ supplier: 'Hairgum' });
+    expect(registeredResponseSchema('Product').safeParse(created.body).error).toBeUndefined();
+    const id = (created.body as { id: string }).id;
+    const plain = await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(owner.auth)
+      .send({ name: 'Wosk', priceGrosze: 3000 })
+      .expect(201);
+    expect(plain.body).toMatchObject({ supplier: null });
+    // Empty or too long: refused (null clears it).
+    for (const supplier of ['   ', 'x'.repeat(81)]) {
+      await ctx
+        .http()
+        .patch(`${base}/products/${id}`)
+        .set(owner.auth)
+        .send({ supplier })
+        .expect(400);
+    }
+    const changed = await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(owner.auth)
+      .send({ supplier: 'Reuzel' })
+      .expect(200);
+    expect(changed.body).toMatchObject({ supplier: 'Reuzel', priceGrosze: 4500 });
+    // A specialist sees the supplier (to tell the owner what to order) but cannot change it.
+    const list = (await ctx.http().get(`${base}/products`).set(kasiaUser.auth).expect(200))
+      .body as { products: { id: string; supplier: string | null }[] };
+    expect(list.products.find((p) => p.id === id)?.supplier).toBe('Reuzel');
+    await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(kasiaUser.auth)
+      .send({ supplier: 'Inny' })
+      .expect(403);
+    const cleared = await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(owner.auth)
+      .send({ supplier: null })
+      .expect(200);
+    expect(cleared.body).toMatchObject({ supplier: null });
+    // Another salon cannot change it.
+    const other = await signUp(ctx, 'other-supplier@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(other.auth)
+      .send({ supplier: 'Obcy' })
+      .expect(404);
   });
 
   it('"CSV sprzedaży produktów": every product sold in the period, own visits for a specialist (task 422)', async () => {

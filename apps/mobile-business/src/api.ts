@@ -666,8 +666,14 @@ export class BusinessApi {
    * Task 437: "CSV stanu magazynowego" — every product with its price, pieces in stock, "Kończy
    * się przy" and whether to order it, for the supplier. Owners and managers only.
    */
-  stockCsv(orgId: string, locationId: string, locale: Locale): Promise<CsvFile> {
-    const query = new URLSearchParams({ locale }).toString();
+  stockCsv(
+    orgId: string,
+    locationId: string,
+    locale: Locale,
+    /** Task 464: only this supplier's products; null = all. */
+    supplier: string | null = null,
+  ): Promise<CsvFile> {
+    const query = new URLSearchParams(supplier ? { locale, supplier } : { locale }).toString();
     return this.csvFile(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/export.csv?${query}`,
       'stock.csv',
@@ -686,11 +692,13 @@ export class BusinessApi {
     lowStockAt: number | null = null,
     /** Task 448: "Cena zakupu"; null = not written. */
     purchasePriceGrosze: number | null = null,
+    /** Task 464: "Dostawca"; null = not written. */
+    supplier: string | null = null,
   ): Promise<Product> {
     return this.authed<Product>(
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
-      { name, priceGrosze, stockQuantity, lowStockAt, purchasePriceGrosze },
+      { name, priceGrosze, stockQuantity, lowStockAt, purchasePriceGrosze, supplier },
     );
   }
 
@@ -759,6 +767,7 @@ export class BusinessApi {
       stockQuantity?: number | null;
       lowStockAt?: number | null;
       purchasePriceGrosze?: number | null;
+      supplier?: string | null;
     },
   ): Promise<Product> {
     return this.authed<Product>(

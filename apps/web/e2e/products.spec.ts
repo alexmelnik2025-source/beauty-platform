@@ -228,11 +228,29 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(stockCsv.suggestedFilename()).toMatch(/^stock-.+-\d{4}-\d{2}-\d{2}\.csv$/);
   const stockFile = readFileSync((await stockCsv.path())!, 'utf8');
   expect(stockFile).toContain(
-    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu\r\n',
+    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu;Dostawca\r\n',
   );
-  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00\r\n');
-  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;\r\n');
+  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;\r\n');
+  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;;\r\n');
   await shot(page, '437-owner-stock-csv');
+  // Task 463: "Dostawca" — the pomade comes from Hairgum; the CSV for that supplier only.
+  await expect(products.getByLabel('Dostawca w pliku CSV')).toHaveCount(0);
+  const pomadeRow = products
+    .getByTestId('product-row')
+    .filter({ has: page.getByLabel('Nazwa — Pomada matowa') });
+  await products.getByLabel('Dostawca — Pomada matowa').fill('Hairgum');
+  await pomadeRow.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(products.getByLabel('Dostawca — Pomada matowa')).toHaveValue('Hairgum');
+  await products.getByLabel('Dostawca w pliku CSV').selectOption('Hairgum');
+  const [supplierCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    products.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
+  ]);
+  const supplierFile = readFileSync((await supplierCsv.path())!, 'utf8');
+  expect(supplierFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;Hairgum\r\n');
+  expect(supplierFile).not.toContain('Szampon');
+  await products.getByLabel('Dostawca w pliku CSV').scrollIntoViewIfNeeded();
+  await shot(page, '463-owner-supplier');
   // Task 438: "Dostawa" — a new set without a count gets four pieces delivered.
   await products.getByLabel('Nowy produkt').fill('Zestaw');
   await products.getByLabel(/^Cena \(/).fill('80');
@@ -413,11 +431,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appList.getByLabel('Kończy się przy (szt., puste — bez ostrzeżenia)').fill('5');
     // Task 448: "Cena zakupu" from the phone.
     await appList.getByLabel('Cena zakupu (puste — nie wpisujemy) (PLN)').last().fill('10');
+    // Task 464: "Dostawca" from the phone.
+    await appList.getByLabel('Dostawca (puste — nie wpisujemy)').last().fill('Barber Hurt');
     await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
     await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
     await expect(appList.getByText('zostało 5 szt. · Kończy się')).toBeVisible();
     await expect(appList.getByText(/^Cena zakupu: 10,00\s*zł$/)).toBeVisible();
     await expect(appList.getByText(/^Cena zakupu: 20,00\s*zł$/)).toBeVisible();
+    await expect(appList.getByText('Dostawca: Barber Hurt', { exact: true })).toBeVisible();
+    await expect(appList.getByText('Dostawca: Hairgum', { exact: true })).toBeVisible();
     // Both pomades were sold in the cabinet: none left.
     await expect(appList.getByText('Brak w magazynie', { exact: true })).toBeVisible();
     // Task 435: what to order — set in the cabinet (Szampon) and here (Wosk).
@@ -436,9 +458,22 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     ]);
     expect(appStock.suggestedFilename()).toMatch(/^stock-.+\.csv$/);
     const appStockFile = readFileSync((await appStock.path())!, 'utf8');
-    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak;10,00\r\n');
+    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt\r\n');
     await appList.getByRole('button', { name: 'CSV stanu magazynowego' }).scrollIntoViewIfNeeded();
     await shot(app, '437-business-app-stock-csv');
+    // Task 464: the file for one supplier only.
+    await appList
+      .getByRole('button', { name: 'Dostawca w pliku CSV: Barber Hurt', exact: true })
+      .click();
+    const [appSupplierStock] = await Promise.all([
+      app.waitForEvent('download'),
+      appList.getByRole('button', { name: 'CSV stanu magazynowego' }).click(),
+    ]);
+    const appSupplierFile = readFileSync((await appSupplierStock.path())!, 'utf8');
+    expect(appSupplierFile).toContain('Wosk;25,00;tak;5;5;tak;10,00;Barber Hurt\r\n');
+    expect(appSupplierFile).not.toContain('Pomada matowa');
+    await appList.getByTestId('stock-csv-supplier').scrollIntoViewIfNeeded();
+    await shot(app, '464-business-app-supplier');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();

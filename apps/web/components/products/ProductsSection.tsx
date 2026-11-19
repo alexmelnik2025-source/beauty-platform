@@ -49,6 +49,7 @@ function amountInput(hundredths: number): string {
  * Task 457: "Inwentaryzacja" — the numbers counted on the shelf for all products at once.
  * Task 448: "Cena zakupu" — what the salon pays for one (empty = not written); the stock value is
  * also shown at these prices, and the report counts the margin of the products sold.
+ * Task 463: "Dostawca" — whom the salon orders the product from; the stock CSV for one supplier.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -58,13 +59,19 @@ export function ProductsSection({ base }: { base: string }) {
   /** Task 461: pieces sold at the visits of the last 30 days, by product. */
   const [sold30, setSold30] = useState<Map<string, number>>(new Map());
   const [drafts, setDrafts] = useState<
-    Record<string, { name: string; price: string; cost: string; stock: string; low: string }>
+    Record<
+      string,
+      { name: string; price: string; cost: string; stock: string; low: string; supplier: string }
+    >
   >({});
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [cost, setCost] = useState('');
   const [stock, setStock] = useState('');
   const [low, setLow] = useState('');
+  const [supplier, setSupplier] = useState('');
+  /** Task 463: "" = the stock CSV of all suppliers. */
+  const [csvSupplier, setCsvSupplier] = useState('');
   const [historyOf, setHistoryOf] = useState<{
     id: string;
     rows: StockHistory['movements'];
@@ -88,6 +95,7 @@ export function ProductsSection({ base }: { base: string }) {
             cost: costInput(x.purchasePriceGrosze),
             stock: stockInput(x.stockQuantity),
             low: stockInput(x.lowStockAt),
+            supplier: x.supplier ?? '',
           },
         ]),
       ),
@@ -135,7 +143,9 @@ export function ProductsSection({ base }: { base: string }) {
     setBusy(true);
     setError('');
     try {
-      const res = await apiResponse(`${base}/products/export.csv`, { query: { locale } });
+      const res = await apiResponse(`${base}/products/export.csv`, {
+        query: { locale, ...(csvFor ? { supplier: csvFor } : {}) },
+      });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(await res.blob());
       link.download =
@@ -192,6 +202,15 @@ export function ProductsSection({ base }: { base: string }) {
       .filter(Boolean)
       .join(' · ');
   };
+  /** Task 463: the suppliers written at the products, each once (any letter case), by name. */
+  const suppliers = [
+    ...new Map(
+      (products ?? [])
+        .filter((x) => x.supplier !== null)
+        .map((x) => [x.supplier!.toLocaleLowerCase(), x.supplier!]),
+    ).values(),
+  ].sort((a, b) => a.localeCompare(b));
+  const csvFor = suppliers.includes(csvSupplier) ? csvSupplier : '';
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
   const canAdd =
     name.trim() !== '' &&
@@ -211,6 +230,7 @@ export function ProductsSection({ base }: { base: string }) {
       <p className="small muted">{p.restockHint}</p>
       <p className="small muted">{p.writeOffHint}</p>
       <p className="small muted">{p.costHint}</p>
+      <p className="small muted">{p.supplierHint}</p>
       <ErrorBox>{error}</ErrorBox>
       {toOrder.length > 0 ? (
         <p className="note" role="status" data-testid="products-to-order">
@@ -254,6 +274,23 @@ export function ProductsSection({ base }: { base: string }) {
           >
             {p.stockCsv}
           </button>{' '}
+          {suppliers.length > 0 ? (
+            <>
+              <select
+                aria-label={p.supplierCsv}
+                value={csvFor}
+                disabled={busy}
+                onChange={(e) => setCsvSupplier(e.target.value)}
+              >
+                <option value="">{p.supplierAll}</option>
+                {suppliers.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>{' '}
+            </>
+          ) : null}
           <button
             type="button"
             className="btn btn--quiet btn--small"
@@ -299,6 +336,7 @@ export function ProductsSection({ base }: { base: string }) {
               cost: costInput(x.purchasePriceGrosze),
               stock: stockInput(x.stockQuantity),
               low: stockInput(x.lowStockAt),
+              supplier: x.supplier ?? '',
             };
             const draftPrice = parseAmount(draft.price);
             const draftCost = parseCost(draft.cost);
@@ -309,7 +347,8 @@ export function ProductsSection({ base }: { base: string }) {
               (draftPrice !== null && draftPrice !== x.priceGrosze) ||
               (draftCost !== undefined && draftCost !== x.purchasePriceGrosze) ||
               (draftStock !== undefined && draftStock !== x.stockQuantity) ||
-              (draftLow !== undefined && draftLow !== x.lowStockAt);
+              (draftLow !== undefined && draftLow !== x.lowStockAt) ||
+              (draft.supplier.trim() || null) !== x.supplier;
             return (
               <li key={x.id} className="commission-row" data-testid="product-row">
                 <input
@@ -346,6 +385,16 @@ export function ProductsSection({ base }: { base: string }) {
                   />
                   <span aria-hidden="true">{location.currency}</span>
                 </span>
+                <input
+                  aria-label={`${p.supplier} — ${x.name}`}
+                  placeholder={p.supplier}
+                  value={draft.supplier}
+                  maxLength={80}
+                  onChange={(e) =>
+                    setDrafts({ ...drafts, [x.id]: { ...draft, supplier: e.target.value } })
+                  }
+                  style={{ flex: '0 1 9rem', minWidth: 0 }}
+                />
                 <span className="commission-row__input">
                   <input
                     inputMode="numeric"
@@ -433,6 +482,7 @@ export function ProductsSection({ base }: { base: string }) {
                           purchasePriceGrosze: draftCost,
                           stockQuantity: draftStock,
                           lowStockAt: draftLow,
+                          supplier: draft.supplier.trim() || null,
                         },
                       }),
                     )
@@ -573,6 +623,7 @@ export function ProductsSection({ base }: { base: string }) {
                 purchasePriceGrosze: newCost,
                 stockQuantity: newStock,
                 lowStockAt: newLow,
+                supplier: supplier.trim() || null,
               },
             }),
           ).then((ok) => {
@@ -582,6 +633,7 @@ export function ProductsSection({ base }: { base: string }) {
               setCost('');
               setStock('');
               setLow('');
+              setSupplier('');
             }
           });
         }}
@@ -631,6 +683,15 @@ export function ProductsSection({ base }: { base: string }) {
             placeholder="—"
             aria-invalid={newLow === undefined}
             onChange={(e) => setLow(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>{p.supplierNew}</span>
+          <input
+            value={supplier}
+            maxLength={80}
+            placeholder="—"
+            onChange={(e) => setSupplier(e.target.value)}
           />
         </label>
         <button type="submit" className="btn btn--small" disabled={!canAdd}>

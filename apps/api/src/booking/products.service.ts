@@ -54,6 +54,7 @@ const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
   lowStockAt: p.lowStockAt,
   lowStock: p.stockQuantity !== null && p.lowStockAt !== null && p.stockQuantity <= p.lowStockAt,
   purchasePriceGrosze: purchasePrice ? p.purchasePriceGrosze : null,
+  supplier: p.supplier,
 });
 
 /**
@@ -80,6 +81,9 @@ const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
  *
  * Task 448: "Cena zakupu" — owners and managers may write what the salon pays for one; a sale keeps
  * it (like the sale price) for the margin in the report. Specialists never see it.
+ *
+ * Task 462: "Dostawca" — whom the salon orders the product from (free text, everyone in the salon
+ * sees it); the stock CSV may be made for one supplier only.
  *
  * Task 433: with `lowStockAt` the product says "Kończy się" (`lowStock`) once that many pieces or
  * fewer are left, so the owner orders more in time.
@@ -123,15 +127,22 @@ export class ProductsService {
     };
   }
 
-  /** Task 436: the list as a CSV for ordering from the supplier (owners and managers). */
+  /**
+   * Task 436: the list as a CSV for ordering from the supplier (owners and managers).
+   * Task 462: with `supplier`, only that supplier's products (any letter case).
+   */
   async stockCsv(
     m: MembershipContext,
     locationId: string,
     locale: CsvLocale,
+    supplier?: string,
   ): Promise<{ csv: string; fileName: string }> {
     const location = await this.access.writable(m, locationId);
     const products = await this.prisma.product.findMany({
-      where: { locationId },
+      where: {
+        locationId,
+        ...(supplier ? { supplier: { equals: supplier, mode: 'insensitive' as const } } : {}),
+      },
       orderBy: [{ active: 'desc' }, { name: 'asc' }, { id: 'asc' }],
     });
     const day = instantToLocal(Date.now(), location.timezone).date;

@@ -7,6 +7,7 @@
  * decimal comma (point for en). An empty cell where the salon does not count the pieces.
  * Task 450: the last column is the purchase price ("Cena zakupu"), empty when not written — the
  * file is only for owners and managers.
+ * Task 462: then the supplier ("Dostawca"), empty when not written.
  */
 
 import { amount, cell, type CsvLocale } from '../reports/visits-csv';
@@ -19,6 +20,7 @@ export interface StockCsvLine {
   lowStockAt: number | null;
   lowStock: boolean;
   purchasePriceGrosze: number | null;
+  supplier: string | null;
 }
 
 type Header = [
@@ -29,6 +31,7 @@ type Header = [
   lowStockAt: string,
   toOrder: string,
   purchasePrice: string,
+  supplier: string,
 ];
 
 const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
@@ -41,6 +44,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Kończy się przy',
       'Do zamówienia',
       'Cena zakupu',
+      'Dostawca',
     ],
     yes: 'tak',
     no: 'nie',
@@ -54,6 +58,7 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Закінчується при',
       'Замовити',
       'Закупівельна ціна',
+      'Постачальник',
     ],
     yes: 'так',
     no: 'ні',
@@ -67,12 +72,22 @@ const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
       'Заканчивается при',
       'Заказать',
       'Закупочная цена',
+      'Поставщик',
     ],
     yes: 'да',
     no: 'нет',
   },
   en: {
-    header: ['Product', 'Price', 'Sold', 'In stock', 'Runs low at', 'To order', 'Purchase price'],
+    header: [
+      'Product',
+      'Price',
+      'Sold',
+      'In stock',
+      'Runs low at',
+      'To order',
+      'Purchase price',
+      'Supplier',
+    ],
     yes: 'yes',
     no: 'no',
   },
@@ -93,6 +108,7 @@ export function stockCsv(lines: StockCsvLine[], locale: CsvLocale): string {
         count(l.lowStockAt),
         l.active && (l.lowStock || l.stockQuantity === 0) ? t.yes : t.no,
         l.purchasePriceGrosze === null ? '' : amount(l.purchasePriceGrosze, locale),
+        l.supplier === null ? '' : cell(l.supplier),
       ].join(';'),
     );
   }

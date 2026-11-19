@@ -1934,7 +1934,7 @@ export interface paths {
         };
         /**
          * "CSV stanu magazynowego": the products with what is in stock, for ordering
-         * @description Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out). Same file format as visits-csv; an empty cell where the pieces are not counted.
+         * @description Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out), purchase price, supplier (task 462). Same file format as visits-csv; an empty cell where the pieces are not counted. With `supplier`, only that supplier’s products.
          */
         get: operations["ProductsController_stockCsv"];
         put?: never;
@@ -5551,6 +5551,8 @@ export interface components {
             lowStock: boolean;
             /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
             purchasePriceGrosze: number | null;
+            /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
+            supplier: string | null;
         };
         ProductList: {
             /** @description The salon’s products, sold ones first, then by name */
@@ -5569,6 +5571,8 @@ export interface components {
                 lowStock: boolean;
                 /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
                 purchasePriceGrosze: number | null;
+                /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
+                supplier: string | null;
             }[];
             /** @description Task 461: pieces sold at the visits of the last 30 days, by product (for "Starczy na ~N dni"); products without sales are left out */
             sold30Days: {
@@ -6652,6 +6656,8 @@ export interface components {
                 lowStock: boolean;
                 /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
                 purchasePriceGrosze: number | null;
+                /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
+                supplier: string | null;
             }[];
         };
         TillClose: {
@@ -10494,6 +10500,7 @@ export interface operations {
                     stockQuantity?: number | null;
                     lowStockAt?: number | null;
                     purchasePriceGrosze?: number | null;
+                    supplier?: string | null;
                 };
             };
         };
@@ -10512,6 +10519,7 @@ export interface operations {
         parameters: {
             query?: {
                 locale?: "pl" | "uk" | "ru" | "en";
+                supplier?: string;
             };
             header?: never;
             path: {
@@ -10570,6 +10578,7 @@ export interface operations {
                     stockQuantity?: number | null;
                     lowStockAt?: number | null;
                     purchasePriceGrosze?: number | null;
+                    supplier?: string | null;
                     active?: boolean;
                 };
             };

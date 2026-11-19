@@ -86,9 +86,10 @@ export class ProductsController {
   @ApiOperation({
     summary: '"CSV stanu magazynowego": the products with what is in stock, for ordering',
     description:
-      'Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out). Same file format as visits-csv; an empty cell where the pieces are not counted.',
+      'Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out), purchase price, supplier (task 462). Same file format as visits-csv; an empty cell where the pieces are not counted. With `supplier`, only that supplier’s products.',
   })
   @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiQuery({ name: 'supplier', required: false, type: String })
   @ApiProduces('text/csv')
   @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
   async stockCsv(
@@ -97,7 +98,12 @@ export class ProductsController {
     @Query(new ZodValidationPipe(stockCsvQuerySchema)) query: StockCsvQuery,
     @Res() res: Response,
   ): Promise<void> {
-    const { csv, fileName } = await this.products.stockCsv(m, locationId, query.locale);
+    const { csv, fileName } = await this.products.stockCsv(
+      m,
+      locationId,
+      query.locale,
+      query.supplier,
+    );
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'private, no-store');

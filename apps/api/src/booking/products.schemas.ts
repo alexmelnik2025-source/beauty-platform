@@ -17,6 +17,8 @@ export const createProductSchema = z.object({
   lowStockAt: z.number().int().min(0).max(100_000).nullable().optional(),
   /** Task 448: "Cena zakupu" — what the salon pays for one; null (or left out) = not written. */
   purchasePriceGrosze: z.number().int().min(0).max(10_000_000).nullable().optional(),
+  /** Task 462: "Dostawca" — whom the salon orders it from; null (or left out) = not written. */
+  supplier: z.string().trim().min(1).max(80).nullable().optional(),
 });
 
 export const updateProductSchema = z
@@ -26,6 +28,7 @@ export const updateProductSchema = z
     stockQuantity: z.number().int().min(0).max(100_000).nullable(),
     lowStockAt: z.number().int().min(0).max(100_000).nullable(),
     purchasePriceGrosze: z.number().int().min(0).max(10_000_000).nullable(),
+    supplier: z.string().trim().min(1).max(80).nullable(),
     active: z.boolean(),
   })
   .partial();
@@ -65,7 +68,11 @@ export const stocktakeSchema = z.object({
 });
 
 /** Task 436: the language of the stock CSV's columns. */
-export const stockCsvQuerySchema = z.object({ locale: z.enum(CSV_LOCALES).default('pl') });
+export const stockCsvQuerySchema = z.object({
+  locale: z.enum(CSV_LOCALES).default('pl'),
+  /** Task 462: only the products of this supplier (the name as written, any letter case). */
+  supplier: z.string().trim().min(1).max(80).optional(),
+});
 
 export type StockCsvQuery = z.infer<typeof stockCsvQuerySchema>;
 export type StocktakeInput = z.infer<typeof stocktakeSchema>;
@@ -102,6 +109,10 @@ const product = z.strictObject({
     .describe(
       '"Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist',
     ),
+  supplier: z
+    .string()
+    .nullable()
+    .describe('"Dostawca" — whom the salon orders it from (task 462); null = not written'),
 });
 
 export const productListSchema = responseSchema(

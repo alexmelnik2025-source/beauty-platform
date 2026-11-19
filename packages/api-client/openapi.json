@@ -8089,6 +8089,18 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "supplier": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -8124,7 +8136,7 @@
     },
     "/v1/organizations/{orgId}/locations/{locationId}/products/export.csv": {
       "get": {
-        "description": "Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out). Same file format as visits-csv; an empty cell where the pieces are not counted.",
+        "description": "Task 436. Owners and managers. One line per product — name, price, sold or not, in stock, runs low at, to order (yes for a sold product that has run low or out), purchase price, supplier (task 462). Same file format as visits-csv; an empty cell where the pieces are not counted. With `supplier`, only that supplier’s products.",
         "operationId": "ProductsController_stockCsv",
         "parameters": [
           {
@@ -8146,6 +8158,14 @@
                 "ru",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "supplier",
+            "required": false,
+            "in": "query",
+            "schema": {
               "type": "string"
             }
           }
@@ -8242,6 +8262,18 @@
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 10000000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "supplier": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
                       },
                       {
                         "type": "null"
@@ -21529,6 +21561,11 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "supplier": {
+            "nullable": true,
+            "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
+            "type": "string"
           }
         },
         "required": [
@@ -21539,7 +21576,8 @@
           "stockQuantity",
           "lowStockAt",
           "lowStock",
-          "purchasePriceGrosze"
+          "purchasePriceGrosze",
+          "supplier"
         ],
         "additionalProperties": false
       },
@@ -21591,6 +21629,11 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "supplier": {
+                  "nullable": true,
+                  "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
+                  "type": "string"
                 }
               },
               "required": [
@@ -21601,7 +21644,8 @@
                 "stockQuantity",
                 "lowStockAt",
                 "lowStock",
-                "purchasePriceGrosze"
+                "purchasePriceGrosze",
+                "supplier"
               ],
               "additionalProperties": false
             },
@@ -25905,6 +25949,11 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "supplier": {
+                  "nullable": true,
+                  "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
+                  "type": "string"
                 }
               },
               "required": [
@@ -25915,7 +25964,8 @@
                 "stockQuantity",
                 "lowStockAt",
                 "lowStock",
-                "purchasePriceGrosze"
+                "purchasePriceGrosze",
+                "supplier"
               ],
               "additionalProperties": false
             },
