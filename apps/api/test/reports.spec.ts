@@ -2056,7 +2056,7 @@ describe('salon report', () => {
         id: string;
       };
     const pomade = await add({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 5 });
-    const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 2 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 3 });
     await add({ name: 'Żel', priceGrosze: 2500, stockQuantity: 4 });
     // Not counted, nothing on the shelf, or no longer sold — not in the list.
     await add({ name: 'Olejek', priceGrosze: 2000 });
