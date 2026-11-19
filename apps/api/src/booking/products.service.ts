@@ -12,6 +12,8 @@ import type {
   AddProductSaleInput,
   CreateProductInput,
   RestockProductInput,
+  StocktakeInput,
+  StocktakeResponse,
   WriteOffProductInput,
   StockHistoryResponse,
   ProductListResponse,
@@ -67,6 +69,11 @@ const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
  *
  * Task 440: every change of the pieces in stock is written down ("Historia magazynu"): a sale, a
  * sale removed, a delivery, a number written by hand — with who and when, in the same transaction.
+ *
+ * Task 456: "Inwentaryzacja" — the owner counts what is on the shelf and writes the numbers for many
+ * products at once; each number that differs is written down as a "stocktake" movement, so the
+ * history shows what was missing or extra. The products are locked while they are changed, so a
+ * sale at the same moment is counted before or after, never lost.
  *
  * Task 448: "Cena zakupu" — owners and managers may write what the salon pays for one; a sale keeps
  * it (like the sale price) for the margin in the report. Specialists never see it.
@@ -213,6 +220,39 @@ export class ProductsService {
       return after;
     });
     return toProduct(product);
+  }
+
+  /** Task 456: "Inwentaryzacja" — the pieces counted on the shelf replace what was written. */
+  async stocktake(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    input: StocktakeInput,
+  ): Promise<StocktakeResponse> {
+    await this.access.writable(m, locationId);
+    const ids = input.counts.map((c) => c.productId);
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM product WHERE id = ANY(${ids}::uuid[]) AND location_id = ${locationId}::uuid ORDER BY id FOR UPDATE`;
+      const found = await tx.product.findMany({ where: { id: { in: ids }, locationId } });
+      if (found.length !== ids.length) throw notFound('Product');
+      const before = new Map(found.map((p) => [p.id, p.stockQuantity]));
+      let changed = 0;
+      let missingPieces = 0;
+      let extraPieces = 0;
+      for (const { productId, quantity } of input.counts) {
+        const was = before.get(productId) ?? null;
+        if (was === quantity) continue;
+        await tx.product.update({ where: { id: productId }, data: { stockQuantity: quantity } });
+        const change = quantity - (was ?? 0);
+        await movement(tx, productId, 'stocktake', change, quantity, userId);
+        changed += 1;
+        if (was !== null && change < 0) missingPieces -= change;
+        if (was !== null && change > 0) extraPieces += change;
+      }
+      return { changed, missingPieces, extraPieces };
+    });
+    const { products } = await this.list(m, locationId);
+    return { ...result, products };
   }
 
   /** Task 443: "Odpis" — pieces used in the salon, damaged or lost, taken from the stock in one step. */

@@ -1494,6 +1494,7 @@ export const ru: Dict = {
       delivery: 'Поставка',
       correction: 'Изменение вручную',
       write_off: 'Списание',
+      stocktake: 'Инвентаризация',
     },
     historyRow: '{change} шт. → {after}',
     historyNotCounted: 'не считаем',

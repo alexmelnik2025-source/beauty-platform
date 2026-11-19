@@ -1966,6 +1966,26 @@ export interface paths {
         patch: operations["ProductsController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/products/stocktake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Inwentaryzacja": write the pieces counted on the shelf, for many products at once
+         * @description Task 456. Owners and managers. Each counted number replaces what was in stock; a number that differs is written to "Historia magazynu" as stocktake. A product that did not count its pieces starts counting. A product of another salon or a missing one → 404, nothing is changed.
+         */
+        post: operations["ProductsController_stocktake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/restock": {
         parameters: {
             query?: never;
@@ -6543,10 +6563,10 @@ export interface components {
             movements: {
                 id: string;
                 /**
-                 * @description sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand; write_off — "Odpis" (task 443)
+                 * @description sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand; write_off — "Odpis" (task 443); stocktake — "Inwentaryzacja", the pieces counted on the shelf (task 456)
                  * @enum {string}
                  */
-                kind: "sale" | "sale_removed" | "delivery" | "correction" | "write_off";
+                kind: "sale" | "sale_removed" | "delivery" | "correction" | "write_off" | "stocktake";
                 /** @description Pieces added (+) or taken (−) */
                 change: number;
                 /** @description Pieces in stock after the change; null = the salon stopped counting */
@@ -6561,6 +6581,31 @@ export interface components {
                 byName: string | null;
                 /** @description Why — for a write-off (task 443); otherwise null */
                 note: string | null;
+            }[];
+        };
+        Stocktake: {
+            /** @description Products whose number in stock changed */
+            changed: number;
+            /** @description Pieces fewer on the shelf than the salon had written (only products already counted) */
+            missingPieces: number;
+            /** @description Pieces more on the shelf than the salon had written (only products already counted) */
+            extraPieces: number;
+            /** @description The salon’s products after the count, as in the list */
+            products: {
+                id: string;
+                name: string;
+                /** @description Price of one, in hundredths of the salon currency */
+                priceGrosze: number;
+                /** @description false = no longer sold; kept for the history of sales */
+                active: boolean;
+                /** @description Pieces in stock (task 429); null = the salon does not count them */
+                stockQuantity: number | null;
+                /** @description "Kończy się" at this many pieces or fewer (task 433); null = no warning */
+                lowStockAt: number | null;
+                /** @description The salon counts the pieces and there are lowStockAt or fewer left (task 433) */
+                lowStock: boolean;
+                /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
+                purchasePriceGrosze: number | null;
             }[];
         };
         TillClose: {
@@ -10490,6 +10535,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Product"];
+                };
+            };
+        };
+    };
+    ProductsController_stocktake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    counts: {
+                        /** Format: uuid */
+                        productId: string;
+                        quantity: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Stocktake"];
                 };
             };
         };

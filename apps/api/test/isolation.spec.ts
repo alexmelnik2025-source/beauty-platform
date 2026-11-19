@@ -138,6 +138,9 @@ function validBody(route: Route): object {
   if (p.endsWith('/appointments/:appointmentId/products')) {
     return { productId: currentIds?.productId };
   }
+  if (p.endsWith('/products/stocktake')) {
+    return { counts: [{ productId: currentIds?.productId, quantity: 7 }] };
+  }
   if (p.endsWith('/products/:productId/restock')) return { quantity: 5 };
   if (p.endsWith('/products/:productId/write-off')) return { quantity: 1 };
   if (p.endsWith('/products/:productId')) return { priceGrosze: 1 };

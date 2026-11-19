@@ -48,10 +48,27 @@ export const writeOffProductSchema = z.object({
   note: z.string().trim().max(120).optional(),
 });
 
+/** Task 456: "Inwentaryzacja" — the pieces counted on the shelf, for one or many products at once. */
+export const stocktakeSchema = z.object({
+  counts: z
+    .array(
+      z.object({
+        productId: z.uuid(),
+        quantity: z.number().int().min(0).max(100_000),
+      }),
+    )
+    .min(1)
+    .max(500)
+    .refine((counts) => new Set(counts.map((c) => c.productId)).size === counts.length, {
+      message: 'Each product only once',
+    }),
+});
+
 /** Task 436: the language of the stock CSV's columns. */
 export const stockCsvQuerySchema = z.object({ locale: z.enum(CSV_LOCALES).default('pl') });
 
 export type StockCsvQuery = z.infer<typeof stockCsvQuerySchema>;
+export type StocktakeInput = z.infer<typeof stocktakeSchema>;
 export type RestockProductInput = z.infer<typeof restockProductSchema>;
 export type WriteOffProductInput = z.infer<typeof writeOffProductSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
@@ -119,6 +136,7 @@ export const STOCK_MOVEMENT_KINDS = [
   'delivery',
   'correction',
   'write_off',
+  'stocktake',
 ] as const;
 
 export const stockHistorySchema = responseSchema(
@@ -131,7 +149,7 @@ export const stockHistorySchema = responseSchema(
           kind: z
             .enum(STOCK_MOVEMENT_KINDS)
             .describe(
-              'sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand; write_off — "Odpis" (task 443)',
+              'sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand; write_off — "Odpis" (task 443); stocktake — "Inwentaryzacja", the pieces counted on the shelf (task 456)',
             ),
           change: z.number().int().describe('Pieces added (+) or taken (−)'),
           quantityAfter: z
@@ -150,6 +168,27 @@ export const stockHistorySchema = responseSchema(
   }),
 );
 
+export const stocktakeResultSchema = responseSchema(
+  'Stocktake',
+  z.strictObject({
+    changed: z.number().int().describe('Products whose number in stock changed'),
+    missingPieces: z
+      .number()
+      .int()
+      .describe(
+        'Pieces fewer on the shelf than the salon had written (only products already counted)',
+      ),
+    extraPieces: z
+      .number()
+      .int()
+      .describe(
+        'Pieces more on the shelf than the salon had written (only products already counted)',
+      ),
+    products: z.array(product).describe('The salon’s products after the count, as in the list'),
+  }),
+);
+
+export type StocktakeResponse = z.infer<typeof stocktakeResultSchema>;
 export type StockHistoryResponse = z.infer<typeof stockHistorySchema>;
 export type ProductListResponse = z.infer<typeof productListSchema>;
 export type ProductResponse = z.infer<typeof productSchema>;

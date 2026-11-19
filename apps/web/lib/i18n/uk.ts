@@ -1487,6 +1487,7 @@ export const uk: Dict = {
       delivery: 'Поставка',
       correction: 'Зміна вручну',
       write_off: 'Списання',
+      stocktake: 'Інвентаризація',
     },
     historyRow: '{change} шт. → {after}',
     historyNotCounted: 'не рахуємо',

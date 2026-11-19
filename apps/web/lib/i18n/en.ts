@@ -1493,6 +1493,7 @@ export const en: Dict = {
       delivery: 'Delivery',
       correction: 'Changed by hand',
       write_off: 'Write-off',
+      stocktake: 'Stocktake',
     },
     historyRow: '{change} pcs → {after}',
     historyNotCounted: 'not counted',

@@ -8314,6 +8314,82 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/products/stocktake": {
+      "post": {
+        "description": "Task 456. Owners and managers. Each counted number replaces what was in stock; a number that differs is written to \"Historia magazynu\" as stocktake. A product that did not count its pieces starts counting. A product of another salon or a missing one → 404, nothing is changed.",
+        "operationId": "ProductsController_stocktake",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "counts": {
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "productId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        }
+                      },
+                      "required": [
+                        "productId",
+                        "quantity"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "counts"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stocktake"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Inwentaryzacja\": write the pieces counted on the shelf, for many products at once",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/restock": {
       "post": {
         "description": "Task 438. In one step, so a sale at the same moment is not lost. A product that did not count its pieces starts counting with these. More than 100000 in stock → 409 STOCK_LIMIT.",
@@ -25532,9 +25608,10 @@
                     "sale_removed",
                     "delivery",
                     "correction",
-                    "write_off"
+                    "write_off",
+                    "stocktake"
                   ],
-                  "description": "sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — \"Dostawa\"; correction — the number written by hand; write_off — \"Odpis\" (task 443)"
+                  "description": "sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — \"Dostawa\"; correction — the number written by hand; write_off — \"Odpis\" (task 443); stocktake — \"Inwentaryzacja\", the pieces counted on the shelf (task 456)"
                 },
                 "change": {
                   "type": "integer",
@@ -25591,6 +25668,97 @@
         },
         "required": [
           "movements"
+        ],
+        "additionalProperties": false
+      },
+      "Stocktake": {
+        "type": "object",
+        "properties": {
+          "changed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products whose number in stock changed"
+          },
+          "missingPieces": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Pieces fewer on the shelf than the salon had written (only products already counted)"
+          },
+          "extraPieces": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Pieces more on the shelf than the salon had written (only products already counted)"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one, in hundredths of the salon currency"
+                },
+                "active": {
+                  "type": "boolean",
+                  "description": "false = no longer sold; kept for the history of sales"
+                },
+                "stockQuantity": {
+                  "nullable": true,
+                  "description": "Pieces in stock (task 429); null = the salon does not count them",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "lowStockAt": {
+                  "nullable": true,
+                  "description": "\"Kończy się\" at this many pieces or fewer (task 433); null = no warning",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "lowStock": {
+                  "type": "boolean",
+                  "description": "The salon counts the pieces and there are lowStockAt or fewer left (task 433)"
+                },
+                "purchasePriceGrosze": {
+                  "nullable": true,
+                  "description": "\"Cena zakupu\" — what the salon pays for one (task 448); null = not written, and always null for a specialist",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "priceGrosze",
+                "active",
+                "stockQuantity",
+                "lowStockAt",
+                "lowStock",
+                "purchasePriceGrosze"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The salon’s products after the count, as in the list"
+          }
+        },
+        "required": [
+          "changed",
+          "missingPieces",
+          "extraPieces",
+          "products"
         ],
         "additionalProperties": false
       },

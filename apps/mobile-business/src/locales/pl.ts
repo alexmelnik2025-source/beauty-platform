@@ -697,6 +697,7 @@ export const pl = {
       delivery: 'Dostawa',
       correction: 'Zmiana ręczna',
       write_off: 'Odpis',
+      stocktake: 'Inwentaryzacja',
     },
     historyRow: '{change} szt. → {after}',
     historyNotCounted: 'nie liczymy',

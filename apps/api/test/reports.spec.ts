@@ -1743,6 +1743,75 @@ describe('salon report', () => {
     ]);
   });
 
+  it('"Inwentaryzacja": the pieces counted on the shelf, for many products at once (task 456)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 5 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000 });
+    const gel = await add({ name: 'Żel', priceGrosze: 2500, stockQuantity: 2 });
+    const count = (counts: unknown, auth = owner.auth) =>
+      ctx.http().post(`${base}/products/stocktake`).set(auth).send({ counts });
+
+    const res = await count([
+      { productId: pomade.id, quantity: 3 },
+      { productId: wax.id, quantity: 4 },
+      { productId: gel.id, quantity: 2 },
+    ]).expect(200);
+    expect(registeredResponseSchema('Stocktake').safeParse(res.body).error).toBeUndefined();
+    // Two products changed; 2 pomades are missing (wax was not counted before, so not "extra").
+    expect(res.body).toMatchObject({ changed: 2, missingPieces: 2, extraPieces: 0 });
+    const stock = (body: { products: { id: string; stockQuantity: number | null }[] }) =>
+      Object.fromEntries(body.products.map((p) => [p.id, p.stockQuantity]));
+    expect(stock(res.body)).toMatchObject({ [pomade.id]: 3, [wax.id]: 4, [gel.id]: 2 });
+    expect((await count([{ productId: pomade.id, quantity: 6 }]).expect(200)).body).toMatchObject({
+      changed: 1,
+      missingPieces: 0,
+      extraPieces: 3,
+    });
+
+    // Nothing, a negative number, the same product twice or too many pieces are refused.
+    await count([]).expect(400);
+    await count([{ productId: pomade.id, quantity: -1 }]).expect(400);
+    await count([{ productId: pomade.id, quantity: 100_001 }]).expect(400);
+    await count([
+      { productId: pomade.id, quantity: 1 },
+      { productId: pomade.id, quantity: 2 },
+    ]).expect(400);
+
+    // Only owners and managers; another salon's or a missing product: 404 and nothing changes.
+    await count([{ productId: pomade.id, quantity: 1 }], kasiaUser.auth).expect(403);
+    await count([
+      { productId: pomade.id, quantity: 1 },
+      { productId: '00000000-0000-4000-8000-000000000000', quantity: 1 },
+    ]).expect(404);
+    const other = await signUp(ctx, 'other-stocktake@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await count([{ productId: pomade.id, quantity: 1 }], other.auth).expect(404);
+    const list = (await ctx.http().get(`${base}/products`).set(owner.auth).expect(200)).body as {
+      products: { id: string; stockQuantity: number | null }[];
+    };
+    expect(stock(list)[pomade.id]).toBe(6);
+
+    // "Historia magazynu" shows each counted difference.
+    const history = await ctx
+      .http()
+      .get(`${base}/products/${pomade.id}/stock-history`)
+      .set(owner.auth)
+      .expect(200);
+    expect(registeredResponseSchema('StockHistory').safeParse(history.body).error).toBeUndefined();
+    expect(
+      (
+        history.body as { movements: { kind: string; change: number; quantityAfter: number }[] }
+      ).movements.map(({ kind, change, quantityAfter }) => ({ kind, change, quantityAfter })),
+    ).toEqual([
+      { kind: 'stocktake', change: 3, quantityAfter: 6 },
+      { kind: 'stocktake', change: -2, quantityAfter: 3 },
+      { kind: 'correction', change: 5, quantityAfter: 5 },
+    ]);
+  });
+
   it('"Odpisy z magazynu": pieces written off in the period, at today\'s prices (task 446)', async () => {
     const add = async (body: object) =>
       (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {

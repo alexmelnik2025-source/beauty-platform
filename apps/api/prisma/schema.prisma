@@ -1516,6 +1516,8 @@ enum StockMovementKind {
   correction
   /// Task 443: "Odpis" — used in the salon, damaged or lost.
   write_off
+  /// Task 456: "Inwentaryzacja" — the pieces counted on the shelf.
+  stocktake
 
   @@map("stock_movement_kind")
 }

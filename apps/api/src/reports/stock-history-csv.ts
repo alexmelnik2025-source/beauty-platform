@@ -8,7 +8,8 @@
 
 import { cell, type CsvLocale } from './visits-csv';
 
-export type StockHistoryKind = 'sale' | 'sale_removed' | 'delivery' | 'correction' | 'write_off';
+export type StockHistoryKind =
+  'sale' | 'sale_removed' | 'delivery' | 'correction' | 'write_off' | 'stocktake';
 
 export interface StockHistoryCsvLine {
   /** The change's date and time in the salon's own time. */
@@ -43,6 +44,7 @@ const TEXTS: Record<CsvLocale, { header: Header; kinds: Record<StockHistoryKind,
       delivery: 'Dostawa',
       correction: 'Zmiana ręczna',
       write_off: 'Odpis',
+      stocktake: 'Inwentaryzacja',
     },
   },
   uk: {
@@ -53,6 +55,7 @@ const TEXTS: Record<CsvLocale, { header: Header; kinds: Record<StockHistoryKind,
       delivery: 'Поставка',
       correction: 'Зміна вручну',
       write_off: 'Списання',
+      stocktake: 'Інвентаризація',
     },
   },
   ru: {
@@ -63,6 +66,7 @@ const TEXTS: Record<CsvLocale, { header: Header; kinds: Record<StockHistoryKind,
       delivery: 'Поставка',
       correction: 'Изменение вручную',
       write_off: 'Списание',
+      stocktake: 'Инвентаризация',
     },
   },
   en: {
@@ -73,6 +77,7 @@ const TEXTS: Record<CsvLocale, { header: Header; kinds: Record<StockHistoryKind,
       delivery: 'Delivery',
       correction: 'Changed by hand',
       write_off: 'Write-off',
+      stocktake: 'Stocktake',
     },
   },
 };

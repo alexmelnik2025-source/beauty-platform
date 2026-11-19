@@ -40,6 +40,8 @@ import {
   productSchema,
   restockProductSchema,
   stockHistorySchema,
+  stocktakeResultSchema,
+  stocktakeSchema,
   stockCsvQuerySchema,
   updateProductSchema,
   visitProductSalesSchema,
@@ -50,6 +52,8 @@ import {
   type ProductResponse,
   type RestockProductInput,
   type StockHistoryResponse,
+  type StocktakeInput,
+  type StocktakeResponse,
   type StockCsvQuery,
   type UpdateProductInput,
   type VisitProductSalesResponse,
@@ -130,6 +134,25 @@ export class ProductsController {
     @Body(new ZodValidationPipe(updateProductSchema)) body: UpdateProductInput,
   ): Promise<ProductResponse> {
     return this.products.update(m, auth.userId, locationId, productId, body);
+  }
+
+  @Post('products/stocktake')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Inwentaryzacja": write the pieces counted on the shelf, for many products at once',
+    description:
+      'Task 456. Owners and managers. Each counted number replaces what was in stock; a number that differs is written to "Historia magazynu" as stocktake. A product that did not count its pieces starts counting. A product of another salon or a missing one → 404, nothing is changed.',
+  })
+  @ApiZodBody(stocktakeSchema)
+  @ApiZodResponse(stocktakeResultSchema)
+  stocktake(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(stocktakeSchema)) body: StocktakeInput,
+  ): Promise<StocktakeResponse> {
+    return this.products.stocktake(m, auth.userId, locationId, body);
   }
 
   @Post('products/:productId/restock')
