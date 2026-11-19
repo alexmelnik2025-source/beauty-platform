@@ -13560,6 +13560,57 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/export.csv": {
+      "get": {
+        "description": "Task 494. Owners and managers. One line per voucher, oldest first — code, sold on, sold by, for whom, amount, used, left, valid until, status, note. Same file format as visits-csv.",
+        "operationId": "VouchersController_csv",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pl",
+                "uk",
+                "ru",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"CSV bonów\": every gift voucher of the salon, for the accountant",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/code/{code}": {
       "get": {
         "description": "Task 490. Everyone in the salon. Letter case, spaces and dashes do not matter. Unknown code → 404.",

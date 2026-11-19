@@ -3532,6 +3532,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "CSV bonów": every gift voucher of the salon, for the accountant
+         * @description Task 494. Owners and managers. One line per voucher, oldest first — code, sold on, sold by, for whom, amount, used, left, valid until, status, note. Same file format as visits-csv.
+         */
+        get: operations["VouchersController_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/code/{code}": {
         parameters: {
             query?: never;
@@ -13319,6 +13339,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GiftVoucher"];
+                };
+            };
+        };
+    };
+    VouchersController_csv: {
+        parameters: {
+            query?: {
+                locale?: "pl" | "uk" | "ru" | "en";
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };

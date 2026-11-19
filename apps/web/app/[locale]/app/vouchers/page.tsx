@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { parseTip as parseAmount } from '@/components/calendar/TipField';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
 import { formatDay, formatPrice } from '@/lib/time';
@@ -342,6 +342,30 @@ export default function VouchersPage() {
     void load();
   }, [load]);
 
+  const [exporting, setExporting] = useState(false);
+
+  /** Task 494: "CSV bonów" — every voucher for the accountant (column names in the cabinet language). */
+  async function exportCsv(): Promise<void> {
+    if (exporting) return;
+    setExporting(true);
+    setError('');
+    try {
+      const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
+      const res = await apiResponse(`${base}/export.csv`, { query: { locale: lang } });
+      const name =
+        /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'bony.csv';
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(await res.blob());
+      link.download = name;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   /** A payment changes what is left: the list shows it too. */
   function onFound(details: GiftVoucherDetails | null) {
     setFound(details);
@@ -404,9 +428,19 @@ export default function VouchersPage() {
                 <p className="note">{t.vouchers.empty}</p>
               ) : (
                 <>
-                  <p className="small">
-                    {fill(t.vouchers.activeTotal, { amount: money(list.activeBalanceGrosze) })}
-                  </p>
+                  <div className="row">
+                    <p className="small grow">
+                      {fill(t.vouchers.activeTotal, { amount: money(list.activeBalanceGrosze) })}
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn--quiet btn--small"
+                      disabled={exporting}
+                      onClick={() => void exportCsv()}
+                    >
+                      {t.vouchers.csv}
+                    </button>
+                  </div>
                   <ul className="list">
                     {list.vouchers.map((v) => (
                       <li key={v.id} className="list-row">

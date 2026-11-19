@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
@@ -13,6 +14,7 @@ import { serveApp } from './mobile-app';
  * Task 491: "Bony podarunkowe" in the cabinet. The owner sells a 200 zł voucher for Jan, finds it
  * by the code typed in small letters, takes 120 zł with it and sees 80 zł left in the list
  * (screenshots 491, 491a); then cancels a voucher sold by mistake (screenshot 491b).
+ * Task 494: "Pobierz CSV bonów" (screenshot 494).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
  * sold on the phone (screenshots 492, 492a).
@@ -134,6 +136,19 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(list.getByText(/Do wykorzystania na ważnych bonach: 80,00\s?zł/)).toBeVisible();
   await expect(list.getByText('Anulowany', { exact: true })).toBeVisible();
   await shot(page, '491b');
+
+  // Task 494: "Pobierz CSV bonów" — every voucher for the accountant.
+  const [vouchersCsv] = await Promise.all([
+    page.waitForEvent('download'),
+    list.getByRole('button', { name: 'Pobierz CSV bonów' }).click(),
+  ]);
+  expect(vouchersCsv.suggestedFilename()).toMatch(/^vouchers-.+-\d{4}-\d{2}-\d{2}\.csv$/);
+  const vouchersText = await readFile((await vouchersCsv.path())!, 'utf8');
+  expect(vouchersText).toContain('Kod;Data sprzedaży;Sprzedał(a);Dla kogo;Kwota;Wykorzystano');
+  expect(vouchersText).toContain(';200,00;120,00;80,00;');
+  expect(vouchersText).toContain(`${mistake.code};`);
+  expect(vouchersText).toContain(';Anulowany;');
+  await shot(page, '494');
 
   // Task 493: the report — one voucher sold (the cancelled one left out), 120 zł paid with
   // vouchers, 80 zł left today.

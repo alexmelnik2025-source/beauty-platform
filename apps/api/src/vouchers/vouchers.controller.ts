@@ -7,9 +7,19 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
 import { CurrentAuth } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
@@ -20,6 +30,7 @@ import {
   MembershipGuard,
   RequireRoles,
 } from '../organizations/membership.guard';
+import { CSV_LOCALES } from '../reports/visits-csv';
 import {
   createGiftVoucherSchema,
   giftVoucherCodeSchema,
@@ -32,6 +43,8 @@ import {
   type GiftVoucherListResponse,
   type GiftVoucherResponse,
   type RedeemGiftVoucherInput,
+  type VouchersCsvQuery,
+  vouchersCsvQuerySchema,
 } from './vouchers.schemas';
 import { VouchersService } from './vouchers.service';
 
@@ -75,6 +88,29 @@ export class VouchersController {
     @Body(new ZodValidationPipe(createGiftVoucherSchema)) body: CreateGiftVoucherInput,
   ): Promise<GiftVoucherResponse> {
     return this.vouchers.create(m, auth.userId, locationId, body);
+  }
+
+  @Get('export.csv')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: '"CSV bonów": every gift voucher of the salon, for the accountant',
+    description:
+      'Task 494. Owners and managers. One line per voucher, oldest first — code, sold on, sold by, for whom, amount, used, left, valid until, status, note. Same file format as visits-csv.',
+  })
+  @ApiQuery({ name: 'locale', required: false, enum: CSV_LOCALES })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'The CSV file', schema: { type: 'string' } })
+  async csv(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Query(new ZodValidationPipe(vouchersCsvQuerySchema)) query: VouchersCsvQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, fileName } = await this.vouchers.csv(m, locationId, query.locale);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
   }
 
   @Get('code/:code')

@@ -904,6 +904,7 @@ export const uk: Dict = {
     listTitle: 'Продані сертифікати',
     empty: 'Сертифікатів ще не продавали.',
     activeTotal: 'Залишок на чинних сертифікатах: {amount}',
+    csv: 'Завантажити CSV сертифікатів',
     soldOn: 'Продано {date}',
     soldBy: 'продав(ла) {name}',
     show: 'Відкрити',

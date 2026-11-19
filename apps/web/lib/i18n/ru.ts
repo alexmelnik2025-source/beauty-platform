@@ -910,6 +910,7 @@ export const ru: Dict = {
     listTitle: 'Проданные сертификаты',
     empty: 'Сертификатов ещё не продавали.',
     activeTotal: 'Остаток на действующих сертификатах: {amount}',
+    csv: 'Скачать CSV сертификатов',
     soldOn: 'Продан {date}',
     soldBy: 'продал(а) {name}',
     show: 'Открыть',

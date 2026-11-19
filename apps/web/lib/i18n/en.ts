@@ -905,6 +905,7 @@ export const en: Dict = {
     listTitle: 'Vouchers sold',
     empty: 'No vouchers sold yet.',
     activeTotal: 'Left on valid vouchers: {amount}',
+    csv: 'Download vouchers CSV',
     soldOn: 'Sold {date}',
     soldBy: 'by {name}',
     show: 'Show',

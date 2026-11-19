@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { responseSchema } from '../common/openapi';
+import { CSV_LOCALES } from '../reports/visits-csv';
 
 const money = (what: string) =>
   z.number().int().describe(`${what}, in hundredths of the salon currency`);
@@ -90,3 +91,9 @@ export const giftVoucherDetailsSchema = responseSchema(
 export type GiftVoucherResponse = z.infer<typeof giftVoucherSchema>;
 export type GiftVoucherListResponse = z.infer<typeof giftVoucherListSchema>;
 export type GiftVoucherDetailsResponse = z.infer<typeof giftVoucherDetailsSchema>;
+
+/** Task 494: "CSV bonów" — the file's language. */
+export const vouchersCsvQuerySchema = z.object({
+  locale: z.enum(CSV_LOCALES).default('pl'),
+});
+export type VouchersCsvQuery = z.infer<typeof vouchersCsvQuerySchema>;

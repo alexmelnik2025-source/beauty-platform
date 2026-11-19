@@ -204,8 +204,13 @@ test('"Najlepiej oceniane" puts the best stars first, on the site and in the cli
 
       const app = await phone.newPage();
       await app.goto(clientApp.url);
-      await app.getByRole('button', { name: 'Znajdź salon' }).click();
-      await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
+      // A click before the app is ready to answer it does nothing (seen once in CI): try again.
+      await expect(async () => {
+        await app.getByRole('button', { name: 'Znajdź salon', exact: true }).click();
+        await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible({
+          timeout: 3_000,
+        });
+      }).toPass({ timeout: 20_000 });
       await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(PREFIX);
       const cards = app.getByRole('article', { name: new RegExp(`^${PREFIX}`) });
       await expect(cards).toHaveCount(2);

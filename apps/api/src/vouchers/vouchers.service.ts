@@ -5,7 +5,9 @@ import type { MembershipContext } from '../common/request-context';
 import type { GiftVoucher, Location } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type { CsvLocale } from '../reports/visits-csv';
 import { instantToLocal, localToday } from '../scheduling/time';
+import { vouchersCsv } from './vouchers-csv';
 import type {
   CreateGiftVoucherInput,
   GiftVoucherDetailsResponse,
@@ -109,6 +111,39 @@ export class VouchersService {
         .filter((v) => !v.validUntil || dateString(v.validUntil) >= today)
         .reduce((sum, v) => sum + v.balanceGrosze, 0),
     };
+  }
+
+  /**
+   * Task 494: "CSV bonów" — every voucher of the salon, oldest first, for the accountant (owners
+   * and managers).
+   */
+  async csv(
+    m: MembershipContext,
+    locationId: string,
+    locale: CsvLocale,
+  ): Promise<{ csv: string; fileName: string }> {
+    const location = await this.access.writable(m, locationId);
+    const rows = await this.prisma.giftVoucher.findMany({
+      where: { locationId },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const names = await this.names(rows.map((r) => r.createdByUserId));
+    const lines = rows.map((r) => {
+      const v = this.toVoucher(r, location, names);
+      return {
+        code: v.code,
+        soldDate: v.soldDate,
+        soldBy: v.soldByName ?? '',
+        recipient: v.recipient,
+        amountGrosze: v.amountGrosze,
+        balanceGrosze: v.balanceGrosze,
+        validUntil: v.validUntil,
+        status: v.status,
+        note: v.note,
+      };
+    });
+    const day = instantToLocal(Date.now(), location.timezone).date;
+    return { csv: vouchersCsv(lines, locale), fileName: `vouchers-${location.slug}-${day}.csv` };
   }
 
   async create(

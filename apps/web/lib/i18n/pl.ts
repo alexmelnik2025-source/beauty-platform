@@ -904,6 +904,7 @@ export const pl = {
     listTitle: 'Sprzedane bony',
     empty: 'Nie sprzedano jeszcze żadnego bonu.',
     activeTotal: 'Do wykorzystania na ważnych bonach: {amount}',
+    csv: 'Pobierz CSV bonów',
     soldOn: 'Sprzedany {date}',
     soldBy: 'przez {name}',
     show: 'Pokaż',

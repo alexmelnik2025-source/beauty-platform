@@ -269,3 +269,98 @@ describe('"Bony podarunkowe" in the report (task 493)', () => {
     });
   });
 });
+
+describe('"CSV bonów" (task 494)', () => {
+  const csv = (auth: Record<string, string>, locale?: string) =>
+    ctx
+      .http()
+      .get(`${base}/export.csv`)
+      .query(locale ? { locale } : {})
+      .set(auth)
+      .buffer(true)
+      .parse((res, done) => {
+        let text = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk: string) => (text += chunk));
+        res.on('end', () => done(null, text));
+      });
+
+  const rows = (text: string): string[][] =>
+    text
+      .replace(/^﻿/, '')
+      .trimEnd()
+      .split('\r\n')
+      .map((line) => line.split(';').map((c) => c.replace(/^"|"$/g, '')));
+
+  it('lists every voucher, oldest first, with what was used and what is left', async () => {
+    const first = (
+      await ctx
+        .http()
+        .post(base)
+        .set(owner.auth)
+        .send({ amountGrosze: 20000, recipient: 'Jan Kowalski', note: 'Na urodziny' })
+        .expect(201)
+    ).body as Voucher;
+    await ctx
+      .http()
+      .post(`${base}/${first.id}/redeem`)
+      .set(staffUser.auth)
+      .send({ amountGrosze: 5050 })
+      .expect(200);
+    const lastDay = addDays(localToday(Date.now(), 'Europe/Warsaw'), 30);
+    const second = (
+      await ctx
+        .http()
+        .post(base)
+        .set(owner.auth)
+        .send({ amountGrosze: 10000, validUntil: lastDay })
+        .expect(201)
+    ).body as Voucher;
+    await ctx.http().post(`${base}/${second.id}/cancel`).set(owner.auth).expect(200);
+
+    const res = await csv(owner.auth).expect(200);
+    expect(res.headers['content-type']).toMatch(/^text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(/attachment; filename="vouchers-.+\.csv"/);
+    const text = res.body as string;
+    expect(text.startsWith('﻿')).toBe(true);
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    expect(rows(text)).toEqual([
+      [
+        'Kod',
+        'Data sprzedaży',
+        'Sprzedał(a)',
+        'Dla kogo',
+        'Kwota',
+        'Wykorzystano',
+        'Pozostało',
+        'Ważny do',
+        'Status',
+        'Notatka',
+      ],
+      [
+        first.code,
+        today,
+        'Anna Owner',
+        'Jan Kowalski',
+        '200,00',
+        '50,50',
+        '149,50',
+        '',
+        'Aktywny',
+        'Na urodziny',
+      ],
+      [second.code, today, 'Anna Owner', '', '100,00', '0,00', '100,00', lastDay, 'Anulowany', ''],
+    ]);
+
+    const en = rows((await csv(owner.auth, 'en').expect(200)).body as string);
+    expect(en[0]![0]).toBe('Code');
+    expect(en[1]!.slice(4, 7)).toEqual(['200.00', '50.50', '149.50']);
+    expect(en[2]![8]).toBe('Cancelled');
+  });
+
+  it('is for owners and managers only', async () => {
+    await csv(staffUser.auth).expect(403);
+    const empty = rows((await csv(owner.auth).expect(200)).body as string);
+    expect(empty).toHaveLength(1);
+  });
+});
