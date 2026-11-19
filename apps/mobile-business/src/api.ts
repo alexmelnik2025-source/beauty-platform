@@ -15,6 +15,7 @@ import type {
   SalonReport,
   StockHistory,
   Stocktake,
+  StockDelivery,
   StaffCommissions,
   TillClose,
   Tokens,
@@ -181,6 +182,7 @@ export type {
   SalonReport,
   StockHistory,
   Stocktake,
+  StockDelivery,
   StaffCommissions,
   TillClose,
   Tokens,
@@ -751,6 +753,19 @@ export class BusinessApi {
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/stocktake`,
       { counts },
+    );
+  }
+
+  /** Task 477: "Przyjmij dostawę" — the pieces of the whole order added at once. */
+  delivery(
+    orgId: string,
+    locationId: string,
+    items: { productId: string; quantity: number }[],
+  ): Promise<StockDelivery> {
+    return this.authed<StockDelivery>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/delivery`,
+      { items },
     );
   }
 

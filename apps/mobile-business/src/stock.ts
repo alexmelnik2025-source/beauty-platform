@@ -8,6 +8,12 @@ export function parseStock(value: string): number | null | undefined {
   return /^\d{1,6}$/.test(text) && Number(text) <= 100_000 ? Number(text) : undefined;
 }
 
+/** Task 477: the pieces that came in a delivery — "" → null (nothing came), "12" → 12; 0 or anything else → undefined. */
+export function parseDelivery(value: string): number | null | undefined {
+  const n = parseStock(value);
+  return n === 0 ? undefined : n;
+}
+
 /**
  * Task 465: the names in "Do zamówienia", grouped by supplier ("Hairgum — Pomada (Brak w
  * magazynie); bez dostawcy — Szampon (zostało 3 szt.)") so the owner sees whom to call. The

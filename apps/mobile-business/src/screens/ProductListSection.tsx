@@ -15,6 +15,7 @@ function parseCost(text: string): number | null | undefined {
 }
 import { Button, Card, colors, ErrorText } from '../ui';
 import { csvTools, orderShareTools } from './csvTools';
+import { DeliveryCard } from './DeliveryCard';
 import { StocktakeCard } from './StocktakeCard';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -34,6 +35,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 464: "Dostawca" — whom the salon orders the product from; the stock CSV for one supplier.
  * Task 474: "Wyślij zamówienie" — the products to order as a message for each supplier, with
  * suggested numbers of pieces, through the share sheet (copied in the web preview).
+ * Task 477: "Przyjmij dostawę" — the pieces of the whole order at once, as in the cabinet (476).
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -84,6 +86,9 @@ export function ProductListSection(props: {
   const [orderInfo, setOrderInfo] = useState('');
   const [stocktake, setStocktake] = useState(false);
   const [stocktakeDone, setStocktakeDone] = useState('');
+  /** Task 477: "Przyjmij dostawę" open, and what it said after saving. */
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [deliveryDone, setDeliveryDone] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
   /** Task 461: "Sprzedano w 30 dni: 3 szt. · starczy na ~20 dni" — how fast it sells. */
@@ -298,12 +303,45 @@ export function ProductListSection(props: {
               setStocktakeDone('');
             }}
           />
+          <Button
+            kind="secondary"
+            label={p.delivery}
+            onPress={() => {
+              setDeliveryOpen(!deliveryOpen);
+              setDeliveryDone('');
+            }}
+          />
         </View>
       ) : null}
       {stocktakeDone ? (
         <Text style={styles.text} role="status" testID="stocktake-done">
           {stocktakeDone}
         </Text>
+      ) : null}
+      {deliveryDone ? (
+        <Text style={styles.text} role="status" testID="delivery-done">
+          {deliveryDone}
+        </Text>
+      ) : null}
+      {deliveryOpen && products && products.length > 0 ? (
+        <DeliveryCard
+          api={api}
+          t={t}
+          salon={salon}
+          products={products}
+          sold30={sold30}
+          onSaved={(result) => {
+            setProducts(result.list);
+            setDeliveryOpen(false);
+            setHistory(null);
+            setDeliveryDone(
+              fill(p.deliveryDone, {
+                pieces: String(result.pieces),
+                products: String(result.products),
+              }),
+            );
+          }}
+        />
       ) : null}
       {stocktake && products && products.length > 0 ? (
         <StocktakeCard

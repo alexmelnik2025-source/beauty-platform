@@ -14,6 +14,9 @@ import { serveApp } from './mobile-app';
  * a message for each supplier, with suggested numbers of pieces; the owner changes one and
  * copies it (screenshot 473). Task 474: "Wyślij zamówienie" in the business app — the same text
  * goes to the share sheet, in the web preview to the clipboard (screenshot 474).
+ * Task 476: "Przyjmij dostawę" in the cabinet — Hairgum's part of the order arrives, with the
+ * suggested numbers already written (screenshot 476). Task 477: the same in the business app for
+ * Barber Hurt (screenshot 477).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -122,6 +125,25 @@ test('the owner sends the order for the products to order to each supplier', asy
   );
   await products.getByTestId('products-order').scrollIntoViewIfNeeded();
   await shot(page, '473-owner-order-text');
+
+  // Task 476: Hairgum's part of the order came — the suggested numbers are already there.
+  await products.getByRole('button', { name: 'Przyjmij dostawę', exact: true }).click();
+  const delivery = products.getByTestId('delivery');
+  await expect(delivery.getByLabel('Przyszło — Pomada matowa')).toHaveValue('5');
+  await expect(delivery.getByLabel('Przyszło — Wosk')).toHaveValue('4');
+  await expect(delivery.getByLabel('Przyszło — Szampon')).toHaveValue('1');
+  await expect(delivery.getByLabel('Przyszło — Olejek')).toHaveValue('');
+  await delivery.getByLabel('Pokaż produkty dostawcy').selectOption('Hairgum');
+  await expect(delivery.getByTestId('delivery-row')).toHaveCount(2);
+  await delivery.scrollIntoViewIfNeeded();
+  await shot(page, '476-owner-delivery');
+  await delivery.getByRole('button', { name: 'Przyjmij dostawę (5 szt.)' }).click();
+  await expect(products.getByTestId('delivery-done')).toHaveText(
+    'Dostawa przyjęta: 5 szt., produktów: 1.',
+  );
+  await expect(products.getByLabel('W magazynie — Pomada matowa')).toHaveValue('5');
+  await expect(products.getByLabel('W magazynie — Wosk')).toHaveValue('2');
+  await expect(products.getByTestId('products-to-order')).not.toContainText('Pomada');
   await context.close();
 
   // The business app (its web preview): "Wyślij zamówienie" copies the same text.
@@ -152,9 +174,28 @@ test('the owner sends the order for the products to order to each supplier', asy
     await expect(
       appList.getByText('Zamówienie skopiowane — wklej je w wiadomości do dostawcy.'),
     ).toBeVisible();
-    expect(await app.evaluate(() => navigator.clipboard.readText())).toBe(EXPECTED);
+    // The pomades came in the cabinet (task 476): only the rest is left to order.
+    expect(await app.evaluate(() => navigator.clipboard.readText())).toBe(
+      'Zamówienie — Barber Hurt:\n- Wosk — 4 szt.\n\nZamówienie — bez dostawcy:\n- Szampon — 1 szt.',
+    );
     await appList.getByTestId('products-order').scrollIntoViewIfNeeded();
     await shot(app, '474-business-app-order');
+
+    // Task 477: Barber Hurt's wax came — received from the phone.
+    await appList.getByRole('button', { name: 'Przyjmij dostawę', exact: true }).click();
+    const appDelivery = app.getByTestId('delivery');
+    await expect(appDelivery.getByLabel('Przyszło — Wosk')).toHaveValue('4');
+    await appDelivery.getByRole('button', { name: 'Barber Hurt' }).click();
+    await expect(appDelivery.getByLabel('Przyszło — Szampon')).toHaveCount(0);
+    await appDelivery.getByRole('button', { name: 'Przyjmij dostawę (4 szt.)' }).click();
+    await expect(app.getByTestId('delivery-done')).toHaveText(
+      'Dostawa przyjęta: 4 szt., produktów: 1.',
+    );
+    await expect(appList.getByTestId('products-to-order')).toHaveText(
+      'Do zamówienia: Szampon (zostało 3 szt.)',
+    );
+    await app.getByTestId('delivery-done').scrollIntoViewIfNeeded();
+    await shot(app, '477-business-app-delivery');
     await appContext.close();
   } finally {
     businessApp.server.close();

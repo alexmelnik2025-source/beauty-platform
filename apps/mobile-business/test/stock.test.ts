@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { orderQuantity, orderText, parseStock, toOrderNames } from '../src/stock';
+import { orderQuantity, orderText, parseDelivery, parseStock, toOrderNames } from '../src/stock';
 
 describe('parseStock (task 431)', () => {
   it('empty means the pieces are not counted', () => {
@@ -112,5 +112,15 @@ describe('orderText (task 473)', () => {
         'Zamówienie — Hairgum:\n- Pomada — 2 szt.\n- Glinka — 1 szt.\n\n' +
         'Zamówienie — bez dostawcy:\n- Szampon — 1 szt.',
     );
+  });
+});
+
+describe('parseDelivery (task 477)', () => {
+  it('empty means nothing came; at least one piece', () => {
+    expect(parseDelivery('')).toBeNull();
+    expect(parseDelivery(' 4 ')).toBe(4);
+    expect(parseDelivery('0')).toBeUndefined();
+    expect(parseDelivery('-1')).toBeUndefined();
+    expect(parseDelivery('dwa')).toBeUndefined();
   });
 });

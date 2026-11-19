@@ -9,6 +9,7 @@ import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
 import { parseTip as parseAmount } from '../calendar/TipField';
+import { DeliveryPanel } from './DeliveryPanel';
 import { StocktakePanel } from './StocktakePanel';
 
 /** "" → null (not counted), "12" → 12; anything else → undefined (wrong). Task 430. */
@@ -53,6 +54,7 @@ function amountInput(hundredths: number): string {
  * Task 463: "Dostawca" — whom the salon orders the product from; the stock CSV for one supplier.
  * Task 473: "Tekst zamówienia" — the products to order as a message for each supplier, with
  * suggested numbers of pieces; the owner changes what they like and copies it.
+ * Task 476: "Przyjmij dostawę" — the pieces of the whole order at once.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -87,6 +89,9 @@ export function ProductsSection({ base }: { base: string }) {
   const [error, setError] = useState('');
   const [stocktake, setStocktake] = useState(false);
   const [stocktakeDone, setStocktakeDone] = useState('');
+  /** Task 476: "Przyjmij dostawę" open, and what it said after saving. */
+  const [delivery, setDelivery] = useState(false);
+  const [deliveryDone, setDeliveryDone] = useState('');
   /** Task 473: the order text being prepared (null = closed) and what copying it said. */
   const [order, setOrder] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState('');
@@ -381,6 +386,18 @@ export function ProductsSection({ base }: { base: string }) {
             }}
           >
             {p.stocktake}
+          </button>{' '}
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            aria-expanded={delivery}
+            disabled={busy}
+            onClick={() => {
+              setDelivery(!delivery);
+              setDeliveryDone('');
+            }}
+          >
+            {p.delivery}
           </button>
         </p>
       ) : null}
@@ -388,6 +405,29 @@ export function ProductsSection({ base }: { base: string }) {
         <p className="note" role="status" data-testid="stocktake-done">
           {stocktakeDone}
         </p>
+      ) : null}
+      {deliveryDone ? (
+        <p className="note" role="status" data-testid="delivery-done">
+          {deliveryDone}
+        </p>
+      ) : null}
+      {delivery && products && products.length > 0 ? (
+        <DeliveryPanel
+          base={base}
+          products={products}
+          sold30={sold30}
+          onSaved={(result) => {
+            show(result.list);
+            setDelivery(false);
+            setOrder(null);
+            setHistoryOf(null);
+            setDeliveryDone(
+              p.deliveryDone
+                .replace('{pieces}', String(result.pieces))
+                .replace('{products}', String(result.products)),
+            );
+          }}
+        />
       ) : null}
       {stocktake && products && products.length > 0 ? (
         <StocktakePanel
