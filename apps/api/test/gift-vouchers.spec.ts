@@ -184,6 +184,98 @@ describe('gift vouchers (task 490)', () => {
     expect(list.body.activeBalanceGrosze).toBe(0);
   });
 
+  it('"Zmień bon": owners and managers move the last day and fix who it is for (task 498)', async () => {
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    const sold = (
+      await ctx
+        .http()
+        .post(base)
+        .set(owner.auth)
+        .send({ amountGrosze: 10000, validUntil: today, recipient: 'Jan', note: 'Na urodziny' })
+        .expect(201)
+    ).body as Voucher;
+    // Its last day passes: it cannot be used…
+    await ctx.prisma.giftVoucher.update({
+      where: { id: sold.id },
+      data: { validUntil: new Date(`${addDays(today, -1)}T00:00:00.000Z`) },
+    });
+    await ctx
+      .http()
+      .post(`${base}/${sold.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 100 })
+      .expect(409);
+    // …until the salon gives it more time.
+    const later = addDays(today, 30);
+    await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(staffUser.auth)
+      .send({ validUntil: later })
+      .expect(403);
+    const extended = await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ validUntil: later, recipient: 'Jan Kowalski' })
+      .expect(200);
+    expectShape('GiftVoucher', extended.body);
+    expect(extended.body).toMatchObject({
+      validUntil: later,
+      recipient: 'Jan Kowalski',
+      note: 'Na urodziny',
+      status: 'active',
+      amountGrosze: 10000,
+      balanceGrosze: 10000,
+    });
+    await ctx
+      .http()
+      .post(`${base}/${sold.id}/redeem`)
+      .set(staffUser.auth)
+      .send({ amountGrosze: 2500 })
+      .expect(200);
+
+    // null clears: no last day, no note.
+    const cleared = await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ validUntil: null, note: null })
+      .expect(200);
+    expect(cleared.body).toMatchObject({
+      validUntil: null,
+      note: null,
+      recipient: 'Jan Kowalski',
+      balanceGrosze: 7500,
+    });
+
+    await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ validUntil: addDays(today, -1) })
+      .expect(400)
+      .then((r) => expectError(r.body, 'VOUCHER_DATE_PAST'));
+    await ctx.http().patch(`${base}/${sold.id}`).set(owner.auth).send({}).expect(400);
+    // The amount is not changed here.
+    const ignored = await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ recipient: 'Ola', amountGrosze: 99999 })
+      .expect(200);
+    expect(ignored.body).toMatchObject({ recipient: 'Ola', amountGrosze: 10000 });
+
+    await ctx.http().post(`${base}/${sold.id}/cancel`).set(owner.auth).expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ validUntil: later })
+      .expect(409)
+      .then((r) => expectError(r.body, 'VOUCHER_CANCELLED'));
+  });
+
   it('keeps the vouchers of each salon to itself', async () => {
     const voucher = (
       await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 9000 }).expect(201)
@@ -202,6 +294,12 @@ describe('gift vouchers (task 490)', () => {
       .send({ amountGrosze: 100 })
       .expect(404);
     await ctx.http().post(`${theirBase}/${voucher.id}/cancel`).set(other.auth).expect(404);
+    await ctx
+      .http()
+      .patch(`${theirBase}/${voucher.id}`)
+      .set(other.auth)
+      .send({ recipient: 'X' })
+      .expect(404);
     const mine = await ctx.http().get(`${base}/${voucher.id}`).set(owner.auth).expect(200);
     expect(mine.body.voucher.balanceGrosze).toBe(9000);
     expect((await ctx.http().get(theirBase).set(other.auth).expect(200)).body.vouchers).toEqual([]);

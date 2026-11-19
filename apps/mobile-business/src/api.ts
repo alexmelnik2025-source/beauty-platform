@@ -909,6 +909,23 @@ export class BusinessApi {
     );
   }
 
+  /**
+   * Task 500: "Zmień bon" — the last day (null = no end), who it is for and the note; not the
+   * amount (owners and managers; 400 VOUCHER_DATE_PAST, 409 VOUCHER_CANCELLED).
+   */
+  updateGiftVoucher(
+    orgId: string,
+    locationId: string,
+    voucherId: string,
+    body: { validUntil: string | null; recipient: string | null; note: string | null },
+  ): Promise<GiftVoucher> {
+    return this.authed<GiftVoucher>(
+      'PATCH',
+      `${voucherPath(orgId, locationId)}/${voucherId}`,
+      body,
+    );
+  }
+
   /** Task 492: cancels a voucher sold by mistake (owners and managers). */
   cancelGiftVoucher(orgId: string, locationId: string, voucherId: string): Promise<GiftVoucher> {
     return this.authed<GiftVoucher>(

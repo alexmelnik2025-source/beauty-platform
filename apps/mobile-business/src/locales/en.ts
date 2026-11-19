@@ -1721,6 +1721,11 @@ export const en: Dictionary = {
     errorExpired: 'This voucher is no longer valid.',
     errorCancelled: 'This voucher was cancelled.',
     errorDatePast: 'The last day cannot be before today.',
+    edit: 'Change voucher',
+    editHint: 'The amount cannot be changed. An empty date means no end.',
+    editSave: 'Save changes',
+    editCancel: 'Cancel',
+    edited: 'Voucher {code} changes saved.',
   },
   error: {
     network: 'No connection to the server. Check the internet and try again.',

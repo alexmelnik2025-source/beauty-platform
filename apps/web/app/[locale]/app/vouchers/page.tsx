@@ -103,6 +103,99 @@ function VoucherPrint({ voucher }: { voucher: GiftVoucher }) {
 }
 
 /**
+ * Task 499: "Zmień bon" — owners and managers move the last day (also to give an expired voucher
+ * more time), fix who it is for and the note. Not the amount; the server checks the rights.
+ */
+function EditVoucher({
+  voucher,
+  onSaved,
+}: {
+  voucher: GiftVoucher;
+  onSaved: (voucher: GiftVoucher) => void;
+}) {
+  const { t } = useI18n();
+  const { orgId, location } = useSession();
+  const base = `/v1/organizations/${orgId}/locations/${location.id}/gift-vouchers`;
+  const [open, setOpen] = useState(false);
+  const [validUntil, setValidUntil] = useState(voucher.validUntil ?? '');
+  const [recipient, setRecipient] = useState(voucher.recipient ?? '');
+  const [note, setNote] = useState(voucher.note ?? '');
+  const [error, setError] = useState('');
+  const { busy, lock, unlock } = useSubmitLock();
+
+  function start() {
+    setValidUntil(voucher.validUntil ?? '');
+    setRecipient(voucher.recipient ?? '');
+    setNote(voucher.note ?? '');
+    setError('');
+    setOpen(true);
+  }
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!lock()) return;
+    setError('');
+    try {
+      const updated = await api<GiftVoucher>(`${base}/${voucher.id}`, {
+        method: 'PATCH',
+        body: {
+          validUntil: validUntil || null,
+          recipient: recipient.trim() || null,
+          note: note.trim() || null,
+        },
+      });
+      setOpen(false);
+      onSaved(updated);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      unlock();
+    }
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="btn btn--quiet btn--small" onClick={start}>
+        {t.vouchers.edit}
+      </button>
+    );
+  }
+  return (
+    <form
+      className="form"
+      aria-label={`${t.vouchers.edit} ${voucher.code}`}
+      onSubmit={(e) => void save(e)}
+    >
+      <h3>{t.vouchers.edit}</h3>
+      <p className="small muted">{t.vouchers.editHint}</p>
+      <ErrorBox>{error}</ErrorBox>
+      <div className="row">
+        <label className="field grow">
+          <span>{t.vouchers.validUntilField}</span>
+          <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+        </label>
+        <label className="field grow">
+          <span>{t.vouchers.recipient}</span>
+          <input maxLength={80} value={recipient} onChange={(e) => setRecipient(e.target.value)} />
+        </label>
+      </div>
+      <label className="field">
+        <span>{t.vouchers.note}</span>
+        <input maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
+      </label>
+      <div className="row">
+        <button className="btn" disabled={busy}>
+          {t.common.save}
+        </button>
+        <button type="button" className="btn btn--quiet" onClick={() => setOpen(false)}>
+          {t.common.cancel}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/**
  * Task 491: one voucher at the till — what is left, "Zapłać bonem" while it may be used, and the
  * payments made with it.
  */
@@ -115,7 +208,7 @@ function VoucherDetails({
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
-  const { orgId, location } = useSession();
+  const { orgId, location, role } = useSession();
   const base = `/v1/organizations/${orgId}/locations/${location.id}/gift-vouchers`;
   const money = (n: number) => formatPrice(n, location.currency, tag);
   const [amount, setAmount] = useState('');
@@ -167,6 +260,16 @@ function VoucherDetails({
         </p>
       ) : null}
       {voucher.status === 'active' ? <VoucherPrint voucher={voucher} /> : null}
+      {role !== 'staff' && voucher.status !== 'cancelled' ? (
+        <EditVoucher
+          key={voucher.id}
+          voucher={voucher}
+          onSaved={(updated) => {
+            onChange({ ...details, voucher: updated });
+            setInfo(fill(t.vouchers.edited, { code: updated.code }));
+          }}
+        />
+      ) : null}
       {voucher.status === 'active' ? (
         <form className="form" onSubmit={(e) => void pay(e)}>
           <div className="row">

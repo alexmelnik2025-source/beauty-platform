@@ -916,6 +916,9 @@ export const en: Dict = {
     cancelled: 'Voucher {code} cancelled.',
     print: 'Print voucher',
     printTitle: 'Gift voucher',
+    edit: 'Change voucher',
+    editHint: 'The amount cannot be changed. An empty date means no end.',
+    edited: 'Voucher {code} changes saved.',
   },
   waitingList: {
     title: 'Waiting list',

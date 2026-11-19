@@ -16,10 +16,11 @@ import { serveApp } from './mobile-app';
  * (screenshots 491, 491a); then cancels a voucher sold by mistake (screenshot 491b).
  * Task 494: "Pobierz CSV bonów" (screenshot 494).
  * Task 496: "Drukuj bon" — the card to hand to the client (screenshot 496).
+ * Task 499: "Zmień bon" — a last day and the names fixed (screenshot 499).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
  * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495);
- * task 497: "Wyślij bon" as a message (screenshot 497).
+ * task 497: "Wyślij bon" as a message (screenshot 497); task 500: "Zmień bon" (screenshot 500).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -156,6 +157,23 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(list.getByText(/Do wykorzystania na ważnych bonach: 130,00\s?zł/)).toBeVisible();
   await shot(page, '491a');
 
+  // Task 499: "Zmień bon" — a last day next summer, both names; the amount stays.
+  const year = new Date().getFullYear() + 1;
+  await card.getByRole('button', { name: 'Zmień bon' }).click();
+  const edit = card.getByRole('form', { name: `Zmień bon ${code!}` });
+  await expect(edit.getByText('Kwoty bonu nie zmienisz.', { exact: false })).toBeVisible();
+  await expect(edit.getByLabel('Dla kogo')).toHaveValue('Jan Kowalski');
+  await edit.getByLabel('Ważny do').fill(`${year}-06-30`);
+  await edit.getByLabel('Dla kogo').fill('Jan i Ola Kowalscy');
+  await shot(page, '499');
+  await edit.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(card.getByRole('status')).toHaveText(`Zapisano zmiany bonu ${code!}.`);
+  await expect(card.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
+  await expect(card.getByText(new RegExp(`Ważny do .*${year}`))).toBeVisible();
+  await expect(card.getByText(/Zostało 80,00\s?zł z 200,00\s?zł/)).toBeVisible();
+  await expect(list.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
+  await shot(page, '499a');
+
   // The voucher sold by mistake is cancelled.
   await list.getByRole('button', { name: `Anuluj bon ${mistake.code}` }).click();
   await list.getByRole('button', { name: 'Tak, anuluj' }).click();
@@ -262,6 +280,26 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
     expect(sent).toContain(`Kod: ${voucher.code.slice(0, 4)}-${voucher.code.slice(4)}`);
     await shot(phone, '497');
 
+    // Task 500: "Zmień bon" — a last day and the full name; the amount stays.
+    const editUntil = `${new Date().getFullYear() + 1}-03-31`;
+    await phone.getByRole('button', { name: 'Zmień bon' }).click();
+    await expect(phone.getByText('Kwoty bonu nie zmienisz.', { exact: false })).toBeVisible();
+    // The card's fields come before the "Nowy bon" ones.
+    await phone
+      .getByLabel(/^Ważny do/)
+      .first()
+      .fill(editUntil);
+    await expect(phone.getByLabel(/^Dla kogo/).first()).toHaveValue('Ola');
+    await phone
+      .getByLabel(/^Dla kogo/)
+      .first()
+      .fill('Ola Nowak');
+    await phone.getByRole('button', { name: 'Zapisz zmiany' }).click();
+    await expect(phone.getByText(`Zapisano zmiany bonu ${voucher.code}.`)).toBeVisible();
+    await expect(phone.getByText('Dla: Ola Nowak').first()).toBeVisible();
+    await expect(phone.getByText(/Zostało 100,00\s?zł z 150,00\s?zł/).first()).toBeVisible();
+    await shot(phone, '500');
+
     // A new voucher: 100 zł until the end of next year.
     const until = `${new Date().getFullYear() + 1}-12-31`;
     await phone.getByLabel('Kwota bonu').fill('100');
@@ -281,7 +319,7 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
     ]);
     const appCsvText = await readFile((await appCsv.path())!, 'utf8');
     expect(appCsvText).toContain(`${voucher.code};`);
-    expect(appCsvText).toContain(';Ola;150,00;50,00;100,00;');
+    expect(appCsvText).toContain(';Ola Nowak;150,00;50,00;100,00;');
     expect(appCsvText).toContain(';Piotr;100,00;0,00;100,00;');
     await shot(phone, '495');
     await context.close();

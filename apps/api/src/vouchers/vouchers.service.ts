@@ -14,6 +14,7 @@ import type {
   GiftVoucherListResponse,
   GiftVoucherResponse,
   RedeemGiftVoucherInput,
+  UpdateGiftVoucherInput,
 } from './vouchers.schemas';
 
 /** Letters and digits that cannot be confused when read aloud or typed (no 0/O, 1/I/L). */
@@ -297,6 +298,44 @@ export class VouchersService {
       );
     }
     return this.details(after, location);
+  }
+
+  /**
+   * Task 498: "Zmień bon" — owners and managers move the last day (also to give an expired voucher
+   * more time), fix who it is for and the note. The amount and what is left are not changed here.
+   */
+  async update(
+    m: MembershipContext,
+    locationId: string,
+    voucherId: string,
+    input: UpdateGiftVoucherInput,
+  ): Promise<GiftVoucherResponse> {
+    const location = await this.access.writable(m, locationId);
+    const voucher = await this.prisma.giftVoucher.findFirst({
+      where: { id: voucherId, locationId },
+    });
+    if (!voucher) throw notFound('Gift voucher');
+    if (voucher.cancelledAt) {
+      throw new AppException(HttpStatus.CONFLICT, 'VOUCHER_CANCELLED', 'The voucher was cancelled');
+    }
+    if (input.validUntil && input.validUntil < localToday(Date.now(), location.timezone)) {
+      throw new AppException(
+        HttpStatus.BAD_REQUEST,
+        'VOUCHER_DATE_PAST',
+        'The voucher cannot end before today',
+      );
+    }
+    const updated = await this.prisma.giftVoucher.update({
+      where: { id: voucherId },
+      data: {
+        ...(input.validUntil !== undefined && {
+          validUntil: input.validUntil ? dateValue(input.validUntil) : null,
+        }),
+        ...(input.recipient !== undefined && { recipient: input.recipient }),
+        ...(input.note !== undefined && { note: input.note }),
+      },
+    });
+    return this.toVoucher(updated, location, await this.names([updated.createdByUserId]));
   }
 
   /** Owners and managers: sold by mistake or the money returned; the voucher cannot be used then. */

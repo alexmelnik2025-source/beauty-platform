@@ -1719,6 +1719,11 @@ export const pl = {
     errorExpired: 'Ten bon jest już nieważny.',
     errorCancelled: 'Ten bon został anulowany.',
     errorDatePast: 'Data ważności nie może być wcześniejsza niż dziś.',
+    edit: 'Zmień bon',
+    editHint: 'Kwoty bonu nie zmienisz. Pusta data — bez terminu ważności.',
+    editSave: 'Zapisz zmiany',
+    editCancel: 'Anuluj',
+    edited: 'Zapisano zmiany bonu {code}.',
   },
   error: {
     network: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',

@@ -49,6 +49,7 @@ function VoucherCard(props: {
   onChange: (next: GiftVoucherDetails) => void;
 }) {
   const { api, t, locale, salon, details } = props;
+  const manager = salon.role !== 'staff';
   const v = t.vouchers;
   const { voucher, uses } = details;
   const money = (n: number) => formatPrice(n, salon.currency, locale);
@@ -57,6 +58,42 @@ function VoucherCard(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [editUntil, setEditUntil] = useState('');
+  const [editRecipient, setEditRecipient] = useState('');
+  const [editNote, setEditNote] = useState('');
+
+  function startEdit() {
+    setError('');
+    setInfo('');
+    setEditUntil(voucher.validUntil ?? '');
+    setEditRecipient(voucher.recipient ?? '');
+    setEditNote(voucher.note ?? '');
+    setEditing(true);
+  }
+
+  /** Task 500: "Zmień bon" — owners and managers; the amount stays (the server checks). */
+  async function saveEdit() {
+    setError('');
+    setInfo('');
+    const until = parseValidUntil(editUntil);
+    if (until === undefined) return setError(v.wrongDate);
+    setBusy(true);
+    try {
+      const updated = await api.updateGiftVoucher(salon.orgId, salon.locationId, voucher.id, {
+        validUntil: until,
+        recipient: editRecipient.trim() || null,
+        note: editNote.trim() || null,
+      });
+      setEditing(false);
+      props.onChange({ ...details, voucher: updated });
+      setInfo(fill(v.edited, { code: updated.code }));
+    } catch (e) {
+      setError(voucherErrorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function pay() {
     setError('');
@@ -121,6 +158,23 @@ function VoucherCard(props: {
             }}
           />
         </>
+      ) : null}
+      {manager && voucher.status !== 'cancelled' ? (
+        editing ? (
+          <View style={styles.confirm}>
+            <Text style={styles.subheading}>{v.edit}</Text>
+            <Text style={styles.muted}>{v.editHint}</Text>
+            <Input label={v.validUntilField} value={editUntil} onChange={setEditUntil} />
+            <Input label={v.recipient} value={editRecipient} onChange={setEditRecipient} />
+            <Input label={v.note} value={editNote} onChange={setEditNote} />
+            <View style={styles.buttons}>
+              <Button label={v.editSave} busy={busy} onPress={() => void saveEdit()} />
+              <Button kind="link" label={v.editCancel} onPress={() => setEditing(false)} />
+            </View>
+          </View>
+        ) : (
+          <Button kind="secondary" label={v.edit} onPress={startEdit} />
+        )
       ) : null}
       <Text style={styles.subheading}>{v.uses}</Text>
       {uses.length === 0 ? (

@@ -24,6 +24,20 @@ export const redeemGiftVoucherSchema = z.object({
   note: z.string().trim().min(1).max(120).optional(),
 });
 
+/**
+ * Task 498: "Zmień bon" — the last day, who it is for and the note (not the amount: that is
+ * money taken at the till). A field left out stays as it is; null clears it.
+ */
+export const updateGiftVoucherSchema = z
+  .object({
+    validUntil: z.iso.date().nullable().optional(),
+    recipient: z.string().trim().min(1).max(80).nullable().optional(),
+    note: z.string().trim().min(1).max(200).nullable().optional(),
+  })
+  .refine((v) => Object.values(v).some((x) => x !== undefined), {
+    message: 'Nothing to change',
+  });
+
 export const giftVoucherCodeSchema = z
   .string()
   .trim()
@@ -33,6 +47,7 @@ export const giftVoucherCodeSchema = z
 
 export type CreateGiftVoucherInput = z.infer<typeof createGiftVoucherSchema>;
 export type RedeemGiftVoucherInput = z.infer<typeof redeemGiftVoucherSchema>;
+export type UpdateGiftVoucherInput = z.infer<typeof updateGiftVoucherSchema>;
 
 // ── Responses ────────────────────────────────────────────
 

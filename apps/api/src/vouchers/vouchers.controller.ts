@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   ParseUUIDPipe,
   Post,
   Query,
@@ -43,6 +44,8 @@ import {
   type GiftVoucherListResponse,
   type GiftVoucherResponse,
   type RedeemGiftVoucherInput,
+  type UpdateGiftVoucherInput,
+  updateGiftVoucherSchema,
   type VouchersCsvQuery,
   vouchersCsvQuerySchema,
 } from './vouchers.schemas';
@@ -156,6 +159,24 @@ export class VouchersController {
     @Body(new ZodValidationPipe(redeemGiftVoucherSchema)) body: RedeemGiftVoucherInput,
   ): Promise<GiftVoucherDetailsResponse> {
     return this.vouchers.redeem(m, auth.userId, locationId, voucherId, body);
+  }
+
+  @Patch(':voucherId')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: '"Zmień bon": the last day, who it is for, the note',
+    description:
+      'Task 498. Owners and managers. Not the amount. A field left out stays; null clears it. A last day before today → 400 VOUCHER_DATE_PAST; a cancelled voucher → 409 VOUCHER_CANCELLED.',
+  })
+  @ApiZodBody(updateGiftVoucherSchema)
+  @ApiZodResponse(giftVoucherSchema)
+  update(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('voucherId', uuid('Gift voucher')) voucherId: string,
+    @Body(new ZodValidationPipe(updateGiftVoucherSchema)) body: UpdateGiftVoucherInput,
+  ): Promise<GiftVoucherResponse> {
+    return this.vouchers.update(m, locationId, voucherId, body);
   }
 
   @Post(':voucherId/cancel')

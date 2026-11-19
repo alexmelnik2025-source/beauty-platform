@@ -3586,7 +3586,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * "Zmień bon": the last day, who it is for, the note
+         * @description Task 498. Owners and managers. Not the amount. A field left out stays; null clears it. A last day before today → 400 VOUCHER_DATE_PAST; a cancelled voucher → 409 VOUCHER_CANCELLED.
+         */
+        patch: operations["VouchersController_update"];
         trace?: never;
     };
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/redeem": {
@@ -13407,6 +13411,36 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GiftVoucherDetails"];
+                };
+            };
+        };
+    };
+    VouchersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                voucherId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    validUntil?: string | null;
+                    recipient?: string | null;
+                    note?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucher"];
                 };
             };
         };
