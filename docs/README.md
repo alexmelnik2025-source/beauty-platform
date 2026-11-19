@@ -3333,3 +3333,21 @@ starczy na ~90 dni» — остаток × 30 / проданное, вниз д�
 товара группы её нет. В «своём» отчёте мастера — пусто. Тест — `apps/api/test/reports.spec.ts`. В «Raporty» кабинета и
 бизнес-приложения под «Dostawy na magazyn» — «Według dostawców: Hairgum 6 szt. · zakup 120,00 zł; bez dostawcy 4 szt.»
 (только когда хотя бы у одного товара указан поставщик). e2e `products.spec.ts`, скриншот 468.
+
+## «Tylko do zamówienia» и «Sprzedano w 30 dni» в CSV stanu magazynowego (задачи 469–470)
+
+`GET …/products/export.csv` получил последнюю колонку «Sprzedano w 30 dni» (uk «Продано за 30 днів», ru «Продано за 30
+дней», en «Sold in 30 days») — сколько штук продано на визитах последних 30 дней (как «Starczy na» у товара, задача
+461), и параметр `toOrder=true` — в файле только товары «Do zamówienia» (продаваемые, которые кончаются или
+распроданы). Вместе с `supplier` это готовый список заказа одному поставщику. В кабинете — галочка «Tylko do
+zamówienia» рядом с кнопкой CSV, в бизнес-приложении — кнопки «Wszystkie produkty / Tylko do zamówienia». Тест —
+`apps/api/test/reports.spec.ts`, e2e `products.spec.ts`, скриншоты 470.
+
+## «Sprzedaż produktów» по поставщикам (задачи 471–472)
+
+У `products` в `GET …/reports` есть `suppliers` — `[{ supplier, quantity, totalGrosze, marginGrosze }]`: продажи
+товаров периода, сгруппированные по сегодняшнему «Dostawca» товара (без учёта регистра; `supplier: null` — товары без
+поставщика или удалённые из списка, всегда последней строкой), больше денег — выше; `marginGrosze` — по закупочным
+ценам на момент продажи, `null`, если ни у одной штуки её не было. В «своём» отчёте мастера — пусто. В «Raporty»
+кабинета и бизнес-приложения в разделе «Sprzedaż produktów» — «Według dostawców» (только когда хотя бы у одного
+товара указан поставщик). e2e `products.spec.ts`, скриншоты 472.
