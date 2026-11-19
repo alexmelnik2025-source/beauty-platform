@@ -640,7 +640,11 @@ export default function VouchersPage() {
                   <div className="row">
                     <label className="field">
                       <span>{t.vouchers.filter}</span>
-                      <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
+                      <select
+                        aria-label={t.vouchers.filter}
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value as Filter)}
+                      >
                         <option value="all">{t.vouchers.filterAll}</option>
                         <option value="active">{t.vouchers.statusActive}</option>
                         <option value="soon">{t.vouchers.filterSoon}</option>

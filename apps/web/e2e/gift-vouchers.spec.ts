@@ -229,17 +229,17 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await shot(page, '501');
 
   // Task 502: only the ones ending soon; then a search by name over all of them.
-  await all.getByLabel('Pokaż', { exact: true }).selectOption({ label: 'Wkrótce wygasają' });
+  await all.getByRole('combobox', { name: 'Pokaż' }).selectOption({ label: 'Wkrótce wygasają' });
   await expect(all.getByRole('listitem')).toHaveCount(1);
   await expect(all.getByText(soon.code)).toBeVisible();
-  await all.getByLabel('Pokaż', { exact: true }).selectOption({ label: 'Wszystkie' });
+  await all.getByRole('combobox', { name: 'Pokaż' }).selectOption({ label: 'Wszystkie' });
   await all.getByLabel('Szukaj: kod lub dla kogo').fill('kowal');
   await expect(all.getByRole('listitem')).toHaveCount(1);
   await expect(all.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
   await shot(page, '502');
   await all.getByLabel('Szukaj: kod lub dla kogo').fill(mistake.code.slice(0, 4).toLowerCase());
   await expect(all.getByRole('listitem')).toHaveCount(1);
-  await all.getByLabel('Pokaż', { exact: true }).selectOption({ label: 'Ważny' });
+  await all.getByRole('combobox', { name: 'Pokaż' }).selectOption({ label: 'Ważny' });
   await expect(all.getByText('Żaden bon nie pasuje.')).toBeVisible();
   await desk.close();
 });
