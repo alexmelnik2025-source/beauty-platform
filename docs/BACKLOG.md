@@ -12,8 +12,9 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **19.11.2026, ~20:45 UTC — 553–554** («Bez gotówki» у закрытых дней в отчёте и в «CSV kasy»; галочка «Sprawdzono z
-  terminalem i kontem» при закрытии кассы). Ветки `agent/553-till-closes-non-cash`, `agent/554-till-terminal-checked`.
+- **19.11.2026, ~21:05 UTC — влиты 553–554** («Bez gotówki» у закрытых дней в отчёте и в «CSV kasy»; галочка
+  «Sprawdzono z terminalem i kontem» при закрытии кассы). Ветки `agent/553-till-closes-non-cash`,
+  `agent/554-till-terminal-checked` уже в main (удалить может владелец).
 
 - **19.11.2026, ~18:30 UTC — влиты 546–550** (боны в «Zamknij kasę»: оплата бонами за визит не считается наличными,
   бон за наличные — считается; «Jak klient zapłacił za bon» при продаже и в «Zmień bon»; колонка «Sposób płatności» в
