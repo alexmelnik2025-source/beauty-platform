@@ -383,7 +383,8 @@ function TillCount(props: PartProps) {
         />
         {nonCash ? (
           <Pressable
-            accessibilityRole="checkbox"
+            role="checkbox"
+            aria-checked={checked}
             accessibilityLabel={d.tillNonCashChecked}
             accessibilityState={{ checked }}
             onPress={() => setChecked(!checked)}
