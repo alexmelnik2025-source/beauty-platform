@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseStock } from '../src/stock';
+import { parseStock, toOrderNames } from '../src/stock';
 
 describe('parseStock (task 431)', () => {
   it('empty means the pieces are not counted', () => {
@@ -18,5 +18,39 @@ describe('parseStock (task 431)', () => {
     expect(parseStock('1,5')).toBeUndefined();
     expect(parseStock('abc')).toBeUndefined();
     expect(parseStock('100001')).toBeUndefined();
+  });
+});
+
+describe('toOrderNames (task 465)', () => {
+  const state = (x: { left: number }) => (x.left === 0 ? 'Brak' : `zostało ${x.left}`);
+
+  it('without suppliers keeps the plain list', () => {
+    expect(
+      toOrderNames(
+        [
+          { name: 'Pomada', supplier: null, left: 0 },
+          { name: 'Szampon', supplier: null, left: 3 },
+        ],
+        state,
+        'bez dostawcy',
+      ),
+    ).toBe('Pomada (Brak), Szampon (zostało 3)');
+  });
+
+  it('groups by supplier in any letter case, alphabetically, the rest last', () => {
+    expect(
+      toOrderNames(
+        [
+          { name: 'Szampon', supplier: null, left: 3 },
+          { name: 'Pomada', supplier: 'Hairgum', left: 0 },
+          { name: 'Wosk', supplier: 'Barber Hurt', left: 5 },
+          { name: 'Glinka', supplier: 'hairgum', left: 1 },
+        ],
+        state,
+        'bez dostawcy',
+      ),
+    ).toBe(
+      'Barber Hurt — Wosk (zostało 5); Hairgum — Pomada (Brak), Glinka (zostało 1); bez dostawcy — Szampon (zostało 3)',
+    );
   });
 });

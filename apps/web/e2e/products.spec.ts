@@ -241,6 +241,12 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await products.getByLabel('Dostawca — Pomada matowa').fill('Hairgum');
   await pomadeRow.getByRole('button', { name: 'Zapisz' }).click();
   await expect(products.getByLabel('Dostawca — Pomada matowa')).toHaveValue('Hairgum');
+  // Task 465: "Do zamówienia" grouped by supplier — whom to call for what.
+  await expect(products.getByTestId('products-to-order')).toHaveText(
+    'Do zamówienia: Hairgum — Pomada matowa (Brak w magazynie); bez dostawcy — Szampon (zostało 3 szt.)',
+  );
+  await products.getByTestId('products-to-order').scrollIntoViewIfNeeded();
+  await shot(page, '465-owner-to-order-suppliers');
   await products.getByLabel('Dostawca w pliku CSV').selectOption('Hairgum');
   const [supplierCsv] = await Promise.all([
     page.waitForEvent('download'),
@@ -444,13 +450,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appList.getByText('Brak w magazynie', { exact: true })).toBeVisible();
     // Task 435: what to order — set in the cabinet (Szampon) and here (Wosk).
     await expect(appList.getByTestId('products-to-order')).toHaveText(
-      'Do zamówienia: Pomada matowa (Brak w magazynie), Szampon (zostało 3 szt.), Wosk (zostało 5 szt.)',
+      // Task 466: grouped by supplier, as in the cabinet.
+      'Do zamówienia: Barber Hurt — Wosk (zostało 5 szt.); Hairgum — Pomada matowa (Brak w magazynie); bez dostawcy — Szampon (zostało 3 szt.)',
     );
     await expect(appList.getByText('Pomada matowa', { exact: true })).toBeVisible();
     await appList.getByRole('button', { name: 'Dodaj produkt' }).scrollIntoViewIfNeeded();
     await shot(app, '397-business-app-products');
     await appList.getByTestId('products-to-order').scrollIntoViewIfNeeded();
     await shot(app, '435-business-app-low-stock');
+    await shot(app, '466-business-app-to-order-suppliers');
     // Task 437: "CSV stanu magazynowego" from the phone (saved in the web preview).
     const [appStock] = await Promise.all([
       app.waitForEvent('download'),

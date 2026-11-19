@@ -1479,6 +1479,7 @@ export const en: Dict = {
     lowNew: 'Running low at (pcs, empty — no warning)',
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
+    toOrderNoSupplier: 'no supplier',
     stockValue: 'Stock value: {amount} ({n} pcs) — at selling prices.',
     cost: 'Purchase price',
     costPlaceholder: 'cost',

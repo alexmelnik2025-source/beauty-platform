@@ -1480,6 +1480,7 @@ export const ru: Dict = {
     lowNew: 'Заканчивается при (шт., пусто — без предупреждения)',
     lowBadge: 'Заканчивается',
     toOrder: 'Заказать: {names}',
+    toOrderNoSupplier: 'без поставщика',
     stockValue: 'Стоимость склада: {amount} ({n} шт.) — по ценам продажи.',
     cost: 'Закупочная цена',
     costPlaceholder: 'закуп',

@@ -5,7 +5,7 @@ import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { shareCsv } from '../share';
-import { parseStock } from '../stock';
+import { parseStock, toOrderNames } from '../stock';
 import { parseTip as parseAmount, tipInput as amountInput } from '../tip';
 
 /** Task 448: "" → null (not written), "20,50" → 2050; anything else → undefined (wrong). */
@@ -201,16 +201,14 @@ export function ProductListSection(props: {
       {toOrder.length > 0 ? (
         <Text style={styles.warn} role="status" testID="products-to-order">
           {fill(p.toOrder, {
-            names: toOrder
-              .map(
-                (x) =>
-                  `${x.name} (${
-                    x.stockQuantity === 0
-                      ? p.stockNone
-                      : fill(p.stockLeft, { n: String(x.stockQuantity) })
-                  })`,
-              )
-              .join(', '),
+            names: toOrderNames(
+              toOrder,
+              (x) =>
+                x.stockQuantity === 0
+                  ? p.stockNone
+                  : fill(p.stockLeft, { n: String(x.stockQuantity) }),
+              p.toOrderNoSupplier,
+            ),
           })}
         </Text>
       ) : null}

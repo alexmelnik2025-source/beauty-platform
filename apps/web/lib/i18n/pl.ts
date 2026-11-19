@@ -1476,6 +1476,7 @@ export const pl = {
     lowNew: 'Kończy się przy (szt., puste — bez ostrzeżenia)',
     lowBadge: 'Kończy się',
     toOrder: 'Do zamówienia: {names}',
+    toOrderNoSupplier: 'bez dostawcy',
     stockValue: 'Wartość magazynu: {amount} ({n} szt.) — w cenach sprzedaży.',
     cost: 'Cena zakupu',
     costPlaceholder: 'zakup',

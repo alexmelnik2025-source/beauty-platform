@@ -688,6 +688,7 @@ export const en: Dictionary = {
     lowIn: 'Running low at (pcs, empty — no warning)',
     lowBadge: 'Running low',
     toOrder: 'To order: {names}',
+    toOrderNoSupplier: 'no supplier',
     stockValue: 'Stock value: {amount} ({n} pcs) — at selling prices.',
     cost: 'Purchase price',
     costNew: 'Purchase price (empty — not written)',

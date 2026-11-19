@@ -1473,6 +1473,7 @@ export const uk: Dict = {
     lowNew: 'Закінчується при (шт., порожньо — без попередження)',
     lowBadge: 'Закінчується',
     toOrder: 'Замовити: {names}',
+    toOrderNoSupplier: 'без постачальника',
     stockValue: 'Вартість складу: {amount} ({n} шт.) — за цінами продажу.',
     cost: 'Закупівельна ціна',
     costPlaceholder: 'закуп',

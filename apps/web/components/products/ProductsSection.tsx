@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
+import { toOrderNames } from '@/lib/to-order';
 import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
@@ -236,16 +237,14 @@ export function ProductsSection({ base }: { base: string }) {
         <p className="note" role="status" data-testid="products-to-order">
           {p.toOrder.replace(
             '{names}',
-            toOrder
-              .map(
-                (x) =>
-                  `${x.name} (${
-                    x.stockQuantity === 0
-                      ? p.stockNone
-                      : p.stockLeft.replace('{n}', String(x.stockQuantity))
-                  })`,
-              )
-              .join(', '),
+            toOrderNames(
+              toOrder,
+              (x) =>
+                x.stockQuantity === 0
+                  ? p.stockNone
+                  : p.stockLeft.replace('{n}', String(x.stockQuantity)),
+              p.toOrderNoSupplier,
+            ),
           )}
         </p>
       ) : null}
