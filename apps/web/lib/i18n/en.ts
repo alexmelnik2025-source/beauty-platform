@@ -261,6 +261,9 @@ export const en: Dict = {
     tillMoveRemoveLabel: 'Remove: {what}',
     tillMoves: 'Cash in and out',
     tillShouldBe: 'Should be in the till: {sum} (cash visits {visits}, in {in}, out {out})',
+    tillVouchersSold: 'Gift vouchers sold for cash: {sum}',
+    tillVisitsVouchers:
+      'Paid for visits with gift vouchers: {sum} — this money is not in the till (the salon took it when the voucher was sold).',
   },
   appointment: {
     title: 'Appointment',
@@ -933,6 +936,10 @@ export const en: Dict = {
     usesCsv: 'Download voucher payments CSV',
     soldOn: 'Sold {date}',
     soldBy: 'by {name}',
+    paymentLabel: 'How the client paid for the voucher',
+    paymentUnknown: 'Not given',
+    paymentHint: 'A voucher sold for cash is added to that day\'s till ("Close the till").',
+    paidWith: 'paid: {method}',
     show: 'Show',
     cancel: 'Cancel voucher',
     cancelAsk: 'Cancel voucher {code}? It can no longer be used to pay.',

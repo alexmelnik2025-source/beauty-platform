@@ -894,6 +894,8 @@ export class BusinessApi {
       validUntil: string | null;
       recipient: string | null;
       note: string | null;
+      /** Task 547: how the client paid for it; cash goes into the till of the day. */
+      paymentMethod?: NonNullable<GiftVoucher['paymentMethod']>;
     },
   ): Promise<GiftVoucher> {
     return this.authed<GiftVoucher>('POST', voucherPath(orgId, locationId), body);

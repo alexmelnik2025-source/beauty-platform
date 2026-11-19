@@ -3521,3 +3521,20 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   `apps/mobile-business/src/vouchers.ts`): после оплаты бонем под «Zapłacono bonem: …» — «Do dopłaty za wizytę:
   40,00 zł» (цена после скидок минус оплаченное бонами) или «Bon pokrył całą wizytę.». Товары и чаевые — отдельно.
 - Тесты: `apps/api/test/reports.spec.ts`, `apps/mobile-business/test/vouchers.test.ts`, e2e `visit-voucher.spec.ts`.
+
+## Боны в «Zamknij kasę» и «Jak klient zapłacił za bon» (задачи 546–548)
+
+- Касса дня (`TillCloseService`): визит, оплаченный наличными, даёт в кассу цену после скидок **минус** оплаты бонами за
+  этот визит («Zapłać bonem» в карточке визита, `gift_voucher_use.appointment_id`, без отменённых «Cofnij płatność»;
+  не больше цены визита). Новое поле `visitsVoucherGrosze` — сколько из таких визитов заплачено бонами.
+- `gift_voucher.payment_method` (тот же список, что у визита: cash / card / blik / transfer / other, можно не
+  указывать): `paymentMethod` в `POST …/gift-vouchers` и в ответах бона. Не отменённые боны, проданные за наличные в
+  этот день салона, — `vouchersCashGrosze` и входят в `expectedCashGrosze`; день с таким боном считается днём с
+  наличными для «Kasa nie została zamknięta». Бон, проданный раньше этой функции, без способа оплаты — в кассу не
+  попадает.
+- Кабинет: в «Nowy bon» выбор «Jak klient zapłacił za bon», в списке бонов «· zapłacono: Gotówka»; в форме «Zamknij
+  kasę» — «Powinno być w kasie: …», «Bony podarunkowe sprzedane za gotówkę: …», «Za wizyty zapłacono bonami: … — tych
+  pieniędzy nie ma w kasie». Бизнес-приложение — то же (`PaymentMethodPicker` с подписью, `TillCloseSection.tsx`,
+  `expectedParts()` в `src/tillClose.ts`).
+- Тесты: `apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/tillClose.test.ts`, e2e `till-vouchers.spec.ts`
+  (скриншоты 546, 547, 548, 548-a).

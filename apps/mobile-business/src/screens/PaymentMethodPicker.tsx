@@ -9,17 +9,21 @@ export function PaymentMethodPicker({
   value,
   onChange,
   disabled,
+  label,
 }: {
   t: Dictionary;
+  /** Task 547: another title (default "Sposób płatności"). */
+  label?: string;
   value: PaymentMethod | null;
   onChange: (method: PaymentMethod | null) => void;
   disabled?: boolean;
 }) {
   const v = t.visit;
+  const title = label ?? v.paymentMethod;
   return (
     <View style={styles.box}>
-      <Text style={styles.label}>{v.paymentMethod}</Text>
-      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={v.paymentMethod}>
+      <Text style={styles.label}>{title}</Text>
+      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={title}>
         {PAYMENT_METHODS.map((method) => (
           <Pressable
             key={method}

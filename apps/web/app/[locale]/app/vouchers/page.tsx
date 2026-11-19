@@ -9,7 +9,13 @@ import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
 import { encodeQr, qrSvg } from '@/lib/qr';
 import { formatDay, formatPrice } from '@/lib/time';
-import type { GiftVoucher, GiftVoucherDetails, GiftVoucherList } from '@/lib/types';
+import {
+  PAYMENT_METHODS,
+  type GiftVoucher,
+  type GiftVoucherDetails,
+  type GiftVoucherList,
+  type PaymentMethod,
+} from '@/lib/types';
 import { useSubmitLock } from '@/lib/submit-lock';
 
 const STATUS: Record<GiftVoucher['status'], keyof Dict['vouchers']> = {
@@ -490,6 +496,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
   const [validUntil, setValidUntil] = useState('');
   const [recipient, setRecipient] = useState('');
   const [note, setNote] = useState('');
+  const [payment, setPayment] = useState<PaymentMethod | ''>('');
   const [error, setError] = useState('');
   const [sold, setSold] = useState<GiftVoucher | null>(null);
   const { busy, lock, unlock } = useSubmitLock();
@@ -509,6 +516,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
           validUntil: validUntil || null,
           recipient: recipient.trim() || null,
           note: note.trim() || null,
+          ...(payment ? { paymentMethod: payment } : {}),
         },
       });
       setSold(voucher);
@@ -516,6 +524,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
       setValidUntil('');
       setRecipient('');
       setNote('');
+      setPayment('');
       onSold(voucher);
     } catch (err) {
       setError(errorText(t, err));
@@ -564,6 +573,21 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
             <input maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
           </label>
         </div>
+        <label className="field">
+          <span>{t.vouchers.paymentLabel}</span>
+          <select
+            value={payment}
+            onChange={(e) => setPayment(e.target.value as PaymentMethod | '')}
+          >
+            <option value="">{t.vouchers.paymentUnknown}</option>
+            {PAYMENT_METHODS.map((method) => (
+              <option key={method} value={method}>
+                {t.appointment.paymentMethods[method]}
+              </option>
+            ))}
+          </select>
+          <span className="small muted">{t.vouchers.paymentHint}</span>
+        </label>
         <button className="btn" disabled={busy}>
           {t.vouchers.sell}
         </button>
@@ -772,6 +796,11 @@ export default function VouchersPage() {
                             {fill(t.vouchers.soldOn, { date: formatDay(v.soldDate, tag) })}
                             {v.soldByName
                               ? ` ${fill(t.vouchers.soldBy, { name: v.soldByName })}`
+                              : ''}
+                            {v.paymentMethod
+                              ? ` · ${fill(t.vouchers.paidWith, {
+                                  method: t.appointment.paymentMethods[v.paymentMethod],
+                                })}`
                               : ''}
                           </span>
                         </span>

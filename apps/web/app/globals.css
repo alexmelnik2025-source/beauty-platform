@@ -3066,6 +3066,10 @@ ul.wish-photos {
   border: 0;
 }
 
+.till-close__line {
+  flex-basis: 100%;
+}
+
 .till-close__missing {
   font-weight: 600;
   text-decoration: underline;

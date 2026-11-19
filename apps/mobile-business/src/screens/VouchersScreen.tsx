@@ -25,6 +25,8 @@ import {
 import { WEB_URL } from '../config';
 import { bookingLink, shareCsv, shareText } from '../share';
 import { csvTools, orderShareTools } from './csvTools';
+import type { PaymentMethod } from '../payment';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
 import type { SalonChoice } from './SalonsScreen';
 
 function Input(props: {
@@ -313,6 +315,7 @@ export function VouchersScreen(props: {
   const [amount, setAmount] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [recipient, setRecipient] = useState('');
+  const [payment, setPayment] = useState<PaymentMethod | null>(null);
   const [note, setNote] = useState('');
   const [sellError, setSellError] = useState('');
   const [sold, setSold] = useState<GiftVoucher | null>(null);
@@ -395,12 +398,14 @@ export function VouchersScreen(props: {
         validUntil: until,
         recipient: recipient.trim() || null,
         note: note.trim() || null,
+        ...(payment ? { paymentMethod: payment } : {}),
       });
       setSold(voucher);
       setAmount('');
       setValidUntil('');
       setRecipient('');
       setNote('');
+      setPayment(null);
       await load();
     } catch (e) {
       setSellError(voucherErrorText(e, t));
@@ -472,6 +477,14 @@ export function VouchersScreen(props: {
           <Input label={v.validUntilField} value={validUntil} onChange={setValidUntil} />
           <Input label={v.recipient} value={recipient} onChange={setRecipient} />
           <Input label={v.note} value={note} onChange={setNote} />
+          <PaymentMethodPicker
+            t={t}
+            label={v.paymentLabel}
+            value={payment}
+            onChange={setPayment}
+            disabled={selling}
+          />
+          <Text style={styles.muted}>{v.paymentHint}</Text>
           {sellError ? <ErrorText>{sellError}</ErrorText> : null}
           <Button label={v.sell} busy={selling} onPress={() => void sell()} />
           {sold ? (
@@ -532,6 +545,9 @@ export function VouchersScreen(props: {
                     <Text style={styles.muted}>
                       {fill(v.soldOn, { date: dayTitle(x.soldDate, locale) })}
                       {x.recipient ? ` · ${fill(v.forWhom, { name: x.recipient })}` : ''}
+                      {x.paymentMethod
+                        ? ` · ${fill(v.paidWith, { method: t.visit.paymentMethods[x.paymentMethod] })}`
+                        : ''}
                     </Text>
                     <Button
                       kind="link"

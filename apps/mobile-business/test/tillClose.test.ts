@@ -102,6 +102,22 @@ describe('"Wpłata / wypłata" (task 236)', () => {
     expect(changedSinceClose(moved)).toBe(true);
   });
 
+  it('a voucher sold for cash shows the whole sum too (task 547)', () => {
+    const view: TillClose = {
+      ...closed(9000, 9000),
+      expectedCashGrosze: 19_000,
+      vouchersCashGrosze: 10_000,
+      visitsVoucherGrosze: 5000,
+    };
+    expect(expectedParts(view)).toEqual({
+      kind: 'withMovements',
+      total: 19_000,
+      visits: 9000,
+      cashIn: 0,
+      cashOut: 0,
+    });
+  });
+
   it('needs an amount above zero and a reason', () => {
     expect(movementReady(parseCash('10'), 'Ręczniki')).toBe(true);
     expect(movementReady(parseCash('0'), 'Ręczniki')).toBe(false);

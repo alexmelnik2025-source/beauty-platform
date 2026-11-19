@@ -108,21 +108,36 @@ type PartProps = Parameters<typeof TillCloseSection>[0] & {
   onChange: (view: TillClose) => void;
 };
 
-/** "Powinno być w kasie: …" with cash put in or taken out (task 236), else the cash visits. */
+/**
+ * "Powinno być w kasie: …" with cash put in or taken out (task 236) or vouchers sold for cash, else
+ * the cash visits; tasks 546–547: vouchers sold for cash and visits paid with vouchers.
+ */
 function ExpectedText({ view, t, locale }: PartProps) {
   const money = (hundredths: number) => formatPrice(hundredths, view.currency, locale);
   const parts = expectedParts(view);
   return (
-    <Text style={styles.muted}>
-      {parts.kind === 'visits'
-        ? fill(t.day.tillExpected, { sum: money(parts.visits) })
-        : fill(t.day.tillShouldBe, {
-            sum: money(parts.total),
-            visits: money(parts.visits),
-            in: money(parts.cashIn),
-            out: money(parts.cashOut),
-          })}
-    </Text>
+    <>
+      <Text style={styles.muted}>
+        {parts.kind === 'visits'
+          ? fill(t.day.tillExpected, { sum: money(parts.visits) })
+          : fill(t.day.tillShouldBe, {
+              sum: money(parts.total),
+              visits: money(parts.visits),
+              in: money(parts.cashIn),
+              out: money(parts.cashOut),
+            })}
+      </Text>
+      {view.vouchersCashGrosze > 0 ? (
+        <Text style={styles.muted}>
+          {fill(t.day.tillVouchersSold, { sum: money(view.vouchersCashGrosze) })}
+        </Text>
+      ) : null}
+      {view.visitsVoucherGrosze > 0 ? (
+        <Text style={styles.muted}>
+          {fill(t.day.tillVisitsVouchers, { sum: money(view.visitsVoucherGrosze) })}
+        </Text>
+      ) : null}
+    </>
   );
 }
 

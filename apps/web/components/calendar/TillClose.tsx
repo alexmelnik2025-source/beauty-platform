@@ -65,21 +65,36 @@ function useMoney(currency: string) {
   return (hundredths: number) => formatPrice(hundredths, currency, tag);
 }
 
-/** "Powinno być w kasie: …" when cash was put in or taken out, else the cash visits. */
+/**
+ * "Powinno być w kasie: …" when cash was put in or taken out or vouchers were sold for cash, else
+ * the cash visits; tasks 546–547: vouchers sold for cash and visits paid with vouchers.
+ */
 function ExpectedLine({ view, currency }: { view: TillCloseView; currency: string }) {
   const { t } = useI18n();
   const money = useMoney(currency);
   return (
-    <span className="small muted">
-      {view.movements.length > 0
-        ? fill(t.calendar.tillShouldBe, {
-            sum: money(view.expectedCashGrosze),
-            visits: money(view.visitsCashGrosze),
-            in: money(view.cashInGrosze),
-            out: money(view.cashOutGrosze),
-          })
-        : fill(t.calendar.tillExpected, { sum: money(view.visitsCashGrosze) })}
-    </span>
+    <>
+      <span className="small muted">
+        {view.movements.length > 0 || view.vouchersCashGrosze > 0
+          ? fill(t.calendar.tillShouldBe, {
+              sum: money(view.expectedCashGrosze),
+              visits: money(view.visitsCashGrosze),
+              in: money(view.cashInGrosze),
+              out: money(view.cashOutGrosze),
+            })
+          : fill(t.calendar.tillExpected, { sum: money(view.visitsCashGrosze) })}
+      </span>
+      {view.vouchersCashGrosze > 0 ? (
+        <span className="small muted till-close__line">
+          {fill(t.calendar.tillVouchersSold, { sum: money(view.vouchersCashGrosze) })}
+        </span>
+      ) : null}
+      {view.visitsVoucherGrosze > 0 ? (
+        <span className="small muted till-close__line">
+          {fill(t.calendar.tillVisitsVouchers, { sum: money(view.visitsVoucherGrosze) })}
+        </span>
+      ) : null}
+    </>
   );
 }
 

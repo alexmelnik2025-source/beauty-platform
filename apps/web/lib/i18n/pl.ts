@@ -264,6 +264,9 @@ export const pl = {
     tillMoves: 'Wpłaty i wypłaty',
     tillShouldBe:
       'Powinno być w kasie: {sum} (za wizyty gotówką {visits}, wpłaty {in}, wypłaty {out})',
+    tillVouchersSold: 'Bony podarunkowe sprzedane za gotówkę: {sum}',
+    tillVisitsVouchers:
+      'Za wizyty zapłacono bonami: {sum} — tych pieniędzy nie ma w kasie (salon dostał je przy sprzedaży bonu).',
   },
   appointment: {
     title: 'Wizyta',
@@ -932,6 +935,10 @@ export const pl = {
     usesCsv: 'Pobierz CSV płatności bonami',
     soldOn: 'Sprzedany {date}',
     soldBy: 'przez {name}',
+    paymentLabel: 'Jak klient zapłacił za bon',
+    paymentUnknown: 'Nie podano',
+    paymentHint: 'Bon sprzedany za gotówkę doliczy się do kasy tego dnia („Zamknij kasę”).',
+    paidWith: 'zapłacono: {method}',
     show: 'Pokaż',
     cancel: 'Anuluj bon',
     cancelAsk: 'Anulować bon {code}? Nie będzie można nim płacić.',

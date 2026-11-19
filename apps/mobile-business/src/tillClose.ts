@@ -6,7 +6,9 @@ import type { TillClose } from './api';
  * Vitest (test/tillClose.test.ts).
  */
 export type TillDifference =
-  { kind: 'matches' } | { kind: 'missing'; grosze: number } | { kind: 'surplus'; grosze: number };
+  | { kind: 'matches' }
+  | { kind: 'missing'; grosze: number }
+  | { kind: 'surplus'; grosze: number };
 
 /** What the counted cash says: it matches, something is missing, or there is too much. */
 export function tillDifference(close: NonNullable<TillClose['close']>): TillDifference {
@@ -41,15 +43,16 @@ export function signed(hundredths: number, format: (positive: number) => string)
 }
 
 /**
- * Task 236: what the form says should be in the till — with cash put in or taken out, the whole
- * sum and its parts; otherwise just what the cash visits brought.
+ * Task 236: what the form says should be in the till — with cash put in or taken out (or, task
+ * 547, gift vouchers sold for cash), the whole sum and its parts; otherwise just what the cash
+ * visits brought.
  */
 export function expectedParts(
   view: TillClose,
 ):
   | { kind: 'visits'; visits: number }
   | { kind: 'withMovements'; total: number; visits: number; cashIn: number; cashOut: number } {
-  return view.movements.length === 0
+  return view.movements.length === 0 && view.vouchersCashGrosze === 0
     ? { kind: 'visits', visits: view.visitsCashGrosze }
     : {
         kind: 'withMovements',

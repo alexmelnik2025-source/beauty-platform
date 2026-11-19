@@ -117,6 +117,9 @@ export const pl = {
     tillMoves: 'Wpłaty i wypłaty',
     tillShouldBe:
       'Powinno być w kasie: {sum} (za wizyty gotówką {visits}, wpłaty {in}, wypłaty {out})',
+    tillVouchersSold: 'Bony podarunkowe sprzedane za gotówkę: {sum}',
+    tillVisitsVouchers:
+      'Za wizyty zapłacono bonami: {sum} — tych pieniędzy nie ma w kasie (salon dostał je przy sprzedaży bonu).',
     status: { confirmed: 'Potwierdzona', completed: 'Zakończona', no_show: 'Nie przyszedł' },
   },
   week: {
@@ -1721,6 +1724,10 @@ export const pl = {
     shareCopied: 'Bon skopiowany — wklej go w wiadomości.',
     shareFailed: 'Nie udało się wysłać bonu.',
     soldOn: 'Sprzedany {date}',
+    paymentLabel: 'Jak klient zapłacił za bon',
+    paymentHint:
+      'Bon sprzedany za gotówkę doliczy się do kasy tego dnia („Zamknij kasę”). Można pominąć.',
+    paidWith: 'zapłacono: {method}',
     cancel: 'Anuluj bon',
     cancelAsk: 'Anulować bon {code}? Nie będzie można nim płacić.',
     cancelYes: 'Tak, anuluj',
