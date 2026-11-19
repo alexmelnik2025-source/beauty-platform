@@ -212,6 +212,9 @@ export const sq: Dictionary = {
     otherService: 'Shërbim ose specialist tjetër',
     serviceGone: 'Ky shërbim nuk mund të rezervohet më online — ju lutemi zgjidhni një tjetër.',
     staffGone: 'Ky specialist nuk e ofron më këtë shërbim — ju lutemi zgjidhni një tjetër.',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Rezervim te: {name}',
+    qrStaffAny: 'Një specialist tjetër',
     pickService: 'Zgjidhni një shërbim',
     pickStaff: 'Zgjidhni një specialist',
     speaksFilter: 'Flet',

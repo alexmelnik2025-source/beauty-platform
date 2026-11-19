@@ -3685,3 +3685,15 @@ API салона (`…/locations/{id}/shop/catalog`, `apps/api/src/shop/`): `GET
 (5 сценариев: каталог, права, правила предложения, страница салона, «Sklep» с двумя продавцами). Следующие части:
 экран «Mój sklep» в кабинете и бизнес-приложении, «Produkty salonu» на странице записи, товар к визиту (A/B/C), экран
 барбера (D), вкладка «Sklep» в клиентском приложении.
+
+## QR специалиста открывает клиентское приложение на его записи (задача Q2, завершение)
+
+Последняя часть Q2. `parseDeepLink` в клиентском приложении (`apps/mobile-client/src/deepLink.ts`) понимает ссылку
+только со специалистом — ту, что в QR мастера: `…/s/{salon}?utm_source=qr&staff={id}` и `beauty-client://b/{salon}?staff=…`.
+`bookingStart` (`booking.ts`) открывает список услуг с строкой «Umawiasz się do: Kasia» и кнопкой «Inny specjalista»;
+после выбора услуги, которую этот мастер делает, сразу его свободное время — шаг «Wybierz specjalistę» пропускается
+(`BookingPreset.serviceId` стал необязательным, остальные пресеты — «Umów ponownie», бонусы — не изменились). Тексты в 6
+словарях приложения, те же слова, что на странице записи. Unit `deepLink.test.ts`, `booking.test.ts`; e2e шаг в
+`visits-app-deep-link.spec.ts` (скриншот Q2-app-link-qr-staff). Дальше по QR — только после «да» владельца: N32
+(universal links после публикации), N33 («Zeskanuj kod QR» в приложении), N35 (короткая ссылка `/s/{salon}/{imię}`),
+N37 (печатная карточка специалиста).

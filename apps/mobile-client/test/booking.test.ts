@@ -244,6 +244,16 @@ describe('"book again" starts with the same service and specialist', () => {
     expect(bookingStart(salon)).toEqual({ step: 'service', serviceId: '' });
   });
 
+  it('a specialist’s QR code — the price list, their times follow the service (task Q2)', () => {
+    expect(bookingStart(salon, { staffId: 'alex' })).toEqual({
+      step: 'service',
+      serviceId: '',
+      qrStaffId: 'alex',
+    });
+    // A specialist who left: an ordinary start.
+    expect(bookingStart(salon, { staffId: 'gone' })).toEqual({ step: 'service', serviceId: '' });
+  });
+
   it('the same specialist still does the service — straight to free times', () => {
     expect(bookingStart(salon, { serviceId: 'cut', staffId: 'alex' })).toEqual({
       step: 'time',

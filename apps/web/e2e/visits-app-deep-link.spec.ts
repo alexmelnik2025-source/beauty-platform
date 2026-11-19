@@ -13,8 +13,10 @@ import { serveApp } from './mobile-app';
  * Task Q2 (part 5): a link opens the client app (web preview of apps/mobile-client) at a salon.
  * (The file name keeps this after booking.spec.ts, which counts the salons of the catalogue.)
  * With `?service=…` the booking starts straight at the specialists of that service; with
- * `?service=…&staff=…` — at the free times of that specialist; a plain salon link opens the
- * salon's page. Screenshots Q2-app-link-staff, Q2-app-link-time, Q2-app-link-salon.
+ * `?service=…&staff=…` — at the free times of that specialist; with only `?staff=…` (part 8, a
+ * specialist's QR code) — at the services, that specialist's times following; a plain salon link
+ * opens the salon's page. Screenshots Q2-app-link-staff, Q2-app-link-time, Q2-app-link-qr-staff,
+ * Q2-app-link-salon.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -111,6 +113,22 @@ test('a link opens the client app at the salon, service and specialist (task Q2)
     await app.goto(`${clientApp.url}/pl/b/${slug}?service=${serviceId}&staff=${staffId}`);
     await expect(app.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
     await shot(app, 'Q2-app-link-time');
+
+    // A specialist's QR code (only who): the services with "Umawiasz się do: Kasia", and after the
+    // service her times at once — no "who" step (task Q2, part 8).
+    await app.goto(`${clientApp.url}/s/${slug}?utm_source=qr&staff=${staffId}`);
+    await expect(app.getByRole('heading', { name: 'Wybierz usługę' })).toBeVisible();
+    await expect(app.getByTestId('qr-staff')).toHaveText(/Umawiasz się do: Kasia/);
+    await shot(app, 'Q2-app-link-qr-staff');
+    await app.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+    await expect(app.getByRole('heading', { name: 'Wybierz termin' })).toBeVisible();
+    await expect(app.getByRole('button', { name: /Marek/ })).toHaveCount(0);
+    // "Inny specjalista" forgets the code's specialist: the usual "who" step follows.
+    await app.goto(`${clientApp.url}/s/${slug}?utm_source=qr&staff=${staffId}`);
+    await app.getByRole('button', { name: 'Inny specjalista' }).click();
+    await expect(app.getByTestId('qr-staff')).toHaveCount(0);
+    await app.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+    await expect(app.getByRole('heading', { name: 'Wybierz specjalistę' })).toBeVisible();
 
     // The salon's short link alone: its page.
     await app.goto(`${clientApp.url}/s/${slug}?utm_source=qr`);

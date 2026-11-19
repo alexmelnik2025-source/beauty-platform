@@ -10,7 +10,9 @@ import type { BookingPreset } from './booking';
  *   exp://…/--/b/{salon}                          the same paths in Expo Go while developing
  *
  * With a service the booking starts straight at the free times (the same `?service=&staff=` as
- * the web page, "Book again" and "Finish your booking"); without — the salon's page opens.
+ * the web page, "Book again" and "Finish your booking"); with only a specialist (their QR code:
+ * `?utm_source=qr&staff=…`) — at the services, and that specialist's times follow at once;
+ * without either — the salon's page opens.
  * No React Native here — tested in Vitest (test/deepLink.test.ts).
  */
 
@@ -61,6 +63,6 @@ export function parseDeepLink(url: string | null | undefined): DeepLink | null {
   if (!SLUG.test(slug)) return null;
   const service = query.get('service') ?? '';
   const staff = query.get('staff') ?? '';
-  if (!ID.test(service)) return { slug };
+  if (!ID.test(service)) return ID.test(staff) ? { slug, preset: { staffId: staff } } : { slug };
   return { slug, preset: { serviceId: service, ...(ID.test(staff) ? { staffId: staff } : {}) } };
 }
