@@ -10518,8 +10518,8 @@ export interface operations {
     ProductsController_stockCsv: {
         parameters: {
             query?: {
-                locale?: "pl" | "uk" | "ru" | "en";
                 supplier?: string;
+                locale?: "pl" | "uk" | "ru" | "en";
             };
             header?: never;
             path: {

@@ -8148,6 +8148,14 @@
             }
           },
           {
+            "name": "supplier",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "locale",
             "required": false,
             "in": "query",
@@ -8158,14 +8166,6 @@
                 "ru",
                 "en"
               ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "supplier",
-            "required": false,
-            "in": "query",
-            "schema": {
               "type": "string"
             }
           }
