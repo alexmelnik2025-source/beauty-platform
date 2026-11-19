@@ -64,3 +64,40 @@ export function parseValidUntil(text: string): string | null | undefined {
     ? typed
     : undefined;
 }
+
+/** "ABCD-EFGH": easier to read and type; the dash does not matter when the code is checked. */
+export function printedCode(code: string): string {
+  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+}
+
+/**
+ * Task 497: "Wyślij bon" — the voucher as a message for the client (or whoever gives it):
+ * the salon, the amount (what is left, once paid with), for whom, the code and the last day.
+ */
+export function voucherText(
+  voucher: Pick<
+    GiftVoucher,
+    'code' | 'amountGrosze' | 'balanceGrosze' | 'recipient' | 'validUntil'
+  >,
+  salonName: string,
+  t: Dictionary,
+  currency: string,
+  locale: DayLocale,
+): string {
+  const v = t.vouchers;
+  return [
+    fill(v.shareTitle, { salon: salonName }),
+    // Part already paid with: what is left of how much.
+    voucher.balanceGrosze === voucher.amountGrosze
+      ? fill(v.shareAmount, { amount: formatPrice(voucher.amountGrosze, currency, locale) })
+      : fill(v.left, {
+          left: formatPrice(voucher.balanceGrosze, currency, locale),
+          amount: formatPrice(voucher.amountGrosze, currency, locale),
+        }),
+    ...(voucher.recipient ? [fill(v.forWhom, { name: voucher.recipient })] : []),
+    fill(v.shareCode, { code: printedCode(voucher.code) }),
+    voucher.validUntil
+      ? fill(v.validUntil, { date: dayTitle(voucher.validUntil, locale) })
+      : v.noEnd,
+  ].join('\n');
+}

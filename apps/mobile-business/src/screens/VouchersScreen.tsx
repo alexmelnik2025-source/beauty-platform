@@ -5,9 +5,15 @@ import { dayTitle, formatPrice } from '../day';
 import { fill, type Dictionary } from '../i18n';
 import { parseTip as parseAmount } from '../tip';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
-import { parseValidUntil, voucherErrorText, voucherLine, voucherStatus } from '../vouchers';
-import { shareCsv } from '../share';
-import { csvTools } from './csvTools';
+import {
+  parseValidUntil,
+  voucherErrorText,
+  voucherLine,
+  voucherStatus,
+  voucherText,
+} from '../vouchers';
+import { shareCsv, shareText } from '../share';
+import { csvTools, orderShareTools } from './csvTools';
 import type { SalonChoice } from './SalonsScreen';
 
 function Input(props: {
@@ -98,6 +104,22 @@ function VoucherCard(props: {
           <Input label={v.payAmount} value={amount} onChange={setAmount} numeric />
           <Input label={v.payNote} value={note} onChange={setNote} />
           <Button label={v.pay} busy={busy} onPress={() => void pay()} />
+          <Button
+            kind="secondary"
+            label={v.share}
+            onPress={() => {
+              setError('');
+              setInfo('');
+              const message = voucherText(voucher, salon.locationName, t, salon.currency, locale);
+              void shareText(
+                { title: fill(v.shareTitle, { salon: salon.locationName }), message },
+                orderShareTools(),
+              ).then((result) => {
+                if (result === 'copied') setInfo(v.shareCopied);
+                if (result === 'failed') setError(v.shareFailed);
+              });
+            }}
+          />
         </>
       ) : null}
       <Text style={styles.subheading}>{v.uses}</Text>

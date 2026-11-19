@@ -17,7 +17,8 @@ import { serveApp } from './mobile-app';
  * Task 494: "Pobierz CSV bonów" (screenshot 494).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
- * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495).
+ * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495);
+ * task 497: "Wyślij bon" as a message (screenshot 497).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -201,6 +202,7 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
       timezoneId: 'Europe/Warsaw',
       isMobile: true,
       extraHTTPHeaders: address,
+      permissions: ['clipboard-read', 'clipboard-write'],
     });
     const phone = await context.newPage();
     await phone.goto(businessApp.url);
@@ -223,6 +225,16 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
       phone.getByText(/Zapłacono bonem 50,00\s?zł\. Zostało 100,00\s?zł\./),
     ).toBeVisible();
     await shot(phone, '492');
+
+    // Task 497: "Wyślij bon" — the voucher as a message (in the web preview it is copied).
+    await phone.getByRole('button', { name: 'Wyślij bon' }).click();
+    await expect(phone.getByText('Bon skopiowany — wklej go w wiadomości.')).toBeVisible();
+    const sent = await phone.evaluate(() => navigator.clipboard.readText());
+    expect(sent).toContain('Bon podarunkowy — Gestalt Barbershop');
+    expect(sent).toMatch(/Zostało 100,00\s?zł z 150,00\s?zł/);
+    expect(sent).toContain('Dla: Ola');
+    expect(sent).toContain(`Kod: ${voucher.code.slice(0, 4)}-${voucher.code.slice(4)}`);
+    await shot(phone, '497');
 
     // A new voucher: 100 zł until the end of next year.
     const until = `${new Date().getFullYear() + 1}-12-31`;

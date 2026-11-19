@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../src/api';
 import { pl } from '../src/locales/pl';
-import { parseValidUntil, voucherErrorText, voucherLine, voucherStatus } from '../src/vouchers';
+import {
+  parseValidUntil,
+  voucherErrorText,
+  voucherLine,
+  voucherStatus,
+  voucherText,
+} from '../src/vouchers';
 
 const nbsp = (s: string) => s.replace(/\s/g, ' ');
 
@@ -42,5 +48,49 @@ describe('gift vouchers in the business app (task 492)', () => {
     expect(parseValidUntil(' 2026-12-31 ')).toBe('2026-12-31');
     expect(parseValidUntil('2026-02-30')).toBeUndefined();
     expect(parseValidUntil('31.12.2026')).toBeUndefined();
+  });
+});
+
+describe('"Wyślij bon" (task 497)', () => {
+  it('writes the voucher as a message: salon, amount, for whom, code, last day', () => {
+    expect(
+      nbsp(
+        voucherText(
+          {
+            code: 'ABCD2345',
+            amountGrosze: 20000,
+            balanceGrosze: 20000,
+            recipient: 'Jan',
+            validUntil: '2026-12-31',
+          },
+          'Gestalt Barbershop',
+          pl,
+          'PLN',
+          'pl',
+        ),
+      ),
+    ).toBe(
+      'Bon podarunkowy — Gestalt Barbershop Kwota: 200,00 zł Dla: Jan Kod: ABCD-2345 Ważny do czwartek, 31 grudnia',
+    );
+    expect(
+      voucherText(
+        {
+          code: 'ABCD2345',
+          amountGrosze: 5000,
+          balanceGrosze: 2000,
+          recipient: null,
+          validUntil: null,
+        },
+        'Gestalt',
+        pl,
+        'PLN',
+        'pl',
+      ).split('\n'),
+    ).toEqual([
+      'Bon podarunkowy — Gestalt',
+      'Zostało 20,00\u00a0zł z 50,00\u00a0zł',
+      'Kod: ABCD-2345',
+      'Bez terminu ważności',
+    ]);
   });
 });
