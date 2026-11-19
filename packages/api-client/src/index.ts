@@ -123,6 +123,10 @@ export type StockDelivery = Schemas['StockDelivery'];
 export type VisitProductSales = Schemas['VisitProductSales'];
 /** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
 export type TillClose = Schemas['TillClose'];
+/** "Bony podarunkowe": gift vouchers sold at the salon's till (task 490). */
+export type GiftVoucher = Schemas['GiftVoucher'];
+export type GiftVoucherList = Schemas['GiftVoucherList'];
+export type GiftVoucherDetails = Schemas['GiftVoucherDetails'];
 export type FailedEmail = Schemas['FailedEmail'];
 /** Public catalogue of salons with its map. */
 export type PublicSalonDirectory = Schemas['PublicSalonDirectory'];

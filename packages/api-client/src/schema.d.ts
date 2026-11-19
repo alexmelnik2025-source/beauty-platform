@@ -3508,6 +3508,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The salon’s gift vouchers, newest first
+         * @description Task 490. Owners and managers. With what is left on the ones still to be used.
+         */
+        get: operations["VouchersController_list"];
+        put?: never;
+        /**
+         * "Nowy bon": a gift voucher sold at the salon’s till
+         * @description Task 490. Owners and managers. The code (8 letters and digits) is made by the server. A last day before today → 400 VOUCHER_DATE_PAST.
+         */
+        post: operations["VouchersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/code/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Sprawdź bon": a voucher by the code the client shows, with its payments
+         * @description Task 490. Everyone in the salon. Letter case, spaces and dashes do not matter. Unknown code → 404.
+         */
+        get: operations["VouchersController_byCode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A gift voucher with its payments (everyone in the salon) */
+        get: operations["VouchersController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Zapłać bonem": take a payment from what is left
+         * @description Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE.
+         */
+        post: operations["VouchersController_redeem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a gift voucher (sold by mistake, money returned)
+         * @description Task 490. Owners and managers. It cannot be used afterwards; its payments stay.
+         */
+        post: operations["VouchersController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4775,6 +4876,98 @@ export interface components {
             createdAt: string;
             lastAttemptAt: string;
         }[];
+        GiftVoucher: {
+            id: string;
+            /** @description What the client shows at the till: 8 letters and digits */
+            code: string;
+            /** @description What it was worth when sold, in hundredths of the salon currency */
+            amountGrosze: number;
+            /** @description What is left to use, in hundredths of the salon currency */
+            balanceGrosze: number;
+            /** @description The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end */
+            validUntil: string | null;
+            recipient: string | null;
+            note: string | null;
+            /**
+             * @description active — may be used; used — nothing left; expired — past validUntil; cancelled — by the owner or a manager
+             * @enum {string}
+             */
+            status: "active" | "used" | "expired" | "cancelled";
+            /** @description The day it was sold, YYYY-MM-DD in the salon’s own time */
+            soldDate: string;
+            /** @description Who sold it; null when unknown */
+            soldByName: string | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+        };
+        GiftVoucherDetails: {
+            voucher: {
+                id: string;
+                /** @description What the client shows at the till: 8 letters and digits */
+                code: string;
+                /** @description What it was worth when sold, in hundredths of the salon currency */
+                amountGrosze: number;
+                /** @description What is left to use, in hundredths of the salon currency */
+                balanceGrosze: number;
+                /** @description The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end */
+                validUntil: string | null;
+                recipient: string | null;
+                note: string | null;
+                /**
+                 * @description active — may be used; used — nothing left; expired — past validUntil; cancelled — by the owner or a manager
+                 * @enum {string}
+                 */
+                status: "active" | "used" | "expired" | "cancelled";
+                /** @description The day it was sold, YYYY-MM-DD in the salon’s own time */
+                soldDate: string;
+                /** @description Who sold it; null when unknown */
+                soldByName: string | null;
+                /** Format: date-time */
+                cancelledAt: string | null;
+            };
+            /** @description Payments with the voucher, newest first */
+            uses: {
+                id: string;
+                /** @description Paid with the voucher, in hundredths of the salon currency */
+                amountGrosze: number;
+                note: string | null;
+                /** @description The day in the salon’s own time, YYYY-MM-DD */
+                date: string;
+                /** @description The time in the salon’s own time, HH:MM */
+                time: string;
+                /** @description Who noted it; null when unknown */
+                byName: string | null;
+            }[];
+        };
+        GiftVoucherList: {
+            /** @description Newest first, at most 500 */
+            vouchers: {
+                id: string;
+                /** @description What the client shows at the till: 8 letters and digits */
+                code: string;
+                /** @description What it was worth when sold, in hundredths of the salon currency */
+                amountGrosze: number;
+                /** @description What is left to use, in hundredths of the salon currency */
+                balanceGrosze: number;
+                /** @description The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end */
+                validUntil: string | null;
+                recipient: string | null;
+                note: string | null;
+                /**
+                 * @description active — may be used; used — nothing left; expired — past validUntil; cancelled — by the owner or a manager
+                 * @enum {string}
+                 */
+                status: "active" | "used" | "expired" | "cancelled";
+                /** @description The day it was sold, YYYY-MM-DD in the salon’s own time */
+                soldDate: string;
+                /** @description Who sold it; null when unknown */
+                soldByName: string | null;
+                /** Format: date-time */
+                cancelledAt: string | null;
+            }[];
+            /** @description What is left on all the vouchers that may still be used, in hundredths of the salon currency */
+            activeBalanceGrosze: number;
+        };
         GuardedClient: {
             customerId: string;
             enabled: boolean;
@@ -13062,6 +13255,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLog"];
+                };
+            };
+        };
+    };
+    VouchersController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucherList"];
+                };
+            };
+        };
+    };
+    VouchersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    amountGrosze: number;
+                    validUntil?: string | null;
+                    recipient?: string | null;
+                    note?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucher"];
+                };
+            };
+        };
+    };
+    VouchersController_byCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucherDetails"];
+                };
+            };
+        };
+    };
+    VouchersController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                voucherId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucherDetails"];
+                };
+            };
+        };
+    };
+    VouchersController_redeem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                voucherId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    amountGrosze: number;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucherDetails"];
+                };
+            };
+        };
+    };
+    VouchersController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                voucherId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucher"];
                 };
             };
         };

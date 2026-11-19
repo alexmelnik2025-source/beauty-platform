@@ -509,6 +509,7 @@ model Location {
   tillMovements     TillMovement[]
   products          Product[]
   productSales      ProductSale[]
+  giftVouchers      GiftVoucher[]
 
   @@index([organizationId])
   @@map("location")
@@ -1567,4 +1568,49 @@ model ProductSale {
   @@index([appointmentId])
   @@index([locationId])
   @@map("product_sale")
+}
+
+/// Task 490: "Bon podarunkowy" — a gift voucher the salon sold (at its own till, no payment
+/// systems). The client pays visits or products with it, in parts, until nothing is left.
+model GiftVoucher {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  locationId      String    @map("location_id") @db.Uuid
+  /// What the client shows at the till: 8 letters and digits, unique in the salon.
+  code            String
+  /// What it was worth when sold, in hundredths of the salon currency.
+  amountGrosze    Int       @map("amount_grosze")
+  /// What is left to use.
+  balanceGrosze   Int       @map("balance_grosze")
+  /// The last day it may be used, in the salon's own time; null = no end.
+  validUntil      DateTime? @map("valid_until") @db.Date
+  /// Who it is for or who bought it, in the salon's own words.
+  recipient       String?
+  note            String?
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Cancelled by the owner or a manager (sold by mistake, money returned); cannot be used then.
+  cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz(3)
+
+  location Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  uses     GiftVoucherUse[]
+
+  @@unique([locationId, code])
+  @@index([locationId, createdAt])
+  @@map("gift_voucher")
+}
+
+/// Task 490: one payment with a gift voucher.
+model GiftVoucherUse {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  voucherId       String   @map("voucher_id") @db.Uuid
+  amountGrosze    Int      @map("amount_grosze")
+  /// What was paid for, in the salon's own words.
+  note            String?
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  voucher GiftVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
+  @@index([voucherId, createdAt])
+  @@map("gift_voucher_use")
 }

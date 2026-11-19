@@ -13431,6 +13431,338 @@
           "organizations"
         ]
       }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers": {
+      "get": {
+        "description": "Task 490. Owners and managers. With what is left on the ones still to be used.",
+        "operationId": "VouchersController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftVoucherList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The salon’s gift vouchers, newest first",
+        "tags": [
+          "gift-vouchers"
+        ]
+      },
+      "post": {
+        "description": "Task 490. Owners and managers. The code (8 letters and digits) is made by the server. A last day before today → 400 VOUCHER_DATE_PAST.",
+        "operationId": "VouchersController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountGrosze": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 10000000
+                  },
+                  "validUntil": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "recipient": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "amountGrosze"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftVoucher"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Nowy bon\": a gift voucher sold at the salon’s till",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/code/{code}": {
+      "get": {
+        "description": "Task 490. Everyone in the salon. Letter case, spaces and dashes do not matter. Unknown code → 404.",
+        "operationId": "VouchersController_byCode",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftVoucherDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Sprawdź bon\": a voucher by the code the client shows, with its payments",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}": {
+      "get": {
+        "operationId": "VouchersController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "voucherId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftVoucherDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A gift voucher with its payments (everyone in the salon)",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/redeem": {
+      "post": {
+        "description": "Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE.",
+        "operationId": "VouchersController_redeem",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "voucherId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountGrosze": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000000
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "amountGrosze"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftVoucherDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Zapłać bonem\": take a payment from what is left",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/cancel": {
+      "post": {
+        "description": "Task 490. Owners and managers. It cannot be used afterwards; its payments stay.",
+        "operationId": "VouchersController_cancel",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "voucherId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftVoucher"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a gift voucher (sold by mistake, money returned)",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
     }
   },
   "info": {
@@ -18521,6 +18853,308 @@
           ],
           "additionalProperties": false
         }
+      },
+      "GiftVoucher": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "What the client shows at the till: 8 letters and digits"
+          },
+          "amountGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What it was worth when sold, in hundredths of the salon currency"
+          },
+          "balanceGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What is left to use, in hundredths of the salon currency"
+          },
+          "validUntil": {
+            "nullable": true,
+            "description": "The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end",
+            "type": "string"
+          },
+          "recipient": {
+            "nullable": true,
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "used",
+              "expired",
+              "cancelled"
+            ],
+            "description": "active — may be used; used — nothing left; expired — past validUntil; cancelled — by the owner or a manager"
+          },
+          "soldDate": {
+            "type": "string",
+            "description": "The day it was sold, YYYY-MM-DD in the salon’s own time"
+          },
+          "soldByName": {
+            "nullable": true,
+            "description": "Who sold it; null when unknown",
+            "type": "string"
+          },
+          "cancelledAt": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "amountGrosze",
+          "balanceGrosze",
+          "validUntil",
+          "recipient",
+          "note",
+          "status",
+          "soldDate",
+          "soldByName",
+          "cancelledAt"
+        ],
+        "additionalProperties": false
+      },
+      "GiftVoucherDetails": {
+        "type": "object",
+        "properties": {
+          "voucher": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string",
+                "description": "What the client shows at the till: 8 letters and digits"
+              },
+              "amountGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What it was worth when sold, in hundredths of the salon currency"
+              },
+              "balanceGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What is left to use, in hundredths of the salon currency"
+              },
+              "validUntil": {
+                "nullable": true,
+                "description": "The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end",
+                "type": "string"
+              },
+              "recipient": {
+                "nullable": true,
+                "type": "string"
+              },
+              "note": {
+                "nullable": true,
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "used",
+                  "expired",
+                  "cancelled"
+                ],
+                "description": "active — may be used; used — nothing left; expired — past validUntil; cancelled — by the owner or a manager"
+              },
+              "soldDate": {
+                "type": "string",
+                "description": "The day it was sold, YYYY-MM-DD in the salon’s own time"
+              },
+              "soldByName": {
+                "nullable": true,
+                "description": "Who sold it; null when unknown",
+                "type": "string"
+              },
+              "cancelledAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "amountGrosze",
+              "balanceGrosze",
+              "validUntil",
+              "recipient",
+              "note",
+              "status",
+              "soldDate",
+              "soldByName",
+              "cancelledAt"
+            ],
+            "additionalProperties": false
+          },
+          "uses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "amountGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Paid with the voucher, in hundredths of the salon currency"
+                },
+                "note": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "The day in the salon’s own time, YYYY-MM-DD"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "The time in the salon’s own time, HH:MM"
+                },
+                "byName": {
+                  "nullable": true,
+                  "description": "Who noted it; null when unknown",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "amountGrosze",
+                "note",
+                "date",
+                "time",
+                "byName"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Payments with the voucher, newest first"
+          }
+        },
+        "required": [
+          "voucher",
+          "uses"
+        ],
+        "additionalProperties": false
+      },
+      "GiftVoucherList": {
+        "type": "object",
+        "properties": {
+          "vouchers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "description": "What the client shows at the till: 8 letters and digits"
+                },
+                "amountGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What it was worth when sold, in hundredths of the salon currency"
+                },
+                "balanceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "What is left to use, in hundredths of the salon currency"
+                },
+                "validUntil": {
+                  "nullable": true,
+                  "description": "The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end",
+                  "type": "string"
+                },
+                "recipient": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "note": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "used",
+                    "expired",
+                    "cancelled"
+                  ],
+                  "description": "active — may be used; used — nothing left; expired — past validUntil; cancelled — by the owner or a manager"
+                },
+                "soldDate": {
+                  "type": "string",
+                  "description": "The day it was sold, YYYY-MM-DD in the salon’s own time"
+                },
+                "soldByName": {
+                  "nullable": true,
+                  "description": "Who sold it; null when unknown",
+                  "type": "string"
+                },
+                "cancelledAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "amountGrosze",
+                "balanceGrosze",
+                "validUntil",
+                "recipient",
+                "note",
+                "status",
+                "soldDate",
+                "soldByName",
+                "cancelledAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Newest first, at most 500"
+          },
+          "activeBalanceGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What is left on all the vouchers that may still be used, in hundredths of the salon currency"
+          }
+        },
+        "required": [
+          "vouchers",
+          "activeBalanceGrosze"
+        ],
+        "additionalProperties": false
       },
       "GuardedClient": {
         "type": "object",

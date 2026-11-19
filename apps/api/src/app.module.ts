@@ -17,6 +17,7 @@ import { PushModule } from './push/push.module';
 import { ReportsModule } from './reports/reports.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
+import { VouchersModule } from './vouchers/vouchers.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
@@ -40,6 +41,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     AdminModule,
     AuditLogModule,
     CancellationGuardModule,
+    VouchersModule,
   ],
 })
 export class AppModule {}
