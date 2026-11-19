@@ -13857,7 +13857,7 @@
     },
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/redeem": {
       "post": {
-        "description": "Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE.",
+        "description": "Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE. Task 540: with `appointmentId` the payment belongs to that visit (one the member may see, else 404).",
         "operationId": "VouchersController_redeem",
         "parameters": [
           {
@@ -13893,6 +13893,11 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 120
+                  },
+                  "appointmentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   }
                 },
                 "required": [
@@ -14018,6 +14023,51 @@
           }
         ],
         "summary": "Cancel a gift voucher (sold by mistake, money returned)",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/gift-voucher-payments": {
+      "get": {
+        "description": "Task 540. Oldest first, undone ones included (marked); the total leaves them out. A payment belongs to a visit when \"Zapłać bonem\" was given its appointmentId.",
+        "operationId": "VisitVouchersController_visitPayments",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitVoucherPayments"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Payments with gift vouchers for the visit (whoever sees the visit)",
         "tags": [
           "gift-vouchers"
         ]
@@ -19348,6 +19398,11 @@
                   "nullable": true,
                   "description": "Who undid it; null when not undone or unknown",
                   "type": "string"
+                },
+                "appointmentId": {
+                  "nullable": true,
+                  "description": "Task 540: the visit it paid for; null = taken at the till",
+                  "type": "string"
                 }
               },
               "required": [
@@ -19358,7 +19413,8 @@
                 "time",
                 "byName",
                 "undoneDate",
-                "undoneByName"
+                "undoneByName",
+                "appointmentId"
               ],
               "additionalProperties": false
             },
@@ -28260,6 +28316,76 @@
           "canReview",
           "reviewUntil",
           "review"
+        ],
+        "additionalProperties": false
+      },
+      "VisitVoucherPayments": {
+        "type": "object",
+        "properties": {
+          "payments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "voucherId": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "description": "The voucher code, 8 letters and digits"
+                },
+                "amountGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Paid with the voucher, in hundredths of the salon currency"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "The day in the salon’s own time, YYYY-MM-DD"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "The time in the salon’s own time, HH:MM"
+                },
+                "byName": {
+                  "nullable": true,
+                  "description": "Who noted it; null when unknown",
+                  "type": "string"
+                },
+                "undoneDate": {
+                  "nullable": true,
+                  "description": "The day it was undone (task 530); null = not undone",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "voucherId",
+                "code",
+                "amountGrosze",
+                "date",
+                "time",
+                "byName",
+                "undoneDate"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Oldest first"
+          },
+          "totalGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Paid with vouchers for the visit, without the undone payments, in hundredths of the salon currency"
+          }
+        },
+        "required": [
+          "payments",
+          "totalGrosze"
         ],
         "additionalProperties": false
       },

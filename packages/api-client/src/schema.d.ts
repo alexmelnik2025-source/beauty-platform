@@ -3627,7 +3627,7 @@ export interface paths {
         put?: never;
         /**
          * "Zapłać bonem": take a payment from what is left
-         * @description Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE.
+         * @description Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE. Task 540: with `appointmentId` the payment belongs to that visit (one the member may see, else 404).
          */
         post: operations["VouchersController_redeem"];
         delete?: never;
@@ -3670,6 +3670,26 @@ export interface paths {
          * @description Task 490. Owners and managers. It cannot be used afterwards; its payments stay.
          */
         post: operations["VouchersController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/gift-voucher-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payments with gift vouchers for the visit (whoever sees the visit)
+         * @description Task 540. Oldest first, undone ones included (marked); the total leaves them out. A payment belongs to a visit when "Zapłać bonem" was given its appointmentId.
+         */
+        get: operations["VisitVouchersController_visitPayments"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5028,6 +5048,8 @@ export interface components {
                 undoneDate: string | null;
                 /** @description Who undid it; null when not undone or unknown */
                 undoneByName: string | null;
+                /** @description Task 540: the visit it paid for; null = taken at the till */
+                appointmentId: string | null;
             }[];
         };
         GiftVoucherList: {
@@ -7299,6 +7321,27 @@ export interface components {
                 createdAt: string;
                 updatedAt: string;
             } | null;
+        };
+        VisitVoucherPayments: {
+            /** @description Oldest first */
+            payments: {
+                id: string;
+                voucherId: string;
+                /** @description The voucher code, 8 letters and digits */
+                code: string;
+                /** @description Paid with the voucher, in hundredths of the salon currency */
+                amountGrosze: number;
+                /** @description The day in the salon’s own time, YYYY-MM-DD */
+                date: string;
+                /** @description The time in the salon’s own time, HH:MM */
+                time: string;
+                /** @description Who noted it; null when unknown */
+                byName: string | null;
+                /** @description The day it was undone (task 530); null = not undone */
+                undoneDate: string | null;
+            }[];
+            /** @description Paid with vouchers for the visit, without the undone payments, in hundredths of the salon currency */
+            totalGrosze: number;
         };
         WaitlistJoined: {
             /** @description YYYY-MM-DD in the salon time zone */
@@ -13587,6 +13630,8 @@ export interface operations {
                 "application/json": {
                     amountGrosze: number;
                     note?: string;
+                    /** Format: uuid */
+                    appointmentId?: string;
                 };
             };
         };
@@ -13642,6 +13687,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GiftVoucher"];
+                };
+            };
+        };
+    };
+    VisitVouchersController_visitPayments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitVoucherPayments"];
                 };
             };
         };

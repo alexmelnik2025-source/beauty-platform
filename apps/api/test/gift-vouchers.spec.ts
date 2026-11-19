@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
-import { addDays, localToday } from '../src/scheduling/time';
+import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -782,5 +782,188 @@ describe('"Sprawdź bon" for the client (task 536)', () => {
     for (let i = 0; i < 20; i += 1) await check('ZZZZZZZZ').expect(404);
     const res = await check('ZZZZZZZZ').expect(429);
     expectError(res.body, 'RATE_LIMITED');
+  });
+});
+
+describe('"Zapłać bonem" in the visit card (task 540)', () => {
+  let locBase: string;
+  let kasiaVisit: string;
+  let olaVisit: string;
+
+  beforeEach(async () => {
+    locBase = base.replace(/\/gift-vouchers$/, '');
+    const serviceId = (
+      await ctx
+        .http()
+        .post(`${locBase}/services`)
+        .set(owner.auth)
+        .send({ name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 })
+        .expect(201)
+    ).body.id as string;
+    const staff = async (displayName: string) =>
+      (
+        await ctx
+          .http()
+          .post(`${locBase}/staff`)
+          .set(owner.auth)
+          .send({ displayName, serviceIds: [serviceId] })
+          .expect(201)
+      ).body.id as string;
+    const kasiaId = await staff('Kasia');
+    const olaId = await staff('Ola');
+    await ctx.prisma.staffMember.update({
+      where: { id: kasiaId },
+      data: { userId: staffUser.userId },
+    });
+    const day = addDays(localToday(Date.now(), 'Europe/Warsaw'), 2);
+    const book = async (staffId: string, hour: number) =>
+      (
+        await ctx
+          .http()
+          .post(`${locBase}/appointments`)
+          .set(owner.auth)
+          .send({
+            serviceId,
+            staffId,
+            start: new Date(zonedToInstant(day, hour * 60, 'Europe/Warsaw')).toISOString(),
+            allowOutsideHours: true,
+            customer: { name: 'Jan Nowak', phone: '+48600000002' },
+          })
+          .expect(201)
+      ).body.id as string;
+    kasiaVisit = await book(kasiaId, 10);
+    olaVisit = await book(olaId, 12);
+  });
+
+  it('remembers the visit a payment was for and lists the payments in its card', async () => {
+    const voucher = (
+      await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 20000 }).expect(201)
+    ).body as Voucher;
+    const payments = (visitId: string, auth = staffUser.auth) =>
+      ctx.http().get(`${locBase}/appointments/${visitId}/gift-voucher-payments`).set(auth);
+
+    const empty = await payments(kasiaVisit).expect(200);
+    expectShape('VisitVoucherPayments', empty.body);
+    expect(empty.body).toEqual({ payments: [], totalGrosze: 0 });
+
+    // The specialist pays for her own visit with the voucher.
+    const paid = await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(staffUser.auth)
+      .send({ amountGrosze: 8000, appointmentId: kasiaVisit })
+      .expect(200);
+    expect(paid.body.voucher.balanceGrosze).toBe(12000);
+    expect(paid.body.uses).toMatchObject([{ amountGrosze: 8000, appointmentId: kasiaVisit }]);
+    // A payment at the till belongs to no visit.
+    const till = await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 1000 })
+      .expect(200);
+    expect(till.body.uses[0]).toMatchObject({ amountGrosze: 1000, appointmentId: null });
+    await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 2000, appointmentId: kasiaVisit })
+      .expect(200);
+
+    const listed = await payments(kasiaVisit).expect(200);
+    expectShape('VisitVoucherPayments', listed.body);
+    expect(listed.body).toMatchObject({
+      payments: [
+        { voucherId: voucher.id, code: voucher.code, amountGrosze: 8000, byName: 'Kasia' },
+        { amountGrosze: 2000, byName: 'Anna Owner', undoneDate: null },
+      ],
+      totalGrosze: 10000,
+    });
+
+    // An undone payment stays in the list, marked, and leaves the total.
+    const undoId = (listed.body.payments as { id: string }[])[1]!.id;
+    await ctx.http().post(`${base}/${voucher.id}/uses/${undoId}/undo`).set(owner.auth).expect(200);
+    const after = await payments(kasiaVisit, owner.auth).expect(200);
+    expect(after.body.totalGrosze).toBe(8000);
+    expect(after.body.payments[1].undoneDate).toBe(localToday(Date.now(), 'Europe/Warsaw'));
+    expect((await payments(olaVisit, owner.auth).expect(200)).body.payments).toEqual([]);
+  });
+
+  it('only for a visit the member may see, and nothing is taken otherwise', async () => {
+    const voucher = (
+      await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 5000 }).expect(201)
+    ).body as Voucher;
+    // Kasia does not see Ola's visits: neither paying for one nor its payments.
+    await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(staffUser.auth)
+      .send({ amountGrosze: 1000, appointmentId: olaVisit })
+      .expect(404);
+    await ctx
+      .http()
+      .get(`${locBase}/appointments/${olaVisit}/gift-voucher-payments`)
+      .set(staffUser.auth)
+      .expect(404);
+    await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 1000, appointmentId: 'not-a-uuid' })
+      .expect(400);
+
+    // A visit of another salon is not found, and the voucher keeps its balance.
+    const other = await signUp(ctx, 'other@example.com', 'Other Owner');
+    const otherSalon = await createOrgWithLocation(ctx, other, 'Other');
+    const otherBase = `/v1/organizations/${otherSalon.orgId}/locations/${otherSalon.locationId}`;
+    const otherService = (
+      await ctx
+        .http()
+        .post(`${otherBase}/services`)
+        .set(other.auth)
+        .send({ name: 'Broda', durationMinutes: 30, priceGrosze: 5000 })
+        .expect(201)
+    ).body.id as string;
+    const otherStaff = (
+      await ctx
+        .http()
+        .post(`${otherBase}/staff`)
+        .set(other.auth)
+        .send({ displayName: 'Piotr', serviceIds: [otherService] })
+        .expect(201)
+    ).body.id as string;
+    const otherVisit = (
+      await ctx
+        .http()
+        .post(`${otherBase}/appointments`)
+        .set(other.auth)
+        .send({
+          serviceId: otherService,
+          staffId: otherStaff,
+          start: new Date(
+            zonedToInstant(
+              addDays(localToday(Date.now(), 'Europe/Warsaw'), 2),
+              600,
+              'Europe/Warsaw',
+            ),
+          ).toISOString(),
+          allowOutsideHours: true,
+          customer: { name: 'Adam', phone: '+48600000003' },
+        })
+        .expect(201)
+    ).body.id as string;
+    await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 1000, appointmentId: otherVisit })
+      .expect(404);
+    await ctx
+      .http()
+      .get(`${locBase}/appointments/${otherVisit}/gift-voucher-payments`)
+      .set(owner.auth)
+      .expect(404);
+    const check = await ctx.http().get(`${base}/${voucher.id}`).set(owner.auth).expect(200);
+    expect(check.body).toMatchObject({ voucher: { balanceGrosze: 5000 }, uses: [] });
   });
 });

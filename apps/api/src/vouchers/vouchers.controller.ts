@@ -46,6 +46,8 @@ import {
   type RedeemGiftVoucherInput,
   type UpdateGiftVoucherInput,
   updateGiftVoucherSchema,
+  type VisitVoucherPaymentsResponse,
+  visitVoucherPaymentsSchema,
   type VouchersCsvQuery,
   vouchersCsvQuerySchema,
 } from './vouchers.schemas';
@@ -170,7 +172,7 @@ export class VouchersController {
   @ApiOperation({
     summary: '"Zapłać bonem": take a payment from what is left',
     description:
-      'Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE.',
+      'Task 490. Everyone in the salon. In one step, so two payments at the same moment never use more than is left. Cancelled → 409 VOUCHER_CANCELLED; past its last day → 409 VOUCHER_EXPIRED; more than is left → 409 VOUCHER_BALANCE. Task 540: with `appointmentId` the payment belongs to that visit (one the member may see, else 404).',
   })
   @ApiZodBody(redeemGiftVoucherSchema)
   @ApiZodResponse(giftVoucherDetailsSchema)
@@ -235,5 +237,30 @@ export class VouchersController {
     @Param('voucherId', uuid('Gift voucher')) voucherId: string,
   ): Promise<GiftVoucherResponse> {
     return this.vouchers.cancel(m, locationId, voucherId);
+  }
+}
+
+/** Task 540: "Zapłacono bonem" in the card of a visit. */
+@ApiTags('gift-vouchers')
+@ApiBearerAuth()
+@Controller('organizations/:orgId/locations/:locationId/appointments/:appointmentId')
+@UseGuards(MembershipGuard)
+export class VisitVouchersController {
+  constructor(private readonly vouchers: VouchersService) {}
+
+  @Get('gift-voucher-payments')
+  @ApiOperation({
+    summary: 'Payments with gift vouchers for the visit (whoever sees the visit)',
+    description:
+      'Task 540. Oldest first, undone ones included (marked); the total leaves them out. A payment belongs to a visit when "Zapłać bonem" was given its appointmentId.',
+  })
+  @ApiZodResponse(visitVoucherPaymentsSchema)
+  visitPayments(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+  ): Promise<VisitVoucherPaymentsResponse> {
+    return this.vouchers.visitPayments(m, auth.userId, locationId, appointmentId);
   }
 }

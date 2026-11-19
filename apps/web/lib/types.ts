@@ -139,5 +139,6 @@ export type {
   UnreadCount,
   VisitCoupons,
   VisitProductSales,
+  VisitVoucherPayments,
   WorkingHours,
 } from '@beauty/api-client';

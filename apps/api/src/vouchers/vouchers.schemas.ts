@@ -22,6 +22,11 @@ export const redeemGiftVoucherSchema = z.object({
   amountGrosze: z.number().int().min(1).max(10_000_000),
   /** What was paid for ("strzyżenie", "pomada"). */
   note: z.string().trim().min(1).max(120).optional(),
+  /**
+   * Task 540: "Zapłać bonem" in the visit card — the visit it pays for (one the member may see,
+   * else 404).
+   */
+  appointmentId: z.uuid().optional(),
 });
 
 /**
@@ -118,15 +123,45 @@ export const giftVoucherDetailsSchema = responseSchema(
             .string()
             .nullable()
             .describe('Who undid it; null when not undone or unknown'),
+          appointmentId: z
+            .string()
+            .nullable()
+            .describe('Task 540: the visit it paid for; null = taken at the till'),
         }),
       )
       .describe('Payments with the voucher, newest first'),
   }),
 );
 
+/** Task 540: the payments with gift vouchers for one visit (its card). */
+export const visitVoucherPaymentsSchema = responseSchema(
+  'VisitVoucherPayments',
+  z.strictObject({
+    payments: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          voucherId: z.string(),
+          code: z.string().describe('The voucher code, 8 letters and digits'),
+          amountGrosze: money('Paid with the voucher'),
+          date: z.string().describe('The day in the salon’s own time, YYYY-MM-DD'),
+          time: z.string().describe('The time in the salon’s own time, HH:MM'),
+          byName: z.string().nullable().describe('Who noted it; null when unknown'),
+          undoneDate: z
+            .string()
+            .nullable()
+            .describe('The day it was undone (task 530); null = not undone'),
+        }),
+      )
+      .describe('Oldest first'),
+    totalGrosze: money('Paid with vouchers for the visit, without the undone payments'),
+  }),
+);
+
 export type GiftVoucherResponse = z.infer<typeof giftVoucherSchema>;
 export type GiftVoucherListResponse = z.infer<typeof giftVoucherListSchema>;
 export type GiftVoucherDetailsResponse = z.infer<typeof giftVoucherDetailsSchema>;
+export type VisitVoucherPaymentsResponse = z.infer<typeof visitVoucherPaymentsSchema>;
 
 /** Task 494: "CSV bonów" — the file's language. */
 export const vouchersCsvQuerySchema = z.object({

@@ -128,6 +128,7 @@ export type GiftVoucher = Schemas['GiftVoucher'];
 export type GiftVoucherList = Schemas['GiftVoucherList'];
 export type GiftVoucherDetails = Schemas['GiftVoucherDetails'];
 export type PublicGiftVoucher = Schemas['PublicGiftVoucher'];
+export type VisitVoucherPayments = Schemas['VisitVoucherPayments'];
 export type FailedEmail = Schemas['FailedEmail'];
 /** Public catalogue of salons with its map. */
 export type PublicSalonDirectory = Schemas['PublicSalonDirectory'];

@@ -891,6 +891,7 @@ model Appointment {
   wishPhotos       VisitPhoto[]
   review           VisitReview?
   productSales     ProductSale[]
+  voucherUses      GiftVoucherUse[]
 
   @@index([locationId, startAt])
   @@index([staffId, startAt])
@@ -1615,9 +1616,13 @@ model GiftVoucherUse {
   /// Task 530: noted by mistake and undone by the owner or a manager — the amount went back to the voucher.
   undoneAt        DateTime? @map("undone_at") @db.Timestamptz(3)
   undoneByUserId  String?   @map("undone_by_user_id") @db.Uuid
+  /// Task 540: the visit it paid for ("Zapłać bonem" in the visit card); null = paid at the till.
+  appointmentId   String?   @map("appointment_id") @db.Uuid
 
-  voucher GiftVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  voucher     GiftVoucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([voucherId, createdAt])
+  @@index([appointmentId])
   @@map("gift_voucher_use")
 }

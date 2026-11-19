@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { AppointmentsService } from '../booking/appointments.service';
 import { AppException, notFound } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
 import type { GiftVoucher, Location } from '../generated/prisma/client';
@@ -16,6 +17,7 @@ import type {
   PublicGiftVoucherResponse,
   RedeemGiftVoucherInput,
   UpdateGiftVoucherInput,
+  VisitVoucherPaymentsResponse,
 } from './vouchers.schemas';
 
 /** Letters and digits that cannot be confused when read aloud or typed (no 0/O, 1/I/L). */
@@ -60,6 +62,7 @@ export class VouchersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: LocationAccessService,
+    private readonly appointments: AppointmentsService,
   ) {}
 
   private async names(userIds: (string | null)[]): Promise<Map<string, string>> {
@@ -256,8 +259,47 @@ export class VouchersService {
             ? instantToLocal(u.undoneAt.getTime(), location.timezone).date
             : null,
           undoneByName: (u.undoneByUserId && names.get(u.undoneByUserId)) || null,
+          appointmentId: u.appointmentId,
         };
       }),
+    };
+  }
+
+  /**
+   * Task 540: what was paid with gift vouchers for one visit — whoever sees the visit (the same
+   * rule as its card), else 404.
+   */
+  async visitPayments(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+  ): Promise<VisitVoucherPaymentsResponse> {
+    const location = await this.access.readable(m, locationId);
+    await this.appointments.visible(m, userId, locationId, appointmentId);
+    const uses = await this.prisma.giftVoucherUse.findMany({
+      where: { appointmentId, voucher: { locationId } },
+      include: { voucher: { select: { code: true } } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const names = await this.names(uses.map((u) => u.createdByUserId));
+    return {
+      payments: uses.map((u) => {
+        const local = instantToLocal(u.createdAt.getTime(), location.timezone);
+        return {
+          id: u.id,
+          voucherId: u.voucherId,
+          code: u.voucher.code,
+          amountGrosze: u.amountGrosze,
+          date: local.date,
+          time: local.time,
+          byName: (u.createdByUserId && names.get(u.createdByUserId)) || null,
+          undoneDate: u.undoneAt
+            ? instantToLocal(u.undoneAt.getTime(), location.timezone).date
+            : null,
+        };
+      }),
+      totalGrosze: uses.reduce((sum, u) => (u.undoneAt ? sum : sum + u.amountGrosze), 0),
     };
   }
 
@@ -326,6 +368,10 @@ export class VouchersService {
       where: { id: voucherId, locationId },
     });
     if (!voucher) throw notFound('Gift voucher');
+    // Task 540: paid in the card of a visit this member may see (another salon's visit → 404).
+    if (input.appointmentId) {
+      await this.appointments.visible(m, userId, locationId, input.appointmentId);
+    }
     const today = localToday(Date.now(), location.timezone);
     if (voucher.cancelledAt) {
       throw new AppException(HttpStatus.CONFLICT, 'VOUCHER_CANCELLED', 'The voucher was cancelled');
@@ -349,6 +395,7 @@ export class VouchersService {
           amountGrosze: input.amountGrosze,
           note: input.note ?? null,
           createdByUserId: userId,
+          appointmentId: input.appointmentId ?? null,
         },
       });
       return true;

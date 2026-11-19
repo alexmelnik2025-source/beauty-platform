@@ -952,6 +952,8 @@ export const en: Dict = {
     filterSoon: 'Ending soon',
     search: 'Search: code or for whom',
     noMatch: 'No voucher matches.',
+    visitOpen: 'Paying with a gift voucher?',
+    visitPaid: 'Paid with a voucher: {amount}',
   },
   waitingList: {
     title: 'Waiting list',

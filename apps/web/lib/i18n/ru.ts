@@ -957,6 +957,8 @@ export const ru: Dict = {
     filterSoon: 'Скоро истекают',
     search: 'Поиск: код или для кого',
     noMatch: 'Ни один сертификат не подходит.',
+    visitOpen: 'Клиент платит подарочным сертификатом?',
+    visitPaid: 'Оплачено сертификатом: {amount}',
   },
   waitingList: {
     title: 'Лист ожидания',

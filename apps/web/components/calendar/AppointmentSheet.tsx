@@ -17,6 +17,7 @@ import { ErrorBox, Sheet, Spinner } from '../ui';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { ProductSales } from '../products/ProductSales';
 import { TipField } from './TipField';
+import { VisitVouchers } from '../vouchers/VisitVouchers';
 
 type Mode = 'view' | 'move' | 'cancel';
 
@@ -271,6 +272,16 @@ export function AppointmentSheet({
           appointmentId={a.id}
           currency={session.location.currency}
           canChange={canChange}
+        />
+      ) : null}
+      {mode === 'view' && a.status === 'completed' ? (
+        // Task 541: the client pays the visit (or a part) with a gift voucher.
+        <VisitVouchers
+          base={base}
+          appointmentId={a.id}
+          currency={session.location.currency}
+          toPayGrosze={a.priceGrosze === null ? null : a.priceGrosze - (a.discountGrosze ?? 0)}
+          serviceName={a.service.name}
         />
       ) : null}
 

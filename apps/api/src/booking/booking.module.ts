@@ -68,6 +68,7 @@ import { RebookReminderService } from './rebook-reminder.service';
   ],
   exports: [
     AppointmentWriter,
+    AppointmentsService,
     OutboxService,
     PublicBookingService,
     VisitCalendarService,

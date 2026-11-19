@@ -951,6 +951,8 @@ export const pl = {
     filterSoon: 'Wkrótce wygasają',
     search: 'Szukaj: kod lub dla kogo',
     noMatch: 'Żaden bon nie pasuje.',
+    visitOpen: 'Klient płaci bonem podarunkowym?',
+    visitPaid: 'Zapłacono bonem: {amount}',
   },
   waitingList: {
     title: 'Lista oczekujących',
