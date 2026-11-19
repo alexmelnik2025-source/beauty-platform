@@ -3451,3 +3451,19 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   тем же `POST …/appointments/:id/products`; неизвестный код — «Nie ma produktu z kodem …».
 - Тесты: `apps/api/test/reports.spec.ts` («Kod kreskowy»), `apps/mobile-business/test/barcode.test.ts`, e2e
   `products.spec.ts` (скриншоты 521, 522, 524, 524-a).
+
+## «Cofnij płatność» — отменить оплату бонем (задачи 530–532)
+
+- `POST …/gift-vouchers/:voucherId/uses/:useId/undo` — владелец/менеджер (мастер — 403): оплата, внесённая по ошибке
+  (не та сумма, не тот бон), отменяется. В одной транзакции оплата помечается (`gift_voucher_use.undone_at`,
+  `undone_by_user_id`) условным `UPDATE … WHERE undone_at IS NULL`, и только тогда сумма возвращается на остаток бона —
+  два одновременных нажатия вернут её один раз. Повтор — 200 без изменений. Отменённый бон — 409 `VOUCHER_CANCELLED`;
+  просроченному сумма возвращается (срок можно продлить «Zmień bon»).
+- В ответе `GiftVoucherDetails.uses[]` — `undoneDate` (день салона) и `undoneByName`; оплата остаётся в истории.
+  «Zapłacono bonami» в «Raporty» не считает отменённые оплаты; «Wykorzystano» в CSV бонов — сумма минус остаток, то есть
+  тоже без них.
+- Кабинет (карточка бона) и бизнес-приложение (`VouchersScreen.tsx`, `api.undoGiftVoucherUse`): у каждой оплаты кнопка
+  «Cofnij płatność» с подтверждением «Cofnąć płatność 30,00 zł? Kwota wróci na bon.»; отменённая — зачёркнута, рядом
+  «Cofnięta 19 lis · Anna».
+- Тесты: `apps/api/test/gift-vouchers.spec.ts` (права, возврат один раз, отчёт, чужой бон, отменённый бон),
+  `isolation.spec.ts`; e2e `gift-vouchers.spec.ts` — скриншоты 531 (кабинет), 532 (приложение).
