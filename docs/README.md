@@ -3633,3 +3633,15 @@ doc `claude/Beauty_Platform_одобрение_функций.md`, в код и�
 `components/booking/InstallBanner.tsx`, `components/client/ResumeBooking.tsx`; e2e `install-banner.spec.ts`
 (скриншоты Q2-banner, Q2-banner-ios, Q2-resume, Q2-resume-back). Приём deep link `beauty-client://b/…` в самом
 клиентском приложении — следующая часть Q2.
+
+## Ссылка открывает клиентское приложение на салоне (задача Q2, часть 5)
+
+Клиентское приложение принимает ссылки `beauty-client://b/{салон}?service=…&staff=…` (своя схема из `app.json`; её
+же шлёт intent-ссылка баннера «Zainstaluj aplikację»), адрес страницы записи `https://…/{язык}/b/{салон}?service=…`
+и короткую ссылку `https://…/s/{салон}` (заготовка под universal/app links), а при разработке — `exp://…/--/b/{салон}`.
+С `service` запись начинается сразу с выбора специалиста, с `service` и `staff` — сразу со свободного времени этого
+мастера (та же логика, что «Umów ponownie»); без услуги открывается страница салона. Разбор ссылки —
+`apps/mobile-client/src/deepLink.ts` (без React Native, тесты `test/deepLink.test.ts`); приём — `Linking.getInitialURL`
+и событие `url` в `App.tsx`. Чужие адреса ничего не делают. e2e `app-deep-link.spec.ts` (веб-превью приложения;
+скриншоты Q2-app-link-staff, Q2-app-link-time, Q2-app-link-salon). Регистрация universal links (`apple-app-site-association`,
+`assetlinks.json`) — после публикации приложений, когда будут Team ID и подпись.

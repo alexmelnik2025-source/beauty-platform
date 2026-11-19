@@ -1,10 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ClientApi, type ClientPerson, type Locale, type PublicLocation } from './api';
 import type { BookingPreset } from './booking';
 import { API_URL } from './config';
+import { parseDeepLink } from './deepLink';
 import { errorText } from './errors';
 import { appLocale, DICTIONARIES, pickLocale } from './i18n';
 import { BookingScreen } from './screens/BookingScreen';
@@ -96,6 +97,26 @@ export default function App() {
   const t = DICTIONARIES[locale];
   const localeRef = useRef(locale);
   localeRef.current = locale;
+
+  // Task Q2: a link opens the app at a salon — "Install the app" on the salon's booking page,
+  // the Android intent link, a QR code or a shared link — with the booking started at the
+  // same service and specialist when the link names them.
+  const openLink = useCallback((url: string | null | undefined) => {
+    const link = parseDeepLink(url);
+    if (!link) return;
+    setFinder(
+      link.preset
+        ? { kind: 'open', slug: link.slug, name: '', preset: link.preset }
+        : { kind: 'salon', slug: link.slug, name: '' },
+    );
+  }, []);
+  useEffect(() => {
+    void Linking.getInitialURL()
+      .then(openLink)
+      .catch(() => undefined);
+    const subscription = Linking.addEventListener('url', ({ url }) => openLink(url));
+    return () => subscription.remove();
+  }, [openLink]);
 
   const signedIn = useCallback((person: ClientPerson) => {
     // The language the client chose last time (it is also the language of the salons' emails).
