@@ -24,6 +24,7 @@ export const en: Dict = {
     WAITLIST_LIMIT: 'You can wait for at most 3 days at this salon at a time.',
     WAITLIST_DATE: 'Choose a day from today to the last day the salon takes bookings for.',
     NOT_COMPLETED: 'First mark that the client came.',
+    BARCODE_TAKEN: 'Another product of the salon already has this barcode.',
     OUT_OF_STOCK: 'Not enough pieces in stock — correct the stock in “Produkty”.',
     VOUCHER_BALANCE: 'Less is left on the voucher — enter an amount no bigger than what is left.',
     VOUCHER_EXPIRED: 'This voucher is no longer valid.',
@@ -1555,6 +1556,13 @@ export const en: Dict = {
     csvToOrder: 'Only to order',
     supplierHint:
       'Supplier: whom the salon orders the product from — the whole team sees it; the "Stock CSV" can be downloaded for one supplier.',
+    barcode: 'Barcode',
+    barcodeNew: 'Barcode (empty — not written)',
+    barcodeHint:
+      'Barcode: type or scan the code on the package (e.g. EAN) — then find the product by typing or scanning the code in “Search”. One code — one product of the salon.',
+    search: 'Search: name or barcode',
+    searchNone: 'Nothing found — check the name or the code.',
+    searchClear: 'Clear',
     costNew: 'Purchase price (empty — not written)',
     stockCostValue: 'At purchase prices: {amount}.',
     costHint:

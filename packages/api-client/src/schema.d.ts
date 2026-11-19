@@ -1917,7 +1917,10 @@ export interface paths {
         /** The salon's products (everyone in the salon) */
         get: operations["ProductsController_list"];
         put?: never;
-        /** Add a product to the list */
+        /**
+         * Add a product to the list
+         * @description A barcode ("Kod kreskowy", task 520) another product of the salon already has → 409 BARCODE_TAKEN.
+         */
         post: operations["ProductsController_create"];
         delete?: never;
         options?: never;
@@ -1961,7 +1964,7 @@ export interface paths {
         head?: never;
         /**
          * Change a product (name, price, sold or not)
-         * @description Past sales keep the name and price they had.
+         * @description Past sales keep the name and price they had. A barcode ("Kod kreskowy", task 520) another product of the salon already has → 409 BARCODE_TAKEN.
          */
         patch: operations["ProductsController_update"];
         trace?: never;
@@ -5786,6 +5789,8 @@ export interface components {
             purchasePriceGrosze: number | null;
             /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
             supplier: string | null;
+            /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
+            barcode: string | null;
         };
         ProductList: {
             /** @description The salon’s products, sold ones first, then by name */
@@ -5806,6 +5811,8 @@ export interface components {
                 purchasePriceGrosze: number | null;
                 /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
                 supplier: string | null;
+                /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
+                barcode: string | null;
             }[];
             /** @description Task 461: pieces sold at the visits of the last 30 days, by product (for "Starczy na ~N dni"); products without sales are left out */
             sold30Days: {
@@ -6895,6 +6902,8 @@ export interface components {
                 purchasePriceGrosze: number | null;
                 /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
                 supplier: string | null;
+                /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
+                barcode: string | null;
             }[];
         };
         StockHistory: {
@@ -6947,6 +6956,8 @@ export interface components {
                 purchasePriceGrosze: number | null;
                 /** @description "Dostawca" — whom the salon orders it from (task 462); null = not written */
                 supplier: string | null;
+                /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
+                barcode: string | null;
             }[];
         };
         TillClose: {
@@ -10790,6 +10801,7 @@ export interface operations {
                     lowStockAt?: number | null;
                     purchasePriceGrosze?: number | null;
                     supplier?: string | null;
+                    barcode?: string | null;
                 };
             };
         };
@@ -10869,6 +10881,7 @@ export interface operations {
                     lowStockAt?: number | null;
                     purchasePriceGrosze?: number | null;
                     supplier?: string | null;
+                    barcode?: string | null;
                     active?: boolean;
                 };
             };

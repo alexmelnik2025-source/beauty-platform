@@ -8026,6 +8026,7 @@
         ]
       },
       "post": {
+        "description": "A barcode (\"Kod kreskowy\", task 520) another product of the salon already has → 409 BARCODE_TAKEN.",
         "operationId": "ProductsController_create",
         "parameters": [
           {
@@ -8096,6 +8097,16 @@
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "barcode": {
+                    "anyOf": [
+                      {
+                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -8207,7 +8218,7 @@
     },
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}": {
       "patch": {
-        "description": "Past sales keep the name and price they had.",
+        "description": "Past sales keep the name and price they had. A barcode (\"Kod kreskowy\", task 520) another product of the salon already has → 409 BARCODE_TAKEN.",
         "operationId": "ProductsController_update",
         "parameters": [
           {
@@ -8286,6 +8297,16 @@
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "barcode": {
+                    "anyOf": [
+                      {
+                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -22339,6 +22360,11 @@
             "nullable": true,
             "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
             "type": "string"
+          },
+          "barcode": {
+            "nullable": true,
+            "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
+            "type": "string"
           }
         },
         "required": [
@@ -22350,7 +22376,8 @@
           "lowStockAt",
           "lowStock",
           "purchasePriceGrosze",
-          "supplier"
+          "supplier",
+          "barcode"
         ],
         "additionalProperties": false
       },
@@ -22407,6 +22434,11 @@
                   "nullable": true,
                   "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
                   "type": "string"
+                },
+                "barcode": {
+                  "nullable": true,
+                  "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
+                  "type": "string"
                 }
               },
               "required": [
@@ -22418,7 +22450,8 @@
                 "lowStockAt",
                 "lowStock",
                 "purchasePriceGrosze",
-                "supplier"
+                "supplier",
+                "barcode"
               ],
               "additionalProperties": false
             },
@@ -26758,6 +26791,11 @@
                   "nullable": true,
                   "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
                   "type": "string"
+                },
+                "barcode": {
+                  "nullable": true,
+                  "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
+                  "type": "string"
                 }
               },
               "required": [
@@ -26769,7 +26807,8 @@
                 "lowStockAt",
                 "lowStock",
                 "purchasePriceGrosze",
-                "supplier"
+                "supplier",
+                "barcode"
               ],
               "additionalProperties": false
             },
@@ -26935,6 +26974,11 @@
                   "nullable": true,
                   "description": "\"Dostawca\" — whom the salon orders it from (task 462); null = not written",
                   "type": "string"
+                },
+                "barcode": {
+                  "nullable": true,
+                  "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
+                  "type": "string"
                 }
               },
               "required": [
@@ -26946,7 +26990,8 @@
                 "lowStockAt",
                 "lowStock",
                 "purchasePriceGrosze",
-                "supplier"
+                "supplier",
+                "barcode"
               ],
               "additionalProperties": false
             },

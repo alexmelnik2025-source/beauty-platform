@@ -5,6 +5,7 @@ import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { shareCsv, shareText } from '../share';
+import { isBarcodeTaken, matchesProductSearch, parseBarcode } from '../barcode';
 import { orderText, parseStock, toOrderNames } from '../stock';
 import { parseTip as parseAmount, tipInput as amountInput } from '../tip';
 
@@ -36,6 +37,8 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 474: "Wyślij zamówienie" — the products to order as a message for each supplier, with
  * suggested numbers of pieces, through the share sheet (copied in the web preview).
  * Task 477: "Przyjmij dostawę" — the pieces of the whole order at once, as in the cabinet (476).
+ * Task 522: "Kod kreskowy" — the code on the package; "Szukaj" finds a product by a piece of its
+ * name or its code, as in the cabinet (521).
  */
 export function ProductListSection(props: {
   api: BusinessApi;
@@ -56,6 +59,7 @@ export function ProductListSection(props: {
     stock: '',
     low: '',
     supplier: '',
+    barcode: '',
   });
   const [askRemove, setAskRemove] = useState<string | null>(null);
   const [history, setHistory] = useState<{
@@ -73,7 +77,10 @@ export function ProductListSection(props: {
     stock: '',
     low: '',
     supplier: '',
+    barcode: '',
   });
+  /** Task 522: "Szukaj" over the list (name or barcode). */
+  const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
@@ -137,7 +144,7 @@ export function ProductListSection(props: {
       }
       return true;
     } catch (e) {
-      setError(errorText(e, t));
+      setError(isBarcodeTaken(e) ? p.barcodeTaken : errorText(e, t));
       return false;
     } finally {
       setBusy(false);
@@ -173,6 +180,9 @@ export function ProductListSection(props: {
   const freshStock = parseStock(fresh.stock);
   const draftLow = parseStock(draft.low);
   const freshLow = parseStock(fresh.low);
+  const draftBarcode = parseBarcode(draft.barcode);
+  const freshBarcode = parseBarcode(fresh.barcode);
+  const shown = (products ?? []).filter((x) => matchesProductSearch(x, search));
   const toggleHistory = async (id: string) => {
     if (history?.id === id) {
       setHistory(null);
@@ -215,6 +225,7 @@ export function ProductListSection(props: {
       <Text style={styles.muted}>{p.listHint}</Text>
       <Text style={styles.muted}>{p.costHint}</Text>
       <Text style={styles.muted}>{p.supplierHint}</Text>
+      <Text style={styles.muted}>{p.barcodeHint}</Text>
       {toOrder.length > 0 ? (
         <Text style={styles.warn} role="status" testID="products-to-order">
           {fill(p.toOrder, {
@@ -363,7 +374,25 @@ export function ProductListSection(props: {
           }}
         />
       ) : null}
-      {(products ?? []).map((x) =>
+      {products && products.length > 0 ? (
+        <TextInput
+          accessibilityLabel={p.search}
+          placeholder={p.search}
+          placeholderTextColor={colors.placeholder}
+          value={search}
+          maxLength={80}
+          autoCorrect={false}
+          onChangeText={setSearch}
+          style={styles.input}
+          testID="products-search"
+        />
+      ) : null}
+      {products && products.length > 0 && shown.length === 0 ? (
+        <Text style={styles.muted} role="status" testID="products-search-none">
+          {p.searchNone}
+        </Text>
+      ) : null}
+      {shown.map((x) =>
         editId === x.id ? (
           <Card key={x.id}>
             <TextInput
@@ -401,6 +430,20 @@ export function ProductListSection(props: {
               style={[styles.input, { marginTop: 8 }]}
             />
             <TextInput
+              accessibilityLabel={p.barcodeNew}
+              placeholder={p.barcodeNew}
+              placeholderTextColor={colors.placeholder}
+              value={draft.barcode}
+              maxLength={40}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              onChangeText={(barcode) => setDraft({ ...draft, barcode })}
+              style={[styles.input, { marginTop: 8 }]}
+            />
+            {draftBarcode === undefined ? (
+              <Text style={styles.warn}>{p.barcodeInvalid}</Text>
+            ) : null}
+            <TextInput
               accessibilityLabel={p.stockIn}
               placeholder={p.stockIn}
               placeholderTextColor={colors.placeholder}
@@ -429,6 +472,7 @@ export function ProductListSection(props: {
                   draftCost === undefined ||
                   draftStock === undefined ||
                   draftLow === undefined ||
+                  draftBarcode === undefined ||
                   draft.name.trim() === ''
                 }
                 onPress={() =>
@@ -440,6 +484,7 @@ export function ProductListSection(props: {
                       stockQuantity: draftStock ?? null,
                       lowStockAt: draftLow ?? null,
                       supplier: draft.supplier.trim() || null,
+                      barcode: draftBarcode ?? null,
                     }),
                   ).then((ok) => ok && setEditId(null))
                 }
@@ -462,6 +507,11 @@ export function ProductListSection(props: {
             {x.supplier === null ? null : (
               <Text style={styles.muted} testID="product-supplier">
                 {`${p.supplier}: ${x.supplier}`}
+              </Text>
+            )}
+            {x.barcode === null ? null : (
+              <Text style={styles.muted} testID="product-barcode">
+                {`${p.barcode}: ${x.barcode}`}
               </Text>
             )}
             {x.stockQuantity === null ? null : x.stockQuantity > 0 ? (
@@ -608,6 +658,7 @@ export function ProductListSection(props: {
                       stock: x.stockQuantity === null ? '' : String(x.stockQuantity),
                       low: x.lowStockAt === null ? '' : String(x.lowStockAt),
                       supplier: x.supplier ?? '',
+                      barcode: x.barcode ?? '',
                     });
                     setEditId(x.id);
                   }}
@@ -691,6 +742,18 @@ export function ProductListSection(props: {
         style={styles.input}
       />
       <TextInput
+        accessibilityLabel={p.barcodeNew}
+        placeholder={p.barcodeNew}
+        placeholderTextColor={colors.placeholder}
+        value={fresh.barcode}
+        maxLength={40}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        onChangeText={(barcode) => setFresh({ ...fresh, barcode })}
+        style={styles.input}
+      />
+      {freshBarcode === undefined ? <Text style={styles.warn}>{p.barcodeInvalid}</Text> : null}
+      <TextInput
         accessibilityLabel={p.stockIn}
         placeholder={p.stockIn}
         placeholderTextColor={colors.placeholder}
@@ -720,7 +783,8 @@ export function ProductListSection(props: {
             freshPrice === null ||
             freshCost === undefined ||
             freshStock === undefined ||
-            freshLow === undefined
+            freshLow === undefined ||
+            freshBarcode === undefined
           }
           onPress={() =>
             void run(() =>
@@ -733,10 +797,20 @@ export function ProductListSection(props: {
                 freshLow ?? null,
                 freshCost ?? null,
                 fresh.supplier.trim() || null,
+                freshBarcode ?? null,
               ),
             ).then(
               (ok) =>
-                ok && setFresh({ name: '', price: '', cost: '', stock: '', low: '', supplier: '' }),
+                ok &&
+                setFresh({
+                  name: '',
+                  price: '',
+                  cost: '',
+                  stock: '',
+                  low: '',
+                  supplier: '',
+                  barcode: '',
+                }),
             )
           }
         />

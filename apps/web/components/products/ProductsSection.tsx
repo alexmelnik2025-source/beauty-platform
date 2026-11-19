@@ -5,6 +5,7 @@ import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import { orderText, toOrderNames } from '@/lib/to-order';
+import { matchesProductSearch, parseBarcode } from '@/lib/barcode';
 import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
 import { ErrorBox } from '../ui';
@@ -55,6 +56,8 @@ function amountInput(hundredths: number): string {
  * Task 473: "Tekst zamówienia" — the products to order as a message for each supplier, with
  * suggested numbers of pieces; the owner changes what they like and copies it.
  * Task 476: "Przyjmij dostawę" — the pieces of the whole order at once.
+ * Task 521: "Kod kreskowy" — the code on the package, typed or scanned (a scanner types it like a
+ * keyboard); "Szukaj" finds a product by a piece of its name or its code.
  */
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -66,7 +69,15 @@ export function ProductsSection({ base }: { base: string }) {
   const [drafts, setDrafts] = useState<
     Record<
       string,
-      { name: string; price: string; cost: string; stock: string; low: string; supplier: string }
+      {
+        name: string;
+        price: string;
+        cost: string;
+        stock: string;
+        low: string;
+        supplier: string;
+        barcode: string;
+      }
     >
   >({});
   const [name, setName] = useState('');
@@ -75,6 +86,9 @@ export function ProductsSection({ base }: { base: string }) {
   const [stock, setStock] = useState('');
   const [low, setLow] = useState('');
   const [supplier, setSupplier] = useState('');
+  /** Task 521: "Kod kreskowy" of the new product, and "Szukaj" over the list. */
+  const [barcode, setBarcode] = useState('');
+  const [search, setSearch] = useState('');
   /** Task 463: "" = the stock CSV of all suppliers. */
   const [csvSupplier, setCsvSupplier] = useState('');
   /** Task 470: the stock CSV with only the products to order. */
@@ -109,6 +123,7 @@ export function ProductsSection({ base }: { base: string }) {
             stock: stockInput(x.stockQuantity),
             low: stockInput(x.lowStockAt),
             supplier: x.supplier ?? '',
+            barcode: x.barcode ?? '',
           },
         ]),
       ),
@@ -197,6 +212,9 @@ export function ProductsSection({ base }: { base: string }) {
   const newCost = parseCost(cost);
   const newStock = parseStock(stock);
   const newLow = parseStock(low);
+  const newBarcode = parseBarcode(barcode);
+  /** Task 521: the products "Szukaj" finds (all when it is empty). */
+  const shown = (products ?? []).filter((x) => matchesProductSearch(x, search));
   const counted = (products ?? []).filter((x) => x.stockQuantity !== null);
   const stockPieces = counted.reduce((n, x) => n + (x.stockQuantity ?? 0), 0);
   const stockValue = counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * x.priceGrosze, 0);
@@ -236,6 +254,7 @@ export function ProductsSection({ base }: { base: string }) {
     newCost !== undefined &&
     newStock !== undefined &&
     newLow !== undefined &&
+    newBarcode !== undefined &&
     !busy;
 
   return (
@@ -248,6 +267,7 @@ export function ProductsSection({ base }: { base: string }) {
       <p className="small muted">{p.writeOffHint}</p>
       <p className="small muted">{p.costHint}</p>
       <p className="small muted">{p.supplierHint}</p>
+      <p className="small muted">{p.barcodeHint}</p>
       <ErrorBox>{error}</ErrorBox>
       {toOrder.length > 0 ? (
         <p className="note" role="status" data-testid="products-to-order">
@@ -447,8 +467,35 @@ export function ProductsSection({ base }: { base: string }) {
         />
       ) : null}
       {products && products.length > 0 ? (
+        <p className="row" style={{ alignItems: 'center' }}>
+          <input
+            type="search"
+            aria-label={p.search}
+            placeholder={p.search}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              // A scanner ends the code with Enter: keep the search, do not send any form.
+              if (e.key === 'Enter') e.preventDefault();
+            }}
+            style={{ flex: '1 1 16rem' }}
+            data-testid="products-search"
+          />
+          {search.trim() !== '' ? (
+            <button type="button" className="link-btn small" onClick={() => setSearch('')}>
+              {p.searchClear}
+            </button>
+          ) : null}
+        </p>
+      ) : null}
+      {products && products.length > 0 && shown.length === 0 ? (
+        <p className="small muted" role="status" data-testid="products-search-none">
+          {p.searchNone}
+        </p>
+      ) : null}
+      {products && products.length > 0 ? (
         <ul className="commission-list">
-          {products.map((x) => {
+          {shown.map((x) => {
             const draft = drafts[x.id] ?? {
               name: x.name,
               price: amountInput(x.priceGrosze),
@@ -456,7 +503,9 @@ export function ProductsSection({ base }: { base: string }) {
               stock: stockInput(x.stockQuantity),
               low: stockInput(x.lowStockAt),
               supplier: x.supplier ?? '',
+              barcode: x.barcode ?? '',
             };
+            const draftBarcode = parseBarcode(draft.barcode);
             const draftPrice = parseAmount(draft.price);
             const draftCost = parseCost(draft.cost);
             const draftStock = parseStock(draft.stock);
@@ -467,7 +516,8 @@ export function ProductsSection({ base }: { base: string }) {
               (draftCost !== undefined && draftCost !== x.purchasePriceGrosze) ||
               (draftStock !== undefined && draftStock !== x.stockQuantity) ||
               (draftLow !== undefined && draftLow !== x.lowStockAt) ||
-              (draft.supplier.trim() || null) !== x.supplier;
+              (draft.supplier.trim() || null) !== x.supplier ||
+              (draftBarcode !== undefined && draftBarcode !== x.barcode);
             return (
               <li key={x.id} className="commission-row" data-testid="product-row">
                 <input
@@ -511,6 +561,17 @@ export function ProductsSection({ base }: { base: string }) {
                   maxLength={80}
                   onChange={(e) =>
                     setDrafts({ ...drafts, [x.id]: { ...draft, supplier: e.target.value } })
+                  }
+                  style={{ flex: '0 1 9rem', minWidth: 0 }}
+                />
+                <input
+                  aria-label={`${p.barcode} — ${x.name}`}
+                  aria-invalid={draftBarcode === undefined}
+                  placeholder={p.barcode}
+                  value={draft.barcode}
+                  maxLength={40}
+                  onChange={(e) =>
+                    setDrafts({ ...drafts, [x.id]: { ...draft, barcode: e.target.value } })
                   }
                   style={{ flex: '0 1 9rem', minWidth: 0 }}
                 />
@@ -589,6 +650,7 @@ export function ProductsSection({ base }: { base: string }) {
                     draftCost === undefined ||
                     draftStock === undefined ||
                     draftLow === undefined ||
+                    draftBarcode === undefined ||
                     draft.name.trim() === ''
                   }
                   onClick={() =>
@@ -602,6 +664,7 @@ export function ProductsSection({ base }: { base: string }) {
                           stockQuantity: draftStock,
                           lowStockAt: draftLow,
                           supplier: draft.supplier.trim() || null,
+                          barcode: draftBarcode,
                         },
                       }),
                     )
@@ -743,6 +806,7 @@ export function ProductsSection({ base }: { base: string }) {
                 stockQuantity: newStock,
                 lowStockAt: newLow,
                 supplier: supplier.trim() || null,
+                barcode: newBarcode,
               },
             }),
           ).then((ok) => {
@@ -753,6 +817,7 @@ export function ProductsSection({ base }: { base: string }) {
               setStock('');
               setLow('');
               setSupplier('');
+              setBarcode('');
             }
           });
         }}
@@ -811,6 +876,16 @@ export function ProductsSection({ base }: { base: string }) {
             maxLength={80}
             placeholder="—"
             onChange={(e) => setSupplier(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>{p.barcodeNew}</span>
+          <input
+            value={barcode}
+            maxLength={40}
+            placeholder="—"
+            aria-invalid={newBarcode === undefined}
+            onChange={(e) => setBarcode(e.target.value)}
           />
         </label>
         <button type="submit" className="btn btn--small" disabled={!canAdd}>
