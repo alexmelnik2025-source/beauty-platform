@@ -38,6 +38,8 @@ import { SalonReviews } from '../reviews/SalonReviews';
 import { NearbySalons } from './NearbySalons';
 import { rememberViewed } from '@/lib/recent-salons';
 import { FavoriteButton } from './FavoriteButton';
+import { InstallBanner } from './InstallBanner';
+import { NO_STORES, type StoreLinks } from '@/lib/install-banner';
 import { ShareSalon } from './ShareSalon';
 import { VoucherCheck } from './VoucherCheck';
 import { WaitlistForm } from './WaitlistForm';
@@ -126,7 +128,14 @@ function saveRemembered(value: RememberedContact | null): void {
   }
 }
 
-export function BookingFlow({ slug }: { slug: string }) {
+export function BookingFlow({
+  slug,
+  stores = NO_STORES,
+}: {
+  slug: string;
+  /** Task Q2: App Store / Google Play pages of the client app, once published (from `.env`). */
+  stores?: StoreLinks;
+}) {
   const { t, locale } = useI18n();
   const specialtyText = useSpecialtyText();
   const tag = LOCALE_TAGS[locale];
@@ -565,6 +574,18 @@ export function BookingFlow({ slug }: { slug: string }) {
     <div className={embed ? 'booking booking--embed' : 'booking'}>
       {/* In a window on the salon's own site the client stays with this salon. */}
       {embed ? null : <ClientNav />}
+      {/* Task Q2: "Install the app" — one small row, closes with one tap; the app continues from here. */}
+      {embed || step === 'done' ? null : (
+        <InstallBanner
+          place={{
+            slug: salon.slug,
+            salonName: salon.name,
+            serviceId: serviceId || undefined,
+            staffId,
+          }}
+          stores={stores}
+        />
+      )}
       <header className="salon-head">
         <div className="salon-head-inner">
           <div className="top">

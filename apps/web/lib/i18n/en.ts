@@ -876,6 +876,19 @@ export const en: Dict = {
     manual:
       'In your browser menu choose “Install app” or “Add to Home screen”. Works best in Chrome, Edge and Safari.',
   },
+  /** Task Q2: the "Install the app" row on a salon's booking page and "Finish your booking" in "My visits". */
+  installBanner: {
+    title: 'Install the app',
+    lead: 'Your visits and reminders at hand — no password.',
+    install: 'Install',
+    get: 'Get',
+    close: 'Close',
+    done: 'Done — the app is on your phone’s screen. You can keep booking here.',
+    continueTitle: 'Finish your booking',
+    continueLead: 'You started booking a visit at {salon}. Go back to exactly that step.',
+    continueButton: 'Back to the booking',
+    continueDismiss: 'Not now',
+  },
   push: {
     title: 'Notifications on this device',
     lead: 'New, moved and cancelled appointments on your screen right away — even when the app is closed.',

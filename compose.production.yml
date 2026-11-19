@@ -75,6 +75,10 @@ services:
       API_URL: http://api:4000
       APP_WEB_URL: ${APP_WEB_URL:?Set APP_WEB_URL in .env}
       PUBLIC_INDEXING: ${PUBLIC_INDEXING:-0}
+      # Task Q2: the client app's store pages for the "Install the app" row; empty until published.
+      APP_STORE_URL: ${APP_STORE_URL:-}
+      PLAY_STORE_URL: ${PLAY_STORE_URL:-}
+      IOS_APP_ID: ${IOS_APP_ID:-}
     ports:
       - '${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-3000}:3000'
     depends_on:

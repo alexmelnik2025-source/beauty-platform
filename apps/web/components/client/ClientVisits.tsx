@@ -17,6 +17,7 @@ import { ClientBonuses } from './ClientBonuses';
 import { ClientFavorites } from './ClientFavorites';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { ClientNav } from './ClientNav';
+import { ResumeBooking } from './ResumeBooking';
 
 type Scope = 'upcoming' | 'past' | 'bonuses' | 'favorites';
 
@@ -64,6 +65,8 @@ export function ClientVisits() {
         <h1 className="salon-name">{t.visits.title}</h1>
       </ClientHeader>
       <main className="narrow stack">
+        {/* Task Q2: the installed app continues the booking the client started on a salon's page. */}
+        <ResumeBooking />
         {person === undefined ? (
           <Spinner />
         ) : person === null ? (

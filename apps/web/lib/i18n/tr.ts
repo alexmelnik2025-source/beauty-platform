@@ -489,6 +489,19 @@ export const tr: Dict = {
     manual:
       'Tarayıcı menüsünde “Uygulamayı yükle” veya “Ana ekrana ekle”yi seçin. En iyi Chrome, Edge ve Safari’de çalışır.',
   },
+  /** Task Q2: the "Install the app" row on a salon's booking page and "Finish your booking" in "My visits". */
+  installBanner: {
+    title: 'Uygulamayı yükle',
+    lead: 'Randevular ve hatırlatmalar elinizin altında — şifresiz.',
+    install: 'Yükle',
+    get: 'İndir',
+    close: 'Kapat',
+    done: 'Tamam — uygulama telefonunuzun ekranında. Randevuya buradan devam edebilirsiniz.',
+    continueTitle: 'Randevunuzu tamamlayın',
+    continueLead: '{salon} için randevu almaya başladınız. Tam o adıma geri dönün.',
+    continueButton: 'Randevuya dön',
+    continueDismiss: 'Şimdi değil',
+  },
   loyalty: {
     ...en.loyalty,
     stampsCount: 'damga: {count}',

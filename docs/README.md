@@ -3609,3 +3609,27 @@ doc `claude/Beauty_Platform_одобрение_функций.md`, в код и�
 `apps/api/test/booking-channel.spec.ts`, `apps/mobile-client/test/booking.test.ts`; e2e `report-unbooked.spec.ts`
 (скриншот `q2-report-channels`). То же в «Raporty» бизнес-приложения (`ReportsScreen`, скриншот
 `q2-a-business-app-report-channels`). Дальше: QR-код каждого мастера, баннер «Zainstaluj aplikację».
+
+## Баннер «Zainstaluj aplikację» на странице записи (задача Q2, часть 4)
+
+Клиент, пришедший по QR-коду или ссылке, записывается в браузере без приложения, как и раньше. Сверху страницы
+записи — одна маленькая строка «Zainstaluj aplikację · Wizyty i przypomnienia pod ręką» (6 языков клиента): она не
+стоит между клиентом и записью, закрывается одним нажатием «×» и после этого не показывается 30 дней
+(`localStorage: bp_install_banner_hidden`); в окне на сайте салона (`?embed=1`), в уже установленном приложении и на
+экране «Do zobaczenia!» строки нет.
+
+| Где                        | Что делает «Zainstaluj» / «Pobierz»                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Chrome, Edge, Android      | Диалог установки браузера (PWA «Moje wizyty»; на странице записи теперь подключён её manifest `visits-{язык}`)   |
+| iPhone, iPad               | Шаги Safari «Udostępnij → Do ekranu początkowego»; когда есть `APP_STORE_URL` — «Pobierz» ведёт в App Store      |
+| Android с `PLAY_STORE_URL` | intent-ссылка `beauty-client://b/{салон}?service=…&staff=…`: открывает приложение, если стоит, иначе Google Play |
+| Safari с `IOS_APP_ID`      | Родной Smart App Banner (`<meta name="apple-itunes-app" … app-argument=адрес страницы>`)                         |
+
+Переменные `APP_STORE_URL`, `PLAY_STORE_URL`, `IOS_APP_ID` (`.env.example`, `compose.production.yml`) пустые до
+публикации приложений — тогда строка предлагает только веб-приложение. **Продолжение с того же места:** при любом
+нажатии «Zainstaluj»/«Pobierz» запоминается, где клиент был (салон, услуга, мастер; `bp_resume_booking`, 24 часа), и
+установленное «Moje wizyty» сверху показывает «Dokończ rezerwację — wróć do rezerwacji» → страница записи сразу на
+нужном шаге (`?service=…&staff=…`). Код: `apps/web/lib/install-banner.ts` (хранение, ссылки сторов, intent, deep link),
+`components/booking/InstallBanner.tsx`, `components/client/ResumeBooking.tsx`; e2e `install-banner.spec.ts`
+(скриншоты Q2-banner, Q2-banner-ios, Q2-resume, Q2-resume-back). Приём deep link `beauty-client://b/…` в самом
+клиентском приложении — следующая часть Q2.

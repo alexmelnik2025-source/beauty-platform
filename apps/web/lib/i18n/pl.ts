@@ -875,6 +875,19 @@ export const pl = {
     manual:
       'W menu przeglądarki wybierz „Zainstaluj aplikację” lub „Dodaj do ekranu głównego”. Najlepiej działa w Chrome, Edge i Safari.',
   },
+  /** Task Q2: the "Install the app" row on a salon's booking page and "Finish your booking" in "My visits". */
+  installBanner: {
+    title: 'Zainstaluj aplikację',
+    lead: 'Wizyty i przypomnienia pod ręką — bez hasła.',
+    install: 'Zainstaluj',
+    get: 'Pobierz',
+    close: 'Zamknij',
+    done: 'Gotowe — aplikacja jest już na ekranie telefonu. Tu możesz dalej umawiać wizytę.',
+    continueTitle: 'Dokończ rezerwację',
+    continueLead: 'Rezerwacja wizyty w {salon} czeka na dokończenie — wróć dokładnie w to miejsce.',
+    continueButton: 'Wróć do rezerwacji',
+    continueDismiss: 'Nie teraz',
+  },
   push: {
     title: 'Powiadomienia na tym urządzeniu',
     lead: 'Nowe, przeniesione i odwołane wizyty od razu na ekranie — nawet gdy aplikacja jest zamknięta.',

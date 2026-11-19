@@ -491,6 +491,19 @@ export const sq: Dict = {
     manual:
       'Në menunë e shfletuesit zgjidhni “Instalo aplikacionin” ose “Shto në ekranin bazë”. Funksionon më mirë në Chrome, Edge dhe Safari.',
   },
+  /** Task Q2: the "Install the app" row on a salon's booking page and "Finish your booking" in "My visits". */
+  installBanner: {
+    title: 'Instalo aplikacionin',
+    lead: 'Vizitat dhe kujtesat gjithmonë me vete — pa fjalëkalim.',
+    install: 'Instalo',
+    get: 'Shkarko',
+    close: 'Mbyll',
+    done: 'Gati — aplikacioni është në ekranin e telefonit. Këtu mund të vazhdosh rezervimin.',
+    continueTitle: 'Përfundo rezervimin',
+    continueLead: 'Fillove të rezervosh një vizitë në {salon}. Kthehu pikërisht në atë hap.',
+    continueButton: 'Kthehu te rezervimi',
+    continueDismiss: 'Jo tani',
+  },
   loyalty: {
     ...en.loyalty,
     stampsCount: 'vula: {count}',
