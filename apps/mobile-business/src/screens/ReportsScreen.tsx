@@ -469,6 +469,29 @@ export function ReportsScreen(props: {
               <Text style={styles.small}>{r.productsCsvHint}</Text>
             </View>
           ) : null}
+          {shown.writeOffs.quantity > 0 ? (
+            // Task 447: pieces used in the salon, damaged or lost — at today's prices.
+            <View style={{ gap: 6 }} testID="report-write-offs">
+              <Text style={styles.section}>
+                {fill(r.writeOffs, {
+                  amount: money(shown.writeOffs.valueGrosze),
+                  n: String(shown.writeOffs.quantity),
+                })}
+              </Text>
+              {shown.writeOffs.items.map((item) => (
+                <View key={item.name} style={styles.cardTop}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.muted}>
+                    {fill(r.productsRow, {
+                      n: String(item.quantity),
+                      amount: money(item.valueGrosze),
+                    })}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.muted}>{r.writeOffsHint}</Text>
+            </View>
+          ) : null}
           {shown.discounts.totalGrosze > 0 ? (
             // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
             <View style={{ gap: 6 }} testID="report-discounts">

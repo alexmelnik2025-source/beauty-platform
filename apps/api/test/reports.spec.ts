@@ -1652,6 +1652,64 @@ describe('salon report', () => {
     ]);
   });
 
+  it('"Odpisy z magazynu": pieces written off in the period, at today\'s prices (task 446)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 6 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 9 });
+    const writeOff = (id: string, quantity: number) =>
+      ctx
+        .http()
+        .post(`${base}/products/${id}/write-off`)
+        .set(owner.auth)
+        .send({ quantity })
+        .expect(200);
+    expect((await report().expect(200)).body.writeOffs).toEqual({
+      quantity: 0,
+      valueGrosze: 0,
+      items: [],
+    });
+    await writeOff(pomade.id, 1);
+    await writeOff(pomade.id, 1);
+    await writeOff(wax.id, 3);
+    // A sale or a delivery is not a write-off.
+    await ctx
+      .http()
+      .post(`${base}/products/${wax.id}/restock`)
+      .set(owner.auth)
+      .send({ quantity: 2 })
+      .expect(200);
+    // An older write-off is outside the period.
+    await writeOff(wax.id, 1);
+    await ctx.prisma.stockMovement.updateMany({
+      where: { productId: wax.id, kind: 'write_off', change: -1 },
+      data: { createdAt: new Date(`${addDays(from, -3)}T12:00:00Z`) },
+    });
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error).toBeUndefined();
+    expect(res.body.writeOffs).toEqual({
+      quantity: 5,
+      valueGrosze: 2 * 4500 + 3 * 3000,
+      items: [
+        { name: 'Wosk', quantity: 3, valueGrosze: 9000 },
+        { name: 'Pomada', quantity: 2, valueGrosze: 9000 },
+      ],
+    });
+    // A specialist's own report has no salon stock in it.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    expect((await report(kasiaUser.auth).expect(200)).body.writeOffs).toEqual({
+      quantity: 0,
+      valueGrosze: 0,
+      items: [],
+    });
+  });
+
   it('"Historia magazynu": every change of the stock with who and when (task 440)', async () => {
     const pomade = (
       await ctx

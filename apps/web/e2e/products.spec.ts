@@ -20,7 +20,7 @@ import { serveApp } from './mobile-app';
  * Task 422–423: "CSV produktów" — every sale of the period for the accountant (422), in the app too.
  * Task 424: "Kupione produkty" in the client card of the cabinet (424).
  * Task 436–441: "CSV stanu magazynowego" (437), "Dostawa" (438, 439) and "Historia magazynu" (441);
- * task 444–445: "Odpis"
+ * task 444–447: "Odpis" and "Odpisy z magazynu" in the reports
  * in the cabinet and the business app.
  */
 
@@ -283,6 +283,14 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(productsFile).toContain('Razem;;;;2;;98,00');
   await page.getByRole('button', { name: 'CSV produktów' }).scrollIntoViewIfNeeded();
   await shot(page, '422-report-products-csv');
+  // Task 446: "Odpisy z magazynu" — the damaged set, at today's price.
+  const writeOffs = page.getByTestId('report-write-offs');
+  await writeOffs.scrollIntoViewIfNeeded();
+  await expect(writeOffs.getByRole('heading')).toHaveText(
+    /Odpisy z magazynu: 80,00\s*zł \(1 szt\.\)/,
+  );
+  await expect(writeOffs).toContainText(/Zestaw\s*1 szt\. · 80,00\s*zł/);
+  await shot(page, '446-report-write-offs');
 
   // The client card (task 424): what Jan bought, with the total.
   await page.goto('/pl/app/clients');
@@ -416,6 +424,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appHistory).toContainText(/Odpis · -1 szt\. → 5 · .+ · zużyte w salonie/);
     await appHistory.scrollIntoViewIfNeeded();
     await shot(app, '445-business-app-write-off');
+    // Task 447: "Odpisy z magazynu" in the app's report — the set and the pomade.
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Raporty' }).click();
+    await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+    const appWriteOffs = app.getByTestId('report-write-offs');
+    await appWriteOffs.scrollIntoViewIfNeeded();
+    await expect(appWriteOffs).toContainText(/Odpisy z magazynu: 129,00\s*zł \(2 szt\.\)/);
+    await expect(appWriteOffs).toContainText(/Zestaw\s*1 szt\. · 80,00\s*zł/);
+    await expect(appWriteOffs).toContainText(/Pomada matowa\s*1 szt\. · 49,00\s*zł/);
+    await shot(app, '447-business-app-write-offs');
   } finally {
     businessApp.server.close();
   }

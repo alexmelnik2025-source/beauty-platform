@@ -3216,3 +3216,11 @@ PostgreSQL — `apps/api/test/reports.spec.ts`, изоляция салонов 
 Кабинет (444): в открытой «Historia» товара — «Ile sztuk», «Powód» и кнопка «Odpis»; строка истории «Odpis · -1 szt. →
 3 · Anna · uszkodzone». Бизнес-приложение (445): кнопка «Odpis» в карточке товара (когда штуки есть) → сколько штук и
 причина → «Odpisz». e2e `products.spec.ts`, скриншоты 444, 445.
+
+## «Odpisy z magazynu» в отчёте (задачи 446–447)
+
+`writeOffs` в `GET …/reports` — `{ quantity, valueGrosze, items: [{ name, quantity, valueGrosze }] }`: сколько штук
+списано («Odpis») за период и сколько они стоят по сегодняшней цене продажи товара, по товарам (больше штук — выше).
+Только в отчёте всего салона; в «своём» отчёте мастера — пусто (склад — дело владельца и менеджера). Код —
+`ReportsService.writeOffs`, тест — `apps/api/test/reports.spec.ts`. Раздел «Odpisy z magazynu: 80,00 zł (1 szt.)» в
+«Raporty» кабинета и бизнес-приложения (когда за период что-то списано). e2e `products.spec.ts`, скриншоты 446, 447.

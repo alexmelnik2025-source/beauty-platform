@@ -847,6 +847,9 @@ export const en: Dictionary = {
       'How much the salon gave away in discounts on the paid visits of this period. The revenue in the report is already after them.',
     products: 'Products sold: {amount}',
     productsRow: '{n} pcs · {amount}',
+    writeOffs: 'Written off: {amount} ({n} pcs)',
+    writeOffsHint:
+      'Pieces used in the salon, damaged or lost in this period — at today’s sale prices.',
     productsHint: 'Products sold at the visits. Not part of the visit revenue or the commissions.',
     tipsHint: 'They are not part of the salon’s revenue — the salon decides how to share them.',
     commissions: 'Commissions',

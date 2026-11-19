@@ -1641,6 +1641,9 @@ export const pl = {
       'Napiwki zapisane przy wizytach, które się odbyły. Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',
     products: 'Sprzedaż produktów: {amount}',
     productsRow: '{n} szt. · {amount}',
+    writeOffs: 'Odpisy z magazynu: {amount} ({n} szt.)',
+    writeOffsHint:
+      'Sztuki zużyte w salonie, uszkodzone lub zgubione w tym okresie — w dzisiejszych cenach sprzedaży.',
     productsHint:
       'Produkty sprzedane przy wizytach z tego okresu. Nie wchodzą do przychodu z wizyt ani do prowizji.',
     tipsVisits: 'wizyty z napiwkiem: {n}',

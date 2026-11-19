@@ -5946,6 +5946,20 @@ export interface components {
                     totalGrosze: number;
                 }[];
             };
+            /** @description Task 446: "Odpisy z magazynu" — pieces used in the salon, damaged or lost; for the whole salon only (empty in a specialist’s own report) */
+            writeOffs: {
+                /** @description Pieces written off in the period */
+                quantity: number;
+                /** @description Their worth at today’s sale prices, in hundredths of the salon currency */
+                valueGrosze: number;
+                /** @description By product, most pieces first */
+                items: {
+                    name: string;
+                    quantity: number;
+                    /** @description Pieces × today’s price, in hundredths of the salon currency */
+                    valueGrosze: number;
+                }[];
+            };
             /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
             tillCloses: {
                 /** @description Days of the period whose till was counted, oldest first */

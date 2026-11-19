@@ -844,6 +844,9 @@ export const pl = {
       'Ile salon oddał w rabatach na opłaconych wizytach z tego okresu. Przychód w raporcie jest już po rabatach.',
     products: 'Sprzedaż produktów: {amount}',
     productsRow: '{n} szt. · {amount}',
+    writeOffs: 'Odpisy z magazynu: {amount} ({n} szt.)',
+    writeOffsHint:
+      'Sztuki zużyte w salonie, uszkodzone lub zgubione w tym okresie — w dzisiejszych cenach sprzedaży.',
     productsHint:
       'Produkty sprzedane przy wizytach. Nie wchodzą do przychodu z wizyt ani do prowizji.',
     tipsHint: 'Nie wchodzą do przychodu salonu — jak je dzielić, decyduje salon.',

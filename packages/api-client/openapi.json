@@ -23115,6 +23115,59 @@
             "additionalProperties": false,
             "description": "Task 394: \"Sprzedaż produktów\" — not part of the visit revenue"
           },
+          "writeOffs": {
+            "type": "object",
+            "properties": {
+              "quantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Pieces written off in the period"
+              },
+              "valueGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Their worth at today’s sale prices, in hundredths of the salon currency"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "valueGrosze": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Pieces × today’s price, in hundredths of the salon currency"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "quantity",
+                    "valueGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By product, most pieces first"
+              }
+            },
+            "required": [
+              "quantity",
+              "valueGrosze",
+              "items"
+            ],
+            "additionalProperties": false,
+            "description": "Task 446: \"Odpisy z magazynu\" — pieces used in the salon, damaged or lost; for the whole salon only (empty in a specialist’s own report)"
+          },
           "tillCloses": {
             "type": "object",
             "properties": {
@@ -24014,6 +24067,7 @@
           "payments",
           "tips",
           "products",
+          "writeOffs",
           "tillCloses",
           "weekdays",
           "previous",

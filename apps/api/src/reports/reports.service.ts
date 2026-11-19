@@ -488,6 +488,9 @@ export class ReportsService {
       },
       weekdays,
       products: await this.products(locationId, staffIds, rangeStart, rangeEnd),
+      writeOffs: own
+        ? { quantity: 0, valueGrosze: 0, items: [] }
+        : await this.writeOffs(locationId, rangeStart, rangeEnd),
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
@@ -1328,6 +1331,49 @@ export class ReportsService {
       quantity,
       items: [...items.values()].sort(byMoney((r) => r.name)),
       staff: [...staff.values()].sort(byMoney((r) => r.displayName)),
+    };
+  }
+
+  /** Task 446: "Odpisy z magazynu" — pieces written off in the period, at today's prices. */
+  private async writeOffs(
+    locationId: string,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['writeOffs']> {
+    const rows = await this.prisma.stockMovement.findMany({
+      where: {
+        kind: 'write_off',
+        createdAt: { gte: rangeStart, lt: rangeEnd },
+        product: { locationId },
+      },
+      select: {
+        change: true,
+        product: { select: { id: true, name: true, priceGrosze: true } },
+      },
+    });
+    const items = new Map<string, { name: string; quantity: number; valueGrosze: number }>();
+    let quantity = 0;
+    let valueGrosze = 0;
+    for (const r of rows) {
+      const pieces = -r.change;
+      const value = pieces * r.product.priceGrosze;
+      quantity += pieces;
+      valueGrosze += value;
+      const item =
+        items.get(r.product.id) ??
+        items
+          .set(r.product.id, { name: r.product.name, quantity: 0, valueGrosze: 0 })
+          .get(r.product.id)!;
+      item.quantity += pieces;
+      item.valueGrosze += value;
+    }
+    return {
+      quantity,
+      valueGrosze,
+      items: [...items.values()].sort(
+        (a, b) =>
+          b.quantity - a.quantity || b.valueGrosze - a.valueGrosze || a.name.localeCompare(b.name),
+      ),
     };
   }
 

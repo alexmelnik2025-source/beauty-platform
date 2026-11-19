@@ -137,6 +137,23 @@ export const salonReportSchema = responseSchema(
           .describe('By specialist of the visit, most money first'),
       })
       .describe('Task 394: "Sprzedaż produktów" — not part of the visit revenue'),
+    writeOffs: z
+      .strictObject({
+        quantity: z.number().int().describe('Pieces written off in the period'),
+        valueGrosze: money('Their worth at today’s sale prices'),
+        items: z
+          .array(
+            z.strictObject({
+              name: z.string(),
+              quantity: z.number().int(),
+              valueGrosze: money('Pieces × today’s price'),
+            }),
+          )
+          .describe('By product, most pieces first'),
+      })
+      .describe(
+        'Task 446: "Odpisy z magazynu" — pieces used in the salon, damaged or lost; for the whole salon only (empty in a specialist’s own report)',
+      ),
     tillCloses: z
       .strictObject({
         days: z

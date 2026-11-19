@@ -534,6 +534,32 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.writeOffs.quantity > 0 ? (
+              // Task 446: pieces used in the salon, damaged or lost — at today's prices.
+              <section className="section" data-testid="report-write-offs">
+                <h2>
+                  {fill(t.reports.writeOffs, {
+                    amount: money(report.writeOffs.valueGrosze),
+                    n: String(report.writeOffs.quantity),
+                  })}
+                </h2>
+                <ol className="report-days">
+                  {report.writeOffs.items.map((item) => (
+                    <li key={item.name}>
+                      <span className="small">{item.name}</span>
+                      <span className="small">
+                        {fill(t.reports.productsRow, {
+                          n: String(item.quantity),
+                          amount: money(item.valueGrosze),
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="small muted">{t.reports.writeOffsHint}</p>
+              </section>
+            ) : null}
+
             {report.discounts.totalGrosze > 0 ? (
               // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
               <section className="section" data-testid="report-discounts">
