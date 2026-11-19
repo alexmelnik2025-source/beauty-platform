@@ -3351,3 +3351,23 @@ zamówienia» рядом с кнопкой CSV, в бизнес-приложен
 ценам на момент продажи, `null`, если ни у одной штуки её не было. В «своём» отчёте мастера — пусто. В «Raporty»
 кабинета и бизнес-приложения в разделе «Sprzedaż produktów» — «Według dostawców» (только когда хотя бы у одного
 товара указан поставщик). e2e `products.spec.ts`, скриншоты 472.
+
+## «Tekst zamówienia» / «Wyślij zamówienie» (задачи 473–474)
+
+Под строкой «Do zamówienia» в «Usługi» → «Produkty» кабинета — кнопка «Tekst zamówienia»: готовое сообщение для
+поставщиков, по блоку на каждого («Zamówienie — Hairgum:» и строки «- Pomada matowa — 5 szt.»; товары без поставщика —
+последним блоком, без поставщиков вообще — один блок «Zamówienie:»). Число штук — подсказка: на ~30 дней продаж по темпу
+последних 30 дней и хотя бы на одну больше «Kończy się przy», не меньше 1 (`orderQuantity`). Текст можно поправить в поле
+и скопировать кнопкой «Kopiuj». В бизнес-приложении кнопка «Wyślij zamówienie» открывает «Поделиться» телефона с тем же
+текстом (в веб-версии — копирует). Без нового API: `orderText` / `orderQuantity` в `apps/mobile-business/src/stock.ts`
+(unit-тест `test/stock.test.ts`; те же в `apps/web/lib/to-order.ts`). e2e `products-order.spec.ts`, скриншоты 473, 474.
+
+## «Przyjmij dostawę» — вся поставка сразу (задачи 475–477)
+
+`POST …/products/delivery` `{ items: [{ productId, quantity }] }` (владелец/менеджер): штуки всех пришедших товаров
+добавляются к остатку в одной транзакции, каждая — «Dostawa» в «Historia magazynu»; товар без учёта начинает считаться.
+Больше 100000 у любого — 409 `STOCK_LIMIT`, чужой/несуществующий товар — 404, и тогда ничего не меняется. Ответ —
+`{ products, pieces, list }`. Тест — `apps/api/test/product-delivery.spec.ts`. В кабинете и бизнес-приложении кнопка
+«Przyjmij dostawę» рядом с «Inwentaryzacja»: поле «Przyszło» у каждого товара, у товаров «Do zamówienia» уже стоят
+предложенные числа из «Tekst zamówienia», можно показать товары одного поставщика; итог — «Dostawa przyjęta: 5 szt.,
+produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
