@@ -3,8 +3,19 @@
 import { useState, type FormEvent } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
-import { formatDay, formatPrice } from '@/lib/time';
+import { formatPrice } from '@/lib/time';
 import type { PublicGiftVoucher } from '@/lib/types';
+
+/** "17 lutego 2027": a voucher may be valid into the next year, so the year is shown. */
+function dayWithYear(date: string, tag: string): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  return new Intl.DateTimeFormat(tag, {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}
 
 /**
  * Task 537: "Sprawdź bon" on the salon page — a client with a gift voucher of this salon types its
@@ -101,7 +112,7 @@ export function VoucherCheck({ slug }: { slug: string }) {
             {status}
             {' · '}
             {voucher.validUntil
-              ? fill(t.voucherCheck.validUntil, { date: formatDay(voucher.validUntil, tag) })
+              ? fill(t.voucherCheck.validUntil, { date: dayWithYear(voucher.validUntil, tag) })
               : t.voucherCheck.noEnd}
           </span>
           {voucher.status === 'active' ? (

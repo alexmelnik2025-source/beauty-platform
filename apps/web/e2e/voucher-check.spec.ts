@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext, type APIResponse } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 537: "Sprawdź bon" on the salon page. The salon sold a 200 zł gift voucher and the client
@@ -8,6 +9,7 @@ import { waitForEmail } from './mailpit';
  * a wrong code (the salon has no such voucher), then the right one in small letters with a dash —
  * and sees "Zostało 150,00 zł z 200,00 zł" and the last day (screenshot 537). Nothing about who the
  * voucher is for is shown.
+ * Task 538: the same on the salon screen of the client app (screenshot 538).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -125,6 +127,46 @@ test('the client checks what is left on a gift voucher on the salon page', async
   await section.scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'e2e/screenshots/537.png' });
   await context.close();
+
+  // Task 538: the client app — the salon found in the catalogue, the voucher checked there.
+  const clientApp = await serveApp('mobile-client');
+  const phone = await browser.newContext({
+    viewport: PHONE,
+    isMobile: true,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+    extraHTTPHeaders: { 'x-forwarded-for': '203.0.113.138' },
+  });
+  try {
+    const app = await phone.newPage();
+    await app.goto(clientApp.url);
+    // A click before the app is ready to answer it does nothing (seen once in CI): try again.
+    await expect(async () => {
+      await app.getByRole('button', { name: 'Znajdź salon', exact: true }).click();
+      await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible({
+        timeout: 3_000,
+      });
+    }).toPass({ timeout: 20_000 });
+    await app
+      .getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica')
+      .fill('Voucher Check Barbershop');
+    await app
+      .getByRole('article', { name: 'Voucher Check Barbershop' })
+      .getByRole('button', { name: 'Zobacz salon' })
+      .click();
+    await app.getByRole('button', { name: 'Masz bon podarunkowy? Sprawdź, ile zostało' }).click();
+    await app.getByLabel('Kod bonu').fill(voucher.code.toLowerCase());
+    await app.getByRole('button', { name: 'Sprawdź', exact: true }).click();
+    const appResult = app.getByRole('status').filter({ hasText: 'Zostało' });
+    await expect(appResult).toContainText(/Zostało 150,00\s?zł z 200,00\s?zł/);
+    await expect(appResult).toContainText('Bonem płacisz w salonie, przy wizycie.');
+    await expect(app.getByText('Jan Kowalski')).toHaveCount(0);
+    await appResult.scrollIntoViewIfNeeded();
+    await app.screenshot({ path: 'e2e/screenshots/538.png' });
+  } finally {
+    await phone.close();
+    clientApp.server.close();
+  }
 
   // Out of the public catalogue again: other tests count its salons.
   await json(

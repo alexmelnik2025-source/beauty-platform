@@ -310,6 +310,23 @@ export const pl = {
     rating: '★ {rating} · opinie: {n}',
     startLead: 'Szukaj salonu bez logowania — konto założy się samo przy pierwszej rezerwacji.',
   },
+  /** Task 538: "Sprawdź bon" on the salon screen. */
+  voucherCheck: {
+    open: 'Masz bon podarunkowy? Sprawdź, ile zostało',
+    title: 'Sprawdź bon podarunkowy',
+    hint: 'Wpisz kod z bonu — zobaczysz, ile na nim zostało i do kiedy jest ważny.',
+    code: 'Kod bonu',
+    check: 'Sprawdź',
+    notFound: 'Ten salon nie ma bonu z takim kodem. Sprawdź litery i cyfry.',
+    left: 'Zostało {left} z {amount}',
+    validUntil: 'Ważny do {date}',
+    noEnd: 'Bez terminu ważności',
+    statusActive: 'Ważny',
+    statusUsed: 'Wykorzystany',
+    statusExpired: 'Nieważny',
+    statusCancelled: 'Anulowany',
+    payAtSalon: 'Bonem płacisz w salonie, przy wizycie.',
+  },
   salon: {
     back: '‹ Wróć',
     book: 'Umów wizytę',

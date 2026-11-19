@@ -16,6 +16,7 @@ import type {
   ClientWaitlist,
   ClientWaitlistEntry,
   PublicFreeToday,
+  PublicGiftVoucher,
   PublicLocation,
   PublicReviews,
   PublicSalonDirectory,
@@ -52,6 +53,7 @@ export type {
 };
 export type {
   Availability,
+  PublicGiftVoucher,
   BookingConfirmed,
   ClientFavorites,
   CodeSent,
@@ -549,6 +551,17 @@ export class ClientApi {
       params.set('near', `${latitude.toFixed(4)},${longitude.toFixed(4)}`);
     }
     return this.call<PublicSalonDirectory>('GET', `/v1/public/locations?${params.toString()}`);
+  }
+
+  /**
+   * Task 538: "Sprawdź bon" — what is left on a gift voucher of this salon, by the code from the
+   * voucher (letter case, spaces and dashes do not matter). No sign-in; unknown code → 404.
+   */
+  voucherBalance(slug: string, code: string): Promise<PublicGiftVoucher> {
+    return this.call<PublicGiftVoucher>(
+      'GET',
+      `/v1/public/locations/${encodeURIComponent(slug)}/gift-vouchers/${encodeURIComponent(code.trim())}`,
+    );
   }
 
   /** A salon's page: address, description, hours, price list, specialists. No sign-in. */

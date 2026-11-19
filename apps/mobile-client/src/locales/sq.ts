@@ -315,6 +315,23 @@ export const sq: Dictionary = {
     rating: '★ {rating} · vlerësime: {n}',
     startLead: 'Kërkoni një sallon pa hyrë — llogaria krijohet vetë me rezervimin e parë.',
   },
+  /** Task 538: "Sprawdź bon" on the salon screen. */
+  voucherCheck: {
+    open: 'Keni një kupon dhuratë? Shikoni sa ka mbetur',
+    title: 'Kontrollo kuponin dhuratë',
+    hint: 'Shkruani kodin e kuponit — do të shihni sa ka mbetur dhe deri kur është i vlefshëm.',
+    code: 'Kodi i kuponit',
+    check: 'Kontrollo',
+    notFound: 'Ky sallon nuk ka kupon me këtë kod. Kontrolloni shkronjat dhe shifrat.',
+    left: 'Kanë mbetur {left} nga {amount}',
+    validUntil: 'I vlefshëm deri më {date}',
+    noEnd: 'Pa afat',
+    statusActive: 'I vlefshëm',
+    statusUsed: 'I përdorur',
+    statusExpired: 'I skaduar',
+    statusCancelled: 'I anuluar',
+    payAtSalon: 'Me kuponin paguani në sallon, në vizitë.',
+  },
   salon: {
     back: '‹ Kthehu',
     book: 'Rezervo',

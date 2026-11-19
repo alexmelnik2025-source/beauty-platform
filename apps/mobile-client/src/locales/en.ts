@@ -309,6 +309,23 @@ export const en: Dictionary = {
     startLead:
       'Look for a salon without signing in — your account is created by itself with your first booking.',
   },
+  /** Task 538: "Sprawdź bon" on the salon screen. */
+  voucherCheck: {
+    open: 'Have a gift voucher? Check what is left',
+    title: 'Check a gift voucher',
+    hint: 'Type the code from the voucher to see what is left on it and until when it is valid.',
+    code: 'Voucher code',
+    check: 'Check',
+    notFound: 'This salon has no voucher with this code. Check the letters and digits.',
+    left: '{left} left of {amount}',
+    validUntil: 'Valid until {date}',
+    noEnd: 'No end date',
+    statusActive: 'Valid',
+    statusUsed: 'Used up',
+    statusExpired: 'Expired',
+    statusCancelled: 'Cancelled',
+    payAtSalon: 'You pay with the voucher at the salon, at your visit.',
+  },
   salon: {
     back: '‹ Back',
     book: 'Book',

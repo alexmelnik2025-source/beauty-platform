@@ -3476,3 +3476,16 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
 - Кнопка «Pobierz CSV płatności bonami» рядом с «Pobierz CSV bonów» в кабинете и в бизнес-приложении
   (`api.giftVoucherUsesCsv`, «Поделиться» на телефоне).
 - Тесты: `apps/api/test/gift-vouchers.spec.ts`, e2e `gift-vouchers.spec.ts`.
+
+## «Sprawdź bon» для клиента (задачи 536–538)
+
+- `GET /v1/public/locations/:slug/gift-vouchers/:code` — без входа (`PublicVouchersController`): номинал, остаток,
+  валюта, «Ważny do» и статус. Для кого, заметка и оплаты остаются в салоне. Только салоны с открытой страницей
+  (онлайн-запись включена), иначе 404, как и для неизвестного кода; регистр, пробелы и дефисы не важны. Не больше 20
+  проверок в час с одного адреса (429 `RATE_LIMITED`), чтобы коды нельзя было подобрать.
+- Страница салона (`/b/<salon>`, и в окне на сайте салона): свёрнутая кнопка «Masz bon podarunkowy? Sprawdź, ile
+  zostało» → код → «Zostało 150,00 zł z 200,00 zł», статус, срок с годом, «Bonem płacisz w salonie, przy wizycie»
+  (`components/booking/VoucherCheck.tsx`, словари `voucherCheck` на 6 языках).
+- Клиентское приложение: то же на экране салона перед отзывами (`screens/VoucherCheck.tsx`, `api.voucherBalance`).
+- Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-client/test/api.test.ts`, e2e `voucher-check.spec.ts`
+  (скриншоты 537, 538).

@@ -38,6 +38,7 @@ import { shareMessage, shareSalon } from '../share';
 import { shareTools } from './shareTools';
 import { NearbySalons } from './NearbySalons';
 import { SalonReviews } from './SalonReviews';
+import { VoucherCheck } from './VoucherCheck';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 
 /**
@@ -344,6 +345,8 @@ export function SalonScreen(props: {
         </Section>
       ) : null}
 
+      {/* Task 538: "Sprawdź bon". */}
+      <VoucherCheck api={api} t={t} locale={locale} slug={salon.slug} />
       <SalonReviews api={api} t={t} locale={locale} slug={salon.slug} />
       <NearbySalons api={api} t={t} locale={locale} slug={salon.slug} onOpen={props.onOpenSalon} />
     </ScrollView>

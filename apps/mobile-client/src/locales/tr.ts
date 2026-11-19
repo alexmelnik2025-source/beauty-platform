@@ -315,6 +315,23 @@ export const tr: Dictionary = {
     rating: '★ {rating} · yorumlar: {n}',
     startLead: 'Giriş yapmadan salon arayın — hesabınız ilk randevunuzda kendiliğinden oluşur.',
   },
+  /** Task 538: "Sprawdź bon" on the salon screen. */
+  voucherCheck: {
+    open: 'Hediye çekiniz mi var? Kalan tutarı kontrol edin',
+    title: 'Hediye çekini kontrol et',
+    hint: 'Çekin üzerindeki kodu yazın — ne kadar kaldığını ve ne zamana kadar geçerli olduğunu görün.',
+    code: 'Çek kodu',
+    check: 'Kontrol et',
+    notFound: 'Bu salonda bu koda sahip bir çek yok. Harfleri ve rakamları kontrol edin.',
+    left: '{amount} tutarından {left} kaldı',
+    validUntil: '{date} tarihine kadar geçerli',
+    noEnd: 'Süresiz',
+    statusActive: 'Geçerli',
+    statusUsed: 'Kullanıldı',
+    statusExpired: 'Süresi doldu',
+    statusCancelled: 'İptal edildi',
+    payAtSalon: 'Çekle ödemeyi salonda, randevunuzda yaparsınız.',
+  },
   salon: {
     back: '‹ Geri',
     book: 'Randevu al',

@@ -277,6 +277,20 @@ describe('catalogue (no sign-in)', () => {
     expect((missing as ApiError).status).toBe(404);
   });
 
+  it('checks a gift voucher of a salon by its code (task 538)', async () => {
+    const { fetchFn } = fakeServer({
+      'GET /v1/public/locations/gestalt-bema/gift-vouchers/abcd-efgh': () => [
+        200,
+        { code: 'ABCDEFGH', amountGrosze: 20000, balanceGrosze: 15000, currency: 'PLN' },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    expect((await api.voucherBalance('gestalt-bema', ' abcd-efgh ')).balanceGrosze).toBe(15000);
+    const missing = await api.voucherBalance('gestalt-bema', 'ZZZZZZZZ').catch((e: unknown) => e);
+    expect(missing).toBeInstanceOf(ApiError);
+    expect((missing as ApiError).status).toBe(404);
+  });
+
   it('links to the web booking page in the app language', () => {
     expect(bookingUrl('http://localhost:3000/', 'uk', 'gestalt-bema')).toBe(
       'http://localhost:3000/uk/b/gestalt-bema',
