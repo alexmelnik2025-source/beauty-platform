@@ -12,6 +12,13 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **19.11.2026, ~22:15 UTC — Q2 часть 4 (ветка `agent/565-install-banner`)**: баннер «Zainstaluj aplikację» сверху
+  страницы записи (6 языков клиента): маленький, закрывается одним нажатием (30 дней не показывается), не стоит на
+  пути к записи; установка PWA «Moje wizyty» (на странице записи подключён её manifest), шаги для iPhone, ссылки на
+  App Store / Google Play и iOS Smart App Banner — из переменных `APP_STORE_URL`, `PLAY_STORE_URL`, `IOS_APP_ID`
+  (пустые до публикации); «Dokończ rezerwację» — после установки приложение «Moje wizyty» продолжает запись с того
+  же места (салон, услуга, мастер). e2e со скриншотами Q2-banner, Q2-banner-ios, Q2-resume, Q2-resume-back.
+
 - **19.11.2026, ~22:35 UTC — влиты Q1 и Q2 части 1–3** (`docs/BOOKSY_ANALYSIS.md`; канал записи `channel` /
   `channelStaffId` в API и базе; «Skąd przyszli» в отчёте кабинета и в «Raporty» бизнес-приложения; страница записи и
   клиентское приложение отправляют канал; e2e `q2-report-channels`, `q2-a-business-app-report-channels`). Ветки
