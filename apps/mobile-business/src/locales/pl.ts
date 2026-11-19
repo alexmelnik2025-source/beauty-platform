@@ -711,7 +711,7 @@ export const pl = {
     restockAdd: 'Przyjmij',
     stockCsv: 'CSV stanu magazynowego',
     stockCsvHint:
-      'Wszystkie produkty: cena, w magazynie, kończy się przy i co zamówić — do wysłania dostawcy.',
+      'Wszystkie produkty: cena, w magazynie, kończy się przy, co zamówić i cena zakupu — do zamówienia u dostawcy.',
     stockCsvFailed: 'Nie udało się zapisać pliku.',
     outOfStock: 'Za mało sztuk w magazynie — popraw stan produktu w „Usługi”.',
     removeSaleFor: 'Usuń produkt — {name}',

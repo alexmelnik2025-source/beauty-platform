@@ -1509,7 +1509,7 @@ export const en: Dict = {
       'Delivery: enter how many pieces arrived and “Receive” — they are added to the stock.',
     stockCsv: 'Stock CSV',
     stockCsvHint:
-      'All products: price, in stock, runs low at and what to order — to send to the supplier.',
+      'All products: price, in stock, runs low at, what to order and the purchase price — for ordering from the supplier.',
     lowHint:
       '“Running low at” — how many pieces is already few; the product gets the “Running low” mark.',
     stockHint:

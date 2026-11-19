@@ -715,7 +715,7 @@ export const en: Dictionary = {
     restockAdd: 'Receive',
     stockCsv: 'Stock CSV',
     stockCsvHint:
-      'All products: price, in stock, runs low at and what to order — to send to the supplier.',
+      'All products: price, in stock, runs low at, what to order and the purchase price — for ordering from the supplier.',
     stockCsvFailed: 'Could not save the file.',
     outOfStock: 'Not enough pieces in stock — correct the product’s stock in “Usługi”.',
     removeSaleFor: 'Remove product — {name}',

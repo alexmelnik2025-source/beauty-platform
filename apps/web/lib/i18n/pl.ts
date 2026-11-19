@@ -1505,7 +1505,7 @@ export const pl = {
     restockHint: 'Dostawa: wpisz, ile sztuk przyszło, i „Przyjmij” — doliczymy je do magazynu.',
     stockCsv: 'CSV stanu magazynowego',
     stockCsvHint:
-      'Wszystkie produkty: cena, w magazynie, kończy się przy i co zamówić — do wysłania dostawcy.',
+      'Wszystkie produkty: cena, w magazynie, kończy się przy, co zamówić i cena zakupu — do zamówienia u dostawcy.',
     lowHint: '„Kończy się przy” — ile sztuk to już mało; produkt dostanie znak „Kończy się”.',
     stockHint:
       'Puste pole „W magazynie” — nie liczymy sztuk. Sprzedaż przy wizycie zmniejsza stan, usunięcie sprzedaży go przywraca.',

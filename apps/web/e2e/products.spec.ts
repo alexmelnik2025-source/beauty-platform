@@ -218,10 +218,10 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(stockCsv.suggestedFilename()).toMatch(/^stock-.+-\d{4}-\d{2}-\d{2}\.csv$/);
   const stockFile = readFileSync((await stockCsv.path())!, 'utf8');
   expect(stockFile).toContain(
-    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia\r\n',
+    'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu\r\n',
   );
-  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak\r\n');
-  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak\r\n');
+  expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00\r\n');
+  expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;\r\n');
   await shot(page, '437-owner-stock-csv');
   // Task 438: "Dostawa" — a new set without a count gets four pieces delivered.
   await products.getByLabel('Nowy produkt').fill('Zestaw');
@@ -366,7 +366,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     ]);
     expect(appStock.suggestedFilename()).toMatch(/^stock-.+\.csv$/);
     const appStockFile = readFileSync((await appStock.path())!, 'utf8');
-    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak\r\n');
+    expect(appStockFile).toContain('Wosk;25,00;tak;5;5;tak;10,00\r\n');
     await appList.getByRole('button', { name: 'CSV stanu magazynowego' }).scrollIntoViewIfNeeded();
     await shot(app, '437-business-app-stock-csv');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();

@@ -5,6 +5,8 @@
  * low or out, the same products the "Kończą się" line of "Produkty" lists). Same file
  * format as the other CSVs (task 30): UTF-8 with a byte order mark, ";" between the columns, a
  * decimal comma (point for en). An empty cell where the salon does not count the pieces.
+ * Task 450: the last column is the purchase price ("Cena zakupu"), empty when not written — the
+ * file is only for owners and managers.
  */
 
 import { amount, cell, type CsvLocale } from '../reports/visits-csv';
@@ -16,6 +18,7 @@ export interface StockCsvLine {
   stockQuantity: number | null;
   lowStockAt: number | null;
   lowStock: boolean;
+  purchasePriceGrosze: number | null;
 }
 
 type Header = [
@@ -25,26 +28,51 @@ type Header = [
   inStock: string,
   lowStockAt: string,
   toOrder: string,
+  purchasePrice: string,
 ];
 
 const TEXTS: Record<CsvLocale, { header: Header; yes: string; no: string }> = {
   pl: {
-    header: ['Produkt', 'Cena', 'Sprzedajemy', 'W magazynie', 'Kończy się przy', 'Do zamówienia'],
+    header: [
+      'Produkt',
+      'Cena',
+      'Sprzedajemy',
+      'W magazynie',
+      'Kończy się przy',
+      'Do zamówienia',
+      'Cena zakupu',
+    ],
     yes: 'tak',
     no: 'nie',
   },
   uk: {
-    header: ['Товар', 'Ціна', 'Продаємо', 'На складі', 'Закінчується при', 'Замовити'],
+    header: [
+      'Товар',
+      'Ціна',
+      'Продаємо',
+      'На складі',
+      'Закінчується при',
+      'Замовити',
+      'Закупівельна ціна',
+    ],
     yes: 'так',
     no: 'ні',
   },
   ru: {
-    header: ['Товар', 'Цена', 'Продаём', 'На складе', 'Заканчивается при', 'Заказать'],
+    header: [
+      'Товар',
+      'Цена',
+      'Продаём',
+      'На складе',
+      'Заканчивается при',
+      'Заказать',
+      'Закупочная цена',
+    ],
     yes: 'да',
     no: 'нет',
   },
   en: {
-    header: ['Product', 'Price', 'Sold', 'In stock', 'Runs low at', 'To order'],
+    header: ['Product', 'Price', 'Sold', 'In stock', 'Runs low at', 'To order', 'Purchase price'],
     yes: 'yes',
     no: 'no',
   },
@@ -64,6 +92,7 @@ export function stockCsv(lines: StockCsvLine[], locale: CsvLocale): string {
         count(l.stockQuantity),
         count(l.lowStockAt),
         l.active && (l.lowStock || l.stockQuantity === 0) ? t.yes : t.no,
+        l.purchasePriceGrosze === null ? '' : amount(l.purchasePriceGrosze, locale),
       ].join(';'),
     );
   }

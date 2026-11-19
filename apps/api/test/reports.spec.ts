@@ -1973,7 +1973,13 @@ describe('salon report', () => {
   it('"CSV stanu magazynowego": the products with stock and what to order (task 436)', async () => {
     const add = (body: object) =>
       ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201);
-    await add({ name: 'Pomada; mocna', priceGrosze: 4500, stockQuantity: 1, lowStockAt: 2 });
+    await add({
+      name: 'Pomada; mocna',
+      priceGrosze: 4500,
+      stockQuantity: 1,
+      lowStockAt: 2,
+      purchasePriceGrosze: 2050,
+    });
     await add({ name: '=Aloes', priceGrosze: 3000, stockQuantity: 10, lowStockAt: 2 });
     await add({ name: 'Wosk', priceGrosze: 2550 });
     await add({ name: 'Żel', priceGrosze: 2000, stockQuantity: 0 });
@@ -2009,17 +2015,19 @@ describe('salon report', () => {
     expect(text.startsWith('\uFEFF')).toBe(true);
     // Sold products first, by name; a ";" is quoted and a leading "=" cannot run as a formula.
     expect(text.slice(1).trimEnd().split('\r\n')).toEqual([
-      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia',
-      "'=Aloes;30,00;tak;10;2;nie",
-      '"Pomada; mocna";45,00;tak;1;2;tak',
-      'Wosk;25,50;tak;;;nie',
+      'Produkt;Cena;Sprzedajemy;W magazynie;Kończy się przy;Do zamówienia;Cena zakupu',
+      "'=Aloes;30,00;tak;10;2;nie;",
+      // Task 450: the purchase price last; empty when not written.
+      '"Pomada; mocna";45,00;tak;1;2;tak;20,50',
+      'Wosk;25,50;tak;;;nie;',
       // Sold out: to order even without "Kończy się przy"; not when it is no longer sold.
-      'Żel;20,00;tak;0;;tak',
-      'Olejek;50,00;nie;0;;nie',
+      'Żel;20,00;tak;0;;tak;',
+      'Olejek;50,00;nie;0;;nie;',
     ]);
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
-    expect(english).toContain('Product;Price;Sold;In stock;Runs low at;To order');
-    expect(english).toContain('Wosk;25.50;yes;;;no');
+    expect(english).toContain('Product;Price;Sold;In stock;Runs low at;To order;Purchase price');
+    expect(english).toContain('Wosk;25.50;yes;;;no;');
+    expect(english).toContain('"Pomada; mocna";45.00;yes;1;2;yes;20.50');
     await csv({ locale: 'de' }).expect(400);
 
     // A specialist cannot download it; another salon reaches nothing.

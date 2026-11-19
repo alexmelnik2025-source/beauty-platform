@@ -12,7 +12,8 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **19.11.2026, ~01:45 UTC — 448–449** («Cena zakupu» и «Marża») — ветка `agent/448-purchase-price`, ждёт CI.
+- **19.11.2026, ~01:45 UTC — 448–450** («Cena zakupu», «Marża», колонка в CSV stanu magazynowego) — ветки
+  `agent/448-purchase-price`, `agent/450-stock-csv-cost`, ждут CI.
 
 - **19.11.2026, ~00:37 UTC — влиты 443–447** («Odpis» — списание товара в API, кабинете и бизнес-приложении;
   «Odpisy z magazynu» в отчётах). Ветки `agent/443-write-off`, `agent/446-write-off-report` уже в main (удалить может
@@ -1572,6 +1573,8 @@
 - [x] **449. «Marża» в отчёте** — готово 19.11.2026 (скриншот 449) — `products.margin` и `marginGrosze` у товаров в
       `GET …/reports` (только отчёт всего салона), строка «Marża: …» в «Raporty» кабинета и приложения. Ветка
       `agent/448-purchase-price`.
+- [x] **450. «Cena zakupu» в CSV stanu magazynowego** — готово 19.11.2026 — последняя колонка (пусто без цены), 4
+      языка. Тест на PostgreSQL, e2e. Ветка `agent/450-stock-csv-cost`.
 
 ## Вопросы владельцу
 
