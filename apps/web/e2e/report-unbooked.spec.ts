@@ -191,18 +191,19 @@ test('the report lists the services nobody booked', async ({ browser, request })
   await expect(notice.getByRole('listitem').nth(0)).toContainText('odwołane: 1');
   await expect(notice.getByRole('listitem').nth(3)).toContainText('odwołane: 0');
   await shot(page, '294-report-cancel-notice');
-  // Task Q2: "Skąd przyszli" — the QR code first (Jan's first visit), then the site button.
+  // Task Q2: "Skąd przyszli" — one visit each (ties by key: the site button, then the QR code);
+  // Jan was new at the QR-code visit, his first.
   const channels = page.getByTestId('report-channels');
   await channels.scrollIntoViewIfNeeded();
   await expect(channels.getByRole('heading')).toHaveText('Skąd przyszli');
   const channelItems = channels.getByRole('listitem');
   await expect(channelItems).toHaveCount(2);
-  await expect(channelItems.nth(0)).toContainText('Kod QR');
+  await expect(channelItems.nth(0)).toContainText('Przycisk na stronie salonu');
   await expect(channelItems.nth(0)).toContainText('wizyty: 1');
-  await expect(channelItems.nth(0)).toContainText('nowi: 1');
-  await expect(channelItems.nth(1)).toContainText('Przycisk na stronie salonu');
+  await expect(channelItems.nth(0)).not.toContainText('nowi');
+  await expect(channelItems.nth(1)).toContainText('Kod QR');
   await expect(channelItems.nth(1)).toContainText('wizyty: 1');
-  await expect(channelItems.nth(1)).not.toContainText('nowi');
+  await expect(channelItems.nth(1)).toContainText('nowi: 1');
   await expect(page.getByTestId('report-channels-qr-staff')).toContainText(
     'Z kodu QR mistrza: Ilian — wizyty: 1',
   );
