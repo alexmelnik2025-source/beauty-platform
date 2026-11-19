@@ -222,6 +222,8 @@ export class ReportsService {
         cancelledBy: true,
         cancelledAt: true,
         customerId: true,
+        channel: true,
+        channelStaffId: true,
         staff: { select: { id: true, displayName: true } },
         service: {
           select: { id: true, name: true, category: { select: { id: true, name: true } } },
@@ -547,6 +549,88 @@ export class ReportsService {
       onceClients: own
         ? 0
         : (await cameOnce(this.prisma, { locationId, customer: { anonymizedAt: null } })).size,
+      channels: await this.channels(locationId, rows, rangeStart),
+    };
+  }
+
+  /**
+   * Task Q2: "Skąd przyszli" — where the online bookings of the period came from: the channel the
+   * booking page sent with the hold ("qr", "embed", "app", "catalogue", "web", a utm_source), or
+   * "unknown" for visits booked before channels were kept. A visit is a new client's when the
+   * client had no earlier visit of the salon (whatever its status) before the period's start.
+   */
+  private async channels(
+    locationId: string,
+    rows: {
+      status: string;
+      source: string;
+      startAt: Date;
+      customerId: string | null;
+      channel: string | null;
+      channelStaffId: string | null;
+    }[],
+    rangeStart: Date,
+  ): Promise<SalonReport['channels']> {
+    const online = rows.filter((a) => a.source === 'online');
+    const items = new Map<string, SalonReport['channels']['items'][number]>();
+    const byStaff = new Map<string, number>();
+    const customerIds = [
+      ...new Set(online.map((a) => a.customerId).filter((id): id is string => id !== null)),
+    ];
+    // Clients with a visit of the salon before the period: not new in this period.
+    const earlier = new Set(
+      customerIds.length === 0
+        ? []
+        : (
+            await this.prisma.appointment.findMany({
+              where: {
+                locationId,
+                customerId: { in: customerIds },
+                status: { notIn: ['held', 'expired'] },
+                startAt: { lt: rangeStart },
+              },
+              select: { customerId: true },
+              distinct: ['customerId'],
+            })
+          ).map((a) => a.customerId!),
+    );
+    // A client's first visit of the period is the new one; later ones in the period are not.
+    const seen = new Set<string>();
+    for (const a of [...online].sort((x, y) => x.startAt.getTime() - y.startAt.getTime())) {
+      const key = a.channel ?? 'unknown';
+      const item = items.get(key) ?? {
+        key,
+        visits: 0,
+        completed: 0,
+        cancelled: 0,
+        newClients: 0,
+      };
+      item.visits++;
+      if (a.status === 'completed') item.completed++;
+      if (a.status === 'cancelled') item.cancelled++;
+      if (a.customerId && !earlier.has(a.customerId) && !seen.has(a.customerId)) {
+        item.newClients++;
+        seen.add(a.customerId);
+      }
+      items.set(key, item);
+      if (a.channel === 'qr' && a.channelStaffId) {
+        byStaff.set(a.channelStaffId, (byStaff.get(a.channelStaffId) ?? 0) + 1);
+      }
+    }
+    const names =
+      byStaff.size === 0
+        ? []
+        : await this.prisma.staffMember.findMany({
+            where: { id: { in: [...byStaff.keys()] }, locationId },
+            select: { id: true, displayName: true },
+          });
+    const qrStaff = names
+      .map((s) => ({ id: s.id, name: s.displayName, visits: byStaff.get(s.id) ?? 0 }))
+      .sort((x, y) => y.visits - x.visits || x.name.localeCompare(y.name));
+    return {
+      online: online.length,
+      items: [...items.values()].sort((x, y) => y.visits - x.visits || x.key.localeCompare(y.key)),
+      qrStaff,
     };
   }
 

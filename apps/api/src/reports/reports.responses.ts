@@ -640,6 +640,42 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 271: clients of this salon who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, as of now whatever the period; 0 in a specialist own report',
       ),
+    channels: z
+      .strictObject({
+        online: z.number().int().describe('Visits of the period the clients booked online'),
+        items: z
+          .array(
+            z.strictObject({
+              key: z
+                .string()
+                .describe(
+                  '"qr", "embed", "app", "catalogue", "web", a utm_source such as "instagram", or "unknown" for older visits',
+                ),
+              visits: z.number().int(),
+              completed: z.number().int().describe('Of them, visits that took place'),
+              cancelled: z.number().int().describe('Of them, cancelled visits'),
+              newClients: z
+                .number()
+                .int()
+                .describe('Of them, visits of clients whose first visit of the salon this was'),
+            }),
+          )
+          .describe('Most visits first; only channels with visits'),
+        qrStaff: z
+          .array(
+            z.strictObject({
+              id: z.string(),
+              name: z.string(),
+              visits: z.number().int(),
+            }),
+          )
+          .describe(
+            "Task Q2: visits booked from the QR code of each specialist (the salon's own code is not here), most first",
+          ),
+      })
+      .describe(
+        'Task Q2: "Skąd przyszli" — where the online bookings of the period came from (QR codes, the button on the salon site, the client app, the catalogue, links)',
+      ),
   }),
 );
 

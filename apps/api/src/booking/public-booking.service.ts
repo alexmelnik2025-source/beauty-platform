@@ -129,6 +129,13 @@ export class PublicBookingService {
     if (free.length === 0) throw slotTaken();
 
     const candidates = await this.leastBusyFirst(free, location, input.start);
+    // Task Q2: a specialist's QR code counts only for a specialist of this salon.
+    const channelStaffId =
+      input.channel === 'qr' &&
+      input.channelStaffId &&
+      (await this.isStaffOf(location.id, input.channelStaffId))
+        ? input.channelStaffId
+        : undefined;
     const holdToken = generateToken();
     const expiresAt = new Date(Date.now() + HOLD_MINUTES * MINUTE_MS);
 
@@ -144,6 +151,8 @@ export class PublicBookingService {
             expiresAt,
             holdTokenHash: hashToken(holdToken),
             staffChosenByClient: input.staffId !== undefined,
+            channel: input.channel,
+            channelStaffId,
           },
         );
         const local = instantToLocal(input.start, location.timezone);
@@ -750,6 +759,9 @@ export class PublicBookingService {
       staffChosenByClient: boolean;
       holdContact?: HoldContact;
       locale?: Locale;
+      /** Task Q2: where the booking came from (null = not known). */
+      channel?: string;
+      channelStaffId?: string;
     },
   ) {
     // The specialist's own price and duration of the service, if any (tasks 62, 70).
@@ -778,6 +790,8 @@ export class PublicBookingService {
             ? { holdContact: hold.holdContact as unknown as Prisma.InputJsonValue }
             : {}),
           ...(hold.locale ? { locale: hold.locale } : {}),
+          ...(hold.channel ? { channel: hold.channel } : {}),
+          ...(hold.channelStaffId ? { channelStaffId: hold.channelStaffId } : {}),
           ...price,
           durationMinutes: offer.durationMinutes,
           bufferMinutes: service.bufferMinutes,
@@ -786,6 +800,15 @@ export class PublicBookingService {
       }),
     );
     return { hold: created, times, price };
+  }
+
+  /** Task Q2: whether `staffId` is a specialist of the salon (any status; the QR may be old). */
+  private async isStaffOf(locationId: string, staffId: string): Promise<boolean> {
+    const staff = await this.prisma.staffMember.findFirst({
+      where: { id: staffId, locationId },
+      select: { id: true },
+    });
+    return staff !== null;
   }
 
   private codeHash(holdId: string, code: string): string {

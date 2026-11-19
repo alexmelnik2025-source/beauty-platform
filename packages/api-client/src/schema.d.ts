@@ -6729,6 +6729,29 @@ export interface components {
             noShowClients: number;
             /** @description Task 271: clients of this salon who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, as of now whatever the period; 0 in a specialist own report */
             onceClients: number;
+            /** @description Task Q2: "Skąd przyszli" — where the online bookings of the period came from (QR codes, the button on the salon site, the client app, the catalogue, links) */
+            channels: {
+                /** @description Visits of the period the clients booked online */
+                online: number;
+                /** @description Most visits first; only channels with visits */
+                items: {
+                    /** @description "qr", "embed", "app", "catalogue", "web", a utm_source such as "instagram", or "unknown" for older visits */
+                    key: string;
+                    visits: number;
+                    /** @description Of them, visits that took place */
+                    completed: number;
+                    /** @description Of them, cancelled visits */
+                    cancelled: number;
+                    /** @description Of them, visits of clients whose first visit of the salon this was */
+                    newClients: number;
+                }[];
+                /** @description Task Q2: visits booked from the QR code of each specialist (the salon's own code is not here), most first */
+                qrStaff: {
+                    id: string;
+                    name: string;
+                    visits: number;
+                }[];
+            };
         };
         SalonReview: {
             id: string;
@@ -9586,6 +9609,9 @@ export interface operations {
                     /** Format: date-time */
                     start: string;
                     releaseHoldToken?: string;
+                    channel?: string;
+                    /** Format: uuid */
+                    channelStaffId?: string;
                 };
             };
         };

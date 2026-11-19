@@ -34,6 +34,18 @@ export const createHoldSchema = z.object({
   start: instant,
   /** A previous hold from the same browser, released when a new slot is picked. */
   releaseHoldToken: token.optional(),
+  /**
+   * Task Q2: where the client came from — "qr", "embed", "app", "catalogue", "web" or a
+   * utm_source such as "instagram". Lower-case letters, digits, "-" and "_"; omitted = not known.
+   */
+  channel: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9_-]{1,40}$/)
+    .optional(),
+  /** Task Q2: the specialist whose QR code was scanned (only with channel "qr"). */
+  channelStaffId: z.uuid().optional(),
 });
 
 export const sendCodeSchema = z.object({

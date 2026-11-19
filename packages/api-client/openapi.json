@@ -4936,6 +4936,15 @@
                     "type": "string",
                     "minLength": 20,
                     "maxLength": 200
+                  },
+                  "channel": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_-]{1,40}$"
+                  },
+                  "channelStaffId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   }
                 },
                 "required": [
@@ -25973,6 +25982,94 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Task 271: clients of this salon who came once (one day with visits that took place, 30–365 days ago) with nothing booked ahead, as of now whatever the period; 0 in a specialist own report"
+          },
+          "channels": {
+            "type": "object",
+            "properties": {
+              "online": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Visits of the period the clients booked online"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "\"qr\", \"embed\", \"app\", \"catalogue\", \"web\", a utm_source such as \"instagram\", or \"unknown\" for older visits"
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "completed": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Of them, visits that took place"
+                    },
+                    "cancelled": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Of them, cancelled visits"
+                    },
+                    "newClients": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Of them, visits of clients whose first visit of the salon this was"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "visits",
+                    "completed",
+                    "cancelled",
+                    "newClients"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Most visits first; only channels with visits"
+              },
+              "qrStaff": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "visits"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Task Q2: visits booked from the QR code of each specialist (the salon's own code is not here), most first"
+              }
+            },
+            "required": [
+              "online",
+              "items",
+              "qrStaff"
+            ],
+            "additionalProperties": false,
+            "description": "Task Q2: \"Skąd przyszli\" — where the online bookings of the period came from (QR codes, the button on the salon site, the client app, the catalogue, links)"
           }
         },
         "required": [
@@ -26010,7 +26107,8 @@
           "returnInterval",
           "overdueClients",
           "noShowClients",
-          "onceClients"
+          "onceClients",
+          "channels"
         ],
         "additionalProperties": false
       },

@@ -419,7 +419,8 @@ export class ClientApi {
     return this.call<Hold>(
       'POST',
       `/v1/public/locations/${encodeURIComponent(slug)}/holds`,
-      input,
+      // Task Q2: the salon sees the booking came from the client app ("Skąd przyszli").
+      { ...input, channel: 'app' },
       undefined,
       { 'idempotency-key': key },
     );

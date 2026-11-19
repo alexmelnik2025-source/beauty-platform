@@ -875,6 +875,13 @@ model Appointment {
   /// Task 161b: booked online by a client the cancellation guard marks with "approval": the
   /// time is kept, but the visit waits until the salon accepts it (null = nothing to accept).
   approvalRequestedAt DateTime?         @map("approval_requested_at") @db.Timestamptz(3)
+  /// Task Q2: where an online booking came from — "qr" (the salon's or a specialist's QR code),
+  /// "embed" (the button on the salon's own site), "app" (the client app), "catalogue", a
+  /// utm_source such as "instagram", or "web" (the booking page itself). Null: not known (older
+  /// visits) or written down by the salon.
+  channel             String?           @db.VarChar(40)
+  /// Task Q2: the specialist whose QR code was scanned (channel "qr"); null for the salon's code.
+  channelStaffId      String?           @map("channel_staff_id") @db.Uuid
   createdByUserId     String?           @map("created_by_user_id") @db.Uuid
   version             Int               @default(1)
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)

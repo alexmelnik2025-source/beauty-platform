@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { rememberedLanguages, speakersFirst } from '@/lib/catalogue-languages';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
+import { bookingChannel } from '@/lib/booking-channel';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, clockToMinutes, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
 import type {
@@ -160,6 +161,13 @@ export function BookingFlow({ slug }: { slug: string }) {
   // Shown in a window on the salon's own site (public/embed.js): another site's frame cannot
   // keep the client's details or the "My visits" sign-in, and links open in a new tab.
   const [embed, setEmbed] = useState(false);
+  /**
+   * Task Q2: where the client came from, sent with the hold so the salon sees "Skąd przyszli":
+   * the utm_source of the link (the QR code's "qr", "instagram"…), "embed" in a window on the
+   * salon's own site, "catalogue" from our own pages, "web" otherwise. With the QR code of a
+   * specialist (?utm_source=qr&staff=…) also whose code it was.
+   */
+  const [channel, setChannel] = useState<{ channel: string; channelStaffId?: string }>();
   const [remember, setRemember] = useState(false);
   /** Task 180d: the client is already signed in to "My visits" on this device. */
   const [signedInAs, setSignedInAs] = useState<string | null>(null);
@@ -175,6 +183,7 @@ export function BookingFlow({ slug }: { slug: string }) {
 
   // Details remembered on this device after an earlier booking.
   useEffect(() => {
+    setChannel(bookingChannel(window.location.search, document.referrer, window.location.origin));
     if (new URLSearchParams(window.location.search).get('embed') === '1') {
       setEmbed(true);
       return;
@@ -345,6 +354,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           ...(!staffId && rowStaff.length > 1 ? { staffIds: rowStaff } : {}),
           start: slot.start,
           ...(hold ? { releaseHoldToken: hold.holdToken } : {}),
+          ...channel,
         },
       });
       setHold(created);

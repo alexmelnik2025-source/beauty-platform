@@ -196,7 +196,7 @@ describe('ClientApi booking', () => {
     expect(calls[1]).toMatchObject({
       method: 'POST',
       url: '/v1/public/locations/gestalt/holds',
-      body: { serviceId: 'cut', start: hold.start },
+      body: { serviceId: 'cut', start: hold.start, channel: 'app' },
       headers: { 'idempotency-key': 'key-12345678' },
     });
 
