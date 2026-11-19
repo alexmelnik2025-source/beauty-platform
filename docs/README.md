@@ -2,6 +2,7 @@
 
 - **Спецификация MVP v3** (утверждена 22.10.2026): https://claude.ai/artifact/AFSkzDJRWKN4B6GmPZKBXv
 - **Очередь задач агента-разработчика:** [BACKLOG.md](BACKLOG.md)
+- **Анализ Booksy и сравнение с нами (19.11.2026, дополняется):** [BOOKSY_ANALYSIS.md](BOOKSY_ANALYSIS.md)
 - **Анализ Booksy, план этапов, структура интерфейсов, модель прав мастеров** (решения согласованы 23.10.2026): https://claude.ai/artifact/1XqX6F1xfY4EmtCmnNPXPo
 
 Решения 23.10.2026: порядок этапов 1 → 2 и 3 → 4 → бета 1.0; кабинет мастера в 1.0 — мобильный сайт, приложение и push в 1.1;
@@ -3580,3 +3581,12 @@ termin» — сколько осталось неиспользованным н
 подключается. API: `nonCashChecked` в `PUT …/reports/till-close` (не передано — не отмечено) и в `close` ответа;
 колонка `till_close.non_cash_checked` (миграция `20261128010000_till_close_non_cash_checked`). Тесты
 `apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/api.test.ts`; e2e `till-vouchers.spec.ts` (скриншот 554).
+
+## Анализ Booksy (задача Q1, 19.11.2026)
+
+`docs/BOOKSY_ANALYSIS.md` — карта функций Booksy и Booksy Biz (по живому кабинету салона и открытым источникам:
+страницы функций и цен, блог, сторы, центр помощи, отзывы Trustpilot/Capterra/App Store/Google Play) против того,
+что есть у нас: 16 областей, в каждой таблица «Booksy | У нас (с путём в коде) | Лучше Booksy», слабые места Booksy
+по отзывам, 35 наших фишек (15 уже есть, 20 — идеи), сводка «чего нет у нас» и открытые бизнес-вопросы.
+Новые функции из анализа **не программируются без одобрения владельца**: предложения с номерами N… ведутся в project
+doc `claude/Beauty_Platform_одобрение_функций.md`, в код идут только пункты из раздела «Одобрено».
