@@ -3298,6 +3298,7 @@ extra, missingGrosze, extraGrosze }] }`: сколько штук не хвати
 больше денег первыми. Только в отчёте всего салона; в «своём» отчёте мастера — пусто. Код — `ReportsService.idleProducts`,
 тест — `apps/api/test/reports.spec.ts`. Раздел «Leżą bez sprzedaży: 5 szt. (251,50 zł)» в «Raporty» кабинета и
 бизнес-приложения («Zestaw · 2 szt. · 160,00 zł · jeszcze nie sprzedany»). e2e `products.spec.ts`, скриншоты 460.
+
 ## «Starczy na ~N dni» в списке товаров (задача 461)
 
 `sold30Days` в `GET …/products` — `[{ productId, quantity }]`: сколько штук каждого товара продано на визитах
