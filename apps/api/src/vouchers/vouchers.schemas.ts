@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { paymentMethodSchema } from '../common/enums.schemas';
 import { responseSchema } from '../common/openapi';
 import { CSV_LOCALES } from '../reports/visits-csv';
 
@@ -15,6 +16,8 @@ export const createGiftVoucherSchema = z.object({
   /** Who it is for or who bought it, in the salon's own words. */
   recipient: z.string().trim().min(1).max(80).nullable().optional(),
   note: z.string().trim().min(1).max(200).nullable().optional(),
+  /** Task 547: how the client paid for it; cash goes into the till of the day it was sold. */
+  paymentMethod: paymentMethodSchema.optional(),
 });
 
 /** Task 490: "Zapłać bonem" — part or all of what is left. */
@@ -76,6 +79,11 @@ const giftVoucher = z.strictObject({
     ),
   soldDate: z.string().describe('The day it was sold, YYYY-MM-DD in the salon’s own time'),
   soldByName: z.string().nullable().describe('Who sold it; null when unknown'),
+  paymentMethod: paymentMethodSchema
+    .nullable()
+    .describe(
+      'Task 547: how the client paid for it (cash goes into the till of the day it was sold); null when not noted',
+    ),
   cancelledAt: z.iso.datetime().nullable(),
 });
 

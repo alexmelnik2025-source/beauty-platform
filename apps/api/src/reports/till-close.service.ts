@@ -187,6 +187,8 @@ export class TillCloseService {
       currency: location.currency,
       expectedCashGrosze: cash.expected,
       visitsCashGrosze: cash.visits,
+      visitsVoucherGrosze: cash.visitsVouchers,
+      vouchersCashGrosze: cash.vouchers,
       cashInGrosze: cash.cashIn,
       cashOutGrosze: cash.cashOut,
       movements: cash.movements.map((mv) => ({
@@ -218,7 +220,7 @@ export class TillCloseService {
    */
   private async unclosedDay(location: Location, date: string): Promise<string | null> {
     const from = addDays(date, -UNCLOSED_LOOKBACK_DAYS);
-    const [visit, movement] = await Promise.all([
+    const [visit, movement, voucher] = await Promise.all([
       this.prisma.appointment.findFirst({
         where: {
           locationId: location.id,
@@ -241,10 +243,24 @@ export class TillCloseService {
         orderBy: { date: 'desc' },
         select: { date: true },
       }),
+      this.prisma.giftVoucher.findFirst({
+        where: {
+          locationId: location.id,
+          paymentMethod: 'cash',
+          cancelledAt: null,
+          createdAt: {
+            gte: new Date(zonedToInstant(from, 0, location.timezone)),
+            lt: new Date(zonedToInstant(date, 0, location.timezone)),
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
     ]);
     const days = [
       visit ? instantToLocal(visit.startAt.getTime(), location.timezone).date : '',
       movement ? movement.date.toISOString().slice(0, 10) : '',
+      voucher ? instantToLocal(voucher.createdAt.getTime(), location.timezone).date : '',
     ];
     const latest = days.sort().at(-1);
     if (!latest) return null;
@@ -262,8 +278,9 @@ export class TillCloseService {
    * (price minus discounts), plus cash put in, minus cash taken out (task 236).
    */
   private async cash(location: Location, date: string) {
-    const [visits, movements] = await Promise.all([
+    const [{ cash: visits, vouchers: visitsVouchers }, vouchers, movements] = await Promise.all([
       this.visitsCash(location, date),
+      this.vouchersCash(location, date),
       this.prisma.tillMovement.findMany({
         where: { locationId: location.id, date: new Date(`${date}T00:00:00Z`) },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -273,11 +290,27 @@ export class TillCloseService {
       movements.filter((mv) => mv.kind === kind).reduce((s, mv) => s + mv.amountGrosze, 0);
     const cashIn = sum('in');
     const cashOut = sum('out');
-    return { visits, cashIn, cashOut, expected: visits + cashIn - cashOut, movements };
+    return {
+      visits,
+      visitsVouchers,
+      vouchers,
+      cashIn,
+      cashOut,
+      expected: visits + vouchers + cashIn - cashOut,
+      movements,
+    };
   }
 
-  /** What the visits of the day that took place and were paid in cash brought (price minus discounts). */
-  private async visitsCash(location: Location, date: string): Promise<number> {
+  /**
+   * What the visits of the day that took place and were paid in cash brought (price minus
+   * discounts), and — task 546 — the part of them paid with gift vouchers ("Zapłać bonem" in the
+   * visit card, not undone), which is not cash in the till: the salon took that money when it
+   * sold the voucher.
+   */
+  private async visitsCash(
+    location: Location,
+    date: string,
+  ): Promise<{ cash: number; vouchers: number }> {
     const rows = await this.prisma.appointment.findMany({
       where: {
         locationId: location.id,
@@ -289,8 +322,43 @@ export class TillCloseService {
           lt: new Date(zonedToInstant(addDays(date, 1), 0, location.timezone)),
         },
       },
-      select: { priceGrosze: true, discountGrosze: true },
+      select: {
+        priceGrosze: true,
+        discountGrosze: true,
+        voucherUses: { where: { undoneAt: null }, select: { amountGrosze: true } },
+      },
     });
-    return rows.reduce((sum, a) => sum + a.priceGrosze - a.discountGrosze, 0);
+    let cash = 0;
+    let vouchers = 0;
+    for (const a of rows) {
+      const price = Math.max(0, a.priceGrosze - a.discountGrosze);
+      const byVoucher = Math.min(
+        price,
+        a.voucherUses.reduce((sum, u) => sum + u.amountGrosze, 0),
+      );
+      cash += price - byVoucher;
+      vouchers += byVoucher;
+    }
+    return { cash, vouchers };
+  }
+
+  /**
+   * Task 547: what gift vouchers sold that day (salon time) for cash brought — not cancelled ones
+   * (a cancelled voucher's money was given back).
+   */
+  private async vouchersCash(location: Location, date: string): Promise<number> {
+    const sum = await this.prisma.giftVoucher.aggregate({
+      where: {
+        locationId: location.id,
+        paymentMethod: 'cash',
+        cancelledAt: null,
+        createdAt: {
+          gte: new Date(zonedToInstant(date, 0, location.timezone)),
+          lt: new Date(zonedToInstant(addDays(date, 1), 0, location.timezone)),
+        },
+      },
+      _sum: { amountGrosze: true },
+    });
+    return sum._sum.amountGrosze ?? 0;
   }
 }

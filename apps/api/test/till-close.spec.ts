@@ -489,3 +489,94 @@ describe('"Kasa nie została zamknięta" (task 239)', () => {
     expect((await till(addDays(DAY, 16)).expect(200)).body.unclosedDay).toBeNull();
   });
 });
+
+describe('gift vouchers in the till (tasks 546–547)', () => {
+  const vouchers = () => `${base}/gift-vouchers`;
+  const sell = (body: Record<string, unknown>, auth = owner.auth) =>
+    ctx.http().post(vouchers()).set(auth).send(body);
+
+  it('a cash visit paid partly with a voucher expects only the rest in the till', async () => {
+    const visit = (await walkIn(at(10), { paid: true, paymentMethod: 'cash' }).expect(201)).body;
+    await walkIn(at(11), { paid: true, paymentMethod: 'cash' }).expect(201);
+    const card = (await walkIn(at(12), { paid: true, paymentMethod: 'card' }).expect(201)).body;
+    const voucher = (await sell({ amountGrosze: 20_000 }).expect(201)).body;
+    const pay = (appointmentId: string, amountGrosze: number) =>
+      ctx
+        .http()
+        .post(`${vouchers()}/${voucher.id}/redeem`)
+        .set(owner.auth)
+        .send({ amountGrosze, appointmentId })
+        .expect(200);
+    await pay(visit.id, 5000);
+    await pay(card.id, 8000); // a card visit is not cash anyway
+
+    const res = await till().expect(200);
+    expect(registeredResponseSchema('TillClose').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body).toMatchObject({
+      visitsCashGrosze: 11_000, // 80,00 − 50,00 + 80,00
+      visitsVoucherGrosze: 5000,
+      vouchersCashGrosze: 0,
+      expectedCashGrosze: 11_000,
+    });
+
+    // Paid with vouchers more than the price: nothing in cash, never below zero.
+    const second = await pay(visit.id, 4000);
+    expect(second.body.voucher.balanceGrosze).toBe(3000);
+    const over = await till().expect(200);
+    expect(over.body).toMatchObject({ visitsCashGrosze: 8000, visitsVoucherGrosze: 8000 });
+
+    // An undone payment is cash again (the newest payment is listed first).
+    const uses = second.body.uses as { id: string; amountGrosze: number }[];
+    await ctx
+      .http()
+      .post(`${vouchers()}/${voucher.id}/uses/${uses[0]!.id}/undo`)
+      .set(owner.auth)
+      .expect(200);
+    const undone = await till().expect(200);
+    expect(uses[0]!.amountGrosze).toBe(4000);
+    expect(undone.body).toMatchObject({ visitsCashGrosze: 11_000, visitsVoucherGrosze: 5000 });
+  });
+
+  it('vouchers sold for cash go into the till of the day they were sold', async () => {
+    const today = localToday(Date.now(), TZ);
+    const cash = await sell({ amountGrosze: 10_000, paymentMethod: 'cash' }).expect(201);
+    expect(cash.body.paymentMethod).toBe('cash');
+    const card = await sell({ amountGrosze: 7000, paymentMethod: 'card' }).expect(201);
+    expect(card.body.paymentMethod).toBe('card');
+    const unknown = await sell({ amountGrosze: 3000 }).expect(201);
+    expect(unknown.body.paymentMethod).toBeNull();
+    await sell({ amountGrosze: 3000, paymentMethod: 'cheque' }).expect(400);
+    const cancelled = (await sell({ amountGrosze: 4000, paymentMethod: 'cash' }).expect(201)).body;
+    await ctx.http().post(`${vouchers()}/${cancelled.id}/cancel`).set(owner.auth).expect(200);
+
+    const list = await ctx.http().get(vouchers()).set(owner.auth).expect(200);
+    expect(
+      Object.fromEntries(
+        list.body.vouchers.map((v: { id: string; paymentMethod: string | null }) => [
+          v.id,
+          v.paymentMethod,
+        ]),
+      ),
+    ).toMatchObject({ [cash.body.id]: 'cash', [card.body.id]: 'card', [unknown.body.id]: null });
+
+    const res = await till(today).expect(200);
+    expect(res.body).toMatchObject({
+      vouchersCashGrosze: 10_000,
+      expectedCashGrosze: 10_000,
+    });
+    const closed = await close({ date: today, countedCashGrosze: 10_000 }).expect(200);
+    expect(closed.body.close).toMatchObject({ expectedCashGrosze: 10_000, differenceGrosze: 0 });
+    // Not on another day.
+    expect((await till(DAY).expect(200)).body.vouchersCashGrosze).toBe(0);
+
+    // A day with only a voucher sold for cash is a day with cash (task 239).
+    await ctx.prisma.giftVoucher.update({
+      where: { id: cash.body.id },
+      data: { createdAt: new Date(zonedToInstant(DAY, 12 * 60, TZ)) },
+    });
+    expect((await till(today).expect(200)).body.unclosedDay).toBe(DAY);
+    expect((await till(DAY).expect(200)).body.vouchersCashGrosze).toBe(10_000);
+  });
+});

@@ -1595,6 +1595,8 @@ model GiftVoucher {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   /// Cancelled by the owner or a manager (sold by mistake, money returned); cannot be used then.
   cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  /// Task 547: how the client paid for the voucher; cash goes into the till of the day it was sold.
+  paymentMethod   PaymentMethod? @map("payment_method")
 
   location Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
   uses     GiftVoucherUse[]

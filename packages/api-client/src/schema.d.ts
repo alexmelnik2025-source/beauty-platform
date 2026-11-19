@@ -5004,6 +5004,11 @@ export interface components {
             soldDate: string;
             /** @description Who sold it; null when unknown */
             soldByName: string | null;
+            /**
+             * @description Task 547: how the client paid for it (cash goes into the till of the day it was sold); null when not noted
+             * @enum {string|null}
+             */
+            paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
             /** Format: date-time */
             cancelledAt: string | null;
         };
@@ -5029,6 +5034,11 @@ export interface components {
                 soldDate: string;
                 /** @description Who sold it; null when unknown */
                 soldByName: string | null;
+                /**
+                 * @description Task 547: how the client paid for it (cash goes into the till of the day it was sold); null when not noted
+                 * @enum {string|null}
+                 */
+                paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
                 /** Format: date-time */
                 cancelledAt: string | null;
             };
@@ -5075,6 +5085,11 @@ export interface components {
                 soldDate: string;
                 /** @description Who sold it; null when unknown */
                 soldByName: string | null;
+                /**
+                 * @description Task 547: how the client paid for it (cash goes into the till of the day it was sold); null when not noted
+                 * @enum {string|null}
+                 */
+                paymentMethod: "cash" | "card" | "blik" | "transfer" | "other" | null;
                 /** Format: date-time */
                 cancelledAt: string | null;
             }[];
@@ -7079,10 +7094,14 @@ export interface components {
         TillClose: {
             date: string;
             currency: string;
-            /** @description What should be in the till now: cash visits plus cash put in minus cash taken out, in hundredths of the salon currency */
+            /** @description What should be in the till now: cash visits plus gift vouchers sold for cash plus cash put in minus cash taken out, in hundredths of the salon currency */
             expectedCashGrosze: number;
-            /** @description What the visits of the day paid in cash brought, in hundredths of the salon currency */
+            /** @description What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers), in hundredths of the salon currency */
             visitsCashGrosze: number;
+            /** @description Task 546: the part of the cash visits paid with gift vouchers — not in the till (the salon took that money when it sold the voucher), in hundredths of the salon currency */
+            visitsVoucherGrosze: number;
+            /** @description Task 547: gift vouchers sold that day for cash (not cancelled), in hundredths of the salon currency */
+            vouchersCashGrosze: number;
             /** @description Task 236: cash put into the till that day, in hundredths of the salon currency */
             cashInGrosze: number;
             /** @description Task 236: cash taken out of the till that day, in hundredths of the salon currency */
@@ -13479,6 +13498,8 @@ export interface operations {
                     validUntil?: string | null;
                     recipient?: string | null;
                     note?: string | null;
+                    /** @enum {string} */
+                    paymentMethod?: "cash" | "card" | "blik" | "transfer" | "other";
                 };
             };
         };

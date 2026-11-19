@@ -15,6 +15,8 @@ const closed = (counted: number, expected: number, now = expected): TillClose =>
   currency: 'PLN',
   expectedCashGrosze: now,
   visitsCashGrosze: now,
+  visitsVoucherGrosze: 0,
+  vouchersCashGrosze: 0,
   cashInGrosze: 0,
   cashOutGrosze: 0,
   movements: [],

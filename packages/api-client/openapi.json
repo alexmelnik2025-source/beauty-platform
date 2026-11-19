@@ -13541,6 +13541,16 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "paymentMethod": {
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "card",
+                      "blik",
+                      "transfer",
+                      "other"
+                    ]
                   }
                 },
                 "required": [
@@ -19257,6 +19267,18 @@
             "description": "Who sold it; null when unknown",
             "type": "string"
           },
+          "paymentMethod": {
+            "nullable": true,
+            "description": "Task 547: how the client paid for it (cash goes into the till of the day it was sold); null when not noted",
+            "type": "string",
+            "enum": [
+              "cash",
+              "card",
+              "blik",
+              "transfer",
+              "other"
+            ]
+          },
           "cancelledAt": {
             "nullable": true,
             "type": "string",
@@ -19275,6 +19297,7 @@
           "status",
           "soldDate",
           "soldByName",
+          "paymentMethod",
           "cancelledAt"
         ],
         "additionalProperties": false
@@ -19336,6 +19359,18 @@
                 "description": "Who sold it; null when unknown",
                 "type": "string"
               },
+              "paymentMethod": {
+                "nullable": true,
+                "description": "Task 547: how the client paid for it (cash goes into the till of the day it was sold); null when not noted",
+                "type": "string",
+                "enum": [
+                  "cash",
+                  "card",
+                  "blik",
+                  "transfer",
+                  "other"
+                ]
+              },
               "cancelledAt": {
                 "nullable": true,
                 "type": "string",
@@ -19354,6 +19389,7 @@
               "status",
               "soldDate",
               "soldByName",
+              "paymentMethod",
               "cancelledAt"
             ],
             "additionalProperties": false
@@ -19486,6 +19522,18 @@
                   "description": "Who sold it; null when unknown",
                   "type": "string"
                 },
+                "paymentMethod": {
+                  "nullable": true,
+                  "description": "Task 547: how the client paid for it (cash goes into the till of the day it was sold); null when not noted",
+                  "type": "string",
+                  "enum": [
+                    "cash",
+                    "card",
+                    "blik",
+                    "transfer",
+                    "other"
+                  ]
+                },
                 "cancelledAt": {
                   "nullable": true,
                   "type": "string",
@@ -19504,6 +19552,7 @@
                 "status",
                 "soldDate",
                 "soldByName",
+                "paymentMethod",
                 "cancelledAt"
               ],
               "additionalProperties": false
@@ -27392,13 +27441,25 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "What should be in the till now: cash visits plus cash put in minus cash taken out, in hundredths of the salon currency"
+            "description": "What should be in the till now: cash visits plus gift vouchers sold for cash plus cash put in minus cash taken out, in hundredths of the salon currency"
           },
           "visitsCashGrosze": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "What the visits of the day paid in cash brought, in hundredths of the salon currency"
+            "description": "What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers), in hundredths of the salon currency"
+          },
+          "visitsVoucherGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 546: the part of the cash visits paid with gift vouchers — not in the till (the salon took that money when it sold the voucher), in hundredths of the salon currency"
+          },
+          "vouchersCashGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 547: gift vouchers sold that day for cash (not cancelled), in hundredths of the salon currency"
           },
           "cashInGrosze": {
             "type": "integer",
@@ -27511,6 +27572,8 @@
           "currency",
           "expectedCashGrosze",
           "visitsCashGrosze",
+          "visitsVoucherGrosze",
+          "vouchersCashGrosze",
           "cashInGrosze",
           "cashOutGrosze",
           "movements",

@@ -92,6 +92,7 @@ export class VouchersService {
       status: statusOf(v, today),
       soldDate: instantToLocal(v.createdAt.getTime(), location.timezone).date,
       soldByName: (v.createdByUserId && names.get(v.createdByUserId)) || null,
+      paymentMethod: v.paymentMethod,
       cancelledAt: v.cancelledAt ? v.cancelledAt.toISOString() : null,
     };
   }
@@ -230,6 +231,7 @@ export class VouchersService {
             validUntil: input.validUntil ? dateValue(input.validUntil) : null,
             recipient: input.recipient ?? null,
             note: input.note ?? null,
+            paymentMethod: input.paymentMethod ?? null,
             createdByUserId: userId,
           },
         });

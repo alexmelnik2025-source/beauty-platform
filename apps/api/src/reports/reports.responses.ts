@@ -629,9 +629,15 @@ export const tillCloseSchema = responseSchema(
     date: z.string(),
     currency: z.string(),
     expectedCashGrosze: money(
-      'What should be in the till now: cash visits plus cash put in minus cash taken out',
+      'What should be in the till now: cash visits plus gift vouchers sold for cash plus cash put in minus cash taken out',
     ),
-    visitsCashGrosze: money('What the visits of the day paid in cash brought'),
+    visitsCashGrosze: money(
+      'What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers)',
+    ),
+    visitsVoucherGrosze: money(
+      'Task 546: the part of the cash visits paid with gift vouchers — not in the till (the salon took that money when it sold the voucher)',
+    ),
+    vouchersCashGrosze: money('Task 547: gift vouchers sold that day for cash (not cancelled)'),
     cashInGrosze: money('Task 236: cash put into the till that day'),
     cashOutGrosze: money('Task 236: cash taken out of the till that day'),
     movements: z
