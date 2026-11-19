@@ -12,16 +12,14 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **19.11.2026, ~22:30 UTC — Q2 часть 5 (ветка `agent/566-app-deep-link`)**: клиентское приложение открывается по
-  ссылке на салон (`beauty-client://b/{салон}?service=…&staff=…`, адрес страницы записи, короткая ссылка) сразу на
-  нужном шаге записи; разбор ссылки с тестами, e2e на веб-превью. Параллельно часть 4 — `agent/565-install-banner`.
-
-- **19.11.2026, ~22:15 UTC — Q2 часть 4 (ветка `agent/565-install-banner`)**: баннер «Zainstaluj aplikację» сверху
-  страницы записи (6 языков клиента): маленький, закрывается одним нажатием (30 дней не показывается), не стоит на
-  пути к записи; установка PWA «Moje wizyty» (на странице записи подключён её manifest), шаги для iPhone, ссылки на
-  App Store / Google Play и iOS Smart App Banner — из переменных `APP_STORE_URL`, `PLAY_STORE_URL`, `IOS_APP_ID`
-  (пустые до публикации); «Dokończ rezerwację» — после установки приложение «Moje wizyty» продолжает запись с того
-  же места (салон, услуга, мастер). e2e со скриншотами Q2-banner, Q2-banner-ios, Q2-resume, Q2-resume-back.
+- **19.11.2026, ~23:25 UTC — влиты Q2 части 4–5** (баннер «Zainstaluj aplikację» на странице записи: одна строка,
+  «×» прячет на 30 дней, PWA «Moje wizyty» / шаги iPhone / ссылки сторов из `.env`; «Dokończ rezerwację» в «Moje
+  wizyty»; клиентское приложение открывается по ссылке `beauty-client://b/{салон}?service=…&staff=…` сразу на нужном
+  шаге). Ветки `agent/565-install-banner`, `agent/566-app-deep-link` уже в main (удалить может владелец). e2e
+  `install-banner.spec.ts` (скриншоты Q2-banner, Q2-banner-ios, Q2-resume, Q2-resume-back),
+  `visits-app-deep-link.spec.ts` (Q2-app-link-staff, Q2-app-link-time, Q2-app-link-salon). **Осталось в Q2:** QR-код
+  каждого мастера для печати (кабинет и бизнес-приложение, ссылка `/s/{salon}?utm_source=qr&staff={id}`); после
+  публикации приложений — universal links (предложение N32).
 
 - **19.11.2026, ~22:35 UTC — влиты Q1 и Q2 части 1–3** (`docs/BOOKSY_ANALYSIS.md`; канал записи `channel` /
   `channelStaffId` в API и базе; «Skąd przyszli» в отчёте кабинета и в «Raporty» бизнес-приложения; страница записи и
