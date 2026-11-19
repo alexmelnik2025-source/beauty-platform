@@ -6312,6 +6312,19 @@ export interface components {
                     lastSoldOn: string | null;
                 }[];
             };
+            /** @description Task 493: "Bony podarunkowe" — sold and paid with in the period, what is left today; for the whole salon only (zeros in a specialist’s own report) */
+            giftVouchers: {
+                /** @description Vouchers sold in the period (not cancelled) */
+                sold: number;
+                /** @description What they were worth, in hundredths of the salon currency */
+                soldGrosze: number;
+                /** @description Payments taken with vouchers in the period */
+                payments: number;
+                /** @description What was paid with vouchers in the period, in hundredths of the salon currency */
+                paidGrosze: number;
+                /** @description What is left today on the vouchers that may still be used, in hundredths of the salon currency */
+                activeBalanceGrosze: number;
+            };
             /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
             tillCloses: {
                 /** @description Days of the period whose till was counted, oldest first */

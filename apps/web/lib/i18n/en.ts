@@ -1765,6 +1765,12 @@ export const en: Dict = {
     idleProductsNever: 'not sold yet',
     idleProductsHint:
       'Counted products on the shelf that were not sold at any visit of this period. Pieces are today’s stock, amounts at today’s sale prices.',
+    vouchersTitle: 'Gift vouchers',
+    vouchersSold: 'Vouchers sold: {n} ({amount})',
+    vouchersPaid: 'Paid with vouchers: {amount} (payments: {n})',
+    vouchersLeft: 'Left on valid vouchers today: {amount}',
+    vouchersHint:
+      'Vouchers sold in this period (cancelled ones left out) and payments with vouchers in this period. The salon gets the money for a voucher when it is sold — paying with a voucher is not new income.',
     productsHint:
       'Products sold at the visits of the period. Not part of the visit revenue or the commissions.',
     tipsVisits: 'visits with a tip: {n}',

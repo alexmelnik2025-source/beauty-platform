@@ -24458,6 +24458,50 @@
             "additionalProperties": false,
             "description": "Task 460: \"Leżą bez sprzedaży\" — counted products with pieces on the shelf that were not sold at any visit of the period; for the whole salon only (empty in a specialist’s own report)"
           },
+          "giftVouchers": {
+            "type": "object",
+            "properties": {
+              "sold": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Vouchers sold in the period (not cancelled)"
+              },
+              "soldGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What they were worth, in hundredths of the salon currency"
+              },
+              "payments": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Payments taken with vouchers in the period"
+              },
+              "paidGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What was paid with vouchers in the period, in hundredths of the salon currency"
+              },
+              "activeBalanceGrosze": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "What is left today on the vouchers that may still be used, in hundredths of the salon currency"
+              }
+            },
+            "required": [
+              "sold",
+              "soldGrosze",
+              "payments",
+              "paidGrosze",
+              "activeBalanceGrosze"
+            ],
+            "additionalProperties": false,
+            "description": "Task 493: \"Bony podarunkowe\" — sold and paid with in the period, what is left today; for the whole salon only (zeros in a specialist’s own report)"
+          },
           "tillCloses": {
             "type": "object",
             "properties": {
@@ -25361,6 +25405,7 @@
           "deliveries",
           "stocktakes",
           "idleProducts",
+          "giftVouchers",
           "tillCloses",
           "weekdays",
           "previous",

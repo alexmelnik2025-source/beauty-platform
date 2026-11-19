@@ -13,6 +13,7 @@ import { serveApp } from './mobile-app';
  * Task 491: "Bony podarunkowe" in the cabinet. The owner sells a 200 zł voucher for Jan, finds it
  * by the code typed in small letters, takes 120 zł with it and sees 80 zł left in the list
  * (screenshots 491, 491a); then cancels a voucher sold by mistake (screenshot 491b).
+ * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
  * sold on the phone (screenshots 492, 492a).
  */
@@ -133,6 +134,19 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(list.getByText(/Do wykorzystania na ważnych bonach: 80,00\s?zł/)).toBeVisible();
   await expect(list.getByText('Anulowany')).toBeVisible();
   await shot(page, '491b');
+
+  // Task 493: the report — one voucher sold (the cancelled one left out), 120 zł paid with
+  // vouchers, 80 zł left today.
+  await page.goto('/pl/app/reports');
+  await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
+  const section = page.getByTestId('report-gift-vouchers');
+  await expect(section.getByText(/Sprzedane bony: 1 \(200,00\s?zł\)/)).toBeVisible();
+  await expect(section.getByText(/Zapłacono bonami: 120,00\s?zł \(płatności: 1\)/)).toBeVisible();
+  await expect(
+    section.getByText(/Do wykorzystania na ważnych bonach dziś: 80,00\s?zł/),
+  ).toBeVisible();
+  await section.scrollIntoViewIfNeeded();
+  await section.screenshot({ path: 'e2e/screenshots/493.png' });
   await desk.close();
 });
 

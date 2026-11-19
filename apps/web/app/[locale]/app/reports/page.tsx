@@ -741,6 +741,41 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.giftVouchers.sold > 0 ||
+            report.giftVouchers.payments > 0 ||
+            report.giftVouchers.activeBalanceGrosze > 0 ? (
+              // Task 493: gift vouchers sold and paid with in the period, what is left today.
+              <section className="section" data-testid="report-gift-vouchers">
+                <h2>{t.reports.vouchersTitle}</h2>
+                <ol className="report-days">
+                  <li>
+                    <span className="small">
+                      {fill(t.reports.vouchersSold, {
+                        n: String(report.giftVouchers.sold),
+                        amount: money(report.giftVouchers.soldGrosze),
+                      })}
+                    </span>
+                  </li>
+                  <li>
+                    <span className="small">
+                      {fill(t.reports.vouchersPaid, {
+                        n: String(report.giftVouchers.payments),
+                        amount: money(report.giftVouchers.paidGrosze),
+                      })}
+                    </span>
+                  </li>
+                  <li>
+                    <span className="small">
+                      {fill(t.reports.vouchersLeft, {
+                        amount: money(report.giftVouchers.activeBalanceGrosze),
+                      })}
+                    </span>
+                  </li>
+                </ol>
+                <p className="small muted">{t.reports.vouchersHint}</p>
+              </section>
+            ) : null}
+
             {report.discounts.totalGrosze > 0 ? (
               // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
               <section className="section" data-testid="report-discounts">

@@ -647,6 +647,30 @@ export function ReportsScreen(props: {
               <Text style={styles.muted}>{r.idleProductsHint}</Text>
             </View>
           ) : null}
+          {shown.giftVouchers.sold > 0 ||
+          shown.giftVouchers.payments > 0 ||
+          shown.giftVouchers.activeBalanceGrosze > 0 ? (
+            // Task 493: gift vouchers sold and paid with in the period, what is left today.
+            <View style={{ gap: 6 }} testID="report-gift-vouchers">
+              <Text style={styles.section}>{r.vouchersTitle}</Text>
+              <Text style={styles.name}>
+                {fill(r.vouchersSold, {
+                  n: String(shown.giftVouchers.sold),
+                  amount: money(shown.giftVouchers.soldGrosze),
+                })}
+              </Text>
+              <Text style={styles.name}>
+                {fill(r.vouchersPaid, {
+                  n: String(shown.giftVouchers.payments),
+                  amount: money(shown.giftVouchers.paidGrosze),
+                })}
+              </Text>
+              <Text style={styles.name}>
+                {fill(r.vouchersLeft, { amount: money(shown.giftVouchers.activeBalanceGrosze) })}
+              </Text>
+              <Text style={styles.muted}>{r.vouchersHint}</Text>
+            </View>
+          ) : null}
           {shown.discounts.totalGrosze > 0 ? (
             // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
             <View style={{ gap: 6 }} testID="report-discounts">

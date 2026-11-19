@@ -274,6 +274,17 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 460: "Leżą bez sprzedaży" — counted products with pieces on the shelf that were not sold at any visit of the period; for the whole salon only (empty in a specialist’s own report)',
       ),
+    giftVouchers: z
+      .strictObject({
+        sold: z.number().int().describe('Vouchers sold in the period (not cancelled)'),
+        soldGrosze: money('What they were worth'),
+        payments: z.number().int().describe('Payments taken with vouchers in the period'),
+        paidGrosze: money('What was paid with vouchers in the period'),
+        activeBalanceGrosze: money('What is left today on the vouchers that may still be used'),
+      })
+      .describe(
+        'Task 493: "Bony podarunkowe" — sold and paid with in the period, what is left today; for the whole salon only (zeros in a specialist’s own report)',
+      ),
     tillCloses: z
       .strictObject({
         days: z

@@ -1760,6 +1760,12 @@ export const pl = {
     idleProductsNever: 'jeszcze nie sprzedany',
     idleProductsHint:
       'Produkty z liczonym stanem, które leżą na półce, a nie zostały sprzedane przy żadnej wizycie z tego okresu. Sztuki — stan na dziś, kwoty — w dzisiejszych cenach sprzedaży.',
+    vouchersTitle: 'Bony podarunkowe',
+    vouchersSold: 'Sprzedane bony: {n} ({amount})',
+    vouchersPaid: 'Zapłacono bonami: {amount} (płatności: {n})',
+    vouchersLeft: 'Do wykorzystania na ważnych bonach dziś: {amount}',
+    vouchersHint:
+      'Bony sprzedane w tym okresie (bez anulowanych) i płatności bonami w tym okresie. Pieniądze za bon salon dostaje przy sprzedaży — płatność bonem nie jest nowym przychodem.',
     productsHint:
       'Produkty sprzedane przy wizytach z tego okresu. Nie wchodzą do przychodu z wizyt ani do prowizji.',
     tipsVisits: 'wizyty z napiwkiem: {n}',

@@ -207,3 +207,65 @@ describe('gift vouchers (task 490)', () => {
     expect((await ctx.http().get(theirBase).set(other.auth).expect(200)).body.vouchers).toEqual([]);
   });
 });
+
+describe('"Bony podarunkowe" in the report (task 493)', () => {
+  it('counts the vouchers sold and the payments of the period, and what is left today', async () => {
+    const sell = async (amountGrosze: number) =>
+      (await ctx.http().post(base).set(owner.auth).send({ amountGrosze }).expect(201))
+        .body as Voucher;
+    const a = await sell(20000);
+    const b = await sell(10000);
+    const c = await sell(5000);
+    await ctx.http().post(`${base}/${c.id}/cancel`).set(owner.auth).expect(200);
+    await ctx
+      .http()
+      .post(`${base}/${a.id}/redeem`)
+      .set(staffUser.auth)
+      .send({ amountGrosze: 12000 })
+      .expect(200);
+    await ctx
+      .http()
+      .post(`${base}/${b.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 10000 })
+      .expect(200);
+    // A voucher sold long ago: not sold in the period, but what is left on it counts today.
+    const old = await sell(3000);
+    await ctx.prisma.giftVoucher.update({
+      where: { id: old.id },
+      data: { createdAt: new Date('2025-01-15T12:00:00Z') },
+    });
+
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    const reports = base.replace('/gift-vouchers', '/reports');
+    const report = await ctx
+      .http()
+      .get(reports)
+      .query({ from: addDays(today, -6), to: today })
+      .set(owner.auth)
+      .expect(200);
+    expectShape('SalonReport', report.body);
+    expect(report.body.giftVouchers).toEqual({
+      sold: 2,
+      soldGrosze: 30000,
+      payments: 2,
+      paidGrosze: 22000,
+      activeBalanceGrosze: 8000 + 3000,
+    });
+
+    // A period without them: nothing sold or paid, what is left today is the same.
+    const earlier = await ctx
+      .http()
+      .get(reports)
+      .query({ from: '2025-02-01', to: '2025-02-28' })
+      .set(owner.auth)
+      .expect(200);
+    expect(earlier.body.giftVouchers).toEqual({
+      sold: 0,
+      soldGrosze: 0,
+      payments: 0,
+      paidGrosze: 0,
+      activeBalanceGrosze: 11000,
+    });
+  });
+});

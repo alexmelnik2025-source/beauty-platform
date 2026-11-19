@@ -10,6 +10,7 @@ import {
   daysBetween,
   instantToLocal,
   isoWeekday,
+  localToday,
   zonedToInstant,
 } from '../scheduling/time';
 import type { Location, PaymentMethod } from '../generated/prisma/client';
@@ -501,6 +502,9 @@ export class ReportsService {
       idleProducts: own
         ? { quantity: 0, valueGrosze: 0, items: [] }
         : await this.idleProducts(locationId, tz, rangeStart, rangeEnd),
+      giftVouchers: own
+        ? { sold: 0, soldGrosze: 0, payments: 0, paidGrosze: 0, activeBalanceGrosze: 0 }
+        : await this.giftVouchers(locationId, tz, rangeStart, rangeEnd),
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
@@ -1624,6 +1628,46 @@ export class ReportsService {
    * Task 460: "Leżą bez sprzedaży" — counted, active products with pieces on the shelf that no
    * visit of the period sold; with the day they were last sold before it.
    */
+  /**
+   * Task 493: "Bony podarunkowe" — vouchers sold in the period (cancelled ones left out), the
+   * payments taken with any voucher in the period, and what is left today on the vouchers that
+   * may still be used.
+   */
+  private async giftVouchers(
+    locationId: string,
+    tz: string,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['giftVouchers']> {
+    const sold = await this.prisma.giftVoucher.aggregate({
+      where: { locationId, cancelledAt: null, createdAt: { gte: rangeStart, lt: rangeEnd } },
+      _count: { _all: true },
+      _sum: { amountGrosze: true },
+    });
+    const paid = await this.prisma.giftVoucherUse.aggregate({
+      where: { voucher: { locationId }, createdAt: { gte: rangeStart, lt: rangeEnd } },
+      _count: { _all: true },
+      _sum: { amountGrosze: true },
+    });
+    const today = new Date(`${localToday(Date.now(), tz)}T00:00:00.000Z`);
+    const active = await this.prisma.giftVoucher.aggregate({
+      where: {
+        locationId,
+        cancelledAt: null,
+        balanceGrosze: { gt: 0 },
+        OR: [{ validUntil: null }, { validUntil: { gte: today } }],
+      },
+      _sum: { balanceGrosze: true },
+    });
+    return {
+      sold: sold._count._all,
+      soldGrosze: sold._sum.amountGrosze ?? 0,
+      payments: paid._count._all,
+      paidGrosze: paid._sum.amountGrosze ?? 0,
+      activeBalanceGrosze: active._sum.balanceGrosze ?? 0,
+    };
+  }
+
   private async idleProducts(
     locationId: string,
     tz: string,
