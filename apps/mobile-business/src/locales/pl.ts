@@ -803,6 +803,18 @@ export const pl = {
     unbooked: 'Usługi bez wizyt',
     unbookedHint:
       'Usługi dostępne do rezerwacji, których nikt nie zarezerwował w tym okresie (odwołane wizyty się nie liczą). Warto sprawdzić ich cenę, opis lub zdjęcia — albo ukryć je w „Usługi”.',
+    channels: 'Skąd przyszli',
+    channelsHint:
+      'Skąd klienci trafili na stronę rezerwacji (tylko rezerwacje online). „nowi” — pierwsza wizyta w salonie. Kody QR salonu i mistrzów: „Link do rezerwacji”.',
+    channelQr: 'Kod QR',
+    channelEmbed: 'Przycisk na stronie salonu',
+    channelApp: 'Aplikacja',
+    channelCatalogue: 'Katalog salonów',
+    channelWeb: 'Strona rezerwacji',
+    channelUnknown: 'Nieznane (starsze wizyty)',
+    channelVisits: 'wizyty: {n}',
+    channelNew: 'nowi: {n}',
+    channelQrStaff: 'Z kodu QR mistrza',
     leadTime: 'Z jakim wyprzedzeniem rezerwują · zwykle {n} dni',
     leadSameDay: 'Tego samego dnia',
     leadNextDay: 'Na następny dzień',

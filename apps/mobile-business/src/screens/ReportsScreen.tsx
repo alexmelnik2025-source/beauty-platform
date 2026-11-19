@@ -55,6 +55,19 @@ const DISCOUNT_LABELS = {
 } as const;
 
 /** Task 294: the label of each "how long before the visit" bucket of cancellations. */
+/** Task Q2: the label of a booking channel; a utm_source of the salon's own link is shown as it is. */
+const CHANNEL_LABELS: Record<
+  string,
+  'channelQr' | 'channelEmbed' | 'channelApp' | 'channelCatalogue' | 'channelWeb' | 'channelUnknown'
+> = {
+  qr: 'channelQr',
+  embed: 'channelEmbed',
+  app: 'channelApp',
+  catalogue: 'channelCatalogue',
+  web: 'channelWeb',
+  unknown: 'channelUnknown',
+};
+
 const NOTICE_LABELS = {
   twoHours: 'noticeTwoHours',
   day: 'noticeDay',
@@ -154,6 +167,10 @@ export function ReportsScreen(props: {
   const money = (hundredths: number) =>
     formatPrice(hundredths, report?.location.currency ?? salon.currency, props.locale);
   const shown = report && report.from === range.from && report.to === range.to ? report : null;
+  const channelLabel = (key: string): string => {
+    const label = CHANNEL_LABELS[key];
+    return label ? r[label] : key;
+  };
   const totals = shown?.totals;
 
   const previous = shown?.previous;
@@ -843,6 +860,39 @@ export function ReportsScreen(props: {
                 </View>
               ))}
               <Text style={styles.small}>{r.noticeHint}</Text>
+            </View>
+          ) : null}
+          {shown.channels.online > 0 ? (
+            <View style={{ gap: 6 }} testID="report-channels">
+              <Text style={styles.section}>{r.channels}</Text>
+              {shown.channels.items.map((c) => (
+                <View key={c.key} style={styles.weekday}>
+                  <Text style={styles.weekdayName}>{channelLabel(c.key)}</Text>
+                  <View style={styles.bar}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        { width: `${(c.visits / shown.channels.online) * 100}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.small}>
+                    {fill(r.channelVisits, { n: String(c.visits) })}
+                    {c.newClients > 0
+                      ? ` · ${fill(r.channelNew, { n: String(c.newClients) })}`
+                      : ''}
+                  </Text>
+                </View>
+              ))}
+              {shown.channels.qrStaff.length > 0 ? (
+                <Text style={styles.small} testID="report-channels-qr-staff">
+                  {r.channelQrStaff}:{' '}
+                  {shown.channels.qrStaff
+                    .map((s) => `${s.name} — ${fill(r.channelVisits, { n: String(s.visits) })}`)
+                    .join(', ')}
+                </Text>
+              ) : null}
+              <Text style={styles.small}>{r.channelsHint}</Text>
             </View>
           ) : null}
           {totals.visits > 0 ? (

@@ -16,7 +16,7 @@ import { serveApp } from './mobile-app';
  * "Raporty" (259-a).
  * Task 260: "Z jakim wyprzedzeniem rezerwują" — how far ahead the visits were booked (260, 260-a).
  * Task 294: "Kiedy klienci odwołują" — how long before the visit clients cancelled (294, 294-a).
- * Task Q2: "Skąd przyszli" — where the online bookings came from (q2-report-channels).
+ * Task Q2: "Skąd przyszli" — where the online bookings came from (q2-report-channels, q2-a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -246,6 +246,17 @@ test('the report lists the services nobody booked', async ({ browser, request })
     await expect(notice.getByText('Kiedy klienci odwołują', { exact: true })).toBeVisible();
     await expect(notice.getByText('odwołane: 1', { exact: true })).toBeVisible();
     await shot(app, '294-a-business-app-report-cancel-notice');
+    // Task Q2: "Skąd przyszli" in the business app.
+    const channels = app.getByTestId('report-channels');
+    await channels.scrollIntoViewIfNeeded();
+    await expect(channels.getByText('Skąd przyszli', { exact: true })).toBeVisible();
+    await expect(channels.getByText('Kod QR', { exact: true })).toBeVisible();
+    await expect(channels.getByText('wizyty: 1 · nowi: 1', { exact: true })).toBeVisible();
+    await expect(channels.getByText('Przycisk na stronie salonu', { exact: true })).toBeVisible();
+    await expect(app.getByTestId('report-channels-qr-staff')).toContainText(
+      'Z kodu QR mistrza: Ilian — wizyty: 1',
+    );
+    await shot(app, 'q2-a-business-app-report-channels');
   } finally {
     businessApp.server.close();
   }

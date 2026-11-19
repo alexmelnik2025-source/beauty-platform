@@ -3591,7 +3591,7 @@ termin» — сколько осталось неиспользованным н
 Новые функции из анализа **не программируются без одобрения владельца**: предложения с номерами N… ведутся в project
 doc `claude/Beauty_Platform_одобрение_функций.md`, в код идут только пункты из раздела «Одобрено».
 
-## «Skąd przyszli» — откуда пришла онлайн-запись (задача Q2, части 1–2)
+## «Skąd przyszli» — откуда пришла онлайн-запись (задача Q2, части 1–3)
 
 Первая часть одобренной задачи Q2 «Запись по QR-коду двумя путями». Страница записи отправляет вместе с удержанием
 времени (`POST /v1/public/locations/{slug}/holds`) поле `channel`: значение `utm_source` ссылки (`qr` — QR-код
@@ -3607,5 +3607,5 @@ doc `claude/Beauty_Platform_одобрение_функций.md`, в код и�
 «Aplikacja», «Katalog salonów», «Strona rezerwacji», «Nieznane»; свой `utm_source` — как есть), «wizyty: N · nowi: N»
 и строка «Z kodu QR mistrza: Ilian — wizyty: 1»; раздел виден, когда есть онлайн-записи. Тесты
 `apps/api/test/booking-channel.spec.ts`, `apps/mobile-client/test/booking.test.ts`; e2e `report-unbooked.spec.ts`
-(скриншот `q2-report-channels`). Дальше: то же в «Raporty» бизнес-приложения, QR-код каждого мастера, баннер
-«Zainstaluj aplikację».
+(скриншот `q2-report-channels`). То же в «Raporty» бизнес-приложения (`ReportsScreen`, скриншот
+`q2-a-business-app-report-channels`). Дальше: QR-код каждого мастера, баннер «Zainstaluj aplikację».
