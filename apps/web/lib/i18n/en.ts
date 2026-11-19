@@ -1777,6 +1777,18 @@ export const en: Dict = {
     unbookedHint:
       'Bookable services nobody booked in this period (cancelled visits do not count). Worth checking their price, description or photos — or hiding them in “Services”.',
     unbookedLink: 'Open services',
+    channels: 'Where they came from',
+    channelsHint:
+      'Where clients came to the booking page from in this period (online bookings only). "new" — clients whose first visit to the salon this was. The QR codes of the salon and of the specialists: "Settings" → "Instagram and your website".',
+    channelQr: 'QR code',
+    channelEmbed: 'Button on the salon website',
+    channelApp: 'App',
+    channelCatalogue: 'Salon catalogue',
+    channelWeb: 'Booking page',
+    channelUnknown: 'Unknown (older visits)',
+    channelVisits: 'visits: {n}',
+    channelNew: 'new: {n}',
+    channelQrStaff: "From a specialist's QR code",
     leadTime: 'How far ahead clients book · usually {n} days',
     leadSameDay: 'Same day',
     leadNextDay: 'For the next day',

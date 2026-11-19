@@ -16,6 +16,7 @@ import { serveApp } from './mobile-app';
  * "Raporty" (259-a).
  * Task 260: "Z jakim wyprzedzeniem rezerwują" — how far ahead the visits were booked (260, 260-a).
  * Task 294: "Kiedy klienci odwołują" — how long before the visit clients cancelled (294, 294-a).
+ * Task Q2: "Skąd przyszli" — where the online bookings came from (q2-report-channels).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -144,6 +145,12 @@ test('the report lists the services nobody booked', async ({ browser, request })
     `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days', status = 'completed', created_at = start_at - interval '2 days' - interval '5 days' WHERE id IN ('${ids.join("','")}')`,
     '-c',
     `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days', status = 'cancelled', cancelled_by = 'customer', cancelled_at = start_at - interval '2 days' - interval '1 hour' WHERE id = '${late.id}'`,
+    // Task Q2: as if Jan had booked the haircut from Ilian's QR code and the beard from the
+    // button on the salon's site.
+    '-c',
+    `UPDATE appointment SET source = 'online', channel = 'qr', channel_staff_id = '${staff.id}' WHERE id = '${ids[0]}'`,
+    '-c',
+    `UPDATE appointment SET source = 'online', channel = 'embed' WHERE id = '${ids[1]}'`,
   ]);
 
   const context = await browser.newContext({ viewport: DESKTOP, locale: 'pl-PL' });
@@ -184,6 +191,22 @@ test('the report lists the services nobody booked', async ({ browser, request })
   await expect(notice.getByRole('listitem').nth(0)).toContainText('odwołane: 1');
   await expect(notice.getByRole('listitem').nth(3)).toContainText('odwołane: 0');
   await shot(page, '294-report-cancel-notice');
+  // Task Q2: "Skąd przyszli" — the QR code first (Jan's first visit), then the site button.
+  const channels = page.getByTestId('report-channels');
+  await channels.scrollIntoViewIfNeeded();
+  await expect(channels.getByRole('heading')).toHaveText('Skąd przyszli');
+  const channelItems = channels.getByRole('listitem');
+  await expect(channelItems).toHaveCount(2);
+  await expect(channelItems.nth(0)).toContainText('Kod QR');
+  await expect(channelItems.nth(0)).toContainText('wizyty: 1');
+  await expect(channelItems.nth(0)).toContainText('nowi: 1');
+  await expect(channelItems.nth(1)).toContainText('Przycisk na stronie salonu');
+  await expect(channelItems.nth(1)).toContainText('wizyty: 1');
+  await expect(channelItems.nth(1)).not.toContainText('nowi');
+  await expect(page.getByTestId('report-channels-qr-staff')).toContainText(
+    'Z kodu QR mistrza: Ilian — wizyty: 1',
+  );
+  await shot(page, 'q2-report-channels');
   await unbooked.getByRole('link', { name: 'Otwórz usługi' }).click();
   await page.waitForURL(/\/pl\/app\/services/);
   await context.close();

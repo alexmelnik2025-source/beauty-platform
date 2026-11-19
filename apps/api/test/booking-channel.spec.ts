@@ -32,7 +32,8 @@ let base: string;
 let slug: string;
 let locationId: string;
 let serviceId: string;
-let staffIds: string[];
+let kasia: string;
+let ola: string;
 let day: string;
 
 const at = (date: string, hh: number, mm = 0): string =>
@@ -61,7 +62,7 @@ beforeEach(async () => {
     .send({ name: 'Strzyżenie', durationMinutes: 45, bufferMinutes: 15, priceGrosze: 8000 })
     .expect(201);
   serviceId = service.body.id;
-  staffIds = [];
+  const created: string[] = [];
   for (const name of ['Kasia', 'Ola']) {
     const staff = await ctx
       .http()
@@ -80,8 +81,9 @@ beforeEach(async () => {
         })),
       })
       .expect(200);
-    staffIds.push(staff.body.id);
+    created.push(staff.body.id);
   }
+  [kasia, ola] = created as [string, string];
   const loc = await ctx.http().get(base).set(owner.auth).expect(200);
   await ctx
     .http()
@@ -133,19 +135,19 @@ const stored = (id: string) =>
 
 describe('the channel of an online booking (task Q2)', () => {
   it('a hold keeps the channel and, for a QR code, the specialist whose code it was', async () => {
-    const id = await book(at(day, 10), staffIds[0], {
+    const id = await book(at(day, 10), kasia, {
       channel: 'qr',
-      channelStaffId: staffIds[1],
+      channelStaffId: ola,
     });
     expect(await stored(id)).toEqual({
       channel: 'qr',
-      channelStaffId: staffIds[1],
+      channelStaffId: ola,
       status: 'confirmed',
     });
   });
 
   it('without a channel nothing is kept; the channel is lower-cased; a specialist of another salon does not count', async () => {
-    const plain = await book(at(day, 10), staffIds[0]);
+    const plain = await book(at(day, 10), kasia);
     expect(await stored(plain)).toMatchObject({ channel: null, channelStaffId: null });
 
     const other = await signUp(ctx, 'other@example.com');
@@ -159,7 +161,7 @@ describe('the channel of an online booking (task Q2)', () => {
 
     const qr = await book(
       at(day, 12),
-      staffIds[0],
+      kasia,
       { channel: ' Instagram ', channelStaffId: foreign.body.id },
       { ...CLIENT, email: 'second.client@example.com' },
     );
@@ -168,34 +170,34 @@ describe('the channel of an online booking (task Q2)', () => {
     // The specialist is kept only for a QR code.
     const embed = await book(
       at(day, 14),
-      staffIds[0],
-      { channel: 'embed', channelStaffId: staffIds[1] },
+      kasia,
+      { channel: 'embed', channelStaffId: ola },
       { ...CLIENT, email: 'third.client@example.com' },
     );
     expect(await stored(embed)).toMatchObject({ channel: 'embed', channelStaffId: null });
   });
 
   it('a channel that is not letters, digits, "-" or "_" is refused', async () => {
-    const bad = await hold(at(day, 10), staffIds[0], { channel: 'kod QR!' }).expect(400);
+    const bad = await hold(at(day, 10), kasia, { channel: 'kod QR!' }).expect(400);
     expect(bad.body.error.code).toBe('VALIDATION_ERROR');
-    await hold(at(day, 10), staffIds[0], { channel: 'a'.repeat(41) }).expect(400);
+    await hold(at(day, 10), kasia, { channel: 'a'.repeat(41) }).expect(400);
   });
 });
 
 describe('"Skąd przyszli" in the salon report (task Q2)', () => {
   it('counts the online visits of the period by channel, with new clients and the QR codes of specialists', async () => {
-    await book(at(day, 9), staffIds[0], { channel: 'qr', channelStaffId: staffIds[1] });
+    await book(at(day, 9), kasia, { channel: 'qr', channelStaffId: ola });
     await book(
       at(day, 10),
-      staffIds[0],
-      { channel: 'qr', channelStaffId: staffIds[1] },
+      kasia,
+      { channel: 'qr', channelStaffId: ola },
       { ...CLIENT, email: 'b@example.com' },
     );
-    await book(at(day, 11), staffIds[0], { channel: 'qr' }, { ...CLIENT, email: 'c@example.com' });
+    await book(at(day, 11), kasia, { channel: 'qr' }, { ...CLIENT, email: 'c@example.com' });
     // Anna again, from the salon's site: not a new client any more.
-    await book(at(day, 13), staffIds[0], { channel: 'embed' });
+    await book(at(day, 13), kasia, { channel: 'embed' });
     // An older visit of Anna before the period: she is not new in the period at all.
-    await book(at(day, 15), staffIds[1], { channel: 'web' });
+    await book(at(day, 15), ola, { channel: 'web' });
     // Written down by the salon: not online, so not in the channels.
     await ctx
       .http()
@@ -203,7 +205,7 @@ describe('"Skąd przyszli" in the salon report (task Q2)', () => {
       .set(owner.auth)
       .send({
         serviceId,
-        staffId: staffIds[1],
+        staffId: ola,
         start: at(day, 16),
         customer: { name: 'Jan', phone: '+48 600 300 400' },
       })
@@ -222,13 +224,13 @@ describe('"Skąd przyszli" in the salon report (task Q2)', () => {
       { key: 'embed', visits: 1, completed: 0, cancelled: 0, newClients: 0 },
       { key: 'web', visits: 1, completed: 0, cancelled: 0, newClients: 0 },
     ]);
-    expect(channels.qrStaff).toEqual([{ id: staffIds[1], name: 'Ola', visits: 2 }]);
+    expect(channels.qrStaff).toEqual([{ id: ola, name: 'Ola', visits: 2 }]);
   });
 
   it('visits booked before channels were kept are "unknown"; a client with an earlier visit is not new', async () => {
     const earlierDay = addDays(day, -1);
-    await book(at(earlierDay, 9), staffIds[0], { channel: 'app' });
-    const id = await book(at(day, 9), staffIds[0], { channel: 'app' });
+    await book(at(earlierDay, 9), kasia, { channel: 'app' });
+    const id = await book(at(day, 9), kasia, { channel: 'app' });
     await ctx.prisma.appointment.update({ where: { id }, data: { channel: null } });
 
     const report = await ctx

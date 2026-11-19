@@ -3591,7 +3591,7 @@ termin» — сколько осталось неиспользованным н
 Новые функции из анализа **не программируются без одобрения владельца**: предложения с номерами N… ведутся в project
 doc `claude/Beauty_Platform_одобрение_функций.md`, в код идут только пункты из раздела «Одобрено».
 
-## «Skąd przyszli» — откуда пришла онлайн-запись (задача Q2, часть 1 — API)
+## «Skąd przyszli» — откуда пришла онлайн-запись (задача Q2, части 1–2)
 
 Первая часть одобренной задачи Q2 «Запись по QR-коду двумя путями». Страница записи отправляет вместе с удержанием
 времени (`POST /v1/public/locations/{slug}/holds`) поле `channel`: значение `utm_source` ссылки (`qr` — QR-код
@@ -3602,6 +3602,10 @@ doc `claude/Beauty_Platform_одобрение_функций.md`, в код и�
 (миграция `20261129010000_appointment_channel`); старые визиты и записи, внесённые салоном, — без канала.
 Отчёт салона (`GET …/reports`) отдаёт `channels`: `online`, `items` (по каналу: визиты, состоялись, отменены,
 новые клиенты — у кого это первый визит в салоне; `unknown` для старых визитов) и `qrStaff` — записи с QR-кода
-каждого мастера. В браузере канал определяет `apps/web/lib/booking-channel.ts`. Тесты
-`apps/api/test/booking-channel.spec.ts`, `apps/mobile-client/test/booking.test.ts`. Дальше (часть 2): раздел
-«Skąd przyszli» в отчёте кабинета и бизнес-приложения, QR-код каждого мастера, баннер «Zainstaluj aplikację».
+каждого мастера. В браузере канал определяет `apps/web/lib/booking-channel.ts`. В отчёте кабинета — раздел
+«Skąd przyszli» (`data-testid="report-channels"`): полоски по каналам («Kod QR», «Przycisk na stronie salonu»,
+«Aplikacja», «Katalog salonów», «Strona rezerwacji», «Nieznane»; свой `utm_source` — как есть), «wizyty: N · nowi: N»
+и строка «Z kodu QR mistrza: Ilian — wizyty: 1»; раздел виден, когда есть онлайн-записи. Тесты
+`apps/api/test/booking-channel.spec.ts`, `apps/mobile-client/test/booking.test.ts`; e2e `report-unbooked.spec.ts`
+(скриншот `q2-report-channels`). Дальше: то же в «Raporty» бизнес-приложения, QR-код каждого мастера, баннер
+«Zainstaluj aplikację».

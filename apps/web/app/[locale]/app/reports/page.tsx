@@ -68,8 +68,25 @@ const NOTICE_LABELS = {
   later: 'noticeLater',
 } as const;
 
+/** Task Q2: the label of a booking channel; a utm_source of the salon's own link is shown as it is. */
+const CHANNEL_LABELS: Record<
+  string,
+  'channelQr' | 'channelEmbed' | 'channelApp' | 'channelCatalogue' | 'channelWeb' | 'channelUnknown'
+> = {
+  qr: 'channelQr',
+  embed: 'channelEmbed',
+  app: 'channelApp',
+  catalogue: 'channelCatalogue',
+  web: 'channelWeb',
+  unknown: 'channelUnknown',
+};
+
 export default function ReportsPage() {
   const { t, locale } = useI18n();
+  const channelLabel = (key: string): string => {
+    const label = CHANNEL_LABELS[key];
+    return label ? t.reports[label] : key;
+  };
   const session = useSession();
   const tag = LOCALE_TAGS[locale];
   const tz = session.location.timezone;
@@ -1357,6 +1374,45 @@ export default function ReportsPage() {
                       ))}
                     </ol>
                     <p className="small muted">{t.reports.noticeHint}</p>
+                  </section>
+                ) : null}
+
+                {report.channels.online > 0 ? (
+                  <section className="section" data-testid="report-channels">
+                    <h2>{t.reports.channels}</h2>
+                    <ol className="report-days">
+                      {report.channels.items.map((c) => (
+                        <li key={c.key} data-channel={c.key}>
+                          <span className="small">{channelLabel(c.key)}</span>
+                          <span className="report-bar" aria-hidden="true">
+                            <span
+                              style={{ width: `${(c.visits / report.channels.online) * 100}%` }}
+                            />
+                          </span>
+                          <span className="small">
+                            {fill(t.reports.channelVisits, { n: String(c.visits) })}
+                            {c.newClients > 0 ? (
+                              <span className="muted">
+                                {' '}
+                                · {fill(t.reports.channelNew, { n: String(c.newClients) })}
+                              </span>
+                            ) : null}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    {report.channels.qrStaff.length > 0 ? (
+                      <p className="small" data-testid="report-channels-qr-staff">
+                        {t.reports.channelQrStaff}:{' '}
+                        {report.channels.qrStaff
+                          .map(
+                            (s) =>
+                              `${s.name} — ${fill(t.reports.channelVisits, { n: String(s.visits) })}`,
+                          )
+                          .join(', ')}
+                      </p>
+                    ) : null}
+                    <p className="small muted">{t.reports.channelsHint}</p>
                   </section>
                 ) : null}
 
