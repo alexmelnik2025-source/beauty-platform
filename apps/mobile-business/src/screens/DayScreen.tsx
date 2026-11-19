@@ -52,6 +52,7 @@ import { HistoryScreen } from './HistoryScreen';
 import { ReviewsScreen } from './ReviewsScreen';
 import { BookingLinkScreen } from './BookingLinkScreen';
 import { GuardScreen } from './GuardScreen';
+import { VouchersScreen } from './VouchersScreen';
 import { mayManageGuard } from '../guard';
 import { mayViewHistory } from '../history';
 import { mayManageLoyalty } from '../loyalty';
@@ -95,6 +96,7 @@ export function DayScreen(props: {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [guardOpen, setGuardOpen] = useState(false);
+  const [vouchersOpen, setVouchersOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [happyOpen, setHappyOpen] = useState(false);
@@ -425,6 +427,18 @@ export function DayScreen(props: {
     );
   }
 
+  if (vouchersOpen) {
+    return (
+      <VouchersScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        onBack={() => setVouchersOpen(false)}
+      />
+    );
+  }
+
   if (linkOpen) {
     return <BookingLinkScreen api={api} t={t} salon={salon} onBack={() => setLinkOpen(false)} />;
   }
@@ -602,6 +616,7 @@ export function DayScreen(props: {
             <Button kind="link" label={t.bookingLink.open} onPress={() => setLinkOpen(true)} />
           ) : null}
           <Button kind="link" label={t.reviews.open} onPress={() => setReviewsOpen(true)} />
+          <Button kind="link" label={t.vouchers.open} onPress={() => setVouchersOpen(true)} />
           {mayViewHistory(salon.role) ? (
             <Button kind="link" label={t.history.open} onPress={() => setHistoryOpen(true)} />
           ) : null}

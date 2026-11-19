@@ -7,11 +7,14 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task 491: "Bony podarunkowe" in the cabinet. The owner sells a 200 zł voucher for Jan, finds it
  * by the code typed in small letters, takes 120 zł with it and sees 80 zł left in the list
  * (screenshots 491, 491a); then cancels a voucher sold by mistake (screenshot 491b).
+ * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
+ * sold on the phone (screenshots 492, 492a).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -131,4 +134,80 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(list.getByText('Anulowany')).toBeVisible();
   await shot(page, '491b');
   await desk.close();
+});
+
+test('business app: check a gift voucher, pay with it and sell a new one', async ({
+  browser,
+  request,
+}) => {
+  const email = `voucher-app-${run}@example.com`;
+  const owner = await verifiedUser(request, email, 'Aleksander Owner');
+  const org = await json<{ id: string }>(
+    await request.post('/v1/organizations', { headers: owner, data: { name: 'GESTALT' } }),
+  );
+  const location = await json<{ id: string }>(
+    await request.post(`/v1/organizations/${org.id}/locations`, {
+      headers: owner,
+      data: {
+        name: 'Gestalt Barbershop',
+        addressLine: 'ul. Józefa Bema 91',
+        city: 'Warszawa',
+        postalCode: '01-233',
+      },
+    }),
+  );
+  const voucher = await json<{ code: string }>(
+    await request.post(`/v1/organizations/${org.id}/locations/${location.id}/gift-vouchers`, {
+      headers: owner,
+      data: { amountGrosze: 15000, recipient: 'Ola' },
+    }),
+  );
+
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const address = freshAddress();
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'pl-PL',
+      timezoneId: 'Europe/Warsaw',
+      isMobile: true,
+      extraHTTPHeaders: address,
+    });
+    const phone = await context.newPage();
+    await phone.goto(businessApp.url);
+    await phone.getByLabel('E-mail lub telefon').fill(email);
+    await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+    const mail = await waitForEmail(email, /Kod logowania do aplikacji salonu/);
+    await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
+    await phone.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
+
+    await phone.getByRole('button', { name: 'Bony podarunkowe' }).click();
+    await expect(phone.getByRole('heading', { name: 'Bony podarunkowe' })).toBeVisible();
+    await phone.getByLabel('Kod bonu').fill(voucher.code.toLowerCase());
+    await phone.getByRole('button', { name: 'Sprawdź', exact: true }).click();
+    await expect(phone.getByText(`${voucher.code} · Ważny`).first()).toBeVisible();
+    await expect(phone.getByText('Dla: Ola').first()).toBeVisible();
+    await phone.getByLabel('Kwota do zapłaty bonem').fill('50');
+    await phone.getByRole('button', { name: 'Zapłać bonem' }).click();
+    await expect(
+      phone.getByText(/Zapłacono bonem 50,00\s?zł\. Zostało 100,00\s?zł\./),
+    ).toBeVisible();
+    await shot(phone, '492');
+
+    // A new voucher: 100 zł until the end of next year.
+    const until = `${new Date().getFullYear() + 1}-12-31`;
+    await phone.getByLabel('Kwota bonu').fill('100');
+    await phone.getByLabel(/^Ważny do/).fill(until);
+    await phone.getByLabel(/^Dla kogo/).fill('Piotr');
+    await phone.getByRole('button', { name: 'Sprzedaj bon' }).click();
+    await expect(
+      phone.getByText(/Bon sprzedany\. Kod do wpisania na bonie: [A-Z0-9]{8}/),
+    ).toBeVisible();
+    await expect(phone.getByText(/Do wykorzystania na ważnych bonach: 200,00\s?zł/)).toBeVisible();
+    await shot(phone, '492a');
+    await context.close();
+  } finally {
+    businessApp.server.close();
+  }
 });

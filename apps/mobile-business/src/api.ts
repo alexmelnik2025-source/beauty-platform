@@ -52,6 +52,10 @@ export type CustomerTags = components['schemas']['CustomerTags'];
 export type CustomerSegments = components['schemas']['CustomerSegments'];
 export type LoyaltyAccount = components['schemas']['LoyaltyAccount'];
 export type VisitCoupons = components['schemas']['VisitCoupons'];
+/** Task 492: "Bony podarunkowe". */
+export type GiftVoucher = components['schemas']['GiftVoucher'];
+export type GiftVoucherList = components['schemas']['GiftVoucherList'];
+export type GiftVoucherDetails = components['schemas']['GiftVoucherDetails'];
 export type LoyaltyTiers = components['schemas']['LoyaltyTiers'];
 export type LoyaltyBonusRules = components['schemas']['LoyaltyBonusRules'];
 /** Task 206: the salon's loyalty program, its rewards and operations. */
@@ -853,6 +857,56 @@ export class BusinessApi {
       version,
       tipGrosze,
     });
+  }
+
+  /** Task 492: the salon's gift vouchers, newest first (owners and managers). */
+  giftVouchers(orgId: string, locationId: string): Promise<GiftVoucherList> {
+    return this.authed<GiftVoucherList>('GET', voucherPath(orgId, locationId));
+  }
+
+  /** Task 492: "Nowy bon" — sold at the salon's till; the server makes the code. */
+  sellGiftVoucher(
+    orgId: string,
+    locationId: string,
+    body: {
+      amountGrosze: number;
+      validUntil: string | null;
+      recipient: string | null;
+      note: string | null;
+    },
+  ): Promise<GiftVoucher> {
+    return this.authed<GiftVoucher>('POST', voucherPath(orgId, locationId), body);
+  }
+
+  /** Task 492: "Sprawdź bon" — everyone in the salon, by the code the client shows. */
+  giftVoucherByCode(orgId: string, locationId: string, code: string): Promise<GiftVoucherDetails> {
+    return this.authed<GiftVoucherDetails>(
+      'GET',
+      `${voucherPath(orgId, locationId)}/code/${encodeURIComponent(code.trim())}`,
+    );
+  }
+
+  /** Task 492: "Zapłać bonem" — part or all of what is left (409 VOUCHER_… otherwise). */
+  redeemGiftVoucher(
+    orgId: string,
+    locationId: string,
+    voucherId: string,
+    amountGrosze: number,
+    note: string,
+  ): Promise<GiftVoucherDetails> {
+    return this.authed<GiftVoucherDetails>(
+      'POST',
+      `${voucherPath(orgId, locationId)}/${voucherId}/redeem`,
+      { amountGrosze, ...(note.trim() ? { note: note.trim() } : {}) },
+    );
+  }
+
+  /** Task 492: cancels a voucher sold by mistake (owners and managers). */
+  cancelGiftVoucher(orgId: string, locationId: string, voucherId: string): Promise<GiftVoucher> {
+    return this.authed<GiftVoucher>(
+      'POST',
+      `${voucherPath(orgId, locationId)}/${voucherId}/cancel`,
+    );
   }
 
   /**
@@ -2015,6 +2069,9 @@ export class BusinessApi {
 const enc = encodeURIComponent;
 const staffPath = (orgId: string, locationId: string, staffId: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/staff/${enc(staffId)}`;
+const voucherPath = (orgId: string, locationId: string) =>
+  `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/gift-vouchers`;
+
 const appointmentPath = (orgId: string, locationId: string, id: string) =>
   `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/appointments/${enc(id)}`;
 const guardPath = (orgId: string, locationId: string) =>
