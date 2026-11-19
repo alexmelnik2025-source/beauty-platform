@@ -108,6 +108,16 @@ export const giftVoucherDetailsSchema = responseSchema(
           date: z.string().describe('The day in the salon’s own time, YYYY-MM-DD'),
           time: z.string().describe('The time in the salon’s own time, HH:MM'),
           byName: z.string().nullable().describe('Who noted it; null when unknown'),
+          undoneDate: z
+            .string()
+            .nullable()
+            .describe(
+              'Task 530: the day it was undone (the amount went back to the voucher), YYYY-MM-DD in the salon’s own time; null = not undone',
+            ),
+          undoneByName: z
+            .string()
+            .nullable()
+            .describe('Who undid it; null when not undone or unknown'),
         }),
       )
       .describe('Payments with the voucher, newest first'),

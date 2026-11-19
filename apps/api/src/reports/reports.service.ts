@@ -1645,7 +1645,12 @@ export class ReportsService {
       _sum: { amountGrosze: true },
     });
     const paid = await this.prisma.giftVoucherUse.aggregate({
-      where: { voucher: { locationId }, createdAt: { gte: rangeStart, lt: rangeEnd } },
+      where: {
+        voucher: { locationId },
+        createdAt: { gte: rangeStart, lt: rangeEnd },
+        // Task 530: an undone payment was a mistake, not a payment.
+        undoneAt: null,
+      },
       _count: { _all: true },
       _sum: { amountGrosze: true },
     });

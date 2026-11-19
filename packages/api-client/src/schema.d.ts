@@ -3616,6 +3616,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/uses/{useId}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Cofnij płatność": undo a payment with the voucher noted by mistake
+         * @description Task 530. Owners and managers. What the payment took goes back to the voucher; the payment stays in the list, marked as undone. Undoing it again changes nothing. A cancelled voucher → 409 VOUCHER_CANCELLED.
+         */
+        post: operations["VouchersController_undoUse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/cancel": {
         parameters: {
             query?: never;
@@ -4964,6 +4984,10 @@ export interface components {
                 time: string;
                 /** @description Who noted it; null when unknown */
                 byName: string | null;
+                /** @description Task 530: the day it was undone (the amount went back to the voucher), YYYY-MM-DD in the salon’s own time; null = not undone */
+                undoneDate: string | null;
+                /** @description Who undid it; null when not undone or unknown */
+                undoneByName: string | null;
             }[];
         };
         GiftVoucherList: {
@@ -13485,6 +13509,29 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftVoucherDetails"];
+                };
+            };
+        };
+    };
+    VouchersController_undoUse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                voucherId: string;
+                useId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

@@ -321,6 +321,73 @@ describe('gift vouchers (task 490)', () => {
     });
   });
 
+  it('"Cofnij płatność": owners and managers undo a payment noted by mistake (task 530)', async () => {
+    const sold = (
+      await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 10000 }).expect(201)
+    ).body as Voucher;
+    const paid = await ctx
+      .http()
+      .post(`${base}/${sold.id}/redeem`)
+      .set(staffUser.auth)
+      .send({ amountGrosze: 10000, note: 'Pomyłka' })
+      .expect(200);
+    expect(paid.body.voucher).toMatchObject({ balanceGrosze: 0, status: 'used' });
+    const use = paid.body.uses[0] as { id: string };
+    expect(paid.body.uses[0]).toMatchObject({ undoneDate: null, undoneByName: null });
+    const undo = (auth = owner.auth, id = sold.id, useId = use.id) =>
+      ctx.http().post(`${base}/${id}/uses/${useId}/undo`).set(auth);
+
+    // The specialist cannot undo a payment.
+    await undo(staffUser.auth).expect(403);
+    const undone = await undo().expect(200);
+    expectShape('GiftVoucherDetails', undone.body);
+    expect(undone.body.voucher).toMatchObject({ balanceGrosze: 10000, status: 'active' });
+    expect(undone.body.uses).toMatchObject([
+      {
+        id: use.id,
+        amountGrosze: 10000,
+        note: 'Pomyłka',
+        byName: 'Kasia',
+        undoneDate: localToday(Date.now(), 'Europe/Warsaw'),
+        undoneByName: 'Anna Owner',
+      },
+    ]);
+    // Again — or two at the same moment — the amount goes back only once.
+    await Promise.all([undo().expect(200), undo().expect(200)]);
+    const after = await ctx.http().get(`${base}/${sold.id}`).set(owner.auth).expect(200);
+    expect(after.body.voucher.balanceGrosze).toBe(10000);
+
+    // The right payment, then the report counts only it.
+    await ctx
+      .http()
+      .post(`${base}/${sold.id}/redeem`)
+      .set(staffUser.auth)
+      .send({ amountGrosze: 4000 })
+      .expect(200);
+    const today = localToday(Date.now(), 'Europe/Warsaw');
+    const report = await ctx
+      .http()
+      .get(base.replace('/gift-vouchers', '/reports'))
+      .query({ from: today, to: today })
+      .set(owner.auth)
+      .expect(200);
+    expect(report.body.giftVouchers).toMatchObject({ payments: 1, paidGrosze: 4000 });
+
+    // Unknown payment, or a payment of another voucher → 404.
+    const other = (
+      await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 5000 }).expect(201)
+    ).body as Voucher;
+    await undo(owner.auth, other.id).expect(404);
+    await undo(owner.auth, sold.id, '0190a000-0000-7000-8000-000000000000').expect(404);
+    await undo(owner.auth, sold.id, 'nope').expect(404);
+
+    // A cancelled voucher stays as it is.
+    await ctx.http().post(`${base}/${sold.id}/cancel`).set(owner.auth).expect(200);
+    const last = (await ctx.http().get(`${base}/${sold.id}`).set(owner.auth).expect(200)).body
+      .uses[0] as { id: string };
+    expectError((await undo(owner.auth, sold.id, last.id).expect(409)).body, 'VOUCHER_CANCELLED');
+  });
+
   it('keeps the vouchers of each salon to itself', async () => {
     const voucher = (
       await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 9000 }).expect(201)
@@ -339,6 +406,18 @@ describe('gift vouchers (task 490)', () => {
       .send({ amountGrosze: 100 })
       .expect(404);
     await ctx.http().post(`${theirBase}/${voucher.id}/cancel`).set(other.auth).expect(404);
+    const paid = await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 1000 })
+      .expect(200);
+    const useId = (paid.body.uses[0] as { id: string }).id;
+    await ctx
+      .http()
+      .post(`${theirBase}/${voucher.id}/uses/${useId}/undo`)
+      .set(other.auth)
+      .expect(404);
     await ctx
       .http()
       .patch(`${theirBase}/${voucher.id}`)
@@ -346,7 +425,7 @@ describe('gift vouchers (task 490)', () => {
       .send({ recipient: 'X' })
       .expect(404);
     const mine = await ctx.http().get(`${base}/${voucher.id}`).set(owner.auth).expect(200);
-    expect(mine.body.voucher.balanceGrosze).toBe(9000);
+    expect(mine.body.voucher.balanceGrosze).toBe(8000);
     expect((await ctx.http().get(theirBase).set(other.auth).expect(200)).body.vouchers).toEqual([]);
   });
 });

@@ -13874,6 +13874,59 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/uses/{useId}/undo": {
+      "post": {
+        "description": "Task 530. Owners and managers. What the payment took goes back to the voucher; the payment stays in the list, marked as undone. Undoing it again changes nothing. A cancelled voucher → 409 VOUCHER_CANCELLED.",
+        "operationId": "VouchersController_undoUse",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "voucherId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "useId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftVoucherDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Cofnij płatność\": undo a payment with the voucher noted by mistake",
+        "tags": [
+          "gift-vouchers"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/gift-vouchers/{voucherId}/cancel": {
       "post": {
         "description": "Task 490. Owners and managers. It cannot be used afterwards; its payments stay.",
@@ -19194,6 +19247,16 @@
                   "nullable": true,
                   "description": "Who noted it; null when unknown",
                   "type": "string"
+                },
+                "undoneDate": {
+                  "nullable": true,
+                  "description": "Task 530: the day it was undone (the amount went back to the voucher), YYYY-MM-DD in the salon’s own time; null = not undone",
+                  "type": "string"
+                },
+                "undoneByName": {
+                  "nullable": true,
+                  "description": "Who undid it; null when not undone or unknown",
+                  "type": "string"
                 }
               },
               "required": [
@@ -19202,7 +19265,9 @@
                 "note",
                 "date",
                 "time",
-                "byName"
+                "byName",
+                "undoneDate",
+                "undoneByName"
               ],
               "additionalProperties": false
             },

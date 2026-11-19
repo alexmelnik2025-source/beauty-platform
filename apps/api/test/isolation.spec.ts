@@ -48,6 +48,7 @@ type Ids = Record<
   | 'productId'
   | 'saleId'
   | 'voucherId'
+  | 'useId'
   | 'code',
   string
 >;
@@ -142,6 +143,7 @@ function validBody(route: Route): object {
   }
   if (p.endsWith('/gift-vouchers/:voucherId/redeem')) return { amountGrosze: 100 };
   if (p.endsWith('/gift-vouchers/:voucherId/cancel')) return {};
+  if (p.endsWith('/gift-vouchers/:voucherId/uses/:useId/undo')) return {};
   if (p.endsWith('/gift-vouchers/:voucherId')) return { recipient: 'Jan' };
   if (p.endsWith('/gift-vouchers')) return { amountGrosze: 10000 };
   if (p.endsWith('/products/stocktake')) {
@@ -518,8 +520,12 @@ async function seedLocation(
       locationId: org.locationId,
       code: org.locationId.slice(0, 8).toUpperCase(),
       amountGrosze: 10000,
-      balanceGrosze: 10000,
+      balanceGrosze: 8000,
     },
+  });
+  // A payment with it, to be undone (task 530).
+  const voucherUse = await ctx.prisma.giftVoucherUse.create({
+    data: { voucherId: voucher.id, amountGrosze: 2000 },
   });
   return {
     orgId: org.orgId,
@@ -545,6 +551,7 @@ async function seedLocation(
     productId: product.id,
     saleId: sale.id,
     voucherId: voucher.id,
+    useId: voucherUse.id,
     code: voucher.code,
   };
 }

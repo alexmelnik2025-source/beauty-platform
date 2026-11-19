@@ -200,7 +200,7 @@ export class VouchersService {
     });
     const names = await this.names([
       voucher.createdByUserId,
-      ...uses.map((u) => u.createdByUserId),
+      ...uses.flatMap((u) => [u.createdByUserId, u.undoneByUserId]),
     ]);
     return {
       voucher: this.toVoucher(voucher, location, names),
@@ -213,6 +213,10 @@ export class VouchersService {
           date: local.date,
           time: local.time,
           byName: (u.createdByUserId && names.get(u.createdByUserId)) || null,
+          undoneDate: u.undoneAt
+            ? instantToLocal(u.undoneAt.getTime(), location.timezone).date
+            : null,
+          undoneByName: (u.undoneByUserId && names.get(u.undoneByUserId)) || null,
         };
       }),
     };
@@ -304,6 +308,45 @@ export class VouchersService {
         `Only ${after.balanceGrosze} is left on the voucher`,
       );
     }
+    return this.details(after, location);
+  }
+
+  /**
+   * Task 530: "Cofnij płatność" — owners and managers undo a payment noted by mistake (wrong amount,
+   * wrong voucher): what it took goes back to the voucher in one step, and the payment stays in the
+   * list marked as undone (who and when). Undoing it again changes nothing. A cancelled voucher →
+   * 409 VOUCHER_CANCELLED. An expired one gets the amount back too (the owner may give it more time).
+   */
+  async undoUse(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    voucherId: string,
+    useId: string,
+  ): Promise<GiftVoucherDetailsResponse> {
+    const location = await this.access.writable(m, locationId);
+    const voucher = await this.prisma.giftVoucher.findFirst({
+      where: { id: voucherId, locationId },
+    });
+    if (!voucher) throw notFound('Gift voucher');
+    const use = await this.prisma.giftVoucherUse.findFirst({ where: { id: useId, voucherId } });
+    if (!use) throw notFound('Gift voucher payment');
+    if (voucher.cancelledAt) {
+      throw new AppException(HttpStatus.CONFLICT, 'VOUCHER_CANCELLED', 'The voucher was cancelled');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      // Only the first of two undos at the same moment gives the amount back.
+      const marked = await tx.giftVoucherUse.updateMany({
+        where: { id: useId, voucherId, undoneAt: null },
+        data: { undoneAt: new Date(), undoneByUserId: userId },
+      });
+      if (marked.count === 0) return;
+      await tx.giftVoucher.update({
+        where: { id: voucherId },
+        data: { balanceGrosze: { increment: use.amountGrosze } },
+      });
+    });
+    const after = await this.prisma.giftVoucher.findUniqueOrThrow({ where: { id: voucherId } });
     return this.details(after, location);
   }
 

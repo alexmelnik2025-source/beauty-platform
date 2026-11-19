@@ -1612,6 +1612,9 @@ model GiftVoucherUse {
   note            String?
   createdByUserId String?  @map("created_by_user_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Task 530: noted by mistake and undone by the owner or a manager — the amount went back to the voucher.
+  undoneAt        DateTime? @map("undone_at") @db.Timestamptz(3)
+  undoneByUserId  String?   @map("undone_by_user_id") @db.Uuid
 
   voucher GiftVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 

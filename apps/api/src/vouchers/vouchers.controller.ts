@@ -161,6 +161,25 @@ export class VouchersController {
     return this.vouchers.redeem(m, auth.userId, locationId, voucherId, body);
   }
 
+  @Post(':voucherId/uses/:useId/undo')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Cofnij płatność": undo a payment with the voucher noted by mistake',
+    description:
+      'Task 530. Owners and managers. What the payment took goes back to the voucher; the payment stays in the list, marked as undone. Undoing it again changes nothing. A cancelled voucher → 409 VOUCHER_CANCELLED.',
+  })
+  @ApiZodResponse(giftVoucherDetailsSchema)
+  undoUse(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('voucherId', uuid('Gift voucher')) voucherId: string,
+    @Param('useId', uuid('Gift voucher payment')) useId: string,
+  ): Promise<GiftVoucherDetailsResponse> {
+    return this.vouchers.undoUse(m, auth.userId, locationId, voucherId, useId);
+  }
+
   @Patch(':voucherId')
   @RequireRoles('owner', 'manager')
   @ApiOperation({
