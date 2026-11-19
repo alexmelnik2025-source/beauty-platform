@@ -109,6 +109,9 @@ export function BookingScreen(props: {
   const [step, setStep] = useState<BookingStep>(start.step);
   const [serviceId, setServiceId] = useState(start.serviceId);
   const [staffId, setStaffId] = useState<string | undefined>(start.staffId);
+  /** Task Q2: the specialist of the QR code the client scanned — "who" is settled, not "what". */
+  const [qrStaffId, setQrStaffId] = useState(start.qrStaffId);
+  const qrStaff = qrStaffId ? salon.staff.find((s) => s.id === qrStaffId) : undefined;
   /** Task 70c: a price line of several specialists — "any of these", or one picked over the times. */
   const [rowStaff, setRowStaff] = useState<string[]>([]);
   /** Came from a price line straight to the times: "back" returns to the price list. */
@@ -270,6 +273,12 @@ export function BookingScreen(props: {
     setRowStaff([]);
     setFromList(false);
     const who = staffFor(salon, id);
+    // Task Q2: the specialist of the QR code does this service → straight to their times.
+    if (qrStaff && who.some((s) => s.id === qrStaff.id)) {
+      setStaffId(qrStaff.id);
+      setStep('time');
+      return;
+    }
     // With one specialist there is nothing to choose.
     if (who.length === 1) {
       setStaffId(who[0]!.id);
@@ -450,6 +459,14 @@ export function BookingScreen(props: {
           <Text role="heading" aria-level={2} style={styles.section}>
             {b.pickService}
           </Text>
+          {qrStaff ? (
+            <View style={styles.qrStaff} testID="qr-staff">
+              <Text style={styles.qrStaffText}>
+                {fill(b.qrStaff, { name: qrStaff.displayName })}
+              </Text>
+              <Button kind="link" label={b.qrStaffAny} onPress={() => setQrStaffId(undefined)} />
+            </View>
+          ) : null}
           {salon.services.length === 0 ? <Text style={styles.muted}>{b.salonClosed}</Text> : null}
           {serviceGroups(salon).map((g) => (
             <View key={g.id ?? 'other'} style={{ gap: 8 }}>
@@ -963,6 +980,8 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', marginLeft: -8 },
   brand: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 2 },
   section: { color: colors.ink, fontSize: 18, fontWeight: '700' },
+  qrStaff: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
+  qrStaffText: { color: colors.ink, fontSize: 16 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   group: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 4 },
   text: { color: colors.ink, fontSize: 15, lineHeight: 21 },

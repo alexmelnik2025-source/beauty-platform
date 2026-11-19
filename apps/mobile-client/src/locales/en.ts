@@ -206,6 +206,9 @@ export const en: Dictionary = {
     otherService: 'Another service or specialist',
     serviceGone: 'This service can no longer be booked online — please choose another.',
     staffGone: 'This specialist no longer does this service — please choose another.',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Booking with: {name}',
+    qrStaffAny: 'Another specialist',
     pickService: 'Choose a service',
     pickStaff: 'Choose a specialist',
     speaksFilter: 'Speaks',

@@ -212,6 +212,9 @@ export const tr: Dictionary = {
     otherService: 'Başka bir hizmet veya uzman',
     serviceGone: 'Bu hizmet artık internetten alınamıyor — lütfen başka birini seçin.',
     staffGone: 'Bu uzman artık bu hizmeti vermiyor — lütfen başka birini seçin.',
+    /** Task Q2: the client came by a specialist’s QR code. */
+    qrStaff: 'Randevu: {name}',
+    qrStaffAny: 'Başka bir uzman',
     pickService: 'Bir hizmet seçin',
     pickStaff: 'Bir uzman seçin',
     speaksFilter: 'Konuştuğu dil',
