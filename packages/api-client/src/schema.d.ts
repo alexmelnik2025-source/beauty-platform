@@ -3676,6 +3676,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/locations/{slug}/gift-vouchers/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Sprawdź bon": what is left on a gift voucher, by its code
+         * @description Task 536. Letter case, spaces and dashes do not matter. Unknown code or salon → 404. At most 20 checks an hour from one address (429 RATE_LIMITED).
+         */
+        get: operations["PublicVouchersController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5940,6 +5960,23 @@ export interface components {
             date: string;
             /** @description Specialists with at least one free start time left today, for any of their services */
             staffIds: string[];
+        };
+        PublicGiftVoucher: {
+            /** @description The code as the salon prints it: 8 letters and digits */
+            code: string;
+            /** @description What it was worth when sold, in hundredths of the salon currency */
+            amountGrosze: number;
+            /** @description What is left to use, in hundredths of the salon currency */
+            balanceGrosze: number;
+            /** @description The salon currency, e.g. PLN */
+            currency: string;
+            /** @description The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end */
+            validUntil: string | null;
+            /**
+             * @description active — may be used; used — nothing left; expired — past validUntil; cancelled — by the salon
+             * @enum {string}
+             */
+            status: "active" | "used" | "expired" | "cancelled";
         };
         /** @description The texts a client accepts when booking, as written by the salon */
         PublicLegalTexts: {
@@ -13605,6 +13642,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GiftVoucher"];
+                };
+            };
+        };
+    };
+    PublicVouchersController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicGiftVoucher"];
                 };
             };
         };

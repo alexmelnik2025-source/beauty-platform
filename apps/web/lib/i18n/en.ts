@@ -650,6 +650,23 @@ export const en: Dict = {
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
   /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  /** Task 537: "Sprawdź bon" on the salon page. */
+  voucherCheck: {
+    open: 'Have a gift voucher? Check what is left',
+    title: 'Check a gift voucher',
+    hint: 'Type the code from the voucher to see what is left on it and until when it is valid.',
+    code: 'Voucher code',
+    check: 'Check',
+    notFound: 'This salon has no voucher with this code. Check the letters and digits.',
+    left: '{left} left of {amount}',
+    validUntil: 'Valid until {date}',
+    noEnd: 'No end date',
+    statusActive: 'Valid',
+    statusUsed: 'Used up',
+    statusExpired: 'Expired',
+    statusCancelled: 'Cancelled',
+    payAtSalon: 'You pay with the voucher at the salon, at your visit.',
+  },
   shareSalon: {
     share: 'Recommend to friends',
     shareText: '{name} — book online: {url}',

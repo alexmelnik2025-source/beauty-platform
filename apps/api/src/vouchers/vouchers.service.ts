@@ -13,6 +13,7 @@ import type {
   GiftVoucherDetailsResponse,
   GiftVoucherListResponse,
   GiftVoucherResponse,
+  PublicGiftVoucherResponse,
   RedeemGiftVoucherInput,
   UpdateGiftVoucherInput,
 } from './vouchers.schemas';
@@ -272,6 +273,27 @@ export class VouchersService {
     });
     if (!voucher) throw notFound('Gift voucher');
     return this.details(voucher, location);
+  }
+
+  /**
+   * Task 536: "Sprawdź bon" on the salon page — the client checks what is left. Only salons whose
+   * page is public (online booking on); an unknown code and an unknown salon look the same (404).
+   */
+  async publicByCode(slug: string, code: string): Promise<PublicGiftVoucherResponse> {
+    const location = await this.prisma.location.findUnique({ where: { slug: slug.toLowerCase() } });
+    if (!location || !location.onlineBookingEnabled) throw notFound('Gift voucher');
+    const voucher = await this.prisma.giftVoucher.findUnique({
+      where: { locationId_code: { locationId: location.id, code } },
+    });
+    if (!voucher) throw notFound('Gift voucher');
+    return {
+      code: voucher.code,
+      amountGrosze: voucher.amountGrosze,
+      balanceGrosze: voucher.balanceGrosze,
+      currency: location.currency,
+      validUntil: voucher.validUntil ? dateString(voucher.validUntil) : null,
+      status: statusOf(voucher, localToday(Date.now(), location.timezone)),
+    };
   }
 
   async get(

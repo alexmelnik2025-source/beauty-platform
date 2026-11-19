@@ -656,6 +656,23 @@ export const ru: Dict = {
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
   /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  /** Task 537: "Sprawdź bon" on the salon page. */
+  voucherCheck: {
+    open: 'Есть подарочный сертификат? Проверьте остаток',
+    title: 'Проверить подарочный сертификат',
+    hint: 'Введите код с сертификата — увидите, сколько на нём осталось и до какого числа он действует.',
+    code: 'Код сертификата',
+    check: 'Проверить',
+    notFound: 'В этом салоне нет сертификата с таким кодом. Проверьте буквы и цифры.',
+    left: 'Осталось {left} из {amount}',
+    validUntil: 'Действует до {date}',
+    noEnd: 'Без срока действия',
+    statusActive: 'Действует',
+    statusUsed: 'Использован',
+    statusExpired: 'Истёк',
+    statusCancelled: 'Отменён',
+    payAtSalon: 'Сертификатом платите в салоне, на визите.',
+  },
   shareSalon: {
     share: 'Посоветовать салон друзьям',
     shareText: '{name} — запишитесь онлайн: {url}',

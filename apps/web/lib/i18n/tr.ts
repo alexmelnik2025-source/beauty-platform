@@ -356,6 +356,23 @@ export const tr: Dict = {
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
   /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  /** Task 537: "Sprawdź bon" on the salon page. */
+  voucherCheck: {
+    open: 'Hediye çekiniz mi var? Kalan tutarı kontrol edin',
+    title: 'Hediye çekini kontrol et',
+    hint: 'Çekin üzerindeki kodu yazın — ne kadar kaldığını ve ne zamana kadar geçerli olduğunu görün.',
+    code: 'Çek kodu',
+    check: 'Kontrol et',
+    notFound: 'Bu salonda bu koda sahip bir çek yok. Harfleri ve rakamları kontrol edin.',
+    left: '{amount} tutarından {left} kaldı',
+    validUntil: '{date} tarihine kadar geçerli',
+    noEnd: 'Süresiz',
+    statusActive: 'Geçerli',
+    statusUsed: 'Kullanıldı',
+    statusExpired: 'Süresi doldu',
+    statusCancelled: 'İptal edildi',
+    payAtSalon: 'Çekle ödemeyi salonda, randevunuzda yaparsınız.',
+  },
   shareSalon: {
     share: 'Arkadaşlarına öner',
     shareText: '{name} — online randevu al: {url}',

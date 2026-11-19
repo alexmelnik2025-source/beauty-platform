@@ -18,6 +18,7 @@ let owner: SignedInUser;
 let staffUser: SignedInUser;
 let base: string;
 let locationId: string;
+let slug: string;
 
 beforeAll(async () => {
   ctx = await createTestApp();
@@ -32,6 +33,7 @@ beforeEach(async () => {
   owner = await signUp(ctx, 'owner@example.com', 'Anna Owner');
   const created = await createOrgWithLocation(ctx, owner, 'Barber');
   locationId = created.locationId;
+  slug = created.slug;
   base = `/v1/organizations/${created.orgId}/locations/${locationId}/gift-vouchers`;
   staffUser = await signUp(ctx, 'kasia@example.com', 'Kasia');
   await ctx.prisma.membership.create({
@@ -702,5 +704,83 @@ describe('"CSV płatności bonami" (task 533)', () => {
       rows((await csv(other.auth, undefined, theirBase).expect(200)).body as string),
     ).toHaveLength(1);
     await csv(other.auth, undefined, base).expect(404);
+  });
+});
+
+describe('"Sprawdź bon" for the client (task 536)', () => {
+  const sell = async (body: Record<string, unknown>) =>
+    (await ctx.http().post(base).set(owner.auth).send(body).expect(201)).body as Voucher;
+  const check = (code: string, onSlug = slug) =>
+    ctx.http().get(`/v1/public/locations/${onSlug}/gift-vouchers/${encodeURIComponent(code)}`);
+
+  it('shows what the voucher is worth and what is left — nothing about who it is for', async () => {
+    const voucher = await sell({
+      amountGrosze: 20000,
+      recipient: 'Jan Kowalski',
+      note: 'Na urodziny',
+      validUntil: addDays(localToday(Date.now(), 'Europe/Warsaw'), 60),
+    });
+    // The salon page is not public yet: the code tells nothing.
+    await check(voucher.code).expect(404);
+    await ctx.prisma.location.update({
+      where: { id: locationId },
+      data: { onlineBookingEnabled: true },
+    });
+
+    await ctx
+      .http()
+      .post(`${base}/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 5000 })
+      .expect(200);
+    const typed = `${voucher.code.slice(0, 4).toLowerCase()}-${voucher.code.slice(4)}`;
+    const res = await check(typed).expect(200);
+    expectShape('PublicGiftVoucher', res.body);
+    expect(res.body).toEqual({
+      code: voucher.code,
+      amountGrosze: 20000,
+      balanceGrosze: 15000,
+      currency: 'PLN',
+      validUntil: voucher.validUntil,
+      status: 'active',
+    });
+    expect(JSON.stringify(res.body)).not.toContain('Kowalski');
+    expect(JSON.stringify(res.body)).not.toContain('urodziny');
+
+    // Unknown code, unknown salon, a too-short code.
+    await check('ZZZZZZZZ').expect(404);
+    await check(voucher.code, 'no-such-salon').expect(404);
+    await check('AB').expect(400);
+
+    // Cancelled by the salon.
+    await ctx.http().post(`${base}/${voucher.id}/cancel`).set(owner.auth).expect(200);
+    expect((await check(voucher.code).expect(200)).body.status).toBe('cancelled');
+  });
+
+  it('a voucher of another salon is not found on this salon page', async () => {
+    await ctx.prisma.location.update({
+      where: { id: locationId },
+      data: { onlineBookingEnabled: true },
+    });
+    const other = await createOrgWithLocation(ctx, staffUser, 'Other');
+    const foreign = (
+      await ctx
+        .http()
+        .post(`/v1/organizations/${other.orgId}/locations/${other.locationId}/gift-vouchers`)
+        .set(staffUser.auth)
+        .send({ amountGrosze: 10000 })
+        .expect(201)
+    ).body as Voucher;
+    await check(foreign.code).expect(404);
+  });
+
+  it('at most 20 checks an hour from one address, so codes cannot be guessed', async () => {
+    await ctx.prisma.location.update({
+      where: { id: locationId },
+      data: { onlineBookingEnabled: true },
+    });
+    for (let i = 0; i < 20; i += 1) await check('ZZZZZZZZ').expect(404);
+    const res = await check('ZZZZZZZZ').expect(429);
+    expectError(res.body, 'RATE_LIMITED');
   });
 });

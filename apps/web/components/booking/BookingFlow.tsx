@@ -38,6 +38,7 @@ import { NearbySalons } from './NearbySalons';
 import { rememberViewed } from '@/lib/recent-salons';
 import { FavoriteButton } from './FavoriteButton';
 import { ShareSalon } from './ShareSalon';
+import { VoucherCheck } from './VoucherCheck';
 import { WaitlistForm } from './WaitlistForm';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import { WishPhotos } from '../wishes/WishPhotos';
@@ -615,6 +616,9 @@ export function BookingFlow({ slug }: { slug: string }) {
             }}
           />
         ) : null}
+
+        {/* Task 537: "Sprawdź bon" — also on the salon's own site. */}
+        {step === 'service' ? <VoucherCheck slug={salon.slug} /> : null}
 
         {/* Task 400: on the salon's own site (embed) the client stays with this salon. */}
         {step === 'service' && !embed ? <NearbySalons slug={salon.slug} /> : null}

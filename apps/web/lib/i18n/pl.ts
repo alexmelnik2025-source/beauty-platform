@@ -650,6 +650,23 @@ export const pl = {
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
   /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  /** Task 537: "Sprawdź bon" on the salon page. */
+  voucherCheck: {
+    open: 'Masz bon podarunkowy? Sprawdź, ile zostało',
+    title: 'Sprawdź bon podarunkowy',
+    hint: 'Wpisz kod z bonu — zobaczysz, ile na nim zostało i do kiedy jest ważny.',
+    code: 'Kod bonu',
+    check: 'Sprawdź',
+    notFound: 'Ten salon nie ma bonu z takim kodem. Sprawdź litery i cyfry.',
+    left: 'Zostało {left} z {amount}',
+    validUntil: 'Ważny do {date}',
+    noEnd: 'Bez terminu ważności',
+    statusActive: 'Ważny',
+    statusUsed: 'Wykorzystany',
+    statusExpired: 'Nieważny',
+    statusCancelled: 'Anulowany',
+    payAtSalon: 'Bonem płacisz w salonie, przy wizycie.',
+  },
   shareSalon: {
     share: 'Poleć salon znajomym',
     shareText: '{name} — umów się online: {url}',

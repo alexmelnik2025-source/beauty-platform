@@ -116,6 +116,7 @@ export type {
   PublicLocation,
   PublicSalon,
   PublicSalonDirectory,
+  PublicGiftVoucher,
   PushPublicKey,
   Role,
   Product,

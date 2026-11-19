@@ -357,6 +357,23 @@ export const sq: Dict = {
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
   /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  /** Task 537: "Sprawdź bon" on the salon page. */
+  voucherCheck: {
+    open: 'Keni një kupon dhuratë? Shikoni sa ka mbetur',
+    title: 'Kontrollo kuponin dhuratë',
+    hint: 'Shkruani kodin e kuponit — do të shihni sa ka mbetur dhe deri kur është i vlefshëm.',
+    code: 'Kodi i kuponit',
+    check: 'Kontrollo',
+    notFound: 'Ky sallon nuk ka kupon me këtë kod. Kontrolloni shkronjat dhe shifrat.',
+    left: 'Kanë mbetur {left} nga {amount}',
+    validUntil: 'I vlefshëm deri më {date}',
+    noEnd: 'Pa afat',
+    statusActive: 'I vlefshëm',
+    statusUsed: 'I përdorur',
+    statusExpired: 'I skaduar',
+    statusCancelled: 'I anuluar',
+    payAtSalon: 'Me kuponin paguani në sallon, në vizitë.',
+  },
   shareSalon: {
     share: 'Rekomandoje te miqtë',
     shareText: '{name} — rezervo online: {url}',

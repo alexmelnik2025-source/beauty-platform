@@ -133,3 +133,28 @@ export const vouchersCsvQuerySchema = z.object({
   locale: z.enum(CSV_LOCALES).default('pl'),
 });
 export type VouchersCsvQuery = z.infer<typeof vouchersCsvQuerySchema>;
+
+/**
+ * Task 536: "Sprawdź bon" for the client on the salon page — only what is printed on the voucher
+ * and what is left. Who it is for, the note and the payments stay inside the salon.
+ */
+export const publicGiftVoucherSchema = responseSchema(
+  'PublicGiftVoucher',
+  z.strictObject({
+    code: z.string().describe('The code as the salon prints it: 8 letters and digits'),
+    amountGrosze: money('What it was worth when sold'),
+    balanceGrosze: money('What is left to use'),
+    currency: z.string().describe('The salon currency, e.g. PLN'),
+    validUntil: z
+      .string()
+      .nullable()
+      .describe('The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end'),
+    status: z
+      .enum(GIFT_VOUCHER_STATUSES)
+      .describe(
+        'active — may be used; used — nothing left; expired — past validUntil; cancelled — by the salon',
+      ),
+  }),
+);
+
+export type PublicGiftVoucherResponse = z.infer<typeof publicGiftVoucherSchema>;

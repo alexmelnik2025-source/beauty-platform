@@ -650,6 +650,23 @@ export const uk: Dict = {
   },
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
   /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
+  /** Task 537: "Sprawdź bon" on the salon page. */
+  voucherCheck: {
+    open: 'Маєте подарунковий сертифікат? Перевірте залишок',
+    title: 'Перевірити подарунковий сертифікат',
+    hint: 'Введіть код із сертифіката — побачите, скільки на ньому залишилося і до якого числа він дійсний.',
+    code: 'Код сертифіката',
+    check: 'Перевірити',
+    notFound: 'У цьому салоні немає сертифіката з таким кодом. Перевірте літери й цифри.',
+    left: 'Залишилося {left} з {amount}',
+    validUntil: 'Дійсний до {date}',
+    noEnd: 'Без терміну дії',
+    statusActive: 'Дійсний',
+    statusUsed: 'Використаний',
+    statusExpired: 'Термін минув',
+    statusCancelled: 'Скасований',
+    payAtSalon: 'Сертифікатом платите в салоні, під час візиту.',
+  },
   shareSalon: {
     share: 'Порадити салон друзям',
     shareText: '{name} — запишіться онлайн: {url}',

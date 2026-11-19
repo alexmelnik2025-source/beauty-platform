@@ -3217,3 +3217,19 @@ ul.wish-photos {
     letter-spacing: 0.15em;
   }
 }
+
+/* Task 537: "Sprawdź bon" on the salon page. */
+.voucher-check-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.voucher-check-form .field {
+  flex: 1 1 12rem;
+}
+
+.voucher-check-result {
+  gap: 4px;
+}

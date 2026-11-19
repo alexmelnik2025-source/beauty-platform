@@ -14022,6 +14022,46 @@
           "gift-vouchers"
         ]
       }
+    },
+    "/v1/public/locations/{slug}/gift-vouchers/{code}": {
+      "get": {
+        "description": "Task 536. Letter case, spaces and dashes do not matter. Unknown code or salon → 404. At most 20 checks an hour from one address (429 RATE_LIMITED).",
+        "operationId": "PublicVouchersController_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGiftVoucher"
+                }
+              }
+            }
+          }
+        },
+        "summary": "\"Sprawdź bon\": what is left on a gift voucher, by its code",
+        "tags": [
+          "public"
+        ]
+      }
     }
   },
   "info": {
@@ -22953,6 +22993,55 @@
         "required": [
           "date",
           "staffIds"
+        ],
+        "additionalProperties": false
+      },
+      "PublicGiftVoucher": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The code as the salon prints it: 8 letters and digits"
+          },
+          "amountGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What it was worth when sold, in hundredths of the salon currency"
+          },
+          "balanceGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "What is left to use, in hundredths of the salon currency"
+          },
+          "currency": {
+            "type": "string",
+            "description": "The salon currency, e.g. PLN"
+          },
+          "validUntil": {
+            "nullable": true,
+            "description": "The last day it may be used, YYYY-MM-DD in the salon’s own time; null = no end",
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "used",
+              "expired",
+              "cancelled"
+            ],
+            "description": "active — may be used; used — nothing left; expired — past validUntil; cancelled — by the salon"
+          }
+        },
+        "required": [
+          "code",
+          "amountGrosze",
+          "balanceGrosze",
+          "currency",
+          "validUntil",
+          "status"
         ],
         "additionalProperties": false
       },
