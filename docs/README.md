@@ -3371,3 +3371,27 @@ zamówienia» рядом с кнопкой CSV, в бизнес-приложен
 «Przyjmij dostawę» рядом с «Inwentaryzacja»: поле «Przyszło» у каждого товара, у товаров «Do zamówienia» уже стоят
 предложенные числа из «Tekst zamówienia», можно показать товары одного поставщика; итог — «Dostawa przyjęta: 5 szt.,
 produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
+
+## «Bony podarunkowe» — подарочные сертификаты (задачи 490–493)
+
+Бон продаётся в салоне (деньги салон берёт у себя в кассе, как за визит; онлайн-оплаты нет). Таблицы `gift_voucher`
+(код из 8 букв и цифр без похожих 0/O, 1/I/L — уникален в салоне, сумма, остаток, «Ważny do», для кого, заметка,
+кто продал, отмена) и `gift_voucher_use` (каждая оплата бонем: сумма, за что, кто, когда). API —
+`apps/api/src/vouchers/`:
+
+- `GET/POST …/gift-vouchers` — список (новые сверху, `activeBalanceGrosze` — остаток на действующих) и «Nowy bon»;
+  владелец/менеджер. «Ważny do» раньше сегодняшнего дня салона — 400 `VOUCHER_DATE_PAST`.
+- `GET …/gift-vouchers/code/:code` — «Sprawdź bon» по коду (регистр, пробелы и дефисы не важны), вся команда салона.
+- `POST …/gift-vouchers/:id/redeem` `{ amountGrosze, note? }` — «Zapłać bonem», вся команда: в один шаг (условный
+  `UPDATE … WHERE balance >= amount`), две оплаты одновременно не уводят остаток в минус. Ошибки 409
+  `VOUCHER_BALANCE` / `VOUCHER_EXPIRED` / `VOUCHER_CANCELLED`.
+- `POST …/gift-vouchers/:id/cancel` — отмена (владелец/менеджер); оплаты остаются в истории.
+- Статус бона: `active` / `used` (остаток 0) / `expired` (после «Ważny do») / `cancelled`.
+
+Кабинет — раздел «Bony podarunkowe» в меню (виден всей команде: мастер проверяет бон и принимает оплату; продажа, список
+и отмена — только владелец/менеджер). Бизнес-приложение — кнопка «Bony podarunkowe» под днём, экран
+`VouchersScreen.tsx` (то же). В «Raporty» (только отчёт всего салона) — `giftVouchers`: продано бонов за период и на
+какую сумму (без отменённых), сколько оплачено бонами, остаток на действующих бонах сегодня; оплата бонем — не новый
+доход (деньги салон получил при продаже). Тесты: `apps/api/test/gift-vouchers.spec.ts`, изоляция салонов в
+`isolation.spec.ts`, unit `apps/mobile-business/test/vouchers.test.ts`; e2e `gift-vouchers.spec.ts`, скриншоты 491,
+491a, 491b, 492, 492a, 493.
