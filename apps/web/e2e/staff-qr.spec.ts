@@ -111,12 +111,14 @@ async function signInCabinet(page: Page) {
 
 test('each specialist has a QR code; scanning it books with them (task Q2)', async ({
   browser,
-  page,
   request,
 }) => {
   const salon = await onlineSalon(request);
 
   // ── The cabinet: a specialist's code next to the salon's one ──────────
+  // Its own address: sign-in limits are per address, and the later tests sign in too.
+  const desk = await browser.newContext({ locale: 'pl-PL', extraHTTPHeaders: freshAddress() });
+  const page = await desk.newPage();
   await signInCabinet(page);
   await page.goto('/pl/app/settings');
   const staffQr = page.getByTestId('staff-qr');
@@ -148,6 +150,7 @@ test('each specialist has a QR code; scanning it books with them (task Q2)', asy
   await expect(code).toHaveCount(0);
   await staffQr.getByRole('button', { name: 'Marek' }).click();
   await expect(page.getByRole('img', { name: 'Kod QR rezerwacji u Marek' })).toHaveCount(0);
+  await desk.close();
 
   // ── The client scans Kasia's code ─────────────────────────────────────
   const phone = await browser.newContext({ viewport: PHONE, isMobile: true, locale: 'pl-PL' });
