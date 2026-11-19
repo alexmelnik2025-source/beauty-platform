@@ -914,6 +914,8 @@ export const en: Dict = {
     cancelYes: 'Yes, cancel',
     cancelNo: 'No',
     cancelled: 'Voucher {code} cancelled.',
+    print: 'Print voucher',
+    printTitle: 'Gift voucher',
   },
   waitingList: {
     title: 'Waiting list',

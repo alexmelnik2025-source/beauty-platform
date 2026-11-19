@@ -48,6 +48,60 @@ function VoucherSummary({ voucher }: { voucher: GiftVoucher }) {
   );
 }
 
+/** "ABCD-EFGH": easier to read off paper; the dash does not matter when the code is checked. */
+const printedCode = (code: string) =>
+  code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+
+/**
+ * Task 496: "Drukuj bon" — the voucher as a card to hand to the client: the salon, the amount, for
+ * whom, the code and the last day. Only the card is printed (`html.print-voucher` in globals.css).
+ */
+function VoucherPrint({ voucher }: { voucher: GiftVoucher }) {
+  const { t, locale } = useI18n();
+  const tag = LOCALE_TAGS[locale];
+  const { location } = useSession();
+  // The card is on the page only while it is printed (its words would repeat the summary's).
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const done = () => {
+      document.documentElement.classList.remove('print-voucher');
+      setPrinting(false);
+    };
+    window.addEventListener('afterprint', done);
+    return () => window.removeEventListener('afterprint', done);
+  }, []);
+  useEffect(() => {
+    if (!printing) return;
+    document.documentElement.classList.add('print-voucher');
+    window.print();
+  }, [printing]);
+  return (
+    <>
+      {printing ? (
+        <div className="voucher-print" data-testid="voucher-print">
+          <strong className="voucher-print__salon">{location.name}</strong>
+          <span className="voucher-print__title">{t.vouchers.printTitle}</span>
+          <span className="voucher-print__amount">
+            {formatPrice(voucher.amountGrosze, location.currency, tag)}
+          </span>
+          {voucher.recipient ? (
+            <span>{fill(t.vouchers.forWhom, { name: voucher.recipient })}</span>
+          ) : null}
+          <span className="voucher-print__code">{printedCode(voucher.code)}</span>
+          <small>
+            {voucher.validUntil
+              ? fill(t.vouchers.validUntil, { date: formatDay(voucher.validUntil, tag) })
+              : t.vouchers.noEnd}
+          </small>
+        </div>
+      ) : null}
+      <button type="button" className="btn btn--quiet btn--small" onClick={() => setPrinting(true)}>
+        {t.vouchers.print}
+      </button>
+    </>
+  );
+}
+
 /**
  * Task 491: one voucher at the till — what is left, "Zapłać bonem" while it may be used, and the
  * payments made with it.
@@ -112,6 +166,7 @@ function VoucherDetails({
           {info}
         </p>
       ) : null}
+      {voucher.status === 'active' ? <VoucherPrint voucher={voucher} /> : null}
       {voucher.status === 'active' ? (
         <form className="form" onSubmit={(e) => void pay(e)}>
           <div className="row">

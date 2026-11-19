@@ -15,6 +15,7 @@ import { serveApp } from './mobile-app';
  * by the code typed in small letters, takes 120 zł with it and sees 80 zł left in the list
  * (screenshots 491, 491a); then cancels a voucher sold by mistake (screenshot 491b).
  * Task 494: "Pobierz CSV bonów" (screenshot 494).
+ * Task 496: "Drukuj bon" — the card to hand to the client (screenshot 496).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
  * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495);
@@ -115,6 +116,31 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(card.getByText('Dla: Jan Kowalski')).toBeVisible();
   await expect(card.getByText('Bonem jeszcze nie płacono.')).toBeVisible();
   await shot(page, '491');
+
+  // Task 496: "Drukuj bon" — only the card with the salon, the amount, for whom and the code.
+  await page.evaluate(() => {
+    const w = window as unknown as { printed: number };
+    w.printed = 0;
+    window.print = () => {
+      w.printed++;
+    };
+  });
+  await card.getByRole('button', { name: 'Drukuj bon' }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed))
+    .toBe(1);
+  await page.emulateMedia({ media: 'print' });
+  const printed = page.getByTestId('voucher-print');
+  await expect(printed).toBeVisible();
+  await expect(printed.getByText('Bon podarunkowy')).toBeVisible();
+  await expect(printed.getByText(/200,00\s?zł/)).toBeVisible();
+  await expect(printed.getByText(`${code!.slice(0, 4)}-${code!.slice(4)}`)).toBeVisible();
+  await expect(printed.getByText('Dla: Jan Kowalski')).toBeVisible();
+  await shot(page, '496');
+  await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  await page.emulateMedia({ media: 'screen' });
+  await expect(page.locator('html')).not.toHaveClass(/print-voucher/);
+  await expect(printed).toBeHidden();
 
   // More than is left is refused; 120 zł is taken.
   await card.getByLabel('Kwota do zapłaty bonem').fill('250');

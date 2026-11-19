@@ -919,6 +919,8 @@ export const ru: Dict = {
     cancelYes: 'Да, отменить',
     cancelNo: 'Нет',
     cancelled: 'Сертификат {code} отменён.',
+    print: 'Распечатать сертификат',
+    printTitle: 'Подарочный сертификат',
   },
   waitingList: {
     title: 'Лист ожидания',

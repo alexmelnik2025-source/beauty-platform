@@ -3158,3 +3158,56 @@ ul.wish-photos {
   background: var(--paper);
   font: inherit;
 }
+
+/* Task 496: "Drukuj bon" — only the voucher card is printed. */
+.voucher-print {
+  display: none;
+}
+
+@media print {
+  html.print-voucher body * {
+    visibility: hidden;
+  }
+
+  html.print-voucher .voucher-print,
+  html.print-voucher .voucher-print * {
+    visibility: visible;
+  }
+
+  html.print-voucher .voucher-print {
+    display: grid;
+    position: fixed;
+    top: 15mm;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150mm;
+    gap: 4mm;
+    padding: 12mm 10mm;
+    border: 2px solid #000;
+    border-radius: 6mm;
+    color: #000;
+    background: #fff;
+    text-align: center;
+    font-size: 14pt;
+  }
+
+  html.print-voucher .voucher-print__salon {
+    font-size: 18pt;
+  }
+
+  html.print-voucher .voucher-print__title {
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+
+  html.print-voucher .voucher-print__amount {
+    font-size: 34pt;
+    font-weight: 700;
+  }
+
+  html.print-voucher .voucher-print__code {
+    font-family: ui-monospace, monospace;
+    font-size: 24pt;
+    letter-spacing: 0.15em;
+  }
+}

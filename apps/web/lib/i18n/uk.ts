@@ -913,6 +913,8 @@ export const uk: Dict = {
     cancelYes: 'Так, скасувати',
     cancelNo: 'Ні',
     cancelled: 'Сертифікат {code} скасовано.',
+    print: 'Надрукувати сертифікат',
+    printTitle: 'Подарунковий сертифікат',
   },
   waitingList: {
     title: 'Лист очікування',

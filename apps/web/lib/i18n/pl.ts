@@ -913,6 +913,8 @@ export const pl = {
     cancelYes: 'Tak, anuluj',
     cancelNo: 'Nie',
     cancelled: 'Bon {code} anulowany.',
+    print: 'Drukuj bon',
+    printTitle: 'Bon podarunkowy',
   },
   waitingList: {
     title: 'Lista oczekujących',
