@@ -1951,6 +1951,46 @@ describe('salon report', () => {
     });
   });
 
+  it('"Starczy na": pieces sold at the visits of the last 30 days, in the products list (task 461)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, stockQuantity: 6 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 2 });
+    await add({ name: 'Żel', priceGrosze: 2500 });
+    const listed = async (auth = owner.auth) =>
+      (await ctx.http().get(`${base}/products`).set(auth).expect(200)).body as {
+        sold30Days: { productId: string; quantity: number }[];
+      };
+    expect((await listed()).sold30Days).toEqual([]);
+
+    const sell = async (date: string, productId: string, quantity: number) => {
+      const id = await visit({ date, status: 'completed', paid: true });
+      await ctx
+        .http()
+        .post(`${base}/appointments/${id}/products`)
+        .set(owner.auth)
+        .send({ productId, quantity })
+        .expect(201);
+    };
+    await sell(addDays(today, -2), pomade.id, 2);
+    await sell(addDays(today, -20), pomade.id, 1);
+    await sell(addDays(today, -5), wax.id, 1);
+    // A sale of 40 days ago is not counted.
+    await sell(addDays(today, -40), wax.id, 1);
+
+    const expected = [
+      { productId: pomade.id, quantity: 3 },
+      { productId: wax.id, quantity: 1 },
+    ].sort((a, b) => a.productId.localeCompare(b.productId));
+    const res = await ctx.http().get(`${base}/products`).set(owner.auth).expect(200);
+    expect(registeredResponseSchema('ProductList').safeParse(res.body).error).toBeUndefined();
+    expect(res.body.sold30Days).toEqual(expected);
+    // Everyone in the salon reads the list, so a specialist sees it too.
+    expect((await listed(kasiaUser.auth)).sold30Days).toEqual(expected);
+  });
+
   it('"Różnice inwentaryzacji": pieces missing or extra at the stocktakes of the period (task 459)', async () => {
     const add = async (body: object) =>
       (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {

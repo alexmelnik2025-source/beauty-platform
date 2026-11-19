@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api, apiResponse } from '@/lib/api';
-import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
@@ -55,6 +55,8 @@ export function ProductsSection({ base }: { base: string }) {
   const p = t.products;
   const { location } = useSession();
   const [products, setProducts] = useState<Product[] | null>(null);
+  /** Task 461: pieces sold at the visits of the last 30 days, by product. */
+  const [sold30, setSold30] = useState<Map<string, number>>(new Map());
   const [drafts, setDrafts] = useState<
     Record<string, { name: string; price: string; cost: string; stock: string; low: string }>
   >({});
@@ -94,7 +96,9 @@ export function ProductsSection({ base }: { base: string }) {
 
   const load = useCallback(async () => {
     try {
-      show((await api<ProductList>(`${base}/products`)).products);
+      const list = await api<ProductList>(`${base}/products`);
+      setSold30(new Map(list.sold30Days.map((x) => [x.productId, x.quantity])));
+      show(list.products);
     } catch (err) {
       setError(errorText(t, err));
     }
@@ -173,6 +177,21 @@ export function ProductsSection({ base }: { base: string }) {
   const stockCost = counted.every((x) => x.purchasePriceGrosze !== null)
     ? counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * (x.purchasePriceGrosze ?? 0), 0)
     : null;
+  /** Task 461: "Sprzedano w 30 dni: 3 szt. · starczy na ~20 dni" — how fast it sells. */
+  const pace = (x: Product): string | null => {
+    const n = sold30.get(x.id);
+    if (!n) return null;
+    const days =
+      x.stockQuantity !== null && x.stockQuantity > 0
+        ? Math.floor((x.stockQuantity * 30) / n)
+        : null;
+    return [
+      fill(p.sold30, { n: String(n) }),
+      days === null ? '' : fill(p.lastsDays, { days: String(days) }),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
   const canAdd =
     name.trim() !== '' &&
@@ -385,6 +404,11 @@ export function ProductsSection({ base }: { base: string }) {
                 ) : x.lowStock ? (
                   <span className="badge" data-testid="product-low">
                     {p.lowBadge}
+                  </span>
+                ) : null}
+                {pace(x) ? (
+                  <span className="small muted" data-testid="product-pace">
+                    {pace(x)}
                   </span>
                 ) : null}
                 <button

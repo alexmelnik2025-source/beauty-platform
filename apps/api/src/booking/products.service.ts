@@ -40,6 +40,8 @@ function movement(
   });
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /** Task 448: only owners and managers see what the salon pays for its products. */
 const seesPurchasePrice = (m: MembershipContext) => m.role !== 'staff';
 
@@ -101,7 +103,24 @@ export class ProductsService {
       orderBy: [{ active: 'desc' }, { name: 'asc' }, { id: 'asc' }],
     });
     const purchasePrice = seesPurchasePrice(m);
-    return { products: products.map((p) => toProduct(p, purchasePrice)) };
+    // Task 461: how fast each product sells — the visits of the last 30 days, up to now.
+    const now = new Date();
+    const sold = await this.prisma.productSale.groupBy({
+      by: ['productId'],
+      where: {
+        locationId,
+        productId: { not: null },
+        appointment: { startAt: { gte: new Date(now.getTime() - 30 * DAY_MS), lte: now } },
+      },
+      _sum: { quantity: true },
+    });
+    return {
+      products: products.map((p) => toProduct(p, purchasePrice)),
+      sold30Days: sold
+        .filter((s) => s.productId !== null && (s._sum.quantity ?? 0) > 0)
+        .map((s) => ({ productId: s.productId!, quantity: s._sum.quantity ?? 0 }))
+        .sort((a, b) => a.productId.localeCompare(b.productId)),
+    };
   }
 
   /** Task 436: the list as a CSV for ordering from the supplier (owners and managers). */

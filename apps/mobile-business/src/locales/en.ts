@@ -682,6 +682,8 @@ export const en: Dictionary = {
     stockIn: 'In stock (pcs, empty — not counted)',
     stockInvalid: 'Enter the number of pieces or leave it empty.',
     stockLeft: '{n} pcs left',
+    sold30: 'Sold in 30 days: {n} pcs',
+    lastsDays: 'lasts ~{days} days',
     stockNone: 'Out of stock',
     lowIn: 'Running low at (pcs, empty — no warning)',
     lowBadge: 'Running low',

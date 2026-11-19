@@ -196,6 +196,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByLabel('W magazynie — Pomada matowa')).toHaveValue('0');
   await expect(products.getByTestId('product-out')).toHaveText('Brak w magazynie');
   await shot(page, '430-owner-stock');
+  // Task 461: how fast it sells — two pomades at yesterday's visit, none left (no "starczy na").
+  await expect(
+    products
+      .getByTestId('product-row')
+      .filter({ has: page.getByLabel('Nazwa — Pomada matowa') })
+      .getByTestId('product-pace'),
+  ).toHaveText('Sprzedano w 30 dni: 2 szt.');
+  await expect(products.getByTestId('product-pace')).toHaveCount(1);
+  await shot(page, '461-owner-sold-30-days');
 
   // Task 434: "Kończy się przy" — three shampoos are already few; both go to "Do zamówienia".
   const shampooRow = products
@@ -471,6 +480,14 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appList.getByText('zostało 6 szt.', { exact: true })).toBeVisible();
     await appList.getByText('zostało 6 szt.', { exact: true }).scrollIntoViewIfNeeded();
     await shot(app, '439-business-app-restock');
+    // Task 461: six pomades at two sold in 30 days last ~90 days; two shampoos at one — ~60.
+    await expect(
+      appList.getByText('Sprzedano w 30 dni: 2 szt. · starczy na ~90 dni', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      appList.getByText('Sprzedano w 30 dni: 1 szt. · starczy na ~60 dni', { exact: true }),
+    ).toBeVisible();
+    await shot(app, '461-a-business-app-sold-30-days');
     // Task 441: "Historia" in the app — the cabinet's sale and correction, the delivery.
     await appList.getByRole('button', { name: 'Historia magazynu — Pomada matowa' }).click();
     const appHistory = appList.getByTestId('stock-history');

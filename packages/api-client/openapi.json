@@ -21606,10 +21606,34 @@
               "additionalProperties": false
             },
             "description": "The salon’s products, sold ones first, then by name"
+          },
+          "sold30Days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Pieces sold"
+                }
+              },
+              "required": [
+                "productId",
+                "quantity"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 461: pieces sold at the visits of the last 30 days, by product (for \"Starczy na ~N dni\"); products without sales are left out"
           }
         },
         "required": [
-          "products"
+          "products",
+          "sold30Days"
         ],
         "additionalProperties": false
       },

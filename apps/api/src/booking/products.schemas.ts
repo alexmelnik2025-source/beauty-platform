@@ -108,6 +108,16 @@ export const productListSchema = responseSchema(
   'ProductList',
   z.strictObject({
     products: z.array(product).describe('The salon’s products, sold ones first, then by name'),
+    sold30Days: z
+      .array(
+        z.strictObject({
+          productId: z.string(),
+          quantity: z.number().int().describe('Pieces sold'),
+        }),
+      )
+      .describe(
+        'Task 461: pieces sold at the visits of the last 30 days, by product (for "Starczy na ~N dni"); products without sales are left out',
+      ),
   }),
 );
 

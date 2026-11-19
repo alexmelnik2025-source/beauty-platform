@@ -3288,3 +3288,12 @@ extra, missingGrosze, extraGrosze }] }`: сколько штук не хвати
 попадает (это `correction`). Только в отчёте всего салона; в «своём» отчёте мастера — нули. Код —
 `ReportsService.stocktakes`, тест — `apps/api/test/reports.spec.ts`. Раздел «Różnice inwentaryzacji: brakuje 1 szt.
 (80,00 zł), nadwyżka 0 szt. (0,00 zł)» в «Raporty» кабинета и бизнес-приложения. e2e `products.spec.ts`, скриншоты 459.
+
+## «Starczy na ~N dni» в списке товаров (задача 461)
+
+`sold30Days` в `GET …/products` — `[{ productId, quantity }]`: сколько штук каждого товара продано на визитах
+последних 30 дней (визит начался не раньше, чем 30 суток назад, и не позже текущего момента); товары без продаж не
+попадают. Список видят все в салоне, поэтому и `sold30Days` тоже. В «Usługi» → «Produkty» кабинета
+(`ProductsSection.tsx`) и бизнес-приложения (`ProductListSection.tsx`) у товара строка «Sprzedano w 30 dni: 2 szt. ·
+starczy na ~90 dni» — остаток × 30 / проданное, вниз до целого; без остатка или без учёта — только «Sprzedano…». Тест —
+`apps/api/test/reports.spec.ts`, e2e `products.spec.ts`, скриншоты 461.

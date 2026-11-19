@@ -41,6 +41,8 @@ export function ProductListSection(props: {
   const { api, t, salon } = props;
   const p = t.products;
   const [products, setProducts] = useState<Product[] | null>(null);
+  /** Task 461: pieces sold at the visits of the last 30 days, by product. */
+  const [sold30, setSold30] = useState<Map<string, number>>(new Map());
   const [editId, setEditId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: '', price: '', cost: '', stock: '', low: '' });
   const [askRemove, setAskRemove] = useState<string | null>(null);
@@ -61,9 +63,27 @@ export function ProductListSection(props: {
   const [stocktakeDone, setStocktakeDone] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
+  /** Task 461: "Sprzedano w 30 dni: 3 szt. · starczy na ~20 dni" — how fast it sells. */
+  const pace = (x: Product): string | null => {
+    const n = sold30.get(x.id);
+    if (!n) return null;
+    const days =
+      x.stockQuantity !== null && x.stockQuantity > 0
+        ? Math.floor((x.stockQuantity * 30) / n)
+        : null;
+    return [
+      fill(p.sold30, { n: String(n) }),
+      days === null ? '' : fill(p.lastsDays, { days: String(days) }),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
+
   const load = useCallback(async () => {
     try {
-      setProducts((await api.products(salon.orgId, salon.locationId)).products);
+      const list = await api.products(salon.orgId, salon.locationId);
+      setSold30(new Map(list.sold30Days.map((x) => [x.productId, x.quantity])));
+      setProducts(list.products);
     } catch (e) {
       setError(errorText(e, t));
     }
@@ -312,6 +332,11 @@ export function ProductListSection(props: {
             ) : (
               <Text style={styles.warn}>{p.stockNone}</Text>
             )}
+            {pace(x) ? (
+              <Text style={styles.muted} testID="product-pace">
+                {pace(x)}
+              </Text>
+            ) : null}
             {deliveryId === x.id ? (
               <View style={{ gap: 6, marginTop: 6 }}>
                 <TextInput

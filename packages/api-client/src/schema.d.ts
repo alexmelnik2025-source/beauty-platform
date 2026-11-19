@@ -5570,6 +5570,12 @@ export interface components {
                 /** @description "Cena zakupu" — what the salon pays for one (task 448); null = not written, and always null for a specialist */
                 purchasePriceGrosze: number | null;
             }[];
+            /** @description Task 461: pieces sold at the visits of the last 30 days, by product (for "Starczy na ~N dni"); products without sales are left out */
+            sold30Days: {
+                productId: string;
+                /** @description Pieces sold */
+                quantity: number;
+            }[];
         };
         /** @description An appointment as the client sees it */
         PublicAppointment: {

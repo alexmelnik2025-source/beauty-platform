@@ -1472,6 +1472,8 @@ export const en: Dict = {
     pieces: 'pcs',
     stockNew: 'In stock (pcs, empty — not counted)',
     stockLeft: '{n} pcs left',
+    sold30: 'Sold in 30 days: {n} pcs',
+    lastsDays: 'lasts ~{days} days',
     stockNone: 'Out of stock',
     low: 'Running low at',
     lowNew: 'Running low at (pcs, empty — no warning)',

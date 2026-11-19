@@ -1469,6 +1469,8 @@ export const pl = {
     pieces: 'szt.',
     stockNew: 'W magazynie (szt., puste — nie liczymy)',
     stockLeft: 'zostało {n} szt.',
+    sold30: 'Sprzedano w 30 dni: {n} szt.',
+    lastsDays: 'starczy na ~{days} dni',
     stockNone: 'Brak w magazynie',
     low: 'Kończy się przy',
     lowNew: 'Kończy się przy (szt., puste — bez ostrzeżenia)',

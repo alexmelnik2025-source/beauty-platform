@@ -678,6 +678,8 @@ export const pl = {
     stockIn: 'W magazynie (szt., puste — nie liczymy)',
     stockInvalid: 'Wpisz liczbę sztuk albo zostaw puste.',
     stockLeft: 'zostało {n} szt.',
+    sold30: 'Sprzedano w 30 dni: {n} szt.',
+    lastsDays: 'starczy na ~{days} dni',
     stockNone: 'Brak w magazynie',
     lowIn: 'Kończy się przy (szt., puste — bez ostrzeżenia)',
     lowBadge: 'Kończy się',

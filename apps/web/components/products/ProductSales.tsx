@@ -40,7 +40,7 @@ export function ProductSales({
       const [list, sold] = await Promise.all([
         canChange
           ? api<ProductList>(`${base}/products`)
-          : Promise.resolve<ProductList>({ products: [] }),
+          : Promise.resolve<ProductList>({ products: [], sold30Days: [] }),
         api<VisitProductSales>(url),
       ]);
       setProducts(list.products.filter((x) => x.active));

@@ -39,7 +39,7 @@ export function ProductSalesSection(props: {
       const [list, sold] = await Promise.all([
         canChange
           ? api.products(salon.orgId, salon.locationId)
-          : Promise.resolve<ProductList>({ products: [] }),
+          : Promise.resolve<ProductList>({ products: [], sold30Days: [] }),
         api.productSales(salon.orgId, salon.locationId, appointmentId),
       ]);
       setProducts(list.products.filter((x) => x.active));
