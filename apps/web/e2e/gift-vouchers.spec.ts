@@ -18,11 +18,13 @@ import { serveApp } from './mobile-app';
  * Task 496: "Drukuj bon" — the card to hand to the client (screenshot 496).
  * Task 499: "Zmień bon" — a last day and the names fixed (screenshot 499).
  * Tasks 501–502: "Kończą się w ciągu 30 dni", the list filtered and searched (screenshots 501, 502).
+ * Task 531: "Cofnij płatność" — a payment noted by mistake is undone (screenshot 531).
  * Task 493: the vouchers in the cabinet's report (screenshot 493).
  * Task 492: the same in the business app — the code checked, a payment taken and a new voucher
  * sold on the phone (screenshots 492, 492a); task 495: "Pobierz CSV bonów" there (screenshot 495);
  * task 497: "Wyślij bon" as a message (screenshot 497); task 500: "Zmień bon" (screenshot 500);
- * tasks 501, 503: "Wkrótce wygasa" and "Pokaż" in the list (screenshots 501a, 503).
+ * tasks 501, 503: "Wkrótce wygasa" and "Pokaż" in the list (screenshots 501a, 503); task 532:
+ * "Cofnij płatność" (screenshot 532).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -158,6 +160,20 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(card.getByText(/Strzyżenie i broda/)).toBeVisible();
   await expect(list.getByText(/Do wykorzystania na ważnych bonach: 130,00\s?zł/)).toBeVisible();
   await shot(page, '491a');
+
+  // Task 531: a payment noted by mistake is undone — the amount goes back to the voucher.
+  await card.getByLabel('Kwota do zapłaty bonem').fill('30');
+  await card.getByRole('button', { name: 'Zapłać bonem' }).click();
+  await expect(card.getByRole('status')).toHaveText(/Zostało 50,00\s?zł\./);
+  const wrong = card.getByRole('listitem').filter({ hasText: /\b30,00/ });
+  await wrong.getByRole('button', { name: 'Cofnij płatność' }).click();
+  await wrong.getByRole('button', { name: 'Tak, cofnij' }).click();
+  await expect(card.getByRole('status')).toHaveText(
+    /Płatność 30,00\s?zł cofnięta — na bonie zostało 80,00\s?zł\./,
+  );
+  await expect(wrong.getByText(/Cofnięta/)).toBeVisible();
+  await expect(wrong.getByRole('button', { name: 'Cofnij płatność' })).toHaveCount(0);
+  await shot(page, '531');
 
   // Task 499: "Zmień bon" — a last day next summer, both names; the amount stays.
   const year = new Date().getFullYear() + 1;
@@ -303,6 +319,21 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
       phone.getByText(/Zapłacono bonem 50,00\s?zł\. Zostało 100,00\s?zł\./),
     ).toBeVisible();
     await shot(phone, '492');
+
+    // Task 532: a payment of 20 zł noted by mistake is undone — the amount goes back.
+    await phone.getByLabel('Kwota do zapłaty bonem').fill('20');
+    await phone.getByRole('button', { name: 'Zapłać bonem' }).click();
+    await expect(
+      phone.getByText(/Zapłacono bonem 20,00\s?zł\. Zostało 80,00\s?zł\./),
+    ).toBeVisible();
+    await phone.getByRole('button', { name: /^Cofnij płatność 20,00/ }).click();
+    await phone.getByRole('button', { name: 'Tak, cofnij' }).click();
+    await expect(
+      phone.getByText(/Płatność 20,00\s?zł cofnięta — na bonie zostało 100,00\s?zł\./),
+    ).toBeVisible();
+    await expect(phone.getByText(/^Cofnięta /)).toBeVisible();
+    await expect(phone.getByRole('button', { name: /^Cofnij płatność 20,00/ })).toHaveCount(0);
+    await shot(phone, '532');
 
     // Task 497: "Wyślij bon" — the voucher as a message (in the web preview it is copied).
     await phone.getByRole('button', { name: 'Wyślij bon' }).click();

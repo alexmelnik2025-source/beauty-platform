@@ -71,6 +71,26 @@ function VoucherCard(props: {
   const [editUntil, setEditUntil] = useState('');
   const [editRecipient, setEditRecipient] = useState('');
   const [editNote, setEditNote] = useState('');
+  // Task 532: the payment the owner or a manager is asked about before undoing it.
+  const [undoing, setUndoing] = useState<string | null>(null);
+
+  async function undo(useId: string, amountGrosze: number) {
+    setError('');
+    setInfo('');
+    setBusy(true);
+    try {
+      const next = await api.undoGiftVoucherUse(salon.orgId, salon.locationId, voucher.id, useId);
+      props.onChange(next);
+      setUndoing(null);
+      setInfo(
+        fill(v.undone, { amount: money(amountGrosze), left: money(next.voucher.balanceGrosze) }),
+      );
+    } catch (e) {
+      setError(voucherErrorText(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   function startEdit() {
     setError('');
@@ -190,15 +210,50 @@ function VoucherCard(props: {
         <Text style={styles.muted}>{v.noUses}</Text>
       ) : (
         uses.map((u) => (
-          <Text key={u.id} style={styles.muted}>
-            {fill(v.useLine, {
-              amount: money(u.amountGrosze),
-              date: dayTitle(u.date, locale),
-              time: u.time,
-            })}
-            {u.byName ? ` · ${u.byName}` : ''}
-            {u.note ? ` · ${u.note}` : ''}
-          </Text>
+          <View key={u.id} style={styles.use}>
+            <Text style={[styles.muted, u.undoneDate ? styles.undone : null]}>
+              {fill(v.useLine, {
+                amount: money(u.amountGrosze),
+                date: dayTitle(u.date, locale),
+                time: u.time,
+              })}
+              {u.byName ? ` · ${u.byName}` : ''}
+              {u.note ? ` · ${u.note}` : ''}
+            </Text>
+            {u.undoneDate ? (
+              <Text style={styles.text}>
+                {fill(v.undoneMark, { date: dayTitle(u.undoneDate, locale) })}
+                {u.undoneByName ? ` · ${u.undoneByName}` : ''}
+              </Text>
+            ) : manager && voucher.status !== 'cancelled' ? (
+              undoing === u.id ? (
+                <View style={styles.confirm}>
+                  <Text style={styles.text}>
+                    {fill(v.undoAsk, { amount: money(u.amountGrosze) })}
+                  </Text>
+                  <View style={styles.buttons}>
+                    <Button
+                      kind="secondary"
+                      label={v.undoYes}
+                      busy={busy}
+                      onPress={() => void undo(u.id, u.amountGrosze)}
+                    />
+                    <Button kind="link" label={v.undoNo} onPress={() => setUndoing(null)} />
+                  </View>
+                </View>
+              ) : (
+                <Button
+                  kind="link"
+                  label={v.undoUse}
+                  a11yLabel={`${v.undoUse} ${money(u.amountGrosze)}`}
+                  onPress={() => {
+                    setInfo('');
+                    setUndoing(u.id);
+                  }}
+                />
+              )
+            ) : null}
+          </View>
         ))
       )}
     </Card>
@@ -509,5 +564,7 @@ const styles = StyleSheet.create({
   row: { paddingVertical: 10, gap: 4 },
   divider: { borderTopWidth: 1, borderTopColor: colors.line },
   confirm: { gap: 6 },
+  use: { gap: 2 },
+  undone: { textDecorationLine: 'line-through' },
   buttons: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
 });

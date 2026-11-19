@@ -918,6 +918,22 @@ export class BusinessApi {
   }
 
   /**
+   * Task 532: "Cofnij płatność" — a payment noted by mistake; the amount goes back to the voucher
+   * (owners and managers; 409 VOUCHER_CANCELLED).
+   */
+  undoGiftVoucherUse(
+    orgId: string,
+    locationId: string,
+    voucherId: string,
+    useId: string,
+  ): Promise<GiftVoucherDetails> {
+    return this.authed<GiftVoucherDetails>(
+      'POST',
+      `${voucherPath(orgId, locationId)}/${voucherId}/uses/${useId}/undo`,
+    );
+  }
+
+  /**
    * Task 500: "Zmień bon" — the last day (null = no end), who it is for and the note; not the
    * amount (owners and managers; 400 VOUCHER_DATE_PAST, 409 VOUCHER_CANCELLED).
    */

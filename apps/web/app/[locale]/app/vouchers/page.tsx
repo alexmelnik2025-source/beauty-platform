@@ -243,6 +243,32 @@ function VoucherDetails({
   const [info, setInfo] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   const { voucher, uses } = details;
+  // Task 531: the payment the owner or a manager is asked about before undoing it.
+  const [undoing, setUndoing] = useState<string | null>(null);
+  const canUndo = role !== 'staff' && voucher.status !== 'cancelled';
+
+  async function undo(useId: string, amountGrosze: number) {
+    setError('');
+    setInfo('');
+    if (!lock()) return;
+    try {
+      const next = await api<GiftVoucherDetails>(`${base}/${voucher.id}/uses/${useId}/undo`, {
+        method: 'POST',
+      });
+      onChange(next);
+      setUndoing(null);
+      setInfo(
+        fill(t.vouchers.undone, {
+          amount: money(amountGrosze),
+          left: money(next.voucher.balanceGrosze),
+        }),
+      );
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      unlock();
+    }
+  }
 
   async function pay(e: FormEvent) {
     e.preventDefault();
@@ -326,13 +352,55 @@ function VoucherDetails({
           {uses.map((u) => (
             <li key={u.id} className="list-row">
               <span className="grow">
-                <strong>{money(u.amountGrosze)}</strong>
+                {u.undoneDate ? (
+                  <s>{money(u.amountGrosze)}</s>
+                ) : (
+                  <strong>{money(u.amountGrosze)}</strong>
+                )}
                 <span className="small muted">
                   {formatDay(u.date, tag, { short: true })}, {u.time}
                   {u.byName ? ` · ${u.byName}` : ''}
                   {u.note ? ` · ${u.note}` : ''}
                 </span>
+                {u.undoneDate ? (
+                  <span className="small">
+                    {t.vouchers.undoneMark} {formatDay(u.undoneDate, tag, { short: true })}
+                    {u.undoneByName ? ` · ${u.undoneByName}` : ''}
+                  </span>
+                ) : null}
               </span>
+              {canUndo && !u.undoneDate ? (
+                undoing === u.id ? (
+                  <span
+                    className="row"
+                    role="group"
+                    aria-label={fill(t.vouchers.undoAsk, { amount: money(u.amountGrosze) })}
+                  >
+                    <span className="small">
+                      {fill(t.vouchers.undoAsk, { amount: money(u.amountGrosze) })}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn--danger btn--small"
+                      disabled={busy}
+                      onClick={() => void undo(u.id, u.amountGrosze)}
+                    >
+                      {t.vouchers.undoYes}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--quiet btn--small"
+                      onClick={() => setUndoing(null)}
+                    >
+                      {t.vouchers.undoNo}
+                    </button>
+                  </span>
+                ) : (
+                  <button type="button" className="link-btn small" onClick={() => setUndoing(u.id)}>
+                    {t.vouchers.undoUse}
+                  </button>
+                )
+              ) : null}
             </li>
           ))}
         </ul>
