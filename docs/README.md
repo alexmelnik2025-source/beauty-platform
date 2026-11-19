@@ -3315,3 +3315,21 @@ starczy na ~90 dni» — остаток × 30 / проданное, вниз д�
 что заказать. В «CSV stanu magazynowego» поставщик — последняя колонка; рядом с кнопкой CSV можно выбрать одного
 поставщика, и в файле будут только его товары (API: `supplier` у товара, `GET …/products/export.csv?supplier=…`,
 сравнение без учёта регистра).
+
+## «Do zamówienia» по поставщикам (задачи 465–466)
+
+Строка «Do zamówienia» над списком «Usługi» → «Produkty» в кабинете и бизнес-приложении группирует товары, которые
+пора заказать, по «Dostawca»: «Do zamówienia: Hairgum — Pomada matowa (Brak w magazynie); bez dostawcy — Szampon
+(zostało 3 szt.)». Поставщики сравниваются без учёта регистра, идут по алфавиту, товары без поставщика — в конце. Если
+ни у одного такого товара поставщик не указан — строка как раньше. Без нового API: функция `toOrderNames`
+(`apps/mobile-business/src/stock.ts`, unit-тест `test/stock.test.ts`; та же в `apps/web/lib/to-order.ts`). e2e
+`products.spec.ts`, скриншоты 465, 466.
+
+## «Dostawy na magazyn» по поставщикам (задачи 467–468)
+
+У `deliveries` в `GET …/reports` есть `suppliers` — `[{ supplier, quantity, costGrosze }]`: те же пришедшие штуки,
+сгруппированные по сегодняшнему «Dostawca» товара (без учёта регистра; `supplier: null` — товары без поставщика,
+всегда последней строкой), больше штук — выше; `costGrosze` — по сегодняшним закупочным ценам, `null`, если ни у одного
+товара группы её нет. В «своём» отчёте мастера — пусто. Тест — `apps/api/test/reports.spec.ts`. В «Raporty» кабинета и
+бизнес-приложения под «Dostawy na magazyn» — «Według dostawców: Hairgum 6 szt. · zakup 120,00 zł; bez dostawcy 4 szt.»
+(только когда хотя бы у одного товара указан поставщик). e2e `products.spec.ts`, скриншот 468.
