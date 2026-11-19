@@ -715,6 +715,14 @@ export const en: Dictionary = {
     csvToOrder: 'Only to order',
     supplierHint:
       'Supplier: whom the salon orders the product from — the whole team sees it; the "Stock CSV" can be downloaded for one supplier.',
+    barcode: 'Barcode',
+    barcodeNew: 'Barcode (empty — not written)',
+    barcodeInvalid: 'Code: 3–32 digits, letters or “-”.',
+    barcodeHint:
+      'Barcode: type the code on the package (e.g. EAN) — then find the product by typing the code in “Search”. One code — one product of the salon.',
+    barcodeTaken: 'Another product of the salon already has this barcode.',
+    search: 'Search: name or barcode',
+    searchNone: 'Nothing found — check the name or the code.',
     stockCostValue: 'At purchase prices: {amount}.',
     costHint:
       'Purchase price: what the salon pays the supplier for one — only the owner and managers see it; the reports count the margin from it.',

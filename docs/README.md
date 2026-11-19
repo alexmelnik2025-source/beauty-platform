@@ -3433,3 +3433,17 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   открывает карточку бона (оплата, «Wyślij bon», «Zmień bon») без ввода кода (`api.giftVoucher`).
 - Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-business/test/vouchers.test.ts`, e2e `gift-vouchers.spec.ts`
   — скриншоты 501, 501a, 502, 503.
+
+## «Kod kreskowy» и «Szukaj» в товарах (задачи 520–522)
+
+- `barcode` у товара (`POST/PATCH …/products`, владелец/менеджер; видят все в салоне): код с упаковки (EAN или свой),
+  3–32 цифры, буквы или «-»; пробелы сервер убирает, буквы делает заглавными. Один код — один товар в салоне
+  (уникальный индекс `product(location_id, barcode)`), иначе 409 `BARCODE_TAKEN`; в другом салоне тот же код можно.
+  `null` — стереть.
+- Кабинет («Usługi» → «Produkty»): поле «Kod kreskowy» у каждого товара и у нового, поле «Szukaj: nazwa lub kod
+  kreskowy» над списком — фильтр по части названия или кода (сканер штрихкодов печатает код как клавиатура, Enter не
+  отправляет форму). Логика — `apps/web/lib/barcode.ts`.
+- Бизнес-приложение: то же в «Usługi» → «Produkty» (`apps/mobile-business/src/barcode.ts`, сообщение для
+  `BARCODE_TAKEN`). Сканирование камерой телефона — не делали (нужна новая зависимость `expo-camera`).
+- Тесты: `apps/api/test/reports.spec.ts` («Kod kreskowy»), `apps/mobile-business/test/barcode.test.ts`, e2e
+  `products.spec.ts` (скриншоты 521, 522).

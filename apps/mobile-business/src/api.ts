@@ -706,11 +706,13 @@ export class BusinessApi {
     purchasePriceGrosze: number | null = null,
     /** Task 464: "Dostawca"; null = not written. */
     supplier: string | null = null,
+    /** Task 522: "Kod kreskowy"; null = not written. */
+    barcode: string | null = null,
   ): Promise<Product> {
     return this.authed<Product>(
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
-      { name, priceGrosze, stockQuantity, lowStockAt, purchasePriceGrosze, supplier },
+      { name, priceGrosze, stockQuantity, lowStockAt, purchasePriceGrosze, supplier, barcode },
     );
   }
 
@@ -793,6 +795,7 @@ export class BusinessApi {
       lowStockAt?: number | null;
       purchasePriceGrosze?: number | null;
       supplier?: string | null;
+      barcode?: string | null;
     },
   ): Promise<Product> {
     return this.authed<Product>(

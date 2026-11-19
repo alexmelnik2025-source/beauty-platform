@@ -711,6 +711,14 @@ export const pl = {
     csvToOrder: 'Tylko do zamówienia',
     supplierHint:
       'Dostawca: od kogo salon zamawia produkt — widzi go cały zespół; „CSV stanu magazynowego” można pobrać dla jednego dostawcy.',
+    barcode: 'Kod kreskowy',
+    barcodeNew: 'Kod kreskowy (puste — nie wpisujemy)',
+    barcodeInvalid: 'Kod: 3–32 cyfry, litery lub „-”.',
+    barcodeHint:
+      'Kod kreskowy: wpisz kod z opakowania (np. EAN) — potem znajdziesz produkt, wpisując kod w „Szukaj”. Jeden kod — jeden produkt salonu.',
+    barcodeTaken: 'Ten kod kreskowy ma już inny produkt salonu.',
+    search: 'Szukaj: nazwa lub kod kreskowy',
+    searchNone: 'Nic nie znaleziono — sprawdź nazwę albo kod.',
     stockCostValue: 'W cenach zakupu: {amount}.',
     costHint:
       'Cena zakupu: ile salon płaci dostawcy za sztukę — widzą ją tylko właściciel i menedżer; z niej liczymy marżę w raportach.',

@@ -118,7 +118,11 @@ export class ProductsController {
 
   @Post('products')
   @RequireRoles('owner', 'manager')
-  @ApiOperation({ summary: 'Add a product to the list' })
+  @ApiOperation({
+    summary: 'Add a product to the list',
+    description:
+      'A barcode ("Kod kreskowy", task 520) another product of the salon already has → 409 BARCODE_TAKEN.',
+  })
   @ApiZodBody(createProductSchema)
   @ApiZodResponse(productSchema, HttpStatus.CREATED)
   create(
@@ -134,7 +138,8 @@ export class ProductsController {
   @RequireRoles('owner', 'manager')
   @ApiOperation({
     summary: 'Change a product (name, price, sold or not)',
-    description: 'Past sales keep the name and price they had.',
+    description:
+      'Past sales keep the name and price they had. A barcode ("Kod kreskowy", task 520) another product of the salon already has → 409 BARCODE_TAKEN.',
   })
   @ApiZodBody(updateProductSchema)
   @ApiZodResponse(productSchema)

@@ -23,6 +23,7 @@ export const pl = {
     WAITLIST_LIMIT: 'Możesz czekać najwyżej na 3 dni w tym salonie naraz.',
     WAITLIST_DATE: 'Wybierz dzień od dziś do ostatniego dnia, na który salon przyjmuje rezerwacje.',
     NOT_COMPLETED: 'Najpierw oznacz, że klient przyszedł.',
+    BARCODE_TAKEN: 'Ten kod kreskowy ma już inny produkt salonu.',
     OUT_OF_STOCK: 'Za mało sztuk w magazynie — popraw stan w „Produkty”.',
     VOUCHER_BALANCE: 'Na bonie zostało mniej — wpisz kwotę nie większą niż pozostała.',
     VOUCHER_EXPIRED: 'Ten bon jest już nieważny.',
@@ -1562,6 +1563,13 @@ export const pl = {
     csvToOrder: 'Tylko do zamówienia',
     supplierHint:
       'Dostawca: od kogo salon zamawia produkt — widzi go cały zespół; „CSV stanu magazynowego” można pobrać dla jednego dostawcy.',
+    barcode: 'Kod kreskowy',
+    barcodeNew: 'Kod kreskowy (puste — nie wpisujemy)',
+    barcodeHint:
+      'Kod kreskowy: wpisz albo zeskanuj czytnikiem kod z opakowania (np. EAN) — potem znajdziesz produkt, wpisując lub skanując kod w „Szukaj”. Jeden kod — jeden produkt salonu.',
+    search: 'Szukaj: nazwa lub kod kreskowy',
+    searchNone: 'Nic nie znaleziono — sprawdź nazwę albo kod.',
+    searchClear: 'Wyczyść',
     costNew: 'Cena zakupu (puste — nie wpisujemy)',
     stockCostValue: 'W cenach zakupu: {amount}.',
     costHint:

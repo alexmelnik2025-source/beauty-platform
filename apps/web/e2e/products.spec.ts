@@ -22,7 +22,8 @@ import { serveApp } from './mobile-app';
  * Task 436–441: "CSV stanu magazynowego" (437), "Dostawa" (438, 439) and "Historia magazynu" (441);
  * task 444–447: "Odpis" and "Odpisy z magazynu" in the reports; task 452–453: "Dostawy na magazyn";
  * task 455: "CSV historii magazynu"
- * in the cabinet and the business app.
+ * in the cabinet and the business app; task 521–522: "Kod kreskowy" and "Szukaj" in the cabinet (521)
+ * and the business app (522).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -257,6 +258,25 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(supplierFile).not.toContain('Szampon');
   await products.getByLabel('Dostawca w pliku CSV').scrollIntoViewIfNeeded();
   await shot(page, '463-owner-supplier');
+  // Task 521: "Kod kreskowy" — the code from the pomade's package; "Szukaj" finds it by the code
+  // (a scanner types it like a keyboard, with spaces or not), and says when nothing matches.
+  await products.getByLabel('Kod kreskowy — Pomada matowa').fill('5901234 123457');
+  await pomadeRow.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(products.getByLabel('Kod kreskowy — Pomada matowa')).toHaveValue('5901234123457');
+  await products.getByTestId('products-search').fill('5901234123457');
+  await expect(products.getByTestId('product-row')).toHaveCount(1);
+  await expect(products.getByLabel('Nazwa — Pomada matowa')).toBeVisible();
+  await products.getByTestId('products-search').scrollIntoViewIfNeeded();
+  await shot(page, '521-owner-barcode-search');
+  await products.getByTestId('products-search').fill('szamp');
+  await expect(products.getByTestId('product-row')).toHaveCount(1);
+  await expect(products.getByLabel('Nazwa — Szampon')).toBeVisible();
+  await products.getByTestId('products-search').fill('0000');
+  await expect(products.getByTestId('products-search-none')).toHaveText(
+    'Nic nie znaleziono — sprawdź nazwę albo kod.',
+  );
+  await products.getByRole('button', { name: 'Wyczyść' }).click();
+  await expect(products.getByTestId('product-row')).toHaveCount(2);
   // Task 438: "Dostawa" — a new set without a count gets four pieces delivered.
   await products.getByLabel('Nowy produkt').fill('Zestaw');
   await products.getByLabel(/^Cena \(/).fill('80');
@@ -460,6 +480,8 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appList.getByLabel('Cena zakupu (puste — nie wpisujemy) (PLN)').last().fill('10');
     // Task 464: "Dostawca" from the phone.
     await appList.getByLabel('Dostawca (puste — nie wpisujemy)').last().fill('Barber Hurt');
+    // Task 522: "Kod kreskowy" from the phone — spaces dropped, capital letters.
+    await appList.getByLabel('Kod kreskowy (puste — nie wpisujemy)').last().fill('gst wosk 1');
     await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
     await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
     await expect(appList.getByText('zostało 5 szt. · Kończy się')).toBeVisible();
@@ -519,6 +541,22 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     expect(appToOrderFile).not.toContain('Zestaw');
     await appList.getByTestId('stock-csv-to-order').scrollIntoViewIfNeeded();
     await shot(app, '470-business-app-stock-csv-to-order');
+    // Task 522: "Szukaj" — the pomade by the code written in the cabinet, the wax by its own.
+    await expect(appList.getByText('Kod kreskowy: GSTWOSK1', { exact: true })).toBeVisible();
+    await appList.getByTestId('products-search').fill('5901234 123457');
+    await expect(appList.getByTestId('product-barcode')).toHaveCount(1);
+    await expect(appList.getByText('Kod kreskowy: 5901234123457', { exact: true })).toBeVisible();
+    await expect(appList.getByText('Pomada matowa', { exact: true })).toBeVisible();
+    await appList.getByTestId('products-search').scrollIntoViewIfNeeded();
+    await shot(app, '522-business-app-barcode-search');
+    await appList.getByTestId('products-search').fill('gstwosk');
+    await expect(appList.getByText('Kod kreskowy: GSTWOSK1', { exact: true })).toBeVisible();
+    await expect(appList.getByText('Pomada matowa', { exact: true })).toHaveCount(0);
+    await appList.getByTestId('products-search').fill('0000');
+    await expect(appList.getByTestId('products-search-none')).toHaveText(
+      'Nic nie znaleziono — sprawdź nazwę albo kod.',
+    );
+    await appList.getByTestId('products-search').fill('');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     const jan = app.getByRole('button', { name: /Jan Kowalski/ }).first();

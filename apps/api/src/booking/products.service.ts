@@ -57,7 +57,19 @@ const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
   lowStock: p.stockQuantity !== null && p.lowStockAt !== null && p.stockQuantity <= p.lowStockAt,
   purchasePriceGrosze: purchasePrice ? p.purchasePriceGrosze : null,
   supplier: p.supplier,
+  barcode: p.barcode,
 });
+
+/** Task 520: another product of the salon already has this code. */
+const barcodeTaken = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'BARCODE_TAKEN',
+    'Another product of the salon has this barcode',
+  );
+
+const isUniqueViolation = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002';
 
 /**
  * Task 394: "Produkty" — the salon's own list of products (pomade, shampoo…) and the ones sold
@@ -86,6 +98,9 @@ const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
  *
  * Task 462: "Dostawca" — whom the salon orders the product from (free text, everyone in the salon
  * sees it); the stock CSV may be made for one supplier only.
+ *
+ * Task 520: "Kod kreskowy" — the code on the package, so a product is found by scanning or typing
+ * it; one product per code in a salon (409 BARCODE_TAKEN), everyone in the salon sees it.
  *
  * Task 433: with `lowStockAt` the product says "Kończy się" (`lowStock`) once that many pieces or
  * fewer are left, so the owner orders more in time.
@@ -178,20 +193,24 @@ export class ProductsService {
   ): Promise<ProductResponse> {
     await this.access.writable(m, locationId);
     return toProduct(
-      await this.prisma.$transaction(async (tx) => {
-        const product = await tx.product.create({ data: { ...input, locationId } });
-        if (product.stockQuantity !== null && product.stockQuantity > 0) {
-          await movement(
-            tx,
-            product.id,
-            'correction',
-            product.stockQuantity,
-            product.stockQuantity,
-            userId,
-          );
-        }
-        return product;
-      }),
+      await this.prisma
+        .$transaction(async (tx) => {
+          const product = await tx.product.create({ data: { ...input, locationId } });
+          if (product.stockQuantity !== null && product.stockQuantity > 0) {
+            await movement(
+              tx,
+              product.id,
+              'correction',
+              product.stockQuantity,
+              product.stockQuantity,
+              userId,
+            );
+          }
+          return product;
+        })
+        .catch((error: unknown) => {
+          throw isUniqueViolation(error) ? barcodeTaken() : error;
+        }),
     );
   }
 
@@ -204,28 +223,32 @@ export class ProductsService {
   ): Promise<ProductResponse> {
     await this.access.writable(m, locationId);
     return toProduct(
-      await this.prisma.$transaction(async (tx) => {
-        const before = await tx.product.findFirst({ where: { id: productId, locationId } });
-        if (!before) throw notFound('Product');
-        const result = await tx.product.updateMany({
-          where: { id: productId, locationId },
-          data: input,
-        });
-        if (result.count !== 1) throw notFound('Product');
-        const after = await tx.product.findUniqueOrThrow({ where: { id: productId } });
-        // Task 440: a number written by hand (a sale at the same moment is its own movement).
-        if (input.stockQuantity !== undefined && after.stockQuantity !== before.stockQuantity) {
-          await movement(
-            tx,
-            productId,
-            'correction',
-            (after.stockQuantity ?? 0) - (before.stockQuantity ?? 0),
-            after.stockQuantity,
-            userId,
-          );
-        }
-        return after;
-      }),
+      await this.prisma
+        .$transaction(async (tx) => {
+          const before = await tx.product.findFirst({ where: { id: productId, locationId } });
+          if (!before) throw notFound('Product');
+          const result = await tx.product.updateMany({
+            where: { id: productId, locationId },
+            data: input,
+          });
+          if (result.count !== 1) throw notFound('Product');
+          const after = await tx.product.findUniqueOrThrow({ where: { id: productId } });
+          // Task 440: a number written by hand (a sale at the same moment is its own movement).
+          if (input.stockQuantity !== undefined && after.stockQuantity !== before.stockQuantity) {
+            await movement(
+              tx,
+              productId,
+              'correction',
+              (after.stockQuantity ?? 0) - (before.stockQuantity ?? 0),
+              after.stockQuantity,
+              userId,
+            );
+          }
+          return after;
+        })
+        .catch((error: unknown) => {
+          throw isUniqueViolation(error) ? barcodeTaken() : error;
+        }),
     );
   }
 

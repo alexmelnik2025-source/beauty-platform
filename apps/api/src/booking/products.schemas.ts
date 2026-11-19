@@ -7,6 +7,22 @@ const money = (what: string) =>
 
 // ── Requests ─────────────────────────────────────────────
 
+/**
+ * Task 520: "Kod kreskowy" — the code printed under the bars (EAN-13, EAN-8, UPC or the shop's
+ * own): 3–32 letters, digits or "-", spaces dropped (a scanner or a person may add them), kept in
+ * capital letters so the same code is always found.
+ */
+const barcode = z
+  .string()
+  .transform((value) => value.replace(/\s+/g, '').toUpperCase())
+  .pipe(
+    z
+      .string()
+      .min(3)
+      .max(32)
+      .regex(/^[0-9A-Z-]+$/),
+  );
+
 /** Task 394: a product of the salon's list. */
 export const createProductSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -19,6 +35,8 @@ export const createProductSchema = z.object({
   purchasePriceGrosze: z.number().int().min(0).max(10_000_000).nullable().optional(),
   /** Task 462: "Dostawca" — whom the salon orders it from; null (or left out) = not written. */
   supplier: z.string().trim().min(1).max(80).nullable().optional(),
+  /** Task 520: "Kod kreskowy"; null (or left out) = not written. */
+  barcode: barcode.nullable().optional(),
 });
 
 export const updateProductSchema = z
@@ -29,6 +47,7 @@ export const updateProductSchema = z
     lowStockAt: z.number().int().min(0).max(100_000).nullable(),
     purchasePriceGrosze: z.number().int().min(0).max(10_000_000).nullable(),
     supplier: z.string().trim().min(1).max(80).nullable(),
+    barcode: barcode.nullable(),
     active: z.boolean(),
   })
   .partial();
@@ -138,6 +157,12 @@ const product = z.strictObject({
     .string()
     .nullable()
     .describe('"Dostawca" — whom the salon orders it from (task 462); null = not written'),
+  barcode: z
+    .string()
+    .nullable()
+    .describe(
+      '"Kod kreskowy" — the code on the package, capital letters (task 520); null = not written',
+    ),
 });
 
 export const productListSchema = responseSchema(

@@ -2430,6 +2430,111 @@ describe('salon report', () => {
     await csv({}, other.auth).expect(404);
   });
 
+  it('"Kod kreskowy": the code on the package, one product per code in a salon (task 520)', async () => {
+    const created = await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(owner.auth)
+      .send({ name: 'Pomada', priceGrosze: 4500, barcode: ' 5901234 123457 ' })
+      .expect(201);
+    // Spaces dropped, capital letters.
+    expect(created.body).toMatchObject({ barcode: '5901234123457' });
+    expect(registeredResponseSchema('Product').safeParse(created.body).error).toBeUndefined();
+    const id = (created.body as { id: string }).id;
+    const plain = await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(owner.auth)
+      .send({ name: 'Wosk', priceGrosze: 3000 })
+      .expect(201);
+    expect(plain.body).toMatchObject({ barcode: null });
+    const waxId = (plain.body as { id: string }).id;
+    // Too short, too long or other signs: refused.
+    for (const barcode of ['12', '   ', 'x'.repeat(33), '590/123', 'ąę123']) {
+      await ctx
+        .http()
+        .patch(`${base}/products/${waxId}`)
+        .set(owner.auth)
+        .send({ barcode })
+        .expect(400);
+    }
+    const own = await ctx
+      .http()
+      .patch(`${base}/products/${waxId}`)
+      .set(owner.auth)
+      .send({ barcode: 'gst-wosk-1' })
+      .expect(200);
+    expect(own.body).toMatchObject({ barcode: 'GST-WOSK-1', priceGrosze: 3000 });
+    // The same code on another product of the salon: 409, nothing changes.
+    const taken = await ctx
+      .http()
+      .patch(`${base}/products/${waxId}`)
+      .set(owner.auth)
+      .send({ barcode: '5901234123457', name: 'Wosk mocny' })
+      .expect(409);
+    expectError(taken.body, 'BARCODE_TAKEN');
+    const takenNew = await ctx
+      .http()
+      .post(`${base}/products`)
+      .set(owner.auth)
+      .send({ name: 'Pomada 2', priceGrosze: 4500, barcode: 'gst-wosk-1' })
+      .expect(409);
+    expectError(takenNew.body, 'BARCODE_TAKEN');
+    const names = (await ctx.http().get(`${base}/products`).set(owner.auth).expect(200)).body as {
+      products: { name: string }[];
+    };
+    expect(names.products.map((p) => p.name).sort()).toEqual(['Pomada', 'Wosk']);
+    // Writing its own code again is fine.
+    await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(owner.auth)
+      .send({ barcode: '5901234123457' })
+      .expect(200);
+    // A specialist sees the code (to find the product when noting a sale) but cannot change it.
+    const list = (await ctx.http().get(`${base}/products`).set(kasiaUser.auth).expect(200))
+      .body as { products: { id: string; name: string; barcode: string | null }[] };
+    expect(list.products.find((p) => p.id === waxId)).toMatchObject({
+      name: 'Wosk',
+      barcode: 'GST-WOSK-1',
+    });
+    await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(kasiaUser.auth)
+      .send({ barcode: '111111' })
+      .expect(403);
+    // Another salon may use the same code for its own product, and cannot change this one.
+    const other = await signUp(ctx, 'other-barcode@example.com');
+    const otherSalon = await createOrgWithLocation(ctx, other, 'Other');
+    await ctx
+      .http()
+      .post(`/v1/organizations/${otherSalon.orgId}/locations/${otherSalon.locationId}/products`)
+      .set(other.auth)
+      .send({ name: 'Pomada', priceGrosze: 4000, barcode: '5901234123457' })
+      .expect(201);
+    await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(other.auth)
+      .send({ barcode: '222222' })
+      .expect(404);
+    // null clears it; then the code is free again.
+    const cleared = await ctx
+      .http()
+      .patch(`${base}/products/${id}`)
+      .set(owner.auth)
+      .send({ barcode: null })
+      .expect(200);
+    expect(cleared.body).toMatchObject({ barcode: null });
+    await ctx
+      .http()
+      .patch(`${base}/products/${waxId}`)
+      .set(owner.auth)
+      .send({ barcode: '5901234123457' })
+      .expect(200);
+  });
+
   it('"Dostawca": whom the salon orders a product from; everyone in the salon sees it (task 462)', async () => {
     const created = await ctx
       .http()
