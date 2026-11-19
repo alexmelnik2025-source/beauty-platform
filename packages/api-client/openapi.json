@@ -23255,6 +23255,61 @@
             "additionalProperties": false,
             "description": "Task 446: \"Odpisy z magazynu\" — pieces used in the salon, damaged or lost; for the whole salon only (empty in a specialist’s own report)"
           },
+          "deliveries": {
+            "type": "object",
+            "properties": {
+              "quantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Pieces received with \"Dostawa\" in the period"
+              },
+              "costGrosze": {
+                "nullable": true,
+                "description": "null when no delivered product has a purchase price",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "costGrosze": {
+                      "nullable": true,
+                      "description": "null when the product has no purchase price",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "quantity",
+                    "costGrosze"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "By product, most pieces first"
+              }
+            },
+            "required": [
+              "quantity",
+              "costGrosze",
+              "items"
+            ],
+            "additionalProperties": false,
+            "description": "Task 452: \"Dostawy na magazyn\" — pieces that arrived from suppliers; for the whole salon only (empty in a specialist’s own report)"
+          },
           "tillCloses": {
             "type": "object",
             "properties": {
@@ -24155,6 +24210,7 @@
           "tips",
           "products",
           "writeOffs",
+          "deliveries",
           "tillCloses",
           "weekdays",
           "previous",

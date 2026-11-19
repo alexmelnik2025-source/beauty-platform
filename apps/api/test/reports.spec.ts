@@ -1801,6 +1801,76 @@ describe('salon report', () => {
     });
   });
 
+  it('"Dostawy na magazyn": pieces delivered in the period, at today\'s purchase prices (task 452)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({ name: 'Pomada', priceGrosze: 4500, purchasePriceGrosze: 2000 });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000, stockQuantity: 1 });
+    const restock = (id: string, quantity: number) =>
+      ctx
+        .http()
+        .post(`${base}/products/${id}/restock`)
+        .set(owner.auth)
+        .send({ quantity })
+        .expect(200);
+    expect((await report().expect(200)).body.deliveries).toEqual({
+      quantity: 0,
+      costGrosze: null,
+      items: [],
+    });
+    // Without a purchase price the pieces count, the money does not.
+    await restock(wax.id, 3);
+    expect((await report().expect(200)).body.deliveries).toEqual({
+      quantity: 3,
+      costGrosze: null,
+      items: [{ name: 'Wosk', quantity: 3, costGrosze: null }],
+    });
+    await restock(pomade.id, 2);
+    await restock(pomade.id, 4);
+    // A write-off or a hand-written number is not a delivery.
+    await ctx
+      .http()
+      .post(`${base}/products/${pomade.id}/write-off`)
+      .set(owner.auth)
+      .send({ quantity: 1 })
+      .expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/products/${wax.id}`)
+      .set(owner.auth)
+      .send({ stockQuantity: 10 })
+      .expect(200);
+    // An older delivery is outside the period.
+    await restock(wax.id, 5);
+    await ctx.prisma.stockMovement.updateMany({
+      where: { productId: wax.id, kind: 'delivery', change: 5 },
+      data: { createdAt: new Date(`${addDays(from, -3)}T12:00:00Z`) },
+    });
+
+    const res = await report().expect(200);
+    expect(registeredResponseSchema('SalonReport').safeParse(res.body).error).toBeUndefined();
+    expect(res.body.deliveries).toEqual({
+      quantity: 9,
+      costGrosze: 6 * 2000,
+      items: [
+        { name: 'Pomada', quantity: 6, costGrosze: 12000 },
+        { name: 'Wosk', quantity: 3, costGrosze: null },
+      ],
+    });
+    // A specialist's own report has no salon stock in it.
+    await ctx.prisma.membership.update({
+      where: { id: kasiaMembershipId },
+      data: { permissionOverrides: { viewOwnEarnings: true } },
+    });
+    expect((await report(kasiaUser.auth).expect(200)).body.deliveries).toEqual({
+      quantity: 0,
+      costGrosze: null,
+      items: [],
+    });
+  });
+
   it('"Historia magazynu": every change of the stock with who and when (task 440)', async () => {
     const pomade = (
       await ctx

@@ -5977,6 +5977,20 @@ export interface components {
                     valueGrosze: number;
                 }[];
             };
+            /** @description Task 452: "Dostawy na magazyn" — pieces that arrived from suppliers; for the whole salon only (empty in a specialist’s own report) */
+            deliveries: {
+                /** @description Pieces received with "Dostawa" in the period */
+                quantity: number;
+                /** @description null when no delivered product has a purchase price */
+                costGrosze: number | null;
+                /** @description By product, most pieces first */
+                items: {
+                    name: string;
+                    quantity: number;
+                    /** @description null when the product has no purchase price */
+                    costGrosze: number | null;
+                }[];
+            };
             /** @description Task 233: "Zamknięcia kasy" (task 232) in the period; empty in a specialist's own report */
             tillCloses: {
                 /** @description Days of the period whose till was counted, oldest first */

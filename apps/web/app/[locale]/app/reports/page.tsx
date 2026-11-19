@@ -574,6 +574,36 @@ export default function ReportsPage() {
               </section>
             ) : null}
 
+            {report.deliveries.quantity > 0 ? (
+              // Task 452: pieces that arrived from suppliers — at today's purchase prices.
+              <section className="section" data-testid="report-deliveries">
+                <h2>{fill(t.reports.deliveries, { n: String(report.deliveries.quantity) })}</h2>
+                <ol className="report-days">
+                  {report.deliveries.items.map((item) => (
+                    <li key={item.name}>
+                      <span className="small">{item.name}</span>
+                      <span className="small">
+                        {item.costGrosze === null
+                          ? fill(t.reports.deliveriesPieces, { n: String(item.quantity) })
+                          : fill(t.reports.deliveriesRow, {
+                              n: String(item.quantity),
+                              amount: money(item.costGrosze),
+                            })}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {report.deliveries.costGrosze !== null ? (
+                  <p className="small" data-testid="report-deliveries-cost">
+                    {fill(t.reports.deliveriesCost, {
+                      amount: money(report.deliveries.costGrosze),
+                    })}
+                  </p>
+                ) : null}
+                <p className="small muted">{t.reports.deliveriesHint}</p>
+              </section>
+            ) : null}
+
             {report.discounts.totalGrosze > 0 ? (
               // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
               <section className="section" data-testid="report-discounts">

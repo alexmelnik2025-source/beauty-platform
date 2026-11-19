@@ -1652,6 +1652,12 @@ export const pl = {
     marginItem: 'marża {amount}',
     writeOffsHint:
       'Sztuki zużyte w salonie, uszkodzone lub zgubione w tym okresie — w dzisiejszych cenach sprzedaży.',
+    deliveries: 'Dostawy na magazyn: {n} szt.',
+    deliveriesPieces: '{n} szt.',
+    deliveriesRow: '{n} szt. · zakup {amount}',
+    deliveriesCost: 'Razem w cenach zakupu: {amount}',
+    deliveriesHint:
+      'Sztuki przyjęte przyciskiem «Dostawa» w tym okresie. Kwoty — w dzisiejszych cenach zakupu; produkty bez ceny zakupu nie wchodzą do sumy.',
     productsHint:
       'Produkty sprzedane przy wizytach z tego okresu. Nie wchodzą do przychodu z wizyt ani do prowizji.',
     tipsVisits: 'wizyty z napiwkiem: {n}',

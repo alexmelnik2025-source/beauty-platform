@@ -1657,6 +1657,12 @@ export const en: Dict = {
     marginItem: 'margin {amount}',
     writeOffsHint:
       'Pieces used in the salon, damaged or lost in this period — at today’s sale prices.',
+    deliveries: 'Deliveries to stock: {n} pcs',
+    deliveriesPieces: '{n} pcs',
+    deliveriesRow: '{n} pcs · cost {amount}',
+    deliveriesCost: 'Total at purchase prices: {amount}',
+    deliveriesHint:
+      'Pieces received with “Delivery” in this period. Amounts at today’s purchase prices; products without a purchase price are not in the total.',
     productsHint:
       'Products sold at the visits of the period. Not part of the visit revenue or the commissions.',
     tipsVisits: 'visits with a tip: {n}',

@@ -20,7 +20,7 @@ import { serveApp } from './mobile-app';
  * Task 422–423: "CSV produktów" — every sale of the period for the accountant (422), in the app too.
  * Task 424: "Kupione produkty" in the client card of the cabinet (424).
  * Task 436–441: "CSV stanu magazynowego" (437), "Dostawa" (438, 439) and "Historia magazynu" (441);
- * task 444–447: "Odpis" and "Odpisy z magazynu" in the reports
+ * task 444–447: "Odpis" and "Odpisy z magazynu" in the reports; task 452–453: "Dostawy na magazyn"
  * in the cabinet and the business app.
  */
 
@@ -302,6 +302,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   );
   await expect(writeOffs).toContainText(/Zestaw\s*1 szt\. · 80,00\s*zł/);
   await shot(page, '446-report-write-offs');
+  // Task 452: "Dostawy na magazyn" — the four sets (no purchase price: pieces only).
+  const deliveries = page.getByTestId('report-deliveries');
+  await deliveries.scrollIntoViewIfNeeded();
+  await expect(deliveries.getByRole('heading')).toHaveText('Dostawy na magazyn: 4 szt.');
+  await expect(deliveries).toContainText(/Zestaw\s*4 szt\./);
+  await expect(deliveries.getByTestId('report-deliveries-cost')).toHaveCount(0);
+  await shot(page, '452-report-deliveries');
 
   // The client card (task 424): what Jan bought, with the total.
   await page.goto('/pl/app/clients');
@@ -454,6 +461,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appWriteOffs).toContainText(/Zestaw\s*1 szt\. · 80,00\s*zł/);
     await expect(appWriteOffs).toContainText(/Pomada matowa\s*1 szt\. · 49,00\s*zł/);
     await shot(app, '447-business-app-write-offs');
+    // Task 453: "Dostawy na magazyn" in the app — six pomades at 20 zł and the four sets.
+    const appDeliveries = app.getByTestId('report-deliveries');
+    await appDeliveries.scrollIntoViewIfNeeded();
+    await expect(appDeliveries).toContainText('Dostawy na magazyn: 10 szt.');
+    await expect(appDeliveries).toContainText(/Pomada matowa\s*6 szt\. · zakup 120,00\s*zł/);
+    await expect(appDeliveries).toContainText(/Zestaw\s*4 szt\./);
+    await expect(appDeliveries.getByTestId('report-deliveries-cost')).toHaveText(
+      /^Razem w cenach zakupu: 120,00\s*zł$/,
+    );
+    await shot(app, '453-business-app-deliveries');
   } finally {
     businessApp.server.close();
   }

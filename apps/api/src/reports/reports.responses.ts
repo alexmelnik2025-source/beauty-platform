@@ -172,6 +172,27 @@ export const salonReportSchema = responseSchema(
       .describe(
         'Task 446: "Odpisy z magazynu" — pieces used in the salon, damaged or lost; for the whole salon only (empty in a specialist’s own report)',
       ),
+    deliveries: z
+      .strictObject({
+        quantity: z.number().int().describe('Pieces received with "Dostawa" in the period'),
+        costGrosze: money('Their cost at today’s purchase prices')
+          .nullable()
+          .describe('null when no delivered product has a purchase price'),
+        items: z
+          .array(
+            z.strictObject({
+              name: z.string(),
+              quantity: z.number().int(),
+              costGrosze: money('Pieces × today’s purchase price')
+                .nullable()
+                .describe('null when the product has no purchase price'),
+            }),
+          )
+          .describe('By product, most pieces first'),
+      })
+      .describe(
+        'Task 452: "Dostawy na magazyn" — pieces that arrived from suppliers; for the whole salon only (empty in a specialist’s own report)',
+      ),
     tillCloses: z
       .strictObject({
         days: z

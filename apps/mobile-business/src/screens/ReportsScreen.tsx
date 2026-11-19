@@ -506,6 +506,33 @@ export function ReportsScreen(props: {
               <Text style={styles.muted}>{r.writeOffsHint}</Text>
             </View>
           ) : null}
+          {shown.deliveries.quantity > 0 ? (
+            // Task 453: pieces that arrived from suppliers — at today's purchase prices.
+            <View style={{ gap: 6 }} testID="report-deliveries">
+              <Text style={styles.section}>
+                {fill(r.deliveries, { n: String(shown.deliveries.quantity) })}
+              </Text>
+              {shown.deliveries.items.map((item) => (
+                <View key={item.name} style={styles.cardTop}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.muted}>
+                    {item.costGrosze === null
+                      ? fill(r.deliveriesPieces, { n: String(item.quantity) })
+                      : fill(r.deliveriesRow, {
+                          n: String(item.quantity),
+                          amount: money(item.costGrosze),
+                        })}
+                  </Text>
+                </View>
+              ))}
+              {shown.deliveries.costGrosze !== null ? (
+                <Text style={styles.name} testID="report-deliveries-cost">
+                  {fill(r.deliveriesCost, { amount: money(shown.deliveries.costGrosze) })}
+                </Text>
+              ) : null}
+              <Text style={styles.muted}>{r.deliveriesHint}</Text>
+            </View>
+          ) : null}
           {shown.discounts.totalGrosze > 0 ? (
             // Task 304: what the salon gave away — coupons, tier discounts and happy hours.
             <View style={{ gap: 6 }} testID="report-discounts">

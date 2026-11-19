@@ -491,6 +491,9 @@ export class ReportsService {
       writeOffs: own
         ? { quantity: 0, valueGrosze: 0, items: [] }
         : await this.writeOffs(locationId, rangeStart, rangeEnd),
+      deliveries: own
+        ? { quantity: 0, costGrosze: null, items: [] }
+        : await this.deliveries(locationId, rangeStart, rangeEnd),
       tillCloses: await this.tillCloses(locationId, own, query),
       previous: await this.previous(locationId, staffIds, tz, query),
       occupancy: revenuePerHour(
@@ -1395,6 +1398,56 @@ export class ReportsService {
       items: [...items.values()].sort(
         (a, b) =>
           b.quantity - a.quantity || b.valueGrosze - a.valueGrosze || a.name.localeCompare(b.name),
+      ),
+    };
+  }
+
+  /** Task 452: "Dostawy na magazyn" — pieces delivered in the period, at today's purchase prices. */
+  private async deliveries(
+    locationId: string,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<SalonReport['deliveries']> {
+    const rows = await this.prisma.stockMovement.findMany({
+      where: {
+        kind: 'delivery',
+        createdAt: { gte: rangeStart, lt: rangeEnd },
+        product: { locationId },
+      },
+      select: {
+        change: true,
+        product: { select: { id: true, name: true, purchasePriceGrosze: true } },
+      },
+    });
+    const items = new Map<string, { name: string; quantity: number; costGrosze: number | null }>();
+    let quantity = 0;
+    let costGrosze: number | null = null;
+    for (const r of rows) {
+      const pieces = r.change;
+      const price = r.product.purchasePriceGrosze;
+      const cost = price === null ? null : pieces * price;
+      quantity += pieces;
+      if (cost !== null) costGrosze = (costGrosze ?? 0) + cost;
+      const item =
+        items.get(r.product.id) ??
+        items
+          .set(r.product.id, {
+            name: r.product.name,
+            quantity: 0,
+            costGrosze: price === null ? null : 0,
+          })
+          .get(r.product.id)!;
+      item.quantity += pieces;
+      if (cost !== null) item.costGrosze = (item.costGrosze ?? 0) + cost;
+    }
+    return {
+      quantity,
+      costGrosze,
+      items: [...items.values()].sort(
+        (a, b) =>
+          b.quantity - a.quantity ||
+          (b.costGrosze ?? 0) - (a.costGrosze ?? 0) ||
+          a.name.localeCompare(b.name),
       ),
     };
   }
