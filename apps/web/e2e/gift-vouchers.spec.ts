@@ -132,7 +132,7 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await list.getByRole('button', { name: 'Tak, anuluj' }).click();
   await expect(list.getByRole('status')).toHaveText(`Bon ${mistake.code} anulowany.`);
   await expect(list.getByText(/Do wykorzystania na ważnych bonach: 80,00\s?zł/)).toBeVisible();
-  await expect(list.getByText('Anulowany')).toBeVisible();
+  await expect(list.getByText('Anulowany', { exact: true })).toBeVisible();
   await shot(page, '491b');
 
   // Task 493: the report — one voucher sold (the cancelled one left out), 120 zł paid with
