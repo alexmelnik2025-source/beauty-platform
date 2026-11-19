@@ -3420,3 +3420,16 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   Мастер кнопки не видит (и сервер ответит 403).
 - Тесты: `apps/api/test/gift-vouchers.spec.ts` (права, очистка, срок в прошлом, отменённый, изоляция салонов), e2e
   `gift-vouchers.spec.ts` — скриншоты 499, 499a (кабинет), 500 (приложение).
+
+## «Kończą się w ciągu 30 dni», фильтр и «Pokaż» в списке бонов (задачи 501–503)
+
+- `GET …/gift-vouchers` → `expiringSoon: { until, count, balanceGrosze }` — действующие боны, у которых «Ważny do» не
+  позже `until` (сегодня салона + 30 дней): сколько их и остаток на них. Считается по всем бонам салона, не только по
+  500 в списке.
+- Кабинет: над списком «Kończą się w ciągu 30 dni: 2 szt., do wykorzystania 150,00 zł», у таких бонов пометка «Wkrótce
+  wygasa»; фильтр «Pokaż» (Wszystkie / Ważny / Wkrótce wygasają / Wykorzystany / Nieważny / Anulowany) и поиск по коду
+  (регистр и дефис не важны) или «Dla kogo» — в браузере, без запросов к серверу.
+- Бизнес-приложение: та же строка и пометка (`endsSoon()` в `src/vouchers.ts`), кнопка «Pokaż» у каждого бона в списке —
+  открывает карточку бона (оплата, «Wyślij bon», «Zmień bon») без ввода кода (`api.giftVoucher`).
+- Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-business/test/vouchers.test.ts`, e2e `gift-vouchers.spec.ts`
+  — скриншоты 501, 501a, 502, 503.
