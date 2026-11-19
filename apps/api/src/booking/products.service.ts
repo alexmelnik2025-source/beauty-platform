@@ -12,6 +12,7 @@ import type {
   AddProductSaleInput,
   CreateProductInput,
   RestockProductInput,
+  WriteOffProductInput,
   StockHistoryResponse,
   ProductListResponse,
   ProductResponse,
@@ -30,9 +31,10 @@ function movement(
   change: number,
   quantityAfter: number | null,
   userId: string,
+  note: string | null = null,
 ) {
   return tx.stockMovement.create({
-    data: { productId, kind, change, quantityAfter, createdByUserId: userId },
+    data: { productId, kind, change, quantityAfter, createdByUserId: userId, note },
   });
 }
 
@@ -202,6 +204,51 @@ export class ProductsService {
     return toProduct(product);
   }
 
+  /** Task 443: "Odpis" — pieces used in the salon, damaged or lost, taken from the stock in one step. */
+  async writeOff(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    productId: string,
+    input: WriteOffProductInput,
+  ): Promise<ProductResponse> {
+    await this.access.writable(m, locationId);
+    const product = await this.prisma.$transaction(async (tx) => {
+      const taken = await tx.product.updateMany({
+        where: { id: productId, locationId, stockQuantity: { gte: input.quantity } },
+        data: { stockQuantity: { decrement: input.quantity } },
+      });
+      if (taken.count !== 1) {
+        const found = await tx.product.findFirst({ where: { id: productId, locationId } });
+        if (!found) throw notFound('Product');
+        if (found.stockQuantity === null) {
+          throw new AppException(
+            HttpStatus.CONFLICT,
+            'NOT_COUNTED',
+            'The salon does not count the pieces of this product',
+          );
+        }
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'OUT_OF_STOCK',
+          `Only ${found.stockQuantity} in stock`,
+        );
+      }
+      const after = await tx.product.findUniqueOrThrow({ where: { id: productId } });
+      await movement(
+        tx,
+        productId,
+        'write_off',
+        -input.quantity,
+        after.stockQuantity,
+        userId,
+        input.note || null,
+      );
+      return after;
+    });
+    return toProduct(product);
+  }
+
   /** Task 440: "Historia magazynu" — the last 100 changes of the pieces in stock, newest first. */
   async stockHistory(
     m: MembershipContext,
@@ -236,6 +283,7 @@ export class ProductsService {
           date: local.date,
           time: local.time,
           byName: (r.createdByUserId && names.get(r.createdByUserId)) || null,
+          note: r.note,
         };
       }),
     };

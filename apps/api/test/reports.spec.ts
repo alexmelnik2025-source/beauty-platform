@@ -1592,6 +1592,66 @@ describe('salon report', () => {
     expect(list.products.find((p) => p.id === pomade.id)?.stockQuantity).toBe(100_000);
   });
 
+  it('"Odpis": pieces used in the salon or damaged leave the stock with a note (task 443)', async () => {
+    const add = async (body: object) =>
+      (await ctx.http().post(`${base}/products`).set(owner.auth).send(body).expect(201)).body as {
+        id: string;
+      };
+    const pomade = await add({
+      name: 'Pomada',
+      priceGrosze: 4500,
+      stockQuantity: 5,
+      lowStockAt: 3,
+    });
+    const wax = await add({ name: 'Wosk', priceGrosze: 3000 });
+    const writeOff = (id: string, body: object, auth = owner.auth) =>
+      ctx.http().post(`${base}/products/${id}/write-off`).set(auth).send(body);
+
+    const res = await writeOff(pomade.id, { quantity: 2, note: '  zużyte w salonie ' }).expect(200);
+    expect(res.body).toMatchObject({ stockQuantity: 3, lowStock: true });
+    expect(registeredResponseSchema('Product').safeParse(res.body).error).toBeUndefined();
+    await writeOff(pomade.id, { quantity: 1 }).expect(200);
+
+    // Nothing, a negative or a broken number is refused; more than in stock too.
+    await writeOff(pomade.id, { quantity: 0 }).expect(400);
+    await writeOff(pomade.id, { quantity: -1 }).expect(400);
+    await writeOff(pomade.id, { quantity: 1, note: 'x'.repeat(121) }).expect(400);
+    expectError((await writeOff(pomade.id, { quantity: 3 }).expect(409)).body, 'OUT_OF_STOCK');
+    // A product whose pieces are not counted has nothing to write off.
+    expectError((await writeOff(wax.id, { quantity: 1 }).expect(409)).body, 'NOT_COUNTED');
+
+    // Only owners and managers; another salon's or a missing product is not found.
+    await writeOff(pomade.id, { quantity: 1 }, kasiaUser.auth).expect(403);
+    await writeOff('00000000-0000-4000-8000-000000000000', { quantity: 1 }).expect(404);
+    const other = await signUp(ctx, 'other-write-off@example.com');
+    await createOrgWithLocation(ctx, other, 'Other');
+    await writeOff(pomade.id, { quantity: 1 }, other.auth).expect(404);
+
+    // "Historia magazynu" shows each write-off with its note.
+    const history = await ctx
+      .http()
+      .get(`${base}/products/${pomade.id}/stock-history`)
+      .set(owner.auth)
+      .expect(200);
+    expect(registeredResponseSchema('StockHistory').safeParse(history.body).error).toBeUndefined();
+    expect(
+      (
+        history.body as {
+          movements: { kind: string; change: number; quantityAfter: number; note: string | null }[];
+        }
+      ).movements.map(({ kind, change, quantityAfter, note }) => ({
+        kind,
+        change,
+        quantityAfter,
+        note,
+      })),
+    ).toEqual([
+      { kind: 'write_off', change: -1, quantityAfter: 2, note: null },
+      { kind: 'write_off', change: -2, quantityAfter: 3, note: 'zużyte w salonie' },
+      { kind: 'correction', change: 5, quantityAfter: 5, note: null },
+    ]);
+  });
+
   it('"Historia magazynu": every change of the stock with who and when (task 440)', async () => {
     const pomade = (
       await ctx

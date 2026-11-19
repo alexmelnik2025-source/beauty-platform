@@ -708,6 +708,21 @@ export class BusinessApi {
   }
 
   /** Task 441: "Historia magazynu" — the product's last stock changes. Owners and managers. */
+  /** Task 445: "Odpis" — pieces used in the salon, damaged or lost. */
+  writeOffProduct(
+    orgId: string,
+    locationId: string,
+    productId: string,
+    quantity: number,
+    note?: string,
+  ): Promise<Product> {
+    return this.authed<Product>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}/write-off`,
+      note ? { quantity, note } : { quantity },
+    );
+  }
+
   stockHistory(orgId: string, locationId: string, productId: string): Promise<StockHistory> {
     return this.authed<StockHistory>(
       'GET',

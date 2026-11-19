@@ -19,7 +19,8 @@ import { serveApp } from './mobile-app';
  * "Sprzedaż produktów" in its report (396-a); the list of products in "Usługi" (task 397, 397).
  * Task 422–423: "CSV produktów" — every sale of the period for the accountant (422), in the app too.
  * Task 424: "Kupione produkty" in the client card of the cabinet (424).
- * Task 436–441: "CSV stanu magazynowego" (437), "Dostawa" (438, 439) and "Historia magazynu" (441)
+ * Task 436–441: "CSV stanu magazynowego" (437), "Dostawa" (438, 439) and "Historia magazynu" (441);
+ * task 444–445: "Odpis"
  * in the cabinet and the business app.
  */
 
@@ -237,6 +238,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByTestId('products-stock-value')).toHaveText(
     /^Wartość magazynu: 411,50\s*zł \(7 szt\.\) — w cenach sprzedaży\.$/,
   );
+  // Task 444: "Odpis" — a damaged set leaves the stock, with the reason in the history.
+  const zestawWriteOff = zestawHistory.getByTestId('stock-write-off');
+  await zestawWriteOff.getByLabel('Ile sztuk — Zestaw').fill('1');
+  await zestawWriteOff.getByLabel(/^Powód/).fill('uszkodzone');
+  await zestawWriteOff.getByRole('button', { name: 'Odpis — Zestaw' }).click();
+  await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('3');
+  await expect(zestawHistory).toContainText(/Odpis · -1 szt\. → 3 · .+ · uszkodzone/);
+  await expect(zestawWriteOff.getByLabel('Ile sztuk — Zestaw')).toHaveValue('');
+  await zestawHistory.scrollIntoViewIfNeeded();
+  await shot(page, '444-owner-write-off');
   // The visit card says it too.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
@@ -390,12 +401,21 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appHistory).toContainText(/Zmiana ręczna · \+2 szt\. → 2/);
     await appHistory.scrollIntoViewIfNeeded();
     await shot(app, '441-business-app-stock-history');
-    // Task 442: 6 pomades × 49 + 2 shampoos × 30,50 + 5 waxes × 25 + 4 sets × 80.
+    // Task 442: 6 pomades × 49 + 2 shampoos × 30,50 + 5 waxes × 25 + 3 sets × 80 (one written off).
     await expect(appList.getByTestId('products-stock-value')).toHaveText(
-      /^Wartość magazynu: 800,00\s*zł \(17 szt\.\) — w cenach sprzedaży\.$/,
+      /^Wartość magazynu: 720,00\s*zł \(16 szt\.\) — w cenach sprzedaży\.$/,
     );
     await appList.getByTestId('products-stock-value').scrollIntoViewIfNeeded();
     await shot(app, '442-business-app-stock-value');
+    // Task 445: "Odpis" from the phone — a pomade used in the salon.
+    await appList.getByRole('button', { name: 'Odpis — Pomada matowa' }).click();
+    await appList.getByLabel('Odpis — Pomada matowa').fill('1');
+    await appList.getByLabel(/^Powód/).fill('zużyte w salonie');
+    await appList.getByRole('button', { name: 'Odpisz' }).click();
+    await expect(appList.getByText('zostało 5 szt.', { exact: true })).toBeVisible();
+    await expect(appHistory).toContainText(/Odpis · -1 szt\. → 5 · .+ · zużyte w salonie/);
+    await appHistory.scrollIntoViewIfNeeded();
+    await shot(app, '445-business-app-write-off');
   } finally {
     businessApp.server.close();
   }

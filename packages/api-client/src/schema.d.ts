@@ -1986,6 +1986,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/write-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Odpis": take pieces used in the salon, damaged or lost from the stock
+         * @description Task 443. In one step, with an optional note shown in "Historia magazynu". More than in stock → 409 OUT_OF_STOCK; a product that does not count its pieces → 409 NOT_COUNTED.
+         */
+        post: operations["ProductsController_writeOff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/stock-history": {
         parameters: {
             query?: never;
@@ -6458,10 +6478,10 @@ export interface components {
             movements: {
                 id: string;
                 /**
-                 * @description sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand
+                 * @description sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand; write_off — "Odpis" (task 443)
                  * @enum {string}
                  */
-                kind: "sale" | "sale_removed" | "delivery" | "correction";
+                kind: "sale" | "sale_removed" | "delivery" | "correction" | "write_off";
                 /** @description Pieces added (+) or taken (−) */
                 change: number;
                 /** @description Pieces in stock after the change; null = the salon stopped counting */
@@ -6474,6 +6494,8 @@ export interface components {
                 time: string;
                 /** @description Who did it; null when unknown */
                 byName: string | null;
+                /** @description Why — for a write-off (task 443); otherwise null */
+                note: string | null;
             }[];
         };
         TillClose: {
@@ -10419,6 +10441,35 @@ export interface operations {
             content: {
                 "application/json": {
                     quantity: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+        };
+    };
+    ProductsController_writeOff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    quantity: number;
+                    note?: string;
                 };
             };
         };

@@ -43,6 +43,7 @@ import {
   stockCsvQuerySchema,
   updateProductSchema,
   visitProductSalesSchema,
+  writeOffProductSchema,
   type AddProductSaleInput,
   type CreateProductInput,
   type ProductListResponse,
@@ -52,6 +53,7 @@ import {
   type StockCsvQuery,
   type UpdateProductInput,
   type VisitProductSalesResponse,
+  type WriteOffProductInput,
 } from './products.schemas';
 import { ProductsService } from './products.service';
 
@@ -148,6 +150,26 @@ export class ProductsController {
     @Body(new ZodValidationPipe(restockProductSchema)) body: RestockProductInput,
   ): Promise<ProductResponse> {
     return this.products.restock(m, auth.userId, locationId, productId, body);
+  }
+
+  @Post('products/:productId/write-off')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Odpis": take pieces used in the salon, damaged or lost from the stock',
+    description:
+      'Task 443. In one step, with an optional note shown in "Historia magazynu". More than in stock → 409 OUT_OF_STOCK; a product that does not count its pieces → 409 NOT_COUNTED.',
+  })
+  @ApiZodBody(writeOffProductSchema)
+  @ApiZodResponse(productSchema)
+  writeOff(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('productId', uuid('Product')) productId: string,
+    @Body(new ZodValidationPipe(writeOffProductSchema)) body: WriteOffProductInput,
+  ): Promise<ProductResponse> {
+    return this.products.writeOff(m, auth.userId, locationId, productId, body);
   }
 
   @Get('products/:productId/stock-history')

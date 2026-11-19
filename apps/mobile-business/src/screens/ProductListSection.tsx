@@ -42,6 +42,8 @@ export function ProductListSection(props: {
   } | null>(null);
   const [deliveryId, setDeliveryId] = useState<string | null>(null);
   const [delivery, setDelivery] = useState('');
+  const [writeOffId, setWriteOffId] = useState<string | null>(null);
+  const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
   const [fresh, setFresh] = useState({ name: '', price: '', stock: '', low: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -120,6 +122,7 @@ export function ProductListSection(props: {
   };
 
   const deliveryCount = parseStock(delivery);
+  const writeOffCount = parseStock(writeOff.quantity);
   const counted = (products ?? []).filter((x) => x.stockQuantity !== null);
   const stockPieces = counted.reduce((n, x) => n + (x.stockQuantity ?? 0), 0);
   const stockValue = counted.reduce((sum, x) => sum + (x.stockQuantity ?? 0) * x.priceGrosze, 0);
@@ -266,6 +269,47 @@ export function ProductListSection(props: {
                   <Button kind="secondary" label={p.cancel} onPress={() => setDeliveryId(null)} />
                 </View>
               </View>
+            ) : writeOffId === x.id ? (
+              // Task 445: "Odpis" — used in the salon, damaged or lost.
+              <View style={{ gap: 6, marginTop: 6 }}>
+                <TextInput
+                  accessibilityLabel={fill(p.writeOffFor, { name: x.name })}
+                  placeholder={p.writeOffQuantity}
+                  placeholderTextColor={colors.placeholder}
+                  keyboardType="number-pad"
+                  value={writeOff.quantity}
+                  onChangeText={(quantity) => setWriteOff({ ...writeOff, quantity })}
+                  style={styles.input}
+                />
+                <TextInput
+                  accessibilityLabel={p.writeOffNote}
+                  placeholder={p.writeOffNote}
+                  placeholderTextColor={colors.placeholder}
+                  maxLength={120}
+                  value={writeOff.note}
+                  onChangeText={(note) => setWriteOff({ ...writeOff, note })}
+                  style={styles.input}
+                />
+                <View style={styles.row}>
+                  <Button
+                    label={p.writeOffAdd}
+                    busy={busy}
+                    disabled={!writeOffCount}
+                    onPress={() =>
+                      void run(() =>
+                        api.writeOffProduct(
+                          salon.orgId,
+                          salon.locationId,
+                          x.id,
+                          writeOffCount ?? 0,
+                          writeOff.note.trim() || undefined,
+                        ),
+                      ).then((ok) => ok && setWriteOffId(null))
+                    }
+                  />
+                  <Button kind="secondary" label={p.cancel} onPress={() => setWriteOffId(null)} />
+                </View>
+              </View>
             ) : askRemove === x.id ? (
               <View style={{ gap: 6, marginTop: 6 }}>
                 <Text style={styles.text}>{fill(p.removeAsk, { name: x.name })}</Text>
@@ -298,9 +342,24 @@ export function ProductListSection(props: {
                   onPress={() => {
                     setDelivery('');
                     setAskRemove(null);
+                    setWriteOffId(null);
                     setDeliveryId(x.id);
                   }}
                 />
+                {x.stockQuantity !== null && x.stockQuantity > 0 ? (
+                  <Button
+                    kind="secondary"
+                    label={p.writeOff}
+                    a11yLabel={fill(p.writeOffFor, { name: x.name })}
+                    disabled={busy}
+                    onPress={() => {
+                      setWriteOff({ quantity: '', note: '' });
+                      setAskRemove(null);
+                      setDeliveryId(null);
+                      setWriteOffId(x.id);
+                    }}
+                  />
+                ) : null}
                 <Button
                   kind="secondary"
                   label={p.change}
@@ -347,7 +406,7 @@ export function ProductListSection(props: {
                         change: r.change > 0 ? `+${r.change}` : String(r.change),
                         after:
                           r.quantityAfter === null ? p.historyNotCounted : String(r.quantityAfter),
-                      })}${r.byName ? ` · ${r.byName}` : ''}`}
+                      })}${r.byName ? ` · ${r.byName}` : ''}${r.note ? ` · ${r.note}` : ''}`}
                     </Text>
                   ))
                 )}

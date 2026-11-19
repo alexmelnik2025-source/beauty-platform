@@ -8355,6 +8355,75 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/write-off": {
+      "post": {
+        "description": "Task 443. In one step, with an optional note shown in \"Historia magazynu\". More than in stock → 409 OUT_OF_STOCK; a product that does not count its pieces → 409 NOT_COUNTED.",
+        "operationId": "ProductsController_writeOff",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "quantity"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Odpis\": take pieces used in the salon, damaged or lost from the stock",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/products/{productId}/stock-history": {
       "get": {
         "description": "Task 440. Owners and managers. Sales, removed sales, deliveries and numbers written by hand — with who and when, newest first (at most 100).",
@@ -25198,9 +25267,10 @@
                     "sale",
                     "sale_removed",
                     "delivery",
-                    "correction"
+                    "correction",
+                    "write_off"
                   ],
-                  "description": "sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — \"Dostawa\"; correction — the number written by hand"
+                  "description": "sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — \"Dostawa\"; correction — the number written by hand; write_off — \"Odpis\" (task 443)"
                 },
                 "change": {
                   "type": "integer",
@@ -25232,6 +25302,11 @@
                   "nullable": true,
                   "description": "Who did it; null when unknown",
                   "type": "string"
+                },
+                "note": {
+                  "nullable": true,
+                  "description": "Why — for a write-off (task 443); otherwise null",
+                  "type": "string"
                 }
               },
               "required": [
@@ -25242,7 +25317,8 @@
                 "at",
                 "date",
                 "time",
-                "byName"
+                "byName",
+                "note"
               ],
               "additionalProperties": false
             },

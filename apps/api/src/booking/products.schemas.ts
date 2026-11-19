@@ -38,11 +38,19 @@ export const restockProductSchema = z.object({
   quantity: z.number().int().min(1).max(100_000),
 });
 
+/** Task 443: "Odpis" — pieces used in the salon, damaged or lost, taken from what is in stock. */
+export const writeOffProductSchema = z.object({
+  quantity: z.number().int().min(1).max(100_000),
+  /** Why, in the salon's own words ("zużyte w salonie", "uszkodzone"); shown in "Historia magazynu". */
+  note: z.string().trim().max(120).optional(),
+});
+
 /** Task 436: the language of the stock CSV's columns. */
 export const stockCsvQuerySchema = z.object({ locale: z.enum(CSV_LOCALES).default('pl') });
 
 export type StockCsvQuery = z.infer<typeof stockCsvQuerySchema>;
 export type RestockProductInput = z.infer<typeof restockProductSchema>;
+export type WriteOffProductInput = z.infer<typeof writeOffProductSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type AddProductSaleInput = z.infer<typeof addProductSaleSchema>;
@@ -95,7 +103,13 @@ export const visitProductSalesSchema = responseSchema(
   }),
 );
 
-export const STOCK_MOVEMENT_KINDS = ['sale', 'sale_removed', 'delivery', 'correction'] as const;
+export const STOCK_MOVEMENT_KINDS = [
+  'sale',
+  'sale_removed',
+  'delivery',
+  'correction',
+  'write_off',
+] as const;
 
 export const stockHistorySchema = responseSchema(
   'StockHistory',
@@ -107,7 +121,7 @@ export const stockHistorySchema = responseSchema(
           kind: z
             .enum(STOCK_MOVEMENT_KINDS)
             .describe(
-              'sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand',
+              'sale — sold at a visit; sale_removed — a sale removed, pieces back; delivery — "Dostawa"; correction — the number written by hand; write_off — "Odpis" (task 443)',
             ),
           change: z.number().int().describe('Pieces added (+) or taken (−)'),
           quantityAfter: z
@@ -119,6 +133,7 @@ export const stockHistorySchema = responseSchema(
           date: z.string().describe('The day in the salon’s own time, YYYY-MM-DD'),
           time: z.string().describe('The time in the salon’s own time, HH:MM'),
           byName: z.string().nullable().describe('Who did it; null when unknown'),
+          note: z.string().nullable().describe('Why — for a write-off (task 443); otherwise null'),
         }),
       )
       .describe('Newest first, at most 100'),

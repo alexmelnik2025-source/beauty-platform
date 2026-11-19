@@ -1486,9 +1486,17 @@ export const en: Dict = {
       sale_removed: 'Sale removed',
       delivery: 'Delivery',
       correction: 'Changed by hand',
+      write_off: 'Write-off',
     },
     historyRow: '{change} pcs → {after}',
     historyNotCounted: 'not counted',
+    writeOff: 'Write-off',
+    writeOffFor: 'Write-off — {name}',
+    writeOffQuantity: 'How many pieces',
+    writeOffNote: 'Reason (e.g. used in the salon, damaged)',
+    writeOffAdd: 'Write off',
+    writeOffHint:
+      'Write-off: pieces used in the salon, damaged or lost — we take them from the stock and note them in the history (in “History”).',
     restock: 'Delivery',
     restockAdd: 'Receive',
     restockHint:

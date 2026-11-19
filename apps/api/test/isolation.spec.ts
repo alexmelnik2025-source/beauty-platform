@@ -139,6 +139,7 @@ function validBody(route: Route): object {
     return { productId: currentIds?.productId };
   }
   if (p.endsWith('/products/:productId/restock')) return { quantity: 5 };
+  if (p.endsWith('/products/:productId/write-off')) return { quantity: 1 };
   if (p.endsWith('/products/:productId')) return { priceGrosze: 1 };
   if (p.endsWith('/products')) return { name: 'Hacked', priceGrosze: 1 };
   if (p.endsWith('/reports/till-movements')) {

@@ -55,6 +55,7 @@ export function ProductsSection({ base }: { base: string }) {
     rows: StockHistory['movements'];
   } | null>(null);
   const [deliveries, setDeliveries] = useState<Record<string, string>>({});
+  const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -136,6 +137,7 @@ export function ProductsSection({ base }: { base: string }) {
       return;
     }
     setError('');
+    setWriteOff({ quantity: '', note: '' });
     try {
       const res = await api<StockHistory>(`${base}/products/${id}/stock-history`);
       setHistoryOf({ id, rows: res.movements });
@@ -166,6 +168,7 @@ export function ProductsSection({ base }: { base: string }) {
       <p className="small muted">{p.stockHint}</p>
       <p className="small muted">{p.lowHint}</p>
       <p className="small muted">{p.restockHint}</p>
+      <p className="small muted">{p.writeOffHint}</p>
       <ErrorBox>{error}</ErrorBox>
       {toOrder.length > 0 ? (
         <p className="note" role="status" data-testid="products-to-order">
@@ -372,6 +375,56 @@ export function ProductsSection({ base }: { base: string }) {
                 {historyOf?.id === x.id ? (
                   <div style={{ flexBasis: '100%' }} data-testid="stock-history">
                     <h3 className="small">{p.historyFor.replace('{name}', x.name)}</h3>
+                    {x.stockQuantity !== null && x.stockQuantity > 0 ? (
+                      // Task 444: "Odpis" — used in the salon, damaged or lost.
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          marginBottom: '0.5rem',
+                        }}
+                        data-testid="stock-write-off"
+                      >
+                        <span className="commission-row__input">
+                          <input
+                            inputMode="numeric"
+                            aria-label={`${p.writeOffQuantity} — ${x.name}`}
+                            placeholder="−"
+                            value={writeOff.quantity}
+                            onChange={(e) => setWriteOff({ ...writeOff, quantity: e.target.value })}
+                          />
+                          <span aria-hidden="true">{p.pieces}</span>
+                        </span>
+                        <input
+                          aria-label={p.writeOffNote}
+                          placeholder={p.writeOffNote}
+                          maxLength={120}
+                          value={writeOff.note}
+                          onChange={(e) => setWriteOff({ ...writeOff, note: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn--quiet btn--small"
+                          aria-label={p.writeOffFor.replace('{name}', x.name)}
+                          disabled={busy || !parseStock(writeOff.quantity)}
+                          onClick={() =>
+                            void run(() =>
+                              api(`${base}/products/${x.id}/write-off`, {
+                                method: 'POST',
+                                body: {
+                                  quantity: parseStock(writeOff.quantity),
+                                  ...(writeOff.note.trim() ? { note: writeOff.note.trim() } : {}),
+                                },
+                              }),
+                            ).then((ok) => ok && setWriteOff({ quantity: '', note: '' }))
+                          }
+                        >
+                          {p.writeOffAdd}
+                        </button>
+                      </div>
+                    ) : null}
                     {historyOf.rows.length === 0 ? (
                       <p className="small muted">{p.historyEmpty}</p>
                     ) : (
@@ -388,6 +441,7 @@ export function ProductsSection({ base }: { base: string }) {
                                   : String(r.quantityAfter),
                               )}
                             {r.byName ? ` · ${r.byName}` : ''}
+                            {r.note ? ` · ${r.note}` : ''}
                           </li>
                         ))}
                       </ul>

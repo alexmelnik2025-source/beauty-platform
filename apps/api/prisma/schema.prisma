@@ -1511,6 +1511,8 @@ enum StockMovementKind {
   delivery
   /// The owner or a manager wrote another number (or started / stopped counting).
   correction
+  /// Task 443: "Odpis" — used in the salon, damaged or lost.
+  write_off
 
   @@map("stock_movement_kind")
 }
@@ -1524,6 +1526,8 @@ model StockMovement {
   change          Int
   /// Pieces in stock after the change; null = the salon stopped counting.
   quantityAfter   Int?              @map("quantity_after")
+  /// Task 443: why the pieces were written off, in the salon's own words.
+  note            String?
   createdByUserId String?           @map("created_by_user_id") @db.Uuid
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
 
