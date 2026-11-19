@@ -3550,3 +3550,13 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
 termin» — сколько осталось неиспользованным на неотменённых бонах, чей последний день попал в период и уже прошёл
 (бон с последним днём «сегодня» ещё действует). API: `giftVouchers.soldByPayment`, `giftVouchers.expired`,
 `giftVouchers.expiredGrosze` в `GET …/reports`; в отчёте специалиста — пусто и нули.
+
+## «Bez gotówki» в «Zamknij kasę» (задача 552)
+
+Под кассой дня (кабинет — календарь, бизнес-приложение — экран дня) владелец или менеджер видит, сколько день принёс
+не наличными — чтобы сверить с терминалом и банком: «Bez gotówki — sprawdź z terminalem i kontem: Karta 130,00 zł
+(wizyty: 2) · Przelew 80,00 zł (wizyty: 1, bony: 1)». Визиты дня («Przyszedł», оплачены картой, BLIK, переводом или
+«Inna»; цена минус скидка минус оплаченное бонами) и боны, проданные в этот день тем же способом (без отменённых).
+Способы без денег не показываются; порядок: Karta, BLIK, Przelew, Inna. API: `otherPayments` в
+`GET …/reports/till-close` (`method`, `visits`, `visitsGrosze`, `vouchers`, `vouchersGrosze`, `totalGrosze`).
+
