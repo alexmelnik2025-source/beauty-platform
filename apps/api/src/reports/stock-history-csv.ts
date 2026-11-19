@@ -94,5 +94,5 @@ export function stockHistoryCsv(lines: StockHistoryCsvLine[], locale: CsvLocale)
       ].join(';'),
     );
   }
-  return `﻿${out.join('\r\n')}\r\n`;
+  return `\uFEFF${out.join('\r\n')}\r\n`;
 }
