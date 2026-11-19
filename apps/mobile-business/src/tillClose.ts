@@ -6,9 +6,7 @@ import type { TillClose } from './api';
  * Vitest (test/tillClose.test.ts).
  */
 export type TillDifference =
-  | { kind: 'matches' }
-  | { kind: 'missing'; grosze: number }
-  | { kind: 'surplus'; grosze: number };
+  { kind: 'matches' } | { kind: 'missing'; grosze: number } | { kind: 'surplus'; grosze: number };
 
 /** What the counted cash says: it matches, something is missing, or there is too much. */
 export function tillDifference(close: NonNullable<TillClose['close']>): TillDifference {
