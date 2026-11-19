@@ -157,7 +157,11 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     `UPDATE gift_voucher SET created_at = (SELECT start_at FROM appointment WHERE id = '${booked.id}') WHERE id IN ('${sold.id}', '${birthday.id}')`,
   );
 
-  const context = await browser.newContext({ viewport: DESKTOP, locale: 'pl-PL' });
+  const context = await browser.newContext({
+    viewport: DESKTOP,
+    locale: 'pl-PL',
+    extraHTTPHeaders: freshAddress(),
+  });
   const page = await context.newPage();
   await page.goto('/pl/login');
   await page.getByLabel('E-mail').fill(OWNER);
