@@ -3263,3 +3263,19 @@ CSV produktów (451): у владельца и менеджера ещё две 
 `apps/api/src/reports/stock-history-csv.ts`, `ReportsService.stockHistoryCsv`, тест — `apps/api/test/reports.spec.ts`.
 Кнопка «CSV historii magazynu» в «Raporty» кабинета (рядом с «CSV wypłat») и бизнес-приложения. e2e `products.spec.ts`,
 скриншоты 455.
+
+## «Inwentaryzacja» (задачи 456–458)
+
+`POST …/locations/:locationId/products/stocktake` с `{ counts: [{ productId, quantity }] }` (1–500 товаров, каждый один
+раз, 0–100 000 штук; владелец и менеджер) — владелец посчитал, что стоит на полке, и записывает числа сразу для многих
+товаров. Каждое число заменяет остаток; если оно отличается, в «Historia magazynu» пишется вид `stocktake` с разницей.
+Товар, у которого штуки не считались, начинает считаться (его разница не идёт в «brakuje/nadwyżka»). Товары блокируются
+(`FOR UPDATE`) на время записи, поэтому продажа в тот же момент не теряется. Чужой или несуществующий товар — 404, и
+ничего не меняется. Ответ `Stocktake` — `{ changed, missingPieces, extraPieces, products }`. Миграция
+`20261121010000_stock_stocktake`. В «CSV historii magazynu» — «Inwentaryzacja». Тест на PostgreSQL —
+`apps/api/test/reports.spec.ts`, изоляция салонов — `isolation.spec.ts`.
+Кабинет (457): кнопка «Inwentaryzacja» рядом с «CSV stanu magazynowego» → у каждого товара «w systemie: N szt.» и поле
+«Na półce», у отличающихся — «brakuje / nadwyżka N szt.»; «Zapisz inwentaryzację» отправляет только изменённые числа
+и показывает итог («Inwentaryzacja zapisana: zmienione produkty: 1, brakuje 1 szt., nadwyżka 0 szt.»). Компонент
+`apps/web/components/products/StocktakePanel.tsx`. Бизнес-приложение (458): та же кнопка в «Usługi» → «Produkty»,
+карточка `StocktakeCard.tsx`. e2e `products.spec.ts`, скриншоты 457, 458.
