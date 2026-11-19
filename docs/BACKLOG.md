@@ -12,6 +12,8 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **19.11.2026, ~01:50 UTC — 451** («Marża» в CSV produktów) — ветка `agent/451-products-csv-margin`, ждёт CI.
+
 - **19.11.2026, ~01:40 UTC — влиты 448–450** («Cena zakupu» товара, «Marża» в отчётах кабинета и бизнес-приложения,
   колонка «Cena zakupu» в CSV stanu magazynowego). Ветки `agent/448-purchase-price`, `agent/450-stock-csv-cost` уже в
   main (удалить может владелец).
@@ -1576,6 +1578,9 @@
       `agent/448-purchase-price`.
 - [x] **450. «Cena zakupu» в CSV stanu magazynowego** — готово 19.11.2026 — последняя колонка (пусто без цены), 4
       языка. Тест на PostgreSQL, e2e. Ветка `agent/450-stock-csv-cost`.
+- [x] **451. «Cena zakupu» и «Marża» в CSV produktów** — готово 19.11.2026 — две последние колонки и сумма маржи в
+      «Razem» для владельца и менеджера; у мастера файл без них. Тест на PostgreSQL, e2e. Ветка
+      `agent/451-products-csv-margin`.
 
 ## Вопросы владельцу
 

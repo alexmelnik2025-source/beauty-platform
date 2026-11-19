@@ -1118,7 +1118,7 @@ export class ReportsService {
     query: ReportQuery,
     locale: CsvLocale,
   ): Promise<{ csv: string; fileName: string }> {
-    const { location, staffIds, rangeStart, rangeEnd } = await this.scope(
+    const { location, staffIds, own, rangeStart, rangeEnd } = await this.scope(
       m,
       userId,
       locationId,
@@ -1136,6 +1136,7 @@ export class ReportsService {
         name: true,
         quantity: true,
         unitPriceGrosze: true,
+        unitCostGrosze: true,
         appointment: { select: { startAt: true, staff: { select: { displayName: true } } } },
       },
       orderBy: [{ appointment: { startAt: 'asc' } }, { createdAt: 'asc' }, { id: 'asc' }],
@@ -1150,9 +1151,12 @@ export class ReportsService {
           product: s.name,
           quantity: s.quantity,
           unitPriceGrosze: s.unitPriceGrosze,
+          unitCostGrosze: s.unitCostGrosze,
         };
       }),
       locale,
+      // Task 451: what the salon paid stays with the owner and managers.
+      !own,
     );
     return { csv, fileName: `products-${location.slug}-${query.from}-${query.to}.csv` };
   }

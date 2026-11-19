@@ -2049,6 +2049,13 @@ describe('salon report', () => {
       ).body as { id: string };
     const pomade = await product('Pomada; mocna', 4500);
     const shampoo = await product('=Szampon', 3000);
+    // Task 451: the pomade has a purchase price, the shampoo does not.
+    await ctx
+      .http()
+      .patch(`${base}/products/${pomade.id}`)
+      .set(owner.auth)
+      .send({ purchasePriceGrosze: 2000 })
+      .expect(200);
     const d1 = addDays(today, -3);
     const d2 = addDays(today, -1);
     const kasiaVisit = await visit({ date: d2, status: 'completed', paid: true });
@@ -2085,16 +2092,19 @@ describe('salon report', () => {
     const lines = text.slice(1).trimEnd().split('\r\n');
     // Oldest visit first; a ";" is quoted and a leading "=" cannot run as a formula.
     expect(lines).toEqual([
-      'Data;Godzina;Specjalista;Produkt;Ilość;Cena;Wartość',
-      expect.stringMatching(new RegExp(`^${d1};\\d\\d:\\d\\d;Ola;'=Szampon;1;30,00;30,00$`)),
+      'Data;Godzina;Specjalista;Produkt;Ilość;Cena;Wartość;Cena zakupu;Marża',
+      expect.stringMatching(new RegExp(`^${d1};\\d\\d:\\d\\d;Ola;'=Szampon;1;30,00;30,00;;$`)),
       expect.stringMatching(
-        new RegExp(`^${d2};\\d\\d:\\d\\d;Kasia;"Pomada; mocna";2;45,00;90,00$`),
+        new RegExp(`^${d2};\\d\\d:\\d\\d;Kasia;"Pomada; mocna";2;45,00;90,00;20,00;50,00$`),
       ),
-      expect.stringMatching(new RegExp(`^${d2};\\d\\d:\\d\\d;Kasia;'=Szampon;1;30,00;30,00$`)),
-      'Razem;;;;4;;150,00',
+      expect.stringMatching(new RegExp(`^${d2};\\d\\d:\\d\\d;Kasia;'=Szampon;1;30,00;30,00;;$`)),
+      'Razem;;;;4;;150,00;;50,00',
     ]);
     const english = (await csv({ locale: 'en' }).expect(200)).body as string;
-    expect(english).toContain('Total;;;;4;;150.00');
+    expect(english).toContain(
+      'Date;Time;Specialist;Product;Quantity;Price;Total;Purchase price;Margin',
+    );
+    expect(english).toContain('Total;;;;4;;150.00;;50.00');
 
     // A specialist: only with own results, and then only her own visits.
     await csv({}, kasiaUser.auth).expect(403);
@@ -2104,7 +2114,10 @@ describe('salon report', () => {
     });
     const own = (await csv({}, kasiaUser.auth).expect(200)).body as string;
     expect(own).not.toContain('Ola');
-    expect(own).toContain('Razem;;;;3;;120,00');
+    // Without the salon's purchase prices.
+    expect(own).toContain('Data;Godzina;Specjalista;Produkt;Ilość;Cena;Wartość\r\n');
+    expect(own).not.toContain('Marża');
+    expect(own).toContain('Razem;;;;3;;120,00\r\n');
     await csv({ from: today, to: from }).expect(400);
 
     // Another salon reaches nothing.

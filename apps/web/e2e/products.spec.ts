@@ -288,7 +288,8 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(productsCsv.suggestedFilename()).toMatch(/^products-.+\.csv$/);
   const productsFile = readFileSync((await productsCsv.path())!, 'utf8');
   expect(productsFile).toContain('Data;Godzina;Specjalista;Produkt;Ilość;Cena;Wartość');
-  expect(productsFile).toMatch(/;Pomada matowa;2;49,00;98,00\r\n/);
+  // Task 451: with the purchase price and the margin (the owner's file).
+  expect(productsFile).toMatch(/;Pomada matowa;2;49,00;98,00;20,00;58,00\r\n/);
   expect(productsFile).not.toContain('Szampon');
   expect(productsFile).toContain('Razem;;;;2;;98,00');
   await page.getByRole('button', { name: 'CSV produktów' }).scrollIntoViewIfNeeded();
