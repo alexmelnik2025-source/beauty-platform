@@ -3408,3 +3408,15 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   текст — `voucherText()` в `apps/mobile-business/src/vouchers.ts`; если бонем уже платили — «Zostało … z …».
 - Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-business/test/vouchers.test.ts`, e2e
   `gift-vouchers.spec.ts` (скриншоты 494–497).
+
+## «Zmień bon» — срок, для кого, заметка (задачи 498–500)
+
+- `PATCH …/gift-vouchers/:id` `{ validUntil?, recipient?, note? }` — владелец/менеджер. Не указанное поле остаётся, `null`
+  очищает (пустая «Ważny do» — без срока). Сумму и остаток так не поменять (лишние поля игнорируются). Новый
+  «Ważny do» раньше сегодняшнего дня салона — 400 `VOUCHER_DATE_PAST`; отменённый бон — 409 `VOUCHER_CANCELLED`.
+  Просроченному бону можно дать ещё время — он снова «Ważny».
+- Кабинет: в карточке бона («Sprawdź bon» или «Pokaż» в списке) кнопка «Zmień bon» — форма с «Ważny do», «Dla kogo»,
+  «Notatka» и подсказкой «Kwoty bonu nie zmienisz». Бизнес-приложение: то же в карточке бона (`api.updateGiftVoucher`).
+  Мастер кнопки не видит (и сервер ответит 403).
+- Тесты: `apps/api/test/gift-vouchers.spec.ts` (права, очистка, срок в прошлом, отменённый, изоляция салонов), e2e
+  `gift-vouchers.spec.ts` — скриншоты 499, 499a (кабинет), 500 (приложение).
