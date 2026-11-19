@@ -549,9 +549,12 @@ export default function ReportsPage() {
                   </p>
                 ) : null}
                 {report.products.suppliers.some((x) => x.supplier !== null) ? (
-                  // Task 472: the same sales by supplier — whose products sell.
+                  // Task 472: the same sales by supplier — whose products sell (not a heading:
+                  // the section has one).
                   <>
-                    <h3 className="small">{t.reports.deliveriesBySupplier}</h3>
+                    <p className="small">
+                      <strong>{t.reports.deliveriesBySupplier}</strong>
+                    </p>
                     <ol className="report-days" data-testid="report-products-suppliers">
                       {report.products.suppliers.map((group) => (
                         <li key={group.supplier ?? ''}>
