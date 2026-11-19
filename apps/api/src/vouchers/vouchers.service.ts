@@ -502,6 +502,7 @@ export class VouchersService {
         }),
         ...(input.recipient !== undefined && { recipient: input.recipient }),
         ...(input.note !== undefined && { note: input.note }),
+        ...(input.paymentMethod !== undefined && { paymentMethod: input.paymentMethod }),
       },
     });
     return this.toVoucher(updated, location, await this.names([updated.createdByUserId]));

@@ -13622,6 +13622,7 @@ export interface operations {
                     validUntil?: string | null;
                     recipient?: string | null;
                     note?: string | null;
+                    paymentMethod?: ("cash" | "card" | "blik" | "transfer" | "other") | null;
                 };
             };
         };

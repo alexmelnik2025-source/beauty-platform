@@ -75,6 +75,7 @@ function VoucherCard(props: {
   const [editUntil, setEditUntil] = useState('');
   const [editRecipient, setEditRecipient] = useState('');
   const [editNote, setEditNote] = useState('');
+  const [editPayment, setEditPayment] = useState<PaymentMethod | null>(null);
   // Task 532: the payment the owner or a manager is asked about before undoing it.
   const [undoing, setUndoing] = useState<string | null>(null);
   // Task 539: while the salon page is public, "Wyślij bon" adds the link that shows what is left.
@@ -121,6 +122,7 @@ function VoucherCard(props: {
     setEditUntil(voucher.validUntil ?? '');
     setEditRecipient(voucher.recipient ?? '');
     setEditNote(voucher.note ?? '');
+    setEditPayment(voucher.paymentMethod);
     setEditing(true);
   }
 
@@ -136,6 +138,7 @@ function VoucherCard(props: {
         validUntil: until,
         recipient: editRecipient.trim() || null,
         note: editNote.trim() || null,
+        paymentMethod: editPayment,
       });
       setEditing(false);
       props.onChange({ ...details, voucher: updated });
@@ -226,6 +229,13 @@ function VoucherCard(props: {
             <Input label={v.validUntilField} value={editUntil} onChange={setEditUntil} />
             <Input label={v.recipient} value={editRecipient} onChange={setEditRecipient} />
             <Input label={v.note} value={editNote} onChange={setEditNote} />
+            <PaymentMethodPicker
+              t={t}
+              label={v.paymentLabel}
+              value={editPayment}
+              onChange={setEditPayment}
+              disabled={busy}
+            />
             <View style={styles.buttons}>
               <Button label={v.editSave} busy={busy} onPress={() => void saveEdit()} />
               <Button kind="link" label={v.editCancel} onPress={() => setEditing(false)} />

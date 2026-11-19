@@ -34,13 +34,16 @@ export const redeemGiftVoucherSchema = z.object({
 
 /**
  * Task 498: "Zmień bon" — the last day, who it is for and the note (not the amount: that is
- * money taken at the till). A field left out stays as it is; null clears it.
+ * money taken at the till). A field left out stays as it is; null clears it. Task 550: also how
+ * the client paid for it.
  */
 export const updateGiftVoucherSchema = z
   .object({
     validUntil: z.iso.date().nullable().optional(),
     recipient: z.string().trim().min(1).max(80).nullable().optional(),
     note: z.string().trim().min(1).max(200).nullable().optional(),
+    /** Task 550: how the client paid for it, fixed when noted wrong; null — not noted. */
+    paymentMethod: paymentMethodSchema.nullable().optional(),
   })
   .refine((v) => Object.values(v).some((x) => x !== undefined), {
     message: 'Nothing to change',

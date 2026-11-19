@@ -15,6 +15,7 @@ import { serveApp } from './mobile-app';
  * 50 zł of it with a gift voucher — so only 40 zł of it is in the till; the same day a 100 zł
  * voucher was sold for cash — that is in the till. The form says so (screenshot 546). A voucher
  * sold in "Bony podarunkowe" with "Jak klient zapłacił za bon" shows how it was paid (547).
+ * Task 550: how it was paid, fixed in "Zmień bon" (550).
  * Task 548: the same in the business app — the till of that day and how vouchers were paid (548,
  * 548-a).
  */
@@ -193,12 +194,25 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
   await expect(sell.getByText(/doliczy się do kasy tego dnia/)).toBeVisible();
   await sell.getByRole('button', { name: 'Sprzedaj bon' }).click();
   await expect(sell.getByRole('status')).toContainText('Kod do wpisania na bonie');
+  const marekCode = /([A-Z0-9]{8})/.exec((await sell.getByRole('status').textContent()) ?? '')![1]!;
   const list = page.getByRole('region', { name: 'Sprzedane bony' });
   const marek = list.getByRole('listitem').filter({ hasText: 'Dla: Marek' });
   await expect(marek).toContainText('zapłacono: Karta');
   const ewa = list.getByRole('listitem').filter({ hasText: 'Dla: Ewa' });
   await expect(ewa).toContainText('zapłacono: Gotówka');
   await shot(page, '547-voucher-payment-method');
+
+  // Task 550: noted by mistake — Marek paid with BLIK, fixed in "Zmień bon".
+  await marek.getByRole('button', { name: `Pokaż ${marekCode}` }).click();
+  const card = page.getByRole('group', { name: marekCode });
+  await card.getByRole('button', { name: 'Zmień bon' }).click();
+  const edit = card.getByRole('form', { name: `Zmień bon ${marekCode}` });
+  await expect(edit.getByLabel('Jak klient zapłacił za bon')).toHaveValue('card');
+  await edit.getByLabel('Jak klient zapłacił za bon').selectOption('blik');
+  await edit.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(edit).toBeHidden();
+  await expect(marek).toContainText('zapłacono: BLIK');
+  await shot(page, '550-voucher-payment-fixed');
   await context.close();
 
   const businessApp = await serveApp('mobile-business');

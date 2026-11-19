@@ -259,6 +259,27 @@ describe('gift vouchers (task 490)', () => {
       .expect(400)
       .then((r) => expectError(r.body, 'VOUCHER_DATE_PAST'));
     await ctx.http().patch(`${base}/${sold.id}`).set(owner.auth).send({}).expect(400);
+    // Task 550: how it was paid, fixed and cleared; other fields stay.
+    const paid = await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ paymentMethod: 'blik' })
+      .expect(200);
+    expect(paid.body).toMatchObject({ paymentMethod: 'blik', recipient: 'Jan Kowalski' });
+    await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ paymentMethod: 'cheque' })
+      .expect(400);
+    const unpaid = await ctx
+      .http()
+      .patch(`${base}/${sold.id}`)
+      .set(owner.auth)
+      .send({ paymentMethod: null })
+      .expect(200);
+    expect(unpaid.body.paymentMethod).toBeNull();
     // The amount is not changed here.
     const ignored = await ctx
       .http()

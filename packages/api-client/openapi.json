@@ -13836,6 +13836,23 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "paymentMethod": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "cash",
+                          "card",
+                          "blik",
+                          "transfer",
+                          "other"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }

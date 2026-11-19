@@ -971,7 +971,13 @@ export class BusinessApi {
     orgId: string,
     locationId: string,
     voucherId: string,
-    body: { validUntil: string | null; recipient: string | null; note: string | null },
+    body: {
+      validUntil: string | null;
+      recipient: string | null;
+      note: string | null;
+      /** Task 550: how the client paid for it; null — not given. */
+      paymentMethod?: GiftVoucher['paymentMethod'];
+    },
   ): Promise<GiftVoucher> {
     return this.authed<GiftVoucher>(
       'PATCH',

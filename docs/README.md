@@ -3536,6 +3536,8 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   kasę» — «Powinno być w kasie: …», «Bony podarunkowe sprzedane za gotówkę: …», «Za wizyty zapłacono bonami: … — tych
   pieniędzy nie ma w kasie». Бизнес-приложение — то же (`PaymentMethodPicker` с подписью, `TillCloseSection.tsx`,
   `expectedParts()` в `src/tillClose.ts`).
+- «Zmień bon» (задача 550): `paymentMethod` в `PATCH …/gift-vouchers/:id` (`null` — не указано) — исправить способ
+  оплаты, отмеченный по ошибке; в кабинете и бизнес-приложении то же поле в форме «Zmień bon».
 - «CSV bonów» (задача 549): последняя колонка «Sposób płatności» / «Payment» — Gotówka, Karta, BLIK, Przelew, Inna
   или пусто.
 - Тесты: `apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/tillClose.test.ts`, e2e `till-vouchers.spec.ts`

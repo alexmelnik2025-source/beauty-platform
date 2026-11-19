@@ -25,6 +25,31 @@ const STATUS: Record<GiftVoucher['status'], keyof Dict['vouchers']> = {
   cancelled: 'statusCancelled',
 };
 
+/** Tasks 547, 550: "Jak klient zapłacił za bon" — Gotówka / Karta / … or not given. */
+function PaymentSelect({
+  value,
+  onChange,
+}: {
+  value: PaymentMethod | '';
+  onChange: (value: PaymentMethod | '') => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <label className="field">
+      <span>{t.vouchers.paymentLabel}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value as PaymentMethod | '')}>
+        <option value="">{t.vouchers.paymentUnknown}</option>
+        {PAYMENT_METHODS.map((method) => (
+          <option key={method} value={method}>
+            {t.appointment.paymentMethods[method]}
+          </option>
+        ))}
+      </select>
+      <span className="small muted">{t.vouchers.paymentHint}</span>
+    </label>
+  );
+}
+
 /** "Zostało 80,00 zł z 200,00 zł · Ważny do … · Dla: Jan". */
 function VoucherSummary({ voucher }: { voucher: GiftVoucher }) {
   const { t, locale } = useI18n();
@@ -167,6 +192,7 @@ function EditVoucher({
   const [validUntil, setValidUntil] = useState(voucher.validUntil ?? '');
   const [recipient, setRecipient] = useState(voucher.recipient ?? '');
   const [note, setNote] = useState(voucher.note ?? '');
+  const [payment, setPayment] = useState<PaymentMethod | ''>(voucher.paymentMethod ?? '');
   const [error, setError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
@@ -174,6 +200,7 @@ function EditVoucher({
     setValidUntil(voucher.validUntil ?? '');
     setRecipient(voucher.recipient ?? '');
     setNote(voucher.note ?? '');
+    setPayment(voucher.paymentMethod ?? '');
     setError('');
     setOpen(true);
   }
@@ -189,6 +216,7 @@ function EditVoucher({
           validUntil: validUntil || null,
           recipient: recipient.trim() || null,
           note: note.trim() || null,
+          paymentMethod: payment || null,
         },
       });
       setOpen(false);
@@ -230,6 +258,7 @@ function EditVoucher({
         <span>{t.vouchers.note}</span>
         <input maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
+      <PaymentSelect value={payment} onChange={setPayment} />
       <div className="row">
         <button className="btn" disabled={busy}>
           {t.common.save}
@@ -573,21 +602,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
             <input maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
           </label>
         </div>
-        <label className="field">
-          <span>{t.vouchers.paymentLabel}</span>
-          <select
-            value={payment}
-            onChange={(e) => setPayment(e.target.value as PaymentMethod | '')}
-          >
-            <option value="">{t.vouchers.paymentUnknown}</option>
-            {PAYMENT_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {t.appointment.paymentMethods[method]}
-              </option>
-            ))}
-          </select>
-          <span className="small muted">{t.vouchers.paymentHint}</span>
-        </label>
+        <PaymentSelect value={payment} onChange={setPayment} />
         <button className="btn" disabled={busy}>
           {t.vouchers.sell}
         </button>
