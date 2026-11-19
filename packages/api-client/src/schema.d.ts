@@ -3564,7 +3564,7 @@ export interface paths {
         };
         /**
          * "CSV płatności bonami": every payment with the salon’s gift vouchers
-         * @description Task 533. Owners and managers. One line per payment, oldest first — date, time, voucher code, for whom, amount, paid for, taken by, the day it was undone (empty if not). Same file format as visits-csv.
+         * @description Task 533. Owners and managers. One line per payment, oldest first — date, time, voucher code, for whom, amount, paid for, taken by, the day it was undone (empty if not); task 543: the visit it paid for (date and time) and its specialist, empty for a payment at the till. Same file format as visits-csv.
          */
         get: operations["VouchersController_usesCsv"];
         put?: never;

@@ -221,11 +221,13 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   ]);
   expect(usesCsv.suggestedFilename()).toMatch(/^voucher-payments-.+-\d{4}-\d{2}-\d{2}\.csv$/);
   const usesText = await readFile((await usesCsv.path())!, 'utf8');
-  expect(usesText).toContain('Data;Godzina;Kod bonu;Dla kogo;Kwota;Za co;Przyjął(a);Cofnięta');
   expect(usesText).toContain(
-    `;${code!};Jan i Ola Kowalscy;120,00;Strzyżenie i broda;Aleksander Owner;\r\n`,
+    'Data;Godzina;Kod bonu;Dla kogo;Kwota;Za co;Przyjął(a);Cofnięta;Wizyta;Specjalista wizyty',
   );
-  expect(usesText).toMatch(/;Jan i Ola Kowalscy;30,00;;Aleksander Owner;\d{4}-\d{2}-\d{2}\r\n/);
+  expect(usesText).toContain(
+    `;${code!};Jan i Ola Kowalscy;120,00;Strzyżenie i broda;Aleksander Owner;;;\r\n`,
+  );
+  expect(usesText).toMatch(/;Jan i Ola Kowalscy;30,00;;Aleksander Owner;\d{4}-\d{2}-\d{2};;\r\n/);
 
   // Task 493: the report — one voucher sold (the cancelled one left out), 120 zł paid with
   // vouchers, 80 zł left today.

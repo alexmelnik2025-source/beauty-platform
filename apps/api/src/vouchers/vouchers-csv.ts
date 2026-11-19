@@ -155,13 +155,61 @@ export interface VoucherUseCsvLine {
   by: string;
   /** The salon's own date it was undone, or null. */
   undoneDate: string | null;
+  /** Task 543: the visit it paid for — its date and time ("2026-11-17 10:00") — or null. */
+  visit: string | null;
+  /** Task 543: the specialist of that visit, or null. */
+  visitStaff: string | null;
 }
 
 const USE_HEADERS: Record<CsvLocale, string[]> = {
-  pl: ['Data', 'Godzina', 'Kod bonu', 'Dla kogo', 'Kwota', 'Za co', 'Przyjął(a)', 'Cofnięta'],
-  uk: ['Дата', 'Час', 'Код сертифіката', 'Для кого', 'Сума', 'За що', 'Прийняв(ла)', 'Скасована'],
-  ru: ['Дата', 'Время', 'Код сертификата', 'Для кого', 'Сумма', 'За что', 'Принял(а)', 'Отменена'],
-  en: ['Date', 'Time', 'Voucher code', 'For', 'Amount', 'Paid for', 'Taken by', 'Undone'],
+  pl: [
+    'Data',
+    'Godzina',
+    'Kod bonu',
+    'Dla kogo',
+    'Kwota',
+    'Za co',
+    'Przyjął(a)',
+    'Cofnięta',
+    'Wizyta',
+    'Specjalista wizyty',
+  ],
+  uk: [
+    'Дата',
+    'Час',
+    'Код сертифіката',
+    'Для кого',
+    'Сума',
+    'За що',
+    'Прийняв(ла)',
+    'Скасована',
+    'Візит',
+    'Майстер візиту',
+  ],
+  ru: [
+    'Дата',
+    'Время',
+    'Код сертификата',
+    'Для кого',
+    'Сумма',
+    'За что',
+    'Принял(а)',
+    'Отменена',
+    'Визит',
+    'Мастер визита',
+  ],
+  en: [
+    'Date',
+    'Time',
+    'Voucher code',
+    'For',
+    'Amount',
+    'Paid for',
+    'Taken by',
+    'Undone',
+    'Visit',
+    'Visit specialist',
+  ],
 };
 
 export function voucherUsesCsv(lines: VoucherUseCsvLine[], locale: CsvLocale): string {
@@ -177,6 +225,8 @@ export function voucherUsesCsv(lines: VoucherUseCsvLine[], locale: CsvLocale): s
         cell(l.note ?? ''),
         cell(l.by),
         cell(l.undoneDate ?? ''),
+        cell(l.visit ?? ''),
+        cell(l.visitStaff ?? ''),
       ].join(';'),
     );
   }

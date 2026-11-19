@@ -659,6 +659,8 @@ describe('"CSV płatności bonami" (task 533)', () => {
       'Za co',
       'Przyjął(a)',
       'Cofnięta',
+      'Wizyta',
+      'Specjalista wizyty',
     ]);
     expect(lines[1]).toEqual([
       '2026-03-02',
@@ -669,6 +671,8 @@ describe('"CSV płatności bonami" (task 533)', () => {
       'Strzyżenie',
       'Kasia',
       '',
+      '',
+      '',
     ]);
     expect(lines[2]!.slice(0, 1)).toEqual([today]);
     expect(lines[2]!.slice(2)).toEqual([
@@ -678,6 +682,8 @@ describe('"CSV płatności bonami" (task 533)', () => {
       '',
       'Anna Owner',
       today,
+      '',
+      '',
     ]);
     expect(lines).toHaveLength(3);
 
@@ -887,6 +893,32 @@ describe('"Zapłać bonem" in the visit card (task 540)', () => {
     expect(after.body.totalGrosze).toBe(8000);
     expect(after.body.payments[1].undoneDate).toBe(localToday(Date.now(), 'Europe/Warsaw'));
     expect((await payments(olaVisit, owner.auth).expect(200)).body.payments).toEqual([]);
+
+    // Task 543: "CSV płatności bonami" names the visit and its specialist; at the till — empty.
+    const file = await ctx
+      .http()
+      .get(`${base}/uses.csv`)
+      .set(owner.auth)
+      .buffer(true)
+      .parse((res, done) => {
+        let text = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk: string) => (text += chunk));
+        res.on('end', () => done(null, text));
+      })
+      .expect(200);
+    const csvLines = (file.body as string)
+      .replace(/^\uFEFF/, '')
+      .trimEnd()
+      .split('\r\n')
+      .map((line) => line.split(';').map((c) => c.replace(/^"|"$/g, '')));
+    const visitAt = `${addDays(localToday(Date.now(), 'Europe/Warsaw'), 2)} 10:00`;
+    expect(csvLines.map((l) => [l[4], l[8], l[9]])).toEqual([
+      ['Kwota', 'Wizyta', 'Specjalista wizyty'],
+      ['80,00', visitAt, 'Kasia'],
+      ['10,00', '', ''],
+      ['20,00', visitAt, 'Kasia'],
+    ]);
   });
 
   it('only for a visit the member may see, and nothing is taken otherwise', async () => {

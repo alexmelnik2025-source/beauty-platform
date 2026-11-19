@@ -170,13 +170,22 @@ export class VouchersService {
     const location = await this.access.writable(m, locationId);
     const uses = await this.prisma.giftVoucherUse.findMany({
       where: { voucher: { locationId } },
-      include: { voucher: { select: { code: true, recipient: true } } },
+      include: {
+        voucher: { select: { code: true, recipient: true } },
+        // Task 543: the visit it paid for ("Zapłać bonem" in the visit card).
+        appointment: { select: { startAt: true, staff: { select: { displayName: true } } } },
+      },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
     const names = await this.names(uses.map((u) => u.createdByUserId));
     const lines = uses.map((u) => {
       const at = instantToLocal(u.createdAt.getTime(), location.timezone);
+      const visit = u.appointment
+        ? instantToLocal(u.appointment.startAt.getTime(), location.timezone)
+        : null;
       return {
+        visit: visit ? `${visit.date} ${visit.time}` : null,
+        visitStaff: u.appointment?.staff.displayName ?? null,
         date: at.date,
         time: at.time,
         code: u.voucher.code,
