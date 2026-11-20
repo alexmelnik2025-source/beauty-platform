@@ -127,6 +127,8 @@ export type CatalogSearch = Schemas['CatalogSearch'];
 export type PublicSalonProducts = Schemas['PublicSalonProducts'];
 export type PublicShopProduct = Schemas['PublicShopProduct'];
 export type PublicShopList = Schemas['PublicShopList'];
+export type VisitProducts = Schemas['VisitProducts'];
+export type VisitReservations = Schemas['VisitReservations'];
 /** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
 export type TillClose = Schemas['TillClose'];
 /** "Bony podarunkowe": gift vouchers sold at the salon's till (task 490). */

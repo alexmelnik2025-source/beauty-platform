@@ -675,6 +675,20 @@ export const pl = {
     pickup: 'Odbiór i płatność w salonie, przy wizycie.',
     unavailable: 'Chwilowo niedostępny',
   },
+  /** Task Q3 (part 4b): products put aside for a visit, on the visit link page. */
+  visitProducts: {
+    title: 'Produkty do odbioru',
+    statusReserved: 'Czeka w salonie — zapłacisz przy wizycie',
+    statusHanded: 'Odebrane',
+    statusExpired: 'Nieodebrane — rezerwacja wygasła',
+    giveBack: 'Zrezygnuj',
+    total: 'Razem za produkty: {amount} (płatność w salonie)',
+    add: '+ Dodaj produkt do tej wizyty',
+    addTitle: 'Produkty salonu',
+    reserve: 'Odbiorę przy wizycie',
+    unavailable: 'chwilowo niedostępny',
+    pickup: 'Produkt czeka na Ciebie w salonie. Płacisz przy wizycie — bez płatności online.',
+  },
   voucherCheck: {
     open: 'Masz bon podarunkowy? Sprawdź, ile zostało',
     title: 'Sprawdź bon podarunkowy',

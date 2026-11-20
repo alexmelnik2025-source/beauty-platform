@@ -56,6 +56,10 @@
   GET/POST/DELETE, салонные `…/appointments/{id}/reservations` + `hand-over`/`cancel`, доступность с учётом броней,
   таймер истечения; 2 теста `shop-reservations.spec.ts`). Дальше: экраны A (подтверждение записи) / B («Moje wizyty») /
   C («Jak było?») на странице записи и в клиентском приложении, D (карточка визита в кабинете и бизнес-приложении).
+- **20.11.2026, ~02:45 UTC — 581 (ветка `agent/581-visit-products-link`, поверх 580): Q3 часть 4b — экран B на
+  странице визита по ссылке** («Produkty do odbioru», «+ Dodaj produkt do tej wizyty» → «Odbiorę przy wizycie»,
+  «Zrezygnuj»; 6 словарей; шаг e2e в `my-shop.spec.ts`, скриншот Q3-visit-products). Дальше: A (подтверждение записи),
+  C («Jak było?»), «Moje wizyty» в клиентском приложении, D (карточка визита в кабинете и бизнес-приложении).
 
 - **20.11.2026, ~01:40 UTC — влитие ждавших веток (ветка `agent/574-merge-waiting`, ночной запуск :37): влиты три ждавшие ветки** —
   `agent/572-booksy-analysis-2` (разделы 8–9 анализа Booksy), `agent/573-e2e-map-tiles-offline` (тест карты не падает

@@ -681,6 +681,20 @@ export const ru: Dict = {
     pickup: 'Получение и оплата в салоне, во время визита.',
     unavailable: 'Временно нет в наличии',
   },
+  /** Task Q3 (part 4b): products put aside for a visit, on the visit link page. */
+  visitProducts: {
+    title: 'Товары к получению',
+    statusReserved: 'Ждёт в салоне — оплатите на визите',
+    statusHanded: 'Получено',
+    statusExpired: 'Не забрано — бронь истекла',
+    giveBack: 'Отказаться',
+    total: 'Итого за товары: {amount} (оплата в салоне)',
+    add: '+ Добавить товар к этому визиту',
+    addTitle: 'Товары салона',
+    reserve: 'Заберу на визите',
+    unavailable: 'временно нет',
+    pickup: 'Товар ждёт вас в салоне. Платите на визите — без онлайн-оплаты.',
+  },
   voucherCheck: {
     open: 'Есть подарочный сертификат? Проверьте остаток',
     title: 'Проверить подарочный сертификат',

@@ -674,6 +674,20 @@ export const en: Dict = {
     pickup: 'Pick up and pay at the salon, at your visit.',
     unavailable: 'Out of stock right now',
   },
+  /** Task Q3 (part 4b): products put aside for a visit, on the visit link page. */
+  visitProducts: {
+    title: 'Products to pick up',
+    statusReserved: 'Waiting at the salon — pay at your visit',
+    statusHanded: 'Picked up',
+    statusExpired: 'Not picked up — the reservation expired',
+    giveBack: 'Give back',
+    total: 'Products in all: {amount} (paid at the salon)',
+    add: '+ Add a product to this visit',
+    addTitle: 'Salon products',
+    reserve: 'I’ll pick it up at the visit',
+    unavailable: 'out of stock right now',
+    pickup: 'The product waits for you at the salon. You pay at the visit — no online payment.',
+  },
   voucherCheck: {
     open: 'Have a gift voucher? Check what is left',
     title: 'Check a gift voucher',

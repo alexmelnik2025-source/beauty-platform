@@ -126,6 +126,8 @@ export type {
   PublicSalonProducts,
   PublicShopProduct,
   PublicShopList,
+  VisitProducts,
+  VisitReservations,
   StockHistory,
   Stocktake,
   StockDelivery,

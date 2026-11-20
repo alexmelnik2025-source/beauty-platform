@@ -366,6 +366,20 @@ export const tr: Dict = {
     pickup: 'Ziyaretinizde salonda teslim alın ve ödeyin.',
     unavailable: 'Şu anda stokta yok',
   },
+  /** Task Q3 (part 4b): products put aside for a visit, on the visit link page. */
+  visitProducts: {
+    title: 'Teslim alınacak ürünler',
+    statusReserved: 'Salonda bekliyor — ziyarette ödeyin',
+    statusHanded: 'Teslim alındı',
+    statusExpired: 'Alınmadı — rezervasyon süresi doldu',
+    giveBack: 'Vazgeç',
+    total: 'Ürünler toplamı: {amount} (salonda ödeme)',
+    add: '+ Bu ziyarete ürün ekle',
+    addTitle: 'Salon ürünleri',
+    reserve: 'Ziyarette teslim alacağım',
+    unavailable: 'şu anda stokta yok',
+    pickup: 'Ürün sizi salonda bekliyor. Ziyarette ödersiniz — çevrimiçi ödeme yok.',
+  },
   voucherCheck: {
     open: 'Hediye çekiniz mi var? Kalan tutarı kontrol edin',
     title: 'Hediye çekini kontrol et',

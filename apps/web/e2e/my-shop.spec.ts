@@ -15,8 +15,9 @@ import { waitForEmail } from './mailpit';
  * clients. The public salon page's products and the "Sklep" tab answer accordingly.
  * Part 2b: the shared card has no picture yet, so our salon adds one; it shows on the salon's
  * products but not in its gallery. Part 3: a client on the phone sees one folded row "Produkty
- * salonu (2)" under the services and opens it. Screenshots Q3-my-shop, Q3-my-shop-card,
- * Q3-my-shop-photo, Q3-salon-products.
+ * salonu (2)" under the services and opens it. Part 4b (screen B): on the visit link the client
+ * puts the pomade aside with "Odbiorę przy wizycie" and gives it back. Screenshots Q3-my-shop,
+ * Q3-my-shop-card, Q3-my-shop-photo, Q3-salon-products, Q3-visit-products.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -25,6 +26,7 @@ const NAME = `Mój Sklep ${run}`;
 const OWNER = `my-shop-${run}@example.com`;
 const OTHER = `my-shop-other-${run}@example.com`;
 const EAN = `590${String(Date.now()).slice(-10)}`;
+const CLIENT = `my-shop-client-${run}@example.com`;
 
 const shot = (page: Page, name: string) =>
   page.screenshot({ path: `e2e/screenshots/${name}.png`, fullPage: true });
@@ -248,6 +250,76 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
     await client.goto(`/pl/b/${other.slug}`);
     await expect(client.getByRole('heading', { name: `Inny Salon ${run}` })).toBeVisible();
     await expect(client.getByRole('button', { name: 'Produkty salonu (1)' })).toBeVisible();
+
+    // Part 4b (screen B): a booked client puts the pomade aside by the visit link.
+    const cut = await json<{ id: string }>(
+      await request.post(`${salon.base}/services`, {
+        headers: salon.auth,
+        data: { name: 'Strzyżenie', durationMinutes: 30, priceGrosze: 8000 },
+      }),
+    );
+    const kasia = await json<{ id: string }>(
+      await request.post(`${salon.base}/staff`, {
+        headers: salon.auth,
+        data: { displayName: 'Kasia', serviceIds: [cut.id] },
+      }),
+    );
+    await json(
+      await request.put(`${salon.base}/staff/${kasia.id}/working-hours`, {
+        headers: salon.auth,
+        data: {
+          days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+            weekday,
+            intervals: [{ start: '08:00', end: '20:00' }],
+          })),
+        },
+      }),
+    );
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() + 2);
+    start.setUTCHours(12, 0, 0, 0);
+    const hold = await json<{ holdId: string; holdToken: string }>(
+      await request.post(`/v1/public/locations/${salon.slug}/holds`, {
+        data: { serviceId: cut.id, staffId: kasia.id, start: start.toISOString() },
+      }),
+    );
+    await json(
+      await request.post(`/v1/public/holds/${hold.holdId}/code`, {
+        data: {
+          holdToken: hold.holdToken,
+          name: 'Anna Kowalska',
+          phone: '+48 600 100 200',
+          email: CLIENT,
+          locale: 'pl',
+          acceptTerms: true,
+        },
+      }),
+    );
+    const codeMail = await waitForEmail(CLIENT, /Kod potwierdzenia/);
+    const confirmed = await json<{ manageToken: string }>(
+      await request.post(`/v1/public/holds/${hold.holdId}/confirm`, {
+        data: { holdToken: hold.holdToken, code: /\b(\d{6})\b/.exec(codeMail.text)![1]! },
+      }),
+    );
+    await client.goto(`/pl/m/${confirmed.manageToken}`);
+    const section = client.getByTestId('visit-products');
+    await expect(section.getByRole('heading', { name: 'Produkty do odbioru' })).toBeVisible();
+    await section.getByRole('button', { name: '+ Dodaj produkt do tej wizyty' }).click();
+    await section
+      .getByRole('button', { name: 'Odbiorę przy wizycie: Pomada Reuzel różowa' })
+      .click();
+    await expect(section.getByText('Czeka w salonie — zapłacisz przy wizycie')).toBeVisible();
+    await expect(
+      section.getByText('Razem za produkty: 59,00 zł (płatność w salonie)'),
+    ).toBeVisible();
+    await shot(client, 'Q3-visit-products');
+    // Only one piece of the wax? No — four pomades: a second one may still be put aside.
+    await expect(
+      section.getByRole('button', { name: 'Odbiorę przy wizycie: Pomada Reuzel różowa' }),
+    ).toBeEnabled();
+    // The client changes their mind.
+    await section.getByRole('button', { name: 'Zrezygnuj: Pomada Reuzel różowa' }).click();
+    await expect(section.getByText('Czeka w salonie — zapłacisz przy wizycie')).toHaveCount(0);
   } finally {
     await phone.close();
   }

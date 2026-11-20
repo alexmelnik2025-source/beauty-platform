@@ -8,6 +8,7 @@ import type { PublicAppointment, Slot, VisitPhotoList } from '@/lib/types';
 import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { VisitReviewForm } from '../reviews/VisitReviewForm';
+import { VisitProductsByLink } from './VisitProductsByLink';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import type { VisitWishes } from '../wishes/wishes';
 import { directionsLink } from './SalonProfile';
@@ -211,6 +212,11 @@ export function AppointmentManager<T extends PublicAppointment>({
             endpoint={endpoint}
             canRemove={a.canChangeWishes}
           />
+        ) : null}
+
+        {/* Task Q3: products put aside for the visit, picked up and paid at the salon. */}
+        {mode === 'view' && a.status !== 'cancelled' ? (
+          <VisitProductsByLink key={`products-${a.id}`} endpoint={endpoint} />
         ) : null}
 
         {mode === 'view' && a.canChangeWishes && asksWishes(a.wishQuestions) ? (

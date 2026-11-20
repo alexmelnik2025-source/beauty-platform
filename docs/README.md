@@ -3825,3 +3825,15 @@ Q3-my-shop-card): другой салон уже завёл карточку п�
 — салон снимает бронь. «Produkty salonu» и «Sklep» учитывают брони в `available`. Тесты `shop-reservations.spec.ts`
 (2 сценария: бронь → выдача → продажа и склад; возврат, отмена визита, отмена салоном, истечение). Экраны A/B/C
 (подтверждение записи, «Moje wizyty», «Jak było?») и D (карточка визита барбера) — следующие части.
+
+## «Produkty do odbioru» на странице визита по ссылке (задача Q3, часть 4b — экран B)
+
+`apps/web/components/booking/VisitProductsByLink.tsx` на странице `/{язык}/m/{token}` (ссылка из письма «Wizyta
+potwierdzona»): раздел «Produkty do odbioru» — что клиент отложил к визиту (название, количество, сумма, состояние
+«Czeka w salonie — zapłacisz przy wizycie» / «Odebrane» / «Nieodebrane»), итог «Razem za produkty … (płatność w
+salonie)» и свёрнутая кнопка «+ Dodaj produkt do tej wizyty» → список «Produkty salonu» с кнопкой «Odbiorę przy
+wizycie» (недоступные — серые); «Zrezygnuj» у ждущего товара — до начала визита. Раздела нет вовсе, если салон ничего
+не продаёт клиентам и ничего не отложено; после начала визита — только список без кнопок. Данные — публичные
+`…/appointments/{token}/products` (часть 4a). Тексты в 6 словарях (`visitProducts.*`). e2e: шаг в `my-shop.spec.ts`
+(клиент бронирует через API, по ссылке откладывает помаду и отказывается; скриншот Q3-visit-products). Экран A (на
+подтверждении записи), экран C («Jak było?»), клиентское приложение и D (барбер) — следующие части.

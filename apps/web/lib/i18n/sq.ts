@@ -367,6 +367,20 @@ export const sq: Dict = {
     pickup: 'Merrni dhe paguani në sallon, gjatë vizitës.',
     unavailable: 'Përkohësisht nuk ka',
   },
+  /** Task Q3 (part 4b): products put aside for a visit, on the visit link page. */
+  visitProducts: {
+    title: 'Produkte për t’u marrë',
+    statusReserved: 'Pret në sallon — paguani gjatë vizitës',
+    statusHanded: 'U mor',
+    statusExpired: 'Nuk u mor — rezervimi skadoi',
+    giveBack: 'Hiq dorë',
+    total: 'Gjithsej për produktet: {amount} (pagesa në sallon)',
+    add: '+ Shto një produkt në këtë vizitë',
+    addTitle: 'Produktet e sallonit',
+    reserve: 'Do ta marr gjatë vizitës',
+    unavailable: 'përkohësisht nuk ka',
+    pickup: 'Produkti ju pret në sallon. Paguani gjatë vizitës — pa pagesë online.',
+  },
   voucherCheck: {
     open: 'Keni një kupon dhuratë? Shikoni sa ka mbetur',
     title: 'Kontrollo kuponin dhuratë',

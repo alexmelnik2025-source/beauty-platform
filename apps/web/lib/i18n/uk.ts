@@ -675,6 +675,20 @@ export const uk: Dict = {
     pickup: 'Отримання й оплата в салоні під час візиту.',
     unavailable: 'Тимчасово немає',
   },
+  /** Task Q3 (part 4b): products put aside for a visit, on the visit link page. */
+  visitProducts: {
+    title: 'Товари на отримання',
+    statusReserved: 'Чекає в салоні — оплатите під час візиту',
+    statusHanded: 'Отримано',
+    statusExpired: 'Не забрано — бронь закінчилась',
+    giveBack: 'Відмовитись',
+    total: 'Разом за товари: {amount} (оплата в салоні)',
+    add: '+ Додати товар до цього візиту',
+    addTitle: 'Товари салону',
+    reserve: 'Заберу під час візиту',
+    unavailable: 'тимчасово немає',
+    pickup: 'Товар чекає на вас у салоні. Платите під час візиту — без онлайн-оплати.',
+  },
   voucherCheck: {
     open: 'Маєте подарунковий сертифікат? Перевірте залишок',
     title: 'Перевірити подарунковий сертифікат',
