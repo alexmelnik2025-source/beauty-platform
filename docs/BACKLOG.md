@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~05:40 UTC — влит Q3 экран C** (ветка `agent/589-after-visit-products`): «Na wizycie użyto» на
+  странице визита по ссылке после визита — «Odłóż na następną wizytę» / «Umów kolejną wizytę» с товарами в ссылке
+  (`?product=…`, откладываются сразу после записи). API `…/products/used`, `…/products/next`; e2e
+  `shop-after-visit.spec.ts`. Осталось в Q3: экран C в клиентском приложении (визит «Moje wizyty» после визита),
+  «Odbiorę przy wizycie» с карточки товара во вкладке «Sklep», «Przenieść produkt na nowy termin?» при отмене.
+
 - **20.11.2026, ~04:30 UTC — влиты Q3 экран D, экран A и «Produkty do odbioru» в клиентском приложении** (ветки
   `agent/583-visit-card-products` → `agent/584-booking-done-products` → `agent/585-client-visit-products`, одной
   цепочкой). **D:** «Do wydania klientowi» в карточке визита кабинета (`components/shop/VisitToHand.tsx`) и

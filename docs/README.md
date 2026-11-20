@@ -3854,6 +3854,18 @@ wizycie» (недоступные — серые); «Zrezygnuj» у ждущег
 wizycie» откладывает товар к этому визиту (тот же API, что на странице визита по ссылке), оплата в салоне. Не
 показывается в окне записи на сайте салона (`embed`) и когда у салона нет товаров. e2e `shop-booked-products.spec.ts`.
 
+## «Na wizycie użyto» после визита (задача Q3, экран C)
+
+На странице визита по ссылке (`ManageAppointment` → `UsedProductsByLink`), когда визит состоялся (`completed`), под
+«Jak było?» — товары, проданные на этом визите, которые салон показывает клиентам (по сегодняшней цене). Есть следующая
+подтверждённая запись в этом салоне — у товара «Odłóż na następną wizytę» (бронь на ту запись, повторное нажатие
+ничего не добавляет), после — «✓ Odłożone na wizytę {время}». Записи нет — одна кнопка «Umów kolejną wizytę»: запись
+к тому же мастеру на ту же услугу сразу на шаге времени, товары идут в ссылке (`?product=…`) и откладываются к новой
+записи сразу после подтверждения (`VisitProductsByLink` с `bring`). API: `GET /v1/public/appointments/{token}/products/used`,
+`POST …/products/next` (`{ productId }`; не с этого визита — 404, нет записи — 409 NO_NEXT_VISIT, нет штук — 409
+OUT_OF_STOCK). Следующая запись — та же карточка клиента (`customerId`) в том же салоне. Тесты в
+`shop-reservations.spec.ts`, e2e `shop-after-visit.spec.ts` (скриншоты Q3-C-used, Q3-C-booked, Q3-C-saved).
+
 ## «Produkty do odbioru» для клиента с входом (задача Q3, API для «Moje wizyty»)
 
 `GET /v1/client/appointments/{id}/products` — что клиент отложил к своему визиту и что ещё можно добавить;
