@@ -14,6 +14,7 @@ import type { MembershipContext } from '../common/request-context';
 import type { Appointment, Location, Prisma, ProductReservation } from '../generated/prisma/client';
 import { AppointmentsService } from '../booking/appointments.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { BaseOrdersService } from './integrations/base-orders.service';
 import type {
   ReserveProductInput,
   VisitProductsResponse,
@@ -86,6 +87,7 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     private readonly booking: PublicBookingService,
     private readonly appointments: AppointmentsService,
     private readonly products: ProductsService,
+    private readonly baseOrders: BaseOrdersService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -211,7 +213,7 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       where: { id: input.productId, locationId: location.id, active: true, inSalonShop: true },
     });
     if (!product) throw notFound('Product');
-    return this.prisma.$transaction(async (tx) => {
+    const reservation = await this.prisma.$transaction(async (tx) => {
       // Lock the product row so two clients cannot both take the last piece.
       await tx.$queryRaw`SELECT id FROM product WHERE id = ${product.id}::uuid FOR UPDATE`;
       if (product.stockQuantity !== null) {
@@ -233,6 +235,8 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
         },
       });
     });
+    this.baseOrders.soon(location.id);
+    return reservation;
   }
 
   async cancelByClient(visit: Appointment, reservationId: string): Promise<void> {
@@ -242,6 +246,7 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       data: { status: 'cancelled' },
     });
     if (result.count !== 1) throw notFound('Reservation');
+    this.baseOrders.soon(visit.locationId);
   }
 
   // ── The salon, in the visit card ────────────────────────
@@ -301,6 +306,7 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       where: { id: reservationId },
       data: { status: 'handed', saleId: sale?.id ?? null },
     });
+    this.baseOrders.soon(locationId);
     return this.forVisit(m, userId, locationId, appointmentId);
   }
 
@@ -318,6 +324,7 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       data: { status: 'cancelled' },
     });
     if (result.count !== 1) throw notReserved();
+    this.baseOrders.soon(locationId);
     return this.forVisit(m, userId, locationId, appointmentId);
   }
 

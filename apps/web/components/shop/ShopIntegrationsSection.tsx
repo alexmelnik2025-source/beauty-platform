@@ -48,7 +48,7 @@ interface Row {
 
 interface SyncRun {
   id: string;
-  trigger: 'import' | 'manual' | 'schedule';
+  trigger: 'import' | 'manual' | 'schedule' | 'orders';
   startedAt: string;
   checked: number;
   changed: number;

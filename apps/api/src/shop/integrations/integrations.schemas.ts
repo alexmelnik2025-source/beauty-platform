@@ -56,6 +56,23 @@ export const importBaseSchema = z.object({
     }),
 });
 
+/** Task Q4 (part 5): "Zamówienia do Base" — products put aside go to Base as orders. */
+export const configureBaseOrdersSchema = z
+  .object({
+    enabled: z.boolean(),
+    /** The status of a new order (e.g. "Do odbioru w salonie"); needed to turn it on. */
+    newStatusId: z.string().trim().min(1).max(32).nullable().default(null),
+    /** Where the order goes when the product is handed over; null = leave it. */
+    handedStatusId: z.string().trim().min(1).max(32).nullable().default(null),
+    /** Where it goes when the reservation ends without a sale; null = leave it. */
+    cancelledStatusId: z.string().trim().min(1).max(32).nullable().default(null),
+  })
+  .refine((v) => !v.enabled || v.newStatusId !== null, {
+    message: 'choose the status of new orders',
+    path: ['newStatusId'],
+  });
+
+export type ConfigureBaseOrdersInput = z.infer<typeof configureBaseOrdersSchema>;
 export type ConnectBaseInput = z.infer<typeof connectBaseSchema>;
 export type ConfigureBaseInput = z.infer<typeof configureBaseSchema>;
 export type BaseProductsQuery = z.infer<typeof baseProductsQuerySchema>;
@@ -87,6 +104,28 @@ export const baseIntegrationSchema = responseSchema(
       .nullable()
       .describe('The last import or renewal failed with this code; null = it went well'),
     importedProducts: z.number().int().describe('Products of the salon that came from Base'),
+    orders: z
+      .strictObject({
+        enabled: z.boolean().describe('Products put aside for a visit go to Base as orders'),
+        newStatusId: z.string().nullable(),
+        handedStatusId: z.string().nullable(),
+        cancelledStatusId: z.string().nullable(),
+        failing: z
+          .number()
+          .int()
+          .describe(
+            'Reservations whose order could not be sent yet ("Synchronizuj teraz" retries)',
+          ),
+      })
+      .describe('Task Q4 (part 5): "Zamówienia do Base"'),
+  }),
+);
+
+/** Task Q4 (part 5): the order statuses of the seller's Base to choose from. */
+export const baseOrderStatusesSchema = responseSchema(
+  'BaseOrderStatuses',
+  z.strictObject({
+    statuses: z.array(z.strictObject({ id: z.string(), name: z.string() })),
   }),
 );
 
@@ -170,8 +209,10 @@ export const baseImportResultSchema = responseSchema(
 const syncRun = z.strictObject({
   id: z.string(),
   trigger: z
-    .enum(['import', 'manual', 'schedule'])
-    .describe('"Importuj zaznaczone", "Synchronizuj teraz" or the regular renewal'),
+    .enum(['import', 'manual', 'schedule', 'orders'])
+    .describe(
+      '"Importuj zaznaczone", "Synchronizuj teraz", the regular renewal, or orders sent to Base',
+    ),
   startedAt: z.string(),
   finishedAt: z.string().nullable().describe('null = still running'),
   checked: z.number().int().describe('Products looked at'),
@@ -207,3 +248,4 @@ export type BaseIntegrationResponse = z.infer<typeof baseIntegrationSchema>;
 export type BaseOptionsResponse = z.infer<typeof baseOptionsSchema>;
 export type BaseProductsResponse = z.infer<typeof baseProductsSchema>;
 export type BaseImportResultResponse = z.infer<typeof baseImportResultSchema>;
+export type BaseOrderStatusesResponse = z.infer<typeof baseOrderStatusesSchema>;

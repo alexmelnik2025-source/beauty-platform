@@ -2059,7 +2059,12 @@ export const en: Dict = {
     narrowDown: 'The first 500 are shown — narrow the search.',
     importTicked: 'Import ticked ({n})',
     imported: 'Done: {created} new, {updated} updated, {skipped} skipped.',
-    triggers: { import: 'import', manual: 'by hand', schedule: 'automatic' },
+    triggers: {
+      import: 'import',
+      manual: 'by hand',
+      schedule: 'automatic',
+      orders: 'orders to Base',
+    },
   },
   unsubscribe: {
     title: 'Messages from the salon',

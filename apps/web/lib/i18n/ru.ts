@@ -2059,7 +2059,12 @@ export const ru: Dict = {
     narrowDown: 'Показаны первые 500 — уточните поиск.',
     importTicked: 'Импортировать отмеченные ({n})',
     imported: 'Готово: новых {created}, обновлено {updated}, пропущено {skipped}.',
-    triggers: { import: 'импорт', manual: 'вручную', schedule: 'автоматически' },
+    triggers: {
+      import: 'импорт',
+      manual: 'вручную',
+      schedule: 'автоматически',
+      orders: 'заказы в Base',
+    },
   },
   unsubscribe: {
     title: 'Сообщения от салона',

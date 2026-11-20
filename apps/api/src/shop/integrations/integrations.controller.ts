@@ -28,21 +28,25 @@ import {
   baseImportResultSchema,
   baseIntegrationSchema,
   baseOptionsSchema,
+  baseOrderStatusesSchema,
   baseProductsQuerySchema,
   baseProductsSchema,
   baseSyncRunSchema,
   baseSyncRunsSchema,
+  configureBaseOrdersSchema,
   configureBaseSchema,
   connectBaseSchema,
   importBaseSchema,
   type BaseImportResultResponse,
   type BaseIntegrationResponse,
   type BaseOptionsResponse,
+  type BaseOrderStatusesResponse,
   type BaseProductsQuery,
   type BaseProductsResponse,
   type BaseSyncRunResponse,
   type BaseSyncRunsResponse,
   type ConfigureBaseInput,
+  type ConfigureBaseOrdersInput,
   type ConnectBaseInput,
   type ImportBaseInput,
 } from './integrations.schemas';
@@ -195,5 +199,34 @@ export class ShopIntegrationsController {
     @Param('locationId', uuid('Location')) locationId: string,
   ): Promise<BaseSyncRunsResponse> {
     return this.integrations.runs(m, locationId);
+  }
+
+  @Get('order-statuses')
+  @ApiOperation({
+    summary: 'Task Q4 (part 5): the order statuses of the seller’s Base',
+    description: 'To choose where new, handed-over and cancelled orders go.',
+  })
+  @ApiZodResponse(baseOrderStatusesSchema)
+  orderStatuses(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+  ): Promise<BaseOrderStatusesResponse> {
+    return this.integrations.orderStatuses(m, locationId);
+  }
+
+  @Put('orders')
+  @ApiOperation({
+    summary: '"Zamówienia do Base": products put aside for a visit become orders in Base',
+    description:
+      'Task Q4 (part 5). Only for products imported from the chosen catalogue: each reservation becomes an order "odbiór w salonie, płatność na miejscu" in `newStatusId`; handed over → `handedStatusId`, taken back / expired / visit cancelled → `cancelledStatusId` (null = leave the order as it is). Statuses must be of this Base (422 BASE_INVALID_CHOICE); 409 BASE_NOT_CONFIGURED before step 2.',
+  })
+  @ApiZodBody(configureBaseOrdersSchema)
+  @ApiZodResponse(baseIntegrationSchema)
+  configureOrders(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Body(new ZodValidationPipe(configureBaseOrdersSchema)) body: ConfigureBaseOrdersInput,
+  ): Promise<BaseIntegrationResponse> {
+    return this.integrations.configureOrders(m, locationId, body);
   }
 }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BookingModule } from '../booking/booking.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { BaseApi } from './integrations/base-api';
+import { BaseOrdersService } from './integrations/base-orders.service';
 import { ShopFeedController } from './integrations/feed.controller';
 import { ShopFeedService } from './integrations/feed.service';
 import { ShopIntegrationsController } from './integrations/integrations.controller';
@@ -28,6 +29,7 @@ import { ShopService } from './shop.service';
     ShopService,
     ShopIntegrationsService,
     BaseApi,
+    BaseOrdersService,
     SecretBox,
     ShopSyncScheduler,
     ShopFeedService,

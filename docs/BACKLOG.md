@@ -22,6 +22,9 @@
   `GET/POST /v1/client/appointments/{id}/products`, `DELETE …/{reservationId}` (тесты в `shop-reservations.spec.ts`) и
   карточка «Produkty do odbioru» в визите клиентского приложения (`screens/VisitProductsCard.tsx`, скриншот Q3-B-app).
   Осталось в Q3: экран C («Jak było?» → «Odłóż na następną wizytę»); кнопка «Odbiorę przy wizycie» во вкладке «Sklep».
+- **20.11.2026, ~04:10 UTC — 587 (ветка `agent/587-base-orders`, от main): Q4 часть 5 — заказы/брони в Base (API).**
+  Осталось по Q4: переключатель и выбор статусов в «Integracje» кабинета, статус Base в бизнес-приложении, фото
+  товаров из Base/файла.
 
 - **20.11.2026, ~03:05 UTC — 582 (ветка `agent/582-integrations-cabinet`, поверх 581): Q4 часть 4 — экран
   «Integracje» в кабинете (Base в 3 шага + «Importuj z pliku», статус, «Synchronizuj teraz», журнал), ссылка из
@@ -2153,6 +2156,8 @@
 
 - [x] 586. Q3: «Jak długo czekają odłożone produkty» — настройка `shopReservationDays` (1–90 дней) внизу «Mój sklep» в
       кабинете (владелец/менеджер); тест на PostgreSQL, e2e, скриншот Q3-reservation-days — 20.11.2026
+- [x] 587. Q4 часть 5 (API): «Zamówienia do Base» — отложенный к визиту товар из Base уходит заказом в Base, выдача/отмена
+      меняют статус заказа; настройки статусов, повтор при ошибке, журнал; Vitest `shop-base-orders.spec.ts` — 20.11.2026
 - [x] 429–431. «W magazynie»: остаток товара на складе — API, кабинет, бизнес-приложение; тест на PostgreSQL, e2e, скриншоты 430, 431 — 16.11.2026
 - [x] 428. Вход в кабинет сразу в календарь, `/pl/app` → календарь на сервере (нестабильный e2e cabinet-a11y) — 16.11.2026
 - [x] 364. «Otwarte teraz» на главной сайта и на карте клиентского приложения; e2e, скриншот 364 — 10.11.2026

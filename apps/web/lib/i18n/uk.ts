@@ -2051,7 +2051,12 @@ export const uk: Dict = {
     narrowDown: 'Показано перші 500 — уточніть пошук.',
     importTicked: 'Імпортувати позначені ({n})',
     imported: 'Готово: нових {created}, оновлено {updated}, пропущено {skipped}.',
-    triggers: { import: 'імпорт', manual: 'вручну', schedule: 'автоматично' },
+    triggers: {
+      import: 'імпорт',
+      manual: 'вручну',
+      schedule: 'автоматично',
+      orders: 'замовлення в Base',
+    },
   },
   unsubscribe: {
     title: 'Повідомлення від салону',

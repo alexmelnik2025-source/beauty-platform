@@ -3897,3 +3897,22 @@ e2e `apps/web/e2e/visits-app-shop.spec.ts` (скриншоты Q3-app-shop, Q3-a
 с `version`), специалист видит только число. Компонент `apps/web/components/shop/ReservationDays.tsx`, тексты
 `shop.reservationDays*` в 4 словарях кабинета. Тесты: `apps/api/test/shop-reservation-days.spec.ts` (права и границы
 1–90, бронь истекает через заданное число дней), e2e `shop-reservation-days.spec.ts` (скриншот Q3-reservation-days).
+## «Zamówienia do Base»: отложенные товары уходят заказами в Base (задача Q4, часть 5 — API)
+
+Товар, импортированный из Base продавца, который клиент отложил к визиту («Odbiorę przy wizycie», Q3), становится
+заказом в этом Base — «Odbiór w salonie», «Płatność w salonie», не оплачен, с именем/телефоном/e-mail клиента, датой
+визита в комментарии, складом выбранного каталога и id брони в `extra_field_1`. Base сам уменьшает остаток, который
+продавец продаёт ещё на Allegro, Empik или своём сайте. Выдача товара («Wydaj i dolicz») переводит заказ в статус
+«выдано», а конец брони без продажи (клиент передумал, салон снял, визит отменён, не забрал вовремя) — в статус
+«отменено». По умолчанию выключено. API (владелец/менеджер): `GET …/shop/integrations/base/order-statuses` — статусы
+заказов этого Base; `PUT …/base/orders` `{ enabled, newStatusId, handedStatusId?, cancelledStatusId? }` (статусы
+проверяются в Base, 422 BASE_INVALID_CHOICE; без статуса конца заказ в Base не трогаем); в `GET …/base` — блок
+`orders` (включено, статусы, `failing` — сколько не удалось отправить). Отправка — сразу после изменения брони (на
+сервере с фоновыми задачами) и каждые 5 минут планировщиком `ShopSyncScheduler` (там же — визиты, отменённые
+в другом месте); ошибка Base сохраняется у брони, после 5 неудач подряд бронь ждёт «Synchronizuj teraz» (он сначала
+отправляет заказы, потом обновляет остатки). Каждый раунд с отправкой — в журнале (`trigger: "orders"`, в кабинете
+«zamówienia do Base»). Код: `apps/api/src/shop/integrations/base-orders.service.ts`, методы Base `getOrderStatusList`,
+`addOrder`, `setOrderStatus` в `base-api.ts`. Тесты: `apps/api/test/shop-base-orders.spec.ts` (5, Base — заглушка).
+Остаток при синхронизации берётся из Base как есть: если Base уменьшает остаток при заказе, отложенное до выдачи
+учитывается дважды — в безопасную сторону (не продадим лишнее). Дальше: в «Integracje» кабинета — переключатель
+«Wysyłaj rezerwacje do Base jako zamówienia» и выбор трёх статусов; статус в бизнес-приложении.

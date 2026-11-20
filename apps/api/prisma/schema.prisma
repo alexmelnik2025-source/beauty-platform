@@ -1701,6 +1701,14 @@ model ProductReservation {
   status          ProductReservationStatus @default(reserved)
   /// The sale made when it was handed over; null until then.
   saleId          String?                  @unique @map("sale_id") @db.Uuid
+  /// Task Q4 (part 5): the order made for it in the seller's Base (product imported from Base,
+  /// "Zamówienia do Base" on); null = not sent (yet).
+  baseOrderId     String?                  @map("base_order_id")
+  /// Which state of the reservation Base last got: reserved / handed / cancelled; null = none.
+  baseOrderState  String?                  @map("base_order_state")
+  /// Failed attempts to send it in a row (after 5 it waits for "Synchronizuj teraz").
+  baseOrderFails  Int                      @default(0) @map("base_order_fails")
+  baseOrderError  String?                  @map("base_order_error")
   createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -1798,6 +1806,12 @@ model ShopIntegration {
   syncEveryMinutes Int                     @default(60) @map("sync_every_minutes")
   /// When the last renewal (by schedule or "Synchronizuj teraz") started; null = never.
   lastSyncAt       DateTime?               @map("last_sync_at") @db.Timestamptz(3)
+  /// Task Q4 (part 5): products put aside for a visit go to Base as orders, in these Base order
+  /// statuses (new / handed over / cancelled). Off until the seller turns it on.
+  ordersEnabled          Boolean            @default(false) @map("orders_enabled")
+  orderStatusNewId       String?            @map("order_status_new_id")
+  orderStatusHandedId    String?            @map("order_status_handed_id")
+  orderStatusCancelledId String?            @map("order_status_cancelled_id")
   createdByUserId  String?                 @map("created_by_user_id") @db.Uuid
   createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -1817,6 +1831,8 @@ enum ShopSyncTrigger {
   manual
   /// The regular renewal every `syncEveryMinutes`.
   schedule
+  /// Task Q4 (part 5): products put aside sent to Base as orders (or their status changed).
+  orders
 
   @@map("shop_sync_trigger")
 }

@@ -49,6 +49,36 @@ export interface BaseProductData extends BaseListedProduct {
   imageUrls: string[];
 }
 
+/** A status of orders in the seller's Base ("Nowe", "Do odbioru", "Anulowane", …). */
+export interface BaseOrderStatus {
+  id: string;
+  name: string;
+}
+
+/** Task Q4 (part 5): one order made for a product put aside for a visit. */
+export interface BaseNewOrder {
+  statusId: string;
+  currency: string;
+  /** Who picks it up — the salon's client. */
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  /** Shown to the seller in Base: "Odbiór przy wizycie 21.11 14:00 · …". */
+  comment: string;
+  /** Our reservation id, so the seller (and we) can find the order. */
+  reference: string;
+  product: {
+    productId: string;
+    name: string;
+    ean: string | null;
+    /** Units of the currency, e.g. 69.99. */
+    price: number;
+    quantity: number;
+    /** "bl_201" → 201: the stock is taken from this warehouse in Base. */
+    warehouseId: string;
+  };
+}
+
 /** The token was refused by Base: wrong, removed or the account is blocked. */
 export const baseTokenInvalid = (): AppException =>
   new AppException(
@@ -111,7 +141,7 @@ const productMap = (value: unknown): [string, Json][] =>
 /**
  * Task Q4: the Base (BaseLinker) API, called with the seller's own token. One address, the
  * method and its JSON parameters in a form (see https://api.baselinker.com). Reads only, in
- * this part: catalogues, price groups, warehouses, products and makers. Base allows about 100
+ * part 1: catalogues, price groups, warehouses, products and makers; part 5 adds orders. Base allows about 100
  * calls a minute per token; one import of up to a few hundred products makes a handful.
  */
 @Injectable()
@@ -207,6 +237,75 @@ export class BaseApi {
         .map((m) => [str(m.manufacturer_id), str(m.name)] as const)
         .filter((pair): pair is [string, string] => pair[0] !== null && pair[1] !== null),
     );
+  }
+
+  /** Task Q4 (part 5): the order statuses of the seller's Base. */
+  async orderStatuses(token: string): Promise<BaseOrderStatus[]> {
+    const body = await this.call(token, 'getOrderStatusList', {});
+    return records(body.statuses).map((st) => ({
+      id: str(st.id) ?? '',
+      name: str(st.name) ?? str(st.name_for_customer) ?? '',
+    }));
+  }
+
+  /**
+   * Task Q4 (part 5): an order "odbiór w salonie, płatność na miejscu" for one product of the
+   * seller's catalogue (storage "db" = the Base catalogue). Returns the order id in Base.
+   */
+  async addOrder(token: string, order: BaseNewOrder): Promise<string> {
+    const warehouse = Number(order.product.warehouseId.replace(/^[a-z]+_/, ''));
+    const body = await this.call(token, 'addOrder', {
+      order_status_id: Number(order.statusId),
+      date_add: Math.floor(Date.now() / 1000),
+      currency: order.currency.toUpperCase(),
+      payment_method: 'Płatność w salonie',
+      payment_method_cod: false,
+      paid: false,
+      user_comments: '',
+      admin_comments: order.comment.slice(0, 500),
+      email: order.email ?? '',
+      phone: order.phone ?? '',
+      user_login: '',
+      delivery_method: 'Odbiór w salonie',
+      delivery_price: 0,
+      delivery_fullname: order.fullName.slice(0, 100),
+      delivery_company: '',
+      delivery_address: '',
+      delivery_city: '',
+      delivery_postcode: '',
+      delivery_country_code: '',
+      want_invoice: false,
+      extra_field_1: order.reference,
+      products: [
+        {
+          storage: 'db',
+          storage_id: 0,
+          product_id: order.product.productId,
+          variant_id: 0,
+          name: order.product.name,
+          sku: '',
+          ean: order.product.ean ?? '',
+          ...(Number.isFinite(warehouse) && warehouse > 0 ? { warehouse_id: warehouse } : {}),
+          price_brutto: order.product.price,
+          // Base needs a rate; 23 % is the usual VAT on cosmetics in Poland. The seller's own
+          // settings in Base (invoices) decide the rest.
+          tax_rate: 23,
+          quantity: order.product.quantity,
+          weight: 0,
+        },
+      ],
+    });
+    const id = str(body.order_id);
+    if (!id) throw baseError('no order_id in the answer to addOrder');
+    return id;
+  }
+
+  /** Task Q4 (part 5): moves an order to another status (handed over, cancelled). */
+  async setOrderStatus(token: string, orderId: string, statusId: string): Promise<void> {
+    await this.call(token, 'setOrderStatus', {
+      order_id: Number(orderId),
+      status_id: Number(statusId),
+    });
   }
 
   private async call(token: string, method: string, parameters: Json): Promise<Json> {

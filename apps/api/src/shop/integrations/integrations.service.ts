@@ -20,15 +20,19 @@ import type {
   BaseImportResultResponse,
   BaseIntegrationResponse,
   BaseOptionsResponse,
+  BaseOrderStatusesResponse,
   BaseProductsQuery,
   BaseProductsResponse,
   BaseSyncRunResponse,
   BaseSyncRunsResponse,
   ConfigureBaseInput,
+  ConfigureBaseOrdersInput,
   ConnectBaseInput,
   ImportBaseInput,
 } from './integrations.schemas';
+import { BaseOrdersService } from './base-orders.service';
 import { SecretBox } from './secret-box';
+import { closeRun } from './sync-runs';
 import { cut, normalEan, plainText, stockMoved, upsertSellerProduct } from './seller-products';
 
 const notConnected = (): AppException =>
@@ -64,9 +68,6 @@ const tooSoon = (): AppException =>
 
 /** Base pages read in one renewal at most (1000 products each). */
 const MAX_SYNC_PAGES = 30;
-
-/** Runs kept in the log of one integration. */
-const KEEP_RUNS = 100;
 
 const toRun = (r: ShopSyncRun): BaseSyncRunResponse => ({
   id: r.id,
@@ -107,7 +108,7 @@ type Configured = ShopIntegration & {
  * the ticked products, "tylko w salonie" or "też online w Sklepie".
  *
  * Owners and managers only. Part 2: regular renewal of prices and stock, "Synchronizuj teraz", the log.
- * Later parts: orders back to Base, a CSV/XML feed.
+ * Part 5: products put aside for a visit go back to Base as orders (BaseOrdersService).
  */
 @Injectable()
 export class ShopIntegrationsService {
@@ -116,6 +117,7 @@ export class ShopIntegrationsService {
     private readonly access: LocationAccessService,
     private readonly base: BaseApi,
     private readonly box: SecretBox,
+    private readonly orders: BaseOrdersService,
   ) {}
 
   async status(m: MembershipContext, locationId: string): Promise<BaseIntegrationResponse> {
@@ -209,6 +211,55 @@ export class ShopIntegrationsService {
       },
     });
     return this.toStatus(locationId, integration);
+  }
+
+  /** Task Q4 (part 5): the order statuses of the seller's Base. */
+  async orderStatuses(
+    m: MembershipContext,
+    locationId: string,
+  ): Promise<BaseOrderStatusesResponse> {
+    await this.access.writable(m, locationId);
+    const token = this.token(await this.find(locationId));
+    return { statuses: await this.base.orderStatuses(token) };
+  }
+
+  /**
+   * Task Q4 (part 5): "Zamówienia do Base" on or off, with the statuses of new, handed-over and
+   * cancelled orders (each must be a status of this Base). Products put aside before stay as
+   * they are until the next round sends the waiting ones.
+   */
+  async configureOrders(
+    m: MembershipContext,
+    locationId: string,
+    input: ConfigureBaseOrdersInput,
+  ): Promise<BaseIntegrationResponse> {
+    await this.access.writable(m, locationId);
+    const integration = this.configured(await this.find(locationId));
+    const chosen = {
+      newStatusId: input.newStatusId,
+      handedStatusId: input.handedStatusId,
+      cancelledStatusId: input.cancelledStatusId,
+    };
+    if (Object.values(chosen).some((id) => id !== null)) {
+      const known = new Set(
+        (await this.base.orderStatuses(this.token(integration))).map((st) => st.id),
+      );
+      for (const [path, id] of Object.entries(chosen)) {
+        if (id !== null && !known.has(id)) {
+          throw invalidChoice(path, 'No such order status in this Base');
+        }
+      }
+    }
+    const updated = await this.prisma.shopIntegration.update({
+      where: { id: integration.id },
+      data: {
+        ordersEnabled: input.enabled,
+        orderStatusNewId: chosen.newStatusId,
+        orderStatusHandedId: chosen.handedStatusId,
+        orderStatusCancelledId: chosen.cancelledStatusId,
+      },
+    });
+    return this.toStatus(locationId, updated);
   }
 
   /** Step 3a: one page of the seller's catalogue, with what the platform already has of it. */
@@ -364,6 +415,9 @@ export class ShopIntegrationsService {
     if (integration.lastSyncAt && Date.now() - integration.lastSyncAt.getTime() < 60_000) {
       throw tooSoon();
     }
+    // Orders to Base first (so its stock already counts them), giving failed ones another go.
+    await this.orders.retryFailed(locationId);
+    await this.orders.push(integration);
     return toRun(await this.sync(integration, 'manual', userId));
   }
 
@@ -472,34 +526,12 @@ export class ShopIntegrationsService {
     }
   }
 
-  /** Closes a run of the log (with the error, if any) and keeps only the latest runs. */
-  private async finish(
+  private finish(
     runId: string,
     counts: { checked?: number; changed?: number; missing?: number },
     error?: unknown,
   ): Promise<ShopSyncRun> {
-    const failed = error === undefined ? null : error;
-    const run = await this.prisma.shopSyncRun.update({
-      where: { id: runId },
-      data: {
-        ...counts,
-        finishedAt: new Date(),
-        errorCode: failed ? (failed instanceof AppException ? failed.code : 'INTERNAL') : null,
-        errorMessage: failed
-          ? (failed instanceof Error ? failed.message : String(failed)).slice(0, 300)
-          : null,
-      },
-    });
-    const old = await this.prisma.shopSyncRun.findMany({
-      where: { integrationId: run.integrationId },
-      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
-      skip: KEEP_RUNS,
-      select: { id: true },
-    });
-    if (old.length > 0) {
-      await this.prisma.shopSyncRun.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
-    }
-    return run;
+    return closeRun(this.prisma, runId, counts, error);
   }
 
   private find(locationId: string): Promise<ShopIntegration | null> {
@@ -526,7 +558,7 @@ export class ShopIntegrationsService {
     locationId: string,
     integration: ShopIntegration | null,
   ): Promise<BaseIntegrationResponse> {
-    const [importedProducts, lastRun] = await Promise.all([
+    const [importedProducts, lastRun, failing] = await Promise.all([
       this.prisma.product.count({ where: { locationId, externalRef: { startsWith: 'base:' } } }),
       integration
         ? this.prisma.shopSyncRun.findFirst({
@@ -535,6 +567,7 @@ export class ShopIntegrationsService {
             select: { errorCode: true },
           })
         : null,
+      integration ? this.orders.failing(locationId) : 0,
     ]);
     return {
       connected: integration !== null,
@@ -549,6 +582,13 @@ export class ShopIntegrationsService {
       lastSyncAt: integration?.lastSyncAt?.toISOString() ?? null,
       lastErrorCode: lastRun?.errorCode ?? null,
       importedProducts,
+      orders: {
+        enabled: integration?.ordersEnabled ?? false,
+        newStatusId: integration?.orderStatusNewId ?? null,
+        handedStatusId: integration?.orderStatusHandedId ?? null,
+        cancelledStatusId: integration?.orderStatusCancelledId ?? null,
+        failing,
+      },
     };
   }
 }

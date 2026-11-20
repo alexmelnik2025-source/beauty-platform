@@ -2052,7 +2052,12 @@ export const pl = {
     narrowDown: 'Pokazano 500 pierwszych — zawęź wyszukiwanie.',
     importTicked: 'Importuj zaznaczone ({n})',
     imported: 'Gotowe: nowych {created}, zaktualizowanych {updated}, pominiętych {skipped}.',
-    triggers: { import: 'import', manual: 'ręcznie', schedule: 'automatycznie' },
+    triggers: {
+      import: 'import',
+      manual: 'ręcznie',
+      schedule: 'automatycznie',
+      orders: 'zamówienia do Base',
+    },
   },
   unsubscribe: {
     title: 'Wiadomości od salonu',
