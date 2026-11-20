@@ -46,6 +46,8 @@ export const en: Dict = {
     VOUCHER_BALANCE: 'Less is left on the voucher — enter an amount no bigger than what is left.',
     VOUCHER_EXPIRED: 'This voucher is no longer valid.',
     VOUCHER_CANCELLED: 'This voucher was cancelled.',
+    VISIT_NOT_PAYABLE:
+      'A voucher can pay only a booked or completed visit — not a cancelled or missed one.',
     VOUCHER_DATE_PAST: 'The last day cannot be before today.',
     LOYALTY_MODE_LOCKED: "The program type can't be changed while clients have stamps or points.",
     LOYALTY_DISABLED: 'The loyalty program is switched off.',

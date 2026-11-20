@@ -1847,6 +1847,8 @@ export const en: Dictionary = {
     errorBalance: 'Less is left on the voucher — enter an amount no bigger than what is left.',
     errorExpired: 'This voucher is no longer valid.',
     errorCancelled: 'This voucher was cancelled.',
+    errorVisitNotPayable:
+      'A voucher can pay only a booked or completed visit — not a cancelled or missed one.',
     errorDatePast: 'The last day cannot be before today.',
     edit: 'Change voucher',
     editHint: 'The amount cannot be changed. An empty date means no end.',
