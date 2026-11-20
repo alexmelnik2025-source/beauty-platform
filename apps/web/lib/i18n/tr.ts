@@ -387,6 +387,9 @@ export const tr: Dict = {
     bookNextHint: 'Ürünü yeni ziyaretiniz için ayıracağız.',
     bookNext: 'Bir sonraki ziyaretinizi ayırtın',
     payAtPickup: 'Yalnızca teslim alırken ödersiniz.',
+    moveTitle: 'Ürünler yeni bir saate taşınsın mı?',
+    moveLead: 'Ayrılan ürünleri yeni ziyaretinize taşıyacağız. Teslim alırken ödersiniz.',
+    moveBook: 'Yeni bir saat seçin',
   },
   voucherCheck: {
     open: 'Hediye çekiniz mi var? Kalan tutarı kontrol edin',

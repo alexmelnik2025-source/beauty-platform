@@ -15,6 +15,8 @@ import { listTo, textOf, waitForEmail } from './mailpit';
  * booking at the same specialist's times and the products come along — put aside for the new
  * visit right after booking. Back on the old visit's page a product given back can be put aside
  * with "Odłóż na następną wizytę". Screenshots Q3-C-used, Q3-C-booked, Q3-C-saved.
+ * Then the client cancels the new visit: "Przenieść produkty na nowy termin?" books another time
+ * and the products come along again (Q3-move-cancelled, Q3-move-booked).
  * (Named "shop-…" so it runs after booking.spec.ts, which counts the salons in the catalogue.)
  */
 
@@ -203,6 +205,8 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
 
   // "Umów kolejną wizytę": straight to Ilya's times, the products come along.
   await used.getByRole('link', { name: 'Umów kolejną wizytę' }).click();
+  // A day ahead, so the visit can still be cancelled online below (2 hours before).
+  await page.locator('.day-strip button').nth(2).click();
   await page.locator('.times button').first().click();
   await page.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
   await page.getByLabel('Telefon').fill('600 100 203');
@@ -220,6 +224,10 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
   ).toBeVisible();
   await booked.scrollIntoViewIfNeeded();
   await shot(page, 'Q3-C-booked');
+  const manageHref = await page
+    .getByRole('link', { name: 'Zmień lub odwołaj wizytę' })
+    .getAttribute('href');
+  const secondToken = manageHref!.split('/m/')[1]!;
   // The client changes their mind about the wax…
   await booked.getByRole('button', { name: 'Zrezygnuj: Wosk matowy' }).click();
   await expect(booked.getByText('Czeka w salonie — zapłacisz przy wizycie')).toHaveCount(1);
@@ -232,5 +240,34 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
   await expect(used.getByRole('link', { name: 'Umów kolejną wizytę' })).toHaveCount(0);
   await used.scrollIntoViewIfNeeded();
   await shot(page, 'Q3-C-saved');
+
+  // The new visit is cancelled: the products put aside move to another time with one button.
+  await page.goto(`/pl/m/${secondToken}`);
+  await page.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+  await page.getByRole('button', { name: 'Tak, odwołaj' }).click();
+  const move = page.getByTestId('move-products');
+  await expect(
+    move.getByRole('heading', { name: 'Przenieść produkty na nowy termin?' }),
+  ).toBeVisible();
+  await expect(move.getByText('Pomada Reuzel różowa')).toBeVisible();
+  await expect(move.getByText('Wosk matowy')).toBeVisible();
+  await move.scrollIntoViewIfNeeded();
+  await shot(page, 'Q3-move-cancelled');
+  await move.getByRole('link', { name: 'Wybierz nowy termin' }).click();
+  await page.locator('.times button').nth(1).click();
+  await page.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
+  await page.getByLabel('Telefon').fill('600 100 203');
+  await page.getByLabel('E-mail').fill(CLIENT);
+  await page.getByLabel(/Akceptuję regulamin rezerwacji/).check();
+  const again = await codeCount();
+  await page.getByRole('button', { name: 'Wyślij kod' }).click();
+  await page.getByLabel('Kod z e-maila').fill(await nextCode(again));
+  await page.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(page.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+  await expect(
+    page.getByTestId('booked-products').getByText('Czeka w salonie — zapłacisz przy wizycie'),
+  ).toHaveCount(2);
+  await page.getByTestId('booked-products').scrollIntoViewIfNeeded();
+  await shot(page, 'Q3-move-booked');
   await context.close();
 });

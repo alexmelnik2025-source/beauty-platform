@@ -388,6 +388,9 @@ export const sq: Dict = {
     bookNextHint: 'Produktin do ta ruajmë për vizitën e re.',
     bookNext: 'Rezervo vizitën e radhës',
     payAtPickup: 'Paguani vetëm kur e merrni.',
+    moveTitle: 'T’i kalojmë produktet në një orar të ri?',
+    moveLead: 'Produktet e ruajtura do t’i kalojmë në vizitën e re. Paguani kur i merrni.',
+    moveBook: 'Zgjidhni një orar të ri',
   },
   voucherCheck: {
     open: 'Keni një kupon dhuratë? Shikoni sa ka mbetur',

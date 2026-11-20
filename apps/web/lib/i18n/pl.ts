@@ -710,6 +710,9 @@ export const pl = {
     bookNextHint: 'Produkt odłożymy do nowej wizyty.',
     bookNext: 'Umów kolejną wizytę',
     payAtPickup: 'Zapłacisz dopiero przy odbiorze.',
+    moveTitle: 'Przenieść produkty na nowy termin?',
+    moveLead: 'Odłożone produkty przeniesiemy do nowej wizyty. Zapłacisz przy odbiorze.',
+    moveBook: 'Wybierz nowy termin',
   },
   voucherCheck: {
     open: 'Masz bon podarunkowy? Sprawdź, ile zostało',

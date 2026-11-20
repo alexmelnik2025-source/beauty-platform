@@ -10,6 +10,7 @@ import { downloadIcs } from './ics';
 import { VisitReviewForm } from '../reviews/VisitReviewForm';
 import { VisitProductsByLink } from './VisitProductsByLink';
 import { UsedProductsByLink } from './UsedProductsByLink';
+import { CancelledVisitProducts } from './CancelledVisitProducts';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import type { VisitWishes } from '../wishes/wishes';
 import { directionsLink } from './SalonProfile';
@@ -247,6 +248,11 @@ export function AppointmentManager<T extends PublicAppointment>({
             endpoint={`${endpoint}/review`}
             staffName={a.staff.displayName}
           />
+        ) : null}
+
+        {/* Task Q3: a cancelled visit had products waiting — book a new time, they come along. */}
+        {mode === 'view' && a.status === 'cancelled' ? (
+          <CancelledVisitProducts key={`move-${a.id}`} endpoint={endpoint} visit={a} />
         ) : null}
 
         {/* Task Q3 (screen C): what the specialist used — put aside for the next visit. */}
