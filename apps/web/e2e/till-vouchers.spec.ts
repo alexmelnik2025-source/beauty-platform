@@ -13,7 +13,8 @@ import { serveApp } from './mobile-app';
 /**
  * Tasks 546–548: gift vouchers in "Zamknij kasę". Yesterday Jan paid for a 90 zł haircut in cash,
  * 50 zł of it with a gift voucher — so only 40 zł of it is in the till; the same day a 100 zł
- * voucher was sold for cash — that is in the till. The form says so (screenshot 546). A voucher
+ * voucher was sold for cash — that is in the till. Task 615: a 45 zł pomade bought at the visit
+ * was paid in cash with it — the till expects it too. The form says so (screenshot 546). A voucher
  * sold in "Bony podarunkowe" with "Jak klient zapłacił za bon" shows how it was paid (547).
  * Task 550: how it was paid, fixed in "Zmień bon" (550).
  * Task 548: the same in the business app — the till of that day and how vouchers were paid (548,
@@ -129,6 +130,20 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     }),
   );
 
+  // Task 615: Jan also bought a 45 zł pomade at the visit — paid in cash with it.
+  const pomade = await json<{ id: string }>(
+    await request.post(`${base}/products`, {
+      headers: owner,
+      data: { name: 'Pomada', priceGrosze: 4500 },
+    }),
+  );
+  await json(
+    await request.post(`${base}/appointments/${booked.id}/products`, {
+      headers: owner,
+      data: { productId: pomade.id, quantity: 1 },
+    }),
+  );
+
   const psql = (sql: string) =>
     execFileSync('psql', [
       (process.env.DATABASE_URL ?? '').replace(/\?.*$/, ''),
@@ -179,12 +194,13 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
   await till.getByRole('button', { name: 'Zamknij kasę' }).click();
   const form = page.getByTestId('till-close-form');
   await expect(form).toContainText(
-    /Powinno być w kasie: 140,00\s*zł \(za wizyty gotówką 40,00\s*zł/,
+    /Powinno być w kasie: 185,00\s*zł \(za wizyty gotówką 85,00\s*zł/,
   );
+  await expect(form).toContainText(/W tym produkty sprzedane przy wizytach: 45,00\s*zł/);
   await expect(form).toContainText(/Bony podarunkowe sprzedane za gotówkę: 100,00\s*zł/);
   await expect(form).toContainText(/Za wizyty zapłacono bonami: 50,00\s*zł/);
   await shot(page, '546-till-with-vouchers');
-  await form.getByLabel(/Gotówka w kasie/).fill('140');
+  await form.getByLabel(/Gotówka w kasie/).fill('185');
   // Task 554: the card payment was checked with the terminal — noted with the close.
   await form.getByLabel('Sprawdzono z terminalem i kontem').check();
   await form.getByRole('button', { name: 'Zapisz' }).click();
@@ -209,7 +225,7 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
   const closes = page.getByTestId('report-till-closes');
   await closes.scrollIntoViewIfNeeded();
   await expect(closes.getByRole('columnheader', { name: 'Bez gotówki' })).toBeVisible();
-  await expect(closes.getByRole('row').nth(1)).toContainText(/140,00\s*zł.*50,00\s*zł/);
+  await expect(closes.getByRole('row').nth(1)).toContainText(/185,00\s*zł.*50,00\s*zł/);
   await shot(page, '553-report-till-non-cash');
 
   // Task 547: "Nowy bon" — how the client paid for it.
@@ -274,7 +290,8 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     );
     await appTill.getByRole('button', { name: 'Policz ponownie' }).click();
     const appForm = phone.getByTestId('till-close-form');
-    await expect(appForm).toContainText(/Powinno być w kasie: 140,00\s*zł/);
+    await expect(appForm).toContainText(/Powinno być w kasie: 185,00\s*zł/);
+    await expect(appForm).toContainText(/W tym produkty sprzedane przy wizytach: 45,00\s*zł/);
     await expect(appForm).toContainText(/Bony podarunkowe sprzedane za gotówkę: 100,00\s*zł/);
     await expect(appForm).toContainText(/Za wizyty zapłacono bonami: 50,00\s*zł/);
     await expect(

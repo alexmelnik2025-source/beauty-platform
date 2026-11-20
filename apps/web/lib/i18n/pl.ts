@@ -86,6 +86,8 @@ export const pl = {
     NO_NEXT_VISIT: 'Nie masz kolejnej wizyty w tym salonie — umów się, a produkt odłożymy.',
     REVIEW_NOT_POSSIBLE: 'Tej wizyty nie można już ocenić.',
     IN_THE_PAST: 'Ten czas już minął.',
+    HAS_PRODUCT_SALES:
+      'Przy tej wizycie sprzedano produkty — najpierw usuń je z listy „Produkty”, potem zmień status.',
     NOT_STARTED: 'Wizyta jeszcze się nie zaczęła.',
     TOO_LONG_AGO: 'Wizytę z przeszłości można dodać tylko z dziś lub wczoraj.',
     FORBIDDEN: 'Nie masz do tego uprawnień.',
@@ -287,6 +289,7 @@ export const pl = {
     tillShouldBe:
       'Powinno być w kasie: {sum} (za wizyty gotówką {visits}, wpłaty {in}, wypłaty {out})',
     tillVouchersSold: 'Bony podarunkowe sprzedane za gotówkę: {sum}',
+    tillVisitsProducts: 'W tym produkty sprzedane przy wizytach: {sum}.',
     tillVisitsVouchers:
       'Za wizyty zapłacono bonami: {sum} — tych pieniędzy nie ma w kasie (salon dostał je przy sprzedaży bonu).',
     tillOther: 'Bez gotówki — sprawdź z terminalem i kontem:',

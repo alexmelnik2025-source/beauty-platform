@@ -45,6 +45,7 @@ export async function otherPaymentsOfDay(
         priceGrosze: true,
         discountGrosze: true,
         voucherUses: { where: { undoneAt: null }, select: { amountGrosze: true } },
+        productSales: { select: { quantity: true, unitPriceGrosze: true } },
       },
     }),
     prisma.giftVoucher.groupBy({
@@ -61,23 +62,31 @@ export async function otherPaymentsOfDay(
   ]);
   return OTHER_METHODS.map((method) => {
     const own = visits.filter((a) => a.paymentMethod === method);
-    const visitsGrosze = own.reduce((sum, a) => {
+    const servicesGrosze = own.reduce((sum, a) => {
       const price = Math.max(0, a.priceGrosze - a.discountGrosze);
       const byVoucher = a.voucherUses.reduce((s, u) => s + u.amountGrosze, 0);
       return sum + Math.max(0, price - byVoucher);
     }, 0);
+    // Task 615: products sold at those visits are paid with the visit, the same way.
+    const productsGrosze = own.reduce((sum, a) => sum + salesGrosze(a.productSales), 0);
+    const visitsGrosze = servicesGrosze + productsGrosze;
     const sold = vouchers.find((v) => v.paymentMethod === method);
     const vouchersGrosze = sold?._sum.amountGrosze ?? 0;
     return {
       method,
       visits: own.length,
       visitsGrosze,
+      productsGrosze,
       vouchers: sold?._count._all ?? 0,
       vouchersGrosze,
       totalGrosze: visitsGrosze + vouchersGrosze,
     };
   }).filter((row) => row.visits > 0 || row.vouchers > 0);
 }
+
+/** Task 615: what the products sold at a visit cost the client (pieces × price of the sale). */
+const salesGrosze = (sales: { quantity: number; unitPriceGrosze: number }[]): number =>
+  sales.reduce((sum, s) => sum + s.quantity * s.unitPriceGrosze, 0);
 
 const dayNotStarted = (): AppException =>
   new AppException(
@@ -198,15 +207,15 @@ export class TillCloseService {
     ]);
     const tz = location.timezone;
     // Task 553: each counted day with what it brought not in cash.
-    const nonCash = new Map<string, number>();
-    for (const c of closes) {
-      const day = c.date.toISOString().slice(0, 10);
-      const rows = await otherPaymentsOfDay(this.prisma, location, day);
-      nonCash.set(
-        day,
-        rows.reduce((sum, r) => sum + r.totalGrosze, 0),
-      );
-    }
+    const nonCash = new Map<string, number>(
+      await Promise.all(
+        closes.map(async (c) => {
+          const day = c.date.toISOString().slice(0, 10);
+          const rows = await otherPaymentsOfDay(this.prisma, location, day);
+          return [day, rows.reduce((sum, r) => sum + r.totalGrosze, 0)] as const;
+        }),
+      ),
+    );
     const lines: (TillCsvLine & { at: number })[] = [
       ...movements.map((mv) => ({
         date: mv.date.toISOString().slice(0, 10),
@@ -268,6 +277,7 @@ export class TillCloseService {
       expectedCashGrosze: cash.expected,
       visitsCashGrosze: cash.visits,
       visitsVoucherGrosze: cash.visitsVouchers,
+      visitsProductsGrosze: cash.products,
       vouchersCashGrosze: cash.vouchers,
       otherPayments: await otherPaymentsOfDay(this.prisma, location, date),
       cashInGrosze: cash.cashIn,
@@ -357,17 +367,18 @@ export class TillCloseService {
 
   /**
    * What should be in the till: the visits of the day that took place and were paid in cash
-   * (price minus discounts), plus cash put in, minus cash taken out (task 236).
+   * (price minus discounts, with the products sold at them), plus cash put in, minus cash taken out (task 236).
    */
   private async cash(location: Location, date: string) {
-    const [{ cash: visits, vouchers: visitsVouchers }, vouchers, movements] = await Promise.all([
-      this.visitsCash(location, date),
-      this.vouchersCash(location, date),
-      this.prisma.tillMovement.findMany({
-        where: { locationId: location.id, date: new Date(`${date}T00:00:00Z`) },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      }),
-    ]);
+    const [{ cash: visits, vouchers: visitsVouchers, products }, vouchers, movements] =
+      await Promise.all([
+        this.visitsCash(location, date),
+        this.vouchersCash(location, date),
+        this.prisma.tillMovement.findMany({
+          where: { locationId: location.id, date: new Date(`${date}T00:00:00Z`) },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        }),
+      ]);
     const sum = (kind: 'in' | 'out') =>
       movements.filter((mv) => mv.kind === kind).reduce((s, mv) => s + mv.amountGrosze, 0);
     const cashIn = sum('in');
@@ -375,6 +386,7 @@ export class TillCloseService {
     return {
       visits,
       visitsVouchers,
+      products,
       vouchers,
       cashIn,
       cashOut,
@@ -385,14 +397,14 @@ export class TillCloseService {
 
   /**
    * What the visits of the day that took place and were paid in cash brought (price minus
-   * discounts), and — task 546 — the part of them paid with gift vouchers ("Zapłać bonem" in the
+   * discounts, plus — task 615 — the products sold at them, paid with the visit), and — task 546 — the part of them paid with gift vouchers ("Zapłać bonem" in the
    * visit card, not undone), which is not cash in the till: the salon took that money when it
    * sold the voucher.
    */
   private async visitsCash(
     location: Location,
     date: string,
-  ): Promise<{ cash: number; vouchers: number }> {
+  ): Promise<{ cash: number; vouchers: number; products: number }> {
     const rows = await this.prisma.appointment.findMany({
       where: {
         locationId: location.id,
@@ -408,20 +420,24 @@ export class TillCloseService {
         priceGrosze: true,
         discountGrosze: true,
         voucherUses: { where: { undoneAt: null }, select: { amountGrosze: true } },
+        productSales: { select: { quantity: true, unitPriceGrosze: true } },
       },
     });
     let cash = 0;
     let vouchers = 0;
+    let products = 0;
     for (const a of rows) {
       const price = Math.max(0, a.priceGrosze - a.discountGrosze);
       const byVoucher = Math.min(
         price,
         a.voucherUses.reduce((sum, u) => sum + u.amountGrosze, 0),
       );
-      cash += price - byVoucher;
+      const sold = salesGrosze(a.productSales);
+      cash += price - byVoucher + sold;
       vouchers += byVoucher;
+      products += sold;
     }
-    return { cash, vouchers };
+    return { cash, vouchers, products };
   }
 
   /**

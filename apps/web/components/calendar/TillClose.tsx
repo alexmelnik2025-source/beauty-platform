@@ -70,7 +70,8 @@ function useMoney(currency: string) {
 
 /**
  * "Powinno być w kasie: …" when cash was put in or taken out or vouchers were sold for cash, else
- * the cash visits; tasks 546–547: vouchers sold for cash and visits paid with vouchers.
+ * the cash visits; tasks 546–547: vouchers sold for cash and visits paid with vouchers; task 615:
+ * the products sold at the cash visits (already in the visits' cash).
  */
 function ExpectedLine({ view, currency }: { view: TillCloseView; currency: string }) {
   const { t } = useI18n();
@@ -90,6 +91,11 @@ function ExpectedLine({ view, currency }: { view: TillCloseView; currency: strin
       {view.vouchersCashGrosze > 0 ? (
         <span className="small muted till-close__line">
           {fill(t.calendar.tillVouchersSold, { sum: money(view.vouchersCashGrosze) })}
+        </span>
+      ) : null}
+      {view.visitsProductsGrosze > 0 ? (
+        <span className="small muted till-close__line" data-testid="till-products">
+          {fill(t.calendar.tillVisitsProducts, { sum: money(view.visitsProductsGrosze) })}
         </span>
       ) : null}
       {view.visitsVoucherGrosze > 0 ? (

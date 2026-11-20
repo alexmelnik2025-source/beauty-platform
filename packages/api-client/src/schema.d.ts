@@ -1337,7 +1337,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Mark "came" (completed) or "did not come" (no_show) */
+        /**
+         * Mark "came" (completed) or "did not come" (no_show)
+         * @description Task 615b: a "came" visit with products sold at it cannot become "did not come" until they are removed (409 HAS_PRODUCT_SALES).
+         */
         post: operations["AppointmentsController_setStatus"];
         delete?: never;
         options?: never;
@@ -8052,10 +8055,12 @@ export interface components {
             currency: string;
             /** @description What should be in the till now: cash visits plus gift vouchers sold for cash plus cash put in minus cash taken out, in hundredths of the salon currency */
             expectedCashGrosze: number;
-            /** @description What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers), in hundredths of the salon currency */
+            /** @description What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers; task 615: with the products sold at them), in hundredths of the salon currency */
             visitsCashGrosze: number;
             /** @description Task 546: the part of the cash visits paid with gift vouchers — not in the till (the salon took that money when it sold the voucher), in hundredths of the salon currency */
             visitsVoucherGrosze: number;
+            /** @description Task 615: the part of visitsCashGrosze that is products sold at those visits (paid with the visit), in hundredths of the salon currency */
+            visitsProductsGrosze: number;
             /** @description Task 547: gift vouchers sold that day for cash (not cancelled), in hundredths of the salon currency */
             vouchersCashGrosze: number;
             /** @description Task 552: what the day brought not in cash — card, BLIK, transfer, other — to check with the card terminal and the bank; only ways with money, in that order */
@@ -8064,8 +8069,10 @@ export interface components {
                 method: "card" | "blik" | "transfer" | "other";
                 /** @description Visits of the day that took place, paid this way */
                 visits: number;
-                /** @description What those visits brought (price minus discounts minus what was paid with gift vouchers), in hundredths of the salon currency */
+                /** @description What those visits brought (price minus discounts minus what was paid with gift vouchers, plus — task 615 — the products sold at them), in hundredths of the salon currency */
                 visitsGrosze: number;
+                /** @description Task 615: the part of visitsGrosze that is products sold at those visits, in hundredths of the salon currency */
+                productsGrosze: number;
                 /** @description Gift vouchers sold that day paid this way */
                 vouchers: number;
                 /** @description What those vouchers brought (not cancelled), in hundredths of the salon currency */

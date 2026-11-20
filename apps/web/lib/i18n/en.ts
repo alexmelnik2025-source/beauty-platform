@@ -86,6 +86,8 @@ export const en: Dict = {
       'You have no next visit in this salon — book one and we will put the product aside.',
     REVIEW_NOT_POSSIBLE: 'This visit can no longer be reviewed.',
     IN_THE_PAST: 'This time has already passed.',
+    HAS_PRODUCT_SALES:
+      'Products were sold at this visit — remove them from “Products” first, then change the status.',
     NOT_STARTED: 'The appointment has not started yet.',
     TOO_LONG_AGO: 'A past visit can be added for today or yesterday only.',
     FORBIDDEN: 'You are not allowed to do this.',
@@ -284,6 +286,7 @@ export const en: Dict = {
     tillMoves: 'Cash in and out',
     tillShouldBe: 'Should be in the till: {sum} (cash visits {visits}, in {in}, out {out})',
     tillVouchersSold: 'Gift vouchers sold for cash: {sum}',
+    tillVisitsProducts: 'Including products sold at the visits: {sum}.',
     tillVisitsVouchers:
       'Paid for visits with gift vouchers: {sum} — this money is not in the till (the salon took it when the voucher was sold).',
     tillOther: 'Not in cash — check with the card terminal and the bank:',

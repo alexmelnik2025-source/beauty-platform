@@ -691,10 +691,13 @@ export const tillCloseSchema = responseSchema(
       'What should be in the till now: cash visits plus gift vouchers sold for cash plus cash put in minus cash taken out',
     ),
     visitsCashGrosze: money(
-      'What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers)',
+      'What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers; task 615: with the products sold at them)',
     ),
     visitsVoucherGrosze: money(
       'Task 546: the part of the cash visits paid with gift vouchers — not in the till (the salon took that money when it sold the voucher)',
+    ),
+    visitsProductsGrosze: money(
+      'Task 615: the part of visitsCashGrosze that is products sold at those visits (paid with the visit)',
     ),
     vouchersCashGrosze: money('Task 547: gift vouchers sold that day for cash (not cancelled)'),
     otherPayments: z
@@ -703,7 +706,10 @@ export const tillCloseSchema = responseSchema(
           method: z.enum(['card', 'blik', 'transfer', 'other']),
           visits: z.number().int().describe('Visits of the day that took place, paid this way'),
           visitsGrosze: money(
-            'What those visits brought (price minus discounts minus what was paid with gift vouchers)',
+            'What those visits brought (price minus discounts minus what was paid with gift vouchers, plus — task 615 — the products sold at them)',
+          ),
+          productsGrosze: money(
+            'Task 615: the part of visitsGrosze that is products sold at those visits',
           ),
           vouchers: z.number().int().describe('Gift vouchers sold that day paid this way'),
           vouchersGrosze: money('What those vouchers brought (not cancelled)'),
