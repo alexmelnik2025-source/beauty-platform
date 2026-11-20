@@ -3838,6 +3838,14 @@ wizycie» (недоступные — серые); «Zrezygnuj» у ждущег
 (клиент бронирует через API, по ссылке откладывает помаду и отказывается; скриншот Q3-visit-products). Экран A (на
 подтверждении записи), экран C («Jak było?»), клиентское приложение и D (барбер) — следующие части.
 
+## «Do wydania klientowi» в карточке визита (задача Q3, экран D)
+
+Кабинет (`components/shop/VisitToHand.tsx`) и бизнес-приложение (`screens/ToHandSection.tsx`): в карточке
+подтверждённого или прошедшего визита — блок «Do wydania klientowi» с товарами, которые клиент отложил к визиту
+(«Odbiorę przy wizycie»), и суммой к оплате на месте. «Wydaj i dolicz» = обычная продажа товара в визите
+(`POST …/appointments/{id}/reservations/{rid}/hand-over`): товар уходит со склада и появляется в «Produkty»
+визита и в кассе; доступно после отметки «Przyszedł». «Anuluj rezerwację» (`…/cancel`) освобождает штуки.
+Блока нет, если ничего не отложено. e2e `visit-to-hand.spec.ts` (скриншоты Q3-D-to-hand, Q3-D-handed, Q3-D-app).
 ## Экран «Integracje» в кабинете (задача Q4, часть 4)
 
 `/[locale]/app/shop/integrations` (`apps/web/components/shop/ShopIntegrationsSection.tsx`), ссылка «Importuj produkty
