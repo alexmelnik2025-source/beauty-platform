@@ -45,6 +45,10 @@ let pomadeId: string;
 let calls: [string, Record<string, unknown>][];
 /** Make the next addOrder fail with a Base error. */
 let failOrders: boolean;
+/** Task 606: Base makes the order, but its answer never arrives (the connection breaks). */
+let loseAnswer: boolean;
+/** The orders Base has (what getOrders answers). */
+let ordersInBase: Record<string, unknown>[];
 let nextOrderId: number;
 /** What getInventoryProductsList answers (the seller's catalogue in Base). */
 let listed: Record<string, unknown>;
@@ -91,6 +95,8 @@ beforeEach(async () => {
   await resetState(ctx);
   calls = [];
   failOrders = false;
+  loseAnswer = false;
+  ordersInBase = [];
   nextOrderId = 7001;
   listed = {};
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -106,9 +112,34 @@ beforeEach(async () => {
       return json({ status: 'ERROR', error_code: 'ERROR_BAD_TOKEN', error_message: 'Bad token' });
     }
     if (method === 'addOrder') {
-      return failOrders
-        ? json({ status: 'ERROR', error_code: 'ERROR_PRODUCT', error_message: 'Brak produktu' })
-        : json({ status: 'SUCCESS', order_id: nextOrderId++ });
+      if (failOrders) {
+        return json({
+          status: 'ERROR',
+          error_code: 'ERROR_PRODUCT',
+          error_message: 'Brak produktu',
+        });
+      }
+      const params = calls[calls.length - 1]![1];
+      const order_id = nextOrderId++;
+      ordersInBase.push({
+        order_id,
+        date_add: params.date_add,
+        email: params.email,
+        extra_field_1: params.extra_field_1,
+      });
+      if (loseAnswer) return new Response('', { status: 502 });
+      return json({ status: 'SUCCESS', order_id });
+    }
+    if (method === 'getOrders') {
+      const params = calls[calls.length - 1]![1] as { filter_email?: string; date_from: number };
+      return json({
+        status: 'SUCCESS',
+        orders: ordersInBase.filter(
+          (o) =>
+            (o.date_add as number) >= params.date_from &&
+            (!params.filter_email || o.email === params.filter_email),
+        ),
+      });
     }
     if (method === 'getInventoryProductsList') return json({ status: 'SUCCESS', products: listed });
     const answer = BASE[method];
@@ -491,7 +522,8 @@ describe('"Zamówienia do Base" (task Q4, part 5)', () => {
     failOrders = false;
     calls = [];
     await ctx.http().post(`${integrations}/sync`).set(owner.auth).expect(200);
-    expect(methods()[0]).toBe('addOrder');
+    // Task 606: after a failure Base is first asked whether the order got there after all.
+    expect(methods().slice(0, 2)).toEqual(['getOrders', 'addOrder']);
     expect(await ctx.prisma.productReservation.findFirstOrThrow()).toMatchObject({
       baseOrderId: '7001',
       baseOrderFails: 0,
@@ -500,6 +532,96 @@ describe('"Zamówienia do Base" (task Q4, part 5)', () => {
     expect(
       (await ctx.http().get(integrations).set(owner.auth).expect(200)).body.orders.failing,
     ).toBe(0);
+  });
+
+  it('an order whose answer from Base was lost is found there, not made a second time (task 606)', async () => {
+    await turnOn({ enabled: true, newStatusId: '502', cancelledStatusId: '504' }).expect(200);
+    const visit = await book(10);
+    await putAside(visit.token);
+    loseAnswer = true;
+    calls = [];
+    expect(await push()).toBe(0);
+    expect(methods()).toEqual(['addOrder']);
+    let row = await ctx.prisma.productReservation.findFirstOrThrow();
+    expect(row).toMatchObject({ baseOrderId: null, baseOrderState: 'sending', baseOrderFails: 1 });
+    expect(ordersInBase).toHaveLength(1);
+
+    // The connection is back: Base is asked first and the order it already has is written down.
+    loseAnswer = false;
+    calls = [];
+    expect(await push()).toBe(1);
+    expect(methods()).toEqual(['getOrders']);
+    expect(calls[0]![1]).toMatchObject({
+      filter_email: CLIENT.email,
+      get_unconfirmed_orders: true,
+      id_from: 0,
+    });
+    row = await ctx.prisma.productReservation.findFirstOrThrow();
+    expect(row).toMatchObject({
+      baseOrderId: '7001',
+      baseOrderState: 'reserved',
+      baseOrderFails: 0,
+      baseOrderError: null,
+    });
+    expect(ordersInBase).toHaveLength(1);
+
+    // Nothing more to send; the stock from Base counts this open order once.
+    calls = [];
+    expect(await push()).toBe(0);
+    expect(methods()).toEqual([]);
+  });
+
+  it('a lost answer on a reservation taken back meanwhile: the order found in Base is cancelled (task 606)', async () => {
+    await turnOn({ enabled: true, newStatusId: '502', cancelledStatusId: '504' }).expect(200);
+    const visit = await book(10);
+    const [reservation] = await putAside(visit.token);
+    loseAnswer = true;
+    await push();
+    await ctx
+      .http()
+      .delete(`/v1/public/appointments/${visit.token}/products/${reservation!.id}`)
+      .expect(200);
+
+    loseAnswer = false;
+    calls = [];
+    expect(await push()).toBe(1);
+    expect(calls.map((c) => [c[0], c[1].status_id])).toEqual([
+      ['getOrders', undefined],
+      ['setOrderStatus', 504],
+    ]);
+    expect(await ctx.prisma.productReservation.findFirstOrThrow()).toMatchObject({
+      baseOrderId: '7001',
+      baseOrderState: 'cancelled',
+      baseOrderFails: 0,
+    });
+    expect(ordersInBase).toHaveLength(1);
+  });
+
+  it('a lost answer when Base in fact made no order: the reservation is sent once, an ended one is let go (task 606)', async () => {
+    await turnOn({ enabled: true, newStatusId: '502', cancelledStatusId: '504' }).expect(200);
+    const first = await book(10);
+    const second = await book(11);
+    await putAside(first.token);
+    const [onSecond] = await putAside(second.token);
+    // Base took neither order (it answered with an error page before writing anything).
+    failOrders = true;
+    await push();
+    await ctx.prisma.productReservation.updateMany({ data: { baseOrderState: 'sending' } });
+    await ctx
+      .http()
+      .delete(`/v1/public/appointments/${second.token}/products/${onSecond!.id}`)
+      .expect(200);
+
+    failOrders = false;
+    calls = [];
+    expect(await push()).toBe(1);
+    expect(methods()).toEqual(['getOrders', 'addOrder', 'getOrders']);
+    const rows = await ctx.prisma.productReservation.findMany({ orderBy: { createdAt: 'asc' } });
+    expect(rows.map((r) => [r.status, r.baseOrderId, r.baseOrderState, r.baseOrderFails])).toEqual([
+      ['reserved', '7001', 'reserved', 0],
+      ['cancelled', null, null, 0],
+    ]);
+    expect(ordersInBase).toHaveLength(1);
   });
 
   it('the stock read from Base keeps the pieces of our open orders, which Base already took off', async () => {

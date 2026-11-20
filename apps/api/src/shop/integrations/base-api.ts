@@ -5,6 +5,9 @@ import { APP_CONFIG, type AppConfig } from '../../config/config';
 /** How long one call to Base may take before the seller sees "Base nie odpowiada". */
 const TIMEOUT_MS = 20_000;
 
+/** Task 606: how many pages of 100 orders `findOrder` reads looking for an order made before. */
+const FIND_ORDER_PAGES = 5;
+
 /** Base answers at most 1000 products per page of getInventoryProductsList. */
 export const BASE_PAGE_SIZE = 1000;
 
@@ -298,6 +301,39 @@ export class BaseApi {
     const id = str(body.order_id);
     if (!id) throw baseError('no order_id in the answer to addOrder');
     return id;
+  }
+
+  /**
+   * Task 606: the order made for a reservation earlier (its id is in `extra_field_1`), when a
+   * previous addOrder may have reached Base but its answer did not reach us (a timeout, a crash).
+   * Reads the orders added since `since` (unconfirmed ones too, up to a few pages of 100) and
+   * returns the id of the one with this reference, or null when Base has none.
+   */
+  async findOrder(
+    token: string,
+    reference: string,
+    since: Date,
+    email: string | null,
+  ): Promise<string | null> {
+    let idFrom = 0;
+    for (let page = 0; page < FIND_ORDER_PAGES; page += 1) {
+      const body = await this.call(token, 'getOrders', {
+        date_from: Math.floor(since.getTime() / 1000),
+        id_from: idFrom,
+        get_unconfirmed_orders: true,
+        ...(email ? { filter_email: email } : {}),
+      });
+      const orders = records(body.orders);
+      for (const order of orders) {
+        const id = str(order.order_id);
+        if (id && str(order.extra_field_1) === reference) return id;
+      }
+      if (orders.length < 100) return null;
+      const last = Math.max(...orders.map((o) => num(o.order_id) ?? 0));
+      if (!(last > idFrom)) return null;
+      idFrom = last + 1;
+    }
+    return null;
   }
 
   /** Task Q4 (part 5): moves an order to another status (handed over, cancelled). */

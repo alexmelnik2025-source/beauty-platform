@@ -12,6 +12,12 @@ export type BaseOrderState = 'reserved' | 'handed' | 'cancelled';
 /** After this many failed attempts in a row a reservation waits for "Synchronizuj teraz". */
 export const MAX_ORDER_FAILS = 5;
 
+/**
+ * Task 606: `baseOrderState` while addOrder is on its way and no order id is written down yet.
+ * On the next round such a reservation is first looked for in Base (`BaseApi.findOrder`).
+ */
+export const SENDING = 'sending';
+
 /** A visit that still counts (the same as for holding pieces). */
 const LIVE_STATUSES = new Set(['confirmed', 'completed']);
 
@@ -134,6 +140,9 @@ export class BaseOrdersService {
         product: { externalRef: { startsWith: prefix } },
         OR: [
           { baseOrderId: null, status: 'reserved', appointment: { status: 'confirmed' } },
+          // Task 606: an addOrder whose answer never came back, on a reservation that ended
+          // meanwhile — the order may be in Base and must be found and cancelled there.
+          { baseOrderId: null, baseOrderState: SENDING },
           { baseOrderId: { not: null }, baseOrderState: 'reserved' },
         ],
       },
@@ -177,8 +186,46 @@ export class BaseOrdersService {
     r: Candidate,
   ): Promise<void> {
     const wanted = wantedState(r);
-    if (r.baseOrderId === null) {
-      const orderId = await this.base.addOrder(token, {
+    let orderId = r.baseOrderId;
+    if (orderId === null) {
+      // Task 606: an earlier attempt may have reached Base without us learning its answer (a
+      // timeout, a crash between addOrder and writing the id down). Ask Base before adding the
+      // order again, so a reservation never becomes two orders.
+      const maybeInBase = r.baseOrderState === SENDING || r.baseOrderFails > 0;
+      const found = maybeInBase
+        ? await this.base.findOrder(
+            token,
+            r.id,
+            new Date(r.createdAt.getTime() - 60_000),
+            r.appointment.customer?.email ?? null,
+          )
+        : null;
+      if (found) {
+        orderId = found;
+        await this.prisma.productReservation.update({
+          where: { id: r.id },
+          data: {
+            baseOrderId: found,
+            baseOrderState: 'reserved',
+            baseOrderFails: 0,
+            baseOrderError: null,
+          },
+        });
+      } else if (wanted !== 'reserved') {
+        // Nothing reached Base and the reservation is over: there is nothing to send.
+        await this.prisma.productReservation.update({
+          where: { id: r.id },
+          data: { baseOrderState: null, baseOrderFails: 0, baseOrderError: null },
+        });
+        return;
+      }
+    }
+    if (orderId === null) {
+      await this.prisma.productReservation.update({
+        where: { id: r.id },
+        data: { baseOrderState: SENDING },
+      });
+      const added = await this.base.addOrder(token, {
         statusId: integration.orderStatusNewId as string,
         currency: r.location.currency,
         fullName: r.appointment.customer?.name ?? 'Klient salonu',
@@ -198,7 +245,7 @@ export class BaseOrdersService {
       await this.prisma.productReservation.update({
         where: { id: r.id },
         data: {
-          baseOrderId: orderId,
+          baseOrderId: added,
           baseOrderState: 'reserved',
           baseOrderFails: 0,
           baseOrderError: null,
@@ -206,10 +253,11 @@ export class BaseOrdersService {
       });
       return;
     }
+    if (wanted === 'reserved') return;
     const statusId =
       wanted === 'handed' ? integration.orderStatusHandedId : integration.orderStatusCancelledId;
     // No status chosen for this end: nothing to tell Base, the seller handles it there.
-    if (statusId) await this.base.setOrderStatus(token, r.baseOrderId, statusId);
+    if (statusId) await this.base.setOrderStatus(token, orderId, statusId);
     await this.prisma.productReservation.update({
       where: { id: r.id },
       data: { baseOrderState: wanted, baseOrderFails: 0, baseOrderError: null },
