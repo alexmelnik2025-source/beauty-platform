@@ -353,3 +353,109 @@ describe('products put aside for a visit (task Q3, part 4)', () => {
     expect(free.body.products[0].available).toBe(true);
   });
 });
+
+async function signIn(email: string): Promise<{ Authorization: string }> {
+  await ctx.http().post('/v1/client/auth/code').send({ email, locale: 'pl' }).expect(202);
+  const match = ctx.mail.lastTo(email)?.text.match(/\b(\d{6})\b/);
+  if (!match?.[1]) throw new Error(`no code sent to ${email}`);
+  const res = await ctx
+    .http()
+    .post('/v1/client/auth/verify')
+    .send({ email, code: match[1], clientType: 'mobile' })
+    .expect(200);
+  return { Authorization: `Bearer ${res.body.token}` };
+}
+
+describe('"Produkty do odbioru" in the client app (task Q3)', () => {
+  it('the signed-in client puts a product aside for their visit and takes it back', async () => {
+    const pomade = await product({
+      name: 'Pomada',
+      priceGrosze: 5900,
+      stockQuantity: 2,
+      inSalonShop: true,
+    });
+    const visit = await book(10);
+    const me = await signIn(CLIENT.email);
+    const url = `/v1/client/appointments/${visit.id}/products`;
+
+    const before = await ctx.http().get(url).set(me).expect(200);
+    shape('VisitProducts', before.body);
+    expect(before.body.canChange).toBe(true);
+    expect(before.body.available.map((p: { id: string }) => p.id)).toEqual([pomade.id]);
+
+    const put = await ctx
+      .http()
+      .post(url)
+      .set(me)
+      .send({ productId: pomade.id, quantity: 2 })
+      .expect(200);
+    shape('VisitProducts', put.body);
+    expect(put.body.reservations).toHaveLength(1);
+    expect(put.body.totalGrosze).toBe(11800);
+    // The same reservation is seen by the visit link and by the salon.
+    const byLink = await ctx
+      .http()
+      .get(`/v1/public/appointments/${visit.token}/products`)
+      .expect(200);
+    expect(byLink.body.reservations[0].id).toBe(put.body.reservations[0].id);
+    const salon = await ctx
+      .http()
+      .get(`${base}/appointments/${visit.id}/reservations`)
+      .set(owner.auth)
+      .expect(200);
+    expect(salon.body.toHandGrosze).toBe(11800);
+    // No piece is left for anyone else.
+    const none = await ctx
+      .http()
+      .post(url)
+      .set(me)
+      .send({ productId: pomade.id, quantity: 1 })
+      .expect(409);
+    expectError(none.body, 'OUT_OF_STOCK');
+
+    const back = await ctx
+      .http()
+      .delete(`${url}/${put.body.reservations[0].id}`)
+      .set(me)
+      .expect(200);
+    expect(back.body.reservations).toHaveLength(0);
+    expect(back.body.totalGrosze).toBe(0);
+  });
+
+  it("someone else's visit looks missing; a started visit cannot change", async () => {
+    const pomade = await product({
+      name: 'Pomada',
+      priceGrosze: 5900,
+      stockQuantity: 5,
+      inSalonShop: true,
+    });
+    const visit = await book(11);
+    const stranger = await signIn('someone.else@example.com');
+    const url = `/v1/client/appointments/${visit.id}/products`;
+    await ctx.http().get(url).set(stranger).expect(404);
+    await ctx
+      .http()
+      .post(url)
+      .set(stranger)
+      .send({ productId: pomade.id, quantity: 1 })
+      .expect(404);
+    await ctx.http().get(url).expect(401);
+    await ctx.http().get('/v1/client/appointments/not-a-uuid/products').set(stranger).expect(404);
+
+    const me = await signIn(CLIENT.email);
+    // A product the salon does not show to clients cannot be put aside.
+    const hidden = await product({ name: 'Wosk', priceGrosze: 4500, stockQuantity: 5 });
+    await ctx.http().post(url).set(me).send({ productId: hidden.id, quantity: 1 }).expect(404);
+    await came(visit.id);
+    const late = await ctx
+      .http()
+      .post(url)
+      .set(me)
+      .send({ productId: pomade.id, quantity: 1 })
+      .expect(409);
+    expectError(late.body, 'TOO_LATE_TO_CHANGE');
+    const after = await ctx.http().get(url).set(me).expect(200);
+    expect(after.body.canChange).toBe(false);
+    expect(after.body.available).toEqual([]);
+  });
+});

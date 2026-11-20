@@ -2875,6 +2875,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Products I put aside for my visit, and what else I may add
+         * @description Task Q3. `canChange` while the visit is confirmed and ahead; `available` = the salon’s products for clients.
+         */
+        get: operations["ClientShopController_list"];
+        put?: never;
+        /**
+         * "Odbiorę przy wizycie": put a product aside for my visit (paid at the salon)
+         * @description Task Q3. More than the salon has left → 409 OUT_OF_STOCK; a visit that started or is not confirmed → 409 TOO_LATE_TO_CHANGE.
+         */
+        post: operations["ClientShopController_reserve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/appointments/{id}/products/{reservationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Take a product back (until the visit starts)
+         * @description Task Q3. Only a product still waiting; otherwise 404.
+         */
+        delete: operations["ClientShopController_unreserve"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations/{slug}/waitlist": {
         parameters: {
             query?: never;
@@ -13393,6 +13437,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VisitReview"];
+                };
+            };
+        };
+    };
+    ClientShopController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    ClientShopController_reserve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @default 1 */
+                    quantity?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    ClientShopController_unreserve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                reservationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
                 };
             };
         };

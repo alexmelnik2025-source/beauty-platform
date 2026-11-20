@@ -3854,6 +3854,13 @@ wizycie» (недоступные — серые); «Zrezygnuj» у ждущег
 wizycie» откладывает товар к этому визиту (тот же API, что на странице визита по ссылке), оплата в салоне. Не
 показывается в окне записи на сайте салона (`embed`) и когда у салона нет товаров. e2e `shop-booked-products.spec.ts`.
 
+## «Produkty do odbioru» для клиента с входом (задача Q3, API для «Moje wizyty»)
+
+`GET /v1/client/appointments/{id}/products` — что клиент отложил к своему визиту и что ещё можно добавить;
+`POST` — «Odbiorę przy wizycie» (`{ productId, quantity }`), `DELETE …/products/{reservationId}` — вернуть товар до
+начала визита. Ответ и правила те же, что у ссылки визита (`/v1/public/appointments/{token}/products`): нет штук —
+409 OUT_OF_STOCK, визит начался — 409 TOO_LATE_TO_CHANGE, чужой визит — 404. Для клиентского приложения и «Moje wizyty».
+
 ## Экран «Integracje» в кабинете (задача Q4, часть 4)
 
 `/[locale]/app/shop/integrations` (`apps/web/components/shop/ShopIntegrationsSection.tsx`), ссылка «Importuj produkty

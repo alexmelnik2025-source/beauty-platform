@@ -378,6 +378,11 @@ export class ClientService {
     return { customerId: { in: customers.map((c) => c.id) } };
   }
 
+  /** Task Q3: one of my visits for "Produkty do odbioru" in the client app (else 404). */
+  myVisit(auth: ClientAuth, id: string): Promise<LoadedAppointment> {
+    return this.mine(auth, id);
+  }
+
   /** Someone else's appointment looks exactly like a missing one. */
   private async mine(auth: ClientAuth, id: string): Promise<LoadedAppointment> {
     const appointment = await this.prisma.appointment.findFirst({

@@ -12,6 +12,11 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~03:35 UTC — 585 (ветка `agent/585-client-visit-products`, поверх 584): Q3 «Moje wizyty» в клиентском
+  приложении, часть API — `GET/POST /v1/client/appointments/{id}/products`, `DELETE …/products/{reservationId}`
+  (`client-shop.controller.ts`, те же правила, что по ссылке визита; чужой визит = 404). Тесты в
+  `shop-reservations.spec.ts`. Дальше: экран «Produkty do odbioru» в карточке визита клиентского приложения.
+
 - **20.11.2026, ~03:20 UTC — 584 (ветка `agent/584-booking-done-products`, поверх 583): Q3 экран A — на экране «Do
   zobaczenia!» сразу после записи необязательный свёрнутый блок «Dodać coś do wizyty?» (`VisitProductsByLink` с
   `offer`: не больше 3 товаров, «+ Dodaj produkt do tej wizyty» раскрывает, «Odbiorę przy wizycie» откладывает; не

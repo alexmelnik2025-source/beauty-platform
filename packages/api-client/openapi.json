@@ -11563,6 +11563,149 @@
         ]
       }
     },
+    "/v1/client/appointments/{id}/products": {
+      "get": {
+        "description": "Task Q3. `canChange` while the visit is confirmed and ahead; `available` = the salon’s products for clients.",
+        "operationId": "ClientShopController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Products I put aside for my visit, and what else I may add",
+        "tags": [
+          "client app"
+        ]
+      },
+      "post": {
+        "description": "Task Q3. More than the salon has left → 409 OUT_OF_STOCK; a visit that started or is not confirmed → 409 TOO_LATE_TO_CHANGE.",
+        "operationId": "ClientShopController_reserve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "productId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Odbiorę przy wizycie\": put a product aside for my visit (paid at the salon)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments/{id}/products/{reservationId}": {
+      "delete": {
+        "description": "Task Q3. Only a product still waiting; otherwise 404.",
+        "operationId": "ClientShopController_unreserve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reservationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a product back (until the visit starts)",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/public/locations/{slug}/waitlist": {
       "post": {
         "description": "One email when a time becomes free on that day. 409 SLOTS_AVAILABLE: the day has free times, book one; 409 WAITLIST_LIMIT: this email already waits for 3 days at the salon; 400 WAITLIST_DATE: outside today … the booking horizon.",
