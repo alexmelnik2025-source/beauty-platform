@@ -345,7 +345,76 @@ export class VisitCoupons {
       },
     });
     if (changed.count !== 1) throw changedMeanwhile();
+    await this.recompute(tx, { ...visit, ...NO_TIER });
     return { name: visit.tierName, discountGrosze: visit.tierDiscountGrosze };
+  }
+
+  /**
+   * Task 610: after a discount comes off, the ones that stay are worked out again — the tier
+   * discount first, then the coupons in the order they were used — so a coupon that was cut by
+   * the salon's maximum share, or by a "free service" that had taken the rest, gets what it is
+   * due now. Example: 10 % tier, then a free-service coupon (90 % left); the tier comes off →
+   * the coupon covers the whole price, not 90 %. Writes the visit's discount as the new sum.
+   */
+  private async recompute(
+    tx: Prisma.TransactionClient,
+    visit: Pick<
+      CouponVisit,
+      | 'id'
+      | 'organizationId'
+      | 'serviceId'
+      | 'priceGrosze'
+      | 'tierDiscountGrosze'
+      | 'tierDiscountPercent'
+    >,
+  ): Promise<void> {
+    const rules = await this.rules(tx, visit.organizationId);
+    const coupons = await this.applied(tx, visit.id);
+    const applied: Applied[] = [];
+    let tierDiscountGrosze = 0;
+    if (visit.tierDiscountGrosze > 0) {
+      const tier = couponDiscount(
+        rules,
+        visit,
+        {
+          id: TIER,
+          kind: 'discount_percent',
+          discountPercent: visit.tierDiscountPercent ?? 0,
+          freeServiceId: null,
+          serviceIds: [],
+          status: 'active',
+          expiresAt: null,
+        },
+        applied,
+      );
+      tierDiscountGrosze = tier.problem ? visit.tierDiscountGrosze : tier.discountGrosze;
+      applied.push({ id: TIER, kind: 'discount_percent', discountGrosze: tierDiscountGrosze });
+    }
+    for (const coupon of coupons) {
+      // As of when it was used: a coupon that has expired since stays on the visit.
+      const { discountGrosze, problem } = couponDiscount(
+        rules,
+        visit,
+        coupon,
+        applied,
+        coupon.usedAt ?? undefined,
+      );
+      const amount = problem ? (coupon.discountGrosze ?? 0) : discountGrosze;
+      if (amount !== (coupon.discountGrosze ?? 0)) {
+        await tx.loyaltyCoupon.update({
+          where: { id: coupon.id },
+          data: { discountGrosze: amount, version: { increment: 1 } },
+        });
+      }
+      applied.push({ id: coupon.id, kind: coupon.kind, discountGrosze: amount });
+    }
+    await tx.appointment.update({
+      where: { id: visit.id },
+      data: {
+        discountGrosze: applied.reduce((sum, a) => sum + (a.discountGrosze ?? 0), 0),
+        tierDiscountGrosze,
+      },
+    });
   }
 
   async applied(tx: Prisma.TransactionClient, appointmentId: string): Promise<LoyaltyCoupon[]> {
@@ -420,6 +489,7 @@ export class VisitCoupons {
     // The checks before the transaction passed, so someone changed the visit meanwhile.
     if (visitChanged.count !== 1) throw changedMeanwhile();
     await this.release(tx, [coupon.id]);
+    await this.recompute(tx, visit);
     return coupon;
   }
 
