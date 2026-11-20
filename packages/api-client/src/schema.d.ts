@@ -3950,6 +3950,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a product file and see what was read from it
+         * @description Columns of a CSV are found by their names (nazwa/name, ean/gtin, sku/symbol, cena/price, stan/ilość/stock, marka/producent, opis, zdjęcie/image, id). 413 FEED_TOO_LARGE, 415 UNSUPPORTED_FEED, 422 FEED_EMPTY. The file is kept for a day.
+         */
+        post: operations["ShopFeedController_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed/{feedId}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import the ticked rows of a sent file (up to 500 at once)
+         * @description Like the Base import: each becomes the salon’s product ("Produkty salonu"); `online: true` also shows it in "Sklep"; joined to the card with the same EAN or a new card is made; importing again renews price, stock and code. A file older than a day → 404.
+         */
+        post: operations["ShopFeedController_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7442,6 +7482,46 @@ export interface components {
             /** @description The session making this request */
             current: boolean;
         }[];
+        ShopFeedImportResult: {
+            created: number;
+            updated: number;
+            cardsCreated: number;
+            cardsMatched: number;
+            skipped: {
+                key: string;
+                /**
+                 * @description Not in the file, no price, or a price in another currency than the salon’s
+                 * @enum {string}
+                 */
+                reason: "NOT_IN_FEED" | "NO_PRICE" | "OTHER_CURRENCY";
+            }[];
+        };
+        ShopFeedPreview: {
+            /** @description Send the ticked rows to …/feed/{feedId}/import within a day */
+            feedId: string;
+            /** @enum {string} */
+            format: "google" | "ceneo" | "csv";
+            /** @description Rows without a name or id, or with an id seen before */
+            unreadable: number;
+            products: {
+                key: string;
+                name: string;
+                ean: string | null;
+                sku: string | null;
+                brand: string | null;
+                /** @description null = no price, or a price in another currency than the salon’s */
+                priceGrosze: number | null;
+                /** @description As the file says it; null = not said */
+                currency: string | null;
+                /** @description null = the file does not say */
+                stock: number | null;
+                imageUrl: string | null;
+                /** @description The salon’s product already made from this row; null = not imported */
+                importedProductId: string | null;
+                /** @description The platform card with the same EAN; null = a new card will be made */
+                catalogProductId: string | null;
+            }[];
+        };
         Slot: {
             /** @description Instant, ISO 8601 UTC */
             start: string;
@@ -14741,6 +14821,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseSyncRuns"];
+                };
+            };
+        };
+    };
+    ShopFeedController_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file itself (not a form), at most 10 MB and 5000 products: Google Merchant XML, Ceneo XML or CSV (; , or tab; UTF-8 or Windows-1250) */
+        requestBody: {
+            content: {
+                "text/csv": string;
+                "application/xml": string;
+                "text/xml": string;
+                "text/plain": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopFeedPreview"];
+                };
+            };
+        };
+    };
+    ShopFeedController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                feedId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        /** @description The row’s id in the file */
+                        key: string;
+                        /** @default false */
+                        online?: boolean;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopFeedImportResult"];
                 };
             };
         };

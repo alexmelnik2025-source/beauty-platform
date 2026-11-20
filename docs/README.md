@@ -3740,3 +3740,17 @@ warehouseId}` — выбор. Группа цен должна быть в ва�
 (что запустило, сколько товаров проверено / изменилось / пропало из Base, код и текст ошибки; хранится 100 последних).
 В статусе — `syncEveryMinutes`, `lastSyncAt`, `lastErrorCode`. Брони товаров к визитам (Q3 A/B/C) будут вычитаться из
 доступного остатка, когда появятся. Тесты — `shop-integrations.spec.ts` (ещё 2 сценария).
+
+## «Importuj z pliku»: товары из CSV/XML-фида (задача Q4, часть 3 — API)
+
+Для продавцов без Base: в «Integracje» продавец отправляет файл своих товаров — Google Merchant XML (RSS/Atom), Ceneo
+XML или CSV (разделитель `;`, `,` или табуляция; UTF-8 или Windows-1250 из польского Excel). `POST
+…/shop/integrations/feed` (сам файл в теле, до 10 МБ и 5000 товаров; 413 `FEED_TOO_LARGE`, 415 `UNSUPPORTED_FEED`,
+422 `FEED_EMPTY`) — читает файл (`apps/api/src/shop/integrations/feed-parser.ts`, без новых библиотек: колонки CSV по
+названиям «nazwa/name, ean/gtin, sku/symbol, cena/price, stan/ilość/stock, marka/producent, opis, zdjęcie/image, id»;
+в Google — `g:sale_price` важнее `g:price`, «out of stock» = остаток 0) и показывает строки с ценой, остатком, уже
+импортированным товаром и карточкой каталога с тем же EAN. Цена в другой валюте, чем у салона, не берётся. Файл
+хранится сутки (`ShopFeedUpload`). `POST …/feed/{feedId}/import {items: [{key, online}]}` (до 500) импортирует
+отмеченные строки так же, как из Base (общий `seller-products.ts`): товар салона `externalRef = feed:<id>`, карточка по
+EAN или новая, «też online» — только если отмечено; повторный файл обновляет цену, остаток и код. Пропуски с причиной:
+`NOT_IN_FEED`, `NO_PRICE`, `OTHER_CURRENCY`. Тесты — `apps/api/test/shop-feed.spec.ts` (6 сценариев).

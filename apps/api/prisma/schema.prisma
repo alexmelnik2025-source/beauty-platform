@@ -514,6 +514,7 @@ model Location {
   productSales      ProductSale[]
   catalogProducts   CatalogProduct[]
   shopIntegrations  ShopIntegration[]
+  shopFeedUploads   ShopFeedUpload[]
   giftVouchers      GiftVoucher[]
 
   @@index([organizationId])
@@ -1791,4 +1792,35 @@ model ShopSyncRun {
 
   @@index([integrationId, startedAt])
   @@map("shop_sync_run")
+}
+
+/// Task Q4 (part 3): the kind of product file a seller sent.
+enum ShopFeedFormat {
+  /// Google Merchant XML (RSS or Atom).
+  google
+  /// Ceneo XML (<offers><o …>).
+  ceneo
+  /// A table: CSV with ; , or tab.
+  csv
+
+  @@map("shop_feed_format")
+}
+
+/// Task Q4 (part 3): "Importuj z pliku" — a seller's product file, read and kept for a day while
+/// the seller ticks what to import.
+model ShopFeedUpload {
+  id              String         @id @default(uuid(7)) @db.Uuid
+  locationId      String         @map("location_id") @db.Uuid
+  format          ShopFeedFormat
+  /// The rows read from the file (FeedRow[] of src/shop/integrations/feed-parser.ts).
+  rows            Json
+  /// Rows without a name or id, or with an id seen before.
+  unreadable      Int            @default(0)
+  createdByUserId String?        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, createdAt])
+  @@map("shop_feed_upload")
 }

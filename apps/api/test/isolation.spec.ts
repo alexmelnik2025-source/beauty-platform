@@ -50,7 +50,8 @@ type Ids = Record<
   | 'voucherId'
   | 'useId'
   | 'code'
-  | 'cardId',
+  | 'cardId'
+  | 'feedId',
   string
 >;
 
@@ -161,6 +162,9 @@ function validBody(route: Route): object {
   if (p.endsWith('/shop/catalog')) return { name: 'Hacked' };
   if (p.endsWith('/shop/integrations/base/import')) return { items: [{ externalId: '1' }] };
   if (p.endsWith('/shop/integrations/base/sync')) return {};
+  // The salon is checked before the file is read: any body reaches the access check.
+  if (p.endsWith('/shop/integrations/feed')) return PNG;
+  if (p.endsWith('/shop/integrations/feed/:feedId/import')) return { items: [{ key: 'A' }] };
   if (p.endsWith('/shop/integrations/base') && route.method === 'put') {
     return { token: '0000000-0000000-HACKEDHACKEDHACKED' };
   }
@@ -546,6 +550,13 @@ async function seedLocation(
     where: { id: product.id },
     data: { catalogProductId: card.id, inSalonShop: true },
   });
+  const feed = await ctx.prisma.shopFeedUpload.create({
+    data: {
+      locationId: org.locationId,
+      format: 'csv',
+      rows: [{ key: 'A', name: 'Pomada', price: 10, currency: null }],
+    },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -573,6 +584,7 @@ async function seedLocation(
     useId: voucherUse.id,
     code: voucher.code,
     cardId: card.id,
+    feedId: feed.id,
   };
 }
 

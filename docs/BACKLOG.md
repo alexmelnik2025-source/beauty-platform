@@ -12,6 +12,11 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~02:50 UTC — 581 (ветка `agent/581-feed-import`, поверх 580): Q4 часть 3 — «Importuj z pliku»:
+  CSV / Google Merchant XML / Ceneo XML (`POST …/shop/integrations/feed`, `…/feed/{id}/import`), общий импорт товара
+  продавца (`seller-products.ts`) для Base и файлов. Тесты `shop-feed.spec.ts`. Осталось в Q4: экран «Integracje» в
+  кабинете (Base + файл) и статус в бизнес-приложении; заказы/брони в Base — после броней Q3 (ветка другого запуска
+  `agent/580-product-reservation`); фото товаров из Base/файла.
 - **20.11.2026, ~02:40 UTC — 580 (ветка `agent/580-base-sync`, поверх 579): Q4 часть 2 — обновление цен и остатков из
   Base по расписанию (`syncEveryMinutes`, `ShopSyncScheduler`), «Synchronizuj teraz» (`POST …/base/sync`) и журнал
   (`ShopSyncRun`, `GET …/base/runs`). Тесты в `shop-integrations.spec.ts`. Дальше по Q4: экран «Integracje» в кабинете

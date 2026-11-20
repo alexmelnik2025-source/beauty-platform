@@ -29,6 +29,7 @@ import type {
   ImportBaseInput,
 } from './integrations.schemas';
 import { SecretBox } from './secret-box';
+import { cut, normalEan, plainText, stockMoved, upsertSellerProduct } from './seller-products';
 
 const notConnected = (): AppException =>
   new AppException(
@@ -78,36 +79,6 @@ const toRun = (r: ShopSyncRun): BaseSyncRunResponse => ({
   errorCode: r.errorCode,
   errorMessage: r.errorMessage,
 });
-
-const isUniqueViolation = (error: unknown): boolean =>
-  typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002';
-
-/** The code on the package as the catalogue keeps it (digits of EAN-8/UPC/EAN-13/GTIN-14). */
-const normalEan = (value: string | null): string | null => {
-  const digits = value?.replace(/[\s-]+/g, '') ?? '';
-  return /^\d{8}$|^\d{12,14}$/.test(digits) ? digits : null;
-};
-
-/** Base keeps descriptions as HTML; the catalogue keeps plain text. */
-const plainText = (html: string | null, max: number): string | null => {
-  if (!html) return null;
-  const text = html
-    .replace(/<\s*(br|\/p|\/li|\/h\d)\s*\/?>/gi, '\n')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, ' ')
-    .replace(/ *\n */g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  return text ? text.slice(0, max).trim() : null;
-};
-
-const cut = (value: string, max: number) => value.trim().slice(0, max).trim();
 
 /** Where a product came from in Base: one catalogue, one product id. */
 const baseRef = (inventoryId: string, productId: string) => `base:${inventoryId}:${productId}`;
@@ -358,7 +329,7 @@ export class ShopIntegrationsService {
         result.skipped.push({ externalId: item.externalId, reason: 'NO_NAME' });
         continue;
       }
-      const outcome = await this.importOne(userId, locationId, integration, {
+      const outcome = await upsertSellerProduct(this.prisma, userId, locationId, {
         externalRef: baseRef(integration.inventoryId, product.id),
         name,
         brand: product.manufacturerId
@@ -369,6 +340,7 @@ export class ShopIntegrationsService {
         priceGrosze,
         stockQuantity: toStock(product.stock, integration.warehouseId),
         online: item.online,
+        source: 'Base',
       });
       result[outcome.product] += 1;
       if (outcome.card === 'created') result.cardsCreated += 1;
@@ -489,7 +461,7 @@ export class ShopIntegrationsService {
         await this.prisma.$transaction(async (tx) => {
           await tx.product.update({ where: { id: product.id }, data });
           if (data.stockQuantity !== undefined) {
-            await this.stockMoved(tx, product.id, product.stockQuantity, stock, userId);
+            await stockMoved(tx, product.id, product.stockQuantity, stock, userId, 'Base');
           }
         });
         changed += 1;
@@ -528,120 +500,6 @@ export class ShopIntegrationsService {
       await this.prisma.shopSyncRun.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
     }
     return run;
-  }
-
-  private async importOne(
-    userId: string,
-    locationId: string,
-    integration: Configured,
-    p: {
-      externalRef: string;
-      name: string;
-      brand: string | null;
-      ean: string | null;
-      description: string | null;
-      priceGrosze: number;
-      stockQuantity: number | null;
-      online: boolean;
-    },
-    attempt = 0,
-  ): Promise<{ product: 'created' | 'updated'; card: 'created' | 'matched' | 'kept' }> {
-    return this.prisma
-      .$transaction(async (tx) => {
-        // The same Base product imported before, or the salon's own product with the same code.
-        const existing =
-          (await tx.product.findFirst({ where: { locationId, externalRef: p.externalRef } })) ??
-          (p.ean
-            ? await tx.product.findFirst({
-                where: { locationId, barcode: p.ean, externalRef: null },
-              })
-            : null);
-        // Another Base product of this salon already carries the code: this one goes without it.
-        const barcodeFree =
-          p.ean &&
-          !(await tx.product.findFirst({
-            where: { locationId, barcode: p.ean, NOT: existing ? { id: existing.id } : undefined },
-            select: { id: true },
-          }));
-        const barcode = barcodeFree ? p.ean : (existing?.barcode ?? null);
-
-        let card: 'created' | 'matched' | 'kept' = 'kept';
-        let catalogProductId = existing?.catalogProductId ?? null;
-        if (!catalogProductId) {
-          const found = p.ean
-            ? await tx.catalogProduct.findUnique({ where: { ean: p.ean }, select: { id: true } })
-            : null;
-          if (found) {
-            catalogProductId = found.id;
-            card = 'matched';
-          } else {
-            catalogProductId = (
-              await tx.catalogProduct.create({
-                data: {
-                  name: p.name,
-                  brand: p.brand,
-                  ean: p.ean,
-                  description: p.description,
-                  createdByLocationId: locationId,
-                },
-                select: { id: true },
-              })
-            ).id;
-            card = 'created';
-          }
-        }
-
-        const data = {
-          name: p.name,
-          priceGrosze: p.priceGrosze,
-          stockQuantity: p.stockQuantity,
-          barcode,
-          externalRef: p.externalRef,
-          catalogProductId,
-          active: true,
-          inSalonShop: true,
-          inMarketplace: p.online,
-        } satisfies Prisma.ProductUncheckedUpdateInput;
-        if (existing) {
-          await tx.product.update({ where: { id: existing.id }, data });
-          if (existing.stockQuantity !== p.stockQuantity) {
-            await this.stockMoved(tx, existing.id, existing.stockQuantity, p.stockQuantity, userId);
-          }
-          return { product: 'updated' as const, card };
-        }
-        const created = await tx.product.create({ data: { ...data, locationId } });
-        if (p.stockQuantity !== null && p.stockQuantity > 0) {
-          await this.stockMoved(tx, created.id, null, p.stockQuantity, userId);
-        }
-        return { product: 'created' as const, card };
-      })
-      .catch(async (error: unknown) => {
-        // Another import made the same card or product a moment ago: once more finds it.
-        if (isUniqueViolation(error) && attempt === 0) {
-          return this.importOne(userId, locationId, integration, p, 1);
-        }
-        throw error;
-      });
-  }
-
-  /** The pieces Base reports, written down as a correction "from Base" (task 440's history). */
-  private stockMoved(
-    tx: Prisma.TransactionClient,
-    productId: string,
-    before: number | null,
-    after: number | null,
-    userId: string | null,
-  ) {
-    return tx.stockMovement.create({
-      data: {
-        productId,
-        kind: 'correction',
-        change: (after ?? 0) - (before ?? 0),
-        quantityAfter: after,
-        createdByUserId: userId,
-        note: 'Base',
-      },
-    });
   }
 
   private find(locationId: string): Promise<ShopIntegration | null> {
