@@ -46,6 +46,8 @@ export const pl = {
     VOUCHER_BALANCE: 'Na bonie zostało mniej — wpisz kwotę nie większą niż pozostała.',
     VOUCHER_EXPIRED: 'Ten bon jest już nieważny.',
     VOUCHER_CANCELLED: 'Ten bon został anulowany.',
+    VISIT_NOT_PAYABLE:
+      'Bonem można zapłacić tylko za zapisaną lub odbytą wizytę — nie za odwołaną ani nieodbytą.',
     VOUCHER_DATE_PAST: 'Data ważności nie może być wcześniejsza niż dziś.',
     LOYALTY_MODE_LOCKED:
       'Rodzaju programu nie można zmienić, dopóki klienci mają pieczątki lub punkty.',

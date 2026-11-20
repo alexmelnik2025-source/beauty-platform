@@ -1843,6 +1843,8 @@ export const pl = {
     errorBalance: 'Na bonie zostało mniej — wpisz kwotę nie większą niż pozostała.',
     errorExpired: 'Ten bon jest już nieważny.',
     errorCancelled: 'Ten bon został anulowany.',
+    errorVisitNotPayable:
+      'Bonem można zapłacić tylko za zapisaną lub odbytą wizytę — nie za odwołaną ani nieodbytą.',
     errorDatePast: 'Data ważności nie może być wcześniejsza niż dziś.',
     edit: 'Zmień bon',
     editHint: 'Kwoty bonu nie zmienisz. Pusta data — bez terminu ważności.',
