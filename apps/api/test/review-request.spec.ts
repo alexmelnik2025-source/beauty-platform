@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { OutboxService } from '../src/booking/outbox.service';
+import { RebookReminderService } from '../src/booking/rebook-reminder.service';
 import { ReviewRequestService } from '../src/reviews/review-request.service';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
@@ -196,6 +197,34 @@ describe('"How was it?" email', () => {
       where: { type: 'review_request' },
     });
     expect(row.payload).toEqual({ appointmentId: confirmed.id });
+  });
+
+  it('task 609: no email for a finished visit the salon never approved; the same for "time for your next visit"', async () => {
+    await switchOn(2);
+    const unanswered = await book(10);
+    await endedHoursAgo(unanswered.id, 3, 'confirmed');
+    await ctx.prisma.appointment.update({
+      where: { id: unanswered.id },
+      data: { approvalRequestedAt: new Date(Date.now() - DAY_MS) },
+    });
+    expect(await requests.run()).toBe(0);
+    const loc = await ctx.http().get(base).set(owner.auth);
+    await ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({ version: loc.body.version, rebookReminderDays: 7 })
+      .expect(200);
+    await tookPlace(unanswered.id, 8, 'confirmed');
+    expect(await ctx.app.get(RebookReminderService).run()).toBe(0);
+    // Approved after all (the salon pressed "accept" late): both emails may go.
+    await ctx.prisma.appointment.update({
+      where: { id: unanswered.id },
+      data: { approvalRequestedAt: null },
+    });
+    expect(await ctx.app.get(RebookReminderService).run()).toBe(1);
+    await endedHoursAgo(unanswered.id, 3, 'confirmed');
+    expect(await requests.run()).toBe(1);
   });
 
   it('a queued email does not go when the client already wrote a review or the salon switched off', async () => {

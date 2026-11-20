@@ -8,6 +8,7 @@ import {
   reviewRequestCandidate,
   type ReviewRequestNotification,
 } from './review-request';
+import { TOOK_PLACE_WHERE } from './took-place';
 
 const EVERY_MS = 15 * 60_000;
 const HOUR_MS = 3_600_000;
@@ -64,7 +65,7 @@ export class ReviewRequestService implements OnModuleInit, OnModuleDestroy {
       const visits = await this.prisma.appointment.findMany({
         where: {
           locationId: salon.locationId,
-          status: { in: ['completed', 'confirmed'] },
+          ...TOOK_PLACE_WHERE,
           endAt: { lte: new Date(due), gt: new Date(due - REQUEST_WINDOW_HOURS * HOUR_MS) },
           review: null,
           customer: { email: { not: null }, anonymizedAt: null },

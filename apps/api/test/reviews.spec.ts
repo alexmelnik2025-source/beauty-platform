@@ -267,6 +267,76 @@ describe('writing a review', () => {
     expectError((await review(cancelled.token, { rating: 1 }, 409)).body, 'REVIEW_NOT_POSSIBLE');
   });
 
+  it('task 609: a finished visit the salon never approved (cancellation guard) did not take place', async () => {
+    await switchOn();
+    const unanswered = await book(10);
+    await tookPlace(unanswered.id, 1, 'confirmed');
+    await ctx.prisma.appointment.update({
+      where: { id: unanswered.id },
+      data: { approvalRequestedAt: new Date(Date.now() - 2 * DAY_MS) },
+    });
+    const form = await ctx.http().get(`/v1/public/appointments/${unanswered.token}/review`);
+    expect(form.body).toMatchObject({ canReview: false, review: null });
+    expectError((await review(unanswered.token, { rating: 1 }, 409)).body, 'REVIEW_NOT_POSSIBLE');
+    // Once the salon approves it, the visit counts like any other.
+    await ctx.prisma.appointment.update({
+      where: { id: unanswered.id },
+      data: { approvalRequestedAt: null },
+    });
+    await review(unanswered.token, { rating: 5 });
+  });
+
+  it('task 609: a review of a visit later marked no-show or cancelled leaves the public page and the stars', async () => {
+    await switchOn();
+    const kept = await book(10, kasiaId);
+    const noShow = await book(11, kasiaId, BOB);
+    const cancelled = await book(12, olaId, client('ewa@example.com'));
+    await tookPlace(kept.id, 1, 'confirmed');
+    await tookPlace(noShow.id, 2, 'confirmed');
+    await tookPlace(cancelled.id, 3, 'confirmed');
+    await review(kept.token, { rating: 5 });
+    await review(noShow.token, { rating: 1, text: 'Nie było mnie' });
+    await review(cancelled.token, { rating: 1 });
+    const before = await ctx.http().get(`/v1/public/locations/${slug}/reviews`).expect(200);
+    expect(before.body).toMatchObject({ count: 3, average: 2.3 });
+
+    // The salon marks the no-show and cancels the other visit after the reviews were written.
+    await ctx.prisma.appointment.update({ where: { id: noShow.id }, data: { status: 'no_show' } });
+    await ctx.prisma.appointment.update({
+      where: { id: cancelled.id },
+      data: { status: 'cancelled', cancelledAt: new Date() },
+    });
+
+    const page = await ctx.http().get(`/v1/public/locations/${slug}/reviews`).expect(200);
+    expect(page.body).toMatchObject({ count: 1, average: 5, stars: [0, 0, 0, 0, 1] });
+    expect(page.body.staff).toEqual([
+      { staffId: kasiaId, displayName: 'Kasia', count: 1, average: 5 },
+    ]);
+    expect(page.body.items.map((r: { rating: number }) => r.rating)).toEqual([5]);
+    const salonPage = await ctx.http().get(`/v1/public/locations/${slug}`).expect(200);
+    expect(
+      salonPage.body.staff.map((s: { id: string; rating: number | null; reviewCount: number }) => [
+        s.id,
+        s.rating,
+        s.reviewCount,
+      ]),
+    ).toEqual([
+      [kasiaId, 5, 1],
+      [olaId, null, 0],
+    ]);
+    const directory = await ctx.http().get('/v1/public/locations').expect(200);
+    expect(directory.body.items.find((s: { slug: string }) => s.slug === slug)).toMatchObject({
+      rating: 5,
+      reviewCount: 1,
+    });
+
+    // The salon still sees all three in its own list (to answer or to know what happened).
+    const cabinet = await ctx.http().get(`${base}/reviews`).set(owner.auth).expect(200);
+    expect(cabinet.body.count).toBe(3);
+    // The client of the no-show cannot change the review any more.
+    expectError((await review(noShow.token, { rating: 5 }, 409)).body, 'REVIEW_NOT_POSSIBLE');
+  });
+
   it('a made-up link is 404', async () => {
     await ctx.http().get('/v1/public/appointments/nope/review').expect(404);
     await review('nope', { rating: 5 }, 404);

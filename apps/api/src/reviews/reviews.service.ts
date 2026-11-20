@@ -8,6 +8,7 @@ import { LocationAccessService } from '../organizations/location-access.service'
 import { PrismaService } from '../prisma/prisma.service';
 import { csvCell } from '../booking/customers-export';
 import { instantToLocal } from '../scheduling/time';
+import { PUBLIC_REVIEW_WHERE, visitTookPlace } from './took-place';
 import type {
   PublicReviewsResponse,
   ReviewSettingsResponse,
@@ -95,7 +96,10 @@ export const DEFAULT_REVIEW_SETTINGS: Pick<ReviewSettings, 'enabled' | 'requestH
   requestHours: 2,
 };
 
-type ReviewableVisit = Pick<Appointment, 'id' | 'locationId' | 'staffId' | 'status' | 'endAt'> & {
+type ReviewableVisit = Pick<
+  Appointment,
+  'id' | 'locationId' | 'staffId' | 'status' | 'endAt' | 'approvalRequestedAt'
+> & {
   customerId: string | null;
 };
 
@@ -411,7 +415,8 @@ export class ReviewsService {
         nextBefore: null,
       };
     }
-    const base: Prisma.VisitReviewWhereInput = { locationId: location.id };
+    // Task 609: reviews of visits later marked no-show or cancelled stay out of the public page.
+    const base: Prisma.VisitReviewWhereInput = { locationId: location.id, ...PUBLIC_REVIEW_WHERE };
     const where = query.staffId ? { ...base, staffId: query.staffId } : base;
     const [summary, byStars, perStaff, staff, rows] = await Promise.all([
       this.prisma.visitReview.aggregate({ where, _count: true, _avg: { rating: true } }),
@@ -549,10 +554,7 @@ export class ReviewsService {
   /** Until when the visit can be reviewed; null when it cannot (now or ever). */
   private async reviewUntil(visit: ReviewableVisit, now: Date): Promise<Date | null> {
     if (!visit.customerId) return null;
-    const tookPlace =
-      visit.status === 'completed' ||
-      (visit.status === 'confirmed' && visit.endAt.getTime() <= now.getTime());
-    if (!tookPlace) return null;
+    if (!visitTookPlace(visit, now)) return null;
     const until = new Date(visit.endAt.getTime() + REVIEW_DAYS * DAY_MS);
     if (until.getTime() <= now.getTime()) return null;
     const settings = await this.settings(visit.locationId);

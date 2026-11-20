@@ -27,6 +27,7 @@ import {
 import { availabilityQuerySchema, type AvailabilityQuery } from './scheduling.schemas';
 import { formatClock } from './time';
 import { todayHoursOf } from './today-hours';
+import { PUBLIC_REVIEW_WHERE } from '../reviews/took-place';
 
 /**
  * Opening hours as the client sees them: for each weekday, the union of the regular weekly
@@ -120,7 +121,11 @@ export class PublicLocationsController {
     const stars = collects?.enabled
       ? await this.prisma.visitReview.groupBy({
           by: ['staffId'],
-          where: { locationId: location.id, staffId: { in: listed.map((s) => s.id) } },
+          where: {
+            locationId: location.id,
+            staffId: { in: listed.map((s) => s.id) },
+            ...PUBLIC_REVIEW_WHERE,
+          },
           _count: { _all: true },
           _avg: { rating: true },
         })
