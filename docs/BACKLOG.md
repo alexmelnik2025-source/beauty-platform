@@ -23,7 +23,7 @@
   карточка «Produkty do odbioru» в визите клиентского приложения (`screens/VisitProductsCard.tsx`, скриншот Q3-B-app).
   Осталось в Q3: экран C («Jak było?» → «Odłóż na następną wizytę»); кнопка «Odbiorę przy wizycie» во вкладке «Sklep».
 - **20.11.2026, ~04:10 UTC — 587 (ветка `agent/587-base-orders`, от main): Q4 часть 5 — заказы/брони в Base (API).**
-  + блок «Zamówienia do Base» в кабинете. Осталось по Q4: статус Base в бизнес-приложении, фото товаров из Base/файла.
+  - блок «Zamówienia do Base» в кабинете. Осталось по Q4: статус Base в бизнес-приложении, фото товаров из Base/файла.
 
 - **20.11.2026, ~03:05 UTC — 582 (ветка `agent/582-integrations-cabinet`, поверх 581): Q4 часть 4 — экран
   «Integracje» в кабинете (Base в 3 шага + «Importuj z pliku», статус, «Synchronizuj teraz», журнал), ссылка из
