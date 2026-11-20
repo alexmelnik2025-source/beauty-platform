@@ -12,27 +12,16 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **20.11.2026, ~03:35 UTC — 585 (ветка `agent/585-client-visit-products`, поверх 584): Q3 «Moje wizyty» в клиентском
-  приложении, часть API — `GET/POST /v1/client/appointments/{id}/products`, `DELETE …/products/{reservationId}`
-  (`client-shop.controller.ts`, те же правила, что по ссылке визита; чужой визит = 404). Тесты в
-  `shop-reservations.spec.ts`. Экран: «Produkty do odbioru» в карточке визита клиентского приложения (`screens/VisitProductsCard.tsx`, e2e шаг в `shop-booked-products.spec.ts`, скриншот Q3-B-app).
-
-- **20.11.2026, ~03:20 UTC — 584 (ветка `agent/584-booking-done-products`, поверх 583): Q3 экран A — на экране «Do
-  zobaczenia!» сразу после записи необязательный свёрнутый блок «Dodać coś do wizyty?» (`VisitProductsByLink` с
-  `offer`: не больше 3 товаров, «+ Dodaj produkt do tej wizyty» раскрывает, «Odbiorę przy wizycie» откладывает; не
-  в окне на сайте салона; нет товаров — нет блока). e2e `shop-booked-products.spec.ts` (Q3-A-booked, Q3-A-booked-open).
-
-- **20.11.2026, ~03:30 UTC — 583 (ветка `agent/583-visit-card-products`, поверх `agent/581-visit-products-link`): Q3
-  экран D в кабинете — «Do wydania klientowi» в карточке визита (`components/shop/VisitToHand.tsx`): товары, отложенные
-  клиентом к визиту, «Wydaj i dolicz» (= обычная продажа в визите через `…/reservations/{id}/hand-over`, нужен статус
-  «Przyszedł»), «Anuluj rezerwację»; список «Produkty» обновляется сразу. e2e `visit-to-hand.spec.ts` (скриншоты
-  Q3-D-to-hand, Q3-D-handed, Q3-D-app). То же в бизнес-приложении (`screens/ToHandSection.tsx`). Вливается после цепочки 578–581.
-
-- **20.11.2026, ~02:45 UTC — 581 (ветка `agent/581-client-shop-tab`, ночной запуск :37): Q3 экран 2 — вкладка «Sklep»
-  в клиентском приложении** (одобрено 20.11 01:18). Список товаров салонов (поиск, категории, «od … zł», салон),
-  карточка товара с салонами и «Odbiór w salonie, płatność na miejscu», «Umów wizytę» → салон. Только клиентское
-  приложение и e2e, API не трогает (части 2–4 Q3 и Q4 делают другие запуски). Кнопка «Odbiorę przy wizycie» — после
-  влития брони (`agent/580-product-reservation`).
+- **20.11.2026, ~04:30 UTC — влиты Q3 экран D, экран A и «Produkty do odbioru» в клиентском приложении** (ветки
+  `agent/583-visit-card-products` → `agent/584-booking-done-products` → `agent/585-client-visit-products`, одной
+  цепочкой). **D:** «Do wydania klientowi» в карточке визита кабинета (`components/shop/VisitToHand.tsx`) и
+  бизнес-приложения (`screens/ToHandSection.tsx`): «Wydaj i dolicz» (= обычная продажа через `…/hand-over`, после
+  «Przyszedł»), «Anuluj rezerwację»; e2e `visit-to-hand.spec.ts` (Q3-D-to-hand, Q3-D-handed, Q3-D-app). **A:** на экране
+  «Do zobaczenia!» свёрнутый блок «Dodać coś do wizyty?» (до 3 товаров, не в окне на сайте салона); e2e
+  `shop-booked-products.spec.ts` (Q3-A-booked, Q3-A-booked-open). **Moje wizyty:** API
+  `GET/POST /v1/client/appointments/{id}/products`, `DELETE …/{reservationId}` (тесты в `shop-reservations.spec.ts`) и
+  карточка «Produkty do odbioru» в визите клиентского приложения (`screens/VisitProductsCard.tsx`, скриншот Q3-B-app).
+  Осталось в Q3: экран C («Jak było?» → «Odłóż na następną wizytę»); кнопка «Odbiorę przy wizycie» во вкладке «Sklep».
 
 - **20.11.2026, ~03:05 UTC — 582 (ветка `agent/582-integrations-cabinet`, поверх 581): Q4 часть 4 — экран
   «Integracje» в кабинете (Base в 3 шага + «Importuj z pliku», статус, «Synchronizuj teraz», журнал), ссылка из
