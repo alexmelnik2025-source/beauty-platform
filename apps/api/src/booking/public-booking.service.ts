@@ -101,16 +101,23 @@ export class PublicBookingService {
   // ── 1. Hold ───────────────────────────────────────────
 
   async createHold(slug: string, input: CreateHoldInput, ip: string): Promise<HoldResponse> {
-    this.limiter.hit(`hold:ip:${ip}`, 5, HOLD_MINUTES * MINUTE_MS);
-    const location = await this.findBookable(slug);
-
     // One active hold per browser: picking a new time releases the previous one.
+    let released = 0;
     if (input.releaseHoldToken) {
-      await this.prisma.appointment.updateMany({
-        where: { holdTokenHash: hashToken(input.releaseHoldToken), status: 'held' },
-        data: { status: 'expired' },
-      });
+      released = (
+        await this.prisma.appointment.updateMany({
+          where: { holdTokenHash: hashToken(input.releaseHoldToken), status: 'held' },
+          data: { status: 'expired' },
+        })
+      ).count;
     }
+    // Task 607: five new holds per address in 10 minutes; a client changing their mind (the
+    // previous hold is released at the same moment) takes no new slot and is not counted — only
+    // kept from hammering. Several people behind one address (a salon's Wi-Fi, a mobile network)
+    // still share the limit of new holds.
+    if (released === 0) this.limiter.hit(`hold:ip:${ip}`, 5, HOLD_MINUTES * MINUTE_MS);
+    else this.limiter.hit(`hold:repick:ip:${ip}`, 60, HOLD_MINUTES * MINUTE_MS);
+    const location = await this.findBookable(slug);
 
     const service = await this.prisma.service.findFirst({
       where: { id: input.serviceId, locationId: location.id, active: true },

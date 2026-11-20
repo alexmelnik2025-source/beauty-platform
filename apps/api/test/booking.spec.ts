@@ -399,6 +399,29 @@ describe('expiry of holds and codes', () => {
     for (let i = 0; i < 5; i += 1) await hold(at(day, 10 + i)).expect(201);
     expectError((await hold(at(day, 16)).expect(429)).body, 'RATE_LIMITED');
   });
+
+  it('changing one’s mind about the time is not a new hold for the limit (task 607)', async () => {
+    // Two people share the address; one of them picks another time eight times over.
+    let current = (await hold(at(day, 10)).expect(201)).body as { holdToken: string };
+    for (let i = 1; i <= 8; i += 1) {
+      current = (
+        await hold(at(day, 10 + (i % 4)), undefined, {
+          releaseHoldToken: current.holdToken,
+        }).expect(201)
+      ).body;
+    }
+    // Only the first one took a slot; the other person still books.
+    await hold(at(day, 15)).expect(201);
+    expect(await ctx.prisma.appointment.count({ where: { status: 'held' } })).toBe(2);
+    // A token that releases nothing (already used) counts as a new hold.
+    await hold(at(day, 16), undefined, { releaseHoldToken: 'A'.repeat(43) }).expect(201);
+    await hold(at(day, 17)).expect(201);
+    await hold(at(day, 12)).expect(201);
+    expectError(
+      (await hold(at(day, 13), undefined, { releaseHoldToken: 'B'.repeat(43) }).expect(429)).body,
+      'RATE_LIMITED',
+    );
+  });
 });
 
 // ── Email queue ───────────────────────────────────────
