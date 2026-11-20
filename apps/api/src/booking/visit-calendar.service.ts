@@ -12,6 +12,9 @@ const ALARM_MINUTES_BEFORE = 60;
 /** Like the manage links in the emails: valid until a week after the visit. */
 const LINK_DAYS_AFTER_VISIT = 7;
 const DAY_MS = 86_400_000;
+/** Task 617: a link to an older visit still opens, but only for an hour. */
+const LINK_MIN_HOURS = 1;
+const HOUR_MS = 3_600_000;
 
 /**
  * Task 20: "Add to calendar" — the visit behind a manage link (from the booking emails or
@@ -30,7 +33,8 @@ export class VisitCalendarService {
    * Task 22: the client app ("My visits", signed in by email code) asks for a calendar
    * file of one of the client's own visits. A fresh link is made (only token hashes are
    * stored), so the phone can open it without the app's sign-in. Someone else's visit
-   * looks exactly like a missing one.
+   * looks exactly like a missing one. A visit older than a week used to get a link that
+   * had expired before it was opened (404); now such a link lives an hour (task 617).
    */
   async linkForClient(email: string, appointmentId: string): Promise<{ url: string }> {
     const appointment = await this.prisma.appointment.findFirst({
@@ -46,7 +50,12 @@ export class VisitCalendarService {
       data: {
         appointmentId: appointment.id,
         tokenHash: hashToken(token),
-        expiresAt: new Date(appointment.startAt.getTime() + LINK_DAYS_AFTER_VISIT * DAY_MS),
+        expiresAt: new Date(
+          Math.max(
+            appointment.startAt.getTime() + LINK_DAYS_AFTER_VISIT * DAY_MS,
+            Date.now() + LINK_MIN_HOURS * HOUR_MS,
+          ),
+        ),
       },
     });
     return { url: `${this.config.APP_WEB_URL}/v1/public/appointments/${token}/calendar.ics` };

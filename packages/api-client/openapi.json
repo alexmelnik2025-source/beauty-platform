@@ -19582,6 +19582,8 @@
                   "description": "The data controller: the organization (company) name"
                 },
                 "client": {
+                  "nullable": true,
+                  "description": "null: the client only waits for a time here and has no card yet (task 617)",
                   "type": "object",
                   "properties": {
                     "name": {
@@ -19612,6 +19614,41 @@
                     },
                     "createdAt": {
                       "type": "string"
+                    },
+                    "wishes": {
+                      "type": "object",
+                      "properties": {
+                        "mood": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "chat",
+                            "quiet",
+                            "relax"
+                          ]
+                        },
+                        "drink": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "coffee",
+                            "tea",
+                            "water",
+                            "none"
+                          ]
+                        },
+                        "note": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "mood",
+                        "drink",
+                        "note"
+                      ],
+                      "additionalProperties": false,
+                      "description": "The standing wishes the salon remembers from the last visit (task 80)"
                     }
                   },
                   "required": [
@@ -19620,7 +19657,8 @@
                     "email",
                     "locale",
                     "birthday",
-                    "createdAt"
+                    "createdAt",
+                    "wishes"
                   ],
                   "additionalProperties": false
                 },
@@ -19747,6 +19785,113 @@
                       },
                       "bookedAt": {
                         "type": "string"
+                      },
+                      "wishes": {
+                        "type": "object",
+                        "properties": {
+                          "mood": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "chat",
+                              "quiet",
+                              "relax"
+                            ]
+                          },
+                          "drink": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "coffee",
+                              "tea",
+                              "water",
+                              "none"
+                            ]
+                          },
+                          "note": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "mood",
+                          "drink",
+                          "note"
+                        ],
+                        "additionalProperties": false,
+                        "description": "What the client asked for this visit (task 80)"
+                      },
+                      "review": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "rating": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "text": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "reply": {
+                            "nullable": true,
+                            "description": "The salon’s public answer",
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "rating",
+                          "text",
+                          "reply",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "products": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "unitPriceGrosze": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "reserved",
+                                "handed",
+                                "cancelled",
+                                "expired"
+                              ]
+                            },
+                            "reservedAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "quantity",
+                            "unitPriceGrosze",
+                            "status",
+                            "reservedAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "description": "Products put aside for this visit (Q3)"
                       }
                     },
                     "required": [
@@ -19766,7 +19911,10 @@
                       "paid",
                       "cancelledBy",
                       "cancelReason",
-                      "bookedAt"
+                      "bookedAt",
+                      "wishes",
+                      "review",
+                      "products"
                     ],
                     "additionalProperties": false
                   },
@@ -19884,6 +20032,64 @@
                     "additionalProperties": false
                   },
                   "description": "Loyalty cards in this salon (one per program)"
+                },
+                "waitlist": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "salon": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string",
+                        "description": "The day the client waits for, YYYY-MM-DD"
+                      },
+                      "service": {
+                        "type": "string"
+                      },
+                      "staff": {
+                        "nullable": true,
+                        "description": "null: any specialist",
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "phone": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "waiting",
+                          "notified",
+                          "cancelled",
+                          "offered",
+                          "booked",
+                          "declined",
+                          "missed"
+                        ],
+                        "description": "notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "salon",
+                      "date",
+                      "service",
+                      "staff",
+                      "name",
+                      "phone",
+                      "status",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Task 617: the client’s waiting-list entries in this salon, by the confirmed e-mail"
                 }
               },
               "required": [
@@ -19892,16 +20098,76 @@
                 "client",
                 "consents",
                 "visits",
-                "loyalty"
+                "loyalty",
+                "waitlist"
               ],
               "additionalProperties": false
             }
+          },
+          "favorites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "salon": {
+                  "type": "string"
+                },
+                "since": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "salon",
+                "since"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 617: salons the client marked as favorite"
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clientType": {
+                  "type": "string",
+                  "enum": [
+                    "web",
+                    "mobile"
+                  ]
+                },
+                "userAgent": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "lastUsedAt": {
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "clientType",
+                "userAgent",
+                "createdAt",
+                "lastUsedAt",
+                "expiresAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Task 617: where the client is signed in right now (no tokens)"
           }
         },
         "required": [
           "exportedAt",
           "person",
-          "salons"
+          "salons",
+          "favorites",
+          "sessions"
         ],
         "additionalProperties": false
       },

@@ -5181,6 +5181,7 @@ export interface components {
                 salon: string;
                 /** @description The data controller: the organization (company) name */
                 company: string;
+                /** @description null: the client only waits for a time here and has no card yet (task 617) */
                 client: {
                     name: string;
                     phone: string;
@@ -5190,7 +5191,15 @@ export interface components {
                     /** @description "MM-DD", no year, if the salon wrote it down (task 240) */
                     birthday: string | null;
                     createdAt: string;
-                };
+                    /** @description The standing wishes the salon remembers from the last visit (task 80) */
+                    wishes: {
+                        /** @enum {string|null} */
+                        mood: "chat" | "quiet" | "relax" | null;
+                        /** @enum {string|null} */
+                        drink: "coffee" | "tea" | "water" | "none" | null;
+                        note: string | null;
+                    };
+                } | null;
                 /** @description Oldest first */
                 consents: {
                     /** @enum {string} */
@@ -5229,6 +5238,30 @@ export interface components {
                     cancelledBy: "customer" | "salon" | null;
                     cancelReason: string | null;
                     bookedAt: string;
+                    /** @description What the client asked for this visit (task 80) */
+                    wishes: {
+                        /** @enum {string|null} */
+                        mood: "chat" | "quiet" | "relax" | null;
+                        /** @enum {string|null} */
+                        drink: "coffee" | "tea" | "water" | "none" | null;
+                        note: string | null;
+                    };
+                    review: {
+                        rating: number;
+                        text: string | null;
+                        /** @description The salon’s public answer */
+                        reply: string | null;
+                        at: string;
+                    } | null;
+                    /** @description Products put aside for this visit (Q3) */
+                    products: {
+                        name: string;
+                        quantity: number;
+                        unitPriceGrosze: number;
+                        /** @enum {string} */
+                        status: "reserved" | "handed" | "cancelled" | "expired";
+                        reservedAt: string;
+                    }[];
                 }[];
                 /** @description Loyalty cards in this salon (one per program) */
                 loyalty: {
@@ -5253,6 +5286,37 @@ export interface components {
                         createdAt: string;
                     }[];
                 }[];
+                /** @description Task 617: the client’s waiting-list entries in this salon, by the confirmed e-mail */
+                waitlist: {
+                    salon: string;
+                    /** @description The day the client waits for, YYYY-MM-DD */
+                    date: string;
+                    service: string;
+                    /** @description null: any specialist */
+                    staff: string | null;
+                    name: string;
+                    phone: string | null;
+                    /**
+                     * @description notified: told about free times (before task 164); offered: a time is held for the client for 15 minutes; booked: the client took it; declined: said no; missed: did not answer in time
+                     * @enum {string}
+                     */
+                    status: "waiting" | "notified" | "cancelled" | "offered" | "booked" | "declined" | "missed";
+                    createdAt: string;
+                }[];
+            }[];
+            /** @description Task 617: salons the client marked as favorite */
+            favorites: {
+                salon: string;
+                since: string;
+            }[];
+            /** @description Task 617: where the client is signed in right now (no tokens) */
+            sessions: {
+                /** @enum {string} */
+                clientType: "web" | "mobile";
+                userAgent: string | null;
+                createdAt: string;
+                lastUsedAt: string;
+                expiresAt: string;
             }[];
         };
         ClientFavorites: {

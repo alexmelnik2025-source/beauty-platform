@@ -13,10 +13,12 @@ import { Public } from '../auth/decorators';
 import { VisitCalendarService } from '../booking/visit-calendar.service';
 import { notFound } from '../common/app-exception';
 import { ApiZodResponse, responseSchema } from '../common/openapi';
+import { RateLimiterService } from '../common/rate-limiter.service';
 import { ClientGuard, CurrentClient } from './client-auth';
 import type { ClientAuth } from './client.service';
 
 const idPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Appointment') });
+const MINUTE = 60_000;
 
 export const calendarLinkSchema = responseSchema(
   'CalendarLink',
@@ -32,7 +34,10 @@ export const calendarLinkSchema = responseSchema(
 @Public()
 @Controller('client')
 export class ClientCalendarController {
-  constructor(private readonly calendar: VisitCalendarService) {}
+  constructor(
+    private readonly calendar: VisitCalendarService,
+    private readonly limiter: RateLimiterService,
+  ) {}
 
   @Post('appointments/:id/calendar-link')
   @HttpCode(HttpStatus.OK)
@@ -46,6 +51,9 @@ export class ClientCalendarController {
     @CurrentClient() client: ClientAuth,
     @Param('id', idPipe) id: string,
   ): Promise<{ url: string }> {
+    // Task 617: every link is a manage token of the visit; one client does not mint them
+    // without end.
+    this.limiter.hit(`calendar-link:client:${client.personId}`, 30, 10 * MINUTE);
     return this.calendar.linkForClient(client.email, id);
   }
 }

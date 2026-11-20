@@ -223,7 +223,7 @@ describe('GET /v1/client/export', () => {
     ]);
 
     const inB = data.salons.find((s) => s.salon === 'Berber Moda Centrum')!;
-    expect(inB.client.name).toBe('Anna K.');
+    expect(inB.client?.name).toBe('Anna K.');
     expect(inB.visits[0]).toMatchObject({
       status: 'cancelled',
       cancelledBy: 'salon',
@@ -243,6 +243,110 @@ describe('GET /v1/client/export', () => {
   it('is empty for a person no salon knows yet', async () => {
     const data = await myData('new.person@example.com');
     expect(data.salons).toEqual([]);
+    expect(data.favorites).toEqual([]);
+    expect(data.sessions).toHaveLength(1);
+    expect(data.sessions[0]).toMatchObject({ clientType: 'mobile' });
     expect(data.person.email).toBe('new.person@example.com');
+  });
+
+  it('task 617: wishes, the review, products put aside, the waiting list, favorites and sessions', async () => {
+    const a = await setupSalon('owner.a@example.com', 'Gestalt Barbershop');
+    const c = await setupSalon('owner.c@example.com', 'Cuts Only');
+    const first = await book(a, ANNA, 'Anna Kowalska');
+    await book(a, BOB, 'Bob Nowak');
+    await ctx.prisma.customer.update({
+      where: { id: first.customerId },
+      data: { wishMood: 'quiet', wishDrink: 'tea', wishNote: 'Bez rozmów o pogodzie' },
+    });
+    const aLocation = await ctx.prisma.location.findFirstOrThrow({
+      where: { organizationId: a.orgId },
+    });
+    await ctx.prisma.appointment.update({
+      where: { id: first.id },
+      data: {
+        wishMood: 'chat',
+        wishNote: 'Krótko po bokach',
+        startAt: new Date(Date.now() - 3 * 60 * 60_000),
+        endAt: new Date(Date.now() - 2 * 60 * 60_000),
+        blockedUntil: new Date(Date.now() - 2 * 60 * 60_000),
+        status: 'completed',
+        review: {
+          create: {
+            locationId: aLocation.id,
+            staffId: a.staffId,
+            rating: 5,
+            text: 'Super!',
+            reply: 'Dziękujemy',
+            repliedAt: new Date(),
+          },
+        },
+        productReservations: {
+          create: {
+            locationId: aLocation.id,
+            name: 'Pomada',
+            quantity: 2,
+            unitPriceGrosze: 5900,
+          },
+        },
+      },
+    });
+    // Waiting in salon A (where Anna has a card) and in salon C (where she has none yet);
+    // Bob waits too.
+    const cLocation = await ctx.prisma.location.findFirstOrThrow({
+      where: { organizationId: c.orgId },
+    });
+    const wait = (locationId: string, serviceId: string, email: string, name: string) =>
+      ctx.prisma.waitlistEntry.create({
+        data: {
+          locationId,
+          serviceId,
+          date: new Date('2030-03-03'),
+          name,
+          email,
+          phone: '+48600100200',
+          tokenHash: Math.random().toString(16).slice(2).padEnd(64, 'b'),
+        },
+      });
+    await wait(aLocation.id, a.serviceId, ANNA.toUpperCase(), 'Anna');
+    await wait(cLocation.id, c.serviceId, ANNA, 'Ania');
+    await wait(aLocation.id, a.serviceId, BOB, 'Bob');
+    // Signing in creates the person; then a favorite salon.
+    await signIn(ANNA);
+    await ctx.prisma.clientFavorite.create({
+      data: {
+        personId: (await ctx.prisma.person.findFirstOrThrow({ where: { email: ANNA } })).id,
+        locationId: cLocation.id,
+      },
+    });
+
+    const data = await myData(ANNA);
+    const inA = data.salons.find((s) => s.salon === 'Gestalt Barbershop Centrum')!;
+    expect(inA.client?.wishes).toEqual({
+      mood: 'quiet',
+      drink: 'tea',
+      note: 'Bez rozmów o pogodzie',
+    });
+    expect(inA.visits[0]).toMatchObject({
+      wishes: { mood: 'chat', drink: null, note: 'Krótko po bokach' },
+      review: { rating: 5, text: 'Super!', reply: 'Dziękujemy' },
+      products: [{ name: 'Pomada', quantity: 2, unitPriceGrosze: 5900, status: 'reserved' }],
+    });
+    expect(inA.waitlist).toEqual([
+      expect.objectContaining({
+        date: '2030-03-03',
+        service: 'Strzyżenie',
+        staff: null,
+        name: 'Anna',
+      }),
+    ]);
+    const inC = data.salons.find((s) => s.salon === 'Cuts Only Centrum')!;
+    expect(inC.client).toBeNull();
+    expect(inC.visits).toEqual([]);
+    expect(inC.waitlist.map((w) => w.name)).toEqual(['Ania']);
+    expect(data.favorites).toEqual([expect.objectContaining({ salon: 'Cuts Only Centrum' })]);
+    expect(data.sessions).toHaveLength(2);
+    const text = JSON.stringify(data);
+    expect(text).not.toContain('Bob');
+    expect(text).not.toContain('tokenHash');
   });
 });

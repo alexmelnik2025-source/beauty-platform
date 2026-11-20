@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { directionsLink, renderAppointmentEmail } from '../src/booking/booking-templates';
 import { buildIcs, foldLine, icsText, icsTime } from '../src/booking/ics';
 import { OutboxService } from '../src/booking/outbox.service';
+import { hashToken } from '../src/common/crypto';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
@@ -338,5 +339,37 @@ describe('"Add to calendar" in the client app (task 22)', () => {
     const other = await signIn('someone.else@example.com');
     await ctx.http().post(`/v1/client/appointments/${id}/calendar-link`).set(other).expect(404);
     await ctx.http().post(`/v1/client/appointments/${id}/calendar-link`).expect(401);
+  });
+
+  it('task 617: a link to a visit from a month ago opens (for an hour); not without end', async () => {
+    const { id } = await book(at(day, 10));
+    const monthAgo = Date.now() - 30 * 86_400_000;
+    await ctx.prisma.appointment.update({
+      where: { id },
+      data: {
+        startAt: new Date(monthAgo),
+        endAt: new Date(monthAgo + 30 * 60_000),
+        blockedUntil: new Date(monthAgo + 30 * 60_000),
+        status: 'completed',
+      },
+    });
+    const anna = await signIn(CLIENT.email);
+    const res = await ctx
+      .http()
+      .post(`/v1/client/appointments/${id}/calendar-link`)
+      .set(anna)
+      .expect(200);
+    const token = /appointments\/(\S+)\/calendar\.ics$/.exec(res.body.url)?.[1] ?? '';
+    await ics(token).expect(200);
+    const made = await ctx.prisma.appointmentAccessToken.findUniqueOrThrow({
+      where: { tokenHash: hashToken(token) },
+    });
+    expect(made.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    expect(made.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 3_600_000 + 1000);
+    // 30 links in 10 minutes per client, then 429.
+    for (let i = 0; i < 29; i++) {
+      await ctx.http().post(`/v1/client/appointments/${id}/calendar-link`).set(anna).expect(200);
+    }
+    await ctx.http().post(`/v1/client/appointments/${id}/calendar-link`).set(anna).expect(429);
   });
 });
