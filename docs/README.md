@@ -3685,3 +3685,21 @@ API салона (`…/locations/{id}/shop/catalog`, `apps/api/src/shop/`): `GET
 (5 сценариев: каталог, права, правила предложения, страница салона, «Sklep» с двумя продавцами). Следующие части:
 экран «Mój sklep» в кабинете и бизнес-приложении, «Produkty salonu» на странице записи, товар к визиту (A/B/C), экран
 барбера (D), вкладка «Sklep» в клиентском приложении.
+
+## «Mój sklep» в кабинете (задача Q3, часть 2a)
+
+Новая страница кабинета `/app/shop` («Mój sklep» в меню владельца и менеджера; `apps/web/components/shop/MyShopSection.tsx`).
+Все товары из «Produkty i magazyn» (без удалённых) — у каждого два переключателя: «Pokaż klientom na stronie salonu»
+(`inSalonShop`) и «Sprzedawaj też w Sklepie» (`inMarketplace`; доступен только когда товар показан на странице салона и
+привязан к карточке каталога — иначе одна строка подсказки, почему нельзя). «Wybierz z katalogu» открывает поиск по
+`GET …/shop/catalog?q=` (слова названия/бренда или EAN; при открытии подставляется название товара и его штрих-код) с
+кнопкой «Wybierz» у найденной карточки и формой «Nowa karta „{название}”» (марка, EAN, категория) — карточка создаётся
+и сразу привязывается; «Odłącz» снимает карточку (и продажу в «Sklep»). Быстрое «Dodaj produkt» (название, цена, штук)
+создаёт товар сразу с `inSalonShop: true`; остальное (цена закупки, поставщик, код) — в «Usługi» → «Produkty», чтобы не
+дублировать форму. Строка «Na start klient odbiera i płaci w salonie — bez płatności online i bez wysyłki»; про доставку
+на экране ничего нет. Тексты в 4 словарях кабинета (`shop.*`, коды ошибок `EAN_TAKEN`, `CARD_SHARED`,
+`MARKETPLACE_NEEDS_CARD`, `MARKETPLACE_NEEDS_SALON_SHOP`). e2e `my-shop.spec.ts` (скриншоты Q3-my-shop,
+Q3-my-shop-card): другой салон уже завёл карточку по EAN и продаёт её; наш салон показывает помаду клиентам, находит
+карточку по EAN, включает «Sklep», добавляет воск; публичные `/public/locations/{slug}/products` и `/public/shop/products`
+отдают оба предложения (5900 и 7900). Фото карточки — следующая часть (2b: загрузка `Photo.catalogProductId`), затем
+«Mój sklep» в бизнес-приложении (2c).

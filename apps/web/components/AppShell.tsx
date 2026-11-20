@@ -40,6 +40,7 @@ export function menuItems(
     manager && { href: at('waitlist'), label: t.nav.waitingList },
     manager && { href: at('cancellation-guard'), label: t.nav.guard },
     { href: at('vouchers'), label: t.nav.vouchers },
+    manager && { href: at('shop'), label: t.nav.shop },
     manager && { href: at('team'), label: t.nav.team },
     manager && { href: at('loyalty'), label: t.nav.loyalty },
     { href: at('reviews'), label: t.nav.reviews },

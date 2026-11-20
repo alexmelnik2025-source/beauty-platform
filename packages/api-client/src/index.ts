@@ -121,6 +121,12 @@ export type Stocktake = Schemas['Stocktake'];
 /** Task 475: "Przyjmij dostawę" — what was added and the list after it. */
 export type StockDelivery = Schemas['StockDelivery'];
 export type VisitProductSales = Schemas['VisitProductSales'];
+/** Task Q3: the platform's shop — catalogue cards and what clients see. */
+export type CatalogProduct = Schemas['CatalogProduct'];
+export type CatalogSearch = Schemas['CatalogSearch'];
+export type PublicSalonProducts = Schemas['PublicSalonProducts'];
+export type PublicShopProduct = Schemas['PublicShopProduct'];
+export type PublicShopList = Schemas['PublicShopList'];
 /** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
 export type TillClose = Schemas['TillClose'];
 /** "Bony podarunkowe": gift vouchers sold at the salon's till (task 490). */
