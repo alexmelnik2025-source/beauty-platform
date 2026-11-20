@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { PHOTO_ACCEPT, shrinkPhoto, STAFF_PHOTO_SIDE } from '@/lib/photos';
 import { formatPrice } from '@/lib/time';
 import type { CatalogProduct, CatalogSearch, Product, ProductList } from '@/lib/types';
 import { parseTip as parseAmount } from '../calendar/TipField';
@@ -29,6 +30,8 @@ type ShopCategory = (typeof SHOP_CATEGORIES)[number];
  * finds one by words or the code on the package (the same card for every salon that sells the
  * product), "Nowa karta" makes one from the product's name. Prices and stock stay in "Usługi" →
  * "Produkty"; a quick "Dodaj produkt" here adds a product already shown to clients.
+ * Part 2b: the card's picture — "Dodaj zdjęcie" (shrunk in the browser like a staff portrait) when
+ * the salon may set it: it made the card and is alone on it, or the shared card has none yet.
  * At the launch clients only pick up and pay at the salon — nothing about shipping is shown.
  */
 export function MyShopSection({ base }: { base: string }) {
@@ -85,6 +88,14 @@ export function MyShopSection({ base }: { base: string }) {
 
   const patch = (id: string, body: object) =>
     run(() => api(`${base}/products/${id}`, { method: 'PATCH', body }));
+
+  const setPhoto = (cardId: string, file: File | undefined) =>
+    file
+      ? run(async () => {
+          const blob = await shrinkPhoto(file, STAFF_PHOTO_SIDE);
+          await api(`${base}/shop/catalog/${cardId}/photo`, { method: 'PUT', file: blob });
+        })
+      : undefined;
 
   const search = async (q: string) => {
     setQuery(q);
@@ -208,6 +219,46 @@ export function MyShopSection({ base }: { base: string }) {
                 <p className="small muted">
                   {!x.inSalonShop ? s.marketNeedsSalonShop : s.marketNeedsCard}
                 </p>
+              ) : null}
+              {card ? (
+                <div className="row" style={{ alignItems: 'center', gap: 12 }}>
+                  {card.photoId ? (
+                    <img
+                      src={`/v1/public/photos/${card.photoId}`}
+                      alt={fill(s.photoAlt, { name: card.name })}
+                      width={64}
+                      height={64}
+                      style={{ objectFit: 'cover', borderRadius: 8 }}
+                    />
+                  ) : null}
+                  {card.editable || card.photoId === null ? (
+                    <label className={`btn btn--quiet btn--small${busy ? ' is-disabled' : ''}`}>
+                      {card.photoId ? s.photoChange : s.photoAdd}
+                      <input
+                        type="file"
+                        accept={PHOTO_ACCEPT}
+                        className="visually-hidden"
+                        disabled={busy}
+                        aria-label={fill(s.photoFor, { name: card.name })}
+                        onChange={(e) => void setPhoto(card.id, e.target.files?.[0])}
+                      />
+                    </label>
+                  ) : null}
+                  {card.photoId && card.editable ? (
+                    <button
+                      type="button"
+                      className="link-btn small"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(() =>
+                          api(`${base}/shop/catalog/${card.id}/photo`, { method: 'DELETE' }),
+                        )
+                      }
+                    >
+                      {s.photoRemove}
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
               <p className="small">
                 {card ? (

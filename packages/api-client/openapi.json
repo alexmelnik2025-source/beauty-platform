@@ -14491,6 +14491,111 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}/photo": {
+      "put": {
+        "description": "Task Q3 (part 2b). The salon that may change the card, or any salon offering it while the card has no picture yet; otherwise 403 CARD_SHARED. JPEG, PNG or WebP, at most 3 MB, sent as the body. The picture is public at /v1/public/photos/<id>.",
+        "operationId": "ShopCatalogController_setPhoto",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The picture itself (not a form), at most 3 MB",
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Photo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the card's picture (replaces the old one)",
+        "tags": [
+          "shop"
+        ]
+      },
+      "delete": {
+        "description": "Task Q3 (part 2b). Only the salon that may change the card (403 CARD_SHARED).",
+        "operationId": "ShopCatalogController_removePhoto",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove the card's picture",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
     "/v1/public/locations/{slug}/products": {
       "get": {
         "description": "Task Q3. Only salons open for online booking (otherwise 404), only products the salon shows to clients (`inSalonShop`) and still sells. `available` is false when the salon counts its pieces and has none left.",

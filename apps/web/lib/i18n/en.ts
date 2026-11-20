@@ -922,6 +922,11 @@ export const en: Dict = {
   weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
   /** Task Q3 (part 2a): "Mój sklep" — the salon's shop in the cabinet. */
   shop: {
+    photoAdd: 'Add a picture',
+    photoChange: 'Change the picture',
+    photoRemove: 'Remove the picture',
+    photoFor: 'Picture of the card “{name}”',
+    photoAlt: 'Picture: {name}',
     title: 'My shop',
     hint: 'Products clients see on the salon page and pick up at a visit. Prices and stock are changed in “Services” → “Products”.',
     pickupOnly:

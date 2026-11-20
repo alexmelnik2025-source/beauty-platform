@@ -105,7 +105,7 @@ export class PublicLocationsController {
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
     const photos = await this.prisma.photo.findMany({
-      where: { locationId: location.id, staffId: null },
+      where: { locationId: location.id, staffId: null, catalogProductId: null },
       select: { id: true },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
