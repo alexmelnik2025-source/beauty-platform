@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~02:10 UTC — 579 (ветка `agent/579-base-integration`, от main): Q4 часть 1 — подключение Base и импорт
+  товаров в API** (одобрено владельцем 20.11 02:11). `ShopIntegration` (токен зашифрован, `INTEGRATIONS_SECRET`),
+  `Product.externalRef`; `…/shop/integrations/base`: `PUT` токен → `GET options` / `PATCH` каталог, группа цен, склад →
+  `GET products` → `POST import` (только отмеченные, «tylko w salonie» / «też online», сопоставление с каталогом по EAN).
+  Тесты `shop-integrations.spec.ts` (8). Другому запуску часть 1 не брать. Дальше по Q4: экран «Integracje» в кабинете
+  (после того как 576–578 «Mój sklep» будут в main) → синхронизация цен/остатков → заказы в Base → журнал → CSV/XML-фид.
 - **20.11.2026, ~01:30 UTC — 574 (ветка `agent/574-shop-catalog`): Q3 маркетплейс, часть 1 — каталог товаров платформы
   и предложения салонов в API** (одобрено владельцем 20.11 01:18). Модель `CatalogProduct` (карточка: название, бренд,
   EAN, описание, категория, фото), у `Product` салона — `catalogProductId`, `inSalonShop`, `inMarketplace`; enum

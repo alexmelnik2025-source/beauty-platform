@@ -14636,6 +14636,357 @@
           "public"
         ]
       }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base": {
+      "get": {
+        "operationId": "ShopIntegrationsController_status",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseIntegration"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Is Base connected, and what was chosen (never the token)",
+        "tags": [
+          "shop"
+        ]
+      },
+      "put": {
+        "description": "Base must accept the token first (422 BASE_TOKEN_INVALID otherwise). The token is stored encrypted and never sent back; pasting a new one replaces it and keeps the choices.",
+        "operationId": "ShopIntegrationsController_connect",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200,
+                    "pattern": "^[\\x21-\\x7e]+$"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseIntegration"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Step 1: connect with the API token from Base (Moje konto → API)",
+        "tags": [
+          "shop"
+        ]
+      },
+      "delete": {
+        "description": "Imported products stay as the salon’s own; connecting again joins them back.",
+        "operationId": "ShopIntegrationsController_disconnect",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseIntegration"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Odłącz Base\": forget the token",
+        "tags": [
+          "shop"
+        ]
+      },
+      "patch": {
+        "description": "The price group must be in the salon’s currency and both it and the warehouse in the chosen catalogue (422 BASE_INVALID_CHOICE).",
+        "operationId": "ShopIntegrationsController_configure",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "inventoryId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "priceGroupId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "warehouseId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "inventoryId",
+                  "priceGroupId",
+                  "warehouseId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseIntegration"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Step 2: choose the catalogue, price group and warehouse",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/options": {
+      "get": {
+        "description": "409 BASE_NOT_CONNECTED without a token; 409 BASE_RECONNECT when it must be pasted again.",
+        "operationId": "ShopIntegrationsController_options",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseOptions"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Step 2: catalogues, price groups and warehouses of the seller’s Base",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/products": {
+      "get": {
+        "description": "Up to 1000 products a page, as Base gives them, with the price and stock of the chosen group and warehouse, and what the platform already has (imported product, card with the same EAN). 409 BASE_NOT_CONFIGURED before step 2.",
+        "operationId": "ShopIntegrationsController_products",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Step 3: a page of the seller’s catalogue to tick products from",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/import": {
+      "post": {
+        "description": "Each becomes the salon’s product on its booking page (\"Produkty salonu\"); `online: true` also shows it in \"Sklep\". Joined to the platform card with the same EAN, or a new card is made. Importing again renews the price, stock and code. Nothing else is published.",
+        "operationId": "ShopIntegrationsController_import",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "externalId": {
+                          "type": "string",
+                          "pattern": "^\\d{1,18}$"
+                        },
+                        "online": {
+                          "default": false,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "externalId"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "items"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseImportResult"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Step 3: import the ticked products (up to 200 at once)",
+        "tags": [
+          "shop"
+        ]
+      }
     }
   },
   "info": {
@@ -15924,6 +16275,305 @@
           "serviceId",
           "durationMinutes",
           "slots"
+        ],
+        "additionalProperties": false
+      },
+      "BaseImportResult": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "New products of the salon"
+          },
+          "updated": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products already there: price, stock and code renewed"
+          },
+          "cardsCreated": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "New cards in the platform catalogue"
+          },
+          "cardsMatched": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products joined to an existing card by EAN"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "externalId": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "NOT_IN_BASE",
+                    "NO_PRICE",
+                    "NO_NAME"
+                  ],
+                  "description": "Not in the chosen catalogue, no price in the group, or no name"
+                }
+              },
+              "required": [
+                "externalId",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Products that were not imported, and why"
+          }
+        },
+        "required": [
+          "created",
+          "updated",
+          "cardsCreated",
+          "cardsMatched",
+          "skipped"
+        ],
+        "additionalProperties": false
+      },
+      "BaseIntegration": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "description": "false = no token yet (or it was disconnected)"
+          },
+          "tokenHint": {
+            "nullable": true,
+            "description": "The last 4 characters of the connected token",
+            "type": "string"
+          },
+          "tokenReadable": {
+            "type": "boolean",
+            "description": "false = the server key changed since: paste the token again"
+          },
+          "inventoryId": {
+            "nullable": true,
+            "description": "null = step 2 not done yet",
+            "type": "string"
+          },
+          "inventoryName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "priceGroupId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "warehouseId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lastImportAt": {
+            "nullable": true,
+            "description": "ISO time of the last import; null = never",
+            "type": "string"
+          },
+          "importedProducts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products of the salon that came from Base"
+          }
+        },
+        "required": [
+          "connected",
+          "tokenHint",
+          "tokenReadable",
+          "inventoryId",
+          "inventoryName",
+          "priceGroupId",
+          "warehouseId",
+          "lastImportAt",
+          "importedProducts"
+        ],
+        "additionalProperties": false
+      },
+      "BaseOptions": {
+        "type": "object",
+        "properties": {
+          "inventories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "priceGroupIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "defaultPriceGroupId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "warehouseIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "defaultWarehouseId": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "priceGroupIds",
+                "defaultPriceGroupId",
+                "warehouseIds",
+                "defaultWarehouseId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "priceGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "matchesSalon": {
+                  "type": "boolean",
+                  "description": "Same currency as the salon: only these may be chosen"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "currency",
+                "matchesSalon"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "warehouses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "inventories",
+          "priceGroups",
+          "warehouses"
+        ],
+        "additionalProperties": false
+      },
+      "BaseProducts": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "Base has another page"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "externalId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "ean": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "sku": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "nullable": true,
+                  "description": "From the chosen price group; null = no price there (cannot be imported)",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "stock": {
+                  "nullable": true,
+                  "description": "In the chosen warehouse; null = not there",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "importedProductId": {
+                  "nullable": true,
+                  "description": "The salon’s product already made from it; null = not imported",
+                  "type": "string"
+                },
+                "catalogProductId": {
+                  "nullable": true,
+                  "description": "The platform card with the same EAN; null = a new card will be made",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "externalId",
+                "name",
+                "ean",
+                "sku",
+                "priceGrosze",
+                "stock",
+                "importedProductId",
+                "catalogProductId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "page",
+          "hasMore",
+          "products"
         ],
         "additionalProperties": false
       },

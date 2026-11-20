@@ -66,6 +66,17 @@ const configSchema = z
      */
     SMS_TRANSPORT: z.enum(['none', 'log', 'memory']).default('none'),
     /**
+     * Task Q4: key that encrypts the sellers' tokens of their own systems (Base). Generate:
+     * openssl rand -base64 48. Unset = derived from JWT_ACCESS_SECRET (changing that secret then
+     * means the sellers connect Base again).
+     */
+    INTEGRATIONS_SECRET: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(32, 'must be at least 32 characters').optional(),
+    ),
+    /** Task Q4: the Base (BaseLinker) API address; changed only for a local stand-in. */
+    BASE_API_URL: z.url().default('https://api.baselinker.com/connector.php'),
+    /**
      * Other sites (origins) whose pages may call the API from the browser, comma-separated,
      * e.g. https://app.example.com. Empty = only the platform's own web app (same address, no
      * CORS). In development any origin is allowed (phone apps in the browser, a Mac's LAN IP).

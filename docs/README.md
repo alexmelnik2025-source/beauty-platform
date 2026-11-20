@@ -3697,3 +3697,32 @@ API салона (`…/locations/{id}/shop/catalog`, `apps/api/src/shop/`): `GET
 `visits-app-deep-link.spec.ts` (скриншот Q2-app-link-qr-staff). Дальше по QR — только после «да» владельца: N32
 (universal links после публикации), N33 («Zeskanuj kod QR» в приложении), N35 (короткая ссылка `/s/{salon}/{imię}`),
 N37 (печатная карточка специалиста).
+
+## Интеграция продавца с Base (BaseLinker): подключение и импорт (задача Q4, часть 1 — API)
+
+Одобрено владельцем 20.11.2026 (спецификация — project doc `claude/Beauty_Platform_Q4_Base_integracja.md`). Продавец
+(салон, магазин, GESTALT) не вводит товары руками, а подключает свой Base в «Mój sklep» → «Integracje» → «Base» за три
+шага. API (`…/locations/{id}/shop/integrations/base`, `apps/api/src/shop/integrations/`, только owner/manager):
+
+1. `PUT {token}` — токен API из Base (Moje konto → API). Сначала Base должен его принять (`getInventories`), иначе 422
+   `BASE_TOKEN_INVALID`. Токен хранится **зашифрованно** (AES-256-GCM, ключ из `INTEGRATIONS_SECRET`, без него —
+   производный от `JWT_ACCESS_SECRET`) и никогда не возвращается — только последние 4 знака (`tokenHint`). Если ключ
+   сервера сменился, `tokenReadable: false` и 409 `BASE_RECONNECT` — вставить токен заново. `DELETE` — «Odłącz»:
+   токен забывается, импортированные товары остаются товарами салона.
+2. `GET /options` — каталоги (inventories), группы цен и склады продавца в Base; `PATCH {inventoryId, priceGroupId,
+warehouseId}` — выбор. Группа цен должна быть в валюте салона и в выбранном каталоге, склад — тоже (422
+   `BASE_INVALID_CHOICE`).
+3. `GET /products?page=` — страница каталога Base (до 1000 товаров): название, EAN, SKU, цена из выбранной группы,
+   остаток на выбранном складе, уже импортированный товар салона и карточка общего каталога с тем же EAN.
+   `POST /import {items: [{externalId, online}]}` (до 200 за раз) — **только отмеченные** товары: каждый становится
+   товаром салона (`Product.externalRef = base:<каталог>:<id>`, `inSalonShop`, `inMarketplace = online`), цена и
+   остаток из Base (остаток пишется в историю склада как корректировка «Base»), присоединяется к карточке с тем же EAN
+   или получает новую карточку (название, производитель как бренд, описание из HTML в простой текст). Товар салона,
+   заведённый руками с тем же кодом, присоединяется, а не дублируется. Повторный импорт обновляет цену, остаток и код.
+   Без цены в группе / без названия / нет в каталоге — пропуск с причиной.
+
+Ошибки Base: 502 `BASE_ERROR` (текст Base), 502 `BASE_UNREACHABLE`. Адрес API — `BASE_API_URL` (по умолчанию
+`https://api.baselinker.com/connector.php`). Настоящих токенов в коде и тестах нет: `apps/api/test/shop-integrations.spec.ts`
+(8 сценариев) подменяет Base заглушкой. Следующие части Q4: экран «Integracje» в кабинете (3 шага) и статус в
+бизнес-приложении → синхронизация цен/остатков по расписанию → заказы/брони обратно в Base → журнал → импорт CSV/XML-фида.
+Фото товаров из Base — вместе с синхронизацией (URL картинок уже читаются).

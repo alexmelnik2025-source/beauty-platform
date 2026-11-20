@@ -3821,6 +3821,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Is Base connected, and what was chosen (never the token) */
+        get: operations["ShopIntegrationsController_status"];
+        /**
+         * Step 1: connect with the API token from Base (Moje konto → API)
+         * @description Base must accept the token first (422 BASE_TOKEN_INVALID otherwise). The token is stored encrypted and never sent back; pasting a new one replaces it and keeps the choices.
+         */
+        put: operations["ShopIntegrationsController_connect"];
+        post?: never;
+        /**
+         * "Odłącz Base": forget the token
+         * @description Imported products stay as the salon’s own; connecting again joins them back.
+         */
+        delete: operations["ShopIntegrationsController_disconnect"];
+        options?: never;
+        head?: never;
+        /**
+         * Step 2: choose the catalogue, price group and warehouse
+         * @description The price group must be in the salon’s currency and both it and the warehouse in the chosen catalogue (422 BASE_INVALID_CHOICE).
+         */
+        patch: operations["ShopIntegrationsController_configure"];
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Step 2: catalogues, price groups and warehouses of the seller’s Base
+         * @description 409 BASE_NOT_CONNECTED without a token; 409 BASE_RECONNECT when it must be pasted again.
+         */
+        get: operations["ShopIntegrationsController_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Step 3: a page of the seller’s catalogue to tick products from
+         * @description Up to 1000 products a page, as Base gives them, with the price and stock of the chosen group and warehouse, and what the platform already has (imported product, card with the same EAN). 409 BASE_NOT_CONFIGURED before step 2.
+         */
+        get: operations["ShopIntegrationsController_products"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Step 3: import the ticked products (up to 200 at once)
+         * @description Each becomes the salon’s product on its booking page ("Produkty salonu"); `online: true` also shows it in "Sklep". Joined to the platform card with the same EAN, or a new card is made. Importing again renews the price, stock and code. Nothing else is published.
+         */
+        post: operations["ShopIntegrationsController_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4153,6 +4242,82 @@ export interface components {
                 staffIds: string[];
                 /** @description Task 16: the salon's happy-hour discount at this time — for the chosen staff member, or the smallest one among those free (a visit gets at least it); null = none */
                 discountPercent: number | null;
+            }[];
+        };
+        BaseImportResult: {
+            /** @description New products of the salon */
+            created: number;
+            /** @description Products already there: price, stock and code renewed */
+            updated: number;
+            /** @description New cards in the platform catalogue */
+            cardsCreated: number;
+            /** @description Products joined to an existing card by EAN */
+            cardsMatched: number;
+            /** @description Products that were not imported, and why */
+            skipped: {
+                externalId: string;
+                /**
+                 * @description Not in the chosen catalogue, no price in the group, or no name
+                 * @enum {string}
+                 */
+                reason: "NOT_IN_BASE" | "NO_PRICE" | "NO_NAME";
+            }[];
+        };
+        BaseIntegration: {
+            /** @description false = no token yet (or it was disconnected) */
+            connected: boolean;
+            /** @description The last 4 characters of the connected token */
+            tokenHint: string | null;
+            /** @description false = the server key changed since: paste the token again */
+            tokenReadable: boolean;
+            /** @description null = step 2 not done yet */
+            inventoryId: string | null;
+            inventoryName: string | null;
+            priceGroupId: string | null;
+            warehouseId: string | null;
+            /** @description ISO time of the last import; null = never */
+            lastImportAt: string | null;
+            /** @description Products of the salon that came from Base */
+            importedProducts: number;
+        };
+        BaseOptions: {
+            inventories: {
+                id: string;
+                name: string;
+                priceGroupIds: string[];
+                defaultPriceGroupId: string | null;
+                warehouseIds: string[];
+                defaultWarehouseId: string | null;
+            }[];
+            priceGroups: {
+                id: string;
+                name: string;
+                currency: string;
+                /** @description Same currency as the salon: only these may be chosen */
+                matchesSalon: boolean;
+            }[];
+            warehouses: {
+                id: string;
+                name: string;
+            }[];
+        };
+        BaseProducts: {
+            page: number;
+            /** @description Base has another page */
+            hasMore: boolean;
+            products: {
+                externalId: string;
+                name: string;
+                ean: string | null;
+                sku: string | null;
+                /** @description From the chosen price group; null = no price there (cannot be imported) */
+                priceGrosze: number | null;
+                /** @description In the chosen warehouse; null = not there */
+                stock: number | null;
+                /** @description The salon’s product already made from it; null = not imported */
+                importedProductId: string | null;
+                /** @description The platform card with the same EAN; null = a new card will be made */
+                catalogProductId: string | null;
             }[];
         };
         BookingConfirmed: {
@@ -14271,6 +14436,179 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicShopProduct"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_configure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    inventoryId: string;
+                    priceGroupId: string;
+                    warehouseId: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseOptions"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_products: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseProducts"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        externalId: string;
+                        /** @default false */
+                        online?: boolean;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseImportResult"];
                 };
             };
         };

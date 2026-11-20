@@ -159,6 +159,13 @@ function validBody(route: Route): object {
   if (p.endsWith('/products')) return { name: 'Hacked', priceGrosze: 1 };
   if (p.endsWith('/shop/catalog/:cardId')) return { name: 'Hacked' };
   if (p.endsWith('/shop/catalog')) return { name: 'Hacked' };
+  if (p.endsWith('/shop/integrations/base/import')) return { items: [{ externalId: '1' }] };
+  if (p.endsWith('/shop/integrations/base') && route.method === 'put') {
+    return { token: '0000000-0000000-HACKEDHACKEDHACKED' };
+  }
+  if (p.endsWith('/shop/integrations/base')) {
+    return { inventoryId: '1', priceGroupId: '1', warehouseId: 'bl_1' };
+  }
   if (p.endsWith('/reports/till-movements')) {
     return { date: DATE, kind: 'out', amountGrosze: 1000, note: 'Hacked' };
   }
