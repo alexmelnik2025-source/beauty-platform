@@ -3837,3 +3837,17 @@ wizycie» (недоступные — серые); «Zrezygnuj» у ждущег
 `…/appointments/{token}/products` (часть 4a). Тексты в 6 словарях (`visitProducts.*`). e2e: шаг в `my-shop.spec.ts`
 (клиент бронирует через API, по ссылке откладывает помаду и отказывается; скриншот Q3-visit-products). Экран A (на
 подтверждении записи), экран C («Jak było?»), клиентское приложение и D (барбер) — следующие части.
+
+## Экран «Integracje» в кабинете (задача Q4, часть 4)
+
+`/[locale]/app/shop/integrations` (`apps/web/components/shop/ShopIntegrationsSection.tsx`), ссылка «Importuj produkty
+z Base lub z pliku →» в «Usługi» → «Produkty» (только владелец и менеджер; сотруднику страница говорит, что это
+настраивает владелец). Две карточки: **Base (BaseLinker)** — шаг 1 токен («W Base: Moje konto → API»), шаг 2 каталог,
+группа цен (только в валюте салона), склад и «Aktualizuj ceny i stany co …» (подставлены значения по умолчанию из
+Base), шаг 3 «Wybierz produkty» — список с поиском, галочками и «też online w Sklepie» у отмеченных, «Importuj
+zaznaczone (n)»; затем статус (токен …1234, каталог, сколько товаров из Base, последняя синхронизация, последняя
+ошибка), «Synchronizuj teraz», «Ustawienia», «Odłącz Base» и свёрнутый «Dziennik synchronizacji» (5 последних).
+**Importuj z pliku** — выбор CSV/XML и тот же список с галочками. Ошибки API — понятными словами на 4 языках
+кабинета. e2e `apps/web/e2e/shop-integrations.spec.ts` поднимает заглушку Base на `BASE_API_URL` (в CI —
+`http://127.0.0.1:4790/connector.php`), скриншоты Q4-base-connect, Q4-base-pick, Q4-base-done, Q4-feed (телефон).
+Когда «Mój sklep» (Q3) будет в main, ссылку на «Integracje» стоит поставить и туда.

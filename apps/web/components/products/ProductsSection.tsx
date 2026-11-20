@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
@@ -62,7 +63,7 @@ function amountInput(hundredths: number): string {
 export function ProductsSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
   const p = t.products;
-  const { location } = useSession();
+  const { location, role } = useSession();
   const [products, setProducts] = useState<Product[] | null>(null);
   /** Task 461: pieces sold at the visits of the last 30 days, by product. */
   const [sold30, setSold30] = useState<Map<string, number>>(new Map());
@@ -268,6 +269,13 @@ export function ProductsSection({ base }: { base: string }) {
       <p className="small muted">{p.costHint}</p>
       <p className="small muted">{p.supplierHint}</p>
       <p className="small muted">{p.barcodeHint}</p>
+      {role !== 'staff' ? (
+        <p className="small">
+          <Link href={`/${locale}/app/shop/integrations`} data-testid="products-integrations">
+            {p.integrationsLink}
+          </Link>
+        </p>
+      ) : null}
       <ErrorBox>{error}</ErrorBox>
       {toOrder.length > 0 ? (
         <p className="note" role="status" data-testid="products-to-order">

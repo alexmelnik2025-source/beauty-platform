@@ -134,6 +134,8 @@ jobs:
       TRUST_PROXY: '1'
       # SMS codes go to api.log; the browser test reads them from there.
       SMS_TRANSPORT: log
+      # Task Q4: a stand-in Base started by e2e/shop-integrations.spec.ts (no real account or token).
+      BASE_API_URL: http://127.0.0.1:4790/connector.php
       API_URL: http://localhost:4000
       # Task 130: the e2e checks robots.txt, sitemap.xml and the salon page with indexing on.
       PUBLIC_INDEXING: '1'
