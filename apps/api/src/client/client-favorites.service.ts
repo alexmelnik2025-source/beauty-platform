@@ -66,7 +66,7 @@ export class ClientFavoritesService {
   /** Saving a salon twice keeps the first date. Only salons open for online booking. */
   async add(client: ClientAuth, slug: string): Promise<void> {
     const location = await this.prisma.location.findFirst({
-      where: { slug, onlineBookingEnabled: true },
+      where: { slug: slug.toLowerCase(), onlineBookingEnabled: true },
       select: { id: true },
     });
     if (!location) throw notFound('Location');
@@ -96,7 +96,7 @@ export class ClientFavoritesService {
   /** Removing a salon that is not on the list (or no longer exists) is not an error. */
   async remove(client: ClientAuth, slug: string): Promise<void> {
     await this.prisma.clientFavorite.deleteMany({
-      where: { personId: client.personId, location: { slug } },
+      where: { personId: client.personId, location: { slug: slug.toLowerCase() } },
     });
   }
 }

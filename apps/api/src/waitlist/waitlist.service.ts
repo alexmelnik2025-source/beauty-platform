@@ -499,9 +499,12 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** The client leaves: a waiting entry or an open offer (its held time goes back). */
+  /**
+   * The client leaves: a waiting entry, one already told about free times (task 603 — it stayed on
+   * the salon's list before) or an open offer (its held time goes back).
+   */
   private async leave(entry: Pick<WaitlistEntry, 'id' | 'status' | 'offerAppointmentId'>) {
-    if (entry.status !== 'waiting' && entry.status !== 'offered') return;
+    if (!['waiting', 'notified', 'offered'].includes(entry.status)) return;
     const changed = await this.prisma.waitlistEntry.updateMany({
       where: { id: entry.id, status: entry.status },
       data: { status: 'cancelled', cancelledAt: new Date() },
@@ -554,6 +557,18 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       });
     } catch (error) {
       if (error instanceof AppException && error.code === 'HOLD_EXPIRED') throw offerGone();
+      // Task 603: the salon's cancellation guard refused this client (book by phone / pay first);
+      // the held time is already released — the offer is over, the next client in the queue is
+      // served by the next sweep instead of waiting for the offer to run out.
+      if (
+        error instanceof AppException &&
+        (error.code === 'BOOKING_PHONE_ONLY' || error.code === 'BOOKING_PAY_FIRST')
+      ) {
+        await this.prisma.waitlistEntry.updateMany({
+          where: { id: entry.id, status: 'offered' },
+          data: { status: 'missed' },
+        });
+      }
       throw error;
     }
     return this.toOffer(await this.byOfferToken(token));

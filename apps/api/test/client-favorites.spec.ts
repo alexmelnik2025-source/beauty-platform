@@ -112,10 +112,18 @@ describe('client app: favourite salons', () => {
     ]);
     expect(both.body.items[0]).toMatchObject({ bookable: true });
 
-    await ctx.http().delete(`/v1/client/favorites/${second.slug}`).set(anna).expect(204);
+    // The address as typed, in capitals, means the same salon (task 603).
+    await ctx
+      .http()
+      .delete(`/v1/client/favorites/${second.slug.toUpperCase()}`)
+      .set(anna)
+      .expect(204);
     expect((await list(anna)).body.items.map((s: { slug: string }) => s.slug)).toEqual([
       first.slug,
     ]);
+    await ctx.http().put(`/v1/client/favorites/${second.slug.toUpperCase()}`).set(anna).expect(204);
+    expect((await list(anna)).body.items).toHaveLength(2);
+    await ctx.http().delete(`/v1/client/favorites/${second.slug}`).set(anna).expect(204);
     // Removing again (or a salon that does not exist) is not an error.
     await ctx.http().delete(`/v1/client/favorites/${second.slug}`).set(anna).expect(204);
     await ctx.http().delete('/v1/client/favorites/no-such-salon').set(anna).expect(204);

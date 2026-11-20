@@ -201,6 +201,11 @@ describe('waiting list', () => {
     );
     // Only once.
     expect(await waitlist.sweep()).toBe(0);
+    // A client already told about free times can still leave the list (task 603).
+    const left = await ctx.http().post(`/v1/public/waitlist/${token}/cancel`).expect(200);
+    expect(left.body.status).toBe('cancelled');
+    const forSalon = await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200);
+    expect(forSalon.body.items).toEqual([]);
   });
 
   it('a full day: the first client in the queue gets the freed time held and takes it (164)', async () => {
@@ -369,6 +374,75 @@ describe('waiting list', () => {
     expect(booked.approvalRequestedAt).not.toBeNull();
     await outbox.drain();
     expect(ctx.mail.lastTo(ANNA)!.subject).toContain('Rezerwacja czeka na potwierdzenie salonu');
+  });
+
+  it('a client the guard sends to the phone loses the offer at once; the next client is served (603)', async () => {
+    await holdMinutes(15);
+    // Anna missed a visit; the salon takes her bookings by phone only.
+    const missed = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({
+        serviceId,
+        staffId,
+        start: new Date(zonedToInstant(dayAhead(10), 15 * 60, TZ)).toISOString(),
+        allowOutsideHours: true,
+        customer: { name: 'Anna Kowalska', phone: '+48600111222', email: ANNA },
+      })
+      .expect(201);
+    const past = new Date(Date.now() - 5 * 24 * 3_600_000);
+    await ctx.prisma.appointment.update({
+      where: { id: missed.body.id },
+      data: {
+        startAt: past,
+        endAt: new Date(past.getTime() + 45 * 60_000),
+        blockedUntil: new Date(past.getTime() + 45 * 60_000),
+        status: 'no_show',
+      },
+    });
+    await ctx
+      .http()
+      .put(`${base}/cancellation-guard`)
+      .set(owner.auth)
+      .send({
+        version: 0,
+        enabled: true,
+        maxChanges: null,
+        windowHours: 720,
+        lateCancelMinutes: null,
+        maxNoShows: 1,
+        action: 'phone_only',
+      })
+      .expect(200);
+
+    const day = dayAhead(3);
+    const visit = await fillDay(day);
+    await join(day, ANNA, { phone: '+48600111222' }).expect(201);
+    await join(day, BOB, { phone: '+48600222333' }).expect(201);
+    await cancelVisit(visit);
+    expect(await waitlist.sweep()).toBe(1);
+    await outbox.drain();
+    const refused = await ctx
+      .http()
+      .post(`/v1/public/waitlist-offers/${offerTokenOf(ANNA)}/accept`)
+      .send({})
+      .expect(403);
+    expectError(refused.body, 'BOOKING_PHONE_ONLY');
+    // Anna's offer is over (not pending for 15 minutes), the time is not held any more …
+    expect(
+      (
+        await ctx
+          .http()
+          .get(`/v1/public/waitlist-offers/${offerTokenOf(ANNA)}`)
+          .expect(200)
+      ).body.status,
+    ).toBe('missed');
+    expect(await ctx.prisma.appointment.count({ where: { locationId, status: 'held' } })).toBe(0);
+    // … and the next sweep offers it to Bob straight away.
+    expect(await waitlist.sweep()).toBe(1);
+    await outbox.drain();
+    expect(ctx.mail.lastTo(BOB)!.subject).toContain('Termin czeka');
   });
 
   it('no answer in time or "no": the next client in the queue gets the time (164)', async () => {
