@@ -3,6 +3,7 @@ import {
   addDays,
   instantToLocal,
   isoWeekday,
+  isSupportedInstant,
   isValidLocalDate,
   offsetMinutes,
   parseClock,
@@ -64,6 +65,14 @@ describe('dates and clock values', () => {
   it('validates dates and clock values', () => {
     expect(isValidLocalDate('2026-02-29')).toBe(false);
     expect(isValidLocalDate('2028-02-29')).toBe(true);
+    // Task 602: years the helpers cannot round-trip are refused instead of crashing later.
+    expect(isValidLocalDate('0999-01-01')).toBe(false);
+    expect(isValidLocalDate('9999-12-31')).toBe(false);
+    expect(isValidLocalDate('9000-12-31')).toBe(true);
+    expect(isSupportedInstant(Date.UTC(2026, 10, 20))).toBe(true);
+    expect(isSupportedInstant(Date.UTC(9999, 11, 31, 23, 30))).toBe(false);
+    expect(isSupportedInstant(Date.UTC(999, 0, 1))).toBe(false);
+    expect(isSupportedInstant(Number.NaN)).toBe(false);
     expect(parseClock('09:30')).toBe(570);
     expect(parseClock('24:00')).toBe(1440);
     expect(parseClock('24:30')).toBeNull();

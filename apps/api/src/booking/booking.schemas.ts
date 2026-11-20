@@ -2,10 +2,14 @@ import { visitWishesInputSchema } from './visit-wishes';
 import { z } from 'zod';
 import { LOCALES } from '../auth/auth.schemas';
 import { localDateSchema } from '../scheduling/scheduling.schemas';
+import { isSupportedInstant } from '../scheduling/time';
 import { paymentMethodSchema } from '../common/enums.schemas';
 
 /** An instant with an explicit offset, e.g. 2027-01-04T09:00:00.000Z — exactly as the slot list returns it. */
-const instant = z.iso.datetime({ offset: true }).transform((value) => Date.parse(value));
+const instant = z.iso
+  .datetime({ offset: true })
+  .transform((value) => Date.parse(value))
+  .refine(isSupportedInstant, 'start is out of range');
 
 const token = z.string().min(20).max(200);
 

@@ -188,6 +188,9 @@ export class AvailabilityService {
           select: { durationMinutes: true },
         },
       },
+      // The salon's order (task 13): it decides who comes first in a slot's `staffIds` and who
+      // "any staff member" falls to when several are equally busy (task 602).
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
     if (query.staffId && staff.length === 0) {
       throw new AppException(

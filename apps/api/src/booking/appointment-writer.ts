@@ -189,10 +189,15 @@ export class AppointmentWriter {
   }
 
   /** Moves an appointment (same row), checking the version the caller saw. */
+  /**
+   * A moved visit keeps its length (task 70) but takes the service's current buffer, the same
+   * one the free-time list was computed with — so `bufferMinutes` is stored along with the times
+   * and what was offered is what gets written (task 602).
+   */
   async move(
     appointment: Pick<Appointment, 'id' | 'version'>,
     staffId: string,
-    times: Times,
+    times: Times & Partial<Pick<Appointment, 'bufferMinutes'>>,
     expectedVersion: number,
     after: (tx: Prisma.TransactionClient, newVersion: number) => Promise<void>,
   ): Promise<number> {

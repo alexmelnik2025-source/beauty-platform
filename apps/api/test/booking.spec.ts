@@ -193,6 +193,16 @@ describe('online booking: hold → code → confirm', () => {
     expectError((await hold(soon).expect(409)).body, 'SLOT_TAKEN');
   });
 
+  it('a date or instant outside the supported years is a 400, not a crash (task 602)', async () => {
+    await hold('9999-12-31T23:30:00Z').expect(400);
+    await hold('0999-01-01T10:00:00Z').expect(400);
+    await ctx
+      .http()
+      .get(`/v1/public/locations/${slug}/availability`)
+      .query({ serviceId, from: '9999-12-31', to: '9999-12-31' })
+      .expect(400);
+  });
+
   it('a wrong code counts attempts; the 6th try is refused even with the right code', async () => {
     const h = await hold(at(day, 11)).expect(201);
     await sendCode(h.body.holdId, h.body.holdToken).expect(202);
@@ -482,6 +492,39 @@ describe('client manages the appointment via the link', () => {
       'confirmed',
       'rescheduled',
     ]);
+  });
+
+  it('a moved visit takes the service’s current buffer, so every offered time is bookable (task 602)', async () => {
+    // Booked with the 15-minute buffer; afterwards the salon drops the buffer to 0.
+    const { holdId, manageToken } = await book(at(day, 14));
+    const service = await ctx
+      .http()
+      .get(`${base}/services/${serviceId}`)
+      .set(owner.auth)
+      .expect(200);
+    await ctx
+      .http()
+      .patch(`${base}/services/${serviceId}`)
+      .set(owner.auth)
+      .send({ version: service.body.version, bufferMinutes: 0 })
+      .expect(200);
+    // Another client takes 10:45–11:30 with the same specialist.
+    await book(at(day, 10, 45));
+    // 10:00 is offered (45 min + 0 buffer fits before 10:45) — and the move must not be refused
+    // because the visit still carried its old 15-minute buffer.
+    expect(await publicTimes()).toContain('10:00');
+    const res = await ctx
+      .http()
+      .post(`/v1/public/appointments/${manageToken}/reschedule`)
+      .send({ start: at(day, 10) })
+      .expect(200);
+    expect(res.body).toMatchObject({ id: holdId, time: '10:00', staff: { displayName: 'Kasia' } });
+    const detail = await ctx
+      .http()
+      .get(`${base}/appointments/${holdId}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(detail.body.bufferMinutes).toBe(0);
   });
 
   it('cancels; the slot is free and both sides are told', async () => {

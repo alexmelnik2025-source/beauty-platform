@@ -610,10 +610,16 @@ export class PublicBookingService {
     // Keep the same staff member when possible.
     if (!input.staffId && free.includes(appointment.staffId)) free = [appointment.staffId];
 
-    const times = timesFor(input.start, {
-      durationMinutes: appointment.durationMinutes,
-      bufferMinutes: appointment.bufferMinutes,
+    // Task 602: the free times above were computed with the service's current buffer, so the
+    // visit is written with it too (the stored one may be older and longer → 409 for an offered time).
+    const { bufferMinutes } = await this.prisma.service.findUniqueOrThrow({
+      where: { id: appointment.serviceId },
+      select: { bufferMinutes: true },
     });
+    const times = {
+      ...timesFor(input.start, { durationMinutes: appointment.durationMinutes, bufferMinutes }),
+      bufferMinutes,
+    };
     for (const staffId of free) {
       try {
         await this.writer.move(

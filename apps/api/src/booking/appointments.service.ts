@@ -327,7 +327,16 @@ export class AppointmentsService {
         appointment.durationMinutes,
       );
     }
-    const times = timesFor(input.start, appointment);
+    // Task 602: the length stays, the buffer is the service's current one — the same the
+    // free-time check above used.
+    const { bufferMinutes } = await this.prisma.service.findUniqueOrThrow({
+      where: { id: appointment.serviceId },
+      select: { bufferMinutes: true },
+    });
+    const times = {
+      ...timesFor(input.start, { durationMinutes: appointment.durationMinutes, bufferMinutes }),
+      bufferMinutes,
+    };
     await this.writer.move(appointment, staffId, times, input.version, async (tx, version) => {
       await this.writer.event(tx, appointment.id, 'rescheduled', 'staff', userId, {
         from: appointment.startAt.toISOString(),

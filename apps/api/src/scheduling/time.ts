@@ -60,12 +60,25 @@ export function offsetMinutes(instant: number, timeZone: string): number {
   return Math.round((asUtc - flooredInstant) / MINUTE_MS);
 }
 
+/**
+ * Years that every helper here can round-trip: `toISOString()` and `Intl` write years outside
+ * 1000–9999 with a different number of digits (task 602). 9000 leaves room for `addDays`.
+ */
+const MIN_YEAR = 1000;
+const MAX_YEAR = 9000;
+
 export function isValidLocalDate(date: string): boolean {
   const m = DATE_RE.exec(date);
   if (!m) return false;
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (y < MIN_YEAR || y > MAX_YEAR) return false;
   const t = new Date(Date.UTC(y, mo - 1, d));
   return t.getUTCFullYear() === y && t.getUTCMonth() === mo - 1 && t.getUTCDate() === d;
+}
+
+/** Whether an instant (ms) falls in the years the date helpers support; see `isValidLocalDate`. */
+export function isSupportedInstant(ms: number): boolean {
+  return Number.isFinite(ms) && ms >= Date.UTC(MIN_YEAR, 0, 1) && ms < Date.UTC(MAX_YEAR, 0, 1);
 }
 
 function parseDate(date: string): [number, number, number] {
