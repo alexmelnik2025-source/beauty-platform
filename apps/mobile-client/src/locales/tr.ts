@@ -436,6 +436,18 @@ export const tr: Dictionary = {
     notified: 'Bir saat boşaldı — e-posta gönderdik',
     leave: 'Listeden çık',
   },
+  visitProducts: {
+    title: 'Teslim alınacak ürünler',
+    statusReserved: 'Salonda bekliyor — ziyarette ödeyin',
+    statusHanded: 'Teslim alındı',
+    statusExpired: 'Alınmadı — rezervasyon süresi doldu',
+    giveBack: 'Vazgeç',
+    total: 'Ürünler toplamı: {amount} (salonda ödeme)',
+    add: '+ Bu ziyarete ürün ekle',
+    reserve: 'Ziyarette teslim alacağım',
+    unavailable: 'şu anda stokta yok',
+    pickup: 'Ürün sizi salonda bekliyor. Ziyarette ödersiniz — çevrimiçi ödeme yok.',
+  },
   units: { h: 'sa', min: 'dk' },
   spoken: { pl: 'Lehçe', uk: 'Ukraynaca', ru: 'Rusça', be: 'Belarusça', en: 'İngilizce' },
   specialty: {

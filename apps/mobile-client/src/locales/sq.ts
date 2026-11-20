@@ -437,6 +437,18 @@ export const sq: Dictionary = {
     notified: 'U lirua një orar — ju dërguam email',
     leave: 'Dil nga lista',
   },
+  visitProducts: {
+    title: 'Produkte për t’u marrë',
+    statusReserved: 'Pret në sallon — paguani gjatë vizitës',
+    statusHanded: 'U mor',
+    statusExpired: 'Nuk u mor — rezervimi skadoi',
+    giveBack: 'Hiq dorë',
+    total: 'Gjithsej për produktet: {amount} (pagesa në sallon)',
+    add: '+ Shto një produkt në këtë vizitë',
+    reserve: 'Do ta marr gjatë vizitës',
+    unavailable: 'përkohësisht nuk ka',
+    pickup: 'Produkti ju pret në sallon. Paguani gjatë vizitës — pa pagesë online.',
+  },
   units: { h: 'orë', min: 'min' },
   spoken: { pl: 'Polonisht', uk: 'Ukrainisht', ru: 'Rusisht', be: 'Bjellorusisht', en: 'Anglisht' },
   specialty: {

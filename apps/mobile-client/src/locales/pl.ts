@@ -432,6 +432,18 @@ export const pl = {
     notified: 'Zwolnił się termin — wysłaliśmy e-mail',
     leave: 'Wypisz się',
   },
+  visitProducts: {
+    title: 'Produkty do odbioru',
+    statusReserved: 'Czeka w salonie — zapłacisz przy wizycie',
+    statusHanded: 'Odebrane',
+    statusExpired: 'Nieodebrane — rezerwacja wygasła',
+    giveBack: 'Zrezygnuj',
+    total: 'Razem za produkty: {amount} (płatność w salonie)',
+    add: '+ Dodaj produkt do tej wizyty',
+    reserve: 'Odbiorę przy wizycie',
+    unavailable: 'chwilowo niedostępny',
+    pickup: 'Produkt czeka na Ciebie w salonie. Płacisz przy wizycie — bez płatności online.',
+  },
   units: { h: 'godz.', min: 'min' },
   spoken: { pl: 'polski', uk: 'ukraiński', ru: 'rosyjski', be: 'białoruski', en: 'angielski' },
   specialty: {

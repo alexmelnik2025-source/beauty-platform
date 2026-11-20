@@ -7,13 +7,15 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task Q3 (screen A): right after booking, the "booked" screen offers — folded and optional —
  * "Dodać coś do wizyty?" with at most three of the salon's products. The client opens it on the
  * phone and puts a pomade aside: it waits at the salon, paid at the visit. Screenshots
- * Q3-A-booked, Q3-A-booked-open. (Named "shop-…" so it runs after booking.spec.ts, which counts the
- * salons in the catalogue.)
+ * Q3-A-booked, Q3-A-booked-open. Then "Moje wizyty" in the client app shows the same products in
+ * the visit card: the client gives the pomade back and puts another product aside (Q3-B-app).
+ * (Named "shop-…" so it runs after booking.spec.ts, which counts the salons in the catalogue.)
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -160,4 +162,41 @@ test('"Dodać coś do wizyty?" on the booked screen (task Q3, screen A)', async 
   await expect(offer.getByText(/Razem za produkty: .* \(płatność w salonie\)/)).toBeVisible();
   await shot(client, 'Q3-A-booked-open');
   await context.close();
+
+  // The client app: the visit card shows what waits at the salon.
+  const clientApp = await serveApp('mobile-client');
+  try {
+    const phone = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      isMobile: true,
+      extraHTTPHeaders: freshAddress(),
+    });
+    const app = await phone.newPage();
+    await app.goto(clientApp.url);
+    await app.getByLabel('E-mail', { exact: true }).fill(CLIENT);
+    await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    const signIn = await waitForEmail(CLIENT, /Kod logowania do Twoich wizyt/);
+    await app.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(signIn.text)![1]!);
+    await app.getByRole('button', { name: 'Zaloguj się' }).click();
+    await app
+      .getByRole('button', { name: /Strzyżenie, Dodaj Do Wizyty/ })
+      .first()
+      .click();
+    const card = app.getByRole('region', { name: 'Produkty do odbioru' });
+    await expect(card.getByText('Czeka w salonie — zapłacisz przy wizycie')).toBeVisible();
+    await card.getByRole('button', { name: /^Zrezygnuj: / }).click();
+    await expect(card.getByText('Czeka w salonie — zapłacisz przy wizycie')).toHaveCount(0);
+    await card.getByRole('button', { name: '+ Dodaj produkt do tej wizyty' }).click();
+    await card.getByRole('button', { name: 'Odbiorę przy wizycie: Wosk matowy' }).click();
+    await expect(card.getByText('Czeka w salonie — zapłacisz przy wizycie')).toBeVisible();
+    await expect(
+      card.getByText(/Razem za produkty: 45,00\s*zł \(płatność w salonie\)/),
+    ).toBeVisible();
+    await card.scrollIntoViewIfNeeded();
+    await shot(app, 'Q3-B-app');
+    await phone.close();
+  } finally {
+    clientApp.server.close();
+  }
 });

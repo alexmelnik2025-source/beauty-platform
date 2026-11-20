@@ -3860,6 +3860,10 @@ wizycie» откладывает товар к этому визиту (тот �
 `POST` — «Odbiorę przy wizycie» (`{ productId, quantity }`), `DELETE …/products/{reservationId}` — вернуть товар до
 начала визита. Ответ и правила те же, что у ссылки визита (`/v1/public/appointments/{token}/products`): нет штук —
 409 OUT_OF_STOCK, визит начался — 409 TOO_LATE_TO_CHANGE, чужой визит — 404. Для клиентского приложения и «Moje wizyty».
+В клиентском приложении — карточка «Produkty do odbioru» в визите «Moje wizyty» (`screens/VisitProductsCard.tsx`):
+отложенные товары, «Zrezygnuj», свёрнутое «+ Dodaj produkt do tej wizyty» → «Odbiorę przy wizycie». Нет товаров у
+салона и ничего не отложено — карточки нет.
+
 
 ## Экран «Integracje» в кабинете (задача Q4, часть 4)
 

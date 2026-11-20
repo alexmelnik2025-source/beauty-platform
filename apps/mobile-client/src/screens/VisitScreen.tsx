@@ -38,6 +38,7 @@ import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 import { WishesPicker } from '../WishesPicker';
 import { VisitPhotos } from '../WishPhotosPicker';
 import { ReviewCard } from '../ReviewCard';
+import { VisitProductsCard } from './VisitProductsCard';
 import { asksWishes, wishesToSend, type VisitWishes } from '../wishes';
 
 /**
@@ -381,6 +382,11 @@ export function VisitScreen(props: {
             </View>
           ))}
         </View>
+      ) : null}
+
+      {/* Task Q3: products put aside for the visit, picked up and paid at the salon. */}
+      {visit.status !== 'cancelled' ? (
+        <VisitProductsCard api={api} t={t} locale={locale} visitId={visit.id} />
       ) : null}
 
       <Card>

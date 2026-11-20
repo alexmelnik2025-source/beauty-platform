@@ -22,6 +22,7 @@ import type {
   PublicSalonDirectory,
   Slot,
   VisitCoupons,
+  VisitProducts,
   VisitPhoto,
   VisitPhotoList,
   VisitReview,
@@ -128,6 +129,7 @@ export type {
   ClientAppointment,
   ClientAppointmentList,
   VisitCoupons,
+  VisitProducts,
   ClientCodeSent,
   ClientLoyalty,
   ClientLoyaltyCard,
@@ -257,6 +259,31 @@ export class ClientApi {
     return this.authed<VisitCoupons>(
       'GET',
       `/v1/client/appointments/${encodeURIComponent(id)}/coupons`,
+    );
+  }
+
+  /** Task Q3: "Produkty do odbioru" — products I put aside for my visit, and the salon's others. */
+  visitProducts(id: string): Promise<VisitProducts> {
+    return this.authed<VisitProducts>(
+      'GET',
+      `/v1/client/appointments/${encodeURIComponent(id)}/products`,
+    );
+  }
+
+  /** Task Q3: "Odbiorę przy wizycie" — one piece put aside, paid at the salon. */
+  reserveProduct(id: string, productId: string): Promise<VisitProducts> {
+    return this.authed<VisitProducts>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/products`,
+      { productId, quantity: 1 },
+    );
+  }
+
+  /** Task Q3: takes a product back, until the visit starts. */
+  unreserveProduct(id: string, reservationId: string): Promise<VisitProducts> {
+    return this.authed<VisitProducts>(
+      'DELETE',
+      `/v1/client/appointments/${encodeURIComponent(id)}/products/${encodeURIComponent(reservationId)}`,
     );
   }
 

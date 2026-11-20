@@ -430,6 +430,18 @@ export const en: Dictionary = {
     notified: 'A time freed up — we sent you an email',
     leave: 'Leave the list',
   },
+  visitProducts: {
+    title: 'Products to pick up',
+    statusReserved: 'Waiting at the salon — pay at your visit',
+    statusHanded: 'Picked up',
+    statusExpired: 'Not picked up — the reservation expired',
+    giveBack: 'Give back',
+    total: 'Products in all: {amount} (paid at the salon)',
+    add: '+ Add a product to this visit',
+    reserve: 'I’ll pick it up at the visit',
+    unavailable: 'out of stock right now',
+    pickup: 'The product waits for you at the salon. You pay at the visit — no online payment.',
+  },
   units: { h: 'h', min: 'min' },
   spoken: { pl: 'Polish', uk: 'Ukrainian', ru: 'Russian', be: 'Belarusian', en: 'English' },
   specialty: {
