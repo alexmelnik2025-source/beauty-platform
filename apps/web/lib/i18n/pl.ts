@@ -991,6 +991,12 @@ export const pl = {
       'Nowy produkt od razu widzą klienci na stronie salonu. Resztę (cena zakupu, dostawca, kod) uzupełnisz w „Usługi” → „Produkty”.',
     addInvalid: 'Podaj nazwę, cenę (np. 45 lub 45,50) i liczbę sztuk (albo zostaw puste).',
     stock: 'Sztuk w magazynie (puste = nie liczymy)',
+    reservationDaysTitle: 'Jak długo czekają odłożone produkty',
+    reservationDaysHint:
+      'Produkt odłożony do wizyty czeka na klienta tyle dni po wizycie. Potem rezerwacja wygasa, a sztuki znowu są dostępne dla innych.',
+    reservationDays: 'Dni po wizycie (1–90)',
+    reservationDaysInvalid: 'Podaj liczbę dni od 1 do 90.',
+    reservationDaysNow: 'Odłożony produkt czeka {n} dni po wizycie.',
     categories: {
       hair_care: 'Pielęgnacja włosów',
       styling: 'Stylizacja',

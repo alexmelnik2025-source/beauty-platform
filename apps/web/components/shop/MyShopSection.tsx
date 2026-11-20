@@ -9,6 +9,7 @@ import { formatPrice } from '@/lib/time';
 import type { CatalogProduct, CatalogSearch, Product, ProductList } from '@/lib/types';
 import { parseTip as parseAmount } from '../calendar/TipField';
 import { useSession } from '../Session';
+import { ReservationDays } from './ReservationDays';
 import { ErrorBox, Spinner } from '../ui';
 
 const SHOP_CATEGORIES = [
@@ -34,6 +35,7 @@ type ShopCategory = (typeof SHOP_CATEGORIES)[number];
  * Part 2b: the card's picture — "Dodaj zdjęcie" (shrunk in the browser like a staff portrait) when
  * the salon may set it: it made the card and is alone on it, or the shared card has none yet.
  * At the launch clients only pick up and pay at the salon — nothing about shipping is shown.
+ * At the bottom: how many days a product put aside for a visit waits after it (`ReservationDays`).
  */
 export function MyShopSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
@@ -427,6 +429,8 @@ export function MyShopSection({ base }: { base: string }) {
           </button>
         </div>
       </form>
+
+      <ReservationDays base={base} />
     </section>
   );
 }

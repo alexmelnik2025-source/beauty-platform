@@ -993,6 +993,12 @@ export const en: Dict = {
     addInvalid:
       'Enter a name, a price (e.g. 45 or 45.50) and the pieces in stock (or leave it empty).',
     stock: 'Pieces in stock (empty = not counted)',
+    reservationDaysTitle: 'How long products put aside wait',
+    reservationDaysHint:
+      'A product put aside for a visit waits for the client this many days after the visit. Then the reservation expires and the pieces are free for others again.',
+    reservationDays: 'Days after the visit (1–90)',
+    reservationDaysInvalid: 'Enter a number of days from 1 to 90.',
+    reservationDaysNow: 'A product put aside waits {n} days after the visit.',
     categories: {
       hair_care: 'Hair care',
       styling: 'Styling',

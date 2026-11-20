@@ -3888,3 +3888,12 @@ zaznaczone (n)»; затем статус (токен …1234, каталог, �
 поиском. 6 языков. Код: `apps/mobile-client/src/screens/ShopScreen.tsx`, `src/shop.ts`, тест `test/shop.test.ts`,
 e2e `apps/web/e2e/visits-app-shop.spec.ts` (скриншоты Q3-app-shop, Q3-app-shop-product). «Odbiorę przy wizycie»
 (бронь к визиту) добавится с частью «товар к визиту» (ветка другого запуска `agent/580-product-reservation`).
+
+## «Jak długo czekają odłożone produkty» в «Mój sklep» (задача Q3, настройка брони)
+
+Внизу страницы «Mój sklep» в кабинете — маленькая карточка: сколько дней товар, отложенный к визиту, ждёт клиента
+после визита (настройка салона `shopReservationDays`, 1–90, по умолчанию 14; потом бронь снимается таймером
+`ReservationsService.expireOverdue` и штуки снова доступны). Меняют владелец и менеджер (`PATCH …/locations/{id}`
+с `version`), специалист видит только число. Компонент `apps/web/components/shop/ReservationDays.tsx`, тексты
+`shop.reservationDays*` в 4 словарях кабинета. Тесты: `apps/api/test/shop-reservation-days.spec.ts` (права и границы
+1–90, бронь истекает через заданное число дней), e2e `shop-reservation-days.spec.ts` (скриншот Q3-reservation-days).
