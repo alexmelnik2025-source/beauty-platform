@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { VisitReview } from '@/lib/types';
@@ -22,6 +22,24 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [thanks, setThanks] = useState(false);
+  // The form and "Zmień opinię" take each other's place: once the client has acted, keyboard
+  // focus follows — to the chosen star when the form opens, to "Zmień opinię" (or the section)
+  // after sending. Not on page load.
+  const sectionRef = useRef<HTMLElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const changeRef = useRef<HTMLButtonElement>(null);
+  const acted = useRef(false);
+  useEffect(() => {
+    if (!acted.current) return;
+    if (editing) {
+      const stars = formRef.current;
+      const star =
+        stars?.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]') ??
+        stars?.querySelector<HTMLButtonElement>('[role="radio"]');
+      star?.focus();
+    } else if (changeRef.current) changeRef.current.focus();
+    else sectionRef.current?.focus();
+  }, [editing]);
 
   useEffect(() => {
     api<VisitReview>(endpoint, { auth: false })
@@ -49,6 +67,7 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
     : null;
 
   async function save() {
+    acted.current = true;
     setBusy(true);
     setError('');
     try {
@@ -68,7 +87,13 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
   }
 
   return (
-    <section id="review" className="section review-form" aria-label={t.reviews.yours}>
+    <section
+      id="review"
+      className="section review-form"
+      aria-label={t.reviews.yours}
+      ref={sectionRef}
+      tabIndex={-1}
+    >
       <h2 className="h3">{t.reviews.yours}</h2>
       {thanks ? (
         <p className="note" role="status">
@@ -78,6 +103,7 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
       {editing ? (
         <form
           className="form"
+          ref={formRef}
           onSubmit={(e) => {
             e.preventDefault();
             if (rating > 0) void save();
@@ -104,7 +130,15 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
               {until ? (
                 <p className="small muted">{fill(t.reviews.changeUntil, { date: until })}</p>
               ) : null}
-              <button type="button" className="btn btn--quiet" onClick={() => setEditing(true)}>
+              <button
+                type="button"
+                className="btn btn--quiet"
+                ref={changeRef}
+                onClick={() => {
+                  acted.current = true;
+                  setEditing(true);
+                }}
+              >
                 {t.reviews.change}
               </button>
             </>

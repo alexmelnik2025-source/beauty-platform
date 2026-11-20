@@ -220,6 +220,11 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await expect(form).toContainText('Szybko i dokładnie, miła atmosfera.');
   await expect(form.getByRole('button', { name: 'Zmień opinię' })).toBeVisible();
   await shot(page, '165b-2-review-sent');
+  // Task 598: keyboard focus follows the swap — "Zmień opinię" after sending, the chosen star
+  // when the form opens again.
+  await expect(form.getByRole('button', { name: 'Zmień opinię' })).toBeFocused();
+  await form.getByRole('button', { name: 'Zmień opinię' }).click();
+  await expect(form.getByRole('radio', { name: '5 z 5' })).toBeFocused();
 
   // ── The salon page: average, specialists, reviews without names ───────
   await page.goto(`/pl/b/${location.slug}`);
