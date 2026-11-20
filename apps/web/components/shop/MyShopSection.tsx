@@ -78,16 +78,20 @@ export function MyShopSection({ base }: { base: string }) {
     setError('');
     try {
       await action();
-      await load();
     } catch (e) {
       setError(errorText(t, e));
     } finally {
+      // Also after an error: the switches go back to what the server has.
+      await load().catch(() => undefined);
       setBusy(false);
     }
   };
 
-  const patch = (id: string, body: object) =>
-    run(() => api(`${base}/products/${id}`, { method: 'PATCH', body }));
+  /** The switches flip at once (the list is reloaded after the server answered). */
+  const patch = (id: string, body: Partial<Product>) => {
+    setProducts((list) => list && list.map((p) => (p.id === id ? { ...p, ...body } : p)));
+    return run(() => api(`${base}/products/${id}`, { method: 'PATCH', body }));
+  };
 
   const setPhoto = (cardId: string, file: File | undefined) =>
     file
