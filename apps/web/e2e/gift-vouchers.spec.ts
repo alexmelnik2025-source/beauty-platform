@@ -182,12 +182,15 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await card.getByRole('button', { name: 'Zmień bon' }).click();
   const edit = card.getByRole('form', { name: `Zmień bon ${code!}` });
   await expect(edit.getByText('Kwoty bonu nie zmienisz.', { exact: false })).toBeVisible();
+  await expect(edit.getByLabel('Ważny do')).toBeFocused();
   await expect(edit.getByLabel('Dla kogo')).toHaveValue('Jan Kowalski');
   await edit.getByLabel('Ważny do').fill(`${year}-06-30`);
   await edit.getByLabel('Dla kogo').fill('Jan i Ola Kowalscy');
   await shot(page, '499');
   await edit.getByRole('button', { name: 'Zapisz' }).click();
   await expect(card.getByRole('status')).toHaveText(`Zapisano zmiany bonu ${code!}.`);
+  // The form closed: the cursor is back on "Zmień bon".
+  await expect(card.getByRole('button', { name: 'Zmień bon' })).toBeFocused();
   await expect(card.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
   await expect(card.getByText(/Ważny do .*30 czerwca/)).toBeVisible();
   await expect(card.getByText(/Zostało 80,00\s?zł z 200,00\s?zł/)).toBeVisible();

@@ -76,6 +76,8 @@ export function WaitlistForm(props: {
         <input
           required
           maxLength={100}
+          // The button the client pressed is gone — the cursor goes to the first field.
+          autoFocus
           autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}

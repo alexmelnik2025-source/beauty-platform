@@ -148,6 +148,8 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await expect(page.getByText('Brak wolnych terminów tego dnia.')).toBeVisible();
   await page.getByRole('button', { name: 'Powiadom mnie, gdy zwolni się termin' }).click();
   const form = page.getByRole('form', { name: 'Powiadom mnie, gdy zwolni się termin' });
+  // The pressed button is gone — the cursor waits in the first field.
+  await expect(form.getByLabel('Imię i nazwisko')).toBeFocused();
   await form.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
   await form.getByLabel('E-mail').fill(ANNA);
   await form.getByRole('checkbox').check();

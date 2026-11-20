@@ -110,6 +110,7 @@ test('the client checks what is left on a gift voucher on the salon page', async
   await page.getByRole('button', { name: 'Masz bon podarunkowy? Sprawdź, ile zostało' }).click();
   const section = page.getByRole('region', { name: 'Sprawdź bon podarunkowy' });
   const code = section.getByLabel('Kod bonu');
+  await expect(code).toBeFocused();
 
   await code.fill('ZZZZ-ZZZZ');
   await section.getByRole('button', { name: 'Sprawdź', exact: true }).click();

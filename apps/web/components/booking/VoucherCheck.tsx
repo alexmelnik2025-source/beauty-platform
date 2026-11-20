@@ -27,6 +27,8 @@ export function VoucherCheck({ slug }: { slug: string }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
   const [open, setOpen] = useState(false);
+  // Opened by the client's tap (not by a `?bon=` link): the cursor goes to the code field.
+  const [focusCode, setFocusCode] = useState(false);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -77,7 +79,14 @@ export function VoucherCheck({ slug }: { slug: string }) {
   if (!open) {
     return (
       <div className="voucher-check">
-        <button type="button" className="btn btn--quiet btn--small" onClick={() => setOpen(true)}>
+        <button
+          type="button"
+          className="btn btn--quiet btn--small"
+          onClick={() => {
+            setFocusCode(true);
+            setOpen(true);
+          }}
+        >
           {t.voucherCheck.open}
         </button>
       </div>
@@ -104,6 +113,7 @@ export function VoucherCheck({ slug }: { slug: string }) {
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
+            autoFocus={focusCode}
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}

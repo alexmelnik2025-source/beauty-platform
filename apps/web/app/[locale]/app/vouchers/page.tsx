@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { parseTip as parseAmount } from '@/components/calendar/TipField';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
@@ -196,6 +196,15 @@ function EditVoucher({
   const [error, setError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
+  // The form takes the place of "Edytuj": the cursor goes to its first field, and back to
+  // "Edytuj" when the form closes (saved or cancelled), for keyboard and screen reader users.
+  const editRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) editRef.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
+
   function start() {
     setValidUntil(voucher.validUntil ?? '');
     setRecipient(voucher.recipient ?? '');
@@ -230,7 +239,7 @@ function EditVoucher({
 
   if (!open) {
     return (
-      <button type="button" className="btn btn--quiet btn--small" onClick={start}>
+      <button type="button" className="btn btn--quiet btn--small" onClick={start} ref={editRef}>
         {t.vouchers.edit}
       </button>
     );
@@ -247,7 +256,12 @@ function EditVoucher({
       <div className="row">
         <label className="field grow">
           <span>{t.vouchers.validUntilField}</span>
-          <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+          <input
+            type="date"
+            autoFocus
+            value={validUntil}
+            onChange={(e) => setValidUntil(e.target.value)}
+          />
         </label>
         <label className="field grow">
           <span>{t.vouchers.recipient}</span>
