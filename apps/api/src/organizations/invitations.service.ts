@@ -325,7 +325,8 @@ export class InvitationsService {
           'You are already in this team',
         );
       }
-      await this.join(tx, invitation, userId);
+      // The link proves the email only; the invitation's number is not bound to the account.
+      await this.join(tx, invitation, userId, false);
     });
     return { organizationId: invitation.organizationId, role: invitation.role };
   }
@@ -341,6 +342,14 @@ export class InvitationsService {
     email: string,
     /** A phone number proven by an SMS code: invitations sent to it are accepted too. */
     provenPhone?: string,
+    /**
+     * Whether the account was just created by this sign-in. Only then does the invitation's number
+     * become the account's sign-in number without an SMS: the owner vouched for the person they
+     * invited. A number written on an invitation never becomes a way into an EXISTING account
+     * (someone else's, invited to a second salon) — otherwise any owner could invite that address
+     * with their own number and sign in as them.
+     */
+    newAccount = false,
   ): Promise<InvitationAcceptedResponse[]> {
     const pending = await tx.invitation.findMany({
       where: {
@@ -363,7 +372,9 @@ export class InvitationsService {
         data: { acceptedAt: new Date() },
       });
       if (taken.count !== 1) continue;
-      await this.join(tx, invitation, userId);
+      const phoneTrusted =
+        newAccount || (provenPhone !== undefined && invitation.phone === provenPhone);
+      await this.join(tx, invitation, userId, phoneTrusted);
       joined.push({ organizationId: invitation.organizationId, role: invitation.role });
     }
     return joined;
@@ -413,6 +424,8 @@ export class InvitationsService {
     tx: Prisma.TransactionClient,
     invitation: Invitation,
     userId: string,
+    /** Whether the invitation's phone may become the account's sign-in number (see `acceptPendingForEmail`). */
+    phoneTrusted: boolean,
   ): Promise<void> {
     // Locations may have been deleted since the invitation was sent.
     const locations = await tx.location.findMany({
@@ -437,8 +450,9 @@ export class InvitationsService {
         data: { userId },
       });
     }
-    if (invitation.phone) {
-      // The owner vouches for the number: the person can sign in by it from now on, unless the
+    if (invitation.phone && phoneTrusted) {
+      // The person proved the number by SMS, or the account was created for this invitation and
+      // the owner vouches for the number: the person can sign in by it from now on, unless the
       // account already has a number or another account uses this one.
       const taken = await tx.user.count({ where: { phone: invitation.phone } });
       if (taken === 0) {
