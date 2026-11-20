@@ -22,6 +22,7 @@ import type {
   TillClose,
   Tokens,
   VisitProductSales,
+  VisitReservations,
   components,
 } from '@beauty/api-client';
 import type { MessagesChanges } from './messages';
@@ -197,6 +198,7 @@ export type {
   TillClose,
   Tokens,
   VisitProductSales,
+  VisitReservations,
 };
 
 /** Where the refresh token lives: Keychain/Keystore on phones, browser storage in the web preview. */
@@ -883,6 +885,28 @@ export class BusinessApi {
       'POST',
       `${appointmentPath(orgId, locationId, id)}/products`,
       { productId, quantity },
+    );
+  }
+
+  /** Task Q3 (screen D): products the client put aside for this visit ("Do wydania klientowi"). */
+  visitReservations(orgId: string, locationId: string, id: string): Promise<VisitReservations> {
+    return this.authed<VisitReservations>(
+      'GET',
+      `${appointmentPath(orgId, locationId, id)}/reservations`,
+    );
+  }
+
+  /** Task Q3 (screen D): "Wydaj i dolicz" (the usual sale at the visit) or "Anuluj rezerwację". */
+  reservationAction(
+    orgId: string,
+    locationId: string,
+    id: string,
+    reservationId: string,
+    action: 'hand-over' | 'cancel',
+  ): Promise<VisitReservations> {
+    return this.authed<VisitReservations>(
+      'POST',
+      `${appointmentPath(orgId, locationId, id)}/reservations/${enc(reservationId)}/${action}`,
     );
   }
 

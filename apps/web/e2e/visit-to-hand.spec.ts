@@ -8,13 +8,15 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
+import { serveApp } from './mobile-app';
 
 /**
  * Task Q3 (screen D): "Do wydania klientowi" in the cabinet's visit card. A client books on the
  * booking page and puts a pomade and a wax aside for the visit (the visit link's API, screen B).
  * The visit took place: the owner opens its card, sees both products waiting, cancels the wax and
  * hands the pomade over with "Wydaj i dolicz" — it becomes the usual sale under "Produkty" and
- * leaves the stock. Screenshots Q3-D-to-hand, Q3-D-handed.
+ * leaves the stock. The business app's visit card does the same with the shampoo. Screenshots
+ * Q3-D-to-hand, Q3-D-handed, Q3-D-app.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -22,6 +24,7 @@ const run = Date.now().toString(36);
 const OWNER = `to-hand-${run}@example.com`;
 const CLIENT = `to-hand-client-${run}@example.com`;
 const DESKTOP = { width: 1440, height: 900 };
+const PHONE = { width: 390, height: 844 };
 
 const shot = (page: Page, name: string) =>
   page.screenshot({ path: `e2e/screenshots/${name}.png`, fullPage: true });
@@ -87,6 +90,7 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     });
   const pomade = await json<{ id: string }>(await product('Pomada Reuzel różowa', 5900));
   const wax = await json<{ id: string }>(await product('Wosk matowy', 4500));
+  const shampoo = await json<{ id: string }>(await product('Szampon Proraso', 3900));
   const cut = await json<{ id: string }>(
     await request.post(`${salon.base}/services`, {
       headers: salon.auth,
@@ -138,7 +142,7 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
       data: { holdToken: hold.holdToken, code: /\b(\d{6})\b/.exec(codeMail.text)![1]! },
     }),
   );
-  for (const productId of [pomade.id, wax.id]) {
+  for (const productId of [pomade.id, wax.id, shampoo.id]) {
     await json(
       await request.post(`/v1/public/appointments/${confirmed.manageToken}/products`, {
         data: { productId, quantity: 1 },
@@ -185,18 +189,18 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
   await expect(toHand.getByText('Do wydania klientowi')).toBeVisible();
   await expect(toHand.getByText('Pomada Reuzel różowa')).toBeVisible();
   await expect(toHand.getByText('Wosk matowy')).toBeVisible();
-  await expect(toHand.getByText(/Razem: 104,00\s*zł — płatność przy wizycie/)).toBeVisible();
+  await expect(toHand.getByText(/Razem: 143,00\s*zł — płatność przy wizycie/)).toBeVisible();
   await shot(page, 'Q3-D-to-hand');
 
   // The client didn't want the wax after all.
   await toHand.getByRole('button', { name: 'Anuluj rezerwację — Wosk matowy' }).click();
   await expect(toHand.getByText('Wosk matowy')).toHaveCount(0);
-  await expect(toHand.getByText(/Razem: 59,00\s*zł/)).toBeVisible();
+  await expect(toHand.getByText(/Razem: 98,00\s*zł/)).toBeVisible();
 
   // The pomade is handed over: it is the visit's usual sale now.
   await toHand.getByRole('button', { name: 'Wydaj i dolicz — Pomada Reuzel różowa' }).click();
   await expect(toHand.getByText('✓ Wydano')).toBeVisible();
-  await expect(toHand.getByText(/Razem:/)).toHaveCount(0);
+  await expect(toHand.getByText(/Razem: 39,00\s*zł/)).toBeVisible();
   const sold = card.getByTestId('visit-products');
   await expect(sold.getByText('Pomada Reuzel różowa')).toBeVisible();
   await shot(page, 'Q3-D-handed');
@@ -208,4 +212,42 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
   expect(list.products.find((p) => p.id === pomade.id)?.stockQuantity).toBe(2);
   expect(list.products.find((p) => p.id === wax.id)?.stockQuantity).toBe(3);
   await desk.close();
+
+  // The business app: the shampoo still waits; the barber hands it over from the visit card.
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const context = await browser.newContext({
+      viewport: PHONE,
+      locale: 'pl-PL',
+      timezoneId: 'Europe/Warsaw',
+      isMobile: true,
+      extraHTTPHeaders: freshAddress(),
+    });
+    const phone = await context.newPage();
+    await phone.goto(businessApp.url);
+    await phone.getByLabel('E-mail lub telefon').fill(OWNER);
+    await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+    const code = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+    await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
+    await phone.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await phone.getByRole('button', { name: 'Poprzedni dzień' }).click();
+    await phone.getByRole('button', { name: 'Poprzedni dzień' }).click();
+    await phone
+      .getByRole('button', { name: /Anna Kowalska/ })
+      .first()
+      .click();
+    const appToHand = phone.getByTestId('visit-to-hand');
+    await expect(appToHand.getByText('🛍️ Do wydania klientowi')).toBeVisible();
+    await expect(appToHand.getByText('✓ Wydano')).toBeVisible();
+    await expect(appToHand.getByText(/Razem: 39,00\s*zł/)).toBeVisible();
+    await shot(phone, 'Q3-D-app');
+    await appToHand.getByRole('button', { name: 'Wydaj i dolicz — Szampon Proraso' }).click();
+    await expect(appToHand.getByText('✓ Wydano')).toHaveCount(2);
+    await expect(appToHand.getByText(/Razem:/)).toHaveCount(0);
+    await expect(phone.getByTestId('visit-products').getByText('Szampon Proraso')).toBeVisible();
+    await context.close();
+  } finally {
+    businessApp.server.close();
+  }
 });

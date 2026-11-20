@@ -16,7 +16,7 @@
   экран D в кабинете — «Do wydania klientowi» в карточке визита (`components/shop/VisitToHand.tsx`): товары, отложенные
   клиентом к визиту, «Wydaj i dolicz» (= обычная продажа в визите через `…/reservations/{id}/hand-over`, нужен статус
   «Przyszedł»), «Anuluj rezerwację»; список «Produkty» обновляется сразу. e2e `visit-to-hand.spec.ts` (скриншоты
-  Q3-D-to-hand, Q3-D-handed). Вливается после цепочки 578–581. Дальше: то же в бизнес-приложении.
+  Q3-D-to-hand, Q3-D-handed, Q3-D-app). То же в бизнес-приложении (`screens/ToHandSection.tsx`). Вливается после цепочки 578–581.
 
 - **20.11.2026, ~02:45 UTC — 581 (ветка `agent/581-client-shop-tab`, ночной запуск :37): Q3 экран 2 — вкладка «Sklep»
   в клиентском приложении** (одобрено 20.11 01:18). Список товаров салонов (поиск, категории, «od … zł», салон),
