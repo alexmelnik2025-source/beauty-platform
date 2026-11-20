@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~06:40 UTC — 594 (ветка `agent/594-app-move-products`, от main): Q3 — «Przenieść produkty na nowy
+  termin?» в клиентском приложении.** Карточка отменённого визита в «Moje wizyty» (`screens/MoveProductsCard.tsx`):
+  отложенные товары + «Wybierz nowy termin» → запись к тому же мастеру, товары откладываются к новой записи; «Umów
+  ponownie» в этот момент скрыта. e2e `shop-move-products-app.spec.ts` (Q3-move-app, Q3-move-app-booked). Влито в
+  main ~07:20 UTC. Q3 по клиентскому пути закрыта.
+
 - **20.11.2026, ~06:10 UTC — 593 (ветка `agent/593-shop-pickup-at-visit`, от main): Q3 — «Odbiorę przy wizycie» с
   карточки товара во вкладке «Sklep» клиентского приложения** (к ближайшему визиту в этом салоне; без визита —
   «Umów wizytę»). Скриншот Q3-app-shop-reserve. Влито в main ~06:45 UTC.
@@ -24,7 +30,7 @@
   `agent/591-app-after-visit-products`, e2e `shop-after-visit-app.spec.ts`). «Odbiorę przy wizycie» с
   карточки товара во вкладке «Sklep» — 593. После отмены визита с отложенными товарами — блок
   «Przenieść produkty na nowy termin?» на странице визита (`CancelledVisitProducts`) — в main; в клиентском приложении —
-  ещё нет.
+  влито в main 20.11 ~07:20 UTC (594).
 
 - **20.11.2026, ~04:30 UTC — влиты Q3 экран D, экран A и «Produkty do odbioru» в клиентском приложении** (ветки
   `agent/583-visit-card-products` → `agent/584-booking-done-products` → `agent/585-client-visit-products`, одной

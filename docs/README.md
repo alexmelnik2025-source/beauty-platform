@@ -3883,6 +3883,11 @@ e2e `shop-after-visit-app.spec.ts` (скриншоты Q3-C-app, Q3-C-app-booked
 записи сразу после подтверждения (как в экране C). Нового API нет. Шаг в e2e `shop-after-visit.spec.ts` (скриншоты
 Q3-move-cancelled, Q3-move-booked).
 
+В клиентском приложении — то же в карточке отменённого визита «Moje wizyty» (`screens/MoveProductsCard.tsx`, данные из
+`GET /v1/client/appointments/{id}/products`): кнопка «Wybierz nowy termin» открывает запись с той же услугой и мастером,
+товары едут с ней (`BookingPreset.productIds`, как в экране C). Пока блок виден, кнопки «Umów ponownie» нет — одна
+главная кнопка. e2e `shop-move-products-app.spec.ts` (скриншоты Q3-move-app, Q3-move-app-booked).
+
 ## «Produkty do odbioru» для клиента с входом (задача Q3, API для «Moje wizyty»)
 
 `GET /v1/client/appointments/{id}/products` — что клиент отложил к своему визиту и что ещё можно добавить;
