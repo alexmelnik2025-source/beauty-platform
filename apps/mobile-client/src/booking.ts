@@ -123,6 +123,8 @@ export interface BookingPreset {
   /** Missing (task Q2): a specialist's QR code or link — only who, the service is still chosen. */
   serviceId?: string;
   staffId?: string | null;
+  /** Task Q3 (screen C): "Umów kolejną wizytę" — products to put aside for the new visit. */
+  productIds?: string[];
 }
 
 /**

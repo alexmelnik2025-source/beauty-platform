@@ -145,6 +145,26 @@ export function BookingScreen(props: {
   holdRef.current = hold;
   const doneRef = useRef(false);
   doneRef.current = done !== null;
+  /** Task Q3 (screen C): how many products that came along were put aside for the new visit. */
+  const [brought, setBrought] = useState(0);
+  const bringRef = useRef(false);
+  useEffect(() => {
+    const ids = props.preset?.productIds ?? [];
+    if (!done || bringRef.current || ids.length === 0) return;
+    bringRef.current = true;
+    void (async () => {
+      let count = 0;
+      for (const productId of ids) {
+        try {
+          await api.reserveByToken(done.manageToken, productId);
+          count += 1;
+        } catch {
+          // Sold out meanwhile: the visit stays booked, the product can be added later.
+        }
+      }
+      setBrought(count);
+    })();
+  }, [done, api, props.preset]);
 
   const service = salon.services.find((s) => s.id === serviceId);
   const staffList = staffFor(salon, serviceId);
@@ -862,6 +882,11 @@ export function BookingScreen(props: {
               {salon.name}, {salon.addressLine}, {salon.city}
             </Text>
           </Card>
+          {brought > 0 ? (
+            <Text role="status" style={styles.text}>
+              ✓ {fill(t.visitProducts.brought, { n: String(brought) })}
+            </Text>
+          ) : null}
           {/* Task 418: tell someone when and where, right after booking (as on the site, 413). */}
           <Button
             kind="secondary"

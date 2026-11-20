@@ -593,3 +593,43 @@ describe('"Jak było?": put aside for the next visit what was used (task Q3, scr
     expect(used.body.nextVisit).toBeNull();
   });
 });
+
+describe('"Na wizycie użyto" in the client app (task Q3, screen C)', () => {
+  it('the signed-in client puts aside on their next visit what was used', async () => {
+    const pomade = await product({ name: 'Pomada', priceGrosze: 5900, inSalonShop: true });
+    const visit = await book(10);
+    await came(visit.id);
+    await ctx
+      .http()
+      .post(`${base}/appointments/${visit.id}/products`)
+      .set(owner.auth)
+      .send({ productId: pomade.id, quantity: 1 })
+      .expect(201);
+    const next = await book(12);
+    const me = await signIn(CLIENT.email);
+    const url = `/v1/client/appointments/${visit.id}/products`;
+
+    const used = await ctx.http().get(`${url}/used`).set(me).expect(200);
+    shape('UsedProducts', used.body);
+    expect(used.body.products.map((p: { id: string }) => p.id)).toEqual([pomade.id]);
+    expect(used.body.nextVisit).toMatchObject({ time: '12:00', staffName: 'Kasia' });
+    const saved = await ctx
+      .http()
+      .post(`${url}/next`)
+      .set(me)
+      .send({ productId: pomade.id })
+      .expect(200);
+    expect(saved.body.products[0].reservedForNext).toBe(true);
+    const onNext = await ctx
+      .http()
+      .get(`/v1/client/appointments/${next.id}/products`)
+      .set(me)
+      .expect(200);
+    expect(onNext.body.reservations).toHaveLength(1);
+
+    // Someone else's visit looks missing.
+    const stranger = await signIn('stranger@example.com');
+    await ctx.http().get(`${url}/used`).set(stranger).expect(404);
+    await ctx.http().post(`${url}/next`).set(stranger).send({ productId: pomade.id }).expect(404);
+  });
+});

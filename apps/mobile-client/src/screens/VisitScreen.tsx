@@ -39,6 +39,7 @@ import { WishesPicker } from '../WishesPicker';
 import { VisitPhotos } from '../WishPhotosPicker';
 import { ReviewCard } from '../ReviewCard';
 import { VisitProductsCard } from './VisitProductsCard';
+import { UsedProductsCard } from './UsedProductsCard';
 import { asksWishes, wishesToSend, type VisitWishes } from '../wishes';
 
 /**
@@ -522,6 +523,18 @@ export function VisitScreen(props: {
           locale={locale}
           visitId={visit.id}
           staffName={visit.staff.displayName}
+        />
+      ) : null}
+
+      {/* Task Q3 (screen C): what the specialist used — put aside for the next visit. */}
+      {visit.status === 'completed' ? (
+        <UsedProductsCard
+          key={`used-${visit.id}`}
+          api={api}
+          t={t}
+          locale={locale}
+          visitId={visit.id}
+          onBookNext={(preset) => props.onBook(visit.salon.slug, visit.salon.name, preset)}
         />
       ) : null}
 

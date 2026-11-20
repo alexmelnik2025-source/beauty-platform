@@ -23,6 +23,7 @@ import type {
   Slot,
   VisitCoupons,
   VisitProducts,
+  UsedProducts,
   VisitPhoto,
   VisitPhotoList,
   VisitReview,
@@ -130,6 +131,7 @@ export type {
   ClientAppointmentList,
   VisitCoupons,
   VisitProducts,
+  UsedProducts,
   ClientCodeSent,
   ClientLoyalty,
   ClientLoyaltyCard,
@@ -275,6 +277,35 @@ export class ClientApi {
     return this.authed<VisitProducts>(
       'POST',
       `/v1/client/appointments/${encodeURIComponent(id)}/products`,
+      { productId, quantity: 1 },
+    );
+  }
+
+  /** Task Q3 (screen C): products used at my visit, and my next visit in that salon. */
+  usedProducts(id: string): Promise<UsedProducts> {
+    return this.authed<UsedProducts>(
+      'GET',
+      `/v1/client/appointments/${encodeURIComponent(id)}/products/used`,
+    );
+  }
+
+  /** Task Q3 (screen C): "Odłóż na następną wizytę" — one piece on my next visit. */
+  reserveForNext(id: string, productId: string): Promise<UsedProducts> {
+    return this.authed<UsedProducts>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/products/next`,
+      { productId, quantity: 1 },
+    );
+  }
+
+  /**
+   * Task Q3 (screen C): right after booking, puts the products that came with "Umów kolejną
+   * wizytę" aside for the new visit — by its "manage" token, signed in or not.
+   */
+  reserveByToken(manageToken: string, productId: string): Promise<VisitProducts> {
+    return this.call<VisitProducts>(
+      'POST',
+      `/v1/public/appointments/${encodeURIComponent(manageToken)}/products`,
       { productId, quantity: 1 },
     );
   }

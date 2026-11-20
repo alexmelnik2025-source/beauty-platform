@@ -3866,6 +3866,15 @@ wizycie» откладывает товар к этому визиту (тот �
 OUT_OF_STOCK). Следующая запись — та же карточка клиента (`customerId`) в том же салоне. Тесты в
 `shop-reservations.spec.ts`, e2e `shop-after-visit.spec.ts` (скриншоты Q3-C-used, Q3-C-booked, Q3-C-saved).
 
+## «Na wizycie użyto» в клиентском приложении (задача Q3, экран C)
+
+В карточке состоявшегося визита («Moje wizyty» → «Historia») — карточка «Na wizycie użyto» (`screens/UsedProductsCard.tsx`):
+то же, что на странице визита по ссылке. API для входа: `GET /v1/client/appointments/{id}/products/used`,
+`POST …/products/next`. «Umów kolejną wizytę» открывает запись в приложении к тому же мастеру с товарами в
+`BookingPreset.productIds`; после «Do zobaczenia!» товары откладываются к новой записи по её ссылке
+(`POST /v1/public/appointments/{token}/products`) и показывается строка «✓ Produkty czekają na Ciebie w salonie: N».
+e2e `shop-after-visit-app.spec.ts` (скриншоты Q3-C-app, Q3-C-app-booked).
+
 ## «Przenieść produkty na nowy termin?» после отмены визита (задача Q3)
 
 Визит отменён (клиентом или салоном), а к нему были отложены товары (их бронь уже не держит штуки) — на странице

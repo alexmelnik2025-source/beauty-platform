@@ -18,8 +18,10 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { ReservationsService } from '../shop/reservations.service';
 import {
   reserveProductSchema,
+  usedProductsSchema,
   visitProductsSchema,
   type ReserveProductInput,
+  type UsedProductsResponse,
   type VisitProductsResponse,
 } from '../shop/shop.schemas';
 import { ClientGuard, CurrentClient } from './client-auth';
@@ -76,6 +78,40 @@ export class ClientShopController {
     const visit = await this.clients.myVisit(client, id);
     await this.reservations.reserve(visit, visit.location, body);
     return this.reservations.forClient(visit, visit.location);
+  }
+
+  @Get('used')
+  @ApiOperation({
+    summary: '"Jak było?": products used at my visit, to put aside for my next one',
+    description:
+      'Task Q3 (screen C). The same as on the visit link (`/public/appointments/{token}/products/used`).',
+  })
+  @ApiZodResponse(usedProductsSchema)
+  async used(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+  ): Promise<UsedProductsResponse> {
+    const visit = await this.clients.myVisit(client, id);
+    return this.reservations.used(visit, visit.location);
+  }
+
+  @Post('next')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Odłóż na następną wizytę": put a product used at my visit aside for my next one',
+    description:
+      'Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.',
+  })
+  @ApiZodBody(reserveProductSchema)
+  @ApiZodResponse(usedProductsSchema)
+  async reserveForNext(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+    @Body(new ZodValidationPipe(reserveProductSchema)) body: ReserveProductInput,
+  ): Promise<UsedProductsResponse> {
+    const visit = await this.clients.myVisit(client, id);
+    await this.reservations.reserveForNext(visit, visit.location, body);
+    return this.reservations.used(visit, visit.location);
   }
 
   @Delete(':reservationId')

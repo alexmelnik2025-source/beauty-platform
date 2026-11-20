@@ -11,6 +11,7 @@ export function errorText(error: unknown, t: Dictionary): string {
     if (error.code === 'INVALID_CODE') return t.signIn.badCode;
     if (error.code === 'TOO_LATE_TO_CHANGE') return t.visit.tooLate;
     if (error.code === 'SLOT_TAKEN') return t.visit.slotTaken;
+    if (error.code === 'NO_NEXT_VISIT') return t.visitProducts.noNextError;
     if (error.code?.startsWith('COUPON_')) return t.visit.couponNotAllowed;
     if (error.code === 'BOOKING_PHONE_ONLY') return t.error.bookByPhone;
     if (error.code === 'BOOKING_PAY_FIRST') return t.error.payFirst;

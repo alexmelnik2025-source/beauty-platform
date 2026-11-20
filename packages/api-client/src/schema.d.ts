@@ -2899,6 +2899,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/products/used": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Jak było?": products used at my visit, to put aside for my next one
+         * @description Task Q3 (screen C). The same as on the visit link (`/public/appointments/{token}/products/used`).
+         */
+        get: operations["ClientShopController_used"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/appointments/{id}/products/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Odłóż na następną wizytę": put a product used at my visit aside for my next one
+         * @description Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.
+         */
+        post: operations["ClientShopController_reserveForNext"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/appointments/{id}/products/{reservationId}": {
         parameters: {
             query?: never;
@@ -13613,6 +13653,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    ClientShopController_used: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsedProducts"];
+                };
+            };
+        };
+    };
+    ClientShopController_reserveForNext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @default 1 */
+                    quantity?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsedProducts"];
                 };
             };
         };

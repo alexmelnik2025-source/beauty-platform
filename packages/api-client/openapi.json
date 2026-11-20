@@ -11661,6 +11661,106 @@
         ]
       }
     },
+    "/v1/client/appointments/{id}/products/used": {
+      "get": {
+        "description": "Task Q3 (screen C). The same as on the visit link (`/public/appointments/{token}/products/used`).",
+        "operationId": "ClientShopController_used",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Jak było?\": products used at my visit, to put aside for my next one",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments/{id}/products/next": {
+      "post": {
+        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.",
+        "operationId": "ClientShopController_reserveForNext",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "productId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Odłóż na następną wizytę\": put a product used at my visit aside for my next one",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/appointments/{id}/products/{reservationId}": {
       "delete": {
         "description": "Task Q3. Only a product still waiting; otherwise 404.",
