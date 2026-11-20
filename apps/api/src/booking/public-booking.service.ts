@@ -833,23 +833,30 @@ export class PublicBookingService {
    * visits first" cannot book online: the slot is let go and the client is told why. The amount is
    * shown only when the code confirmed the email (an SMS code proves the phone, not the card).
    * With "approval" the booking goes on and waits for the salon: returns true.
+   * Task 612: the client is looked up by the email; when the code came by SMS, the phone is what
+   * was proven, so the salon's cards with that phone count too (a marked client with a fresh
+   * email and the same phone is still the marked client).
    */
   private async checkGuard(
     hold: { id: string; locationId: string; location: Location },
     contact: HoldContact,
     emailConfirmed: boolean,
   ): Promise<boolean> {
-    const customer = await this.prisma.customer.findUnique({
+    const organizationId = hold.location.organizationId;
+    const customers = await this.prisma.customer.findMany({
       where: {
-        organizationId_email: {
-          organizationId: hold.location.organizationId,
-          email: contact.email,
-        },
+        organizationId,
+        anonymizedAt: null,
+        OR: [{ email: contact.email }, ...(emailConfirmed ? [] : [{ phone: contact.phone }])],
       },
-      select: { id: true, anonymizedAt: true },
+      select: { id: true },
+      take: 20,
     });
-    if (!customer || customer.anonymizedAt) return false;
-    const mark = await this.guard.check(hold.locationId, customer.id);
+    let mark: Awaited<ReturnType<CancellationGuardService['check']>> = null;
+    for (const customer of customers) {
+      mark = await this.guard.check(hold.locationId, customer.id);
+      if (mark) break;
+    }
     if (!mark) return false;
     if (mark.action === 'approval') return true;
     await this.prisma.appointment.updateMany({
