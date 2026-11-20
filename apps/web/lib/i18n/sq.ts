@@ -381,6 +381,13 @@ export const sq: Dict = {
     unavailable: 'përkohësisht nuk ka',
     pickup: 'Produkti ju pret në sallon. Paguani gjatë vizitës — pa pagesë online.',
     offerTitle: 'Të shtoni diçka në vizitë?',
+    usedTitle: 'Përdorur në vizitën tuaj',
+    saveForNext: 'Ruaje për vizitën e radhës',
+    savedForNext: 'Ruajtur për vizitën {when}',
+    noNext: 'Ende nuk keni vizitën e radhës.',
+    bookNextHint: 'Produktin do ta ruajmë për vizitën e re.',
+    bookNext: 'Rezervo vizitën e radhës',
+    payAtPickup: 'Paguani vetëm kur e merrni.',
   },
   voucherCheck: {
     open: 'Keni një kupon dhuratë? Shikoni sa ka mbetur',

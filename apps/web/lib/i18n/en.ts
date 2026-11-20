@@ -80,6 +80,8 @@ export const en: Dict = {
     TOO_MANY_ATTEMPTS: 'Too many attempts. Choose a time again.',
     TOO_MANY_CODES: 'Three codes have been sent already. Choose a time again.',
     TOO_LATE_TO_CHANGE: 'It is too late to change this online. Call the salon.',
+    NO_NEXT_VISIT:
+      'You have no next visit in this salon — book one and we will put the product aside.',
     REVIEW_NOT_POSSIBLE: 'This visit can no longer be reviewed.',
     IN_THE_PAST: 'This time has already passed.',
     NOT_STARTED: 'The appointment has not started yet.',
@@ -701,6 +703,13 @@ export const en: Dict = {
     unavailable: 'out of stock right now',
     pickup: 'The product waits for you at the salon. You pay at the visit — no online payment.',
     offerTitle: 'Add something to your visit?',
+    usedTitle: 'Used at your visit',
+    saveForNext: 'Put aside for my next visit',
+    savedForNext: 'Put aside for your visit {when}',
+    noNext: 'You have no next visit yet.',
+    bookNextHint: 'We will put the product aside for the new visit.',
+    bookNext: 'Book your next visit',
+    payAtPickup: 'You pay only when you pick it up.',
   },
   voucherCheck: {
     open: 'Have a gift voucher? Check what is left',

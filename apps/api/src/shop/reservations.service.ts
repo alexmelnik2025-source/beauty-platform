@@ -15,8 +15,10 @@ import type { Appointment, Location, Prisma, ProductReservation } from '../gener
 import { AppointmentsService } from '../booking/appointments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BaseOrdersService } from './integrations/base-orders.service';
+import { instantToLocal } from '../scheduling/time';
 import type {
   ReserveProductInput,
+  UsedProductsResponse,
   VisitProductsResponse,
   VisitReservationsResponse,
 } from './shop.schemas';
@@ -40,6 +42,13 @@ const tooLate = (): AppException =>
 
 const notAvailable = (left: number): AppException =>
   new AppException(HttpStatus.CONFLICT, 'OUT_OF_STOCK', `Only ${left} left to put aside`);
+
+const noNextVisit = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'NO_NEXT_VISIT',
+    'The client has no next visit booked in this salon',
+  );
 
 const notReserved = (): AppException =>
   new AppException(
@@ -157,6 +166,119 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     const visit = await this.booking.appointmentByToken(token);
     await this.cancelByClient(visit, reservationId);
     return this.forClient(visit, visit.location);
+  }
+
+  // ── Screen C: after the visit, "Odłóż na następną wizytę" ──
+
+  async usedByToken(token: string): Promise<UsedProductsResponse> {
+    const visit = await this.booking.appointmentByToken(token);
+    return this.used(visit, visit.location);
+  }
+
+  async reserveForNextByToken(
+    token: string,
+    input: ReserveProductInput,
+  ): Promise<UsedProductsResponse> {
+    const visit = await this.booking.appointmentByToken(token);
+    await this.reserveForNext(visit, visit.location, input);
+    return this.used(visit, visit.location);
+  }
+
+  /**
+   * The client's next visit in the same salon: confirmed and still ahead, the earliest one.
+   * Visits are the client's by their salon card (`customerId`); without one there is none.
+   */
+  private async nextVisit(visit: Appointment) {
+    if (!visit.customerId) return null;
+    return this.prisma.appointment.findFirst({
+      where: {
+        locationId: visit.locationId,
+        customerId: visit.customerId,
+        status: 'confirmed',
+        startAt: { gt: new Date() },
+        id: { not: visit.id },
+      },
+      include: { staff: { select: { displayName: true } } },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  /**
+   * Task Q3 (screen C): "{specialist} used on you:" — products sold at this visit (the salon's
+   * own sale at the visit, so only once the client came) that the salon still shows to clients,
+   * with the current price; and the client's next visit to put them aside for.
+   */
+  async used(
+    visit: Appointment,
+    location: Pick<Location, 'id' | 'currency' | 'timezone'>,
+  ): Promise<UsedProductsResponse> {
+    const sales = await this.prisma.productSale.findMany({
+      where: { appointmentId: visit.id, productId: { not: null } },
+      select: { productId: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const ids = Array.from(new Set(sales.map((s) => s.productId as string)));
+    const rows = ids.length
+      ? await this.prisma.product.findMany({
+          where: { id: { in: ids }, locationId: location.id, active: true, inSalonShop: true },
+          include: { catalogProduct: { select: { brand: true, photo: { select: { id: true } } } } },
+        })
+      : [];
+    const byId = new Map(rows.map((p) => [p.id, p]));
+    const next = rows.length ? await this.nextVisit(visit) : null;
+    const waiting = next
+      ? await this.prisma.productReservation.findMany({
+          where: { appointmentId: next.id, status: 'reserved' },
+          select: { productId: true },
+        })
+      : [];
+    const waitingIds = new Set(waiting.map((r) => r.productId));
+    const products = await Promise.all(
+      ids
+        .map((id) => byId.get(id))
+        .filter((p): p is NonNullable<typeof p> => p !== undefined)
+        .map(async (p) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.catalogProduct?.brand ?? null,
+          priceGrosze: p.priceGrosze,
+          photoId: p.catalogProduct?.photo?.id ?? null,
+          available: ((await this.availableToReserve(p.id, p.stockQuantity)) ?? 1) > 0,
+          reservedForNext: waitingIds.has(p.id),
+        })),
+    );
+    const local = next ? instantToLocal(next.startAt.getTime(), location.timezone) : null;
+    return {
+      currency: location.currency,
+      products,
+      nextVisit:
+        next && local
+          ? { date: local.date, time: local.time, staffName: next.staff.displayName }
+          : null,
+      rebook: { serviceId: visit.serviceId, staffId: visit.staffId },
+    };
+  }
+
+  /** "Odłóż na następną wizytę": the same as putting it aside on the next visit itself. */
+  async reserveForNext(
+    visit: Appointment,
+    location: Pick<Location, 'id'>,
+    input: ReserveProductInput,
+  ): Promise<void> {
+    const used = await this.prisma.productSale.findFirst({
+      where: { appointmentId: visit.id, productId: input.productId },
+      select: { id: true },
+    });
+    if (!used) throw notFound('Product');
+    const next = await this.nextVisit(visit);
+    if (!next) throw noNextVisit();
+    // A second tap (or a retry) does not put a second piece aside.
+    const already = await this.prisma.productReservation.findFirst({
+      where: { appointmentId: next.id, productId: input.productId, status: 'reserved' },
+      select: { id: true },
+    });
+    if (already) return;
+    await this.reserve(next, location, input);
   }
 
   /** The same for the client app ("Moje wizyty"); the caller checked the visit is theirs. */

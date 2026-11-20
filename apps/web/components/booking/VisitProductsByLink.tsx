@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
@@ -21,9 +21,15 @@ const OFFER_LIMIT = 3;
 export function VisitProductsByLink({
   endpoint,
   offer = false,
+  bring = [],
 }: {
   endpoint: string;
   offer?: boolean;
+  /**
+   * Task Q3 (screen C): products to put aside right away — "Umów kolejną wizytę" after a visit
+   * brings what the specialist used (`?product=…` of the booking link).
+   */
+  bring?: string[];
 }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
@@ -44,6 +50,35 @@ export function VisitProductsByLink({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const brought = useRef(false);
+  useEffect(() => {
+    if (!data || brought.current || bring.length === 0) return;
+    brought.current = true;
+    if (!data.canChange) return;
+    const waiting = new Set(
+      data.reservations.filter((r) => r.status === 'reserved').map((r) => r.productId),
+    );
+    const ids = bring.filter(
+      (id) => !waiting.has(id) && data.available.some((p) => p.id === id && p.available),
+    );
+    if (ids.length === 0) return;
+    void (async () => {
+      let last: VisitProducts | null = null;
+      for (const productId of ids) {
+        try {
+          last = await api<VisitProducts>(`${endpoint}/products`, {
+            method: 'POST',
+            auth: false,
+            body: { productId, quantity: 1 },
+          });
+        } catch {
+          // Sold out meanwhile: the client still sees the salon's products to pick from.
+        }
+      }
+      if (last) setData(last);
+    })();
+  }, [data, bring, endpoint]);
 
   const run = async (action: () => Promise<VisitProducts>) => {
     setBusy(true);
