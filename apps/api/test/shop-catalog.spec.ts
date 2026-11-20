@@ -130,6 +130,22 @@ describe('The catalogue as the salon sees it (…/shop/catalog)', () => {
     const all = await ctx.http().get(`${base}/shop/catalog`).set(owner.auth).expect(200);
     expect(all.body.products).toHaveLength(2);
 
+    // Task 604: the card with exactly the scanned code is first even when more cards than the
+    // limit carry the digits in their name ("Zestaw 59012345" …) and would fill the page first.
+    const code = '5901234123457';
+    for (let i = 0; i < 3; i += 1) {
+      await createCard({ name: `Zestaw ${code} nr ${i}` });
+    }
+    const exact = await createCard({ name: 'Żel Reuzel', ean: code });
+    const scanned = await ctx
+      .http()
+      .get(`${base}/shop/catalog`)
+      .query({ q: code, limit: 2 })
+      .set(owner.auth)
+      .expect(200);
+    expect(scanned.body.products).toHaveLength(2);
+    expect(scanned.body.products[0].id).toBe(exact.id);
+
     // Specialists may look but not make cards.
     await ctx
       .http()

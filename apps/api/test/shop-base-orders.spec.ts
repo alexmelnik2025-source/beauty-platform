@@ -522,7 +522,9 @@ describe('"Zamówienia do Base" (task Q4, part 5)', () => {
     expect(
       (await ctx.prisma.product.findUniqueOrThrow({ where: { id: pomadeId } })).stockQuantity,
     ).toBe(5);
-    expect(await ctx.app.get(ReservationsService).availableToReserve(pomadeId, 5)).toBe(3);
+    expect((await ctx.app.get(ReservationsService).heldByProduct([pomadeId])).get(pomadeId)).toBe(
+      2,
+    );
 
     // Handed over: the sale takes one piece off here, the order is closed in Base; Base keeps 3.
     const reservation = await ctx.prisma.productReservation.findFirstOrThrow();

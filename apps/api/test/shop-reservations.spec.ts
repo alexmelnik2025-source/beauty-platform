@@ -352,6 +352,41 @@ describe('products put aside for a visit (task Q3, part 4)', () => {
     const free = await ctx.http().get(`/v1/public/locations/${slug}/products`).expect(200);
     expect(free.body.products[0].available).toBe(true);
   });
+
+  it('two clients at once get the last piece only once; the stock and price are read under the lock (604)', async () => {
+    const oil = await product({
+      name: 'Olejek',
+      priceGrosze: 4000,
+      stockQuantity: 1,
+      inSalonShop: true,
+    });
+    const first = await book(10);
+    const second = await book(12);
+    const results = await Promise.all(
+      [first, second].map((v) =>
+        ctx.http().post(`/v1/public/appointments/${v.token}/products`).send({ productId: oil.id }),
+      ),
+    );
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expectError(results.find((r) => r.status === 409)?.body, 'OUT_OF_STOCK');
+
+    // The salon raised the price and the stock a moment ago: a new reservation takes the current
+    // price, and the second client now finds a piece.
+    await ctx
+      .http()
+      .patch(`${base}/products/${oil.id}`)
+      .set(owner.auth)
+      .send({ priceGrosze: 4500, stockQuantity: 2 })
+      .expect(200);
+    const loser = results.find((r) => r.status === 409) === results[0] ? first : second;
+    const later = await ctx
+      .http()
+      .post(`/v1/public/appointments/${loser.token}/products`)
+      .send({ productId: oil.id })
+      .expect(200);
+    expect(later.body.reservations[0]).toMatchObject({ unitPriceGrosze: 4500, status: 'reserved' });
+    expect(later.body.available[0].available).toBe(false);
+  });
 });
 
 async function signIn(email: string): Promise<{ Authorization: string }> {

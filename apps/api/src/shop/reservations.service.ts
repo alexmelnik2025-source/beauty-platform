@@ -121,20 +121,12 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** How many pieces clients may still put aside: stock minus what waits on live visits. */
-  async availableToReserve(
-    productId: string,
-    stockQuantity: number | null,
-  ): Promise<number | null> {
-    if (stockQuantity === null) return null;
-    const held = await this.prisma.productReservation.aggregate({
-      where: holdingWhere(productId),
-      _sum: { quantity: true },
-    });
-    return Math.max(0, stockQuantity - (held._sum.quantity ?? 0));
+  /** Whether a client may still put a piece aside: the salon counts none, or has some left. */
+  private static free(stockQuantity: number | null, held: number | undefined): boolean {
+    return stockQuantity === null || stockQuantity - (held ?? 0) > 0;
   }
 
-  /** Pieces waiting on live visits, by product — for many products at once. */
+  /** Pieces waiting on live visits, by product — one query for many products at once. */
   async heldByProduct(productIds: string[]): Promise<Map<string, number>> {
     if (productIds.length === 0) return new Map();
     const held = await this.prisma.productReservation.groupBy({
@@ -233,20 +225,19 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
         })
       : [];
     const waitingIds = new Set(waiting.map((r) => r.productId));
-    const products = await Promise.all(
-      ids
-        .map((id) => byId.get(id))
-        .filter((p): p is NonNullable<typeof p> => p !== undefined)
-        .map(async (p) => ({
-          id: p.id,
-          name: p.name,
-          brand: p.catalogProduct?.brand ?? null,
-          priceGrosze: p.priceGrosze,
-          photoId: p.catalogProduct?.photo?.id ?? null,
-          available: ((await this.availableToReserve(p.id, p.stockQuantity)) ?? 1) > 0,
-          reservedForNext: waitingIds.has(p.id),
-        })),
-    );
+    const held = await this.heldByProduct(rows.map((p) => p.id));
+    const products = ids
+      .map((id) => byId.get(id))
+      .filter((p): p is NonNullable<typeof p> => p !== undefined)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.catalogProduct?.brand ?? null,
+        priceGrosze: p.priceGrosze,
+        photoId: p.catalogProduct?.photo?.id ?? null,
+        available: ReservationsService.free(p.stockQuantity, held.get(p.id)),
+        reservedForNext: waitingIds.has(p.id),
+      }));
     const local = next ? instantToLocal(next.startAt.getTime(), location.timezone) : null;
     return {
       currency: location.currency,
@@ -299,16 +290,15 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
           orderBy: [{ name: 'asc' }, { id: 'asc' }],
         })
       : [];
-    const available = await Promise.all(
-      products.map(async (p) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.catalogProduct?.brand ?? null,
-        priceGrosze: p.priceGrosze,
-        photoId: p.catalogProduct?.photo?.id ?? null,
-        available: ((await this.availableToReserve(p.id, p.stockQuantity)) ?? 1) > 0,
-      })),
-    );
+    const held = await this.heldByProduct(products.map((p) => p.id));
+    const available = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      brand: p.catalogProduct?.brand ?? null,
+      priceGrosze: p.priceGrosze,
+      photoId: p.catalogProduct?.photo?.id ?? null,
+      available: ReservationsService.free(p.stockQuantity, held.get(p.id)),
+    }));
     return {
       currency: location.currency,
       canChange,
@@ -338,12 +328,18 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     const reservation = await this.prisma.$transaction(async (tx) => {
       // Lock the product row so two clients cannot both take the last piece.
       await tx.$queryRaw`SELECT id FROM product WHERE id = ${product.id}::uuid FOR UPDATE`;
-      if (product.stockQuantity !== null) {
+      // Read the stock and the price again under the lock: the salon may have changed them, or
+      // sold the last piece at a visit, while this request was on its way.
+      const fresh = await tx.product.findUniqueOrThrow({
+        where: { id: product.id },
+        select: { stockQuantity: true, priceGrosze: true, name: true },
+      });
+      if (fresh.stockQuantity !== null) {
         const held = await tx.productReservation.aggregate({
           where: holdingWhere(product.id),
           _sum: { quantity: true },
         });
-        const left = product.stockQuantity - (held._sum.quantity ?? 0);
+        const left = fresh.stockQuantity - (held._sum.quantity ?? 0);
         if (left < input.quantity) throw notAvailable(Math.max(0, left));
       }
       return tx.productReservation.create({
@@ -351,9 +347,9 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
           locationId: location.id,
           appointmentId: visit.id,
           productId: product.id,
-          name: product.name,
+          name: fresh.name,
           quantity: input.quantity,
-          unitPriceGrosze: product.priceGrosze,
+          unitPriceGrosze: fresh.priceGrosze,
         },
       });
     });

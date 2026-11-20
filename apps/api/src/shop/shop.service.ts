@@ -155,6 +155,18 @@ export class ShopService {
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
       take: query.limit,
     });
+    // The card with exactly this code comes first — even when more cards than the limit have the
+    // digits in their name and the first page would otherwise leave it out.
+    if (code && /^\d{8,14}$/.test(code) && !cards.some((c) => c.ean === code)) {
+      const byCode = await this.prisma.catalogProduct.findUnique({
+        where: { ean: code },
+        include: this.cardInclude(),
+      });
+      if (byCode) {
+        if (cards.length >= query.limit) cards.pop();
+        cards.push(byCode);
+      }
+    }
     const exact = (c: CardWithPhoto) => (code && c.ean === code ? 0 : 1);
     return {
       products: cards
