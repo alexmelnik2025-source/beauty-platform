@@ -18,7 +18,10 @@ const ERRORS: Record<CouponProblem, [string, string]> = {
     'COUPON_NOT_COMBINABLE',
     'The salon does not allow more than one discount on a visit',
   ],
-  ALREADY_APPLIED: ['COUPON_NOT_ACTIVE', 'This coupon is already used on this visit'],
+  ALREADY_APPLIED: [
+    'COUPON_NOT_ACTIVE',
+    'This coupon is already used (on this or another visit), cancelled or expired',
+  ],
   NO_DISCOUNT: [
     'COUPON_NO_DISCOUNT',
     'Nothing is left to take off: the visit already has the largest discount the salon allows',

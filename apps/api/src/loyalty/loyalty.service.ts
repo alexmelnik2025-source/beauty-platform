@@ -194,6 +194,7 @@ export class LoyaltyService {
       select: {
         id: true,
         mode: true,
+        enabled: true,
         organizationId: true,
         tierBasis: true,
         tierPeriodDays: true,
@@ -220,7 +221,9 @@ export class LoyaltyService {
       lifetimeEarned: account?.lifetimeEarned ?? 0,
       transactions: (account?.transactions ?? []).map(toTransactionResponse),
       coupons: (account?.coupons ?? []).map(toCouponResponse),
-      tier: program ? await tierStatus(this.prisma, program, customerId) : null,
+      // Task 613: no tier while the program is off — the card said "Gold 10 %" although the tier
+      // discount could not be used (409 TIER_NO_DISCOUNT), as on the visit and in the client app.
+      tier: program?.enabled ? await tierStatus(this.prisma, program, customerId) : null,
     };
   }
 
