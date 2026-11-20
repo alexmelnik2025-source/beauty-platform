@@ -29,6 +29,11 @@
   новая карточка, правка автором), публичные `/public/locations/{slug}/products` и `/public/shop/products`. Тесты
   `shop-catalog.spec.ts`. Далее по порядку: «Mój sklep» (кабинет + бизнес-приложение) → «Produkty salonu» на странице
   записи → товар к визиту A/B/C → экран барбера D → вкладка «Sklep» в клиентском приложении.
+- **20.11.2026, ~01:55 UTC — 576 (ветка `agent/576-my-shop-cabinet`, поверх 574): Q3 часть 2a — страница «Mój sklep»
+  в кабинете** (переключатели «на стронице салона» / «в Sklepie», выбор карточки из каталога по словам/EAN или новая
+  карточка, быстрое «Dodaj produkt»; 4 словаря; e2e `my-shop.spec.ts`, скриншоты Q3-my-shop, Q3-my-shop-card). Осталось
+  в части 2: 2b — фото карточки (API загрузки `Photo.catalogProductId` + кнопка в «Mój sklep»), 2c — «Mój sklep» в
+  бизнес-приложении.
 
 - **20.11.2026, ~01:40 UTC — влитие ждавших веток (ветка `agent/574-merge-waiting`, ночной запуск :37): влиты три ждавшие ветки** —
   `agent/572-booksy-analysis-2` (разделы 8–9 анализа Booksy), `agent/573-e2e-map-tiles-offline` (тест карты не падает
