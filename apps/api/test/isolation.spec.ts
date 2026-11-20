@@ -51,8 +51,8 @@ type Ids = Record<
   | 'useId'
   | 'code'
   | 'cardId'
-  | 'feedId',
-  'reservationId',
+  | 'feedId'
+  | 'reservationId',
   string
 >;
 

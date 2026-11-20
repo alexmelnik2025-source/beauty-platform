@@ -518,8 +518,8 @@ model Location {
   productReservations ProductReservation[]
   catalogProducts     CatalogProduct[]
   shopIntegrations    ShopIntegration[]
-  shopIntegrations    ShopIntegration[]
   giftVouchers        GiftVoucher[]
+  shopFeedUploads     ShopFeedUpload[]
 
   @@index([organizationId])
   @@map("location")
