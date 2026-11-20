@@ -92,7 +92,7 @@ export function VisitProductsCard(props: {
       ) : null}
       {data.canChange && data.available.length > 0 ? (
         <>
-          <Button kind="secondary" label={s.add} onPress={() => setOpen(!open)} />
+          <Button kind="secondary" label={s.add} expanded={open} onPress={() => setOpen(!open)} />
           {open
             ? data.available.map((p) => (
                 <View key={p.id} style={styles.row}>

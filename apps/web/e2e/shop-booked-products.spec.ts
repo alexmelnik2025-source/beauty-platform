@@ -189,7 +189,10 @@ test('"Dodać coś do wizyty?" on the booked screen (task Q3, screen A)', async 
     await expect(card.getByText('Czeka w salonie — zapłacisz przy wizycie')).toBeVisible();
     await card.getByRole('button', { name: /^Zrezygnuj: / }).click();
     await expect(card.getByText('Czeka w salonie — zapłacisz przy wizycie')).toHaveCount(0);
-    await card.getByRole('button', { name: '+ Dodaj produkt do tej wizyty' }).click();
+    const addToggle = card.getByRole('button', { name: '+ Dodaj produkt do tej wizyty' });
+    await expect(addToggle).toHaveAttribute('aria-expanded', 'false');
+    await addToggle.click();
+    await expect(addToggle).toHaveAttribute('aria-expanded', 'true');
     await card.getByRole('button', { name: 'Odbiorę przy wizycie: Wosk matowy' }).click();
     await expect(card.getByText('Czeka w salonie — zapłacisz przy wizycie')).toBeVisible();
     await expect(

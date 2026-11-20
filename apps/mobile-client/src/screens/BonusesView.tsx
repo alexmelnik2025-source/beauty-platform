@@ -216,6 +216,7 @@ function BonusCard({
             <Button
               kind="link"
               label={showHistory ? t.bonuses.hideHistory : t.bonuses.showHistory}
+              expanded={showHistory}
               onPress={() => setShowHistory((v) => !v)}
             />
             {showHistory ? (

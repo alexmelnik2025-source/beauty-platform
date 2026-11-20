@@ -214,6 +214,7 @@ export function SalonScreen(props: {
       <Button
         kind="secondary"
         label={qrOpen ? t.salon.qrHide : t.salon.qrShow}
+        expanded={qrOpen}
         onPress={() => setQrOpen(!qrOpen)}
       />
       {qrOpen ? (

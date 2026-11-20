@@ -27,13 +27,16 @@ export function Button(props: {
   kind?: 'primary' | 'secondary' | 'link';
   disabled?: boolean;
   busy?: boolean;
+  /** For a button that shows or hides a section: a screen reader says "expanded" / "collapsed". */
+  expanded?: boolean;
 }) {
   const kind = props.kind ?? 'primary';
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={props.a11yLabel ?? props.label}
-      accessibilityState={{ disabled: props.disabled || props.busy }}
+      accessibilityState={{ disabled: props.disabled || props.busy, expanded: props.expanded }}
+      aria-expanded={props.expanded}
       disabled={props.disabled || props.busy}
       onPress={props.onPress}
       style={({ pressed }) => [

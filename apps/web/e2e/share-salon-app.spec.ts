@@ -113,7 +113,15 @@ test('the client recommends a salon: its booking link is copied (task 151)', asy
     expect(copied).toMatch(new RegExp(`/pl/b/${slug}$`));
     await shot(app, '151-client-app-share-salon');
 
+    await expect(app.getByRole('button', { name: 'Pokaż kod QR' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     await app.getByRole('button', { name: 'Pokaż kod QR' }).click();
+    await expect(app.getByRole('button', { name: 'Ukryj kod QR' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     const qr = app.getByRole('img', { name: 'Kod QR salonu' });
     await qr.scrollIntoViewIfNeeded();
     await expect(qr).toBeVisible();
