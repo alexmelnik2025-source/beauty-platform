@@ -1708,6 +1708,43 @@ export const en: Dictionary = {
     offline:
       'Online booking is off — clients will see the salon page but cannot book. Switch it on in the salon settings.',
   },
+  /** Task Q3 (part 2c): "Mój sklep" — the salon's shop. */
+  shop: {
+    open: 'My shop',
+    back: '‹ Back',
+    title: 'My shop',
+    hint: 'Products clients see on the salon page and pick up at a visit. Prices and stock are changed in “Services” → “Products”. Pictures of the cards are added in the desktop cabinet.',
+    pickupOnly:
+      'At the start the client picks up and pays at the salon — no online payments, no shipping.',
+    summary: 'Shown to clients: {shown} of {all} products.',
+    empty: 'No products yet. Add the first one below.',
+    pieces: '{n} pcs',
+    showInSalon: 'Show to clients on the salon page',
+    hideFromSalon: 'Hide from the salon page',
+    startMarketplace: 'Also sell in the Shop',
+    stopMarketplace: 'Stop selling in the Shop',
+    marketNeedsSalonShop:
+      'To sell in the Shop (every client of the app), first show the product on the salon page.',
+    marketNeedsCard:
+      'To sell in the Shop, pick the product’s card from the catalogue — the same card for every salon selling it.',
+    card: 'Catalogue card',
+    sellers: 'salons selling it: {n}',
+    unlink: 'Unlink the card',
+    noCard: 'No catalogue card.',
+    pick: 'Pick from the catalogue',
+    pickClose: 'Close the catalogue',
+    search: 'Name, brand or EAN code',
+    nothingFound: 'No such card — make a new one.',
+    choose: 'Choose',
+    chooseCard: 'Choose the card {name}',
+    newCard: 'New card “{name}”',
+    add: 'Add a product',
+    addHint: 'A new product is shown to clients on the salon page right away.',
+    addInvalid:
+      'Enter a name, a price (e.g. 45 or 45.50) and the pieces in stock (or leave it empty).',
+    stock: 'Pieces in stock (empty = not counted)',
+    eanTaken: 'A card with this EAN is already in the catalogue — pick it from the list.',
+  },
   vouchers: {
     open: 'Gift vouchers',
     back: '‹ Back',

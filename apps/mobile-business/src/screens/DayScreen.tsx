@@ -53,6 +53,7 @@ import { ReviewsScreen } from './ReviewsScreen';
 import { BookingLinkScreen } from './BookingLinkScreen';
 import { GuardScreen } from './GuardScreen';
 import { VouchersScreen } from './VouchersScreen';
+import { MyShopScreen } from './MyShopScreen';
 import { mayManageGuard } from '../guard';
 import { mayViewHistory } from '../history';
 import { mayManageLoyalty } from '../loyalty';
@@ -97,6 +98,8 @@ export function DayScreen(props: {
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [guardOpen, setGuardOpen] = useState(false);
   const [vouchersOpen, setVouchersOpen] = useState(false);
+  /** Task Q3: "Mój sklep" (owners and managers). */
+  const [shopOpen, setShopOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [happyOpen, setHappyOpen] = useState(false);
@@ -443,6 +446,18 @@ export function DayScreen(props: {
     return <BookingLinkScreen api={api} t={t} salon={salon} onBack={() => setLinkOpen(false)} />;
   }
 
+  if (shopOpen) {
+    return (
+      <MyShopScreen
+        api={api}
+        t={t}
+        locale={props.locale}
+        salon={salon}
+        onBack={() => setShopOpen(false)}
+      />
+    );
+  }
+
   if (reviewsOpen) {
     return (
       <ReviewsScreen
@@ -617,6 +632,9 @@ export function DayScreen(props: {
           ) : null}
           <Button kind="link" label={t.reviews.open} onPress={() => setReviewsOpen(true)} />
           <Button kind="link" label={t.vouchers.open} onPress={() => setVouchersOpen(true)} />
+          {salon.role !== 'staff' ? (
+            <Button kind="link" label={t.shop.open} onPress={() => setShopOpen(true)} />
+          ) : null}
           {mayViewHistory(salon.role) ? (
             <Button kind="link" label={t.history.open} onPress={() => setHistoryOpen(true)} />
           ) : null}
