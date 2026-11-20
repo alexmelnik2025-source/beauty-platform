@@ -3761,6 +3761,30 @@ export interface paths {
         patch: operations["ShopCatalogController_update"];
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the card's picture (replaces the old one)
+         * @description Task Q3 (part 2b). The salon that may change the card, or any salon offering it while the card has no picture yet; otherwise 403 CARD_SHARED. JPEG, PNG or WebP, at most 3 MB, sent as the body. The picture is public at /v1/public/photos/<id>.
+         */
+        put: operations["ShopCatalogController_setPhoto"];
+        post?: never;
+        /**
+         * Remove the card's picture
+         * @description Task Q3 (part 2b). Only the salon that may change the card (403 CARD_SHARED).
+         */
+        delete: operations["ShopCatalogController_removePhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/locations/{slug}/products": {
         parameters: {
             query?: never;
@@ -14538,6 +14562,55 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CatalogProduct"];
                 };
+            };
+        };
+    };
+    ShopCatalogController_setPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The picture itself (not a form), at most 3 MB */
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_removePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

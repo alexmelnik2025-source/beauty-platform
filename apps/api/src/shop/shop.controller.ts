@@ -1,19 +1,32 @@
 import {
+  applyDecorators,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { notFound } from '../common/app-exception';
 import { ApiZodBody, ApiZodResponse } from '../common/openapi';
-import type { MembershipContext } from '../common/request-context';
+import type { AppRequest, MembershipContext } from '../common/request-context';
+import { photoSchema, type PhotoResponse } from '../common/system.responses';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
   CurrentMembership,
@@ -35,6 +48,15 @@ import {
 import { ShopService } from './shop.service';
 
 const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFound(what) });
+
+const ImageBody = () =>
+  applyDecorators(
+    ApiConsumes('image/jpeg', 'image/png', 'image/webp'),
+    ApiBody({
+      description: 'The picture itself (not a form), at most 3 MB',
+      schema: { type: 'string', format: 'binary' },
+    }),
+  );
 
 /**
  * Task Q3: the platform catalogue as the salon sees it in "Mój sklep" — search a card to offer,
@@ -109,5 +131,38 @@ export class ShopCatalogController {
     @Body(new ZodValidationPipe(updateCatalogProductSchema)) body: UpdateCatalogProductInput,
   ): Promise<CatalogProductResponse> {
     return this.shop.update(m, locationId, cardId, body);
+  }
+
+  @Put(':cardId/photo')
+  @RequireRoles('owner', 'manager')
+  @ApiOperation({
+    summary: "Set the card's picture (replaces the old one)",
+    description:
+      'Task Q3 (part 2b). The salon that may change the card, or any salon offering it while the card has no picture yet; otherwise 403 CARD_SHARED. JPEG, PNG or WebP, at most 3 MB, sent as the body. The picture is public at /v1/public/photos/<id>.',
+  })
+  @ImageBody()
+  @ApiZodResponse(photoSchema)
+  setPhoto(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('cardId', uuid('CatalogProduct')) cardId: string,
+    @Req() req: AppRequest,
+  ): Promise<PhotoResponse> {
+    return this.shop.setPhoto(m, locationId, cardId, req);
+  }
+
+  @Delete(':cardId/photo')
+  @RequireRoles('owner', 'manager')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: "Remove the card's picture",
+    description: 'Task Q3 (part 2b). Only the salon that may change the card (403 CARD_SHARED).',
+  })
+  removePhoto(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('cardId', uuid('CatalogProduct')) cardId: string,
+  ): Promise<void> {
+    return this.shop.removePhoto(m, locationId, cardId);
   }
 }

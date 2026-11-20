@@ -13,7 +13,8 @@ import { waitForEmail } from './mailpit';
  * page, picks its card from the platform catalogue (made by another salon, found by the EAN) and
  * switches "Sprzedawaj też w Sklepie" on; a quick "Dodaj produkt" adds a wax already shown to
  * clients. The public salon page's products and the "Sklep" tab answer accordingly.
- * Screenshots Q3-my-shop, Q3-my-shop-card.
+ * Part 2b: the shared card has no picture yet, so our salon adds one; it shows on the salon's
+ * products but not in its gallery. Screenshots Q3-my-shop, Q3-my-shop-card, Q3-my-shop-photo.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -25,6 +26,26 @@ const EAN = `590${String(Date.now()).slice(-10)}`;
 
 const shot = (page: Page, name: string) =>
   page.screenshot({ path: `e2e/screenshots/${name}.png`, fullPage: true });
+
+/** A real picture drawn in the browser (the page shrinks it before sending). */
+async function testPhoto(page: Page, width: number, height: number) {
+  const base64 = await page.evaluate(
+    ({ width, height }) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#e8a0bf';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#1d1d1b';
+      ctx.font = `${Math.round(height / 6)}px sans-serif`;
+      ctx.fillText('POMADE', width / 10, height / 2);
+      return canvas.toDataURL('image/png').split(',')[1]!;
+    },
+    { width, height },
+  );
+  return { name: 'pomade.png', mimeType: 'image/png', buffer: Buffer.from(base64, 'base64') };
+}
 
 async function json<T>(res: APIResponse): Promise<T> {
   expect(res.ok(), `${res.url()} → ${res.status()} ${await res.text()}`).toBeTruthy();
@@ -151,6 +172,16 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await marketplace.check();
   await expect(marketplace).toBeChecked();
 
+  // Part 2b: the shared card has no picture yet — ours is the first.
+  await row
+    .getByLabel('Zdjęcie karty „Reuzel Pink Pomade”')
+    .setInputFiles(await testPhoto(page, 900, 900));
+  const picture = row.getByRole('img', { name: 'Zdjęcie: Reuzel Pink Pomade' });
+  await expect(picture).toBeVisible();
+  // Once the card has one and another salon sells it too, nobody changes it here.
+  await expect(row.getByText('Zmień zdjęcie')).toHaveCount(0);
+  await shot(page, 'Q3-my-shop-photo');
+
   // Quick add: a wax, shown to clients at once.
   await page.getByLabel('Nazwa', { exact: true }).fill('Wosk matowy');
   await page.getByLabel('Cena', { exact: true }).fill('39,90');
@@ -162,13 +193,21 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   // What clients see.
   const salonProducts = await json<{
     fulfillment: string[];
-    products: { name: string; priceGrosze: number; available: boolean }[];
+    products: { name: string; priceGrosze: number; available: boolean; photoId: string | null }[];
   }>(await request.get(`/v1/public/locations/${salon.slug}/products`));
   expect(salonProducts.fulfillment).toEqual(['pickup_at_salon']);
   expect(salonProducts.products.map((p) => [p.name, p.priceGrosze, p.available])).toEqual([
     ['Pomada Reuzel różowa', 5900, true],
     ['Wosk matowy', 3990, true],
   ]);
+  const photoId = salonProducts.products[0]?.photoId;
+  expect(photoId).toBeTruthy();
+  expect((await request.get(`/v1/public/photos/${photoId}`)).ok()).toBeTruthy();
+  // Not a salon photo: the booking page's gallery stays empty.
+  const salonPage = await json<{ photos: unknown[] }>(
+    await request.get(`/v1/public/locations/${salon.slug}`),
+  );
+  expect(salonPage.photos).toEqual([]);
   const shop = await json<{
     products: { id: string; fromPriceGrosze: number; offers: { priceGrosze: number }[] }[];
   }>(await request.get('/v1/public/shop/products', { params: { q: EAN } }));

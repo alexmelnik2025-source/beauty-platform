@@ -1,9 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import type { Request } from 'express';
 import { AppException, notFound } from '../common/app-exception';
 import type { MembershipContext } from '../common/request-context';
 import type { CatalogProduct, Prisma } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { photoUrl, readImageBody, type PhotoResponse } from '../scheduling/photos.service';
 import type {
   CatalogProductResponse,
   CatalogSearchQuery,
@@ -229,6 +231,64 @@ export class ShopService {
       include: this.cardInclude(),
     });
     return this.toCatalogProduct(updated, locationId);
+  }
+
+  /**
+   * The card's picture (JPEG, PNG or WebP, at most 3 MB, sent as the body): set by the salon that
+   * may change the card, or by any salon offering it while the card has no picture yet — so a
+   * shared card gets its first picture from whoever has one. Replaces the old picture.
+   */
+  async setPhoto(
+    m: MembershipContext,
+    locationId: string,
+    cardId: string,
+    req: Request,
+  ): Promise<PhotoResponse> {
+    await this.access.writable(m, locationId);
+    const card = await this.prisma.catalogProduct.findUnique({
+      where: { id: cardId },
+      include: this.cardInclude(),
+    });
+    if (!card) throw notFound('CatalogProduct');
+    const offersHere = card.offers.some((o) => o.locationId === locationId);
+    if (!this.editable(card, locationId) && !(offersHere && !card.photo)) {
+      if (!offersHere && card.createdByLocationId !== locationId) throw notFound('CatalogProduct');
+      throw cardShared();
+    }
+    const { bytes, type } = await readImageBody(req);
+    const photo = await this.prisma.$transaction(async (tx) => {
+      await tx.photo.deleteMany({ where: { catalogProductId: cardId } });
+      return tx.photo.create({
+        data: {
+          locationId,
+          catalogProductId: cardId,
+          contentType: type,
+          sizeBytes: bytes.length,
+          data: new Uint8Array(bytes),
+        },
+        select: { id: true, contentType: true, sizeBytes: true, createdAt: true },
+      });
+    });
+    return {
+      id: photo.id,
+      url: photoUrl(photo.id),
+      contentType: photo.contentType,
+      sizeBytes: photo.sizeBytes,
+      createdAt: photo.createdAt.toISOString(),
+    };
+  }
+
+  /** Removes the card's picture — only the salon that may change the card. */
+  async removePhoto(m: MembershipContext, locationId: string, cardId: string): Promise<void> {
+    await this.access.writable(m, locationId);
+    const card = await this.prisma.catalogProduct.findUnique({
+      where: { id: cardId },
+      include: this.cardInclude(),
+    });
+    if (!card || card.createdByLocationId !== locationId) throw notFound('CatalogProduct');
+    if (!this.editable(card, locationId)) throw cardShared();
+    const result = await this.prisma.photo.deleteMany({ where: { catalogProductId: cardId } });
+    if (result.count !== 1) throw notFound('Photo');
   }
 
   private cardInclude() {

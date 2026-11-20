@@ -27,6 +27,12 @@ let otherSlug: string;
 
 const POMADE = { name: 'Reuzel Pink Pomade', brand: 'Reuzel', ean: '0859104005020' };
 
+/** A tiny file with PNG's first bytes: enough to pass the photo type check. */
+const PNG = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  Buffer.from('png'),
+]);
+
 beforeAll(async () => {
   ctx = await createTestApp();
 });
@@ -419,5 +425,88 @@ describe('What clients see', () => {
     });
     const left = await ctx.http().get(`/v1/public/shop/products/${card.id}`).expect(200);
     expect(left.body.offers.map((o: { productId: string }) => o.productId)).toEqual([cheaper.id]);
+  });
+});
+
+describe('The card’s picture (…/shop/catalog/:cardId/photo, part 2b)', () => {
+  it('is set by the maker or the first seller, is public, and is not a salon photo', async () => {
+    const card = await createCard(POMADE);
+    const put = (where: string, who: SignedInUser) =>
+      ctx
+        .http()
+        .put(`${where}/shop/catalog/${card.id}/photo`)
+        .set(who.auth)
+        .set('Content-Type', 'image/png')
+        .send(PNG);
+
+    // A salon that neither made nor offers the card: not found.
+    await put(otherBase, other).expect(404);
+
+    const set = await put(base, owner).expect(200);
+    shape('Photo', set.body);
+    expect(set.body).toMatchObject({ contentType: 'image/png', sizeBytes: PNG.length });
+    const photoId = set.body.id as string;
+    await ctx.http().get(`/v1/public/photos/${photoId}`).expect(200);
+    const seen = await ctx
+      .http()
+      .get(`${base}/shop/catalog/${card.id}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(seen.body.photoId).toBe(photoId);
+
+    // Not in the salon's gallery, nor on its booking page.
+    const gallery = await ctx.http().get(`${base}/photos`).set(owner.auth).expect(200);
+    expect(gallery.body).toEqual([]);
+    const page = await ctx.http().get(`/v1/public/locations/${slug}`).expect(200);
+    expect(page.body.photos).toEqual([]);
+
+    // The other salon offers the card: it may not replace a picture that is there…
+    await createProduct(
+      { name: POMADE.name, priceGrosze: 7900, catalogProductId: card.id, inSalonShop: true },
+      other,
+      otherBase,
+    );
+    const shared = await put(otherBase, other).expect(403);
+    expectError(shared.body, 'CARD_SHARED');
+    // …and neither may the maker now, nor remove it; the picture shows on both salons' pages.
+    const makerToo = await put(base, owner).expect(403);
+    expectError(makerToo.body, 'CARD_SHARED');
+    await ctx
+      .http()
+      .delete(`${otherBase}/shop/catalog/${card.id}/photo`)
+      .set(other.auth)
+      .expect(404);
+    const otherPage = await ctx
+      .http()
+      .get(`/v1/public/locations/${otherSlug}/products`)
+      .expect(200);
+    expect(otherPage.body.products[0]).toMatchObject({ photoId, catalogProductId: card.id });
+
+    // A card without a picture gets its first one from any salon offering it.
+    const bare = await createCard({ name: 'Wosk', category: 'styling' });
+    await createProduct(
+      { name: 'Wosk', priceGrosze: 3000, catalogProductId: bare.id, inSalonShop: true },
+      other,
+      otherBase,
+    );
+    const first = await ctx
+      .http()
+      .put(`${otherBase}/shop/catalog/${bare.id}/photo`)
+      .set(other.auth)
+      .set('Content-Type', 'image/png')
+      .send(PNG)
+      .expect(200);
+    expect(first.body.id).toBeTruthy();
+    // The maker, alone on its own card, replaces and removes freely.
+    const own = await createCard({ name: 'Szampon' });
+    await ctx
+      .http()
+      .put(`${base}/shop/catalog/${own.id}/photo`)
+      .set(owner.auth)
+      .set('Content-Type', 'image/png')
+      .send(PNG)
+      .expect(200);
+    await ctx.http().delete(`${base}/shop/catalog/${own.id}/photo`).set(owner.auth).expect(204);
+    await ctx.http().delete(`${base}/shop/catalog/${own.id}/photo`).set(owner.auth).expect(404);
   });
 });
