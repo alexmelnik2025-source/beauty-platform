@@ -166,6 +166,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/shop/catalog')) return { name: 'Hacked' };
   if (p.endsWith('/shop/integrations/base/import')) return { items: [{ externalId: '1' }] };
   if (p.endsWith('/shop/integrations/base/sync')) return {};
+  if (p.endsWith('/shop/integrations/base/orders')) return { enabled: false };
   // The salon is checked before the file is read: any body reaches the access check.
   if (p.endsWith('/shop/integrations/feed')) return PNG;
   if (p.endsWith('/shop/integrations/feed/:feedId/import')) return { items: [{ key: 'A' }] };
