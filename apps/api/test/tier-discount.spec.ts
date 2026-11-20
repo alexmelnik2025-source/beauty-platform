@@ -350,6 +350,46 @@ describe('tier discount on a visit', () => {
     expect(row).toMatchObject({ tierDiscountGrosze: 0, tierName: null, tierDiscountPercent: null });
   });
 
+  it('task 610: when the tier discount comes off, a free-service coupon that had the rest now covers the whole price', async () => {
+    await putTiers(SILVER_GOLD);
+    await changeProgram({ allowStacking: true });
+    const visit = await booked();
+    const tiered = await useTier(visit, visit.version).expect(200);
+    const free = await coupon(visit.customerId, { kind: 'free_service', freeServiceId: haircutId });
+    const both = await apply(visit, { version: tiered.body.version, couponId: free.id }).expect(
+      200,
+    );
+    expect(both.body).toMatchObject({
+      priceGrosze: 8000,
+      discountGrosze: 8000,
+      tierDiscount: { discountGrosze: 800 },
+      coupons: [{ id: free.id, discountGrosze: 7200 }],
+    });
+    // Before: the visit kept 7200 off and the client paid 8 zł for a "free" haircut.
+    const left = await removeTier(visit, both.body.version).expect(200);
+    expect(left.body).toMatchObject({
+      discountGrosze: 8000,
+      tierDiscount: null,
+      coupons: [{ id: free.id, discountGrosze: 8000 }],
+    });
+    const row = await ctx.prisma.loyaltyCoupon.findUniqueOrThrow({ where: { id: free.id } });
+    expect(row).toMatchObject({ status: 'used', discountGrosze: 8000 });
+
+    // The other way round: the tier discount applied after a 45 % coupon was cut by the 50 %
+    // maximum to 5 %; the coupon comes off and the tier is its full 10 % again.
+    const second = await booked();
+    const big = await coupon(second.customerId, { discountPercent: 45 });
+    const withBig = await apply(second, { version: second.version, couponId: big.id }).expect(200);
+    const cut = await useTier(second, withBig.body.version).expect(200);
+    expect(cut.body).toMatchObject({ discountGrosze: 4000, tierDiscount: { discountGrosze: 400 } });
+    const tierOnly = await remove(second, big.id, cut.body.version).expect(200);
+    expect(tierOnly.body).toMatchObject({
+      discountGrosze: 800,
+      tierDiscount: { discountGrosze: 800 },
+      coupons: [],
+    });
+  });
+
   it('loyalty is earned on what the client paid; a paid visit keeps its tier discount', async () => {
     await putTiers([{ name: 'VIP', threshold: 0, discountPercent: 50 }]);
     const visit = await came();

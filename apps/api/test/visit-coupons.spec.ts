@@ -455,6 +455,30 @@ describe('coupons on a visit', () => {
     expect(freeVisit.body).toMatchObject({ priceGrosze: 4000, discountGrosze: 4000 });
   });
 
+  it('task 610: taking off an earlier coupon gives a later one, cut by the maximum, its full share', async () => {
+    await changeProgram({ allowStacking: true });
+    const visit = await booked();
+    const a = await coupon(visit.customerId, { discountPercent: 30 });
+    const b = await coupon(visit.customerId, { discountPercent: 30 });
+    const first = await apply(visit, { version: visit.version, couponId: a.id }).expect(200);
+    const second = await apply(visit, { version: first.body.version, couponId: b.id }).expect(200);
+    expect(second.body.coupons).toMatchObject([
+      { id: a.id, discountGrosze: 2400 },
+      { id: b.id, discountGrosze: 1600 },
+    ]);
+    // Before: b stayed at 1600 (20 %) although it is a 30 % coupon and nothing limits it now.
+    const left = await remove(visit, a.id, second.body.version).expect(200);
+    expect(left.body).toMatchObject({
+      discountGrosze: 2400,
+      coupons: [{ id: b.id, discountGrosze: 2400 }],
+    });
+    expect((await couponRow(b.id)).discountGrosze).toBe(2400);
+    expect((await couponRow(a.id)).status).toBe('active');
+    // Taking the last one off too leaves no discount at all.
+    const none = await remove(visit, b.id, left.body.version).expect(200);
+    expect(none.body).toMatchObject({ discountGrosze: 0, coupons: [] });
+  });
+
   it('"did not come" gives the coupon back', async () => {
     const visit = await came();
     const quarter = await coupon(visit.customerId, { discountPercent: 25 });
