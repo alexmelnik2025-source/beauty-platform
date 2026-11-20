@@ -202,7 +202,7 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
   await expect(toHand.getByText('✓ Wydano')).toBeVisible();
   await expect(toHand.getByText(/Razem: 39,00\s*zł/)).toBeVisible();
   const sold = card.getByTestId('visit-products');
-  await expect(sold.getByText('Pomada Reuzel różowa')).toBeVisible();
+  await expect(sold.getByText('Pomada Reuzel różowa', { exact: true })).toBeVisible();
   await shot(page, 'Q3-D-handed');
 
   // One piece left the stock.
@@ -244,7 +244,9 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     await appToHand.getByRole('button', { name: 'Wydaj i dolicz — Szampon Proraso' }).click();
     await expect(appToHand.getByText('✓ Wydano')).toHaveCount(2);
     await expect(appToHand.getByText(/Razem:/)).toHaveCount(0);
-    await expect(phone.getByTestId('visit-products').getByText('Szampon Proraso')).toBeVisible();
+    await expect(
+      phone.getByTestId('visit-products').getByText('Szampon Proraso', { exact: true }),
+    ).toBeVisible();
     await context.close();
   } finally {
     businessApp.server.close();
