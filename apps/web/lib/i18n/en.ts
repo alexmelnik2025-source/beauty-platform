@@ -711,7 +711,8 @@ export const en: Dict = {
     bookNext: 'Book your next visit',
     payAtPickup: 'You pay only when you pick it up.',
     moveTitle: 'Move the products to a new time?',
-    moveLead: 'We will move the products put aside to your new visit. You pay when you pick them up.',
+    moveLead:
+      'We will move the products put aside to your new visit. You pay when you pick them up.',
     moveBook: 'Choose a new time',
   },
   voucherCheck: {
