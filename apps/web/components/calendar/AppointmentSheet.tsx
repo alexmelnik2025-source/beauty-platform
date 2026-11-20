@@ -18,6 +18,7 @@ import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { ProductSales } from '../products/ProductSales';
 import { TipField } from './TipField';
 import { VisitVouchers } from '../vouchers/VisitVouchers';
+import { VisitToHand } from '../shop/VisitToHand';
 
 type Mode = 'view' | 'move' | 'cancel';
 
@@ -50,6 +51,8 @@ export function AppointmentSheet({
   const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
   const [mode, setMode] = useState<Mode>('view');
   const [error, setError] = useState('');
+  // Task Q3 (screen D): a product handed over is a new sale — the sales list reloads.
+  const [salesKey, setSalesKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [move, setMove] = useState({ date: '', time: '', staffId: '', outside: false });
   const [askOutside, setAskOutside] = useState(false);
@@ -265,9 +268,21 @@ export function AppointmentSheet({
           {t.appointment.tip}: {money(a.tipGrosze)}
         </p>
       ) : null}
+      {mode === 'view' && (a.status === 'confirmed' || a.status === 'completed') ? (
+        // Task Q3 (screen D): products the client put aside for this visit.
+        <VisitToHand
+          base={base}
+          appointmentId={a.id}
+          currency={session.location.currency}
+          canChange={canChange}
+          completed={a.status === 'completed'}
+          onHanded={() => setSalesKey((k) => k + 1)}
+        />
+      ) : null}
       {mode === 'view' && a.status === 'completed' ? (
         // Task 395: products the client bought at the visit.
         <ProductSales
+          key={salesKey}
           base={base}
           appointmentId={a.id}
           currency={session.location.currency}

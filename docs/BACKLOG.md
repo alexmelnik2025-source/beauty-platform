@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~03:30 UTC — 583 (ветка `agent/583-visit-card-products`, поверх `agent/581-visit-products-link`): Q3
+  экран D в кабинете — «Do wydania klientowi» в карточке визита (`components/shop/VisitToHand.tsx`): товары, отложенные
+  клиентом к визиту, «Wydaj i dolicz» (= обычная продажа в визите через `…/reservations/{id}/hand-over`, нужен статус
+  «Przyszedł»), «Anuluj rezerwację»; список «Produkty» обновляется сразу. e2e `visit-to-hand.spec.ts` (скриншоты
+  Q3-D-to-hand, Q3-D-handed). Вливается после цепочки 578–581. Дальше: то же в бизнес-приложении.
+
 - **20.11.2026, ~03:05 UTC — 582 (ветка `agent/582-integrations-cabinet`, поверх 581): Q4 часть 4 — экран
   «Integracje» в кабинете (Base в 3 шага + «Importuj z pliku», статус, «Synchronizuj teraz», журнал), ссылка из
   «Produkty»; e2e `shop-integrations.spec.ts` с заглушкой Base. Осталось: статус в бизнес-приложении, ссылка из «Mój
