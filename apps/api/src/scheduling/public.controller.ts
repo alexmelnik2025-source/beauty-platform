@@ -79,52 +79,58 @@ export class PublicLocationsController {
   async get(@Req() req: AppRequest, @Param('slug') slug: string): Promise<PublicLocationResponse> {
     this.limiter.hit(`public:ip:${req.ip}`, 300, 60_000);
     const location = await this.findBookable(slug);
-    const staff = await this.prisma.staffMember.findMany({
-      where: { locationId: location.id, active: true },
-      include: {
-        services: {
-          where: { service: { active: true } },
-          select: { serviceId: true, priceGrosze: true, durationMinutes: true },
+    // Task 610: the page's first request — everything that does not depend on the specialists is
+    // read at the same time as them, then what depends on them, in two rounds instead of seven.
+    const [staff, allCategories, photos, collects] = await Promise.all([
+      this.prisma.staffMember.findMany({
+        where: { locationId: location.id, active: true },
+        include: {
+          services: {
+            where: { service: { active: true } },
+            select: { serviceId: true, priceGrosze: true, durationMinutes: true },
+          },
+          workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
+          photo: { select: { id: true } },
         },
-        workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
-        photo: { select: { id: true } },
-      },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      }),
+      this.prisma.serviceCategory.findMany({
+        where: { locationId: location.id },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
+      this.prisma.photo.findMany({
+        where: { locationId: location.id, staffId: null, catalogProductId: null },
+        select: { id: true },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+      // Task 384: the stars of each specialist, only while the salon collects reviews (165b).
+      this.prisma.reviewSettings.findUnique({
+        where: { locationId: location.id },
+        select: { enabled: true },
+      }),
+    ]);
     const listed = staff.filter((s) => s.services.length > 0);
     const offered = new Set(staff.flatMap((s) => s.services.map((x) => x.serviceId)));
-    const services = await this.prisma.service.findMany({
-      where: { locationId: location.id, active: true, id: { in: [...offered] } },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
+    const [services, todayHoursByLocation, stars] = await Promise.all([
+      this.prisma.service.findMany({
+        where: { locationId: location.id, active: true, id: { in: [...offered] } },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      }),
+      todayHoursOf(this.prisma, [{ ...location, staff: listed }]),
+      collects?.enabled
+        ? this.prisma.visitReview.groupBy({
+            by: ['staffId'],
+            where: { locationId: location.id, staffId: { in: listed.map((s) => s.id) } },
+            _count: { _all: true },
+            _avg: { rating: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const todayHours = todayHoursByLocation.get(location.id)!;
     const used = new Set(
       services.map((s) => s.categoryId).filter((id): id is string => id !== null),
     );
-    const categories = await this.prisma.serviceCategory.findMany({
-      where: { locationId: location.id, id: { in: [...used] } },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    });
-    const photos = await this.prisma.photo.findMany({
-      where: { locationId: location.id, staffId: null, catalogProductId: null },
-      select: { id: true },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-    const todayHours = (await todayHoursOf(this.prisma, [{ ...location, staff: listed }])).get(
-      location.id,
-    )!;
-    // Task 384: the stars of each specialist, only while the salon collects reviews (165b).
-    const collects = await this.prisma.reviewSettings.findUnique({
-      where: { locationId: location.id },
-      select: { enabled: true },
-    });
-    const stars = collects?.enabled
-      ? await this.prisma.visitReview.groupBy({
-          by: ['staffId'],
-          where: { locationId: location.id, staffId: { in: listed.map((s) => s.id) } },
-          _count: { _all: true },
-          _avg: { rating: true },
-        })
-      : [];
+    const categories = allCategories.filter((c) => used.has(c.id));
     const starsOf = new Map(stars.map((row) => [row.staffId, row]));
     const basePrice = new Map(services.map((s) => [s.id, s.priceGrosze]));
     const baseDuration = new Map(services.map((s) => [s.id, s.durationMinutes]));
