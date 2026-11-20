@@ -1,15 +1,19 @@
 import { expect, request as playwrightRequest, test, type APIResponse } from '@playwright/test';
+import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 
 /**
  * Task 234: the client's pages work with a screen reader — like the cabinet (task 230): on the
  * home page, the catalogue (list and map), a salon's booking page and "Moje wizyty" every
  * visible button and link has a name. Screenshot 234 (the booking page).
+ * Task 599: on a 390 px phone the same pages, every step of booking and the visit link page
+ * have no sideways scrolling, and every visible form field has a name.
  */
 
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `a11y-owner-${run}@example.com`;
+const CLIENT = `a11y-client-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.18.${n >> 8}.${n & 255}` };
@@ -21,6 +25,7 @@ async function json<T>(res: APIResponse): Promise<T> {
 
 /** A salon open for online booking (one service, one specialist). */
 async function bookableSalon(baseURL: string): Promise<string> {
+  if (salonSlug) return salonSlug;
   const api = await playwrightRequest.newContext({ baseURL, extraHTTPHeaders: ADDRESS });
   await json(
     await api.post('/v1/auth/register', {
@@ -62,10 +67,21 @@ async function bookableSalon(baseURL: string): Promise<string> {
       data: { name: 'Strzyżenie męskie', durationMinutes: 45, priceGrosze: 9000, bufferMinutes: 0 },
     }),
   );
-  await json(
+  const marek = await json<{ id: string }>(
     await api.post(`${base}/staff`, {
       headers: owner,
       data: { displayName: 'Marek', serviceIds: [service.id] },
+    }),
+  );
+  await json(
+    await api.put(`${base}/staff/${marek.id}/working-hours`, {
+      headers: owner,
+      data: {
+        days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+          weekday,
+          intervals: [{ start: '08:00', end: '20:00' }],
+        })),
+      },
     }),
   );
   // Online booking ends with the test: the catalogue tests count their own salons.
@@ -81,9 +97,11 @@ async function bookableSalon(baseURL: string): Promise<string> {
     await off();
     await api.dispose();
   });
+  salonSlug = location.slug;
   return location.slug;
 }
 
+let salonSlug: string | undefined;
 const cleanups: (() => Promise<unknown>)[] = [];
 test.afterAll(async () => {
   for (const cleanup of cleanups) await cleanup();
@@ -130,4 +148,107 @@ test('every button and link on the client pages has a name (task 234)', async ({
     }
     await context.close();
   }
+});
+
+/** What sticks out past the right edge of the screen (the page scrolls sideways), if anything. */
+async function sideways(page: import('@playwright/test').Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const width = document.documentElement.clientWidth;
+    if (document.documentElement.scrollWidth <= width + 1) return [];
+    return [...document.body.querySelectorAll('*')]
+      .filter((el) => el.getBoundingClientRect().right > width + 1)
+      .slice(-5)
+      .map((el) => el.outerHTML.slice(0, 160));
+  });
+}
+
+/** Visible form fields without a name a screen reader can say (a label, aria-label, title). */
+async function unnamedFields(page: import('@playwright/test').Page): Promise<string[]> {
+  return page.evaluate(() =>
+    [
+      ...document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+        'input:not([type="hidden"]), select, textarea',
+      ),
+    ]
+      .filter((el) => el.getClientRects().length > 0)
+      .filter((el) => {
+        const labelled = [...(el.labels ?? [])].some((label) => label.textContent?.trim());
+        return (
+          !labelled &&
+          !el.getAttribute('aria-label')?.trim() &&
+          !el.getAttribute('aria-labelledby') &&
+          !el.getAttribute('title')?.trim()
+        );
+      })
+      .map((el) => el.outerHTML.slice(0, 160)),
+  );
+}
+
+async function phoneCheck(page: import('@playwright/test').Page, step: string) {
+  await page.waitForLoadState('networkidle');
+  expect(await sideways(page), `${step}: sideways scrolling at 390 px`).toEqual([]);
+  expect(await unnamedFields(page), `${step}: fields without a name`).toEqual([]);
+  expect(await unnamedControls(page), `${step}: buttons without a name`).toEqual([]);
+}
+
+test('a 390 px phone: no sideways scrolling, every field has a name (task 599)', async ({
+  browser,
+  baseURL,
+}) => {
+  const slug = await bookableSalon(baseURL!);
+  const context = await browser.newContext({
+    viewport: PHONE,
+    locale: 'pl-PL',
+    isMobile: true,
+    hasTouch: true,
+    extraHTTPHeaders: freshAddress(),
+  });
+  const page = await context.newPage();
+  for (const path of ['/pl', '/pl/salons', '/pl/c']) {
+    await page.goto(path);
+    await phoneCheck(page, path);
+  }
+
+  // Booking step by step: services → times → details → code → booked.
+  await page.goto(`/pl/b/${slug}`);
+  await phoneCheck(page, 'services');
+  await page
+    .getByRole('button', { name: /Strzyżenie/ })
+    .first()
+    .click();
+  const times = page.locator('.times button').first();
+  const marek = page.getByRole('button', { name: /Marek/ });
+  await expect(times.or(marek).first()).toBeVisible();
+  if (await marek.isVisible()) {
+    await phoneCheck(page, 'specialists');
+    await marek.click();
+  }
+  await expect(times).toBeVisible();
+  await phoneCheck(page, 'times');
+  await times.click();
+  await expect(page.getByLabel('Imię i nazwisko')).toBeVisible();
+  await phoneCheck(page, 'details');
+  await page.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
+  await page.getByLabel('Telefon').fill('600 100 299');
+  await page.getByLabel('E-mail').fill(CLIENT);
+  await page.getByLabel(/Akceptuję regulamin rezerwacji/).check();
+  await page.getByRole('button', { name: 'Wyślij kod' }).click();
+  const codeMail = await waitForEmail(CLIENT, /Kod potwierdzenia/);
+  await expect(page.getByLabel('Kod z e-maila')).toBeVisible();
+  await phoneCheck(page, 'code');
+  await page.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(codeMail.text)![1]!);
+  await page.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(page.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+  await phoneCheck(page, 'booked');
+
+  // The visit link from the email, and its "Zmień termin" with the times.
+  const confirmation = await waitForEmail(CLIENT, /Wizyta potwierdzona/);
+  await page.goto(/(\/pl\/m\/\S+)/.exec(confirmation.text)![1]!);
+  await expect(page.getByText('Potwierdzona')).toBeVisible();
+  await phoneCheck(page, 'visit link');
+  await page.getByRole('button', { name: 'Zmień termin' }).click();
+  await expect(page.getByRole('region', { name: 'Zmień termin' })).toBeVisible();
+  await phoneCheck(page, 'visit link, Zmień termin');
+  await page.screenshot({ path: 'e2e/screenshots/599-phone-visit-reschedule.png', fullPage: true });
+  await context.close();
 });
