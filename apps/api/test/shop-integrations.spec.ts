@@ -1,6 +1,8 @@
+import dns from 'node:dns';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
 import { ShopIntegrationsService } from '../src/shop/integrations/integrations.service';
+import { isPublicAddress } from '../src/shop/integrations/product-photos';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -125,6 +127,11 @@ beforeEach(async () => {
   await resetState(ctx);
   calls = [];
   fakeBase = makeBase();
+  // Picture hosts: example.com is on the internet, intranet.example inside a private network.
+  vi.spyOn(dns.promises, 'lookup').mockImplementation((async (host: string) =>
+    host === 'intranet.example'
+      ? [{ address: '10.0.0.5', family: 4 }]
+      : [{ address: '93.184.215.14', family: 4 }]) as unknown as typeof dns.promises.lookup);
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     if (!String(input).startsWith('https://api.baselinker.com/')) {
       throw new Error(`Unexpected fetch ${String(input)}`);
@@ -363,6 +370,8 @@ describe('Importing products from Base', () => {
       updated: 1,
       cardsCreated: 1,
       cardsMatched: 1,
+      // The stand-in has no picture at the pomade's address: the import goes on without it.
+      photosAdded: 0,
       skipped: [
         { externalId: '9003', reason: 'NO_PRICE' },
         { externalId: '777', reason: 'NOT_IN_BASE' },
@@ -640,5 +649,112 @@ describe('Renewing prices and stock from Base (part 2)', () => {
     expect(
       await ctx.prisma.product.findFirstOrThrow({ where: { externalRef: 'base:307:9001' } }),
     ).toMatchObject({ priceGrosze: 5900, stockQuantity: 7 });
+  });
+});
+
+/** The smallest PNG: 1×1 pixel. */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+describe('Pictures of imported products (task Q4)', () => {
+  it('knows which addresses are on the public internet', () => {
+    expect(isPublicAddress('93.184.215.14')).toBe(true);
+    expect(isPublicAddress('2606:2800:21f:cb07:6820:80da:af6b:8b2c')).toBe(true);
+    for (const inside of [
+      '127.0.0.1',
+      '10.1.2.3',
+      '172.20.0.1',
+      '192.168.1.10',
+      '169.254.169.254',
+      '100.64.0.1',
+      '0.0.0.0',
+      '::1',
+      'fd00::1',
+      'fe80::1',
+      '::ffff:127.0.0.1',
+      'not-an-ip',
+    ]) {
+      expect(isPublicAddress(inside), inside).toBe(false);
+    }
+  });
+
+  it('gives a card without a photo the first picture from Base, once, and only a safe one', async () => {
+    await connect();
+    await configure();
+    const fetched: string[] = [];
+    const baseFetch = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.startsWith('https://api.baselinker.com/')) return baseFetch!(input, init);
+      fetched.push(url);
+      if (url === 'https://example.com/pomade.jpg') {
+        return new Response(null, { status: 302, headers: { Location: '/img/pomade.png' } });
+      }
+      if (url === 'https://example.com/img/pomade.png') {
+        return new Response(new Uint8Array(PNG), { headers: { 'Content-Type': 'image/png' } });
+      }
+      if (url === 'https://example.com/oil.jpg') {
+        // A web page where a picture should be is not kept.
+        return new Response('<html></html>', { headers: { 'Content-Type': 'image/jpeg' } });
+      }
+      return new Response('nope', { status: 404 });
+    });
+    const data = fakeBase.getInventoryProductsData as {
+      products: Record<string, Record<string, unknown>>;
+    };
+    data.products['9002']!.images = { '0': 'https://example.com/oil.jpg' };
+    // A product whose picture points inside a private network: never asked for.
+    data.products['9004'] = {
+      ean: '5900000000017',
+      text_fields: { name: 'Szczotka' },
+      prices: { '105': 20 },
+      stock: { bl_201: 1 },
+      images: { '0': 'http://intranet.example/admin.png', '1': 'https://example.com/x.png' },
+    };
+
+    const res = await ctx
+      .http()
+      .post(`${base}/import`)
+      .set(owner.auth)
+      .send({ items: [{ externalId: '9001' }, { externalId: '9002' }, { externalId: '9004' }] })
+      .expect(200);
+    shape('BaseImportResult', res.body);
+    expect(res.body).toMatchObject({ created: 3, photosAdded: 1 });
+    expect(fetched.sort()).toEqual([
+      'https://example.com/img/pomade.png',
+      'https://example.com/oil.jpg',
+      'https://example.com/pomade.jpg',
+    ]);
+
+    const cards = await ctx.prisma.catalogProduct.findMany({
+      include: { photo: { select: { id: true, contentType: true, locationId: true } } },
+      orderBy: { name: 'asc' },
+    });
+    expect(cards.map((c) => [c.name, c.photo?.contentType ?? null])).toEqual([
+      ['Olejek do brody', null],
+      ['Reuzel Pink Pomade 113 g', 'image/png'],
+      ['Szczotka', null],
+    ]);
+    const pomade = cards.find((c) => c.photo)!;
+    expect(pomade.photo!.locationId).toBe(locationId);
+    const picture = await ctx
+      .http()
+      .get(`/v1/public/photos/${pomade.photo!.id}`)
+      .buffer(true)
+      .expect(200);
+    expect(Buffer.compare(picture.body as Buffer, PNG)).toBe(0);
+
+    // The next import does not fetch a picture the card already has.
+    fetched.length = 0;
+    const again = await ctx
+      .http()
+      .post(`${base}/import`)
+      .set(owner.auth)
+      .send({ items: [{ externalId: '9001' }] })
+      .expect(200);
+    expect(again.body).toMatchObject({ updated: 1, photosAdded: 0 });
+    expect(fetched).toEqual([]);
   });
 });

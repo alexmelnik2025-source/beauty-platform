@@ -17392,6 +17392,12 @@
             "maximum": 9007199254740991,
             "description": "Products joined to an existing card by EAN"
           },
+          "photosAdded": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cards without a photo that got the product’s first picture from Base"
+          },
           "skipped": {
             "type": "array",
             "items": {
@@ -17424,6 +17430,7 @@
           "updated",
           "cardsCreated",
           "cardsMatched",
+          "photosAdded",
           "skipped"
         ],
         "additionalProperties": false
@@ -29916,6 +29923,12 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
+          "photosAdded": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cards without a photo that got the picture from the file (image_link / zdjęcie)"
+          },
           "skipped": {
             "type": "array",
             "items": {
@@ -29947,6 +29960,7 @@
           "updated",
           "cardsCreated",
           "cardsMatched",
+          "photosAdded",
           "skipped"
         ],
         "additionalProperties": false

@@ -10,6 +10,7 @@ import type {
   FeedPreviewResponse,
   ImportFeedInput,
 } from './feed.schemas';
+import { attachImportedPhotos, type CardPicture } from './product-photos';
 import { cut, normalEan, plainText, upsertSellerProduct } from './seller-products';
 
 /** The largest file a seller may send. */
@@ -164,8 +165,10 @@ export class ShopFeedService {
       updated: 0,
       cardsCreated: 0,
       cardsMatched: 0,
+      photosAdded: 0,
       skipped: [],
     };
+    const pictures: CardPicture[] = [];
     for (const item of input.items) {
       const row = rows.get(item.key);
       if (!row) {
@@ -194,7 +197,9 @@ export class ShopFeedService {
       result[outcome.product] += 1;
       if (outcome.card === 'created') result.cardsCreated += 1;
       if (outcome.card === 'matched') result.cardsMatched += 1;
+      pictures.push({ catalogProductId: outcome.catalogProductId, imageUrl: row.imageUrl });
     }
+    result.photosAdded = await attachImportedPhotos(this.prisma, locationId, pictures);
     return result;
   }
 }

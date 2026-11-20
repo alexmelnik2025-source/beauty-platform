@@ -60,7 +60,11 @@ export async function upsertSellerProduct(
   locationId: string,
   p: SellerProductInput,
   attempt = 0,
-): Promise<{ product: 'created' | 'updated'; card: 'created' | 'matched' | 'kept' }> {
+): Promise<{
+  product: 'created' | 'updated';
+  card: 'created' | 'matched' | 'kept';
+  catalogProductId: string;
+}> {
   return prisma
     .$transaction(async (tx) => {
       // The same product imported before, or the salon's own product with the same code.
@@ -129,13 +133,13 @@ export async function upsertSellerProduct(
             p.source,
           );
         }
-        return { product: 'updated' as const, card };
+        return { product: 'updated' as const, card, catalogProductId };
       }
       const created = await tx.product.create({ data: { ...data, locationId } });
       if (p.stockQuantity !== null && p.stockQuantity > 0) {
         await stockMoved(tx, created.id, null, p.stockQuantity, userId, p.source);
       }
-      return { product: 'created' as const, card };
+      return { product: 'created' as const, card, catalogProductId };
     })
     .catch(async (error: unknown) => {
       // Another import made the same card or product a moment ago: once more finds it.

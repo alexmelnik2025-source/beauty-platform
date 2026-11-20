@@ -2062,6 +2062,7 @@ export const uk: Dict = {
     narrowDown: 'Показано перші 500 — уточніть пошук.',
     importTicked: 'Імпортувати позначені ({n})',
     imported: 'Готово: нових {created}, оновлено {updated}, пропущено {skipped}.',
+    importedPhotos: 'Фото товарів завантажено за посиланнями: {n}.',
     ordersTitle: 'Замовлення в Base',
     ordersOn: 'Увімкнено: товари, відкладені до візиту, потрапляють у Base як замовлення.',
     ordersOff: 'Вимкнено.',

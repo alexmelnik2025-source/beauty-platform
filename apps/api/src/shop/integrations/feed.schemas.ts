@@ -62,6 +62,10 @@ export const feedImportResultSchema = responseSchema(
     updated: z.number().int(),
     cardsCreated: z.number().int(),
     cardsMatched: z.number().int(),
+    photosAdded: z
+      .number()
+      .int()
+      .describe('Cards without a photo that got the picture from the file (image_link / zdjęcie)'),
     skipped: z.array(
       z.strictObject({
         key: z.string(),

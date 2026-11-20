@@ -67,7 +67,21 @@ interface ImportResult {
   created: number;
   updated: number;
   skipped: unknown[];
+  photosAdded: number;
 }
+
+/** "Gotowe: …", and how many cards got their photo from the seller's links, if any. */
+const importedText = (s: { imported: string; importedPhotos: string }, res: ImportResult) =>
+  [
+    fill(s.imported, {
+      created: String(res.created),
+      updated: String(res.updated),
+      skipped: String(res.skipped.length),
+    }),
+    res.photosAdded > 0 ? fill(s.importedPhotos, { n: String(res.photosAdded) }) : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
 const SYNC_EVERY = [15, 30, 60, 180, 360, 720, 1440];
 
@@ -197,13 +211,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
         body: { items: items.map((i) => ({ externalId: i.key, online: i.online })) },
       });
       setRows(null);
-      setDone(
-        fill(s.imported, {
-          created: String(res.created),
-          updated: String(res.updated),
-          skipped: String(res.skipped.length),
-        }),
-      );
+      setDone(importedText(s, res));
     });
 
   if (!status) return <Spinner />;
@@ -584,13 +592,7 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
         body: { items },
       });
       setFeed(null);
-      setDone(
-        fill(s.imported, {
-          created: String(res.created),
-          updated: String(res.updated),
-          skipped: String(res.skipped.length),
-        }),
-      );
+      setDone(importedText(s, res));
     } catch (e) {
       onError(errorText(t, e));
     } finally {

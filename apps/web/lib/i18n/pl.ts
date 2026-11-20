@@ -2063,6 +2063,7 @@ export const pl = {
     narrowDown: 'Pokazano 500 pierwszych — zawęź wyszukiwanie.',
     importTicked: 'Importuj zaznaczone ({n})',
     imported: 'Gotowe: nowych {created}, zaktualizowanych {updated}, pominiętych {skipped}.',
+    importedPhotos: 'Zdjęcia produktów pobrane z linków: {n}.',
     ordersTitle: 'Zamówienia do Base',
     ordersOn: 'Włączone: produkty odłożone do wizyty trafiają do Base jako zamówienia.',
     ordersOff: 'Wyłączone.',

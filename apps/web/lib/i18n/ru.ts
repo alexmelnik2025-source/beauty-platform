@@ -2070,6 +2070,7 @@ export const ru: Dict = {
     narrowDown: 'Показаны первые 500 — уточните поиск.',
     importTicked: 'Импортировать отмеченные ({n})',
     imported: 'Готово: новых {created}, обновлено {updated}, пропущено {skipped}.',
+    importedPhotos: 'Фото товаров загружено по ссылкам: {n}.',
     ordersTitle: 'Заказы в Base',
     ordersOn: 'Включено: товары, отложенные к визиту, уходят в Base заказами.',
     ordersOff: 'Выключено.',

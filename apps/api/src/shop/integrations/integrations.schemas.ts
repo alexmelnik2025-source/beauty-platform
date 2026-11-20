@@ -193,6 +193,10 @@ export const baseImportResultSchema = responseSchema(
     updated: z.number().int().describe('Products already there: price, stock and code renewed'),
     cardsCreated: z.number().int().describe('New cards in the platform catalogue'),
     cardsMatched: z.number().int().describe('Products joined to an existing card by EAN'),
+    photosAdded: z
+      .number()
+      .int()
+      .describe('Cards without a photo that got the product’s first picture from Base'),
     skipped: z
       .array(
         z.strictObject({

@@ -33,6 +33,7 @@ import type {
 import { BaseOrdersService } from './base-orders.service';
 import { SecretBox } from './secret-box';
 import { closeRun } from './sync-runs';
+import { attachImportedPhotos, type CardPicture } from './product-photos';
 import { cut, normalEan, plainText, stockMoved, upsertSellerProduct } from './seller-products';
 
 const notConnected = (): AppException =>
@@ -362,8 +363,10 @@ export class ShopIntegrationsService {
       updated: 0,
       cardsCreated: 0,
       cardsMatched: 0,
+      photosAdded: 0,
       skipped: [],
     };
+    const pictures: CardPicture[] = [];
     for (const item of input.items) {
       const product = byId.get(item.externalId);
       if (!product) {
@@ -396,7 +399,12 @@ export class ShopIntegrationsService {
       result[outcome.product] += 1;
       if (outcome.card === 'created') result.cardsCreated += 1;
       if (outcome.card === 'matched') result.cardsMatched += 1;
+      pictures.push({
+        catalogProductId: outcome.catalogProductId,
+        imageUrl: product.imageUrls[0] ?? null,
+      });
     }
+    result.photosAdded = await attachImportedPhotos(this.prisma, locationId, pictures);
     await this.prisma.shopIntegration.update({
       where: { id: integration.id },
       data: { lastImportAt: new Date() },

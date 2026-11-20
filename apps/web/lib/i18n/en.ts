@@ -2072,6 +2072,7 @@ export const en: Dict = {
     narrowDown: 'The first 500 are shown — narrow the search.',
     importTicked: 'Import ticked ({n})',
     imported: 'Done: {created} new, {updated} updated, {skipped} skipped.',
+    importedPhotos: 'Product photos taken from links: {n}.',
     ordersTitle: 'Orders to Base',
     ordersOn: 'On: products put aside for a visit go to Base as orders.',
     ordersOff: 'Off.',

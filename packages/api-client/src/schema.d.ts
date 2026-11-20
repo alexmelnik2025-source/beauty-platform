@@ -4622,6 +4622,8 @@ export interface components {
             cardsCreated: number;
             /** @description Products joined to an existing card by EAN */
             cardsMatched: number;
+            /** @description Cards without a photo that got the product’s first picture from Base */
+            photosAdded: number;
             /** @description Products that were not imported, and why */
             skipped: {
                 externalId: string;
@@ -7796,6 +7798,8 @@ export interface components {
             updated: number;
             cardsCreated: number;
             cardsMatched: number;
+            /** @description Cards without a photo that got the picture from the file (image_link / zdjęcie) */
+            photosAdded: number;
             skipped: {
                 key: string;
                 /**

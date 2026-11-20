@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import dns from 'node:dns';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
 import { parseFeed, parsePrice } from '../src/shop/integrations/feed-parser';
 import { decodeFeed } from '../src/shop/integrations/feed.service';
@@ -119,6 +120,12 @@ describe('Reading product files', () => {
   });
 });
 
+/** The smallest PNG: 1×1 pixel. */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+  'base64',
+);
+
 let ctx: TestContext;
 let owner: SignedInUser;
 let feedBase: string;
@@ -145,6 +152,19 @@ describe('Importing from a file (…/shop/integrations/feed)', () => {
     const salon = await createOrgWithLocation(ctx, owner, 'Barber');
     locationId = salon.locationId;
     feedBase = `/v1/organizations/${salon.orgId}/locations/${salon.locationId}/shop/integrations/feed`;
+    // Pictures in the files: a 1×1 PNG at example.com/p.jpg, nothing anywhere else.
+    vi.spyOn(dns.promises, 'lookup').mockImplementation((async () => [
+      { address: '93.184.215.14', family: 4 },
+    ]) as unknown as typeof dns.promises.lookup);
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
+      String(input) === 'https://example.com/p.jpg'
+        ? new Response(new Uint8Array(PNG))
+        : new Response('nope', { status: 404 }),
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('shows what was read, imports the ticked rows and renews them from a newer file', async () => {
@@ -189,6 +209,7 @@ describe('Importing from a file (…/shop/integrations/feed)', () => {
       updated: 0,
       cardsCreated: 1,
       cardsMatched: 1,
+      photosAdded: 0,
       skipped: [
         { key: 'EUR-1', reason: 'OTHER_CURRENCY' },
         { key: 'NOPRICE', reason: 'NO_PRICE' },
@@ -232,6 +253,19 @@ describe('Importing from a file (…/shop/integrations/feed)', () => {
     const google = await send(GOOGLE, 'application/xml').expect(201);
     expect(google.body).toMatchObject({ format: 'google', unreadable: 1 });
     expect(google.body.products[0]).toMatchObject({ key: 'RZ-1', priceGrosze: 5900, stock: 0 });
+    // g:image_link becomes the photo of the new card.
+    const imported = await ctx
+      .http()
+      .post(`${feedBase}/${google.body.feedId}/import`)
+      .set(owner.auth)
+      .send({ items: [{ key: 'RZ-1' }] })
+      .expect(200);
+    expect(imported.body).toMatchObject({ created: 1, cardsCreated: 1, photosAdded: 1 });
+    const card = await ctx.prisma.catalogProduct.findFirstOrThrow({
+      where: { ean: '0859104005020' },
+      include: { photo: { select: { contentType: true, sizeBytes: true } } },
+    });
+    expect(card.photo).toEqual({ contentType: 'image/png', sizeBytes: PNG.length });
     const ceneo = await send(CENEO, 'text/xml').expect(201);
     expect(ceneo.body.products[0]).toMatchObject({ key: '501', priceGrosze: 4550, stock: 3 });
 
