@@ -459,3 +459,137 @@ describe('"Produkty do odbioru" in the client app (task Q3)', () => {
     expect(after.body.available).toEqual([]);
   });
 });
+
+describe('"Jak było?": put aside for the next visit what was used (task Q3, screen C)', () => {
+  const sell = (visitId: string, productId: string) =>
+    ctx
+      .http()
+      .post(`${base}/appointments/${visitId}/products`)
+      .set(owner.auth)
+      .send({ productId, quantity: 1 })
+      .expect(201);
+
+  it('lists what was used at the visit and puts it aside on the next visit, once', async () => {
+    const pomade = await product({
+      name: 'Pomada',
+      priceGrosze: 5900,
+      stockQuantity: 3,
+      inSalonShop: true,
+    });
+    const wax = await product({ name: 'Wosk (tylko salon)', priceGrosze: 3000, stockQuantity: 5 });
+    const other = await product({ name: 'Olejek', priceGrosze: 4000, inSalonShop: true });
+    const visit = await book(10);
+
+    // Before the visit took place nothing was used.
+    const ahead = await ctx
+      .http()
+      .get(`/v1/public/appointments/${visit.token}/products/used`)
+      .expect(200);
+    expect(ahead.body.products).toEqual([]);
+
+    await came(visit.id);
+    await sell(visit.id, pomade.id);
+    await sell(visit.id, wax.id);
+    await sell(visit.id, pomade.id);
+
+    const used = await ctx
+      .http()
+      .get(`/v1/public/appointments/${visit.token}/products/used`)
+      .expect(200);
+    shape('UsedProducts', used.body);
+    // Once each, only what the salon shows to clients, at today's price.
+    expect(used.body).toEqual({
+      currency: 'PLN',
+      products: [
+        {
+          id: pomade.id,
+          name: 'Pomada',
+          brand: null,
+          priceGrosze: 5900,
+          photoId: null,
+          available: true,
+          reservedForNext: false,
+        },
+      ],
+      nextVisit: null,
+      rebook: { serviceId, staffId },
+    });
+    const none = await ctx
+      .http()
+      .post(`/v1/public/appointments/${visit.token}/products/next`)
+      .send({ productId: pomade.id })
+      .expect(409);
+    expectError(none.body, 'NO_NEXT_VISIT');
+
+    // "Umów kolejną wizytę": the same client books again.
+    const next = await book(12);
+    const withNext = await ctx
+      .http()
+      .get(`/v1/public/appointments/${visit.token}/products/used`)
+      .expect(200);
+    expect(withNext.body.nextVisit).toEqual({ date: day, time: '12:00', staffName: 'Kasia' });
+
+    const saved = await ctx
+      .http()
+      .post(`/v1/public/appointments/${visit.token}/products/next`)
+      .send({ productId: pomade.id })
+      .expect(200);
+    shape('UsedProducts', saved.body);
+    expect(saved.body.products[0].reservedForNext).toBe(true);
+    await ctx
+      .http()
+      .post(`/v1/public/appointments/${visit.token}/products/next`)
+      .send({ productId: pomade.id })
+      .expect(200);
+    const onNext = await ctx
+      .http()
+      .get(`/v1/public/appointments/${next.token}/products`)
+      .expect(200);
+    expect(onNext.body.reservations).toEqual([
+      expect.objectContaining({ productId: pomade.id, quantity: 1, status: 'reserved' }),
+    ]);
+
+    // Only a product used at this visit and shown to clients.
+    for (const productId of [wax.id, other.id]) {
+      await ctx
+        .http()
+        .post(`/v1/public/appointments/${visit.token}/products/next`)
+        .send({ productId })
+        .expect(404);
+    }
+  });
+
+  it("another client's visit is not 'the next one'", async () => {
+    const pomade = await product({ name: 'Pomada', priceGrosze: 5900, inSalonShop: true });
+    const visit = await book(10);
+    await came(visit.id);
+    await sell(visit.id, pomade.id);
+    const h = await ctx
+      .http()
+      .post(`/v1/public/locations/${slug}/holds`)
+      .send({ serviceId, staffId, start: at(14) })
+      .expect(201);
+    const someoneElse = {
+      ...CLIENT,
+      name: 'Jan Nowak',
+      phone: '+48 600 300 400',
+      email: 'jan@example.com',
+    };
+    await ctx
+      .http()
+      .post(`/v1/public/holds/${h.body.holdId}/code`)
+      .send({ holdToken: h.body.holdToken, ...someoneElse })
+      .expect(202);
+    const code = ctx.mail.lastTo(someoneElse.email)?.text.match(/\b(\d{6})\b/)?.[1];
+    await ctx
+      .http()
+      .post(`/v1/public/holds/${h.body.holdId}/confirm`)
+      .send({ holdToken: h.body.holdToken, code })
+      .expect(200);
+    const used = await ctx
+      .http()
+      .get(`/v1/public/appointments/${visit.token}/products/used`)
+      .expect(200);
+    expect(used.body.nextVisit).toBeNull();
+  });
+});

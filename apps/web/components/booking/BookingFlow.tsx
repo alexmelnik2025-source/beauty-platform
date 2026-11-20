@@ -181,6 +181,8 @@ export function BookingFlow({
   const [channel, setChannel] = useState<{ channel: string; channelStaffId?: string }>();
   /** Task Q2: the specialist whose QR code the client scanned — their times right after the service. */
   const [qrStaff, setQrStaff] = useState<PublicLocation['staff'][number] | null>(null);
+  /** Task Q3 (screen C): "Umów kolejną wizytę" after a visit — products to put aside (?product=…). */
+  const [bring, setBring] = useState<string[]>([]);
   const [remember, setRemember] = useState(false);
   /** Task 180d: the client is already signed in to "My visits" on this device. */
   const [signedInAs, setSignedInAs] = useState<string | null>(null);
@@ -261,6 +263,8 @@ export function BookingFlow({
         setContact((c) => (c.phone.trim() === '+48' ? { ...c, phone: `+${own} ` } : c));
         // "Book again" from the client app: ?service=…&staff=… skips straight to the times.
         const params = new URLSearchParams(window.location.search);
+        const products = (params.get('product') ?? '').split(',').filter(Boolean).slice(0, 10);
+        if (products.length) setBring(products);
         const preService = loaded.services.find((s) => s.id === params.get('service'));
         if (!preService) {
           // Task Q2: the QR code of one specialist (?staff=… alone) — the client books with them.
@@ -1131,6 +1135,7 @@ export function BookingFlow({
               <VisitProductsByLink
                 endpoint={`/v1/public/appointments/${result.manageToken}`}
                 offer
+                bring={bring}
               />
             )}
             {/* Task 417: right after booking, the signed-in client can save the salon. */}

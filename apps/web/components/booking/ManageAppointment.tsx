@@ -9,6 +9,7 @@ import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { VisitReviewForm } from '../reviews/VisitReviewForm';
 import { VisitProductsByLink } from './VisitProductsByLink';
+import { UsedProductsByLink } from './UsedProductsByLink';
 import { asksWishes, WishesPicker } from '../wishes/WishesPicker';
 import type { VisitWishes } from '../wishes/wishes';
 import { directionsLink } from './SalonProfile';
@@ -20,7 +21,13 @@ type Mode = 'view' | 'move' | 'cancel';
 export function ManageAppointment({ token }: { token: string }) {
   const endpoint = `/v1/public/appointments/${token}`;
   // Task 20: the server's .ics keeps the same event when the visit moves (UID + SEQUENCE).
-  return <AppointmentManager endpoint={endpoint} calendarHref={`${endpoint}/calendar.ics`} />;
+  return (
+    <AppointmentManager
+      endpoint={endpoint}
+      calendarHref={`${endpoint}/calendar.ics`}
+      usedProducts
+    />
+  );
 }
 
 /**
@@ -33,8 +40,11 @@ export function AppointmentManager<T extends PublicAppointment>({
   title,
   top,
   extra,
+  usedProducts = false,
 }: {
   endpoint: string;
+  /** Task Q3 (screen C): "Na wizycie użyto" under the review, by the visit link. */
+  usedProducts?: boolean;
   /** The visit as an .ics file from the server; without it the file is made in the browser. */
   calendarHref?: string;
   /** Small caption above the salon name. */
@@ -237,6 +247,11 @@ export function AppointmentManager<T extends PublicAppointment>({
             endpoint={`${endpoint}/review`}
             staffName={a.staff.displayName}
           />
+        ) : null}
+
+        {/* Task Q3 (screen C): what the specialist used — put aside for the next visit. */}
+        {mode === 'view' && usedProducts && a.status === 'completed' ? (
+          <UsedProductsByLink key={`used-${a.id}`} endpoint={endpoint} slug={a.salon.slug} />
         ) : null}
 
         {mode === 'view' && extra ? extra(a, setA) : null}

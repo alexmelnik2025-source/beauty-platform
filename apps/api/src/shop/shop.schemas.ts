@@ -236,6 +236,43 @@ export const visitProductsSchema = responseSchema(
 );
 export type VisitProductsResponse = z.infer<typeof visitProductsSchema>;
 
+/** Task Q3 (screen C): after the visit — what the specialist used, put aside for the next one. */
+export const usedProductsSchema = responseSchema(
+  'UsedProducts',
+  z.strictObject({
+    currency: z.string(),
+    products: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          name: z.string(),
+          brand: z.string().nullable(),
+          priceGrosze: money('Price of one now'),
+          photoId: z.string().nullable(),
+          available: z.boolean().describe('false = none left to put aside right now'),
+          reservedForNext: z
+            .boolean()
+            .describe('Already waiting for the client on their next visit'),
+        }),
+      )
+      .describe(
+        'Products sold at this visit that the salon still shows to clients; empty before the visit took place',
+      ),
+    nextVisit: z
+      .strictObject({
+        date: z.string().describe('YYYY-MM-DD in the salon’s time'),
+        time: z.string().describe('HH:mm in the salon’s time'),
+        staffName: z.string(),
+      })
+      .nullable()
+      .describe('The client’s next confirmed visit in this salon; null = none booked'),
+    rebook: z
+      .strictObject({ serviceId: z.string(), staffId: z.string() })
+      .describe('"Umów kolejną wizytę": the same service with the same specialist'),
+  }),
+);
+export type UsedProductsResponse = z.infer<typeof usedProductsSchema>;
+
 /** What the salon sees in the visit card: "Do wydania klientowi". */
 export const visitReservationsSchema = responseSchema(
   'VisitReservations',

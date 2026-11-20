@@ -128,6 +128,7 @@ export type PublicSalonProducts = Schemas['PublicSalonProducts'];
 export type PublicShopProduct = Schemas['PublicShopProduct'];
 export type PublicShopList = Schemas['PublicShopList'];
 export type VisitProducts = Schemas['VisitProducts'];
+export type UsedProducts = Schemas['UsedProducts'];
 export type VisitReservations = Schemas['VisitReservations'];
 /** "Zamknij kasę": the cash counted in the till at the end of a day (task 232). */
 export type TillClose = Schemas['TillClose'];

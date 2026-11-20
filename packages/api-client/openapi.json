@@ -13231,6 +13231,96 @@
         ]
       }
     },
+    "/v1/public/appointments/{token}/products/used": {
+      "get": {
+        "description": "Task Q3 (screen C). Products sold at this visit that the salon still shows to clients, at today’s price; `nextVisit` is the client’s next confirmed visit in this salon (null = none — the page offers \"Umów kolejną wizytę\" with `rebook`).",
+        "operationId": "PublicShopController_usedProducts",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "\"Jak było?\": products the specialist used at this visit, to put aside for the next",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/products/next": {
+      "post": {
+        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.",
+        "operationId": "PublicShopController_reserveForNext",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "productId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "\"Odłóż na następną wizytę\": put a product used at this visit aside for the next one",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/v1/public/appointments/{token}/products/{reservationId}": {
       "delete": {
         "description": "Task Q3 (part 4). Only a product still waiting; otherwise 404.",
@@ -31272,6 +31362,109 @@
         },
         "required": [
           "salonName"
+        ],
+        "additionalProperties": false
+      },
+      "UsedProducts": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "brand": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one now, in hundredths of the salon currency"
+                },
+                "photoId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "available": {
+                  "type": "boolean",
+                  "description": "false = none left to put aside right now"
+                },
+                "reservedForNext": {
+                  "type": "boolean",
+                  "description": "Already waiting for the client on their next visit"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "brand",
+                "priceGrosze",
+                "photoId",
+                "available",
+                "reservedForNext"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Products sold at this visit that the salon still shows to clients; empty before the visit took place"
+          },
+          "nextVisit": {
+            "nullable": true,
+            "description": "The client’s next confirmed visit in this salon; null = none booked",
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "description": "YYYY-MM-DD in the salon’s time"
+              },
+              "time": {
+                "type": "string",
+                "description": "HH:mm in the salon’s time"
+              },
+              "staffName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "date",
+              "time",
+              "staffName"
+            ],
+            "additionalProperties": false
+          },
+          "rebook": {
+            "type": "object",
+            "properties": {
+              "serviceId": {
+                "type": "string"
+              },
+              "staffId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "serviceId",
+              "staffId"
+            ],
+            "additionalProperties": false,
+            "description": "\"Umów kolejną wizytę\": the same service with the same specialist"
+          }
+        },
+        "required": [
+          "currency",
+          "products",
+          "nextVisit",
+          "rebook"
         ],
         "additionalProperties": false
       },
