@@ -236,6 +236,7 @@ export default function App() {
                 t={t}
                 locale={locale}
                 onBack={() => setFinder(null)}
+                signedIn={stage.kind === 'visits'}
                 onOpenSalon={(s) =>
                   setFinder({ kind: 'salon', slug: s.slug, name: s.name, fromShop: true })
                 }

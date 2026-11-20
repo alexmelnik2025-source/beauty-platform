@@ -9,12 +9,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { ClientApi, Locale, ShopCategory, ShopProduct } from '../api';
+import type { ClientApi, ClientAppointment, Locale, ShopCategory, ShopProduct } from '../api';
 import { API_URL } from '../config';
 import { errorText } from '../errors';
-import { formatPrice } from '../format';
+import { formatMoment, formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { fromCurrency, SHOP_CATEGORIES, sellersLine } from '../shop';
+import { fromCurrency, nextVisitAt, SHOP_CATEGORIES, sellersLine } from '../shop';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
 
 /** The search asks the server once the client stops typing for this long. */
@@ -33,6 +33,8 @@ export function ShopScreen(props: {
   t: Dictionary;
   locale: Locale;
   onBack: () => void;
+  /** Signed in: an offer at a salon where I have a visit ahead offers "Odbiorę przy wizycie". */
+  signedIn: boolean;
   /** "Umów wizytę" at an offer: the salon's page with its booking. */
   onOpenSalon: (salon: { slug: string; name: string }) => void;
 }) {
@@ -84,6 +86,8 @@ export function ShopScreen(props: {
     return (
       <ProductView
         product={open}
+        api={api}
+        signedIn={props.signedIn}
         t={t}
         locale={locale}
         onBack={() => setOpen(null)}
@@ -171,15 +175,53 @@ export function ShopScreen(props: {
   );
 }
 
-/** One product: its picture and description, and the salons where the client picks it up. */
+/**
+ * One product: its picture and description, and the salons where the client picks it up.
+ * Signed in with a visit ahead at a salon, its offer leads with "Odbiorę przy wizycie · <date>":
+ * one tap puts one piece aside for that visit (paid at the salon, taken back in "Moje wizyty").
+ */
 function ProductView(props: {
   product: ShopProduct;
+  api: ClientApi;
+  signedIn: boolean;
   t: Dictionary;
   locale: Locale;
   onBack: () => void;
   onOpenSalon: (salon: { slug: string; name: string }) => void;
 }) {
-  const { product: p, t, locale } = props;
+  const { product: p, api, t, locale } = props;
+  const [visits, setVisits] = useState<ClientAppointment[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [done, setDone] = useState<Record<string, string>>({});
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!props.signedIn) return;
+    let live = true;
+    api
+      .appointments('upcoming')
+      .then((res) => live && setVisits(res.items))
+      // Without the visits the page still works: each offer shows "Umów wizytę".
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [api, props.signedIn]);
+
+  const reserve = async (productId: string, visit: ClientAppointment, when: string) => {
+    if (busy) return;
+    setBusy(productId);
+    setError('');
+    try {
+      await api.reserveProduct(visit.id, productId);
+      setDone((d) => ({ ...d, [productId]: when }));
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.top}>
@@ -199,26 +241,46 @@ function ProductView(props: {
         {t.shop.where}
       </Text>
       <Text style={styles.small}>{t.shop.pickup}</Text>
-      {p.offers.map((o) => (
-        <Card key={o.productId}>
-          <View style={styles.offerTop}>
-            <Text style={[styles.name, { flex: 1 }]}>{o.salon.name}</Text>
-            <Text style={styles.price}>{formatPrice(o.priceGrosze, o.currency, locale)}</Text>
-          </View>
-          <Text style={styles.small}>
-            {[o.salon.addressLine, o.salon.city].filter(Boolean).join(', ')}
-          </Text>
-          {o.available ? null : <Text style={styles.small}>{t.shop.soldOut}</Text>}
-          <View style={{ marginTop: 8 }}>
-            <Button
-              kind="secondary"
-              label={t.shop.book}
-              a11yLabel={`${t.shop.book}: ${o.salon.name}`}
-              onPress={() => props.onOpenSalon({ slug: o.salon.slug, name: o.salon.name })}
-            />
-          </View>
-        </Card>
-      ))}
+      {error ? <ErrorText>{error}</ErrorText> : null}
+      {p.offers.map((o) => {
+        const visit = o.available ? nextVisitAt(visits, o.salon.slug) : null;
+        const when = visit ? formatMoment(visit.start, visit.timezone, locale) : '';
+        const reservedFor = done[o.productId];
+        return (
+          <Card key={o.productId}>
+            <View style={styles.offerTop}>
+              <Text style={[styles.name, { flex: 1 }]}>{o.salon.name}</Text>
+              <Text style={styles.price}>{formatPrice(o.priceGrosze, o.currency, locale)}</Text>
+            </View>
+            <Text style={styles.small}>
+              {[o.salon.addressLine, o.salon.city].filter(Boolean).join(', ')}
+            </Text>
+            {o.available ? null : <Text style={styles.small}>{t.shop.soldOut}</Text>}
+            {reservedFor ? (
+              <Text accessibilityRole="alert" style={styles.done}>
+                {fill(t.shop.reserved, { when: reservedFor })}
+              </Text>
+            ) : visit ? (
+              <View style={{ marginTop: 8 }}>
+                <Button
+                  label={fill(t.shop.reserve, { when })}
+                  a11yLabel={`${fill(t.shop.reserve, { when })}: ${o.salon.name}`}
+                  busy={busy === o.productId}
+                  onPress={() => void reserve(o.productId, visit, when)}
+                />
+              </View>
+            ) : null}
+            <View style={{ marginTop: 8 }}>
+              <Button
+                kind={visit || reservedFor ? 'link' : 'secondary'}
+                label={t.shop.book}
+                a11yLabel={`${t.shop.book}: ${o.salon.name}`}
+                onPress={() => props.onOpenSalon({ slug: o.salon.slug, name: o.salon.name })}
+              />
+            </View>
+          </Card>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -257,4 +319,5 @@ const styles = StyleSheet.create({
   noPhoto: { backgroundColor: colors.soft },
   photo: { width: '100%', aspectRatio: 1, borderRadius: 14, backgroundColor: colors.soft },
   offerTop: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
+  done: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: '600', marginTop: 8 },
 });

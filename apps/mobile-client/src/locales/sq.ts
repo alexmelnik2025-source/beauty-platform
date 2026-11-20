@@ -302,6 +302,9 @@ export const sq: Dictionary = {
     where: 'Ku merret',
     pickup: 'Marrje në sallon, pagesë në vend.',
     book: 'Rezervo vizitë',
+    reserve: 'Do ta marr në vizitë · {when}',
+    reserved:
+      'U la mënjanë për vizitën më {when}. Paguani në sallon. E ndryshoni te “Vizitat e mia”.',
   },
   catalog: {
     title: 'Gjeni një sallon',

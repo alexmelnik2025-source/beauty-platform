@@ -15,6 +15,8 @@ import { serveApp } from './mobile-app';
  * phone and puts a pomade aside: it waits at the salon, paid at the visit. Screenshots
  * Q3-A-booked, Q3-A-booked-open. Then "Moje wizyty" in the client app shows the same products in
  * the visit card: the client gives the pomade back and puts another product aside (Q3-B-app).
+ * Last, in "Sklep" a product of the same salon offers "Odbiorę przy wizycie · <date>" for that
+ * visit (Q3-app-shop-reserve).
  * (Named "shop-…" so it runs after booking.spec.ts, which counts the salons in the catalogue.)
  */
 
@@ -195,6 +197,42 @@ test('"Dodać coś do wizyty?" on the booked screen (task Q3, screen A)', async 
     ).toBeVisible();
     await card.scrollIntoViewIfNeeded();
     await shot(app, 'Q3-B-app');
+
+    // "Sklep": a product of this salon offers "Odbiorę przy wizycie · <date>" — the client has a
+    // visit there, so one tap puts it aside for that visit (Q3-app-shop-reserve).
+    const balm = `Balsam do brody ${run}`;
+    const card2 = await json<{ id: string }>(
+      await request.post(`${salon.base}/shop/catalog`, {
+        headers: salon.auth,
+        data: { name: balm, brand: 'Gestalt', category: 'beard' },
+      }),
+    );
+    await json(
+      await request.post(`${salon.base}/products`, {
+        headers: salon.auth,
+        data: {
+          name: balm,
+          priceGrosze: 5500,
+          stockQuantity: 3,
+          catalogProductId: card2.id,
+          inSalonShop: true,
+          inMarketplace: true,
+        },
+      }),
+    );
+    await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: /Sklep — kosmetyki z salonów/ }).click();
+    await app.getByLabel('Szukaj produktu lub marki').fill(balm);
+    await app.getByRole('button', { name: new RegExp(balm) }).click();
+    await expect(app.getByRole('heading', { name: balm })).toBeVisible();
+    const reserve = app.getByRole('button', {
+      name: new RegExp(`^Odbiorę przy wizycie · .+: Dodaj Do Wizyty ${run}$`),
+    });
+    await expect(reserve).toBeVisible();
+    await reserve.click();
+    await expect(app.getByText(/^Odłożone na wizytę .+ Płacisz w salonie\./)).toBeVisible();
+    await expect(reserve).toHaveCount(0);
+    await shot(app, 'Q3-app-shop-reserve');
     await phone.close();
   } finally {
     clientApp.server.close();

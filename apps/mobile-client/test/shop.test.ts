@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ClientApi, type ShopProduct, type TokenStore } from '../src/api';
-import { availableOffers, fromCurrency, sellersLine, SHOP_CATEGORIES } from '../src/shop';
+import { ClientApi, type ClientAppointment, type ShopProduct, type TokenStore } from '../src/api';
+import {
+  availableOffers,
+  fromCurrency,
+  nextVisitAt,
+  sellersLine,
+  SHOP_CATEGORIES,
+} from '../src/shop';
 import { DICTIONARIES, LOCALES } from '../src/i18n';
 
 const store: TokenStore = { get: async () => null, set: async () => undefined };
@@ -66,6 +72,37 @@ describe('"Sklep" in the client app (task Q3, screen 2)', () => {
       for (const c of SHOP_CATEGORIES) expect(shop.categories[c], `${l}.${c}`).toBeTruthy();
       expect(shop.from).toContain('{price}');
       expect(shop.salons).toContain('{n}');
+    }
+  });
+});
+
+describe('"Odbiorę przy wizycie" from a product (task Q3)', () => {
+  const NOW = Date.parse('2026-11-20T10:00:00Z');
+  const visit = (id: string, slug: string, start: string, status = 'confirmed') =>
+    ({ id, status, start, salon: { slug } }) as unknown as ClientAppointment;
+
+  it('takes my soonest confirmed visit ahead at that salon', () => {
+    const visits = [
+      visit('later', 'bema', '2026-11-28T09:00:00Z'),
+      visit('other-salon', 'wola', '2026-11-21T09:00:00Z'),
+      visit('soon', 'bema', '2026-11-22T15:00:00Z'),
+      visit('past', 'bema', '2026-11-20T09:00:00Z'),
+      visit('cancelled', 'bema', '2026-11-21T08:00:00Z', 'cancelled'),
+      visit('waiting', 'bema', '2026-11-21T07:00:00Z', 'held'),
+    ];
+    expect(nextVisitAt(visits, 'bema', NOW)?.id).toBe('soon');
+    expect(nextVisitAt(visits, 'wola', NOW)?.id).toBe('other-salon');
+  });
+
+  it('is null without a visit ahead there — the offer shows only "Umów wizytę"', () => {
+    expect(nextVisitAt([], 'bema', NOW)).toBeNull();
+    expect(nextVisitAt([visit('past', 'bema', '2026-11-19T09:00:00Z')], 'bema', NOW)).toBeNull();
+  });
+
+  it('has the texts in every language', () => {
+    for (const l of LOCALES) {
+      expect(DICTIONARIES[l].shop.reserve).toContain('{when}');
+      expect(DICTIONARIES[l].shop.reserved).toContain('{when}');
     }
   });
 });

@@ -12,13 +12,17 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~06:10 UTC — 593 (ветка `agent/593-shop-pickup-at-visit`, от main): Q3 — «Odbiorę przy wizycie» с
+  карточки товара во вкладке «Sklep» клиентского приложения** (к ближайшему визиту в этом салоне; без визита —
+  «Umów wizytę»). Скриншот Q3-app-shop-reserve. Влито в main ~06:45 UTC.
+
 - **20.11.2026, ~05:50 UTC — влиты Q3 экран C и перенос товаров после отмены** (ветки `agent/589-after-visit-products`
   → `agent/590-move-products-on-cancel`): «Na wizycie użyto» на
   странице визита по ссылке после визита — «Odłóż na następną wizytę» / «Umów kolejną wizytę» с товарами в ссылке
   (`?product=…`, откладываются сразу после записи). API `…/products/used`, `…/products/next`; e2e
   `shop-after-visit.spec.ts`. Экран C в клиентском приложении (`UsedProductsCard`, ветка
-  `agent/591-app-after-visit-products`, e2e `shop-after-visit-app.spec.ts`). Осталось в Q3: «Odbiorę przy wizycie» с
-  карточки товара во вкладке «Sklep». После отмены визита с отложенными товарами — блок
+  `agent/591-app-after-visit-products`, e2e `shop-after-visit-app.spec.ts`). «Odbiorę przy wizycie» с
+  карточки товара во вкладке «Sklep» — 593. После отмены визита с отложенными товарами — блок
   «Przenieść produkty na nowy termin?» на странице визита (`CancelledVisitProducts`) — в main; в клиентском приложении —
   ещё нет.
 
@@ -31,7 +35,7 @@
   `shop-booked-products.spec.ts` (Q3-A-booked, Q3-A-booked-open). **Moje wizyty:** API
   `GET/POST /v1/client/appointments/{id}/products`, `DELETE …/{reservationId}` (тесты в `shop-reservations.spec.ts`) и
   карточка «Produkty do odbioru» в визите клиентского приложения (`screens/VisitProductsCard.tsx`, скриншот Q3-B-app).
-  Осталось в Q3: экран C («Jak było?» → «Odłóż na następną wizytę»); кнопка «Odbiorę przy wizycie» во вкладке «Sklep».
+  Осталось в Q3: экран C («Jak było?» → «Odłóż na następną wizytę»); кнопка «Odbiorę przy wizycie» во вкладке «Sklep» (593).
 - **20.11.2026, ~04:10 UTC — 587 (ветка `agent/587-base-orders`, от main): Q4 часть 5 — заказы/брони в Base (API).**
   - блок «Zamówienia do Base» в кабинете. Осталось по Q4: статус Base в бизнес-приложении (фото из Base/файла — в main, 592).
 
