@@ -3845,6 +3845,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/appointments/{token}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Products the client put aside for this visit, and what else they may add
+         * @description Task Q3 (part 4). By the "manage" link of the visit. `canChange` while the visit is confirmed and ahead; `available` lists "Produkty salonu" (empty once the visit cannot be changed).
+         */
+        get: operations["PublicShopController_visitProducts"];
+        put?: never;
+        /**
+         * "Odbiorę przy wizycie": put a product of the salon aside for this visit
+         * @description Task Q3 (part 4). Paid at the salon, no online payment. Only a product the salon shows to clients; more than the salon has left (after other clients’ reservations) → 409 OUT_OF_STOCK; a visit that started or is not confirmed → 409 TOO_LATE_TO_CHANGE.
+         */
+        post: operations["PublicShopController_reserve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/products/{reservationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * The client takes a product back (until the visit starts)
+         * @description Task Q3 (part 4). Only a product still waiting; otherwise 404.
+         */
+        delete: operations["PublicShopController_unreserve"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base": {
         parameters: {
             query?: never;
@@ -4008,6 +4052,63 @@ export interface paths {
          * @description Like the Base import: each becomes the salon’s product ("Produkty salonu"); `online: true` also shows it in "Sklep"; joined to the card with the same EAN or a new card is made; importing again renews price, stock and code. A file older than a day → 404.
          */
         post: operations["ShopFeedController_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products the client put aside for this visit ("Do wydania klientowi") */
+        get: operations["VisitReservationsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/hand-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Rozlicz wizytę i produkt": the product is handed over and sold at this visit
+         * @description Task Q3 (part 4). The usual sale of task 394: the visit must be marked "came" (409 NOT_COMPLETED), the pieces leave the stock (409 OUT_OF_STOCK), the price is the product’s now. A product no longer waiting → 409 NOT_RESERVED.
+         */
+        post: operations["VisitReservationsController_handOver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The salon takes a waiting product back
+         * @description Task Q3 (part 4). Whoever may change the visit. Not waiting → 409 NOT_RESERVED.
+         */
+        post: operations["VisitReservationsController_cancel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5756,6 +5857,8 @@ export interface components {
             onlineBookingEnabled: boolean;
             /** @description Task Q3: how a client gets a product bought from the salon; at the launch always ["pickup_at_salon"] (not changeable yet) */
             shopFulfillment: ("pickup_at_salon" | "shipping")[];
+            /** @description Task Q3: a product put aside for a visit waits this many days after it, then the reservation expires */
+            shopReservationDays: number;
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
             /** @description Task 80: offer a drink (only the drinks listed) */
@@ -5808,6 +5911,8 @@ export interface components {
             onlineBookingEnabled: boolean;
             /** @description Task Q3: how a client gets a product bought from the salon; at the launch always ["pickup_at_salon"] (not changeable yet) */
             shopFulfillment: ("pickup_at_salon" | "shipping")[];
+            /** @description Task Q3: a product put aside for a visit waits this many days after it, then the reservation expires */
+            shopReservationDays: number;
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
             /** @description Task 80: offer a drink (only the drinks listed) */
@@ -8010,6 +8115,72 @@ export interface components {
             /** @description All products of the visit; not part of the visit price, in hundredths of the salon currency */
             totalGrosze: number;
         };
+        VisitProducts: {
+            currency: string;
+            /** @description The visit is still ahead and confirmed: products may be added or taken back */
+            canChange: boolean;
+            /** @description Oldest first; cancelled ones left out */
+            reservations: {
+                id: string;
+                /** @description null when the product was removed from the list later */
+                productId: string | null;
+                /** @description The name at the time it was put aside */
+                name: string;
+                quantity: number;
+                /** @description Price of one at the time it was put aside, in hundredths of the salon currency */
+                unitPriceGrosze: number;
+                /** @description quantity × price, in hundredths of the salon currency */
+                totalGrosze: number;
+                /**
+                 * @description reserved — waiting at the salon; handed — given and paid at the visit; cancelled; expired — not picked up in time
+                 * @enum {string}
+                 */
+                status: "reserved" | "handed" | "cancelled" | "expired";
+                /** @description The card’s picture, /v1/public/photos/<id>; null = none */
+                photoId: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            /** @description All products still reserved or handed; paid at the salon, not online, in hundredths of the salon currency */
+            totalGrosze: number;
+            /** @description "Produkty salonu" the client may still add (only while canChange) */
+            available: {
+                id: string;
+                name: string;
+                brand: string | null;
+                /** @description Price of one, in hundredths of the salon currency */
+                priceGrosze: number;
+                photoId: string | null;
+                /** @description false = none left to put aside right now */
+                available: boolean;
+            }[];
+        };
+        VisitReservations: {
+            /** @description Oldest first, every status */
+            reservations: {
+                id: string;
+                /** @description null when the product was removed from the list later */
+                productId: string | null;
+                /** @description The name at the time it was put aside */
+                name: string;
+                quantity: number;
+                /** @description Price of one at the time it was put aside, in hundredths of the salon currency */
+                unitPriceGrosze: number;
+                /** @description quantity × price, in hundredths of the salon currency */
+                totalGrosze: number;
+                /**
+                 * @description reserved — waiting at the salon; handed — given and paid at the visit; cancelled; expired — not picked up in time
+                 * @enum {string}
+                 */
+                status: "reserved" | "handed" | "cancelled" | "expired";
+                /** @description The card’s picture, /v1/public/photos/<id>; null = none */
+                photoId: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            /** @description Products still waiting to be handed over, in hundredths of the salon currency */
+            toHandGrosze: number;
+        };
         VisitReview: {
             /** @description The salon collects reviews, the visit took place and it ended less than 30 days ago */
             canReview: boolean;
@@ -8607,6 +8778,8 @@ export interface operations {
                     rebookReminderText?: string | null;
                     /** @default false */
                     onlineBookingEnabled?: boolean;
+                    /** @default 14 */
+                    shopReservationDays?: number;
                     /** @default true */
                     askMood?: boolean;
                     /** @default false */
@@ -8688,6 +8861,7 @@ export interface operations {
                     rebookReminderDays?: number;
                     rebookReminderText?: string | null;
                     onlineBookingEnabled?: boolean;
+                    shopReservationDays?: number;
                     askMood?: boolean;
                     askDrink?: boolean;
                     drinks?: ("coffee" | "tea" | "water")[];
@@ -14682,6 +14856,79 @@ export interface operations {
             };
         };
     };
+    PublicShopController_visitProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_reserve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @default 1 */
+                    quantity?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_unreserve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                reservationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
     ShopIntegrationsController_status: {
         parameters: {
             query?: never;
@@ -14956,6 +15203,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShopFeedImportResult"];
+                };
+            };
+        };
+    };
+    VisitReservationsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReservations"];
+                };
+            };
+        };
+    };
+    VisitReservationsController_handOver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+                reservationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReservations"];
+                };
+            };
+        };
+    };
+    VisitReservationsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+                reservationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReservations"];
                 };
             };
         };

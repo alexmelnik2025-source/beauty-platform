@@ -52,6 +52,7 @@ type Ids = Record<
   | 'code'
   | 'cardId'
   | 'feedId',
+  'reservationId',
   string
 >;
 
@@ -160,6 +161,8 @@ function validBody(route: Route): object {
   if (p.endsWith('/products/:productId')) return { priceGrosze: 1 };
   if (p.endsWith('/products')) return { name: 'Hacked', priceGrosze: 1 };
   if (p.endsWith('/shop/catalog/:cardId')) return { name: 'Hacked' };
+  if (p.endsWith('/reservations/:reservationId/hand-over')) return {};
+  if (p.endsWith('/reservations/:reservationId/cancel')) return {};
   if (p.endsWith('/shop/catalog')) return { name: 'Hacked' };
   if (p.endsWith('/shop/integrations/base/import')) return { items: [{ externalId: '1' }] };
   if (p.endsWith('/shop/integrations/base/sync')) return {};
@@ -543,6 +546,17 @@ async function seedLocation(
   const voucherUse = await ctx.prisma.giftVoucherUse.create({
     data: { voucherId: voucher.id, amountGrosze: 2000 },
   });
+  // A product the client put aside for the visit (task Q3, part 4).
+  const reservation = await ctx.prisma.productReservation.create({
+    data: {
+      locationId: org.locationId,
+      appointmentId: appointment.body.id,
+      productId: product.id,
+      name: 'Pomada',
+      quantity: 1,
+      unitPriceGrosze: 4500,
+    },
+  });
   // A card this salon made in the platform catalogue (task Q3); the product is its offer.
   const card = await ctx.prisma.catalogProduct.create({
     data: { name: 'Pomada', createdByLocationId: org.locationId },
@@ -586,6 +600,7 @@ async function seedLocation(
     code: voucher.code,
     cardId: card.id,
     feedId: feed.id,
+    reservationId: reservation.id,
   };
 }
 
@@ -632,6 +647,9 @@ async function snapshotOf(ids: Ids) {
       where: { locationId: ids.locationId },
     }),
     products: await ctx.prisma.product.findMany({ where: { locationId: ids.locationId } }),
+    productReservations: await ctx.prisma.productReservation.findMany({
+      where: { locationId: ids.locationId },
+    }),
     catalogCards: await ctx.prisma.catalogProduct.findMany({
       where: { createdByLocationId: ids.locationId },
     }),

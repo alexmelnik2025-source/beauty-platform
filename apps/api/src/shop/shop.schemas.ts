@@ -176,3 +176,72 @@ export type CatalogSearchResponse = z.infer<typeof catalogSearchResultSchema>;
 export type PublicSalonProductsResponse = z.infer<typeof publicSalonProductsSchema>;
 export type PublicShopProductResponse = z.infer<typeof publicShopProductSchema>;
 export type PublicShopListResponse = z.infer<typeof publicShopListSchema>;
+
+// ── Task Q3 (part 4): products put aside for a visit ─────
+
+export const RESERVATION_STATUSES = ['reserved', 'handed', 'cancelled', 'expired'] as const;
+
+/** "Odbiorę przy wizycie": the client puts a product of the salon aside for this visit. */
+export const reserveProductSchema = z.object({
+  productId: z.uuid(),
+  quantity: z.number().int().min(1).max(10).default(1),
+});
+export type ReserveProductInput = z.infer<typeof reserveProductSchema>;
+
+const reservation = z.strictObject({
+  id: z.string(),
+  productId: z
+    .string()
+    .nullable()
+    .describe('null when the product was removed from the list later'),
+  name: z.string().describe('The name at the time it was put aside'),
+  quantity: z.number().int(),
+  unitPriceGrosze: money('Price of one at the time it was put aside'),
+  totalGrosze: money('quantity × price'),
+  status: z
+    .enum(RESERVATION_STATUSES)
+    .describe(
+      'reserved — waiting at the salon; handed — given and paid at the visit; cancelled; expired — not picked up in time',
+    ),
+  photoId: z
+    .string()
+    .nullable()
+    .describe('The card’s picture, /v1/public/photos/<id>; null = none'),
+  createdAt: z.iso.datetime(),
+});
+
+/** What the client sees by the visit link and in "Moje wizyty": put aside, and what else they may add. */
+export const visitProductsSchema = responseSchema(
+  'VisitProducts',
+  z.strictObject({
+    currency: z.string(),
+    canChange: z
+      .boolean()
+      .describe('The visit is still ahead and confirmed: products may be added or taken back'),
+    reservations: z.array(reservation).describe('Oldest first; cancelled ones left out'),
+    totalGrosze: money('All products still reserved or handed; paid at the salon, not online'),
+    available: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          name: z.string(),
+          brand: z.string().nullable(),
+          priceGrosze: money('Price of one'),
+          photoId: z.string().nullable(),
+          available: z.boolean().describe('false = none left to put aside right now'),
+        }),
+      )
+      .describe('"Produkty salonu" the client may still add (only while canChange)'),
+  }),
+);
+export type VisitProductsResponse = z.infer<typeof visitProductsSchema>;
+
+/** What the salon sees in the visit card: "Do wydania klientowi". */
+export const visitReservationsSchema = responseSchema(
+  'VisitReservations',
+  z.strictObject({
+    reservations: z.array(reservation).describe('Oldest first, every status'),
+    toHandGrosze: money('Products still waiting to be handed over'),
+  }),
+);
+export type VisitReservationsResponse = z.infer<typeof visitReservationsSchema>;

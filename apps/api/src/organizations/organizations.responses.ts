@@ -69,6 +69,12 @@ export const locationSchema = responseSchema(
       .describe(
         'Task Q3: how a client gets a product bought from the salon; at the launch always ["pickup_at_salon"] (not changeable yet)',
       ),
+    shopReservationDays: z
+      .number()
+      .int()
+      .describe(
+        'Task Q3: a product put aside for a visit waits this many days after it, then the reservation expires',
+      ),
     askMood: z.boolean().describe('Task 80: ask how the client wants to spend the visit'),
     askDrink: z.boolean().describe('Task 80: offer a drink (only the drinks listed)'),
     drinks: z.array(offeredDrinkSchema),

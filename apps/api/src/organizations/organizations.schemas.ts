@@ -93,6 +93,8 @@ const locationFields = {
     .transform((value) => (value === '' ? null : value))
     .nullable(),
   onlineBookingEnabled: z.boolean(),
+  /** Task Q3: a product put aside for a visit waits this many days after it, then is free again. */
+  shopReservationDays: z.number().int().min(1).max(90),
   /** Task 80: questions on the last booking step. */
   askMood: z.boolean(),
   askDrink: z.boolean(),
@@ -134,6 +136,7 @@ export const createLocationSchema = z.object({
   rebookReminderDays: locationFields.rebookReminderDays.default(0),
   rebookReminderText: locationFields.rebookReminderText.optional(),
   onlineBookingEnabled: locationFields.onlineBookingEnabled.default(false),
+  shopReservationDays: locationFields.shopReservationDays.default(14),
   askMood: locationFields.askMood.default(true),
   askDrink: locationFields.askDrink.default(false),
   drinks: locationFields.drinks.default([]),

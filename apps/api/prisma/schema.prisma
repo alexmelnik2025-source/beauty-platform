@@ -473,6 +473,9 @@ model Location {
   /// Task Q3: how a client may get a product bought from this salon. At the launch only
   /// pickup_at_salon is allowed (no online payments, no shipping); shipping is a model only.
   shopFulfillment             ShopFulfillment[] @default([pickup_at_salon]) @map("shop_fulfillment")
+  /// Task Q3: a product put aside for a visit waits this many days after the visit; then the
+  /// reservation expires and the pieces are free again.
+  shopReservationDays         Int               @default(14) @map("shop_reservation_days")
   /// Task 80: questions on the last booking step, each switched on by the salon.
   askMood                     Boolean           @default(true) @map("ask_mood")
   askDrink                    Boolean           @default(false) @map("ask_drink")
@@ -492,30 +495,31 @@ model Location {
   createdAt                   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  organization      Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  memberships       MembershipLocation[]
-  services          Service[]
-  staffMembers      StaffMember[]
-  appointments      Appointment[]
-  happyHours        HappyHour[]
-  timeBlocks        TimeBlock[]
-  serviceCategories ServiceCategory[]
-  photos            Photo[]
-  clientFavorites   ClientFavorite[]
-  waitlist          WaitlistEntry[]
-  cancellationGuard CancellationGuard?
-  guardReleases     CancellationGuardRelease[]
-  visitPhotos       VisitPhoto[]
-  reviewSettings    ReviewSettings?
-  reviews           VisitReview[]
-  tillCloses        TillClose[]
-  tillMovements     TillMovement[]
-  products          Product[]
-  productSales      ProductSale[]
-  catalogProducts   CatalogProduct[]
-  shopIntegrations  ShopIntegration[]
-  shopFeedUploads   ShopFeedUpload[]
-  giftVouchers      GiftVoucher[]
+  organization        Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships         MembershipLocation[]
+  services            Service[]
+  staffMembers        StaffMember[]
+  appointments        Appointment[]
+  happyHours          HappyHour[]
+  timeBlocks          TimeBlock[]
+  serviceCategories   ServiceCategory[]
+  photos              Photo[]
+  clientFavorites     ClientFavorite[]
+  waitlist            WaitlistEntry[]
+  cancellationGuard   CancellationGuard?
+  guardReleases       CancellationGuardRelease[]
+  visitPhotos         VisitPhoto[]
+  reviewSettings      ReviewSettings?
+  reviews             VisitReview[]
+  tillCloses          TillClose[]
+  tillMovements       TillMovement[]
+  products            Product[]
+  productSales        ProductSale[]
+  productReservations ProductReservation[]
+  catalogProducts     CatalogProduct[]
+  shopIntegrations    ShopIntegration[]
+  shopIntegrations    ShopIntegration[]
+  giftVouchers        GiftVoucher[]
 
   @@index([organizationId])
   @@map("location")
@@ -897,18 +901,19 @@ model Appointment {
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location         Location                 @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  staff            StaffMember              @relation(fields: [staffId], references: [id], onDelete: Restrict)
-  service          Service                  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  customer         Customer?                @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  events           AppointmentEvent[]
-  verificationCode VerificationCode?
-  accessTokens     AppointmentAccessToken[]
-  loyaltyEntries   LoyaltyTransaction[]
-  wishPhotos       VisitPhoto[]
-  review           VisitReview?
-  productSales     ProductSale[]
-  voucherUses      GiftVoucherUse[]
+  location            Location                 @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff               StaffMember              @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  service             Service                  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  customer            Customer?                @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  events              AppointmentEvent[]
+  verificationCode    VerificationCode?
+  accessTokens        AppointmentAccessToken[]
+  loyaltyEntries      LoyaltyTransaction[]
+  wishPhotos          VisitPhoto[]
+  review              VisitReview?
+  productSales        ProductSale[]
+  productReservations ProductReservation[]
+  voucherUses         GiftVoucherUse[]
 
   @@index([locationId, startAt])
   @@index([staffId, startAt])
@@ -1534,9 +1539,10 @@ model Product {
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location       Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  catalogProduct CatalogProduct? @relation(fields: [catalogProductId], references: [id], onDelete: SetNull)
+  location       Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  catalogProduct CatalogProduct?      @relation(fields: [catalogProductId], references: [id], onDelete: SetNull)
   sales          ProductSale[]
+  reservations   ProductReservation[]
   stockMovements StockMovement[]
 
   @@unique([locationId, barcode])
@@ -1656,13 +1662,57 @@ model ProductSale {
   createdByUserId String?  @map("created_by_user_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  location    Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  product     Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  location    Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  appointment Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product     Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
+  reservation ProductReservation?
 
   @@index([appointmentId])
   @@index([locationId])
   @@map("product_sale")
+}
+
+/// Task Q3 (part 4): what happened to a product the client put aside for a visit.
+enum ProductReservationStatus {
+  /// Waiting at the salon for the visit.
+  reserved
+  /// Handed to the client and paid at the visit (the sale is `saleId`).
+  handed
+  /// The client or the salon took it back, or the visit was cancelled.
+  cancelled
+  /// Not picked up within the salon's days after the visit.
+  expired
+
+  @@map("product_reservation_status")
+}
+
+/// Task Q3 (part 4): "Odbiorę przy wizycie" — a product the client put aside to pick up and pay
+/// for at a visit. Keeps the name and price of that moment; while `reserved` on a live visit it
+/// is taken from what clients see as available (the stock itself changes only at the sale).
+model ProductReservation {
+  id              String                   @id @default(uuid(7)) @db.Uuid
+  locationId      String                   @map("location_id") @db.Uuid
+  appointmentId   String                   @map("appointment_id") @db.Uuid
+  /// null when the product was removed from the list later.
+  productId       String?                  @map("product_id") @db.Uuid
+  name            String
+  quantity        Int
+  unitPriceGrosze Int                      @map("unit_price_grosze")
+  status          ProductReservationStatus @default(reserved)
+  /// The sale made when it was handed over; null until then.
+  saleId          String?                  @unique @map("sale_id") @db.Uuid
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  location    Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  appointment Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product     Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sale        ProductSale? @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([appointmentId])
+  @@index([productId, status])
+  @@index([locationId])
+  @@map("product_reservation")
 }
 
 /// Task 490: "Bon podarunkowy" — a gift voucher the salon sold (at its own till, no payment

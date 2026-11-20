@@ -1,12 +1,29 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators';
 import { notFound } from '../common/app-exception';
-import { ApiZodResponse } from '../common/openapi';
+import { ApiZodBody, ApiZodResponse } from '../common/openapi';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { ReservationsService } from './reservations.service';
 import {
+  reserveProductSchema,
+  visitProductsSchema,
+  type ReserveProductInput,
+  type VisitProductsResponse,
   publicSalonProductsSchema,
   publicShopListSchema,
   publicShopProductSchema,
@@ -32,6 +49,7 @@ const uuid = (what: string) => new ParseUUIDPipe({ exceptionFactory: () => notFo
 export class PublicShopController {
   constructor(
     private readonly shop: ShopService,
+    private readonly reservations: ReservationsService,
     private readonly limiter: RateLimiterService,
   ) {}
 
@@ -97,5 +115,56 @@ export class PublicShopController {
   ): Promise<PublicShopProductResponse> {
     this.limiter.hit(`public:shop:ip:${req.ip}`, 120, 60_000);
     return this.shop.product(cardId);
+  }
+
+  // ── Task Q3 (part 4): products put aside for a visit, by the "manage" link ──
+
+  @Get('appointments/:token/products')
+  @ApiOperation({
+    summary: 'Products the client put aside for this visit, and what else they may add',
+    description:
+      'Task Q3 (part 4). By the "manage" link of the visit. `canChange` while the visit is confirmed and ahead; `available` lists "Produkty salonu" (empty once the visit cannot be changed).',
+  })
+  @ApiZodResponse(visitProductsSchema)
+  visitProducts(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+  ): Promise<VisitProductsResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * 60_000);
+    return this.reservations.byToken(token);
+  }
+
+  @Post('appointments/:token/products')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Odbiorę przy wizycie": put a product of the salon aside for this visit',
+    description:
+      'Task Q3 (part 4). Paid at the salon, no online payment. Only a product the salon shows to clients; more than the salon has left (after other clients’ reservations) → 409 OUT_OF_STOCK; a visit that started or is not confirmed → 409 TOO_LATE_TO_CHANGE.',
+  })
+  @ApiZodBody(reserveProductSchema)
+  @ApiZodResponse(visitProductsSchema)
+  reserve(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+    @Body(new ZodValidationPipe(reserveProductSchema)) body: ReserveProductInput,
+  ): Promise<VisitProductsResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * 60_000);
+    return this.reservations.reserveByToken(token, body);
+  }
+
+  @Delete('appointments/:token/products/:reservationId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'The client takes a product back (until the visit starts)',
+    description: 'Task Q3 (part 4). Only a product still waiting; otherwise 404.',
+  })
+  @ApiZodResponse(visitProductsSchema)
+  unreserve(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+    @Param('reservationId', uuid('Reservation')) reservationId: string,
+  ): Promise<VisitProductsResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * 60_000);
+    return this.reservations.cancelByToken(token, reservationId);
   }
 }

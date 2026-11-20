@@ -6,6 +6,7 @@ import type { CatalogProduct, Prisma } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { photoUrl, readImageBody, type PhotoResponse } from '../scheduling/photos.service';
+import { ReservationsService } from './reservations.service';
 import type {
   CatalogProductResponse,
   CatalogSearchQuery,
@@ -48,9 +49,9 @@ const marketplaceWhere: Prisma.ProductWhereInput = {
   location: { onlineBookingEnabled: true },
 };
 
-/** The salon counts its pieces and has none left. */
-const available = (stockQuantity: number | null): boolean =>
-  stockQuantity === null || stockQuantity > 0;
+/** The salon counts its pieces and has none left (after what clients already put aside). */
+const available = (stockQuantity: number | null, held = 0): boolean =>
+  stockQuantity === null || stockQuantity - held > 0;
 
 type CardWithPhoto = CatalogProduct & { photo: { id: string } | null };
 
@@ -79,11 +80,14 @@ type OfferRow = Prisma.ProductGetPayload<{
   };
 }>;
 
-const toOffer = (p: OfferRow): PublicShopProductResponse['offers'][number] => ({
+const toOffer = (
+  p: OfferRow,
+  held: Map<string, number>,
+): PublicShopProductResponse['offers'][number] => ({
   productId: p.id,
   priceGrosze: p.priceGrosze,
   currency: p.location.currency,
-  available: available(p.stockQuantity),
+  available: available(p.stockQuantity, held.get(p.id)),
   // The launch allows pickup only, whatever a row says (shipping is a model, not a service yet).
   fulfillment: p.location.shopFulfillment.filter((f) => f === 'pickup_at_salon'),
   salon: {
@@ -95,11 +99,14 @@ const toOffer = (p: OfferRow): PublicShopProductResponse['offers'][number] => ({
 });
 
 /** Available first, then the cheapest, then the salon's name: the same order everywhere. */
-const byOffer = (a: OfferRow, b: OfferRow): number =>
-  Number(available(b.stockQuantity)) - Number(available(a.stockQuantity)) ||
-  a.priceGrosze - b.priceGrosze ||
-  a.location.name.localeCompare(b.location.name) ||
-  a.id.localeCompare(b.id);
+const byOffer =
+  (held: Map<string, number>) =>
+  (a: OfferRow, b: OfferRow): number =>
+    Number(available(b.stockQuantity, held.get(b.id))) -
+      Number(available(a.stockQuantity, held.get(a.id))) ||
+    a.priceGrosze - b.priceGrosze ||
+    a.location.name.localeCompare(b.location.name) ||
+    a.id.localeCompare(b.id);
 
 /**
  * Task Q3 (part 1): the platform's shop. One card per product in the catalogue (`CatalogProduct`),
@@ -116,6 +123,7 @@ export class ShopService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: LocationAccessService,
+    private readonly reservations: ReservationsService,
   ) {}
 
   // ── The salon's side: the catalogue ─────────────────────
@@ -334,13 +342,16 @@ export class ShopService {
       include: { catalogProduct: { include: { photo: { select: { id: true } } } } },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
+    const held = await this.reservations.heldByProduct(products.map((p) => p.id));
+    const free = (p: { id: string; stockQuantity: number | null }) =>
+      available(p.stockQuantity, held.get(p.id));
     return {
       currency: location.currency,
       fulfillment: location.shopFulfillment.filter((f) => f === 'pickup_at_salon'),
       products: products
         .sort(
           (a, b) =>
-            Number(available(b.stockQuantity)) - Number(available(a.stockQuantity)) ||
+            Number(free(b)) - Number(free(a)) ||
             a.name.localeCompare(b.name) ||
             a.id.localeCompare(b.id),
         )
@@ -349,7 +360,7 @@ export class ShopService {
           name: p.name,
           brand: p.catalogProduct?.brand ?? null,
           priceGrosze: p.priceGrosze,
-          available: available(p.stockQuantity),
+          available: free(p),
           catalogProductId: p.catalogProductId,
           category: p.catalogProduct?.category ?? null,
           description: p.catalogProduct?.description ?? null,
@@ -399,8 +410,11 @@ export class ShopService {
         take: query.pageSize,
       }),
     ]);
+    const held = await this.reservations.heldByProduct(
+      cards.flatMap((c) => c.offers.map((o) => o.id)),
+    );
     return {
-      products: cards.map((c) => this.toPublicProduct(c)),
+      products: cards.map((c) => this.toPublicProduct(c, held)),
       total,
       page: query.page,
       pageSize: query.pageSize,
@@ -414,7 +428,8 @@ export class ShopService {
       include: this.publicInclude(marketplaceWhere),
     });
     if (!card) throw notFound('Product');
-    return this.toPublicProduct(card);
+    const held = await this.reservations.heldByProduct(card.offers.map((o) => o.id));
+    return this.toPublicProduct(card, held);
   }
 
   private publicInclude(offerWhere: Prisma.ProductWhereInput) {
@@ -438,14 +453,17 @@ export class ShopService {
     } satisfies Prisma.CatalogProductInclude;
   }
 
-  private toPublicProduct(card: CardWithPhoto & { offers: OfferRow[] }): PublicShopProductResponse {
-    const offers = [...card.offers].sort(byOffer);
-    const priced = offers.filter((o) => available(o.stockQuantity));
+  private toPublicProduct(
+    card: CardWithPhoto & { offers: OfferRow[] },
+    held: Map<string, number>,
+  ): PublicShopProductResponse {
+    const offers = [...card.offers].sort(byOffer(held));
+    const priced = offers.filter((o) => available(o.stockQuantity, held.get(o.id)));
     const prices = (priced.length > 0 ? priced : offers).map((o) => o.priceGrosze);
     return {
       ...toCard(card),
       fromPriceGrosze: prices.length > 0 ? Math.min(...prices) : 0,
-      offers: offers.map(toOffer),
+      offers: offers.map((o) => toOffer(o, held)),
     };
   }
 }

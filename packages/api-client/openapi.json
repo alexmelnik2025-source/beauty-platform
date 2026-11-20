@@ -964,6 +964,12 @@
                     "default": false,
                     "type": "boolean"
                   },
+                  "shopReservationDays": {
+                    "default": 14,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 90
+                  },
                   "askMood": {
                     "default": true,
                     "type": "boolean"
@@ -1369,6 +1375,11 @@
                   },
                   "onlineBookingEnabled": {
                     "type": "boolean"
+                  },
+                  "shopReservationDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 90
                   },
                   "askMood": {
                     "type": "boolean"
@@ -14742,6 +14753,134 @@
         ]
       }
     },
+    "/v1/public/appointments/{token}/products": {
+      "get": {
+        "description": "Task Q3 (part 4). By the \"manage\" link of the visit. `canChange` while the visit is confirmed and ahead; `available` lists \"Produkty salonu\" (empty once the visit cannot be changed).",
+        "operationId": "PublicShopController_visitProducts",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Products the client put aside for this visit, and what else they may add",
+        "tags": [
+          "public"
+        ]
+      },
+      "post": {
+        "description": "Task Q3 (part 4). Paid at the salon, no online payment. Only a product the salon shows to clients; more than the salon has left (after other clients’ reservations) → 409 OUT_OF_STOCK; a visit that started or is not confirmed → 409 TOO_LATE_TO_CHANGE.",
+        "operationId": "PublicShopController_reserve",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "productId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "\"Odbiorę przy wizycie\": put a product of the salon aside for this visit",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/products/{reservationId}": {
+      "delete": {
+        "description": "Task Q3 (part 4). Only a product still waiting; otherwise 404.",
+        "operationId": "PublicShopController_unreserve",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reservationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The client takes a product back (until the visit starts)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base": {
       "get": {
         "operationId": "ShopIntegrationsController_status",
@@ -15317,6 +15456,156 @@
           }
         ],
         "summary": "Import the ticked rows of a sent file (up to 500 at once)",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations": {
+      "get": {
+        "operationId": "VisitReservationsController_list",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitReservations"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Products the client put aside for this visit (\"Do wydania klientowi\")",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/hand-over": {
+      "post": {
+        "description": "Task Q3 (part 4). The usual sale of task 394: the visit must be marked \"came\" (409 NOT_COMPLETED), the pieces leave the stock (409 OUT_OF_STOCK), the price is the product’s now. A product no longer waiting → 409 NOT_RESERVED.",
+        "operationId": "VisitReservationsController_handOver",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reservationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitReservations"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Rozlicz wizytę i produkt\": the product is handed over and sold at this visit",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/cancel": {
+      "post": {
+        "description": "Task Q3 (part 4). Whoever may change the visit. Not waiting → 409 NOT_RESERVED.",
+        "operationId": "VisitReservationsController_cancel",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reservationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitReservations"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The salon takes a waiting product back",
         "tags": [
           "shop"
         ]
@@ -22160,6 +22449,12 @@
             },
             "description": "Task Q3: how a client gets a product bought from the salon; at the launch always [\"pickup_at_salon\"] (not changeable yet)"
           },
+          "shopReservationDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task Q3: a product put aside for a visit waits this many days after it, then the reservation expires"
+          },
           "askMood": {
             "type": "boolean",
             "description": "Task 80: ask how the client wants to spend the visit"
@@ -22249,6 +22544,7 @@
           "rebookReminderText",
           "onlineBookingEnabled",
           "shopFulfillment",
+          "shopReservationDays",
           "askMood",
           "askDrink",
           "drinks",
@@ -22381,6 +22677,12 @@
               },
               "description": "Task Q3: how a client gets a product bought from the salon; at the launch always [\"pickup_at_salon\"] (not changeable yet)"
             },
+            "shopReservationDays": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Task Q3: a product put aside for a visit waits this many days after it, then the reservation expires"
+            },
             "askMood": {
               "type": "boolean",
               "description": "Task 80: ask how the client wants to spend the visit"
@@ -22470,6 +22772,7 @@
             "rebookReminderText",
             "onlineBookingEnabled",
             "shopFulfillment",
+            "shopReservationDays",
             "askMood",
             "askDrink",
             "drinks",
@@ -30982,6 +31285,230 @@
         "required": [
           "sales",
           "totalGrosze"
+        ],
+        "additionalProperties": false
+      },
+      "VisitProducts": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "canChange": {
+            "type": "boolean",
+            "description": "The visit is still ahead and confirmed: products may be added or taken back"
+          },
+          "reservations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "productId": {
+                  "nullable": true,
+                  "description": "null when the product was removed from the list later",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name at the time it was put aside"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "unitPriceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one at the time it was put aside, in hundredths of the salon currency"
+                },
+                "totalGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "quantity × price, in hundredths of the salon currency"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "reserved",
+                    "handed",
+                    "cancelled",
+                    "expired"
+                  ],
+                  "description": "reserved — waiting at the salon; handed — given and paid at the visit; cancelled; expired — not picked up in time"
+                },
+                "photoId": {
+                  "nullable": true,
+                  "description": "The card’s picture, /v1/public/photos/<id>; null = none",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "productId",
+                "name",
+                "quantity",
+                "unitPriceGrosze",
+                "totalGrosze",
+                "status",
+                "photoId",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Oldest first; cancelled ones left out"
+          },
+          "totalGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "All products still reserved or handed; paid at the salon, not online, in hundredths of the salon currency"
+          },
+          "available": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "brand": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one, in hundredths of the salon currency"
+                },
+                "photoId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "available": {
+                  "type": "boolean",
+                  "description": "false = none left to put aside right now"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "brand",
+                "priceGrosze",
+                "photoId",
+                "available"
+              ],
+              "additionalProperties": false
+            },
+            "description": "\"Produkty salonu\" the client may still add (only while canChange)"
+          }
+        },
+        "required": [
+          "currency",
+          "canChange",
+          "reservations",
+          "totalGrosze",
+          "available"
+        ],
+        "additionalProperties": false
+      },
+      "VisitReservations": {
+        "type": "object",
+        "properties": {
+          "reservations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "productId": {
+                  "nullable": true,
+                  "description": "null when the product was removed from the list later",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name at the time it was put aside"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "unitPriceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one at the time it was put aside, in hundredths of the salon currency"
+                },
+                "totalGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "quantity × price, in hundredths of the salon currency"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "reserved",
+                    "handed",
+                    "cancelled",
+                    "expired"
+                  ],
+                  "description": "reserved — waiting at the salon; handed — given and paid at the visit; cancelled; expired — not picked up in time"
+                },
+                "photoId": {
+                  "nullable": true,
+                  "description": "The card’s picture, /v1/public/photos/<id>; null = none",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "productId",
+                "name",
+                "quantity",
+                "unitPriceGrosze",
+                "totalGrosze",
+                "status",
+                "photoId",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Oldest first, every status"
+          },
+          "toHandGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products still waiting to be handed over, in hundredths of the salon currency"
+          }
+        },
+        "required": [
+          "reservations",
+          "toHandGrosze"
         ],
         "additionalProperties": false
       },

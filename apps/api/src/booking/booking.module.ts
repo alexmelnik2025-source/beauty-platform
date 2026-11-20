@@ -74,6 +74,7 @@ import { RebookReminderService } from './rebook-reminder.service';
     VisitCalendarService,
     VisitPhotosService,
     RebookReminderService,
+    ProductsService,
   ],
 })
 export class BookingModule {}

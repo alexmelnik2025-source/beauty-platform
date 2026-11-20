@@ -3807,3 +3807,21 @@ Q3-my-shop-card): другой салон уже завёл карточку п�
 экране). API-клиент: `catalogSearch`, `catalogCard`, `createCatalogCard`, `updateProduct` с `catalogProductId` /
 `inSalonShop` / `inMarketplace`, `addProduct(..., inSalonShop)`. Тексты `shop.*` в 4 словарях приложения; 409
 `EAN_TAKEN` — отдельная подсказка. e2e `app-my-shop.spec.ts` (скриншоты Q3-my-shop-app, Q3-my-shop-app-card).
+
+## Товар к визиту: бронь «Odbiorę przy wizycie» в API (задача Q3, часть 4a)
+
+Модель `ProductReservation` (`apps/api/prisma`, миграция `20261130020000_product_reservation`): визит, товар салона,
+название и цена на момент брони, количество, статус `reserved` → `handed` (выдан и продан на визите, ссылка на
+`ProductSale`) / `cancelled` / `expired`. Склад при брони не меняется: клиенту «доступно» = остаток − брони на живых
+визитах (`confirmed`/`completed`); отменённый визит освобождает штуки сам. Настройка салона `shopReservationDays`
+(по умолчанию 14; `Location`, меняется через PATCH салона): бронь, не забранная столько дней после визита, становится
+`expired` раз в час (таймер `ReservationsService`, выключен в тестах, как у очереди писем).
+Клиент по ссылке визита (`/public/appointments/{token}/products`): `GET` — что отложено, итог и «Produkty salonu»,
+которые ещё можно добавить (`canChange` — визит подтверждён и ещё не начался); `POST {productId, quantity}` — отложить
+(только товар, который салон показывает клиентам; больше, чем осталось, — 409 `OUT_OF_STOCK`; после начала визита —
+409 `TOO_LATE_TO_CHANGE`); `DELETE …/{reservationId}` — забрать назад. Салон (`…/appointments/{id}/reservations`):
+`GET` — «Do wydania klientowi» с суммой; `POST …/{id}/hand-over` — «Rozlicz wizytę i produkt»: обычная продажа товара в
+визите (задача 394: визит отмечен «przyszedł», штуки списываются, цена товара сейчас) и бронь `handed`; `POST …/{id}/cancel`
+— салон снимает бронь. «Produkty salonu» и «Sklep» учитывают брони в `available`. Тесты `shop-reservations.spec.ts`
+(2 сценария: бронь → выдача → продажа и склад; возврат, отмена визита, отмена салоном, истечение). Экраны A/B/C
+(подтверждение записи, «Moje wizyty», «Jak było?») и D (карточка визита барбера) — следующие части.
