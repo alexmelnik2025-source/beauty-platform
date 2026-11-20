@@ -34,6 +34,10 @@
   карточка, быстрое «Dodaj produkt»; 4 словаря; e2e `my-shop.spec.ts`, скриншоты Q3-my-shop, Q3-my-shop-card). Осталось
   в части 2: 2b — фото карточки (API загрузки `Photo.catalogProductId` + кнопка в «Mój sklep»), 2c — «Mój sklep» в
   бизнес-приложении.
+- **20.11.2026, ~02:15 UTC — 577 (ветка `agent/577-card-photo`, поверх 576): Q3 часть 2b — фото карточки каталога**
+  (`PUT/DELETE …/shop/catalog/{id}/photo`, правила «автор или первый продавец», фото карточек не попадают в галерею
+  салона; миниатюра и кнопки в «Mój sklep»; тест в `shop-catalog.spec.ts`, шаг e2e `my-shop.spec.ts`, скриншот
+  Q3-my-shop-photo). Осталось в части 2: 2c — «Mój sklep» в бизнес-приложении.
 
 - **20.11.2026, ~01:40 UTC — влитие ждавших веток (ветка `agent/574-merge-waiting`, ночной запуск :37): влиты три ждавшие ветки** —
   `agent/572-booksy-analysis-2` (разделы 8–9 анализа Booksy), `agent/573-e2e-map-tiles-offline` (тест карты не падает

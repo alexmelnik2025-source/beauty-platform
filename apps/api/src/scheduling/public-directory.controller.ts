@@ -217,7 +217,7 @@ export class PublicDirectoryController {
           currency: true,
           timezone: true,
           photos: {
-            where: { staffId: null },
+            where: { staffId: null, catalogProductId: null },
             select: { id: true },
             orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
             take: 1,

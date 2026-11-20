@@ -922,6 +922,11 @@ export const pl = {
   weekdays: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'],
   /** Task Q3 (part 2a): "Mój sklep" — the salon's shop in the cabinet. */
   shop: {
+    photoAdd: 'Dodaj zdjęcie',
+    photoChange: 'Zmień zdjęcie',
+    photoRemove: 'Usuń zdjęcie',
+    photoFor: 'Zdjęcie karty „{name}”',
+    photoAlt: 'Zdjęcie: {name}',
     title: 'Mój sklep',
     hint: 'Produkty, które klienci widzą na stronie salonu i mogą odebrać przy wizycie. Ceny i stan magazynu zmieniasz w „Usługi” → „Produkty”.',
     pickupOnly: 'Na start klient odbiera i płaci w salonie — bez płatności online i bez wysyłki.',

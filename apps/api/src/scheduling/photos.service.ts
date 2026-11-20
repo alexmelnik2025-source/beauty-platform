@@ -86,7 +86,11 @@ export async function readImageBody(req: Request): Promise<{ bytes: Buffer; type
   return { bytes, type };
 }
 
-/** Salon gallery and staff portraits. Reads: any member with access; writes: owner or manager. */
+/**
+ * Salon gallery and staff portraits. Reads: any member with access; writes: owner or manager.
+ * Task Q3: a product card's picture (`catalogProductId`) is stored here too but never counts as
+ * a salon photo — see ../shop/shop.service.ts.
+ */
 @Injectable()
 export class PhotosService {
   constructor(
@@ -98,7 +102,7 @@ export class PhotosService {
   async listSalonPhotos(m: MembershipContext, locationId: string): Promise<PhotoResponse[]> {
     await this.access.readable(m, locationId);
     const photos = await this.prisma.photo.findMany({
-      where: { locationId, staffId: null },
+      where: { locationId, staffId: null, catalogProductId: null },
       select: photoFields,
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
@@ -112,11 +116,15 @@ export class PhotosService {
     req: Request,
   ): Promise<PhotoResponse> {
     await this.access.writable(m, locationId);
-    const count = await this.prisma.photo.count({ where: { locationId, staffId: null } });
+    const count = await this.prisma.photo.count({
+      where: { locationId, staffId: null, catalogProductId: null },
+    });
     if (count >= MAX_SALON_PHOTOS) throw tooMany();
     const { bytes, type } = await readImageBody(req);
     const photo = await this.prisma.$transaction(async (tx) => {
-      const again = await tx.photo.count({ where: { locationId, staffId: null } });
+      const again = await tx.photo.count({
+        where: { locationId, staffId: null, catalogProductId: null },
+      });
       if (again >= MAX_SALON_PHOTOS) throw tooMany();
       const created = await tx.photo.create({
         data: {
@@ -142,7 +150,7 @@ export class PhotosService {
     await this.access.writable(m, locationId);
     await this.prisma.$transaction(async (tx) => {
       const result = await tx.photo.deleteMany({
-        where: { id: photoId, locationId, staffId: null },
+        where: { id: photoId, locationId, staffId: null, catalogProductId: null },
       });
       if (result.count !== 1) throw notFound('Photo');
       await this.record(tx, m, actorUserId, 'photo.removed', 'photo', photoId);

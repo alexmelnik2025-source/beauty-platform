@@ -100,6 +100,7 @@ function discoverRoutes(ctx: TestContext): Route[] {
 function validBody(route: Route): object {
   const p = route.path;
   if (p.endsWith('/photos') || p.endsWith('/staff/:staffId/photo')) return PNG;
+  if (p.endsWith('/shop/catalog/:cardId/photo')) return PNG;
   if (p.endsWith('/invitations')) {
     return { email: 'hacker@example.com', role: 'staff', locationIds: [currentIds?.locationId] };
   }
