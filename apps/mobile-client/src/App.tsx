@@ -240,6 +240,14 @@ export default function App() {
                 onOpenSalon={(s) =>
                   setFinder({ kind: 'salon', slug: s.slug, name: s.name, fromShop: true })
                 }
+                onBookWith={(s, productId) =>
+                  setFinder({
+                    kind: 'open',
+                    slug: s.slug,
+                    name: s.name,
+                    preset: { productIds: [productId] },
+                  })
+                }
               />
             </View>
           ) : null}

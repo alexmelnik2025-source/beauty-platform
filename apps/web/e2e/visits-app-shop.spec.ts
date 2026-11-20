@@ -132,6 +132,8 @@ test('"Sklep" in the client app lists products from salons, picked up at the sal
     expect(slug).toBeTruthy();
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('heading', { name: PRODUCT })).toBeVisible();
+    // Without a visit at that salon: "Zapisz się i odbierz" (the product is put aside after booking).
+    await expect(app.getByRole('button', { name: `Zapisz się i odbierz: ${NAME}` })).toBeVisible();
   } finally {
     await phone.close();
     clientApp.server.close();

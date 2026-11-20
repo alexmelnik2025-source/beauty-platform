@@ -296,6 +296,7 @@ export const en: Dictionary = {
     where: 'Where to pick it up',
     pickup: 'Pick-up at the salon, pay on the spot.',
     book: 'Book a visit',
+    bookAndPickUp: 'Book and pick it up',
     reserve: 'Pick up at my visit · {when}',
     reserved: 'Put aside for your visit on {when}. You pay at the salon. Change it in “My visits”.',
   },

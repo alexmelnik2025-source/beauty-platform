@@ -3982,6 +3982,7 @@ Q4-base-orders. Дальше: статус Base в бизнес-приложен
 визит впереди, первой кнопкой стоит «Odbiorę przy wizycie · 22 listopada 15:00»: одно нажатие откладывает одну штуку
 к ближайшему такому визиту (тот же `POST /v1/client/appointments/{id}/products`, что и в «Moje wizyty»), под карточкой —
 «Odłożone na wizytę … Płacisz w salonie. Zmienisz to w „Moje wizyty”». Без входа или без визита в этом салоне —
-как раньше, только «Umów wizytę» (при наличии визита она становится тихой ссылкой). Выбор визита — `nextVisitAt` в
+«Zapisz się i odbierz»: запись в этом салоне, и товар откладывается сам сразу после подтверждения визита (тот же
+`preset.productIds`, что у экрана C); «Umów wizytę» остаётся тихой ссылкой на страницу салона. Выбор визита — `nextVisitAt` в
 `apps/mobile-client/src/shop.ts` (тесты в `test/shop.test.ts`), тексты `shop.reserve` / `shop.reserved` во всех 6
 словарях приложения. e2e — шаг в `shop-booked-products.spec.ts`, скриншот Q3-app-shop-reserve.

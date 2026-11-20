@@ -302,6 +302,7 @@ export const tr: Dictionary = {
     where: 'Nereden teslim alınır',
     pickup: 'Salonda teslim, ödeme yerinde.',
     book: 'Randevu al',
+    bookAndPickUp: 'Randevu al ve teslim al',
     reserve: 'Ziyaretimde alacağım · {when}',
     reserved:
       '{when} ziyaretiniz için ayrıldı. Ödeme salonda. “Ziyaretlerim” bölümünden değiştirebilirsiniz.',

@@ -37,6 +37,8 @@ export function ShopScreen(props: {
   signedIn: boolean;
   /** "Umów wizytę" at an offer: the salon's page with its booking. */
   onOpenSalon: (salon: { slug: string; name: string }) => void;
+  /** "Zapisz się i odbierz": the salon's booking; the product is put aside once it is booked. */
+  onBookWith: (salon: { slug: string; name: string }, productId: string) => void;
 }) {
   const { api, t, locale } = props;
   const [query, setQuery] = useState('');
@@ -92,6 +94,7 @@ export function ShopScreen(props: {
         locale={locale}
         onBack={() => setOpen(null)}
         onOpenSalon={props.onOpenSalon}
+        onBookWith={props.onBookWith}
       />
     );
   }
@@ -179,6 +182,8 @@ export function ShopScreen(props: {
  * One product: its picture and description, and the salons where the client picks it up.
  * Signed in with a visit ahead at a salon, its offer leads with "Odbiorę przy wizycie · <date>":
  * one tap puts one piece aside for that visit (paid at the salon, taken back in "Moje wizyty").
+ * Without a visit there, "Zapisz się i odbierz" opens the salon's booking and the product is put
+ * aside right after the visit is booked.
  */
 function ProductView(props: {
   product: ShopProduct;
@@ -188,6 +193,7 @@ function ProductView(props: {
   locale: Locale;
   onBack: () => void;
   onOpenSalon: (salon: { slug: string; name: string }) => void;
+  onBookWith: (salon: { slug: string; name: string }, productId: string) => void;
 }) {
   const { product: p, api, t, locale } = props;
   const [visits, setVisits] = useState<ClientAppointment[]>([]);
@@ -269,10 +275,21 @@ function ProductView(props: {
                   onPress={() => void reserve(o.productId, visit, when)}
                 />
               </View>
+            ) : o.available ? (
+              <View style={{ marginTop: 8 }}>
+                <Button
+                  kind="secondary"
+                  label={t.shop.bookAndPickUp}
+                  a11yLabel={`${t.shop.bookAndPickUp}: ${o.salon.name}`}
+                  onPress={() =>
+                    props.onBookWith({ slug: o.salon.slug, name: o.salon.name }, o.productId)
+                  }
+                />
+              </View>
             ) : null}
             <View style={{ marginTop: 8 }}>
               <Button
-                kind={visit || reservedFor ? 'link' : 'secondary'}
+                kind={o.available ? 'link' : 'secondary'}
                 label={t.shop.book}
                 a11yLabel={`${t.shop.book}: ${o.salon.name}`}
                 onPress={() => props.onOpenSalon({ slug: o.salon.slug, name: o.salon.name })}

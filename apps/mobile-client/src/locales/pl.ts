@@ -296,6 +296,7 @@ export const pl = {
     where: 'Gdzie odebrać',
     pickup: 'Odbiór w salonie, płatność na miejscu.',
     book: 'Umów wizytę',
+    bookAndPickUp: 'Zapisz się i odbierz',
     reserve: 'Odbiorę przy wizycie · {when}',
     reserved: 'Odłożone na wizytę {when}. Płacisz w salonie. Zmienisz to w „Moje wizyty”.',
   },
