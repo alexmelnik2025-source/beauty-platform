@@ -12,6 +12,15 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~22:00 UTC — 614 (ветка `agent/614-merge-waiting`): семь ждавших веток 609–613 влиты одним проходом**
+  (новых функций нет). Ветки `agent/609-reviews-took-place` → `610-discount-recompute` → `611-voucher-visit-status` →
+  `612-guard-phone` → `613-loyalty-polish` (одна цепочка), `agent/609-phone-identity` и `agent/610-completed-busy` были
+  зелёные в CI, но отстали от main на два коммита (609 «Wolne dziś», 610 «два круга запросов») и не были влиты.
+  Перебазированы на main: один настоящий конфликт — `public.controller.ts` (звёзды мастеров читаются во втором круге
+  запросов и теперь с `PUBLIC_REVIEW_WHERE`), остальные — записи в BACKLOG/README. Локально на PostgreSQL зелёные
+  `reviews`, `review-request`, `completed-busy`, `cancellation-guard`, `gift-vouchers`, `tier-discount`,
+  `visit-coupons`, `phone-login`, `sms-code`, `booking`, `public-directory`, `time-blocks` (159 тестов); typecheck
+  api/web, prettier.
 - **20.11.2026, ~16:45 UTC — 610 (ветка `agent/610-completed-busy`, от main): визит «Przyszedł» занимает кресло
   до планового конца** (новых функций нет; найдено проверкой кода расписания). «Przyszedł» ставится с первой
   минуты визита, а занятыми считались только `confirmed` и живые `held` — остаток 3-часовой услуги можно было записать
