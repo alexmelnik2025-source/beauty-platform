@@ -112,3 +112,24 @@ describe('QR code of a specialist (task Q2)', () => {
     );
   });
 });
+
+describe('“Udostępnij link specjalisty” (task Q2)', () => {
+  it('names the specialist and the salon, with the QR link, in every language', () => {
+    const link = staffQrLink('https://app.example.com', { slug: 'gestalt-barbershop' }, 'a1b2');
+    expect(
+      fill(DICTIONARIES.pl.bookingLink.staffQrMessage, {
+        name: 'Kasia',
+        salon: 'GESTALT',
+        url: link,
+      }),
+    ).toBe(
+      'Kasia (GESTALT) — umów się online: https://app.example.com/s/gestalt-barbershop?utm_source=qr&staff=a1b2',
+    );
+    for (const d of Object.values(DICTIONARIES)) {
+      expect(d.bookingLink.staffQrMessage).toContain('{name}');
+      expect(d.bookingLink.staffQrMessage).toContain('{salon}');
+      expect(d.bookingLink.staffQrMessage).toContain('{url}');
+      expect(d.bookingLink.staffQrShare).not.toBe('');
+    }
+  });
+});

@@ -48,6 +48,7 @@ export function BookingLinkScreen(props: {
   const [location, setLocation] = useState<Location | null>(null);
   const [staff, setStaff] = useState<StaffList>([]);
   const [qrStaff, setQrStaff] = useState('');
+  const [staffInfo, setStaffInfo] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [shortInfo, setShortInfo] = useState('');
@@ -103,6 +104,22 @@ export function BookingLinkScreen(props: {
     };
     const result = await shareLink(content, shareTools());
     setShortInfo(result === 'copied' ? b.copied : result === 'failed' ? b.failed : '');
+  };
+
+  /**
+   * Task Q2: "Udostępnij link specjalisty" — the chosen specialist's link (the same one their QR
+   * code opens) goes to a message, the Instagram bio or the clipboard.
+   */
+  const shareStaff = async (s: StaffList[number]) => {
+    if (!location) return;
+    const url = staffQrLink(WEB_URL, location, s.id);
+    const content = {
+      message: fill(b.staffQrMessage, { name: s.displayName, salon: location.name, url }),
+      url,
+      title: s.displayName,
+    };
+    const result = await shareLink(content, shareTools());
+    setStaffInfo(result === 'copied' ? b.copied : result === 'failed' ? b.failed : '');
   };
 
   const shareEmbed = async () => {
@@ -168,7 +185,10 @@ export function BookingLinkScreen(props: {
                       accessibilityRole="button"
                       aria-pressed={on}
                       accessibilityState={{ selected: on }}
-                      onPress={() => setQrStaff(on ? '' : s.id)}
+                      onPress={() => {
+                        setQrStaff(on ? '' : s.id);
+                        setStaffInfo('');
+                      }}
                       style={[styles.chip, on && styles.chipOn]}
                     >
                       <Text style={[styles.chipText, on && { color: '#fff' }]}>
@@ -181,13 +201,24 @@ export function BookingLinkScreen(props: {
               {staff
                 .filter((s) => s.id === qrStaff)
                 .map((s) => (
-                  <SalonQr
-                    key={s.id}
-                    link={staffQrLink(WEB_URL, location, s.id)}
-                    name={location.name}
-                    staffName={s.displayName}
-                    t={t}
-                  />
+                  <View key={s.id} style={styles.staffBlock}>
+                    <SalonQr
+                      link={staffQrLink(WEB_URL, location, s.id)}
+                      name={location.name}
+                      staffName={s.displayName}
+                      t={t}
+                    />
+                    <Button
+                      kind="secondary"
+                      label={b.staffQrShare}
+                      onPress={() => void shareStaff(s)}
+                    />
+                    {staffInfo ? (
+                      <Text role="status" style={styles.info}>
+                        {staffInfo}
+                      </Text>
+                    ) : null}
+                  </View>
                 ))}
               <Text style={styles.muted}>{b.staffQrHint}</Text>
             </Card>
@@ -304,6 +335,7 @@ const styles = StyleSheet.create({
   module: { position: 'absolute', height: MODULE, backgroundColor: '#000' },
   qrName: { fontSize: 18, fontWeight: '700', color: colors.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  staffBlock: { gap: 8 },
   chip: {
     borderWidth: 1,
     borderColor: colors.line,

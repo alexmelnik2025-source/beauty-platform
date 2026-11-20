@@ -188,7 +188,12 @@ test('each specialist has a QR code; scanning it books with them (task Q2)', asy
     viewport: PHONE,
     locale: 'pl-PL',
     isMobile: true,
+    permissions: ['clipboard-read', 'clipboard-write'],
     extraHTTPHeaders: freshAddress(),
+  });
+  // No share menu in this browser: the specialist's link goes to the clipboard.
+  await context.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'share', { value: undefined, configurable: true });
   });
   const businessApp = await serveApp('mobile-business');
   try {
@@ -213,9 +218,17 @@ test('each specialist has a QR code; scanning it books with them (task Q2)', asy
     expect(box!.width).toBeGreaterThan(150);
     expect(Math.abs(box!.width - box!.height)).toBeLessThan(1);
     await expect(app.getByText('Kasia', { exact: true }).last()).toBeVisible();
+    // "Udostępnij link specjalisty": no share menu in this browser — the link is copied.
+    const shareStaff = app.getByRole('button', { name: 'Udostępnij link specjalisty' });
+    await shareStaff.scrollIntoViewIfNeeded();
+    await shareStaff.click();
+    await expect(app.getByText('Link skopiowany.')).toBeVisible();
+    const copied = await app.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(kasiaLink);
     await shot(app, 'Q2-staff-qr-app');
     await app.getByRole('button', { name: 'Kasia' }).click();
     await expect(qr).toHaveCount(0);
+    await expect(shareStaff).toHaveCount(0);
   } finally {
     await context.close();
     businessApp.server.close();

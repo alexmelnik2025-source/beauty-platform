@@ -1703,6 +1703,8 @@ export const en: Dictionary = {
     staffQrAlt: 'Booking QR code for {name}',
     staffQrHint:
       'For the mirror or business card: after scanning, the client books with this very person, and “Where they came from” shows the visits from each code.',
+    staffQrShare: 'Share the specialist’s link',
+    staffQrMessage: '{name} ({salon}) — book online: {url}',
     offline:
       'Online booking is off — clients will see the salon page but cannot book. Switch it on in the salon settings.',
   },
