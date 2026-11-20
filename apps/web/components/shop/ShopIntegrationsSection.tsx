@@ -20,6 +20,13 @@ interface BaseStatus {
   lastSyncAt: string | null;
   lastErrorCode: string | null;
   importedProducts: number;
+  orders: {
+    enabled: boolean;
+    newStatusId: string | null;
+    handedStatusId: string | null;
+    cancelledStatusId: string | null;
+    failing: number;
+  };
 }
 
 interface BaseOptions {
@@ -380,6 +387,9 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
           )}
         </>
       )}
+      {configured && !editing ? (
+        <OrdersToBase base={base} orders={status.orders} onSaved={load} onError={onError} />
+      ) : null}
       {done ? (
         <p className="small" role="status">
           {done}
@@ -397,17 +407,141 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                 {date(r.startedAt)} · {s.triggers[r.trigger]} ·{' '}
                 {r.errorCode
                   ? ((t.errors as Record<string, string>)[r.errorCode] ?? t.errors.generic)
-                  : fill(s.runLine, {
-                      checked: String(r.checked),
-                      changed: String(r.changed),
-                      missing: String(r.missing),
-                    })}
+                  : r.trigger === 'orders'
+                    ? fill(s.ordersRunLine, {
+                        checked: String(r.checked),
+                        changed: String(r.changed),
+                      })
+                    : fill(s.runLine, {
+                        checked: String(r.checked),
+                        changed: String(r.changed),
+                        missing: String(r.missing),
+                      })}
               </li>
             ))}
           </ul>
         </details>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Task Q4 (part 5): "Zamówienia do Base" — folded under the Base card. Products put aside for a
+ * visit go to the seller's Base as orders; the seller picks the statuses (new, handed over,
+ * cancelled) from its own Base.
+ */
+function OrdersToBase({
+  base,
+  orders,
+  onSaved,
+  onError,
+}: {
+  base: string;
+  orders: BaseStatus['orders'];
+  onSaved: () => Promise<void>;
+  onError: (text: string) => void;
+}) {
+  const { t } = useI18n();
+  const s = t.shopIntegrations;
+  const [statuses, setStatuses] = useState<{ id: string; name: string }[] | null>(null);
+  const [form, setForm] = useState({
+    enabled: orders.enabled,
+    newStatusId: orders.newStatusId ?? '',
+    handedStatusId: orders.handedStatusId ?? '',
+    cancelledStatusId: orders.cancelledStatusId ?? '',
+  });
+  const [busy, setBusy] = useState(false);
+
+  const open = () => {
+    if (statuses) return;
+    api<{ statuses: { id: string; name: string }[] }>(`${base}/order-statuses`)
+      .then((res) => {
+        setStatuses(res.statuses);
+        setForm((f) => ({ ...f, newStatusId: f.newStatusId || (res.statuses[0]?.id ?? '') }));
+      })
+      .catch((e: unknown) => onError(errorText(t, e)));
+  };
+
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    onError('');
+    api(`${base}/orders`, {
+      method: 'PUT',
+      body: {
+        enabled: form.enabled,
+        newStatusId: form.newStatusId || null,
+        handedStatusId: form.handedStatusId || null,
+        cancelledStatusId: form.cancelledStatusId || null,
+      },
+    })
+      .then(onSaved)
+      .catch((err: unknown) => onError(errorText(t, err)))
+      .finally(() => setBusy(false));
+  };
+
+  const pick = (key: 'newStatusId' | 'handedStatusId' | 'cancelledStatusId', label: string) => (
+    <label className="field">
+      <span>{label}</span>
+      <select
+        value={form[key]}
+        required={key === 'newStatusId' && form.enabled}
+        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+      >
+        {key === 'newStatusId' ? null : <option value="">{s.ordersLeave}</option>}
+        {(statuses ?? []).map((st) => (
+          <option key={st.id} value={st.id}>
+            {st.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  return (
+    <details
+      data-testid="integration-base-orders"
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open) open();
+      }}
+    >
+      <summary className="small">
+        {s.ordersTitle}: {orders.enabled ? s.ordersOn : s.ordersOff}
+      </summary>
+      {orders.failing > 0 ? (
+        <p className="small" role="status">
+          {fill(s.ordersFailing, { n: String(orders.failing) })}
+        </p>
+      ) : null}
+      {statuses ? (
+        <form className="stack" onSubmit={save}>
+          <p className="small muted">{s.ordersHint}</p>
+          <label className="row small">
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+            />
+            <span>{s.ordersEnable}</span>
+          </label>
+          {form.enabled ? (
+            <>
+              {pick('newStatusId', s.ordersNew)}
+              {pick('handedStatusId', s.ordersHanded)}
+              {pick('cancelledStatusId', s.ordersCancelled)}
+            </>
+          ) : null}
+          <div>
+            <button type="submit" className="btn" disabled={busy}>
+              {t.common.save}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <Spinner />
+      )}
+    </details>
   );
 }
 

@@ -2052,6 +2052,18 @@ export const pl = {
     narrowDown: 'Pokazano 500 pierwszych — zawęź wyszukiwanie.',
     importTicked: 'Importuj zaznaczone ({n})',
     imported: 'Gotowe: nowych {created}, zaktualizowanych {updated}, pominiętych {skipped}.',
+    ordersTitle: 'Zamówienia do Base',
+    ordersOn: 'Włączone: produkty odłożone do wizyty trafiają do Base jako zamówienia.',
+    ordersOff: 'Wyłączone.',
+    ordersHint:
+      'Base zmniejszy stan, który sprzedajesz też na Allegro, Empiku czy swojej stronie. Odbiór i płatność w salonie.',
+    ordersEnable: 'Wysyłaj rezerwacje do Base jako zamówienia',
+    ordersNew: 'Status nowego zamówienia',
+    ordersHanded: 'Po wydaniu produktu',
+    ordersCancelled: 'Gdy rezerwacja przepadnie',
+    ordersLeave: 'nie zmieniaj',
+    ordersFailing: 'Nie udało się wysłać: {n}. „Synchronizuj teraz” spróbuje ponownie.',
+    ordersRunLine: 'wysłano {changed} z {checked}',
     triggers: {
       import: 'import',
       manual: 'ręcznie',

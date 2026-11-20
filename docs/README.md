@@ -3914,5 +3914,8 @@ e2e `apps/web/e2e/visits-app-shop.spec.ts` (скриншоты Q3-app-shop, Q3-a
 «zamówienia do Base»). Код: `apps/api/src/shop/integrations/base-orders.service.ts`, методы Base `getOrderStatusList`,
 `addOrder`, `setOrderStatus` в `base-api.ts`. Тесты: `apps/api/test/shop-base-orders.spec.ts` (5, Base — заглушка).
 Остаток при синхронизации берётся из Base как есть: если Base уменьшает остаток при заказе, отложенное до выдачи
-учитывается дважды — в безопасную сторону (не продадим лишнее). Дальше: в «Integracje» кабинета — переключатель
-«Wysyłaj rezerwacje do Base jako zamówienia» и выбор трёх статусов; статус в бизнес-приложении.
+учитывается дважды — в безопасную сторону (не продадим лишнее). В кабинете: под карточкой Base в «Integracje» —
+свёрнутая строка «Zamówienia do Base: Wyłączone / Włączone», внутри галочка «Wysyłaj rezerwacje do Base jako
+zamówienia» и три списка статусов из Base продавца («nie zmieniaj» для выдачи/отмены), предупреждение «Nie udało się
+wysłać: n»; в журнале — «zamówienia do Base · wysłano x z y». e2e — шаг в `shop-integrations.spec.ts`, скриншот
+Q4-base-orders. Дальше: статус Base в бизнес-приложении.

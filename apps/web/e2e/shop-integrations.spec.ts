@@ -12,7 +12,8 @@ import { waitForEmail } from './mailpit';
 /**
  * Task Q4: "Integracje" in the cabinet. The owner connects Base (a stand-in on
  * BASE_API_URL — no real account or token), chooses the catalogue, ticks a product and imports it
- * (screenshots Q4-base-connect, Q4-base-pick, Q4-base-done); then imports a CSV file
+ * (screenshots Q4-base-connect, Q4-base-pick, Q4-base-done), turns on orders to Base
+ * (Q4-base-orders); then imports a CSV file
  * (Q4-feed). The page opens from "Usługi" → "Produkty".
  */
 
@@ -77,6 +78,14 @@ const FAKE_BASE: Record<string, object> = {
     },
   },
   getInventoryManufacturers: { manufacturers: [{ manufacturer_id: 12, name: 'Reuzel' }] },
+  getOrderStatusList: {
+    statuses: [
+      { id: 501, name: 'Nowe zamówienia' },
+      { id: 502, name: 'Do odbioru w salonie' },
+      { id: 503, name: 'Odebrane' },
+      { id: 504, name: 'Anulowane' },
+    ],
+  },
 };
 
 let fakeBase: Server;
@@ -196,6 +205,19 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   await expect(baseCard.getByText('z Base: 1 prod.', { exact: false })).toBeVisible();
   await baseCard.getByText('Dziennik synchronizacji').click();
   await shot(page, 'Q4-base-done');
+
+  // Task Q4 (part 5): products put aside for a visit go to Base as orders, in chosen statuses.
+  const orders = baseCard.getByTestId('integration-base-orders');
+  await orders.getByText('Zamówienia do Base: Wyłączone.').click();
+  await orders.getByLabel('Wysyłaj rezerwacje do Base jako zamówienia').check();
+  await orders
+    .getByLabel('Status nowego zamówienia')
+    .selectOption({ label: 'Do odbioru w salonie' });
+  await orders.getByLabel('Po wydaniu produktu').selectOption({ label: 'Odebrane' });
+  await orders.getByLabel('Gdy rezerwacja przepadnie').selectOption({ label: 'Anulowane' });
+  await shot(page, 'Q4-base-orders');
+  await orders.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(orders.getByText('Zamówienia do Base: Włączone', { exact: false })).toBeVisible();
 
   // A file instead of Base: a CSV from Excel, on the phone.
   await page.setViewportSize(PHONE);

@@ -2059,6 +2059,18 @@ export const en: Dict = {
     narrowDown: 'The first 500 are shown — narrow the search.',
     importTicked: 'Import ticked ({n})',
     imported: 'Done: {created} new, {updated} updated, {skipped} skipped.',
+    ordersTitle: 'Orders to Base',
+    ordersOn: 'On: products put aside for a visit go to Base as orders.',
+    ordersOff: 'Off.',
+    ordersHint:
+      'Base lowers the stock you also sell on Allegro, Empik or your own site. Pick-up and payment at the salon.',
+    ordersEnable: 'Send reservations to Base as orders',
+    ordersNew: 'Status of a new order',
+    ordersHanded: 'After the product is handed over',
+    ordersCancelled: 'When the reservation ends unsold',
+    ordersLeave: 'do not change',
+    ordersFailing: 'Could not send: {n}. "Sync now" will try again.',
+    ordersRunLine: 'sent {changed} of {checked}',
     triggers: {
       import: 'import',
       manual: 'by hand',

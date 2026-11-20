@@ -2051,6 +2051,18 @@ export const uk: Dict = {
     narrowDown: 'Показано перші 500 — уточніть пошук.',
     importTicked: 'Імпортувати позначені ({n})',
     imported: 'Готово: нових {created}, оновлено {updated}, пропущено {skipped}.',
+    ordersTitle: 'Замовлення в Base',
+    ordersOn: 'Увімкнено: товари, відкладені до візиту, потрапляють у Base як замовлення.',
+    ordersOff: 'Вимкнено.',
+    ordersHint:
+      'Base зменшить залишок, який ви продаєте також на Allegro, Empik чи своєму сайті. Отримання й оплата в салоні.',
+    ordersEnable: 'Надсилати резерви в Base як замовлення',
+    ordersNew: 'Статус нового замовлення',
+    ordersHanded: 'Після видачі товару',
+    ordersCancelled: 'Коли резерв скасовано',
+    ordersLeave: 'не змінювати',
+    ordersFailing: 'Не вдалося надіслати: {n}. «Синхронізувати зараз» спробує ще раз.',
+    ordersRunLine: 'надіслано {changed} з {checked}',
     triggers: {
       import: 'імпорт',
       manual: 'вручну',

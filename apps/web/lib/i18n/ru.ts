@@ -2059,6 +2059,18 @@ export const ru: Dict = {
     narrowDown: 'Показаны первые 500 — уточните поиск.',
     importTicked: 'Импортировать отмеченные ({n})',
     imported: 'Готово: новых {created}, обновлено {updated}, пропущено {skipped}.',
+    ordersTitle: 'Заказы в Base',
+    ordersOn: 'Включено: товары, отложенные к визиту, уходят в Base заказами.',
+    ordersOff: 'Выключено.',
+    ordersHint:
+      'Base уменьшит остаток, который вы продаёте также на Allegro, Empik или своём сайте. Получение и оплата в салоне.',
+    ordersEnable: 'Отправлять брони в Base как заказы',
+    ordersNew: 'Статус нового заказа',
+    ordersHanded: 'После выдачи товара',
+    ordersCancelled: 'Когда бронь отменена',
+    ordersLeave: 'не менять',
+    ordersFailing: 'Не удалось отправить: {n}. «Синхронизировать сейчас» попробует ещё раз.',
+    ordersRunLine: 'отправлено {changed} из {checked}',
     triggers: {
       import: 'импорт',
       manual: 'вручную',
