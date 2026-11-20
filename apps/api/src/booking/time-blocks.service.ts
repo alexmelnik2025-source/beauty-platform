@@ -6,6 +6,7 @@ import type { MembershipContext } from '../common/request-context';
 import type { Location, Prisma, TimeBlock } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { BUSY_STATUSES } from '../scheduling/slots';
 import { addDays, instantToLocal, zonedToInstant } from '../scheduling/time';
 import { lockLocation, lockStaff, versionConflict } from './appointment-writer';
 import type { TimeBlockResponse, TimeBlockSeriesResponse } from './booking.responses';
@@ -307,7 +308,10 @@ export class TimeBlocksService {
         ...(staffId ? { staffId } : {}),
         startAt: { lt: new Date(end) },
         blockedUntil: { gt: new Date(start) },
-        OR: [{ status: 'confirmed' }, { status: 'held', holdExpiresAt: { gt: new Date() } }],
+        OR: [
+          { status: { in: BUSY_STATUSES } },
+          { status: 'held', holdExpiresAt: { gt: new Date() } },
+        ],
       },
       select: { id: true },
       orderBy: { startAt: 'asc' },

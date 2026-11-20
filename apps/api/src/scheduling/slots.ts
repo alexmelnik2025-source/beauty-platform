@@ -2,6 +2,14 @@ import { datesBetween, instantToLocal, isoWeekday, zonedToInstant } from './time
 
 const MINUTE_MS = 60_000;
 
+/**
+ * Appointment statuses that keep the specialist's chair until `blockedUntil`: confirmed bookings
+ * and visits already marked "came" (the mark may be set the moment the visit starts, so the rest
+ * of its planned time must stay taken). Live holds are busy too, but only until they expire, so
+ * they are matched separately. Cancelled, no-show and expired rows are free time.
+ */
+export const BUSY_STATUSES: ('confirmed' | 'completed')[] = ['confirmed', 'completed'];
+
 /** Minutes after local midnight, end exclusive. */
 export interface LocalInterval {
   startMinute: number;
