@@ -379,6 +379,7 @@ export const tr: Dict = {
     reserve: 'Ziyarette teslim alacağım',
     unavailable: 'şu anda stokta yok',
     pickup: 'Ürün sizi salonda bekliyor. Ziyarette ödersiniz — çevrimiçi ödeme yok.',
+    offerTitle: 'Ziyaretinize bir şey eklemek ister misiniz?',
   },
   voucherCheck: {
     open: 'Hediye çekiniz mi var? Kalan tutarı kontrol edin',
