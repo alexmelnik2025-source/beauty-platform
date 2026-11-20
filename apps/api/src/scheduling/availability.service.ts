@@ -79,6 +79,11 @@ export class AvailabilityService {
   /**
    * Task 120: "Wolne dziś" — the active specialists who can still be booked today (salon's time
    * zone, minimum lead time). A specialist counts when the shortest of their services fits.
+   *
+   * Task 609: the booking page asks this on every visit, so the specialists are grouped by
+   * their shortest service (their own duration counts, task 70) and each group is one
+   * calculation ("any of these"), all groups at once — instead of one calculation per
+   * specialist, one after another.
    */
   async freeToday(
     location: Location,
@@ -100,20 +105,25 @@ export class AvailabilityService {
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
-    const staffIds: string[] = [];
+    const byShortestService = new Map<string, string[]>();
     for (const member of staff) {
       const shortest = member.services
         .map((x) => ({ id: x.serviceId, minutes: x.durationMinutes ?? x.service.durationMinutes }))
         .sort((a, b) => a.minutes - b.minutes)[0];
       if (!shortest) continue;
-      const result = await this.forPublic(
-        location,
-        { serviceId: shortest.id, staffId: member.id, from: date, to: date },
-        { now },
-      );
-      if (result.slots.length > 0) staffIds.push(member.id);
+      byShortestService.set(shortest.id, [
+        ...(byShortestService.get(shortest.id) ?? []),
+        member.id,
+      ]);
     }
-    return { date, staffIds };
+    const results = await Promise.all(
+      [...byShortestService.entries()].map(([serviceId, staffIds]) =>
+        this.forPublic(location, { serviceId, staffIds, from: date, to: date }, { now }),
+      ),
+    );
+    const free = new Set(results.flatMap((r) => r.slots.flatMap((slot) => slot.staffIds)));
+    // The salon's order, as the page lists the specialists.
+    return { date, staffIds: staff.map((s) => s.id).filter((id) => free.has(id)) };
   }
 
   staffWindow(now: number): BookingWindow {
@@ -205,7 +215,7 @@ export class AvailabilityService {
     const rangeStart = zonedToInstant(query.from, 0, location.timezone) - DAY_MS;
     const rangeEnd = zonedToInstant(addDays(query.to, 1), 0, location.timezone) + DAY_MS;
 
-    const [weekly, overrides, timeOff, appointments, blocks] = await Promise.all([
+    const [weekly, overrides, timeOff, appointments, blocks, rules] = await Promise.all([
       this.prisma.workingHours.findMany({ where: { staffId: { in: staffIds } } }),
       this.prisma.workingHoursOverride.findMany({
         where: {
@@ -247,6 +257,8 @@ export class AvailabilityService {
         },
         select: { staffId: true, startAt: true, endAt: true },
       }),
+      // The salon's happy hours (task 16): what a visit at each time would get off the price.
+      this.prisma.happyHour.findMany({ where: { locationId: location.id } }),
     ]);
 
     const schedules: StaffSchedule[] = staffIds.map((staffId) => {
@@ -301,8 +313,6 @@ export class AvailabilityService {
       staffIds,
     );
 
-    // The salon's happy hours (task 16): what a visit at each time would get off the price.
-    const rules = await this.prisma.happyHour.findMany({ where: { locationId: location.id } });
     return {
       timezone: location.timezone,
       serviceId: service.id,

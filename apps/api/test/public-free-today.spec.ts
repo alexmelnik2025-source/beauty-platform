@@ -69,6 +69,15 @@ describe('"Wolne dziś" (task 120)', () => {
     const ola = await staff('Ola', [haircut, beard], '08:00', '10:30');
     const marek = await staff('Marek', [haircut], '08:00', '10:00');
     const tomek = await staff('Tomek', [haircut], '10:00', '18:00');
+    // Task 609: Piotr cuts hair in 25 minutes of his own (task 70) and ends at 10:30 like Ola —
+    // his shortest service is the haircut at his duration, so he still fits at 10:00.
+    const piotr = await staff('Piotr', [haircut], '08:00', '10:30');
+    await ctx
+      .http()
+      .put(`${base}/services/${haircut}/staff-durations`)
+      .set(owner.auth)
+      .send({ durations: [{ staffId: piotr, durationMinutes: 25 }] })
+      .expect(200);
 
     const day = addDays(localToday(Date.now(), TZ), 5);
     await ctx
@@ -83,10 +92,16 @@ describe('"Wolne dziś" (task 120)', () => {
     });
     const availability = ctx.app.get(AvailabilityService);
 
-    // 09:00: Kasia from 10:00, Ola's beard at 10:00; Marek's hour no longer fits; Tomek is off.
+    // 09:00: Kasia from 10:00, Ola's beard and Piotr's 25-minute haircut at 10:00; Marek's hour
+    // no longer fits; Tomek is off. The salon's order (task 609: one calculation per service).
     const morning = await availability.freeToday(location, zonedToInstant(day, 9 * 60, TZ));
-    expect(morning).toEqual({ date: day, staffIds: [kasia, ola] });
+    expect(morning).toEqual({ date: day, staffIds: [kasia, ola, piotr] });
     expect(morning.staffIds).not.toContain(marek);
+
+    // 10:10: Ola's 30 minutes no longer fit before 10:30, Piotr's 25 do not either (60 minutes'
+    // notice) — only Kasia; a group with nobody free leaves no trace.
+    const later = await availability.freeToday(location, zonedToInstant(day, 10 * 60 + 10, TZ));
+    expect(later).toEqual({ date: day, staffIds: [kasia] });
 
     // 17:30: nothing left today, even for Kasia (60 minutes' notice).
     const evening = await availability.freeToday(location, zonedToInstant(day, 17 * 60 + 30, TZ));
