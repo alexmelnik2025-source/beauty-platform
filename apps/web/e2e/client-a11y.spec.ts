@@ -55,6 +55,8 @@ async function bookableSalon(baseURL: string): Promise<string> {
         city: 'Warszawa',
         postalCode: '02-515',
         onlineBookingEnabled: true,
+        // The nearest time is soon: the client may still change it (task 599, "Zmień termin").
+        clientCancelDeadlineMinutes: 0,
         bookingTerms: '# Regulamin\n\nWizyta jest bezpłatna do odwołania.',
         privacyPolicy: '# Prywatność\n\nAdministratorem danych jest salon.',
       },
