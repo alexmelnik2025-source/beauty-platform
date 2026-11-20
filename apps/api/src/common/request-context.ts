@@ -21,4 +21,6 @@ export interface MembershipContext {
 export type AppRequest = Request & {
   auth?: AuthContext;
   membership?: MembershipContext;
+  /** A signed-in client of "My visits" (set by the ClientGuard); salon accounts use `auth`. */
+  client?: { personId: string; sessionId: string; email: string };
 };

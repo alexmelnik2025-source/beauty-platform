@@ -254,8 +254,15 @@ export class ClientController {
       'Everything the salons keep about the client, found by the confirmed email: the card in each salon, consents, visits and loyalty. Without the salon’s internal notes and tags or who on the team did what.',
   })
   @ApiZodResponse(clientExportSchema)
-  exportData(@CurrentClient() client: ClientAuth): Promise<ClientExportResponse> {
-    return this.exports.export(client);
+  async exportData(
+    @CurrentClient() client: ClientAuth,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<ClientExportResponse> {
+    const body = await this.exports.export(client);
+    // Task 616: the same as the salon's export — a file, never cached.
+    res.setHeader('Content-Disposition', 'attachment; filename="my-data.json"');
+    res.setHeader('Cache-Control', 'private, no-store');
+    return body;
   }
 
   @Get('appointments')

@@ -347,6 +347,35 @@ describe('client app: my visits in all salons', () => {
     await ctx.http().get('/v1/client/appointments/not-a-uuid').set(auth).expect(404);
   });
 
+  it('task 616: a mangled cookie is "not signed in", not a 500', async () => {
+    for (const cookie of ['bp_client=%', 'bp_client=%E0%A4%A', 'bp_client=']) {
+      await ctx.http().get('/v1/client/appointments').set('Cookie', cookie).expect(401);
+    }
+  });
+
+  it('task 616: a retried request is matched to the client, not to the shared address', async () => {
+    const annas = await book(first, at(day, 10));
+    const bobs = await book(first, at(day, 11), BOB);
+    const anna = await signIn(ANNA);
+    const bob = await signIn(BOB);
+    const cancel = (id: string, auth: { Authorization: string }) =>
+      ctx
+        .http()
+        .post(`/v1/client/appointments/${id}/cancel`)
+        .set(auth)
+        .set('Idempotency-Key', 'same-key-from-two-phones')
+        .send({});
+    // Both come from the same test address with the same key and body on the same path shape:
+    // each gets their own answer, Bob never sees Anna's visit.
+    await cancel(annas, anna).expect(200);
+    await cancel(bobs, bob).expect(200);
+    const retry = await cancel(annas, anna).expect(200);
+    expect(retry.body.id).toBe(annas);
+    const scopes = (await ctx.prisma.idempotencyKey.findMany()).map((k) => k.scope);
+    expect(scopes).toHaveLength(2);
+    expect(scopes.every((s) => s.startsWith('client:'))).toBe(true);
+  });
+
   it('cancels until the salon deadline; the visit moves to past', async () => {
     const id = await book(first, at(day, 10));
     const auth = await signIn(ANNA);

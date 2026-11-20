@@ -11,6 +11,8 @@ import { customerAnonymized } from './customers.service';
 
 /** What an erased client is called everywhere (calendar, history, reports). */
 export const ANONYMIZED_NAME = '—';
+/** Task 616: waiting-list entries keep a non-null e-mail column; this value matches no inbox. */
+export const ANONYMIZED_EMAIL = 'anonymized@invalid';
 
 export const anonymizeCustomerSchema = z.object({ version: z.number().int().positive() }).strict();
 export type AnonymizeCustomerInput = z.infer<typeof anonymizeCustomerSchema>;
@@ -184,10 +186,12 @@ export class CustomerPrivacyService {
   }
 
   /**
-   * Erases the personal data: name, phone, email, note, tags, the visits' notes and
-   * cancellation reasons, the contact typed during a hold, the client's name in staff
-   * notifications and the manage links. Visits, prices and loyalty entries stay without
-   * them. Refused while the client has upcoming visits (cancel them first).
+   * Erases the personal data: name, phone, email, note, tags, the wishes (mood, drink, free
+   * text — task 616), the visits' notes, wishes and cancellation reasons, the contact typed
+   * during a hold, the client's name in staff notifications, the manage links and the
+   * client's waiting-list entries in the organization's salons (task 616). Visits, prices and
+   * loyalty entries stay without them. Refused while the client has upcoming visits (cancel
+   * them first).
    */
   async anonymize(
     m: MembershipContext,
@@ -219,6 +223,9 @@ export class CustomerPrivacyService {
           note: null,
           tags: [],
           birthday: null,
+          wishMood: null,
+          wishDrink: null,
+          wishNote: null,
           anonymizedAt: now,
           version: { increment: 1 },
         },
@@ -238,7 +245,14 @@ export class CustomerPrivacyService {
       if (ids.length > 0) {
         await tx.appointment.updateMany({
           where: { id: { in: ids } },
-          data: { note: null, cancelReason: null, holdContact: Prisma.DbNull },
+          data: {
+            note: null,
+            cancelReason: null,
+            holdContact: Prisma.DbNull,
+            wishMood: null,
+            wishDrink: null,
+            wishNote: null,
+          },
         });
         // Free text the client or staff typed when cancelling.
         await tx.$executeRaw`UPDATE appointment_event SET data = data - 'reason' WHERE appointment_id = ANY(${ids}::uuid[]) AND data ? 'reason'`;
@@ -246,6 +260,34 @@ export class CustomerPrivacyService {
         await tx.appointmentAccessToken.deleteMany({ where: { appointmentId: { in: ids } } });
         // Task 80b: the client's example photos.
         await tx.visitPhoto.deleteMany({ where: { appointmentId: { in: ids } } });
+      }
+      // Task 616: the waiting list keeps the client by e-mail, not by card. Open entries are
+      // closed (an offered time goes back), and the name, e-mail and phone leave every entry
+      // in the organization's salons.
+      if (customer.email) {
+        const where = {
+          email: { equals: customer.email, mode: 'insensitive' as const },
+          location: { organizationId: m.organizationId },
+        };
+        const offered = await tx.waitlistEntry.findMany({
+          where: { ...where, status: 'offered', offerAppointmentId: { not: null } },
+          select: { offerAppointmentId: true },
+        });
+        await tx.waitlistEntry.updateMany({
+          where: { ...where, status: { in: ['waiting', 'notified', 'offered'] } },
+          data: { status: 'cancelled', cancelledAt: now },
+        });
+        const holds = offered.map((e) => e.offerAppointmentId!).filter(Boolean);
+        if (holds.length > 0) {
+          await tx.appointment.updateMany({
+            where: { id: { in: holds }, status: 'held' },
+            data: { status: 'expired' },
+          });
+        }
+        await tx.waitlistEntry.updateMany({
+          where,
+          data: { name: ANONYMIZED_NAME, email: ANONYMIZED_EMAIL, phone: null },
+        });
       }
       await this.audit.record(
         {

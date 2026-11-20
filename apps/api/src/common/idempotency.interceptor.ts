@@ -48,7 +48,11 @@ export class IdempotencyInterceptor implements NestInterceptor {
         'Idempotency-Key must be 8–100 letters, digits, - or _',
       );
     }
-    const who = request.auth?.userId ?? `anonymous:${request.ip}`;
+    // Task 616: a signed-in client of "My visits" is scoped by their identity, not by the
+    // address they share with everyone behind the same router.
+    const who =
+      request.auth?.userId ??
+      (request.client ? `client:${request.client.personId}` : `anonymous:${request.ip}`);
     const scope = `${who} ${request.method} ${request.path}`;
     const requestHash = createHash('sha256')
       .update(JSON.stringify(request.body ?? {}))

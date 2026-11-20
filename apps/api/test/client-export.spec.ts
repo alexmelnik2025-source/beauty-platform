@@ -110,6 +110,9 @@ async function myData(email: string): Promise<ClientExportResponse> {
   const auth = await signIn(email);
   const res = await ctx.http().get('/v1/client/export').set(auth).expect(200);
   expectShape('ClientDataExport', res.body);
+  // Task 616: a file, never cached (as the salon's export).
+  expect(res.headers['content-disposition']).toBe('attachment; filename="my-data.json"');
+  expect(res.headers['cache-control']).toBe('private, no-store');
   return res.body as ClientExportResponse;
 }
 

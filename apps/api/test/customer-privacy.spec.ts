@@ -294,6 +294,80 @@ describe('client data erasure (GDPR)', () => {
     expect(JSON.stringify(log)).not.toContain('Jan');
   });
 
+  it('task 616: the wishes and the waiting-list entries go too', async () => {
+    const pastId = await pastPaidVisit();
+    await ctx.prisma.customer.update({
+      where: { id: customerId },
+      data: { wishMood: 'quiet', wishDrink: 'coffee', wishNote: 'Wrażliwa skóra głowy' },
+    });
+    await ctx.prisma.appointment.update({
+      where: { id: pastId },
+      data: { wishMood: 'quiet', wishNote: 'Alergia na amoniak' },
+    });
+    const locationId = (await ctx.prisma.location.findFirstOrThrow()).id;
+    const entry = (data: Partial<Parameters<typeof ctx.prisma.waitlistEntry.create>[0]['data']>) =>
+      ctx.prisma.waitlistEntry.create({
+        data: {
+          locationId,
+          serviceId: haircutId,
+          date: new Date('2030-01-10'),
+          name: 'Jan Nowak',
+          email: 'Jan@example.com',
+          phone: '+48600000002',
+          tokenHash: Math.random().toString(16).slice(2).padEnd(64, 'a'),
+          ...data,
+        } as Parameters<typeof ctx.prisma.waitlistEntry.create>[0]['data'],
+      });
+    const waiting = await entry({});
+    const hold = await ctx.prisma.appointment.create({
+      data: {
+        locationId,
+        serviceId: haircutId,
+        staffId,
+        startAt: new Date(Date.now() + 2 * DAY),
+        endAt: new Date(Date.now() + 2 * DAY + 30 * 60_000),
+        blockedUntil: new Date(Date.now() + 2 * DAY + 30 * 60_000),
+        status: 'held',
+        holdExpiresAt: new Date(Date.now() + 15 * 60_000),
+        holdTokenHash: 'w'.repeat(64),
+        priceGrosze: 8000,
+        durationMinutes: 30,
+        bufferMinutes: 0,
+        source: 'online',
+      },
+    });
+    const offered = await entry({
+      status: 'offered',
+      offerAppointmentId: hold.id,
+      offerExpiresAt: new Date(Date.now() + 15 * 60_000),
+      offerTokenHash: 'o'.repeat(64),
+    });
+    const done = await entry({ status: 'booked' });
+    // Someone else on the list stays untouched.
+    const other = await entry({ name: 'Ola', email: 'ola@example.com', phone: null });
+
+    const before = (await card().expect(200)).body;
+    await anonymize(before.version).expect(200);
+
+    const customer = await ctx.prisma.customer.findUniqueOrThrow({ where: { id: customerId } });
+    expect([customer.wishMood, customer.wishDrink, customer.wishNote]).toEqual([null, null, null]);
+    const visit = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: pastId } });
+    expect([visit.wishMood, visit.wishNote]).toEqual([null, null]);
+    const entries = await ctx.prisma.waitlistEntry.findMany({ orderBy: { createdAt: 'asc' } });
+    const byId = new Map(entries.map((e) => [e.id, e]));
+    for (const id of [waiting.id, offered.id, done.id]) {
+      expect(byId.get(id)).toMatchObject({ name: '—', email: 'anonymized@invalid', phone: null });
+    }
+    expect(byId.get(waiting.id)?.status).toBe('cancelled');
+    expect(byId.get(offered.id)?.status).toBe('cancelled');
+    expect(byId.get(done.id)?.status).toBe('booked');
+    expect(byId.get(other.id)).toMatchObject({ name: 'Ola', email: 'ola@example.com' });
+    // The time held for the offer is free again.
+    const released = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: hold.id } });
+    expect(released.status).toBe('expired');
+    expect(JSON.stringify(entries)).not.toContain('Jan');
+  });
+
   it('checks the version and the role', async () => {
     expectError((await anonymize(99).expect(409)).body, 'VERSION_CONFLICT');
     for (const user of [manager, kasia]) {

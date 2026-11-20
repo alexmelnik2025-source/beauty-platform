@@ -23,7 +23,14 @@ export function readClientToken(req: Request): string | undefined {
   if (!header) return undefined;
   for (const part of header.split(';')) {
     const [name, ...rest] = part.trim().split('=');
-    if (name === CLIENT_COOKIE) return decodeURIComponent(rest.join('='));
+    if (name === CLIENT_COOKIE) {
+      // Task 616: a mangled cookie (e.g. `%` on its own) is "not signed in", not a 500.
+      try {
+        return decodeURIComponent(rest.join('='));
+      } catch {
+        return undefined;
+      }
+    }
   }
   return undefined;
 }
