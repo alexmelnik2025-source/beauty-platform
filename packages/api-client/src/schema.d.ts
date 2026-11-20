@@ -3190,6 +3190,405 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Wybierz z katalogu": cards of the platform catalogue by name, brand or EAN
+         * @description Task Q3. Everyone in the salon. `q` — words of the name or brand, or the code on the package (an exact EAN comes first). `offeredHere` says which product of this salon already points to the card.
+         */
+        get: operations["ShopCatalogController_search"];
+        put?: never;
+        /**
+         * A new card in the platform catalogue
+         * @description Task Q3. Owners and managers. The name, brand, EAN, description and category are the same for every salon that offers the card. An EAN already in the catalogue → 409 EAN_TAKEN with the existing card’s id in `details[0].message` — offer that card instead.
+         */
+        post: operations["ShopCatalogController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One card of the catalogue */
+        get: operations["ShopCatalogController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a card this salon made
+         * @description Task Q3. Owners and managers; only the salon that made the card, and only while no other salon offers it (403 CARD_SHARED). A card made by another salon → 404.
+         */
+        patch: operations["ShopCatalogController_update"];
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the card's picture (replaces the old one)
+         * @description Task Q3 (part 2b). The salon that may change the card, or any salon offering it while the card has no picture yet; otherwise 403 CARD_SHARED. JPEG, PNG or WebP, at most 3 MB, sent as the body. The picture is public at /v1/public/photos/<id>.
+         */
+        put: operations["ShopCatalogController_setPhoto"];
+        post?: never;
+        /**
+         * Remove the card's picture
+         * @description Task Q3 (part 2b). Only the salon that may change the card (403 CARD_SHARED).
+         */
+        delete: operations["ShopCatalogController_removePhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/locations/{slug}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Produkty salonu": what the salon sells to its clients, to pick up at a visit
+         * @description Task Q3. Only salons open for online booking (otherwise 404), only products the salon shows to clients (`inSalonShop`) and still sells. `available` is false when the salon counts its pieces and has none left.
+         */
+        get: operations["PublicShopController_salonProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/shop/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The "Sklep" tab: every product some salon sells online, with all the salons offering it
+         * @description Task Q3. A card is listed while at least one salon open for online booking sells it in the "Sklep" tab and has it (counts no pieces, or has some left). Offers: available first, cheapest first. At the launch every offer is picked up and paid at the salon.
+         */
+        get: operations["PublicShopController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/shop/products/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One product of the "Sklep" tab with every salon offering it
+         * @description Task Q3. 404 unless some salon open for online booking sells it in the "Sklep" tab.
+         */
+        get: operations["PublicShopController_product"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Products the client put aside for this visit, and what else they may add
+         * @description Task Q3 (part 4). By the "manage" link of the visit. `canChange` while the visit is confirmed and ahead; `available` lists "Produkty salonu" (empty once the visit cannot be changed).
+         */
+        get: operations["PublicShopController_visitProducts"];
+        put?: never;
+        /**
+         * "Odbiorę przy wizycie": put a product of the salon aside for this visit
+         * @description Task Q3 (part 4). Paid at the salon, no online payment. Only a product the salon shows to clients; more than the salon has left (after other clients’ reservations) → 409 OUT_OF_STOCK; a visit that started or is not confirmed → 409 TOO_LATE_TO_CHANGE.
+         */
+        post: operations["PublicShopController_reserve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/products/{reservationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * The client takes a product back (until the visit starts)
+         * @description Task Q3 (part 4). Only a product still waiting; otherwise 404.
+         */
+        delete: operations["PublicShopController_unreserve"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Is Base connected, and what was chosen (never the token) */
+        get: operations["ShopIntegrationsController_status"];
+        /**
+         * Step 1: connect with the API token from Base (Moje konto → API)
+         * @description Base must accept the token first (422 BASE_TOKEN_INVALID otherwise). The token is stored encrypted and never sent back; pasting a new one replaces it and keeps the choices.
+         */
+        put: operations["ShopIntegrationsController_connect"];
+        post?: never;
+        /**
+         * "Odłącz Base": forget the token
+         * @description Imported products stay as the salon’s own; connecting again joins them back.
+         */
+        delete: operations["ShopIntegrationsController_disconnect"];
+        options?: never;
+        head?: never;
+        /**
+         * Step 2: choose the catalogue, price group and warehouse
+         * @description The price group must be in the salon’s currency and both it and the warehouse in the chosen catalogue (422 BASE_INVALID_CHOICE).
+         */
+        patch: operations["ShopIntegrationsController_configure"];
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Step 2: catalogues, price groups and warehouses of the seller’s Base
+         * @description 409 BASE_NOT_CONNECTED without a token; 409 BASE_RECONNECT when it must be pasted again.
+         */
+        get: operations["ShopIntegrationsController_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Step 3: a page of the seller’s catalogue to tick products from
+         * @description Up to 1000 products a page, as Base gives them, with the price and stock of the chosen group and warehouse, and what the platform already has (imported product, card with the same EAN). 409 BASE_NOT_CONFIGURED before step 2.
+         */
+        get: operations["ShopIntegrationsController_products"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Step 3: import the ticked products (up to 200 at once)
+         * @description Each becomes the salon’s product on its booking page ("Produkty salonu"); `online: true` also shows it in "Sklep". Joined to the platform card with the same EAN, or a new card is made. Importing again renews the price, stock and code. Nothing else is published.
+         */
+        post: operations["ShopIntegrationsController_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Synchronizuj teraz": renew prices and stock of the imported products
+         * @description Task Q4 (part 2). Otherwise it happens every `syncEveryMinutes`. Base errors do not fail the request: they are in `errorCode` of the run (and in the log). Again within a minute → 409 BASE_SYNC_TOO_SOON.
+         */
+        post: operations["ShopIntegrationsController_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Dziennik synchronizacji": the latest imports and renewals
+         * @description Task Q4 (part 2). At most 20, newest first; empty when Base is not connected.
+         */
+        get: operations["ShopIntegrationsController_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a product file and see what was read from it
+         * @description Columns of a CSV are found by their names (nazwa/name, ean/gtin, sku/symbol, cena/price, stan/ilość/stock, marka/producent, opis, zdjęcie/image, id). 413 FEED_TOO_LARGE, 415 UNSUPPORTED_FEED, 422 FEED_EMPTY. The file is kept for a day.
+         */
+        post: operations["ShopFeedController_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed/{feedId}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import the ticked rows of a sent file (up to 500 at once)
+         * @description Like the Base import: each becomes the salon’s product ("Produkty salonu"); `online: true` also shows it in "Sklep"; joined to the card with the same EAN or a new card is made; importing again renews price, stock and code. A file older than a day → 404.
+         */
+        post: operations["ShopFeedController_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products the client put aside for this visit ("Do wydania klientowi") */
+        get: operations["VisitReservationsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/hand-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Rozlicz wizytę i produkt": the product is handed over and sold at this visit
+         * @description Task Q3 (part 4). The usual sale of task 394: the visit must be marked "came" (409 NOT_COMPLETED), the pieces leave the stock (409 OUT_OF_STOCK), the price is the product’s now. A product no longer waiting → 409 NOT_RESERVED.
+         */
+        post: operations["VisitReservationsController_handOver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The salon takes a waiting product back
+         * @description Task Q3 (part 4). Whoever may change the visit. Not waiting → 409 NOT_RESERVED.
+         */
+        post: operations["VisitReservationsController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/push-subscriptions/public-key": {
         parameters: {
             query?: never;
@@ -3754,405 +4153,6 @@ export interface paths {
         get: operations["PublicVouchersController_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * "Wybierz z katalogu": cards of the platform catalogue by name, brand or EAN
-         * @description Task Q3. Everyone in the salon. `q` — words of the name or brand, or the code on the package (an exact EAN comes first). `offeredHere` says which product of this salon already points to the card.
-         */
-        get: operations["ShopCatalogController_search"];
-        put?: never;
-        /**
-         * A new card in the platform catalogue
-         * @description Task Q3. Owners and managers. The name, brand, EAN, description and category are the same for every salon that offers the card. An EAN already in the catalogue → 409 EAN_TAKEN with the existing card’s id in `details[0].message` — offer that card instead.
-         */
-        post: operations["ShopCatalogController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One card of the catalogue */
-        get: operations["ShopCatalogController_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Change a card this salon made
-         * @description Task Q3. Owners and managers; only the salon that made the card, and only while no other salon offers it (403 CARD_SHARED). A card made by another salon → 404.
-         */
-        patch: operations["ShopCatalogController_update"];
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}/photo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Set the card's picture (replaces the old one)
-         * @description Task Q3 (part 2b). The salon that may change the card, or any salon offering it while the card has no picture yet; otherwise 403 CARD_SHARED. JPEG, PNG or WebP, at most 3 MB, sent as the body. The picture is public at /v1/public/photos/<id>.
-         */
-        put: operations["ShopCatalogController_setPhoto"];
-        post?: never;
-        /**
-         * Remove the card's picture
-         * @description Task Q3 (part 2b). Only the salon that may change the card (403 CARD_SHARED).
-         */
-        delete: operations["ShopCatalogController_removePhoto"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/locations/{slug}/products": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * "Produkty salonu": what the salon sells to its clients, to pick up at a visit
-         * @description Task Q3. Only salons open for online booking (otherwise 404), only products the salon shows to clients (`inSalonShop`) and still sells. `available` is false when the salon counts its pieces and has none left.
-         */
-        get: operations["PublicShopController_salonProducts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/shop/products": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * The "Sklep" tab: every product some salon sells online, with all the salons offering it
-         * @description Task Q3. A card is listed while at least one salon open for online booking sells it in the "Sklep" tab and has it (counts no pieces, or has some left). Offers: available first, cheapest first. At the launch every offer is picked up and paid at the salon.
-         */
-        get: operations["PublicShopController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/shop/products/{cardId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * One product of the "Sklep" tab with every salon offering it
-         * @description Task Q3. 404 unless some salon open for online booking sells it in the "Sklep" tab.
-         */
-        get: operations["PublicShopController_product"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/appointments/{token}/products": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Products the client put aside for this visit, and what else they may add
-         * @description Task Q3 (part 4). By the "manage" link of the visit. `canChange` while the visit is confirmed and ahead; `available` lists "Produkty salonu" (empty once the visit cannot be changed).
-         */
-        get: operations["PublicShopController_visitProducts"];
-        put?: never;
-        /**
-         * "Odbiorę przy wizycie": put a product of the salon aside for this visit
-         * @description Task Q3 (part 4). Paid at the salon, no online payment. Only a product the salon shows to clients; more than the salon has left (after other clients’ reservations) → 409 OUT_OF_STOCK; a visit that started or is not confirmed → 409 TOO_LATE_TO_CHANGE.
-         */
-        post: operations["PublicShopController_reserve"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/public/appointments/{token}/products/{reservationId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * The client takes a product back (until the visit starts)
-         * @description Task Q3 (part 4). Only a product still waiting; otherwise 404.
-         */
-        delete: operations["PublicShopController_unreserve"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Is Base connected, and what was chosen (never the token) */
-        get: operations["ShopIntegrationsController_status"];
-        /**
-         * Step 1: connect with the API token from Base (Moje konto → API)
-         * @description Base must accept the token first (422 BASE_TOKEN_INVALID otherwise). The token is stored encrypted and never sent back; pasting a new one replaces it and keeps the choices.
-         */
-        put: operations["ShopIntegrationsController_connect"];
-        post?: never;
-        /**
-         * "Odłącz Base": forget the token
-         * @description Imported products stay as the salon’s own; connecting again joins them back.
-         */
-        delete: operations["ShopIntegrationsController_disconnect"];
-        options?: never;
-        head?: never;
-        /**
-         * Step 2: choose the catalogue, price group and warehouse
-         * @description The price group must be in the salon’s currency and both it and the warehouse in the chosen catalogue (422 BASE_INVALID_CHOICE).
-         */
-        patch: operations["ShopIntegrationsController_configure"];
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/options": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Step 2: catalogues, price groups and warehouses of the seller’s Base
-         * @description 409 BASE_NOT_CONNECTED without a token; 409 BASE_RECONNECT when it must be pasted again.
-         */
-        get: operations["ShopIntegrationsController_options"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/products": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Step 3: a page of the seller’s catalogue to tick products from
-         * @description Up to 1000 products a page, as Base gives them, with the price and stock of the chosen group and warehouse, and what the platform already has (imported product, card with the same EAN). 409 BASE_NOT_CONFIGURED before step 2.
-         */
-        get: operations["ShopIntegrationsController_products"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Step 3: import the ticked products (up to 200 at once)
-         * @description Each becomes the salon’s product on its booking page ("Produkty salonu"); `online: true` also shows it in "Sklep". Joined to the platform card with the same EAN, or a new card is made. Importing again renews the price, stock and code. Nothing else is published.
-         */
-        post: operations["ShopIntegrationsController_import"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * "Synchronizuj teraz": renew prices and stock of the imported products
-         * @description Task Q4 (part 2). Otherwise it happens every `syncEveryMinutes`. Base errors do not fail the request: they are in `errorCode` of the run (and in the log). Again within a minute → 409 BASE_SYNC_TOO_SOON.
-         */
-        post: operations["ShopIntegrationsController_sync"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * "Dziennik synchronizacji": the latest imports and renewals
-         * @description Task Q4 (part 2). At most 20, newest first; empty when Base is not connected.
-         */
-        get: operations["ShopIntegrationsController_runs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Send a product file and see what was read from it
-         * @description Columns of a CSV are found by their names (nazwa/name, ean/gtin, sku/symbol, cena/price, stan/ilość/stock, marka/producent, opis, zdjęcie/image, id). 413 FEED_TOO_LARGE, 415 UNSUPPORTED_FEED, 422 FEED_EMPTY. The file is kept for a day.
-         */
-        post: operations["ShopFeedController_upload"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed/{feedId}/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Import the ticked rows of a sent file (up to 500 at once)
-         * @description Like the Base import: each becomes the salon’s product ("Produkty salonu"); `online: true` also shows it in "Sklep"; joined to the card with the same EAN or a new card is made; importing again renews price, stock and code. A file older than a day → 404.
-         */
-        post: operations["ShopFeedController_import"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Products the client put aside for this visit ("Do wydania klientowi") */
-        get: operations["VisitReservationsController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/hand-over": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * "Rozlicz wizytę i produkt": the product is handed over and sold at this visit
-         * @description Task Q3 (part 4). The usual sale of task 394: the visit must be marked "came" (409 NOT_COMPLETED), the pieces leave the stock (409 OUT_OF_STOCK), the price is the product’s now. A product no longer waiting → 409 NOT_RESERVED.
-         */
-        post: operations["VisitReservationsController_handOver"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/reservations/{reservationId}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * The salon takes a waiting product back
-         * @description Task Q3 (part 4). Whoever may change the visit. Not waiting → 409 NOT_RESERVED.
-         */
-        post: operations["VisitReservationsController_cancel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -13958,6 +13958,656 @@ export interface operations {
             };
         };
     };
+    ShopCatalogController_search: {
+        parameters: {
+            query?: {
+                limit?: number;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogSearch"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    brand?: string | null;
+                    ean?: string | null;
+                    description?: string | null;
+                    /**
+                     * @default other
+                     * @enum {string}
+                     */
+                    category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogProduct"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogProduct"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    brand?: string | null;
+                    ean?: string | null;
+                    description?: string | null;
+                    /** @enum {string} */
+                    category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogProduct"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_setPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The picture itself (not a form), at most 3 MB */
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_removePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicShopController_salonProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSalonProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_list: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                page?: number;
+                /** @description Only the offers of salons in this city */
+                city?: string;
+                category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicShopList"];
+                };
+            };
+        };
+    };
+    PublicShopController_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicShopProduct"];
+                };
+            };
+        };
+    };
+    PublicShopController_visitProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_reserve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @default 1 */
+                    quantity?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_unreserve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                reservationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProducts"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_configure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    inventoryId: string;
+                    priceGroupId: string;
+                    warehouseId: string;
+                    syncEveryMinutes?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseOptions"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_products: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseProducts"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        externalId: string;
+                        /** @default false */
+                        online?: boolean;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseImportResult"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseSyncRun"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_runs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseSyncRuns"];
+                };
+            };
+        };
+    };
+    ShopFeedController_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file itself (not a form), at most 10 MB and 5000 products: Google Merchant XML, Ceneo XML or CSV (; , or tab; UTF-8 or Windows-1250) */
+        requestBody: {
+            content: {
+                "text/csv": string;
+                "application/xml": string;
+                "text/xml": string;
+                "text/plain": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopFeedPreview"];
+                };
+            };
+        };
+    };
+    ShopFeedController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                feedId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        /** @description The row’s id in the file */
+                        key: string;
+                        /** @default false */
+                        online?: boolean;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopFeedImportResult"];
+                };
+            };
+        };
+    };
+    VisitReservationsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReservations"];
+                };
+            };
+        };
+    };
+    VisitReservationsController_handOver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+                reservationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReservations"];
+                };
+            };
+        };
+    };
+    VisitReservationsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+                reservationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitReservations"];
+                };
+            };
+        };
+    };
     PushController_publicKey: {
         parameters: {
             query?: never;
@@ -14738,656 +15388,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicGiftVoucher"];
-                };
-            };
-        };
-    };
-    ShopCatalogController_search: {
-        parameters: {
-            query?: {
-                limit?: number;
-                q?: string;
-            };
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogSearch"];
-                };
-            };
-        };
-    };
-    ShopCatalogController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    brand?: string | null;
-                    ean?: string | null;
-                    description?: string | null;
-                    /**
-                     * @default other
-                     * @enum {string}
-                     */
-                    category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
-                };
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogProduct"];
-                };
-            };
-        };
-    };
-    ShopCatalogController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                cardId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogProduct"];
-                };
-            };
-        };
-    };
-    ShopCatalogController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                cardId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name?: string;
-                    brand?: string | null;
-                    ean?: string | null;
-                    description?: string | null;
-                    /** @enum {string} */
-                    category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogProduct"];
-                };
-            };
-        };
-    };
-    ShopCatalogController_setPhoto: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                cardId: string;
-            };
-            cookie?: never;
-        };
-        /** @description The picture itself (not a form), at most 3 MB */
-        requestBody: {
-            content: {
-                "image/jpeg": string;
-                "image/png": string;
-                "image/webp": string;
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Photo"];
-                };
-            };
-        };
-    };
-    ShopCatalogController_removePhoto: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                cardId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PublicShopController_salonProducts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicSalonProducts"];
-                };
-            };
-        };
-    };
-    PublicShopController_list: {
-        parameters: {
-            query?: {
-                pageSize?: number;
-                page?: number;
-                /** @description Only the offers of salons in this city */
-                city?: string;
-                category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
-                q?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicShopList"];
-                };
-            };
-        };
-    };
-    PublicShopController_product: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cardId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicShopProduct"];
-                };
-            };
-        };
-    };
-    PublicShopController_visitProducts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisitProducts"];
-                };
-            };
-        };
-    };
-    PublicShopController_reserve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    productId: string;
-                    /** @default 1 */
-                    quantity?: number;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisitProducts"];
-                };
-            };
-        };
-    };
-    PublicShopController_unreserve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-                reservationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisitProducts"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_status: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseIntegration"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_connect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    token: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseIntegration"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_disconnect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseIntegration"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_configure: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    inventoryId: string;
-                    priceGroupId: string;
-                    warehouseId: string;
-                    syncEveryMinutes?: number;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseIntegration"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_options: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseOptions"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_products: {
-        parameters: {
-            query?: {
-                page?: number;
-            };
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseProducts"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_import: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    items: {
-                        externalId: string;
-                        /** @default false */
-                        online?: boolean;
-                    }[];
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseImportResult"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_sync: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseSyncRun"];
-                };
-            };
-        };
-    };
-    ShopIntegrationsController_runs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseSyncRuns"];
-                };
-            };
-        };
-    };
-    ShopFeedController_upload: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        /** @description The file itself (not a form), at most 10 MB and 5000 products: Google Merchant XML, Ceneo XML or CSV (; , or tab; UTF-8 or Windows-1250) */
-        requestBody: {
-            content: {
-                "text/csv": string;
-                "application/xml": string;
-                "text/xml": string;
-                "text/plain": string;
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ShopFeedPreview"];
-                };
-            };
-        };
-    };
-    ShopFeedController_import: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                feedId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    items: {
-                        /** @description The row’s id in the file */
-                        key: string;
-                        /** @default false */
-                        online?: boolean;
-                    }[];
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ShopFeedImportResult"];
-                };
-            };
-        };
-    };
-    VisitReservationsController_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                appointmentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisitReservations"];
-                };
-            };
-        };
-    };
-    VisitReservationsController_handOver: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                appointmentId: string;
-                reservationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisitReservations"];
-                };
-            };
-        };
-    };
-    VisitReservationsController_cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locationId: string;
-                appointmentId: string;
-                reservationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisitReservations"];
                 };
             };
         };
