@@ -12,7 +12,8 @@ import { waitForEmail } from './mailpit';
  * Task Q3 (screen A): right after booking, the "booked" screen offers — folded and optional —
  * "Dodać coś do wizyty?" with at most three of the salon's products. The client opens it on the
  * phone and puts a pomade aside: it waits at the salon, paid at the visit. Screenshots
- * Q3-A-booked, Q3-A-booked-open.
+ * Q3-A-booked, Q3-A-booked-open. (Named "shop-…" so it runs after booking.spec.ts, which counts the
+ * salons in the catalogue.)
  */
 
 const PASSWORD = 'e2e-password-123';

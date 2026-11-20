@@ -15,7 +15,7 @@
 - **20.11.2026, ~03:20 UTC — 584 (ветка `agent/584-booking-done-products`, поверх 583): Q3 экран A — на экране «Do
   zobaczenia!» сразу после записи необязательный свёрнутый блок «Dodać coś do wizyty?» (`VisitProductsByLink` с
   `offer`: не больше 3 товаров, «+ Dodaj produkt do tej wizyty» раскрывает, «Odbiorę przy wizycie» откладывает; не
-  в окне на сайте салона; нет товаров — нет блока). e2e `booked-products.spec.ts` (Q3-A-booked, Q3-A-booked-open).
+  в окне на сайте салона; нет товаров — нет блока). e2e `shop-booked-products.spec.ts` (Q3-A-booked, Q3-A-booked-open).
 
 - **20.11.2026, ~03:30 UTC — 583 (ветка `agent/583-visit-card-products`, поверх `agent/581-visit-products-link`): Q3
   экран D в кабинете — «Do wydania klientowi» в карточке визита (`components/shop/VisitToHand.tsx`): товары, отложенные
