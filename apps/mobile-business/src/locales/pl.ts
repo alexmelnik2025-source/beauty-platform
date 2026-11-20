@@ -1699,6 +1699,8 @@ export const pl = {
       'Pokaż klientowi przy recepcji albo zrób zrzut ekranu i wydrukuj — prowadzi do tej samej strony rezerwacji.',
     staffQrTitle: 'Kod QR specjalisty',
     staffQrAlt: 'Kod QR rezerwacji u {name}',
+    staffQrShare: 'Udostępnij link specjalisty',
+    staffQrMessage: '{name} ({salon}) — umów się online: {url}',
     staffQrHint:
       'Na lustro lub wizytówkę: klient po zeskanowaniu umawia się właśnie do tej osoby, a w „Skąd przyszli” widać wizyty z każdego kodu.',
     offline:

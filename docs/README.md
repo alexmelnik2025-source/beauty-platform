@@ -3667,6 +3667,7 @@ Q2-staff-qr-cabinet, Q2-staff-qr-booking, Q2-staff-qr-app).
 после выбора услуги, которую этот мастер делает, сразу его свободное время — шаг «Wybierz specjalistę» пропускается
 (`BookingPreset.serviceId` стал необязательным, остальные пресеты — «Umów ponownie», бонусы — не изменились). Тексты в 6
 словарях приложения, те же слова, что на странице записи. Unit `deepLink.test.ts`, `booking.test.ts`; e2e шаг в
-`visits-app-deep-link.spec.ts` (скриншот Q2-app-link-qr-staff). Дальше по QR — только после «да» владельца: N32
+`visits-app-deep-link.spec.ts` (скриншот Q2-app-link-qr-staff). В бизнес-приложении под кодом специалиста добавлена кнопка
+«Udostępnij link specjalisty» (та же ссылка сообщением; в браузере — копирование; проверка в `staff-qr.spec.ts`). Дальше по QR — только после «да» владельца: N32
 (universal links после публикации), N33 («Zeskanuj kod QR» в приложении), N35 (короткая ссылка `/s/{salon}/{imię}`),
 N37 (печатная карточка специалиста).

@@ -1701,6 +1701,8 @@ export const en: Dictionary = {
       'Show it to a client at the front desk, or take a screenshot and print it — it opens the same booking page.',
     staffQrTitle: 'Specialist’s QR code',
     staffQrAlt: 'Booking QR code for {name}',
+    staffQrShare: 'Share the specialist’s link',
+    staffQrMessage: '{name} ({salon}) — book online: {url}',
     staffQrHint:
       'For the mirror or business card: after scanning, the client books with this very person, and “Where they came from” shows the visits from each code.',
     offline:

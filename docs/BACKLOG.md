@@ -15,7 +15,8 @@
 - **19.11.2026, ~23:50 UTC — Q2, последняя часть (ветка `agent/570-client-app-staff-qr`)**: клиентское приложение
   понимает ссылку/QR только со специалистом (`…/s/{salon}?utm_source=qr&staff=…`, `beauty-client://b/{salon}?staff=…`):
   список услуг со строкой «Umawiasz się do: …» («Inny specjalista» убирает её), после услуги — сразу время этого
-  мастера. e2e шаг в `visits-app-deep-link.spec.ts` (Q2-app-link-qr-staff). Параллельный запуск сделал то же для
+  мастера; в бизнес-приложении — «Udostępnij link specjalisty» под кодом. e2e шаг в `visits-app-deep-link.spec.ts`
+  (Q2-app-link-qr-staff), проверка кнопки в `staff-qr.spec.ts`. Параллельный запуск сделал то же для
   кабинета/бизнес-приложения/страницы записи (ветка `agent/568-staff-qr`, в main); дубликат `agent/568-staff-qr-cabinet`
   не влит, удалить его на origin агент не может (403) — может владелец. Этим Q2 закрыта полностью.
 
