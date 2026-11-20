@@ -401,7 +401,7 @@ export function BookingFlow({
     setBusy(true);
     setError('');
     try {
-      await api(`/v1/public/holds/${hold.holdId}/code`, {
+      const sent = await api<{ channel: 'email' | 'sms' }>(`/v1/public/holds/${hold.holdId}/code`, {
         method: 'POST',
         auth: false,
         body: {
@@ -415,6 +415,8 @@ export function BookingFlow({
           codeChannel,
         },
       });
+      // The server may send the code by email instead (an address the salon already knows).
+      if (sent.channel === 'email' || sent.channel === 'sms') setCodeChannel(sent.channel);
       setStep('code');
     } catch (err) {
       if (err instanceof ApiError && ['HOLD_EXPIRED', 'NOT_FOUND'].includes(err.code)) {

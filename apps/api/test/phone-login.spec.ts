@@ -218,6 +218,69 @@ describe('sign-in by phone with an SMS gateway', () => {
   });
 });
 
+describe("an invitation's number is not a way into someone else's account", () => {
+  /** Another salon invites an EXISTING account's address with a number of its own choosing. */
+  async function inviteExistingKasia(): Promise<{ kasia: SignedInUser; secondOrg: string }> {
+    const kasia = await signUp(ctx, 'kasia@example.com', 'Kasia K.');
+    const other = await signUp(ctx, 'owner2@example.com');
+    const { orgId: secondOrg, locationId: secondLocation } = await createOrgWithLocation(
+      ctx,
+      other,
+      'Salon Mokotów',
+    );
+    await ctx
+      .http()
+      .post(`/v1/organizations/${secondOrg}/invitations`)
+      .set(other.auth)
+      .send({
+        email: 'kasia@example.com',
+        phone: PHONE,
+        role: 'staff',
+        locationIds: [secondLocation],
+      })
+      .expect(201);
+    return { kasia, secondOrg };
+  }
+
+  it('the code for an existing account goes to its email, not to the invitation’s number', async () => {
+    const { kasia, secondOrg } = await inviteExistingKasia();
+
+    const sent = await requestCode({ phone: PHONE }).expect(202);
+    // The answer does not reveal whether the address has an account …
+    expect(sent.body.channel).toBe('sms');
+    // … but no SMS goes to a number the account’s owner never proved.
+    expect(ctx.sms.sent).toHaveLength(0);
+    expect(ctx.mail.lastTo('kasia@example.com')?.subject).toBe('Kod logowania do aplikacji salonu');
+    expectError((await verify({ phone: PHONE, code: '123456' }).expect(400)).body, 'INVALID_CODE');
+
+    // The real Kasia enters the emailed code and joins the second salon.
+    const res = await verify({
+      phone: PHONE,
+      code: codeFromEmail(ctx, 'kasia@example.com'),
+    }).expect(200);
+    expect(res.body.user.id).toBe(kasia.userId);
+    expect((await me(res.body.accessToken)).body.organizations).toEqual([
+      { id: secondOrg, name: 'Salon Mokotów', role: 'staff' },
+    ]);
+    // The number stays off the account: nobody proved it.
+    const user = await ctx.prisma.user.findUniqueOrThrow({ where: { id: kasia.userId } });
+    expect(user.phone).toBeNull();
+  });
+
+  it('accepting by link does not bind the invitation’s number to an existing account', async () => {
+    const { kasia } = await inviteExistingKasia();
+    const token = ctx.mail.lastTo('kasia@example.com')?.text.match(/\/invite\/(\S+)/)?.[1];
+    await ctx.http().post(`/v1/invitations/${token}/accept`).set(kasia.auth).expect(200);
+    const user = await ctx.prisma.user.findUniqueOrThrow({ where: { id: kasia.userId } });
+    expect(user.phone).toBeNull();
+
+    // Whoever holds the number cannot sign in as Kasia: no account and no pending invitation has it.
+    await requestCode({ phone: PHONE }).expect(202);
+    expect(ctx.sms.sent).toHaveLength(0);
+    expectError((await verify({ phone: PHONE, code: '123456' }).expect(400)).body, 'CODE_NOT_SENT');
+  });
+});
+
 describe('sign-in by phone without an SMS gateway', () => {
   it('the code goes to the email of the invitation with that number', async () => {
     ctx.sms.available = false;

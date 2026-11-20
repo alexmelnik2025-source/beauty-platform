@@ -180,7 +180,35 @@ describe('booking code by SMS', () => {
     await sendCode(second).expect(202);
   });
 
-  it('an email confirmed only by SMS does not rewrite the salon card of that address', async () => {
+  it('an email confirmed only by SMS does not rewrite the salon card that has this phone', async () => {
+    const card = await ctx
+      .http()
+      .post(`/v1/organizations/${orgId}/customers`)
+      .set(owner.auth)
+      .send({ name: 'Anna Prawdziwa', phone: PHONE, email: EMAIL })
+      .expect(201);
+
+    const hold = await newHold();
+    const sent = await sendCode(hold, { codeChannel: 'sms', name: 'Anna K.' }).expect(202);
+    expect(sent.body.channel).toBe('sms');
+    const done = await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.holdId}/confirm`)
+      .send({ holdToken: hold.holdToken, code: smsCode() })
+      .expect(200);
+
+    const after = await ctx.prisma.customer.findUniqueOrThrow({ where: { id: card.body.id } });
+    expect(after.name).toBe('Anna Prawdziwa');
+    const visit = await ctx.prisma.appointment.findUniqueOrThrow({
+      where: { id: done.body.appointment.id },
+    });
+    expect(visit.customerId).toBe(card.body.id);
+  });
+
+  it('an address the salon knows under another number gets the code by email, not by SMS', async () => {
+    // Otherwise whoever holds a phone could attach a visit to Anna's card with her address:
+    // it would show up in her "My visits", she would get the manage link, and his no-shows
+    // would count against her.
     const card = await ctx
       .http()
       .post(`/v1/organizations/${orgId}/customers`)
@@ -189,16 +217,51 @@ describe('booking code by SMS', () => {
       .expect(201);
 
     const hold = await newHold();
-    await sendCode(hold, { codeChannel: 'sms', name: 'Ktoś Inny' }).expect(202);
-    await ctx
+    const sent = await sendCode(hold, { codeChannel: 'sms', name: 'Ktoś Inny' }).expect(202);
+    expect(sent.body.channel).toBe('email');
+    expect(ctx.sms.sent).toHaveLength(0);
+    const mail = ctx.mail.lastTo(EMAIL);
+    const code = mail?.text.match(/\b(\d{6})\b/)?.[1];
+    expect(code).toBeDefined();
+
+    // A card with the address appearing between the code and the confirmation is caught too.
+    await ctx.prisma.appointment.update({
+      where: { id: hold.holdId },
+      data: {
+        holdContact: {
+          ...((await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: hold.holdId } }))
+            .holdContact as object),
+          codeChannel: 'sms',
+        },
+      },
+    });
+    const refused = await ctx
       .http()
       .post(`/v1/public/holds/${hold.holdId}/confirm`)
-      .send({ holdToken: hold.holdToken, code: smsCode() })
-      .expect(200);
+      .send({ holdToken: hold.holdToken, code })
+      .expect(409);
+    expectError(refused.body, 'EMAIL_CODE_REQUIRED');
+    await ctx.prisma.appointment.update({
+      where: { id: hold.holdId },
+      data: {
+        holdContact: {
+          ...((await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: hold.holdId } }))
+            .holdContact as object),
+          codeChannel: 'email',
+        },
+      },
+    });
 
-    const after = await ctx.prisma.customer.findUniqueOrThrow({ where: { id: card.body.id } });
-    expect(after.name).toBe('Anna Prawdziwa');
-    expect(after.phone).toBe('+48500500500');
+    // The emailed code proves the address: the visit belongs to Anna's card.
+    const done = await ctx
+      .http()
+      .post(`/v1/public/holds/${hold.holdId}/confirm`)
+      .send({ holdToken: hold.holdToken, code })
+      .expect(200);
+    const visit = await ctx.prisma.appointment.findUniqueOrThrow({
+      where: { id: done.body.appointment.id },
+    });
+    expect(visit.customerId).toBe(card.body.id);
   });
 
   it('without a gateway SMS is not offered and is refused', async () => {
