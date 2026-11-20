@@ -2180,8 +2180,10 @@
 
 - [x] 597. Доступность: кнопка, на месте которой открывается форма («Powiadom mnie, gdy zwolni się termin» и «Masz bon
       podarunkowy?» на странице записи, «Zmień bon» в кабинете), больше не теряет фокус клавиатуры — курсор сразу в
-      первом поле формы, после «Zapisz» / «Anuluj» — снова на «Zmień bon»; проверка в e2e `waitlist`, `voucher-check`,
-      `gift-vouchers` — 20.11.2026
+      первом поле формы, после «Zapisz» / «Anuluj» — снова на «Zmień bon»; на странице визита по ссылке «Zmień termin» /
+      «Odwołaj wizytę» переводят фокус в открывшийся блок, «Wróć» / «Nie, zostaw» — обратно на кнопку, после отмены
+      визита — на сводку визита; проверка в e2e `waitlist`, `voucher-check`, `gift-vouchers`, `booking`,
+      `shop-after-visit` — 20.11.2026
 
 - [x] 596. Доступность клиентского приложения: кнопки, которые раскрывают и сворачивают блок («+ Dodaj produkt do tej
       wizyty», «Pokaż kod QR», история бонусов), сообщают экранному диктору «развёрнуто / свёрнуто» (`expanded` у

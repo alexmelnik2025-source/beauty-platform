@@ -244,7 +244,10 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
   // The new visit is cancelled: the products put aside move to another time with one button.
   await page.goto(`/pl/m/${secondToken}`);
   await page.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+  await expect(page.getByRole('form', { name: 'Odwołaj wizytę' })).toBeFocused();
   await page.getByRole('button', { name: 'Tak, odwołaj' }).click();
+  // The buttons are gone with the cancelled visit — focus lands on the visit summary (task 597).
+  await expect(page.locator('.summary')).toBeFocused();
   const move = page.getByTestId('move-products');
   await expect(
     move.getByRole('heading', { name: 'Przenieść produkty na nowy termin?' }),

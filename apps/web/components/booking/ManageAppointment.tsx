@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
@@ -97,6 +97,27 @@ export function AppointmentManager<T extends PublicAppointment>({
       .catch((err) => setError(errorText(t, err)));
   }, [mode, a, t]);
 
+  // "Zmień termin" and "Odwołaj wizytę" give way to their panel: keyboard focus goes into the
+  // panel, and back to the button when the client returns (or to the visit summary when the
+  // button is gone — the visit was cancelled).
+  const panelRef = useRef<HTMLElement>(null);
+  const moveRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const lastMode = useRef<Mode>('view');
+  useEffect(() => {
+    const was = lastMode.current;
+    lastMode.current = mode;
+    if (mode !== 'view') {
+      panelRef.current?.focus();
+      return;
+    }
+    if (was === 'view') return;
+    const opener = (was === 'move' ? moveRef : cancelRef).current;
+    if (opener) opener.focus();
+    else summaryRef.current?.focus();
+  }, [mode]);
+
   async function run(action: () => Promise<T>, done: string) {
     setBusy(true);
     setError('');
@@ -153,7 +174,7 @@ export function AppointmentManager<T extends PublicAppointment>({
           </p>
         ) : null}
         <ErrorBox>{error}</ErrorBox>
-        <div className="summary">
+        <div className="summary" ref={summaryRef} tabIndex={-1}>
           <span className="big">
             {a.time} · {formatDay(a.date, tag, { short: true })}
           </span>
@@ -198,12 +219,18 @@ export function AppointmentManager<T extends PublicAppointment>({
             <ShareVisit visit={a} />
             {a.canChange ? (
               <>
-                <button type="button" className="btn btn--block" onClick={() => setMode('move')}>
+                <button
+                  type="button"
+                  className="btn btn--block"
+                  ref={moveRef}
+                  onClick={() => setMode('move')}
+                >
                   {t.manage.move}
                 </button>
                 <button
                   type="button"
                   className="btn btn--danger btn--block"
+                  ref={cancelRef}
                   onClick={() => setMode('cancel')}
                 >
                   {t.manage.cancel}
@@ -265,6 +292,11 @@ export function AppointmentManager<T extends PublicAppointment>({
         {mode === 'cancel' ? (
           <form
             className="form"
+            ref={(el) => {
+              panelRef.current = el;
+            }}
+            tabIndex={-1}
+            aria-label={t.manage.cancel}
             onSubmit={(e) => {
               e.preventDefault();
               void run(
@@ -299,7 +331,7 @@ export function AppointmentManager<T extends PublicAppointment>({
         ) : null}
 
         {mode === 'move' ? (
-          <section className="stack">
+          <section className="stack" ref={panelRef} tabIndex={-1} aria-label={t.manage.move}>
             {slots === null ? (
               <Spinner />
             ) : slots.length === 0 ? (

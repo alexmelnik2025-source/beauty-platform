@@ -490,6 +490,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(client, '07w-client-manage-wishes');
   // Moving asks first: a tap on a time only proposes it, "Nie" keeps the old time (owner test T11).
   await client.getByRole('button', { name: 'Zmień termin' }).click();
+  // The button gave way to the times: keyboard focus went with it (task 597).
+  await expect(client.getByRole('region', { name: 'Zmień termin' })).toBeFocused();
   await client.locator('.times button').first().click();
   const moveConfirm = client.getByRole('alertdialog');
   await expect(moveConfirm).toContainText('Przenieść wizytę na');
