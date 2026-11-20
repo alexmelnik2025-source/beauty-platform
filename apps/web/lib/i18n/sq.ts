@@ -380,6 +380,7 @@ export const sq: Dict = {
     reserve: 'Do ta marr gjatë vizitës',
     unavailable: 'përkohësisht nuk ka',
     pickup: 'Produkti ju pret në sallon. Paguani gjatë vizitës — pa pagesë online.',
+    offerTitle: 'Të shtoni diçka në vizitë?',
   },
   voucherCheck: {
     open: 'Keni një kupon dhuratë? Shikoni sa ka mbetur',

@@ -13,8 +13,18 @@ import { ErrorBox } from '../ui';
  * products: "Odbiorę przy wizycie" puts one aside, paid at the salon. Nothing is shown when the
  * salon has no products for clients and nothing was put aside. Until the visit starts the client
  * may take a product back.
+ * Screen A (`offer`): the same, folded, on the "booked" screen right after booking — titled
+ * "Dodać coś do wizyty?", with at most three products, nothing when the salon shows none.
  */
-export function VisitProductsByLink({ endpoint }: { endpoint: string }) {
+const OFFER_LIMIT = 3;
+
+export function VisitProductsByLink({
+  endpoint,
+  offer = false,
+}: {
+  endpoint: string;
+  offer?: boolean;
+}) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
   const s = t.visitProducts;
@@ -57,9 +67,15 @@ export function VisitProductsByLink({ endpoint }: { endpoint: string }) {
     <section
       className="section"
       aria-labelledby="visit-products-title"
-      data-testid="visit-products"
+      data-testid={offer ? 'booked-products' : 'visit-products'}
     >
-      <h2 id="visit-products-title">{s.title}</h2>
+      {offer ? (
+        <h2 id="visit-products-title" className="h3">
+          {s.offerTitle}
+        </h2>
+      ) : (
+        <h2 id="visit-products-title">{s.title}</h2>
+      )}
       <ErrorBox>{error}</ErrorBox>
       {reserved.length > 0 ? (
         <ul className="list" aria-label={s.title}>
@@ -124,7 +140,7 @@ export function VisitProductsByLink({ endpoint }: { endpoint: string }) {
           </button>
           {open ? (
             <ul className="list" aria-label={s.addTitle}>
-              {data.available.map((p) => (
+              {(offer ? data.available.slice(0, OFFER_LIMIT) : data.available).map((p) => (
                 <li key={p.id} className="row" style={{ alignItems: 'center', gap: 12 }}>
                   {p.photoId ? (
                     <img

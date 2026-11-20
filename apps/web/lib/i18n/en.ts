@@ -700,6 +700,7 @@ export const en: Dict = {
     reserve: 'I’ll pick it up at the visit',
     unavailable: 'out of stock right now',
     pickup: 'The product waits for you at the salon. You pay at the visit — no online payment.',
+    offerTitle: 'Add something to your visit?',
   },
   voucherCheck: {
     open: 'Have a gift voucher? Check what is left',

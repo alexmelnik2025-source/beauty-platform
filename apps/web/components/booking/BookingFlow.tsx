@@ -10,6 +10,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react';
+import { VisitProductsByLink } from './VisitProductsByLink';
 import { rememberedLanguages, speakersFirst } from '@/lib/catalogue-languages';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { bookingChannel } from '@/lib/booking-channel';
@@ -1125,6 +1126,13 @@ export function BookingFlow({
             >
               {t.booking.manage}
             </Link>
+            {/* Task Q3 (screen A): folded and optional — products picked up at the visit. */}
+            {embed ? null : (
+              <VisitProductsByLink
+                endpoint={`/v1/public/appointments/${result.manageToken}`}
+                offer
+              />
+            )}
             {/* Task 417: right after booking, the signed-in client can save the salon. */}
             {result.signedIn && !signedInAs && !embed ? <FavoriteButton slug={salon.slug} /> : null}
             {result.signedIn ? (

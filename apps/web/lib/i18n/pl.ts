@@ -701,6 +701,7 @@ export const pl = {
     reserve: 'Odbiorę przy wizycie',
     unavailable: 'chwilowo niedostępny',
     pickup: 'Produkt czeka na Ciebie w salonie. Płacisz przy wizycie — bez płatności online.',
+    offerTitle: 'Dodać coś do wizyty?',
   },
   voucherCheck: {
     open: 'Masz bon podarunkowy? Sprawdź, ile zostało',

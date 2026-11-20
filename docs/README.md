@@ -3846,6 +3846,13 @@ wizycie» (недоступные — серые); «Zrezygnuj» у ждущег
 (`POST …/appointments/{id}/reservations/{rid}/hand-over`): товар уходит со склада и появляется в «Produkty»
 визита и в кассе; доступно после отметки «Przyszedł». «Anuluj rezerwację» (`…/cancel`) освобождает штуки.
 Блока нет, если ничего не отложено. e2e `visit-to-hand.spec.ts` (скриншоты Q3-D-to-hand, Q3-D-handed, Q3-D-app).
+
+## «Dodać coś do wizyty?» сразу после записи (задача Q3, экран A)
+
+На экране «Do zobaczenia!» (`BookingFlow`, шаг `done`) под кнопками визита — свёрнутый необязательный блок
+«Dodać coś do wizyty?» (`VisitProductsByLink` с `offer`): до 3 товаров салона, открытых для клиентов; «Odbiorę przy
+wizycie» откладывает товар к этому визиту (тот же API, что на странице визита по ссылке), оплата в салоне. Не
+показывается в окне записи на сайте салона (`embed`) и когда у салона нет товаров. e2e `booked-products.spec.ts`.
 ## Экран «Integracje» в кабинете (задача Q4, часть 4)
 
 `/[locale]/app/shop/integrations` (`apps/web/components/shop/ShopIntegrationsSection.tsx`), ссылка «Importuj produkty
