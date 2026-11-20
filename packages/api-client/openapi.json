@@ -13701,6 +13701,137 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/order-statuses": {
+      "get": {
+        "description": "To choose where new, handed-over and cancelled orders go.",
+        "operationId": "ShopIntegrationsController_orderStatuses",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseOrderStatuses"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Task Q4 (part 5): the order statuses of the seller’s Base",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/orders": {
+      "put": {
+        "description": "Task Q4 (part 5). Only for products imported from the chosen catalogue: each reservation becomes an order \"odbiór w salonie, płatność na miejscu\" in `newStatusId`; handed over → `handedStatusId`, taken back / expired / visit cancelled → `cancelledStatusId` (null = leave the order as it is). Statuses must be of this Base (422 BASE_INVALID_CHOICE); 409 BASE_NOT_CONFIGURED before step 2.",
+        "operationId": "ShopIntegrationsController_configureOrders",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "newStatusId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "handedStatusId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cancelledStatusId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseIntegration"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Zamówienia do Base\": products put aside for a visit become orders in Base",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed": {
       "post": {
         "description": "Columns of a CSV are found by their names (nazwa/name, ean/gtin, sku/symbol, cena/price, stan/ilość/stock, marka/producent, opis, zdjęcie/image, id). 413 FEED_TOO_LARGE, 415 UNSUPPORTED_FEED, 422 FEED_EMPTY. The file is kept for a day.",
@@ -17166,6 +17297,42 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Products of the salon that came from Base"
+          },
+          "orders": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Products put aside for a visit go to Base as orders"
+              },
+              "newStatusId": {
+                "nullable": true,
+                "type": "string"
+              },
+              "handedStatusId": {
+                "nullable": true,
+                "type": "string"
+              },
+              "cancelledStatusId": {
+                "nullable": true,
+                "type": "string"
+              },
+              "failing": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Reservations whose order could not be sent yet (\"Synchronizuj teraz\" retries)"
+              }
+            },
+            "required": [
+              "enabled",
+              "newStatusId",
+              "handedStatusId",
+              "cancelledStatusId",
+              "failing"
+            ],
+            "additionalProperties": false,
+            "description": "Task Q4 (part 5): \"Zamówienia do Base\""
           }
         },
         "required": [
@@ -17180,7 +17347,8 @@
           "syncEveryMinutes",
           "lastSyncAt",
           "lastErrorCode",
-          "importedProducts"
+          "importedProducts",
+          "orders"
         ],
         "additionalProperties": false
       },
@@ -17285,6 +17453,34 @@
         ],
         "additionalProperties": false
       },
+      "BaseOrderStatuses": {
+        "type": "object",
+        "properties": {
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "statuses"
+        ],
+        "additionalProperties": false
+      },
       "BaseProducts": {
         "type": "object",
         "properties": {
@@ -17373,9 +17569,10 @@
             "enum": [
               "import",
               "manual",
-              "schedule"
+              "schedule",
+              "orders"
             ],
-            "description": "\"Importuj zaznaczone\", \"Synchronizuj teraz\" or the regular renewal"
+            "description": "\"Importuj zaznaczone\", \"Synchronizuj teraz\", the regular renewal, or orders sent to Base"
           },
           "startedAt": {
             "type": "string"
@@ -17442,9 +17639,10 @@
                   "enum": [
                     "import",
                     "manual",
-                    "schedule"
+                    "schedule",
+                    "orders"
                   ],
-                  "description": "\"Importuj zaznaczone\", \"Synchronizuj teraz\" or the regular renewal"
+                  "description": "\"Importuj zaznaczone\", \"Synchronizuj teraz\", the regular renewal, or orders sent to Base"
                 },
                 "startedAt": {
                   "type": "string"

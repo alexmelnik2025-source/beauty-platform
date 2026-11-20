@@ -3492,6 +3492,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/order-statuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Task Q4 (part 5): the order statuses of the seller’s Base
+         * @description To choose where new, handed-over and cancelled orders go.
+         */
+        get: operations["ShopIntegrationsController_orderStatuses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * "Zamówienia do Base": products put aside for a visit become orders in Base
+         * @description Task Q4 (part 5). Only for products imported from the chosen catalogue: each reservation becomes an order "odbiór w salonie, płatność na miejscu" in `newStatusId`; handed over → `handedStatusId`, taken back / expired / visit cancelled → `cancelledStatusId` (null = leave the order as it is). Statuses must be of this Base (422 BASE_INVALID_CHOICE); 409 BASE_NOT_CONFIGURED before step 2.
+         */
+        put: operations["ShopIntegrationsController_configureOrders"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/feed": {
         parameters: {
             query?: never;
@@ -4534,6 +4574,16 @@ export interface components {
             lastErrorCode: string | null;
             /** @description Products of the salon that came from Base */
             importedProducts: number;
+            /** @description Task Q4 (part 5): "Zamówienia do Base" */
+            orders: {
+                /** @description Products put aside for a visit go to Base as orders */
+                enabled: boolean;
+                newStatusId: string | null;
+                handedStatusId: string | null;
+                cancelledStatusId: string | null;
+                /** @description Reservations whose order could not be sent yet ("Synchronizuj teraz" retries) */
+                failing: number;
+            };
         };
         BaseOptions: {
             inventories: {
@@ -4552,6 +4602,12 @@ export interface components {
                 matchesSalon: boolean;
             }[];
             warehouses: {
+                id: string;
+                name: string;
+            }[];
+        };
+        BaseOrderStatuses: {
+            statuses: {
                 id: string;
                 name: string;
             }[];
@@ -4578,10 +4634,10 @@ export interface components {
         BaseSyncRun: {
             id: string;
             /**
-             * @description "Importuj zaznaczone", "Synchronizuj teraz" or the regular renewal
+             * @description "Importuj zaznaczone", "Synchronizuj teraz", the regular renewal, or orders sent to Base
              * @enum {string}
              */
-            trigger: "import" | "manual" | "schedule";
+            trigger: "import" | "manual" | "schedule" | "orders";
             startedAt: string;
             /** @description null = still running */
             finishedAt: string | null;
@@ -4600,10 +4656,10 @@ export interface components {
             runs: {
                 id: string;
                 /**
-                 * @description "Importuj zaznaczone", "Synchronizuj teraz" or the regular renewal
+                 * @description "Importuj zaznaczone", "Synchronizuj teraz", the regular renewal, or orders sent to Base
                  * @enum {string}
                  */
-                trigger: "import" | "manual" | "schedule";
+                trigger: "import" | "manual" | "schedule" | "orders";
                 startedAt: string;
                 /** @description null = still running */
                 finishedAt: string | null;
@@ -14474,6 +14530,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseSyncRuns"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_orderStatuses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseOrderStatuses"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_configureOrders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                    /** @default null */
+                    newStatusId?: string | null;
+                    /** @default null */
+                    handedStatusId?: string | null;
+                    /** @default null */
+                    cancelledStatusId?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseIntegration"];
                 };
             };
         };
