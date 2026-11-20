@@ -26,6 +26,13 @@ const status = (over: Partial<BaseIntegration> = {}): BaseIntegration => ({
   lastSyncAt: '2026-11-20T04:48:00Z',
   lastErrorCode: null,
   importedProducts: 12,
+  orders: {
+    enabled: false,
+    newStatusId: null,
+    handedStatusId: null,
+    cancelledStatusId: null,
+    failing: 0,
+  },
   ...over,
 });
 
