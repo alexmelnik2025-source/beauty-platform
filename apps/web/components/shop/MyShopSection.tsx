@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
@@ -37,7 +38,7 @@ type ShopCategory = (typeof SHOP_CATEGORIES)[number];
 export function MyShopSection({ base }: { base: string }) {
   const { t, locale } = useI18n();
   const s = t.shop;
-  const { location } = useSession();
+  const { location, role } = useSession();
   const tag = LOCALE_TAGS[locale];
   const [products, setProducts] = useState<Product[] | null>(null);
   /** The cards of the products that have one, by card id. */
@@ -174,6 +175,13 @@ export function MyShopSection({ base }: { base: string }) {
       <h1 id="my-shop-title">{s.title}</h1>
       <p className="muted">{s.hint}</p>
       <p className="small muted">{s.pickupOnly}</p>
+      {role !== 'staff' ? (
+        <p className="small">
+          <Link href={`/${locale}/app/shop/integrations`} data-testid="my-shop-integrations">
+            {t.products.integrationsLink}
+          </Link>
+        </p>
+      ) : null}
       {error ? <ErrorBox>{error}</ErrorBox> : null}
 
       <p className="small">
