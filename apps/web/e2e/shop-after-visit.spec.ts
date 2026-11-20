@@ -255,13 +255,14 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
   await shot(page, 'Q3-move-cancelled');
   await move.getByRole('link', { name: 'Wybierz nowy termin' }).click();
   await page.locator('.times button').nth(1).click();
-  await page.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
-  await page.getByLabel('Telefon').fill('600 100 203');
-  await page.getByLabel('E-mail').fill(CLIENT);
+  // Booking with a code signed the client in on this phone: the details are there, no code.
+  await expect(page.getByLabel('E-mail')).toHaveValue(CLIENT);
   await page.getByLabel(/Akceptuję regulamin rezerwacji/).check();
-  const again = await codeCount();
-  await page.getByRole('button', { name: 'Wyślij kod' }).click();
-  await page.getByLabel('Kod z e-maila').fill(await nextCode(again));
+  if (await page.getByLabel('E-mail').isEditable()) {
+    const again = await codeCount();
+    await page.getByRole('button', { name: 'Wyślij kod' }).click();
+    await page.getByLabel('Kod z e-maila').fill(await nextCode(again));
+  }
   await page.getByRole('button', { name: 'Potwierdź wizytę' }).click();
   await expect(page.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
   await expect(
