@@ -674,6 +674,13 @@ export const ru: Dict = {
   /** Tasks 404–405: favourite salons on the site, as in the client app (task 61). */
   /** Task 406: "Poleć salon znajomym" on a salon page, as in the client app (task 151). */
   /** Task 537: "Sprawdź bon" on the salon page. */
+  /** Task Q3 (part 3): "Produkty salonu" on the booking page. */
+  salonProducts: {
+    open: 'Товары салона ({n})',
+    title: 'Товары салона',
+    pickup: 'Получение и оплата в салоне, во время визита.',
+    unavailable: 'Временно нет в наличии',
+  },
   voucherCheck: {
     open: 'Есть подарочный сертификат? Проверьте остаток',
     title: 'Проверить подарочный сертификат',

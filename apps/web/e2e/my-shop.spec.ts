@@ -14,7 +14,9 @@ import { waitForEmail } from './mailpit';
  * switches "Sprzedawaj też w Sklepie" on; a quick "Dodaj produkt" adds a wax already shown to
  * clients. The public salon page's products and the "Sklep" tab answer accordingly.
  * Part 2b: the shared card has no picture yet, so our salon adds one; it shows on the salon's
- * products but not in its gallery. Screenshots Q3-my-shop, Q3-my-shop-card, Q3-my-shop-photo.
+ * products but not in its gallery. Part 3: a client on the phone sees one folded row "Produkty
+ * salonu (2)" under the services and opens it. Screenshots Q3-my-shop, Q3-my-shop-card,
+ * Q3-my-shop-photo, Q3-salon-products.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -218,4 +220,34 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   expect(listed?.offers.map((o) => o.priceGrosze)).toEqual([5900, 7900]);
 
   await desk.close();
+
+  // Part 3: the client on the phone — one folded row, the services still first.
+  const phone = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    locale: 'pl-PL',
+  });
+  try {
+    const client = await phone.newPage();
+    await client.goto(`/pl/b/${salon.slug}`);
+    await expect(client.getByRole('heading', { name: NAME })).toBeVisible();
+    const products = client.getByTestId('salon-products');
+    const openRow = products.getByRole('button', { name: 'Produkty salonu (2)' });
+    await expect(openRow).toBeVisible();
+    await expect(openRow).toHaveAttribute('aria-expanded', 'false');
+    await expect(client.getByText('Wosk matowy')).toHaveCount(0);
+    await openRow.click();
+    await expect(products.getByText('Odbiór i płatność w salonie, przy wizycie.')).toBeVisible();
+    await expect(products.getByText('Pomada Reuzel różowa')).toBeVisible();
+    await expect(products.getByText('59,00 zł')).toBeVisible();
+    await expect(products.getByText('Wosk matowy')).toBeVisible();
+    await expect(products.locator('img')).toHaveCount(1);
+    await shot(client, 'Q3-salon-products');
+    // The other salon shows one product; the row counts only what is shown to clients.
+    await client.goto(`/pl/b/${other.slug}`);
+    await expect(client.getByRole('heading', { name: `Inny Salon ${run}` })).toBeVisible();
+    await expect(client.getByRole('button', { name: 'Produkty salonu (1)' })).toBeVisible();
+  } finally {
+    await phone.close();
+  }
 });
