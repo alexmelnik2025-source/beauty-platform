@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException } from '../common/app-exception';
 import type { Appointment, Prisma, Service } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { BUSY_STATUSES } from '../scheduling/slots';
 import { NotificationsService } from './notifications.service';
 
 const MINUTE_MS = 60_000;
@@ -182,7 +183,10 @@ export class AppointmentWriter {
         staffId,
         startAt: { lt: times.blockedUntil },
         blockedUntil: { gt: times.startAt },
-        OR: [{ status: 'confirmed' }, { status: 'held', holdExpiresAt: { gt: new Date() } }],
+        OR: [
+          { status: { in: BUSY_STATUSES } },
+          { status: 'held', holdExpiresAt: { gt: new Date() } },
+        ],
       },
     });
     return count > 0;
