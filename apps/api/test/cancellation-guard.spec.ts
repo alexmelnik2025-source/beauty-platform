@@ -459,6 +459,42 @@ describe('cancellation guard: online booking (161b)', () => {
     expect((await bookOnline({ ...ANNA, email: 'ewa@example.com' })).res.status).toBe(200);
   });
 
+  it('task 612: a code by SMS proves the phone — a marked client with a new email and the same phone is still marked', async () => {
+    await setGuard({ maxNoShows: 1, action: 'phone_only' });
+    // The salon's card of Anna has her phone; the no-show is on it.
+    const annaId = await noShow(ANNA.email, 5);
+    await ctx.prisma.customer.update({ where: { id: annaId }, data: { phone: '+48600100200' } });
+
+    /** Holds a slot and confirms the code sent by SMS to the given phone. */
+    async function bookBySms(email: string, phone: string) {
+      const start = new Date(Math.ceil(Date.now() / HOUR) * HOUR + 2 * DAY + (slot += 1) * HOUR);
+      const hold = await ctx
+        .http()
+        .post(`/v1/public/locations/${slug}/holds`)
+        .send({ serviceId, staffId, start: start.toISOString() })
+        .expect(201);
+      await ctx
+        .http()
+        .post(`/v1/public/holds/${hold.body.holdId}/code`)
+        .send({ holdToken: hold.body.holdToken, ...ANNA, email, phone, codeChannel: 'sms' })
+        .expect(202);
+      const code = ctx.sms.lastTo(phone.replace(/\s/g, ''))?.text.match(/\b(\d{6})\b/)?.[1];
+      return ctx
+        .http()
+        .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
+        .send({ holdToken: hold.body.holdToken, code });
+    }
+
+    // Before: only the email was looked at, so a fresh address went through.
+    const sameNumber = await bookBySms('anna.new@example.com', '+48 600 100 200');
+    expect(sameNumber.status).toBe(403);
+    expectError(sameNumber.body, 'BOOKING_PHONE_ONLY');
+    // Someone else with another phone books as usual.
+    expect((await bookBySms('ewa@example.com', '+48 600 300 400')).status).toBe(200);
+    // By email code the phone is not proven, so only the email counts (as before).
+    expect((await bookOnline({ ...ANNA, email: 'anna.other@example.com' })).res.status).toBe(200);
+  });
+
   /** Emails to this address apart from the booking codes. */
   const subjects = (email: string) =>
     ctx.mail
