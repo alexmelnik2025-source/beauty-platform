@@ -3897,6 +3897,7 @@ e2e `apps/web/e2e/visits-app-shop.spec.ts` (скриншоты Q3-app-shop, Q3-a
 с `version`), специалист видит только число. Компонент `apps/web/components/shop/ReservationDays.tsx`, тексты
 `shop.reservationDays*` в 4 словарях кабинета. Тесты: `apps/api/test/shop-reservation-days.spec.ts` (права и границы
 1–90, бронь истекает через заданное число дней), e2e `shop-reservation-days.spec.ts` (скриншот Q3-reservation-days).
+
 ## «Zamówienia do Base»: отложенные товары уходят заказами в Base (задача Q4, часть 5 — API)
 
 Товар, импортированный из Base продавца, который клиент отложил к визиту («Odbiorę przy wizycie», Q3), становится
