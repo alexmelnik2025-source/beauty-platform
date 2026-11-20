@@ -3864,7 +3864,6 @@ wizycie» откладывает товар к этому визиту (тот �
 отложенные товары, «Zrezygnuj», свёрнутое «+ Dodaj produkt do tej wizyty» → «Odbiorę przy wizycie». Нет товаров у
 салона и ничего не отложено — карточки нет.
 
-
 ## Экран «Integracje» в кабинете (задача Q4, часть 4)
 
 `/[locale]/app/shop/integrations` (`apps/web/components/shop/ShopIntegrationsSection.tsx`), ссылка «Importuj produkty
