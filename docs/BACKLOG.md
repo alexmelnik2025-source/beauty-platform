@@ -46,6 +46,11 @@
   бизнес-приложении** (экран с кнопками показа/продажи, выбор карточки по EAN, новая карточка, «Dodaj produkt»; API-клиент;
   4 словаря; e2e `app-my-shop.spec.ts`, скриншоты Q3-my-shop-app, Q3-my-shop-app-card). Часть 2 закрыта. Дальше: товар
   к визиту A/B/C (модель брони «отложено к визиту», API, экраны) → экран барбера D → «Sklep» в клиентском приложении.
+- **20.11.2026, ~02:30 UTC — 580 (ветка `agent/580-product-reservation`, поверх 579): Q3 часть 4a — бронь товара к
+  визиту в API** (модель `ProductReservation`, настройка `shopReservationDays`, публичные `…/appointments/{token}/products`
+  GET/POST/DELETE, салонные `…/appointments/{id}/reservations` + `hand-over`/`cancel`, доступность с учётом броней,
+  таймер истечения; 2 теста `shop-reservations.spec.ts`). Дальше: экраны A (подтверждение записи) / B («Moje wizyty») /
+  C («Jak było?») на странице записи и в клиентском приложении, D (карточка визита в кабинете и бизнес-приложении).
 
 - **20.11.2026, ~01:40 UTC — влитие ждавших веток (ветка `agent/574-merge-waiting`, ночной запуск :37): влиты три ждавшие ветки** —
   `agent/572-booksy-analysis-2` (разделы 8–9 анализа Booksy), `agent/573-e2e-map-tiles-offline` (тест карты не падает

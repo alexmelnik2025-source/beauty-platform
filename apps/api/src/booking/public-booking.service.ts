@@ -879,6 +879,11 @@ export class PublicBookingService {
     return hold;
   }
 
+  /** Task Q3: the visit behind a "manage" link, for the products put aside for it. */
+  appointmentByToken(token: string) {
+    return this.byToken(token);
+  }
+
   private async byToken(token: string) {
     const access = await this.prisma.appointmentAccessToken.findUnique({
       where: { tokenHash: hashToken(token) },
