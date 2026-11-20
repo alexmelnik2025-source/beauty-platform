@@ -40,6 +40,7 @@ import { VisitPhotos } from '../WishPhotosPicker';
 import { ReviewCard } from '../ReviewCard';
 import { VisitProductsCard } from './VisitProductsCard';
 import { UsedProductsCard } from './UsedProductsCard';
+import { MoveProductsCard } from './MoveProductsCard';
 import { asksWishes, wishesToSend, type VisitWishes } from '../wishes';
 
 /**
@@ -64,6 +65,8 @@ export function VisitScreen(props: {
   const [wishDraft, setWishDraft] = useState<VisitWishes>(props.visit.wishes);
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** Task Q3: the cancelled visit's products card is shown — it carries the main button. */
+  const [productsToMove, setProductsToMove] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
   /** "Change time": the specialist's free times (null while loading), the day and the time picked. */
@@ -538,6 +541,21 @@ export function VisitScreen(props: {
         />
       ) : null}
 
+      {/* Task Q3: a cancelled visit had products waiting — book a new time, they come along. */}
+      {visit.status === 'cancelled' && again ? (
+        <MoveProductsCard
+          key={`move-${visit.id}`}
+          api={api}
+          t={t}
+          locale={locale}
+          visitId={visit.id}
+          serviceId={again.serviceId}
+          staffId={again.staffId}
+          onShown={setProductsToMove}
+          onBook={(preset) => props.onBook(again.slug, visit.salon.name, preset)}
+        />
+      ) : null}
+
       {visit.status === 'confirmed' && !moving ? (
         <Button
           kind="secondary"
@@ -568,7 +586,8 @@ export function VisitScreen(props: {
           onPress={() => void Linking.openURL(directionsUrl(visit.salon, Platform.OS))}
         />
       ) : null}
-      {again ? (
+      {/* One main button: "Wybierz nowy termin" above already books the same again. */}
+      {again && !productsToMove ? (
         <>
           <Button
             label={v.bookAgain}

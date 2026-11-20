@@ -454,6 +454,10 @@ export const en: Dictionary = {
     noNextError:
       'You have no next visit in this salon — book one and we will put the product aside.',
     brought: 'Products waiting for you at the salon: {n}. You pay when you pick them up.',
+    moveTitle: 'Move the products to a new time?',
+    moveLead:
+      'We will move the products put aside to your new visit. You pay when you pick them up.',
+    moveBook: 'Choose a new time',
   },
   units: { h: 'h', min: 'min' },
   spoken: { pl: 'Polish', uk: 'Ukrainian', ru: 'Russian', be: 'Belarusian', en: 'English' },

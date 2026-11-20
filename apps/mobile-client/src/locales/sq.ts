@@ -462,6 +462,9 @@ export const sq: Dictionary = {
     noNextError:
       'Nuk keni vizitë tjetër në këtë sallon — rezervoni një dhe do ta ruajmë produktin.',
     brought: 'Produktet ju presin në sallon: {n}. Paguani kur i merrni.',
+    moveTitle: 'T’i kalojmë produktet në një orar të ri?',
+    moveLead: 'Produktet e ruajtura do t’i kalojmë në vizitën e re. Paguani kur i merrni.',
+    moveBook: 'Zgjidhni një orar të ri',
   },
   units: { h: 'orë', min: 'min' },
   spoken: { pl: 'Polonisht', uk: 'Ukrainisht', ru: 'Rusisht', be: 'Bjellorusisht', en: 'Anglisht' },
