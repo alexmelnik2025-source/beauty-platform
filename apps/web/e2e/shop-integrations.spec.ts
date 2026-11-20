@@ -221,7 +221,8 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   await page.setViewportSize(DESKTOP);
   await page.goto('/pl/app/services');
   const products = page.getByTestId('products');
-  await expect(products.getByText('Reuzel Pink Pomade 113 g')).toBeVisible();
-  await expect(products.getByText('Wosk matowy')).toBeVisible();
+  await expect(products.getByLabel('Nazwa — Reuzel Pink Pomade 113 g')).toBeVisible();
+  await expect(products.getByLabel('Nazwa — Wosk matowy')).toBeVisible();
+  await expect(products.getByLabel('W magazynie — Reuzel Pink Pomade 113 g')).toHaveValue('12');
   await context.close();
 });
