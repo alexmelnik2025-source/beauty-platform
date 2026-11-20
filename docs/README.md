@@ -3964,9 +3964,11 @@ e2e `apps/web/e2e/visits-app-shop.spec.ts` (скриншоты Q3-app-shop, Q3-a
 в другом месте); ошибка Base сохраняется у брони, после 5 неудач подряд бронь ждёт «Synchronizuj teraz» (он сначала
 отправляет заказы, потом обновляет остатки). Каждый раунд с отправкой — в журнале (`trigger: "orders"`, в кабинете
 «zamówienia do Base»). Код: `apps/api/src/shop/integrations/base-orders.service.ts`, методы Base `getOrderStatusList`,
-`addOrder`, `setOrderStatus` в `base-api.ts`. Тесты: `apps/api/test/shop-base-orders.spec.ts` (5, Base — заглушка).
-Остаток при синхронизации берётся из Base как есть: если Base уменьшает остаток при заказе, отложенное до выдачи
-учитывается дважды — в безопасную сторону (не продадим лишнее). В кабинете: под карточкой Base в «Integracje» —
+`addOrder`, `setOrderStatus` в `base-api.ts`. Тесты: `apps/api/test/shop-base-orders.spec.ts` (6, Base — заглушка).
+Base уменьшает свой остаток сразу при заказе, а наш остаток — это штуки в салоне вместе с отложенными (клиенты видят
+«остаток − отложено»). Поэтому синхронизация и повторный импорт прибавляют к остатку из Base штуки наших ещё открытых
+в Base заказов (бронь ждёт, заказ отправлен и не закрыт) — иначе отложенное вычиталось бы дважды до выдачи (в Base 3,
+у нас 5, из них 2 отложено → клиентам видно 3). Выданное уже списано продажей и не прибавляется. В кабинете: под карточкой Base в «Integracje» —
 свёрнутая строка «Zamówienia do Base: Wyłączone / Włączone», внутри галочка «Wysyłaj rezerwacje do Base jako
 zamówienia» и три списка статусов из Base продавца («nie zmieniaj» для выдачи/отмены), предупреждение «Nie udało się
 wysłać: n»; в журнале — «zamówienia do Base · wysłano x z y». e2e — шаг в `shop-integrations.spec.ts`, скриншот

@@ -12,6 +12,11 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~07:10 UTC — 595 (ветка `agent/595-base-stock-orders`): исправление Q4 — остаток из Base не вычитает
+  отложенное дважды.** Base уменьшает остаток при заказе из брони; синхронизация/импорт теперь прибавляют штуки
+  открытых заказов (`inOpenBaseOrders` в `integrations.service.ts`), тест в `shop-base-orders.spec.ts`. Статус Base в
+  бизнес-приложении уже в main (`BaseStatusCard`). Влито в main ~08:10 UTC.
+
 - **20.11.2026, ~06:40 UTC — 594 (ветка `agent/594-app-move-products`, от main): Q3 — «Przenieść produkty na nowy
   termin?» в клиентском приложении.** Карточка отменённого визита в «Moje wizyty» (`screens/MoveProductsCard.tsx`):
   отложенные товары + «Wybierz nowy termin» → запись к тому же мастеру, товары откладываются к новой записи; «Umów
