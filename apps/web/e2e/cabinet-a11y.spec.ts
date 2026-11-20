@@ -29,6 +29,11 @@ const PAGES = [
   'reviews',
   'loyalty',
   'happy-hours',
+  'vouchers',
+  'schedule',
+  // Task 600: the shop pages added with Q3 / Q4 ("Mój sklep", "Integracje").
+  'shop',
+  'shop/integrations',
   'waitlist',
   'cancellation-guard',
   'history',
