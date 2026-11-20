@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ProductSalesSection } from './ProductSalesSection';
+import { ToHandSection } from './ToHandSection';
 import { VisitVoucherSection } from './VisitVoucherSection';
 import {
   BackHandler,
@@ -64,6 +65,8 @@ export function VisitScreen(props: {
   const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Task Q3 (screen D): a product handed over is a new sale — "Produkty" reloads.
+  const [salesKey, setSalesKey] = useState(0);
   const [clientOpen, setClientOpen] = useState(false);
   /** Task 227: how the client paid, chosen before "Opłacono". */
   const [method, setMethod] = useState<PaymentMethod | null>(null);
@@ -412,9 +415,23 @@ export function VisitScreen(props: {
           })}
         </Text>
       ) : null}
+      {visit.status === 'confirmed' || visit.status === 'completed' ? (
+        // Task Q3 (screen D): products the client put aside for this visit.
+        <ToHandSection
+          api={api}
+          t={t}
+          locale={props.locale}
+          salon={salon}
+          appointmentId={visit.id}
+          canChange={props.canChange}
+          completed={visit.status === 'completed'}
+          onHanded={() => setSalesKey((k) => k + 1)}
+        />
+      ) : null}
       {visit.status === 'completed' ? (
         // Task 396: products the client bought at the visit.
         <ProductSalesSection
+          key={salesKey}
           api={api}
           t={t}
           locale={props.locale}
