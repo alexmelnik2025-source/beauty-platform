@@ -10,6 +10,8 @@ import type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  CatalogProduct,
+  CatalogSearch,
   Product,
   ProductList,
   SalonReport,
@@ -183,6 +185,8 @@ export type {
   LoginCodeSent,
   Me,
   PermissionCatalog,
+  CatalogProduct,
+  CatalogSearch,
   Product,
   ProductList,
   SalonReport,
@@ -710,11 +714,51 @@ export class BusinessApi {
     supplier: string | null = null,
     /** Task 522: "Kod kreskowy"; null = not written. */
     barcode: string | null = null,
+    /** Task Q3: "Pokaż klientom na stronie salonu" from the start. */
+    inSalonShop = false,
   ): Promise<Product> {
     return this.authed<Product>(
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products`,
-      { name, priceGrosze, stockQuantity, lowStockAt, purchasePriceGrosze, supplier, barcode },
+      {
+        name,
+        priceGrosze,
+        stockQuantity,
+        lowStockAt,
+        purchasePriceGrosze,
+        supplier,
+        barcode,
+        inSalonShop,
+      },
+    );
+  }
+
+  /** Task Q3: "Wybierz z katalogu" — cards of the platform catalogue by words or EAN. */
+  catalogSearch(orgId: string, locationId: string, q: string): Promise<CatalogSearch> {
+    return this.authed<CatalogSearch>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/shop/catalog?q=${enc(q)}&limit=20`,
+    );
+  }
+
+  /** Task Q3: one card of the catalogue. */
+  catalogCard(orgId: string, locationId: string, cardId: string): Promise<CatalogProduct> {
+    return this.authed<CatalogProduct>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/shop/catalog/${enc(cardId)}`,
+    );
+  }
+
+  /** Task Q3: a new card in the catalogue, made from the salon's product (owners and managers). */
+  createCatalogCard(
+    orgId: string,
+    locationId: string,
+    card: { name: string; brand?: string | null; ean?: string | null; category?: string },
+  ): Promise<CatalogProduct> {
+    return this.authed<CatalogProduct>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/shop/catalog`,
+      card,
     );
   }
 
@@ -798,6 +842,10 @@ export class BusinessApi {
       purchasePriceGrosze?: number | null;
       supplier?: string | null;
       barcode?: string | null;
+      /** Task Q3: the card in the catalogue, and where clients see the product. */
+      catalogProductId?: string | null;
+      inSalonShop?: boolean;
+      inMarketplace?: boolean;
     },
   ): Promise<Product> {
     return this.authed<Product>(

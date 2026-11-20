@@ -3781,3 +3781,15 @@ Q3-my-shop-card): другой салон уже завёл карточку п�
 остаток и его нет. Данные — публичный `GET /public/locations/{slug}/products` (часть 1). Тексты в 6 словарях клиента
 (`salonProducts.*`). «Отложить к визиту» (экраны A/B/C макета) — следующие части. e2e: шаг на телефоне 390 px в
 `my-shop.spec.ts` (скриншот Q3-salon-products).
+
+## «Mój sklep» в бизнес-приложении (задача Q3, часть 2c)
+
+Экран `apps/mobile-business/src/screens/MyShopScreen.tsx` («Mój sklep» в меню дня, владелец и менеджер) — то же, что в
+кабинете (часть 2a), кнопками вместо переключателей: «Pokaż klientom na stronie salonu» / «Ukryj ze strony salonu»,
+«Sprzedawaj też w Sklepie» / «Nie sprzedawaj w Sklepie» (только при карточке и показе на странице салона, иначе
+подсказка), «Wybierz z katalogu» (поиск по словам/EAN, при открытии подставляется штрих-код или название товара;
+«Wybierz» у найденной карточки; «Nowa karta „…”» — карточка из названия товара и его EAN), «Odłącz kartę», быстрое
+«Dodaj produkt» (название, цена, штук) с показом клиентам сразу. Фото карточек — только в кабинете (подсказка на
+экране). API-клиент: `catalogSearch`, `catalogCard`, `createCatalogCard`, `updateProduct` с `catalogProductId` /
+`inSalonShop` / `inMarketplace`, `addProduct(..., inSalonShop)`. Тексты `shop.*` в 4 словарях приложения; 409
+`EAN_TAKEN` — отдельная подсказка. e2e `app-my-shop.spec.ts` (скриншоты Q3-my-shop-app, Q3-my-shop-app-card).
