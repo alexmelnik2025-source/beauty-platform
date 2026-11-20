@@ -3853,7 +3853,7 @@ wizycie» (недоступные — серые); «Zrezygnuj» у ждущег
 «Dodać coś do wizyty?» (`VisitProductsByLink` с `offer`): до 3 товаров салона, открытых для клиентов; «Odbiorę przy
 wizycie» откладывает товар к этому визиту (тот же API, что на странице визита по ссылке), оплата в салоне. Не
 показывается в окне записи на сайте салона (`embed`) и когда у салона нет товаров. e2e `shop-booked-products.spec.ts`.
-показывается в окне записи на сайте салона (`embed`) и когда у салона нет товаров. e2e `booked-products.spec.ts`.
+
 ## Экран «Integracje» в кабинете (задача Q4, часть 4)
 
 `/[locale]/app/shop/integrations` (`apps/web/components/shop/ShopIntegrationsSection.tsx`), ссылка «Importuj produkty
