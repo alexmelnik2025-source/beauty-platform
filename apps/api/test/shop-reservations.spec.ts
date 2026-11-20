@@ -387,6 +387,58 @@ describe('products put aside for a visit (task Q3, part 4)', () => {
     expect(later.body.reservations[0]).toMatchObject({ unitPriceGrosze: 4500, status: 'reserved' });
     expect(later.body.available[0].available).toBe(false);
   });
+
+  it('a product moved to a new visit stops waiting on the cancelled one (605)', async () => {
+    const wax = await product({
+      name: 'Wosk',
+      priceGrosze: 3000,
+      stockQuantity: 1,
+      inSalonShop: true,
+    });
+    const old = await book(10);
+    await ctx
+      .http()
+      .post(`/v1/public/appointments/${old.token}/products`)
+      .send({ productId: wax.id })
+      .expect(200);
+    await ctx
+      .http()
+      .post(`/v1/public/appointments/${old.token}/cancel`)
+      .set('Idempotency-Key', 'cancel-old')
+      .send({})
+      .expect(200);
+    // The cancelled visit still shows the waiting product — the page offers to move it.
+    const offered = await ctx
+      .http()
+      .get(`/v1/public/appointments/${old.token}/products`)
+      .expect(200);
+    expect(offered.body.reservations).toEqual([expect.objectContaining({ status: 'reserved' })]);
+
+    // "Przenieść produkty na nowy termin?" → a new visit with the product put aside.
+    const fresh = await book(12);
+    const moved = await ctx
+      .http()
+      .post(`/v1/public/appointments/${fresh.token}/products`)
+      .send({ productId: wax.id })
+      .expect(200);
+    expect(moved.body.reservations).toEqual([expect.objectContaining({ status: 'reserved' })]);
+    // The old visit no longer offers it — neither to the client nor in the salon's card.
+    const settled = await ctx
+      .http()
+      .get(`/v1/public/appointments/${old.token}/products`)
+      .expect(200);
+    expect(settled.body.reservations).toEqual([]);
+    const card = await ctx
+      .http()
+      .get(`${base}/appointments/${old.id}/reservations`)
+      .set(owner.auth)
+      .expect(200);
+    expect(card.body.reservations.map((r: { status: string }) => r.status)).toEqual(['cancelled']);
+    expect(card.body.toHandGrosze).toBe(0);
+    // The piece is held once, by the new visit.
+    const page = await ctx.http().get(`/v1/public/locations/${slug}/products`).expect(200);
+    expect(page.body.products[0].available).toBe(false);
+  });
 });
 
 async function signIn(email: string): Promise<{ Authorization: string }> {

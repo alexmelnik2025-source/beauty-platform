@@ -342,7 +342,7 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
         const left = fresh.stockQuantity - (held._sum.quantity ?? 0);
         if (left < input.quantity) throw notAvailable(Math.max(0, left));
       }
-      return tx.productReservation.create({
+      const created = await tx.productReservation.create({
         data: {
           locationId: location.id,
           appointmentId: visit.id,
@@ -352,6 +352,25 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
           unitPriceGrosze: fresh.priceGrosze,
         },
       });
+      // "Przenieść produkty na nowy termin?": the same product waiting on a cancelled visit of this
+      // client is now moved here — the old reservation is settled, so neither the client's old
+      // visit page nor the salon's card of the cancelled visit offers it again (task 605).
+      if (visit.customerId) {
+        await tx.productReservation.updateMany({
+          where: {
+            productId: product.id,
+            status: 'reserved',
+            appointment: {
+              id: { not: visit.id },
+              locationId: location.id,
+              customerId: visit.customerId,
+              status: 'cancelled',
+            },
+          },
+          data: { status: 'cancelled' },
+        });
+      }
+      return created;
     });
     this.baseOrders.soon(location.id);
     return reservation;
