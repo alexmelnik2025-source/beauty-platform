@@ -30,6 +30,8 @@ import {
   baseOptionsSchema,
   baseProductsQuerySchema,
   baseProductsSchema,
+  baseSyncRunSchema,
+  baseSyncRunsSchema,
   configureBaseSchema,
   connectBaseSchema,
   importBaseSchema,
@@ -38,6 +40,8 @@ import {
   type BaseOptionsResponse,
   type BaseProductsQuery,
   type BaseProductsResponse,
+  type BaseSyncRunResponse,
+  type BaseSyncRunsResponse,
   type ConfigureBaseInput,
   type ConnectBaseInput,
   type ImportBaseInput,
@@ -162,5 +166,34 @@ export class ShopIntegrationsController {
     @Body(new ZodValidationPipe(importBaseSchema)) body: ImportBaseInput,
   ): Promise<BaseImportResultResponse> {
     return this.integrations.import(m, auth.userId, locationId, body);
+  }
+
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '"Synchronizuj teraz": renew prices and stock of the imported products',
+    description:
+      'Task Q4 (part 2). Otherwise it happens every `syncEveryMinutes`. Base errors do not fail the request: they are in `errorCode` of the run (and in the log). Again within a minute → 409 BASE_SYNC_TOO_SOON.',
+  })
+  @ApiZodResponse(baseSyncRunSchema)
+  sync(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+  ): Promise<BaseSyncRunResponse> {
+    return this.integrations.syncNow(m, auth.userId, locationId);
+  }
+
+  @Get('runs')
+  @ApiOperation({
+    summary: '"Dziennik synchronizacji": the latest imports and renewals',
+    description: 'Task Q4 (part 2). At most 20, newest first; empty when Base is not connected.',
+  })
+  @ApiZodResponse(baseSyncRunsSchema)
+  runs(
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+  ): Promise<BaseSyncRunsResponse> {
+    return this.integrations.runs(m, locationId);
   }
 }

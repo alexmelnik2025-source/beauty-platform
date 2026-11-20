@@ -1728,27 +1728,67 @@ enum ShopIntegrationProvider {
 
 /// Task Q4: "Mój sklep" → "Integracje" — one connection of a salon to its own system (Base).
 model ShopIntegration {
-  id                String                  @id @default(uuid(7)) @db.Uuid
-  locationId        String                  @map("location_id") @db.Uuid
-  provider          ShopIntegrationProvider
+  id               String                  @id @default(uuid(7)) @db.Uuid
+  locationId       String                  @map("location_id") @db.Uuid
+  provider         ShopIntegrationProvider
   /// The seller's API token, encrypted (AES-256-GCM, see src/shop/integrations/secret-box.ts).
   /// Never sent back to anyone.
-  tokenCiphertext   String                  @map("token_ciphertext")
+  tokenCiphertext  String                  @map("token_ciphertext")
   /// The last 4 characters of the token, to show which one is connected.
-  tokenHint         String                  @map("token_hint")
+  tokenHint        String                  @map("token_hint")
   /// Base: the catalogue (inventory), price group and warehouse ("bl_123") the seller chose;
   /// null = not chosen yet (step 2 of connecting).
-  inventoryId       String?                 @map("inventory_id")
-  inventoryName     String?                 @map("inventory_name")
-  priceGroupId      String?                 @map("price_group_id")
-  warehouseId       String?                 @map("warehouse_id")
-  lastImportAt      DateTime?               @map("last_import_at") @db.Timestamptz(3)
-  createdByUserId   String?                 @map("created_by_user_id") @db.Uuid
-  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  inventoryId      String?                 @map("inventory_id")
+  inventoryName    String?                 @map("inventory_name")
+  priceGroupId     String?                 @map("price_group_id")
+  warehouseId      String?                 @map("warehouse_id")
+  lastImportAt     DateTime?               @map("last_import_at") @db.Timestamptz(3)
+  /// Task Q4 (part 2): how often prices and stock of imported products are renewed from Base.
+  syncEveryMinutes Int                     @default(60) @map("sync_every_minutes")
+  /// When the last renewal (by schedule or "Synchronizuj teraz") started; null = never.
+  lastSyncAt       DateTime?               @map("last_sync_at") @db.Timestamptz(3)
+  createdByUserId  String?                 @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  runs     ShopSyncRun[]
 
   @@unique([locationId, provider])
   @@map("shop_integration")
+}
+
+/// Task Q4 (part 2): what started a run of the seller's integration.
+enum ShopSyncTrigger {
+  /// "Importuj zaznaczone".
+  import
+  /// "Synchronizuj teraz".
+  manual
+  /// The regular renewal every `syncEveryMinutes`.
+  schedule
+
+  @@map("shop_sync_trigger")
+}
+
+/// Task Q4 (part 2): "Dziennik synchronizacji" — one import or renewal, for the seller to see.
+model ShopSyncRun {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  integrationId String          @map("integration_id") @db.Uuid
+  trigger       ShopSyncTrigger
+  startedAt     DateTime        @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt    DateTime?       @map("finished_at") @db.Timestamptz(3)
+  /// Imported products looked at.
+  checked       Int             @default(0)
+  /// Products whose price or stock changed (import: made or renewed).
+  changed       Int             @default(0)
+  /// Imported products no longer in the chosen catalogue of Base (their stock is set to 0).
+  missing       Int             @default(0)
+  /// null = finished well; otherwise BASE_TOKEN_INVALID, BASE_ERROR, BASE_UNREACHABLE, …
+  errorCode     String?         @map("error_code")
+  errorMessage  String?         @map("error_message")
+
+  integration ShopIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId, startedAt])
+  @@map("shop_sync_run")
 }

@@ -160,6 +160,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/shop/catalog/:cardId')) return { name: 'Hacked' };
   if (p.endsWith('/shop/catalog')) return { name: 'Hacked' };
   if (p.endsWith('/shop/integrations/base/import')) return { items: [{ externalId: '1' }] };
+  if (p.endsWith('/shop/integrations/base/sync')) return {};
   if (p.endsWith('/shop/integrations/base') && route.method === 'put') {
     return { token: '0000000-0000000-HACKEDHACKEDHACKED' };
   }

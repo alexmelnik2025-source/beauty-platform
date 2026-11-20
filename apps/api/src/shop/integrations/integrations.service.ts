@@ -1,7 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import type { MembershipContext } from '../../common/request-context';
-import type { Prisma, ShopIntegration } from '../../generated/prisma/client';
+import type {
+  Prisma,
+  ShopIntegration,
+  ShopSyncRun,
+  ShopSyncTrigger,
+} from '../../generated/prisma/client';
 import { LocationAccessService } from '../../organizations/location-access.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -17,6 +22,8 @@ import type {
   BaseOptionsResponse,
   BaseProductsQuery,
   BaseProductsResponse,
+  BaseSyncRunResponse,
+  BaseSyncRunsResponse,
   ConfigureBaseInput,
   ConnectBaseInput,
   ImportBaseInput,
@@ -45,6 +52,32 @@ const invalidChoice = (path: string, message: string): AppException =>
   new AppException(HttpStatus.UNPROCESSABLE_ENTITY, 'BASE_INVALID_CHOICE', message, [
     { path, message },
   ]);
+
+/** "Synchronizuj teraz" again within a minute: Base allows only so many calls per token. */
+const tooSoon = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'BASE_SYNC_TOO_SOON',
+    'The last renewal started less than a minute ago',
+  );
+
+/** Base pages read in one renewal at most (1000 products each). */
+const MAX_SYNC_PAGES = 30;
+
+/** Runs kept in the log of one integration. */
+const KEEP_RUNS = 100;
+
+const toRun = (r: ShopSyncRun): BaseSyncRunResponse => ({
+  id: r.id,
+  trigger: r.trigger,
+  startedAt: r.startedAt.toISOString(),
+  finishedAt: r.finishedAt?.toISOString() ?? null,
+  checked: r.checked,
+  changed: r.changed,
+  missing: r.missing,
+  errorCode: r.errorCode,
+  errorMessage: r.errorMessage,
+});
 
 const isUniqueViolation = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002';
@@ -102,7 +135,8 @@ type Configured = ShopIntegration & {
  * the platform card with the same EAN, or to a new card. Nothing is published by itself — only
  * the ticked products, "tylko w salonie" or "też online w Sklepie".
  *
- * Owners and managers only. Later parts: regular price/stock sync, orders back to Base, a log.
+ * Owners and managers only. Part 2: regular renewal of prices and stock, "Synchronizuj teraz", the log.
+ * Later parts: orders back to Base, a CSV/XML feed.
  */
 @Injectable()
 export class ShopIntegrationsService {
@@ -195,7 +229,13 @@ export class ShopIntegrationsService {
     }
     const integration = await this.prisma.shopIntegration.update({
       where: { locationId_provider: { locationId, provider: 'base' } },
-      data: { ...input, inventoryName: inventory.name },
+      data: {
+        inventoryId: input.inventoryId,
+        priceGroupId: input.priceGroupId,
+        warehouseId: input.warehouseId,
+        inventoryName: inventory.name,
+        ...(input.syncEveryMinutes ? { syncEveryMinutes: input.syncEveryMinutes } : {}),
+      },
     });
     return this.toStatus(locationId, integration);
   }
@@ -256,6 +296,28 @@ export class ShopIntegrationsService {
   ): Promise<BaseImportResultResponse> {
     await this.access.writable(m, locationId);
     const integration = this.configured(await this.find(locationId));
+    const run = await this.prisma.shopSyncRun.create({
+      data: { integrationId: integration.id, trigger: 'import', checked: input.items.length },
+    });
+    try {
+      const result = await this.importItems(userId, locationId, integration, input);
+      await this.finish(run.id, {
+        changed: result.created + result.updated,
+        missing: result.skipped.filter((s) => s.reason === 'NOT_IN_BASE').length,
+      });
+      return result;
+    } catch (error: unknown) {
+      await this.finish(run.id, {}, error);
+      throw error;
+    }
+  }
+
+  private async importItems(
+    userId: string,
+    locationId: string,
+    integration: Configured,
+    input: ImportBaseInput,
+  ): Promise<BaseImportResultResponse> {
     const token = this.token(integration);
     const ids = input.items.map((i) => i.externalId);
     const data: BaseProductData[] = [];
@@ -317,6 +379,155 @@ export class ShopIntegrationsService {
       data: { lastImportAt: new Date() },
     });
     return result;
+  }
+
+  /** "Synchronizuj teraz": renews prices and stock of the imported products right away. */
+  async syncNow(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+  ): Promise<BaseSyncRunResponse> {
+    await this.access.writable(m, locationId);
+    const integration = this.configured(await this.find(locationId));
+    if (integration.lastSyncAt && Date.now() - integration.lastSyncAt.getTime() < 60_000) {
+      throw tooSoon();
+    }
+    return toRun(await this.sync(integration, 'manual', userId));
+  }
+
+  /** "Dziennik synchronizacji": the latest imports and renewals, newest first. */
+  async runs(m: MembershipContext, locationId: string): Promise<BaseSyncRunsResponse> {
+    await this.access.writable(m, locationId);
+    const integration = await this.find(locationId);
+    if (!integration) return { runs: [] };
+    const runs = await this.prisma.shopSyncRun.findMany({
+      where: { integrationId: integration.id },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      take: 20,
+    });
+    return { runs: runs.map(toRun) };
+  }
+
+  /**
+   * The regular renewal (ShopSyncScheduler): every configured integration whose last renewal is
+   * older than its `syncEveryMinutes` and that has imported products. Returns how many ran.
+   */
+  async syncDue(now = new Date()): Promise<number> {
+    const candidates = await this.prisma.shopIntegration.findMany({
+      where: {
+        provider: 'base',
+        inventoryId: { not: null },
+        priceGroupId: { not: null },
+        warehouseId: { not: null },
+      },
+    });
+    let ran = 0;
+    for (const integration of candidates) {
+      const due =
+        !integration.lastSyncAt ||
+        now.getTime() - integration.lastSyncAt.getTime() >= integration.syncEveryMinutes * 60_000;
+      if (!due) continue;
+      const imported = await this.prisma.product.count({
+        where: {
+          locationId: integration.locationId,
+          externalRef: { startsWith: `base:${integration.inventoryId}:` },
+        },
+      });
+      if (imported === 0) continue;
+      await this.sync(this.configured(integration), 'schedule', null, now);
+      ran += 1;
+    }
+    return ran;
+  }
+
+  /**
+   * Renews price (from the chosen price group) and stock (from the chosen warehouse) of every
+   * product imported from the chosen catalogue. A product gone from the catalogue gets stock 0
+   * (clients see it as not available); its other data stays. Errors go to the log, not out.
+   */
+  private async sync(
+    integration: Configured,
+    trigger: ShopSyncTrigger,
+    userId: string | null,
+    now = new Date(),
+  ): Promise<ShopSyncRun> {
+    const run = await this.prisma.shopSyncRun.create({
+      data: { integrationId: integration.id, trigger, startedAt: now },
+    });
+    await this.prisma.shopIntegration.update({
+      where: { id: integration.id },
+      data: { lastSyncAt: now },
+    });
+    const prefix = `base:${integration.inventoryId}:`;
+    let checked = 0;
+    let changed = 0;
+    let missing = 0;
+    try {
+      const token = this.token(integration);
+      const products = await this.prisma.product.findMany({
+        where: { locationId: integration.locationId, externalRef: { startsWith: prefix } },
+        select: { id: true, externalRef: true, priceGrosze: true, stockQuantity: true },
+      });
+      const inBase = new Map<string, BaseListedProduct>();
+      if (products.length > 0) {
+        for (let page = 1; page <= MAX_SYNC_PAGES; page += 1) {
+          const listed = await this.base.listProducts(token, integration.inventoryId, page);
+          for (const p of listed) inBase.set(p.id, p);
+          if (listed.length < BASE_PAGE_SIZE) break;
+        }
+      }
+      for (const product of products) {
+        checked += 1;
+        const found = inBase.get(product.externalRef?.slice(prefix.length) ?? '');
+        const price = found ? toGrosze(found.prices[integration.priceGroupId]) : null;
+        const stock = found ? toStock(found.stock, integration.warehouseId) : 0;
+        if (!found) missing += 1;
+        const data: Prisma.ProductUpdateInput = {};
+        if (price !== null && price !== product.priceGrosze) data.priceGrosze = price;
+        if (stock !== product.stockQuantity) data.stockQuantity = stock;
+        if (Object.keys(data).length === 0) continue;
+        await this.prisma.$transaction(async (tx) => {
+          await tx.product.update({ where: { id: product.id }, data });
+          if (data.stockQuantity !== undefined) {
+            await this.stockMoved(tx, product.id, product.stockQuantity, stock, userId);
+          }
+        });
+        changed += 1;
+      }
+      return await this.finish(run.id, { checked, changed, missing });
+    } catch (error: unknown) {
+      return this.finish(run.id, { checked, changed, missing }, error);
+    }
+  }
+
+  /** Closes a run of the log (with the error, if any) and keeps only the latest runs. */
+  private async finish(
+    runId: string,
+    counts: { checked?: number; changed?: number; missing?: number },
+    error?: unknown,
+  ): Promise<ShopSyncRun> {
+    const failed = error === undefined ? null : error;
+    const run = await this.prisma.shopSyncRun.update({
+      where: { id: runId },
+      data: {
+        ...counts,
+        finishedAt: new Date(),
+        errorCode: failed ? (failed instanceof AppException ? failed.code : 'INTERNAL') : null,
+        errorMessage: failed
+          ? (failed instanceof Error ? failed.message : String(failed)).slice(0, 300)
+          : null,
+      },
+    });
+    const old = await this.prisma.shopSyncRun.findMany({
+      where: { integrationId: run.integrationId },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      skip: KEEP_RUNS,
+      select: { id: true },
+    });
+    if (old.length > 0) {
+      await this.prisma.shopSyncRun.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
+    }
+    return run;
   }
 
   private async importOne(
@@ -419,7 +630,7 @@ export class ShopIntegrationsService {
     productId: string,
     before: number | null,
     after: number | null,
-    userId: string,
+    userId: string | null,
   ) {
     return tx.stockMovement.create({
       data: {
@@ -457,9 +668,16 @@ export class ShopIntegrationsService {
     locationId: string,
     integration: ShopIntegration | null,
   ): Promise<BaseIntegrationResponse> {
-    const importedProducts = await this.prisma.product.count({
-      where: { locationId, externalRef: { startsWith: 'base:' } },
-    });
+    const [importedProducts, lastRun] = await Promise.all([
+      this.prisma.product.count({ where: { locationId, externalRef: { startsWith: 'base:' } } }),
+      integration
+        ? this.prisma.shopSyncRun.findFirst({
+            where: { integrationId: integration.id, finishedAt: { not: null } },
+            orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+            select: { errorCode: true },
+          })
+        : null,
+    ]);
     return {
       connected: integration !== null,
       tokenHint: integration?.tokenHint ?? null,
@@ -469,6 +687,9 @@ export class ShopIntegrationsService {
       priceGroupId: integration?.priceGroupId ?? null,
       warehouseId: integration?.warehouseId ?? null,
       lastImportAt: integration?.lastImportAt?.toISOString() ?? null,
+      syncEveryMinutes: integration?.syncEveryMinutes ?? 60,
+      lastSyncAt: integration?.lastSyncAt?.toISOString() ?? null,
+      lastErrorCode: lastRun?.errorCode ?? null,
       importedProducts,
     };
   }

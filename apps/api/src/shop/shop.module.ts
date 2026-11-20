@@ -4,6 +4,7 @@ import { BaseApi } from './integrations/base-api';
 import { ShopIntegrationsController } from './integrations/integrations.controller';
 import { ShopIntegrationsService } from './integrations/integrations.service';
 import { SecretBox } from './integrations/secret-box';
+import { ShopSyncScheduler } from './integrations/sync-scheduler';
 import { PublicShopController } from './public-shop.controller';
 import { ShopCatalogController } from './shop.controller';
 import { ShopService } from './shop.service';
@@ -12,7 +13,7 @@ import { ShopService } from './shop.service';
 @Module({
   imports: [OrganizationsModule],
   controllers: [ShopCatalogController, PublicShopController, ShopIntegrationsController],
-  providers: [ShopService, ShopIntegrationsService, BaseApi, SecretBox],
+  providers: [ShopService, ShopIntegrationsService, BaseApi, SecretBox, ShopSyncScheduler],
   exports: [ShopService],
 })
 export class ShopModule {}

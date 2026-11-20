@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registeredResponseSchema } from '../src/common/openapi';
+import { ShopIntegrationsService } from '../src/shop/integrations/integrations.service';
 import {
   createOrgWithLocation,
   createTestApp,
@@ -29,83 +30,85 @@ const OTHER_TOKEN = '3009999-3009999-DEVONLYFAKETOKEN9999999999';
 const POMADE_EAN = '0859104005020';
 
 /** What the stand-in Base holds: two catalogues, PLN and EUR price groups, one warehouse. */
-const fakeBase = {
-  getInventories: {
-    inventories: [
-      {
-        inventory_id: 307,
-        name: 'Sklep GESTALT',
-        price_groups: [105, 106],
-        default_price_group: 105,
-        warehouses: ['bl_201'],
-        default_warehouse: 'bl_201',
-      },
-      { inventory_id: 308, name: 'Allegro', price_groups: [105], warehouses: ['bl_201'] },
-    ],
-  },
-  getInventoryPriceGroups: {
-    price_groups: [
-      { price_group_id: 105, name: 'Detal', currency: 'PLN' },
-      { price_group_id: 106, name: 'Euro', currency: 'EUR' },
-    ],
-  },
-  getInventoryWarehouses: {
-    warehouses: [{ warehouse_type: 'bl', warehouse_id: 201, name: 'Magazyn Wola' }],
-  },
-  getInventoryProductsList: {
-    products: {
-      '9001': {
-        id: 9001,
-        ean: POMADE_EAN,
-        sku: 'RZ-PINK',
-        name: 'Reuzel Pink Pomade 113 g',
-        prices: { '105': 69.99 },
-        stock: { bl_201: 12 },
-      },
-      '9002': {
-        id: 9002,
-        ean: '5901234123457',
-        sku: 'OIL-1',
-        name: 'Olejek do brody',
-        prices: { '105': '45,50' },
-        stock: { bl_201: 3 },
-      },
-      '9003': { id: 9003, ean: '', sku: 'NOPRICE', name: 'Grzebień', prices: {}, stock: {} },
-    },
-  },
-  getInventoryProductsData: {
-    products: {
-      '9001': {
-        ean: POMADE_EAN,
-        sku: 'RZ-PINK',
-        manufacturer_id: 12,
-        text_fields: {
-          name: 'Reuzel Pink Pomade 113 g',
-          description: '<p>Mocne utrwalenie,<br>wysoki połysk &amp; zapach wanilii.</p>',
+const makeBase = () =>
+  ({
+    getInventories: {
+      inventories: [
+        {
+          inventory_id: 307,
+          name: 'Sklep GESTALT',
+          price_groups: [105, 106],
+          default_price_group: 105,
+          warehouses: ['bl_201'],
+          default_warehouse: 'bl_201',
         },
-        prices: { '105': 69.99 },
-        stock: { bl_201: 12 },
-        images: { '0': 'https://example.com/pomade.jpg' },
-      },
-      '9002': {
-        ean: '5901234123457',
-        sku: 'OIL-1',
-        manufacturer_id: 0,
-        text_fields: { name: 'Olejek do brody' },
-        prices: { '105': '45,50' },
-        stock: { bl_201: 3 },
-      },
-      '9003': {
-        ean: '',
-        sku: 'NOPRICE',
-        text_fields: { name: 'Grzebień' },
-        prices: {},
-        stock: {},
+        { inventory_id: 308, name: 'Allegro', price_groups: [105], warehouses: ['bl_201'] },
+      ],
+    },
+    getInventoryPriceGroups: {
+      price_groups: [
+        { price_group_id: 105, name: 'Detal', currency: 'PLN' },
+        { price_group_id: 106, name: 'Euro', currency: 'EUR' },
+      ],
+    },
+    getInventoryWarehouses: {
+      warehouses: [{ warehouse_type: 'bl', warehouse_id: 201, name: 'Magazyn Wola' }],
+    },
+    getInventoryProductsList: {
+      products: {
+        '9001': {
+          id: 9001,
+          ean: POMADE_EAN,
+          sku: 'RZ-PINK',
+          name: 'Reuzel Pink Pomade 113 g',
+          prices: { '105': 69.99 },
+          stock: { bl_201: 12 },
+        },
+        '9002': {
+          id: 9002,
+          ean: '5901234123457',
+          sku: 'OIL-1',
+          name: 'Olejek do brody',
+          prices: { '105': '45,50' },
+          stock: { bl_201: 3 },
+        },
+        '9003': { id: 9003, ean: '', sku: 'NOPRICE', name: 'Grzebień', prices: {}, stock: {} },
       },
     },
-  },
-  getInventoryManufacturers: { manufacturers: [{ manufacturer_id: 12, name: 'Reuzel' }] },
-} as Record<string, Record<string, unknown>>;
+    getInventoryProductsData: {
+      products: {
+        '9001': {
+          ean: POMADE_EAN,
+          sku: 'RZ-PINK',
+          manufacturer_id: 12,
+          text_fields: {
+            name: 'Reuzel Pink Pomade 113 g',
+            description: '<p>Mocne utrwalenie,<br>wysoki połysk &amp; zapach wanilii.</p>',
+          },
+          prices: { '105': 69.99 },
+          stock: { bl_201: 12 },
+          images: { '0': 'https://example.com/pomade.jpg' },
+        },
+        '9002': {
+          ean: '5901234123457',
+          sku: 'OIL-1',
+          manufacturer_id: 0,
+          text_fields: { name: 'Olejek do brody' },
+          prices: { '105': '45,50' },
+          stock: { bl_201: 3 },
+        },
+        '9003': {
+          ean: '',
+          sku: 'NOPRICE',
+          text_fields: { name: 'Grzebień' },
+          prices: {},
+          stock: {},
+        },
+      },
+    },
+    getInventoryManufacturers: { manufacturers: [{ manufacturer_id: 12, name: 'Reuzel' }] },
+  }) as Record<string, Record<string, unknown>>;
+let fakeBase = makeBase();
 
 /** Calls Base received in this test: [method, token, parameters]. */
 let calls: [string, string, Record<string, unknown>][];
@@ -121,6 +124,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await resetState(ctx);
   calls = [];
+  fakeBase = makeBase();
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     if (!String(input).startsWith('https://api.baselinker.com/')) {
       throw new Error(`Unexpected fetch ${String(input)}`);
@@ -514,5 +518,127 @@ describe('Importing products from Base', () => {
     } finally {
       fakeBase.getInventoryProductsList = original;
     }
+  });
+});
+
+describe('Renewing prices and stock from Base (part 2)', () => {
+  const importBoth = () =>
+    ctx
+      .http()
+      .post(`${base}/import`)
+      .set(owner.auth)
+      .send({ items: [{ externalId: '9001' }, { externalId: '9002' }] })
+      .expect(200);
+
+  /** The seller changes its Base: a new price and stock for the pomade, the oil is gone. */
+  const changeBase = () => {
+    const list = fakeBase.getInventoryProductsList?.products as Record<
+      string,
+      { prices: object; stock: object }
+    >;
+    if (!list['9001']) throw new Error('the stand-in has no pomade');
+    list['9001'].prices = { '105': 59 };
+    list['9001'].stock = { bl_201: 7 };
+    delete list['9002'];
+  };
+
+  it('"Synchronizuj teraz" renews price and stock, and the log shows every run', async () => {
+    await connect();
+    await configure();
+    await importBoth();
+    changeBase();
+
+    const res = await ctx.http().post(`${base}/sync`).set(owner.auth).expect(200);
+    shape('BaseSyncRun', res.body);
+    expect(res.body).toMatchObject({
+      trigger: 'manual',
+      checked: 2,
+      changed: 2,
+      missing: 1,
+      errorCode: null,
+    });
+    expect(res.body.finishedAt).not.toBeNull();
+    expect(
+      await ctx.prisma.product.findFirstOrThrow({ where: { externalRef: 'base:307:9001' } }),
+    ).toMatchObject({ priceGrosze: 5900, stockQuantity: 7 });
+    const oil = await ctx.prisma.product.findFirstOrThrow({
+      where: { externalRef: 'base:307:9002' },
+    });
+    // Gone from Base: not available for clients any more, but kept with its history.
+    expect(oil).toMatchObject({ stockQuantity: 0, priceGrosze: 4550, active: true });
+    expect(
+      await ctx.prisma.stockMovement.findFirst({
+        where: { productId: oil.id, change: -3 },
+        select: { note: true, createdByUserId: true },
+      }),
+    ).toEqual({ note: 'Base', createdByUserId: owner.userId });
+
+    await fails(ctx.http().post(`${base}/sync`).set(owner.auth), 409, 'BASE_SYNC_TOO_SOON');
+
+    const log = await ctx.http().get(`${base}/runs`).set(owner.auth).expect(200);
+    shape('BaseSyncRuns', log.body);
+    expect(log.body.runs.map((r: { trigger: string }) => r.trigger)).toEqual(['manual', 'import']);
+    expect(log.body.runs[1]).toMatchObject({ checked: 2, changed: 2, missing: 0 });
+
+    const status = await ctx.http().get(base).set(owner.auth).expect(200);
+    expect(status.body).toMatchObject({ syncEveryMinutes: 60, lastErrorCode: null });
+    expect(status.body.lastSyncAt).not.toBeNull();
+    await fails(ctx.http().get(`${base}/runs`).set(staffUser.auth), 403, 'FORBIDDEN');
+  });
+
+  it('renews by the schedule the seller chose, and writes Base errors to the log', async () => {
+    await connect();
+    await ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({ inventoryId: '307', priceGroupId: '105', warehouseId: 'bl_201', syncEveryMinutes: 7 })
+      .expect(400);
+    await ctx
+      .http()
+      .patch(base)
+      .set(owner.auth)
+      .send({
+        inventoryId: '307',
+        priceGroupId: '105',
+        warehouseId: 'bl_201',
+        syncEveryMinutes: 15,
+      })
+      .expect(200);
+    const service = ctx.app.get(ShopIntegrationsService);
+    const now = new Date();
+    // Nothing imported yet: nothing to renew, nothing in the log.
+    expect(await service.syncDue(now)).toBe(0);
+    await importBoth();
+    changeBase();
+
+    expect(await service.syncDue(now)).toBe(1);
+    expect(await service.syncDue(new Date(now.getTime() + 10 * 60_000))).toBe(0);
+    expect(
+      await ctx.prisma.product.findFirstOrThrow({ where: { externalRef: 'base:307:9001' } }),
+    ).toMatchObject({ priceGrosze: 5900, stockQuantity: 7 });
+    const scheduled = await ctx.prisma.shopSyncRun.findFirstOrThrow({
+      where: { trigger: 'schedule' },
+    });
+    expect(scheduled).toMatchObject({ checked: 2, changed: 2, missing: 1, errorCode: null });
+
+    // The seller removed the token in Base: the renewal fails and says so in the log.
+    calls = [];
+    const later = new Date(now.getTime() + 16 * 60_000);
+    vi.mocked(fetch).mockImplementation(
+      async () => new Response(JSON.stringify({ status: 'ERROR', error_code: 'ERROR_BAD_TOKEN' })),
+    );
+    expect(await service.syncDue(later)).toBe(1);
+    const failed = await ctx.prisma.shopSyncRun.findFirstOrThrow({
+      where: { trigger: 'schedule', errorCode: { not: null } },
+    });
+    expect(failed).toMatchObject({ errorCode: 'BASE_TOKEN_INVALID', changed: 0 });
+    expect(failed.finishedAt).not.toBeNull();
+    const status = await ctx.http().get(base).set(owner.auth).expect(200);
+    expect(status.body.lastErrorCode).toBe('BASE_TOKEN_INVALID');
+    // Prices stay as they were.
+    expect(
+      await ctx.prisma.product.findFirstOrThrow({ where: { externalRef: 'base:307:9001' } }),
+    ).toMatchObject({ priceGrosze: 5900, stockQuantity: 7 });
   });
 });

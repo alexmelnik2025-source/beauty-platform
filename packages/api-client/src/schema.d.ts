@@ -3910,6 +3910,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Synchronizuj teraz": renew prices and stock of the imported products
+         * @description Task Q4 (part 2). Otherwise it happens every `syncEveryMinutes`. Base errors do not fail the request: they are in `errorCode` of the run (and in the log). Again within a minute → 409 BASE_SYNC_TOO_SOON.
+         */
+        post: operations["ShopIntegrationsController_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Dziennik synchronizacji": the latest imports and renewals
+         * @description Task Q4 (part 2). At most 20, newest first; empty when Base is not connected.
+         */
+        get: operations["ShopIntegrationsController_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4277,6 +4317,12 @@ export interface components {
             warehouseId: string | null;
             /** @description ISO time of the last import; null = never */
             lastImportAt: string | null;
+            /** @description Prices and stock of imported products are renewed this often, minutes */
+            syncEveryMinutes: number;
+            /** @description ISO time the last renewal started; null = never */
+            lastSyncAt: string | null;
+            /** @description The last import or renewal failed with this code; null = it went well */
+            lastErrorCode: string | null;
             /** @description Products of the salon that came from Base */
             importedProducts: number;
         };
@@ -4318,6 +4364,49 @@ export interface components {
                 importedProductId: string | null;
                 /** @description The platform card with the same EAN; null = a new card will be made */
                 catalogProductId: string | null;
+            }[];
+        };
+        BaseSyncRun: {
+            id: string;
+            /**
+             * @description "Importuj zaznaczone", "Synchronizuj teraz" or the regular renewal
+             * @enum {string}
+             */
+            trigger: "import" | "manual" | "schedule";
+            startedAt: string;
+            /** @description null = still running */
+            finishedAt: string | null;
+            /** @description Products looked at */
+            checked: number;
+            /** @description Products whose price or stock changed (import: made or renewed) */
+            changed: number;
+            /** @description Imported products no longer in the chosen catalogue: their stock is now 0 */
+            missing: number;
+            /** @description null = went well; BASE_TOKEN_INVALID, BASE_RECONNECT, BASE_ERROR, BASE_UNREACHABLE, … */
+            errorCode: string | null;
+            errorMessage: string | null;
+        };
+        BaseSyncRuns: {
+            /** @description At most 20, newest first */
+            runs: {
+                id: string;
+                /**
+                 * @description "Importuj zaznaczone", "Synchronizuj teraz" or the regular renewal
+                 * @enum {string}
+                 */
+                trigger: "import" | "manual" | "schedule";
+                startedAt: string;
+                /** @description null = still running */
+                finishedAt: string | null;
+                /** @description Products looked at */
+                checked: number;
+                /** @description Products whose price or stock changed (import: made or renewed) */
+                changed: number;
+                /** @description Imported products no longer in the chosen catalogue: their stock is now 0 */
+                missing: number;
+                /** @description null = went well; BASE_TOKEN_INVALID, BASE_RECONNECT, BASE_ERROR, BASE_UNREACHABLE, … */
+                errorCode: string | null;
+                errorMessage: string | null;
             }[];
         };
         BookingConfirmed: {
@@ -14524,6 +14613,7 @@ export interface operations {
                     inventoryId: string;
                     priceGroupId: string;
                     warehouseId: string;
+                    syncEveryMinutes?: number;
                 };
             };
         };
@@ -14609,6 +14699,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseImportResult"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseSyncRun"];
+                };
+            };
+        };
+    };
+    ShopIntegrationsController_runs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseSyncRuns"];
                 };
             };
         };

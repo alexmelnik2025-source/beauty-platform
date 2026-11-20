@@ -12,6 +12,10 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **20.11.2026, ~02:40 UTC — 580 (ветка `agent/580-base-sync`, поверх 579): Q4 часть 2 — обновление цен и остатков из
+  Base по расписанию (`syncEveryMinutes`, `ShopSyncScheduler`), «Synchronizuj teraz» (`POST …/base/sync`) и журнал
+  (`ShopSyncRun`, `GET …/base/runs`). Тесты в `shop-integrations.spec.ts`. Дальше по Q4: экран «Integracje» в кабинете
+  → заказы/брони в Base → CSV/XML-фид.
 - **20.11.2026, ~02:10 UTC — 579 (ветка `agent/579-base-integration`, от main): Q4 часть 1 — подключение Base и импорт
   товаров в API** (одобрено владельцем 20.11 02:11). `ShopIntegration` (токен зашифрован, `INTEGRATIONS_SECRET`),
   `Product.externalRef`; `…/shop/integrations/base`: `PUT` токен → `GET options` / `PATCH` каталог, группа цен, склад →

@@ -14797,6 +14797,11 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 64
+                  },
+                  "syncEveryMinutes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -14983,6 +14988,80 @@
           }
         ],
         "summary": "Step 3: import the ticked products (up to 200 at once)",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/sync": {
+      "post": {
+        "description": "Task Q4 (part 2). Otherwise it happens every `syncEveryMinutes`. Base errors do not fail the request: they are in `errorCode` of the run (and in the log). Again within a minute → 409 BASE_SYNC_TOO_SOON.",
+        "operationId": "ShopIntegrationsController_sync",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseSyncRun"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Synchronizuj teraz\": renew prices and stock of the imported products",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/integrations/base/runs": {
+      "get": {
+        "description": "Task Q4 (part 2). At most 20, newest first; empty when Base is not connected.",
+        "operationId": "ShopIntegrationsController_runs",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseSyncRuns"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Dziennik synchronizacji\": the latest imports and renewals",
         "tags": [
           "shop"
         ]
@@ -16379,6 +16458,22 @@
             "description": "ISO time of the last import; null = never",
             "type": "string"
           },
+          "syncEveryMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Prices and stock of imported products are renewed this often, minutes"
+          },
+          "lastSyncAt": {
+            "nullable": true,
+            "description": "ISO time the last renewal started; null = never",
+            "type": "string"
+          },
+          "lastErrorCode": {
+            "nullable": true,
+            "description": "The last import or renewal failed with this code; null = it went well",
+            "type": "string"
+          },
           "importedProducts": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -16395,6 +16490,9 @@
           "priceGroupId",
           "warehouseId",
           "lastImportAt",
+          "syncEveryMinutes",
+          "lastSyncAt",
+          "lastErrorCode",
           "importedProducts"
         ],
         "additionalProperties": false
@@ -16574,6 +16672,147 @@
           "page",
           "hasMore",
           "products"
+        ],
+        "additionalProperties": false
+      },
+      "BaseSyncRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "import",
+              "manual",
+              "schedule"
+            ],
+            "description": "\"Importuj zaznaczone\", \"Synchronizuj teraz\" or the regular renewal"
+          },
+          "startedAt": {
+            "type": "string"
+          },
+          "finishedAt": {
+            "nullable": true,
+            "description": "null = still running",
+            "type": "string"
+          },
+          "checked": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products looked at"
+          },
+          "changed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Products whose price or stock changed (import: made or renewed)"
+          },
+          "missing": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Imported products no longer in the chosen catalogue: their stock is now 0"
+          },
+          "errorCode": {
+            "nullable": true,
+            "description": "null = went well; BASE_TOKEN_INVALID, BASE_RECONNECT, BASE_ERROR, BASE_UNREACHABLE, …",
+            "type": "string"
+          },
+          "errorMessage": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "trigger",
+          "startedAt",
+          "finishedAt",
+          "checked",
+          "changed",
+          "missing",
+          "errorCode",
+          "errorMessage"
+        ],
+        "additionalProperties": false
+      },
+      "BaseSyncRuns": {
+        "type": "object",
+        "properties": {
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "trigger": {
+                  "type": "string",
+                  "enum": [
+                    "import",
+                    "manual",
+                    "schedule"
+                  ],
+                  "description": "\"Importuj zaznaczone\", \"Synchronizuj teraz\" or the regular renewal"
+                },
+                "startedAt": {
+                  "type": "string"
+                },
+                "finishedAt": {
+                  "nullable": true,
+                  "description": "null = still running",
+                  "type": "string"
+                },
+                "checked": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Products looked at"
+                },
+                "changed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Products whose price or stock changed (import: made or renewed)"
+                },
+                "missing": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Imported products no longer in the chosen catalogue: their stock is now 0"
+                },
+                "errorCode": {
+                  "nullable": true,
+                  "description": "null = went well; BASE_TOKEN_INVALID, BASE_RECONNECT, BASE_ERROR, BASE_UNREACHABLE, …",
+                  "type": "string"
+                },
+                "errorMessage": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "trigger",
+                "startedAt",
+                "finishedAt",
+                "checked",
+                "changed",
+                "missing",
+                "errorCode",
+                "errorMessage"
+              ],
+              "additionalProperties": false
+            },
+            "description": "At most 20, newest first"
+          }
+        },
+        "required": [
+          "runs"
         ],
         "additionalProperties": false
       },

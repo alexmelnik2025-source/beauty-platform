@@ -13,11 +13,22 @@ export const connectBaseSchema = z.object({
     .regex(/^[\x21-\x7e]+$/, 'letters, digits and signs only, no spaces'),
 });
 
+/** Task Q4 (part 2): how often prices and stock are renewed from Base, minutes. */
+export const SYNC_EVERY_MINUTES = [15, 30, 60, 180, 360, 720, 1440] as const;
+
 /** Step 2: which catalogue, price group and warehouse go to the platform. */
 export const configureBaseSchema = z.object({
   inventoryId: z.string().trim().min(1).max(32),
   priceGroupId: z.string().trim().min(1).max(32),
   warehouseId: z.string().trim().min(1).max(64),
+  /** Left out = unchanged (60 at first). */
+  syncEveryMinutes: z
+    .number()
+    .int()
+    .refine((n) => (SYNC_EVERY_MINUTES as readonly number[]).includes(n), {
+      message: `one of ${SYNC_EVERY_MINUTES.join(', ')}`,
+    })
+    .optional(),
 });
 
 /** Step 3a: a page of the seller's catalogue to choose from. */
@@ -66,6 +77,15 @@ export const baseIntegrationSchema = responseSchema(
     priceGroupId: z.string().nullable(),
     warehouseId: z.string().nullable(),
     lastImportAt: z.string().nullable().describe('ISO time of the last import; null = never'),
+    syncEveryMinutes: z
+      .number()
+      .int()
+      .describe('Prices and stock of imported products are renewed this often, minutes'),
+    lastSyncAt: z.string().nullable().describe('ISO time the last renewal started; null = never'),
+    lastErrorCode: z
+      .string()
+      .nullable()
+      .describe('The last import or renewal failed with this code; null = it went well'),
     importedProducts: z.number().int().describe('Products of the salon that came from Base'),
   }),
 );
@@ -147,6 +167,42 @@ export const baseImportResultSchema = responseSchema(
   }),
 );
 
+const syncRun = z.strictObject({
+  id: z.string(),
+  trigger: z
+    .enum(['import', 'manual', 'schedule'])
+    .describe('"Importuj zaznaczone", "Synchronizuj teraz" or the regular renewal'),
+  startedAt: z.string(),
+  finishedAt: z.string().nullable().describe('null = still running'),
+  checked: z.number().int().describe('Products looked at'),
+  changed: z
+    .number()
+    .int()
+    .describe('Products whose price or stock changed (import: made or renewed)'),
+  missing: z
+    .number()
+    .int()
+    .describe('Imported products no longer in the chosen catalogue: their stock is now 0'),
+  errorCode: z
+    .string()
+    .nullable()
+    .describe(
+      'null = went well; BASE_TOKEN_INVALID, BASE_RECONNECT, BASE_ERROR, BASE_UNREACHABLE, …',
+    ),
+  errorMessage: z.string().nullable(),
+});
+
+/** Task Q4 (part 2): one import or renewal. */
+export const baseSyncRunSchema = responseSchema('BaseSyncRun', syncRun);
+
+/** Task Q4 (part 2): "Dziennik synchronizacji" — the latest runs, newest first. */
+export const baseSyncRunsSchema = responseSchema(
+  'BaseSyncRuns',
+  z.strictObject({ runs: z.array(baseSyncRunSchema).describe('At most 20, newest first') }),
+);
+
+export type BaseSyncRunResponse = z.infer<typeof baseSyncRunSchema>;
+export type BaseSyncRunsResponse = z.infer<typeof baseSyncRunsSchema>;
 export type BaseIntegrationResponse = z.infer<typeof baseIntegrationSchema>;
 export type BaseOptionsResponse = z.infer<typeof baseOptionsSchema>;
 export type BaseProductsResponse = z.infer<typeof baseProductsSchema>;
