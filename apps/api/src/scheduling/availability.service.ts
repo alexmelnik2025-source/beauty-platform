@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { AvailabilityResponse } from './public.responses';
 import type { AvailabilityQuery } from './scheduling.schemas';
 import {
+  BUSY_STATUSES,
   mergeSlots,
   type InstantRange,
   type LocalInterval,
@@ -233,15 +234,19 @@ export class AvailabilityService {
           endsAt: { gt: new Date(rangeStart) },
         },
       }),
-      // The same rows the no-double-booking constraint protects: confirmed bookings
-      // and holds that have not expired yet. An expired hold is free time, even if
-      // the cleanup job has not marked it yet.
+      // The rows the no-double-booking constraint protects — confirmed bookings and holds that
+      // have not expired yet — plus visits already marked "came": the mark may be set the moment
+      // the visit starts, and the chair stays taken until its planned end. An expired hold is
+      // free time, even if the cleanup job has not marked it yet.
       this.prisma.appointment.findMany({
         where: {
           staffId: { in: staffIds },
           startAt: { lt: new Date(rangeEnd) },
           blockedUntil: { gt: new Date(rangeStart) },
-          OR: [{ status: 'confirmed' }, { status: 'held', holdExpiresAt: { gt: new Date(now) } }],
+          OR: [
+            { status: { in: BUSY_STATUSES } },
+            { status: 'held', holdExpiresAt: { gt: new Date(now) } },
+          ],
           ...(options.excludeAppointmentId ? { id: { not: options.excludeAppointmentId } } : {}),
         },
         select: { staffId: true, startAt: true, blockedUntil: true },

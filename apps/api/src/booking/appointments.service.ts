@@ -49,6 +49,7 @@ export type {
   AppointmentResponse,
   VisitCouponsResponse,
 } from './booking.responses';
+import { BUSY_STATUSES } from '../scheduling/slots';
 import { offerFor } from '../scheduling/staff-prices';
 import { birthdayWindow } from './customers.service';
 
@@ -856,7 +857,10 @@ export class AppointmentsService {
         staffId,
         startAt: { lt: times.blockedUntil },
         blockedUntil: { gt: times.startAt },
-        OR: [{ status: 'confirmed' }, { status: 'held', holdExpiresAt: { gt: new Date() } }],
+        OR: [
+          { status: { in: BUSY_STATUSES } },
+          { status: 'held', holdExpiresAt: { gt: new Date() } },
+        ],
         ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
       },
     });
