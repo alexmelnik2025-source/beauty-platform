@@ -12,6 +12,7 @@ import { BookingScreen } from './screens/BookingScreen';
 import { CatalogScreen } from './screens/CatalogScreen';
 import { OpenBooking } from './screens/OpenBooking';
 import { SalonScreen } from './screens/SalonScreen';
+import { ShopScreen } from './screens/ShopScreen';
 import { SignInScreen } from './screens/SignInScreen';
 import { VisitsScreen } from './screens/VisitsScreen';
 import { rememberViewed, type RecentSalon } from './recent';
@@ -32,7 +33,8 @@ type Stage =
 type Finder =
   | null
   | { kind: 'catalog'; query?: string; openNow?: boolean; bestRated?: boolean }
-  | { kind: 'salon'; slug: string; name: string; fromVisits?: boolean }
+  | { kind: 'shop' }
+  | { kind: 'salon'; slug: string; name: string; fromVisits?: boolean; fromShop?: boolean }
   | { kind: 'open'; slug: string; name: string; preset?: BookingPreset }
   | { kind: 'book'; salon: PublicLocation; preset?: BookingPreset; fromVisits?: boolean };
 
@@ -69,6 +71,8 @@ export default function App() {
     () => setFinder({ kind: 'catalog', bestRated: true }),
     [],
   );
+  // Task Q3: "Sklep" — products from salons, under "Znajdź salon" on the start screen.
+  const openShop = useCallback(() => setFinder({ kind: 'shop' }), []);
   const openBooking = useCallback(
     (slug: string, name: string, preset?: BookingPreset) =>
       setFinder({ kind: 'open', slug, name, ...(preset && { preset }) }),
@@ -184,6 +188,7 @@ export default function App() {
                 onFindSalon={openCatalog}
                 onOpenNow={openCatalogOpenNow}
                 onBestRated={openCatalogBestRated}
+                onShop={openShop}
                 recent={recent}
                 onOpenRecent={openRecent}
                 onClearRecent={clearRecent}
@@ -199,6 +204,7 @@ export default function App() {
                 onSignOut={signOut}
                 onSessionEnded={sessionEnded}
                 onFindSalon={openCatalog}
+                onShop={openShop}
                 onBook={openBooking}
                 onOpenSalon={openSalonFromVisits}
                 favoritesVersion={favoritesVersion}
@@ -219,6 +225,20 @@ export default function App() {
                 initialBestRated={finder.kind === 'catalog' && finder.bestRated === true}
                 onOpen={(s) => setFinder({ kind: 'salon', slug: s.slug, name: s.name })}
                 onBack={() => setFinder(null)}
+              />
+            </View>
+          ) : null}
+          {/* The shop stays mounted under a salon opened from it: back keeps the search. */}
+          {finder?.kind === 'shop' || (finder?.kind === 'salon' && finder.fromShop) ? (
+            <View style={finder.kind === 'shop' ? styles.fill : styles.hidden}>
+              <ShopScreen
+                api={api}
+                t={t}
+                locale={locale}
+                onBack={() => setFinder(null)}
+                onOpenSalon={(s) =>
+                  setFinder({ kind: 'salon', slug: s.slug, name: s.name, fromShop: true })
+                }
               />
             </View>
           ) : null}
@@ -269,7 +289,15 @@ export default function App() {
               locale={locale}
               slug={finder.slug}
               name={finder.name}
-              onBack={() => setFinder(finder.fromVisits ? null : { kind: 'catalog' })}
+              onBack={() =>
+                setFinder(
+                  finder.fromShop
+                    ? { kind: 'shop' }
+                    : finder.fromVisits
+                      ? null
+                      : { kind: 'catalog' },
+                )
+              }
               onBook={(salon) => setFinder({ kind: 'book', salon })}
               signedIn={stage.kind === 'visits'}
               onFavoriteChanged={favoriteChanged}

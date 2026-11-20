@@ -48,6 +48,8 @@ export function VisitsScreen(props: {
   onLocale: (locale: Locale) => void;
   /** Opens the catalogue of salons (no sign-in needed). */
   onFindSalon: () => void;
+  /** Task Q3: "Sklep" — a quiet link under "Znajdź salon". */
+  onShop: () => void;
   /** The booking in the app: "Book again" on a visit, "Book" on a loyalty card. */
   onBook: (slug: string, name: string, preset?: BookingPreset) => void;
   /** A salon's page (from "Favourites"). */
@@ -365,6 +367,7 @@ export function VisitsScreen(props: {
         : null}
 
       <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
+      <Button kind="link" label={t.shop.entry} onPress={props.onShop} />
       <RecentSalons
         t={t}
         recent={props.recent ?? []}

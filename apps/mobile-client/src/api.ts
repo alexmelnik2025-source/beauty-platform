@@ -27,6 +27,7 @@ import type {
   VisitReview,
   WaitlistJoined,
 } from '@beauty/api-client';
+import type { components } from '@beauty/api-client';
 
 /**
  * The client app's connection to the API: sign-in with an emailed code (no password, no
@@ -64,6 +65,12 @@ export type {
   PublicSalonDirectory,
   Slot,
 };
+
+/** Task Q3: the "Sklep" tab — products salons sell to pick up at a visit. */
+export type ShopList = components['schemas']['PublicShopList'];
+export type ShopProduct = components['schemas']['PublicShopProduct'];
+export type ShopOffer = ShopProduct['offers'][number];
+export type ShopCategory = ShopProduct['category'];
 
 /** Contact details the booking asks for (the same form as the web booking page). */
 export interface BookingContact {
@@ -552,6 +559,23 @@ export class ClientApi {
       params.set('near', `${latitude.toFixed(4)},${longitude.toFixed(4)}`);
     }
     return this.call<PublicSalonDirectory>('GET', `/v1/public/locations?${params.toString()}`);
+  }
+
+  /**
+   * Task Q3: the "Sklep" tab — every product some salon sells online, with the salons offering
+   * it (cheapest available first). No sign-in. At the launch each is picked up and paid at the
+   * salon.
+   */
+  shop(query: { q?: string; category?: ShopCategory; page?: number } = {}): Promise<ShopList> {
+    const params = new URLSearchParams({ page: String(query.page ?? 1), pageSize: '24' });
+    if (query.q?.trim()) params.set('q', query.q.trim());
+    if (query.category) params.set('category', query.category);
+    return this.call<ShopList>('GET', `/v1/public/shop/products?${params.toString()}`);
+  }
+
+  /** Task Q3: one product of the "Sklep" tab with every salon offering it. No sign-in. */
+  shopProduct(id: string): Promise<ShopProduct> {
+    return this.call<ShopProduct>('GET', `/v1/public/shop/products/${encodeURIComponent(id)}`);
   }
 
   /**

@@ -1,0 +1,71 @@
+import { describe, expect, it } from 'vitest';
+import { ClientApi, type ShopProduct, type TokenStore } from '../src/api';
+import { availableOffers, fromCurrency, sellersLine, SHOP_CATEGORIES } from '../src/shop';
+import { DICTIONARIES, LOCALES } from '../src/i18n';
+
+const store: TokenStore = { get: async () => null, set: async () => undefined };
+
+const offer = (slug: string, priceGrosze: number, available = true) => ({
+  productId: `p-${slug}-${priceGrosze}`,
+  priceGrosze,
+  currency: 'PLN',
+  available,
+  fulfillment: ['pickup_at_salon' as const],
+  salon: { slug, name: `Salon ${slug}`, city: 'Warszawa', addressLine: 'ul. Bema 1' },
+});
+
+const product = (offers: ReturnType<typeof offer>[]): ShopProduct => ({
+  id: 'card-1',
+  name: 'Pomada matowa',
+  brand: 'Reuzel',
+  ean: null,
+  description: null,
+  category: 'styling',
+  photoId: null,
+  fromPriceGrosze: 4900,
+  offers,
+});
+
+describe('"Sklep" in the client app (task Q3, screen 2)', () => {
+  it('asks the public shop without signing in, with the search and the category', async () => {
+    const calls: string[] = [];
+    const list = { products: [], total: 0, page: 1, pageSize: 24 };
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      calls.push(`${init?.method} ${url.replace('https://api.test', '')}`);
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      expect(headers.authorization).toBeUndefined();
+      return new Response(JSON.stringify(url.includes('/products/') ? product([]) : list));
+    };
+    const api = new ClientApi('https://api.test', store, fetchFn);
+    await api.shop();
+    await api.shop({ q: '  pomada ', category: 'beard', page: 2 });
+    await api.shop({ q: '   ' });
+    await api.shopProduct('card 1');
+    expect(calls).toEqual([
+      'GET /v1/public/shop/products?page=1&pageSize=24',
+      'GET /v1/public/shop/products?page=2&pageSize=24&q=pomada&category=beard',
+      'GET /v1/public/shop/products?page=1&pageSize=24',
+      'GET /v1/public/shop/products/card%201',
+    ]);
+  });
+
+  it('names the one salon selling it, counts several, says when none has it', () => {
+    expect(sellersLine(product([offer('a', 4900)]))).toEqual({ kind: 'one', salon: 'Salon a' });
+    expect(
+      sellersLine(product([offer('a', 4900), offer('b', 5500), offer('c', 6000, false)])),
+    ).toEqual({ kind: 'many', n: 2 });
+    expect(sellersLine(product([offer('a', 4900, false)]))).toBeNull();
+    expect(availableOffers(product([offer('a', 1, false), offer('b', 2)]))).toHaveLength(1);
+    expect(fromCurrency(product([{ ...offer('a', 1), currency: 'EUR' }]))).toBe('EUR');
+    expect(fromCurrency(product([]))).toBe('PLN');
+  });
+
+  it('has every category and line of the shop in all six languages', () => {
+    for (const l of LOCALES) {
+      const shop = DICTIONARIES[l].shop;
+      for (const c of SHOP_CATEGORIES) expect(shop.categories[c], `${l}.${c}`).toBeTruthy();
+      expect(shop.from).toContain('{price}');
+      expect(shop.salons).toContain('{n}');
+    }
+  });
+});

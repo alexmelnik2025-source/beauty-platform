@@ -24,6 +24,8 @@ export function SignInScreen(props: {
   onOpenNow: () => void;
   /** Task 379: the catalogue with the best rated salons first. */
   onBestRated: () => void;
+  /** Task Q3: "Sklep" — a quiet link under "Znajdź salon". */
+  onShop: () => void;
   /** Task 402: "Ostatnio oglądane" — the salons opened last on this device. */
   recent?: RecentSalon[];
   onOpenRecent?: (salon: RecentSalon) => void;
@@ -186,6 +188,7 @@ export function SignInScreen(props: {
         </>
       )}
       <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
+      <Button kind="link" label={t.shop.entry} onPress={props.onShop} />
       <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
     </View>
   );

@@ -3851,3 +3851,14 @@ zaznaczone (n)»; затем статус (токен …1234, каталог, �
 кабинета. e2e `apps/web/e2e/shop-integrations.spec.ts` поднимает заглушку Base на `BASE_API_URL` (в CI —
 `http://127.0.0.1:4790/connector.php`), скриншоты Q4-base-connect, Q4-base-pick, Q4-base-done, Q4-feed (телефон).
 Когда «Mój sklep» (Q3) будет в main, ссылку на «Integracje» стоит поставить и туда.
+
+## Клиентское приложение: вкладка «Sklep» (задача Q3, экран 2)
+
+Тихая ссылка «Sklep — kosmetyki z salonów ›» под «Znajdź salon» на стартовом экране и в «Moje wizyty» открывает
+товары, которые салоны продают онлайн (`GET /v1/public/shop/products`, без входа): поиск по названию/марке, категории
+одной строкой фишек, у товара — фото, «od 49,00 zł» и салон (или «w 2 salonach»), «Chwilowo brak», если ни у кого нет.
+Карточка товара: описание, «Gdzie odebrać» — салоны с ценой и адресом, «Odbiór w salonie, płatność na miejscu» (на
+запуске нет доставки и онлайн-оплаты), «Umów wizytę» открывает салон; «‹ Wróć» возвращает в магазин с тем же
+поиском. 6 языков. Код: `apps/mobile-client/src/screens/ShopScreen.tsx`, `src/shop.ts`, тест `test/shop.test.ts`,
+e2e `apps/web/e2e/visits-app-shop.spec.ts` (скриншоты Q3-app-shop, Q3-app-shop-product). «Odbiorę przy wizycie»
+(бронь к визиту) добавится с частью «товар к визиту» (ветка другого запуска `agent/580-product-reservation`).
