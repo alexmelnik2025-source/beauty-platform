@@ -530,6 +530,7 @@ describe('"Zamówienia do Base" (task Q4, part 5)', () => {
       where: { id: reservation.id },
       data: { status: 'handed', baseOrderState: 'handed' },
     });
+    await ctx.prisma.shopIntegration.updateMany({ data: { lastSyncAt: null } });
     await ctx.http().post(`${integrations}/sync`).set(owner.auth).expect(200);
     expect(
       (await ctx.prisma.product.findUniqueOrThrow({ where: { id: pomadeId } })).stockQuantity,
