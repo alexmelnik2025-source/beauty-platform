@@ -291,12 +291,29 @@ export class PublicBookingService {
 
   // ── 2. Contact details and email code ─────────────────
 
+  /**
+   * Whether a code by SMS may stand for this email: no card of the salon has the address yet, or
+   * the card that has it carries this very phone. Otherwise the address must be confirmed by
+   * email — a visit must not be attached to someone else's card on the strength of a phone alone.
+   */
+  private async phoneOwnsCard(
+    organizationId: string,
+    contact: { email: string; phone: string },
+    tx: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<boolean> {
+    const card = await tx.customer.findUnique({
+      where: { organizationId_email: { organizationId, email: contact.email } },
+      select: { phone: true },
+    });
+    return card === null || card.phone === contact.phone;
+  }
+
   async sendCode(
     holdId: string,
     input: SendCodeInput,
     ip: string | null,
   ): Promise<{ codeExpiresAt: string; channel: 'email' | 'sms' }> {
-    const channel = input.codeChannel;
+    let channel = input.codeChannel;
     if (channel === 'sms' && !this.sms.available) {
       throw new AppException(
         HttpStatus.BAD_REQUEST,
@@ -305,9 +322,15 @@ export class PublicBookingService {
       );
     }
     this.limiter.hit(`code:email:${input.email}`, 10, 60 * MINUTE_MS);
+    const hold = await this.activeHold(holdId, input.holdToken);
+    if (channel === 'sms' && !(await this.phoneOwnsCard(hold.location.organizationId, input))) {
+      // The salon already knows this address under another number: an SMS would prove the phone
+      // only, yet the visit would land on that card ("My visits", reviews, the manage link by
+      // email). The code goes to the address instead; the answer says so.
+      channel = 'email';
+    }
     // Every SMS costs money: at most 5 per phone number an hour.
     if (channel === 'sms') this.limiter.hit(`code:phone:${input.phone}`, 5, 60 * MINUTE_MS);
-    const hold = await this.activeHold(holdId, input.holdToken);
     const existing = await this.prisma.verificationCode.findUnique({
       where: { appointmentId: hold.id },
     });
@@ -686,6 +709,14 @@ export class PublicBookingService {
       WHERE id = ${hold.id}::uuid AND status = 'held' AND hold_expires_at > now()`;
     if (updated !== 1) throw holdExpired();
 
+    if (!emailConfirmed && !(await this.phoneOwnsCard(hold.location.organizationId, contact, tx))) {
+      // The card appeared after the code was sent (see `sendCode`): the address needs its own code.
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        'EMAIL_CODE_REQUIRED',
+        'This email is already known to the salon. Confirm the booking with a code sent by email',
+      );
+    }
     const customer = await tx.customer.upsert({
       where: {
         organizationId_email: {

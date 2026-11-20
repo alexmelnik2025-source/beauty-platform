@@ -89,14 +89,16 @@ export class CodeLoginService {
    */
   async requestCode(input: RequestLoginCodeInput): Promise<LoginCodeSentResponse> {
     const expiresAt = new Date(Date.now() + LOGIN_CODE_MINUTES * MINUTE_MS);
-    const bySms = input.phone !== undefined && this.sms.available;
+    const smsPossible = input.phone !== undefined && this.sms.available;
     const answer: LoginCodeSentResponse = {
       codeExpiresAt: expiresAt.toISOString(),
-      channel: bySms ? 'sms' : 'email',
+      channel: smsPossible ? 'sms' : 'email',
     };
     const target = await this.resolve(input);
     if (!target) return answer;
     const { email, user } = target;
+    // An existing account reached only through an invitation's number gets the code by email.
+    const bySms = smsPossible && target.smsAllowed;
     const phone = input.phone ?? null;
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const codeHash = this.codeHash(email, code);
@@ -127,25 +129,29 @@ export class CodeLoginService {
   /**
    * Who the code is for: the account with this email or phone, or the invited address.
    * By phone: an account with that number first, then the newest pending invitation with it.
+   * `smsAllowed` is false when the number comes only from an invitation and the invited address
+   * already has an account: the account's owner never proved that number, so the code must go to
+   * their email — otherwise any salon owner could invite an existing address with their own
+   * number and sign in as that person.
    */
   private async resolve(
     input: RequestLoginCodeInput,
-  ): Promise<{ email: string; user: User | null } | null> {
+  ): Promise<{ email: string; user: User | null; smsAllowed: boolean } | null> {
     if (input.email) {
       const user = await this.prisma.user.findUnique({ where: { email: input.email } });
       if (user || (await this.invitations.hasPending(input.email))) {
-        return { email: input.email, user };
+        return { email: input.email, user, smsAllowed: false };
       }
       return null;
     }
     if (!input.phone) return null;
     const user = await this.prisma.user.findUnique({ where: { phone: input.phone } });
-    if (user) return { email: user.email, user };
+    if (user) return { email: user.email, user, smsAllowed: true };
     const invited = await this.invitations.pendingEmailForPhone(input.phone);
     if (!invited) return null;
     // The invited address may already have an account (invited to a second salon).
     const existing = await this.prisma.user.findUnique({ where: { email: invited } });
-    return { email: invited, user: existing };
+    return { email: invited, user: existing, smsAllowed: existing === null };
   }
 
   async verifyCode(input: VerifyLoginCodeInput, userAgent?: string): Promise<IssuedTokens> {
@@ -215,6 +221,7 @@ export class CodeLoginService {
         account.id,
         email,
         provenPhone,
+        isNew,
       );
       if (isNew && teams.length === 0) {
         // The invitation was cancelled after the code was sent: no account without one.
