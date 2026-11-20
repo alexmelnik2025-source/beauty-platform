@@ -10,6 +10,7 @@ import type { AppRequest } from '../common/request-context';
 import { RateLimiterService } from '../common/rate-limiter.service';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PrismaService } from '../prisma/prisma.service';
+import { PUBLIC_REVIEW_WHERE } from '../reviews/took-place';
 import {
   publicDirectoryQuerySchema,
   publicDirectorySchema,
@@ -442,7 +443,7 @@ export class PublicDirectoryController {
     if (ids.length === 0) return new Map();
     const rows = await this.prisma.visitReview.groupBy({
       by: ['locationId'],
-      where: { locationId: { in: ids } },
+      where: { locationId: { in: ids }, ...PUBLIC_REVIEW_WHERE },
       _count: { _all: true },
       _avg: { rating: true },
     });

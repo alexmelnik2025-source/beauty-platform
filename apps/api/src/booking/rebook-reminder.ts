@@ -3,6 +3,7 @@ import type { Locale } from '../generated/prisma/client';
 import type { MailMessage } from '../mail/mail.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { LOCALE_TAGS } from './booking-templates';
+import { visitTookPlace } from '../reviews/took-place';
 
 /**
  * Task 165c: "time for your next visit". The salon switches it on in its settings
@@ -127,8 +128,6 @@ export function customerFromToken(secret: string, token: string): string | null 
 
 // ── Who gets it ────────────────────────────────────────
 
-const VISITED = ['completed', 'confirmed'] as const;
-
 /**
  * The visit, its salon and client when the email may (still) go: the salon has it on, the
  * visit took place, the client has an email and the salon's marketing consent, and no later
@@ -142,8 +141,7 @@ export async function rebookCandidate(db: Db, appointmentId: string, now: Date) 
   if (!visit?.customer || !visit.customerId) return null;
   const { location, customer } = visit;
   if (location.rebookReminderDays <= 0) return null;
-  if (!(VISITED as readonly string[]).includes(visit.status)) return null;
-  if (visit.endAt.getTime() > now.getTime()) return null;
+  if (!visitTookPlace(visit, now)) return null;
   if (!customer.email || customer.anonymizedAt) return null;
   const consent = await db.consentRecord.findFirst({
     where: { customerId: customer.id, type: 'marketing' },

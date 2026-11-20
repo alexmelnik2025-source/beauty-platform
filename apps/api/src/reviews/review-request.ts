@@ -2,6 +2,7 @@ import { generateToken, hashToken } from '../common/crypto';
 import type { Locale } from '../generated/prisma/client';
 import type { MailMessage } from '../mail/mail.service';
 import type { PrismaService } from '../prisma/prisma.service';
+import { visitTookPlace } from './took-place';
 
 /**
  * Task 165b, part 2: "How was your visit?". When the salon collects reviews, the client gets
@@ -91,10 +92,7 @@ export async function reviewRequestCandidate(db: Db, appointmentId: string, now:
     include: { location: true, service: true, staff: true, customer: true, review: true },
   });
   if (!visit?.customer || visit.review) return null;
-  const tookPlace =
-    visit.status === 'completed' ||
-    (visit.status === 'confirmed' && visit.endAt.getTime() <= now.getTime());
-  if (!tookPlace) return null;
+  if (!visitTookPlace(visit, now)) return null;
   const settings = await db.reviewSettings.findUnique({ where: { locationId: visit.locationId } });
   if (!settings?.enabled) return null;
   if (visit.endAt.getTime() + settings.requestHours * HOUR_MS > now.getTime()) return null;

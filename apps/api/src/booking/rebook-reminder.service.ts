@@ -3,6 +3,7 @@ import { notFound } from '../common/app-exception';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { TOOK_PLACE_WHERE } from '../reviews/took-place';
 import {
   customerFromToken,
   DAY_MS,
@@ -66,7 +67,7 @@ export class RebookReminderService implements OnModuleInit, OnModuleDestroy {
       const visits = await this.prisma.appointment.findMany({
         where: {
           locationId: location.id,
-          status: { in: ['completed', 'confirmed'] },
+          ...TOOK_PLACE_WHERE,
           endAt: { lte: new Date(due), gt: new Date(due - REBOOK_WINDOW_DAYS * DAY_MS) },
           customer: { email: { not: null }, anonymizedAt: null },
         },
