@@ -3660,3 +3660,28 @@ online: …», ключ `bookingLink.staffQrMessage`) через лист «По
 (`StaffQr`), `BookingFlow.tsx` (`qrStaff`), `apps/mobile-business/src/share.ts` (`staffQrLink`) и
 `screens/BookingLinkScreen.tsx`; тесты `apps/mobile-business/test/share.test.ts`; e2e `staff-qr.spec.ts` (скриншоты
 Q2-staff-qr-cabinet, Q2-staff-qr-booking, Q2-staff-qr-app).
+
+## Маркетплейс товаров: каталог и предложения салонов (задача Q3, часть 1 — API)
+
+Одобрено владельцем 20.11.2026 (макет https://claude.ai/artifact/79p3bpdnwU7EDEPUVi5w7r). Архитектура сразу как
+маркетплейс: **общий каталог товаров платформы** — одна карточка на товар (`CatalogProduct`: название, бренд, EAN,
+описание, категория `ShopCategory`, фото через `Photo.catalogProductId`), одинаковая для всех продавцов. **Предложение
+продавца** — это обычный товар салона из «Produkty i magazyn» (`Product`), у которого теперь есть `catalogProductId`
+(карточка), `inSalonShop` («Produkty salonu» — виден клиентам на странице салона) и `inMarketplace» («Sprzedawaj też
+online w Sklepie» — виден всем клиентам платформы во вкладке «Sklep»; требует карточку и `inSalonShop`, иначе 409
+`MARKETPLACE_NEEDS_CARD`/`MARKETPLACE_NEEDS_SALON_SHOP`). Цена и остаток — свои у каждого салона, как и раньше;
+ничего не дублируется. Способы получения — enum `ShopFulfillment`и`Location.shopFulfillment`; на запуске всегда
+только `pickup_at_salon` (самовывоз в салоне, оплата на месте) — доставка есть только как модель и не включается.
+
+API салона (`…/locations/{id}/shop/catalog`, `apps/api/src/shop/`): `GET ?q=` — «Wybierz z katalogu» по словам
+названия/бренда или по EAN (точный код — первым; `offeredHere` — какой товар салона уже указывает на карточку);
+`POST` — новая карточка (owner/manager; EAN уже есть → 409 `EAN_TAKEN`, в `details[0].message` id существующей
+карточки — предложить её); `GET /{id}`; `PATCH /{id}` — только салон-автор и только пока карточку не предлагает другой
+салон (403 `CARD_SHARED`). Публичные: `GET /public/locations/{slug}/products` — «Produkty salonu» (только салоны с
+онлайн-записью; `available` вместо остатка — числа склада, закупочные цены и поставщики клиенту не уходят);
+`GET /public/shop/products?q=&category=&city=&page=` — вкладка «Sklep»: карточки, которые хоть один салон продаёт
+онлайн и имеет в наличии, с предложениями всех салонов (сначала доступные, потом дешевле); `GET /public/shop/products/{id}`.
+В ответе `Location` появилось поле `shopFulfillment` (только чтение). Тесты `apps/api/test/shop-catalog.spec.ts`
+(5 сценариев: каталог, права, правила предложения, страница салона, «Sklep» с двумя продавцами). Следующие части:
+экран «Mój sklep» в кабинете и бизнес-приложении, «Produkty salonu» на странице записи, товар к визиту (A/B/C), экран
+барбера (D), вкладка «Sklep» в клиентском приложении.

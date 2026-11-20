@@ -64,6 +64,11 @@ export const locationSchema = responseSchema(
       .nullable()
       .describe('Task 165c: the salon’s own words for that email; null = the platform’s text'),
     onlineBookingEnabled: z.boolean(),
+    shopFulfillment: z
+      .array(z.enum(['pickup_at_salon', 'shipping']))
+      .describe(
+        'Task Q3: how a client gets a product bought from the salon; at the launch always ["pickup_at_salon"] (not changeable yet)',
+      ),
     askMood: z.boolean().describe('Task 80: ask how the client wants to spend the visit'),
     askDrink: z.boolean().describe('Task 80: offer a drink (only the drinks listed)'),
     drinks: z.array(offeredDrinkSchema),

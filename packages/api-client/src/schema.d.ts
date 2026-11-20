@@ -3716,6 +3716,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Wybierz z katalogu": cards of the platform catalogue by name, brand or EAN
+         * @description Task Q3. Everyone in the salon. `q` — words of the name or brand, or the code on the package (an exact EAN comes first). `offeredHere` says which product of this salon already points to the card.
+         */
+        get: operations["ShopCatalogController_search"];
+        put?: never;
+        /**
+         * A new card in the platform catalogue
+         * @description Task Q3. Owners and managers. The name, brand, EAN, description and category are the same for every salon that offers the card. An EAN already in the catalogue → 409 EAN_TAKEN with the existing card’s id in `details[0].message` — offer that card instead.
+         */
+        post: operations["ShopCatalogController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One card of the catalogue */
+        get: operations["ShopCatalogController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a card this salon made
+         * @description Task Q3. Owners and managers; only the salon that made the card, and only while no other salon offers it (403 CARD_SHARED). A card made by another salon → 404.
+         */
+        patch: operations["ShopCatalogController_update"];
+        trace?: never;
+    };
+    "/v1/public/locations/{slug}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * "Produkty salonu": what the salon sells to its clients, to pick up at a visit
+         * @description Task Q3. Only salons open for online booking (otherwise 404), only products the salon shows to clients (`inSalonShop`) and still sells. `available` is false when the salon counts its pieces and has none left.
+         */
+        get: operations["PublicShopController_salonProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/shop/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The "Sklep" tab: every product some salon sells online, with all the salons offering it
+         * @description Task Q3. A card is listed while at least one salon open for online booking sells it in the "Sklep" tab and has it (counts no pieces, or has some left). Offers: available first, cheapest first. At the launch every offer is picked up and paid at the salon.
+         */
+        get: operations["PublicShopController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/shop/products/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One product of the "Sklep" tab with every salon offering it
+         * @description Task Q3. 404 unless some salon open for online booking sells it in the "Sklep" tab.
+         */
+        get: operations["PublicShopController_product"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4269,6 +4374,45 @@ export interface components {
             action: "approval" | "phone_only" | "prepay";
             /** @description 0 = never saved (defaults) */
             version: number;
+        };
+        CatalogProduct: {
+            id: string;
+            name: string;
+            brand: string | null;
+            /** @description The code on the package, digits only; null = none */
+            ean: string | null;
+            description: string | null;
+            /** @enum {string} */
+            category: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+            /** @description The picture: /v1/public/photos/<id>; null = none yet */
+            photoId: string | null;
+            /** @description Salons offering this card (sold ones only) */
+            sellers: number;
+            /** @description This salon made the card and is the only one offering it, so it may change it */
+            editable: boolean;
+            /** @description The id of this salon’s product that already points to the card; null = none */
+            offeredHere: string | null;
+        };
+        CatalogSearch: {
+            /** @description Best match first, then by name */
+            products: {
+                id: string;
+                name: string;
+                brand: string | null;
+                /** @description The code on the package, digits only; null = none */
+                ean: string | null;
+                description: string | null;
+                /** @enum {string} */
+                category: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                /** @description The picture: /v1/public/photos/<id>; null = none yet */
+                photoId: string | null;
+                /** @description Salons offering this card (sold ones only) */
+                sellers: number;
+                /** @description This salon made the card and is the only one offering it, so it may change it */
+                editable: boolean;
+                /** @description The id of this salon’s product that already points to the card; null = none */
+                offeredHere: string | null;
+            }[];
         };
         ClientAppointment: {
             id: string;
@@ -5292,6 +5436,8 @@ export interface components {
             /** @description Task 165c: the salon’s own words for that email; null = the platform’s text */
             rebookReminderText: string | null;
             onlineBookingEnabled: boolean;
+            /** @description Task Q3: how a client gets a product bought from the salon; at the launch always ["pickup_at_salon"] (not changeable yet) */
+            shopFulfillment: ("pickup_at_salon" | "shipping")[];
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
             /** @description Task 80: offer a drink (only the drinks listed) */
@@ -5342,6 +5488,8 @@ export interface components {
             /** @description Task 165c: the salon’s own words for that email; null = the platform’s text */
             rebookReminderText: string | null;
             onlineBookingEnabled: boolean;
+            /** @description Task Q3: how a client gets a product bought from the salon; at the launch always ["pickup_at_salon"] (not changeable yet) */
+            shopFulfillment: ("pickup_at_salon" | "shipping")[];
             /** @description Task 80: ask how the client wants to spend the visit */
             askMood: boolean;
             /** @description Task 80: offer a drink (only the drinks listed) */
@@ -5905,6 +6053,12 @@ export interface components {
             supplier: string | null;
             /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
             barcode: string | null;
+            /** @description Task Q3: the card of this product in the platform catalogue ("Sklep"); null = not in the catalogue */
+            catalogProductId: string | null;
+            /** @description Task Q3: "Produkty salonu" — clients see it on the salon’s booking page */
+            inSalonShop: boolean;
+            /** @description Task Q3: "Sprzedawaj też online w Sklepie" — every client of the platform sees it in the "Sklep" tab */
+            inMarketplace: boolean;
         };
         ProductList: {
             /** @description The salon’s products, sold ones first, then by name */
@@ -5927,6 +6081,12 @@ export interface components {
                 supplier: string | null;
                 /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
                 barcode: string | null;
+                /** @description Task Q3: the card of this product in the platform catalogue ("Sklep"); null = not in the catalogue */
+                catalogProductId: string | null;
+                /** @description Task Q3: "Produkty salonu" — clients see it on the salon’s booking page */
+                inSalonShop: boolean;
+                /** @description Task Q3: "Sprzedawaj też online w Sklepie" — every client of the platform sees it in the "Sklep" tab */
+                inMarketplace: boolean;
             }[];
             /** @description Task 461: pieces sold at the visits of the last 30 days, by product (for "Starczy na ~N dni"); products without sales are left out */
             sold30Days: {
@@ -6190,6 +6350,102 @@ export interface components {
             pageSize: number;
             total: number;
             pageCount: number;
+        };
+        PublicSalonProducts: {
+            /** @description ISO 4217 code of the salon’s currency */
+            currency: string;
+            /** @description How a client gets a product here; at the launch always ["pickup_at_salon"] */
+            fulfillment: ("pickup_at_salon" | "shipping")[];
+            /** @description Available ones first, then by name */
+            products: {
+                /** @description The salon’s product */
+                id: string;
+                name: string;
+                brand: string | null;
+                /** @description Price of one, in hundredths of the salon currency */
+                priceGrosze: number;
+                /** @description false = the salon counts its pieces and has none left right now */
+                available: boolean;
+                /** @description Its card in the platform catalogue; null = the salon’s own product */
+                catalogProductId: string | null;
+                /** @enum {string|null} */
+                category: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other" | null;
+                description: string | null;
+                /** @description /v1/public/photos/<id>; null = none */
+                photoId: string | null;
+            }[];
+        };
+        PublicShopList: {
+            products: {
+                id: string;
+                name: string;
+                brand: string | null;
+                /** @description The code on the package, digits only; null = none */
+                ean: string | null;
+                description: string | null;
+                /** @enum {string} */
+                category: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                /** @description The picture: /v1/public/photos/<id>; null = none yet */
+                photoId: string | null;
+                /** @description The lowest price among the available offers, in hundredths of the salon currency */
+                fromPriceGrosze: number;
+                /** @description Cheapest first; available ones first */
+                offers: {
+                    /** @description The salon’s product: what the client asks to put aside */
+                    productId: string;
+                    /** @description Price of one at this salon, in hundredths of the salon currency */
+                    priceGrosze: number;
+                    /** @description ISO 4217 code of the salon’s currency */
+                    currency: string;
+                    /** @description false = the salon counts its pieces and has none left right now */
+                    available: boolean;
+                    /** @description How the client gets it; at the launch always ["pickup_at_salon"] */
+                    fulfillment: ("pickup_at_salon" | "shipping")[];
+                    salon: {
+                        slug: string;
+                        name: string;
+                        city: string;
+                        addressLine: string;
+                    };
+                }[];
+            }[];
+            /** @description Cards matching the filters, all pages */
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        PublicShopProduct: {
+            id: string;
+            name: string;
+            brand: string | null;
+            /** @description The code on the package, digits only; null = none */
+            ean: string | null;
+            description: string | null;
+            /** @enum {string} */
+            category: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+            /** @description The picture: /v1/public/photos/<id>; null = none yet */
+            photoId: string | null;
+            /** @description The lowest price among the available offers, in hundredths of the salon currency */
+            fromPriceGrosze: number;
+            /** @description Cheapest first; available ones first */
+            offers: {
+                /** @description The salon’s product: what the client asks to put aside */
+                productId: string;
+                /** @description Price of one at this salon, in hundredths of the salon currency */
+                priceGrosze: number;
+                /** @description ISO 4217 code of the salon’s currency */
+                currency: string;
+                /** @description false = the salon counts its pieces and has none left right now */
+                available: boolean;
+                /** @description How the client gets it; at the launch always ["pickup_at_salon"] */
+                fulfillment: ("pickup_at_salon" | "shipping")[];
+                salon: {
+                    slug: string;
+                    name: string;
+                    city: string;
+                    addressLine: string;
+                };
+            }[];
         };
         PublicWaitlistEntry: {
             salon: {
@@ -7076,6 +7332,12 @@ export interface components {
                 supplier: string | null;
                 /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
                 barcode: string | null;
+                /** @description Task Q3: the card of this product in the platform catalogue ("Sklep"); null = not in the catalogue */
+                catalogProductId: string | null;
+                /** @description Task Q3: "Produkty salonu" — clients see it on the salon’s booking page */
+                inSalonShop: boolean;
+                /** @description Task Q3: "Sprzedawaj też online w Sklepie" — every client of the platform sees it in the "Sklep" tab */
+                inMarketplace: boolean;
             }[];
         };
         StockHistory: {
@@ -7130,6 +7392,12 @@ export interface components {
                 supplier: string | null;
                 /** @description "Kod kreskowy" — the code on the package, capital letters (task 520); null = not written */
                 barcode: string | null;
+                /** @description Task Q3: the card of this product in the platform catalogue ("Sklep"); null = not in the catalogue */
+                catalogProductId: string | null;
+                /** @description Task Q3: "Produkty salonu" — clients see it on the salon’s booking page */
+                inSalonShop: boolean;
+                /** @description Task Q3: "Sprzedawaj też online w Sklepie" — every client of the platform sees it in the "Sklep" tab */
+                inMarketplace: boolean;
             }[];
         };
         TillClose: {
@@ -11019,6 +11287,9 @@ export interface operations {
                     purchasePriceGrosze?: number | null;
                     supplier?: string | null;
                     barcode?: string | null;
+                    catalogProductId?: string | null;
+                    inSalonShop?: boolean;
+                    inMarketplace?: boolean;
                 };
             };
         };
@@ -11100,6 +11371,9 @@ export interface operations {
                     supplier?: string | null;
                     barcode?: string | null;
                     active?: boolean;
+                    catalogProductId?: string | null;
+                    inSalonShop?: boolean;
+                    inMarketplace?: boolean;
                 };
             };
         };
@@ -13815,6 +14089,188 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicGiftVoucher"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_search: {
+        parameters: {
+            query?: {
+                limit?: number;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogSearch"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    brand?: string | null;
+                    ean?: string | null;
+                    description?: string | null;
+                    /**
+                     * @default other
+                     * @enum {string}
+                     */
+                    category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogProduct"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogProduct"];
+                };
+            };
+        };
+    };
+    ShopCatalogController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    brand?: string | null;
+                    ean?: string | null;
+                    description?: string | null;
+                    /** @enum {string} */
+                    category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogProduct"];
+                };
+            };
+        };
+    };
+    PublicShopController_salonProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSalonProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_list: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                page?: number;
+                /** @description Only the offers of salons in this city */
+                city?: string;
+                category?: "hair_care" | "styling" | "beard" | "skin_care" | "tools" | "accessories" | "gifts" | "other";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicShopList"];
+                };
+            };
+        };
+    };
+    PublicShopController_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicShopProduct"];
                 };
             };
         };

@@ -58,7 +58,38 @@ const toProduct = (p: Product, purchasePrice = true): ProductResponse => ({
   purchasePriceGrosze: purchasePrice ? p.purchasePriceGrosze : null,
   supplier: p.supplier,
   barcode: p.barcode,
+  catalogProductId: p.catalogProductId,
+  inSalonShop: p.inSalonShop,
+  inMarketplace: p.inMarketplace,
 });
+
+/** Task Q3: "Sprzedawaj też online w Sklepie" needs a card in the platform catalogue. */
+const marketplaceNeedsCard = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'MARKETPLACE_NEEDS_CARD',
+    'A product sold in the "Sklep" tab must have a card in the platform catalogue',
+  );
+
+/** Task Q3: a product sold in the "Sklep" tab is also sold on the salon's own page. */
+const marketplaceNeedsSalonShop = (): AppException =>
+  new AppException(
+    HttpStatus.CONFLICT,
+    'MARKETPLACE_NEEDS_SALON_SHOP',
+    'A product sold in the "Sklep" tab must be shown on the salon’s page too (inSalonShop)',
+  );
+
+/** Task Q3: the catalogue card the salon points to does not exist. */
+const cardNotFound = (): AppException => notFound('CatalogProduct');
+
+/**
+ * Task Q3: the rules of an offer — checked on the product as it will be after the change.
+ * The "Sklep" tab shows only products with a card that the salon also sells on its own page.
+ */
+function checkOffer(p: Pick<Product, 'catalogProductId' | 'inSalonShop' | 'inMarketplace'>): void {
+  if (p.inMarketplace && !p.catalogProductId) throw marketplaceNeedsCard();
+  if (p.inMarketplace && !p.inSalonShop) throw marketplaceNeedsSalonShop();
+}
 
 /** Task 520: another product of the salon already has this code. */
 const barcodeTaken = (): AppException =>
@@ -104,6 +135,11 @@ const isUniqueViolation = (error: unknown): boolean =>
  *
  * Task 433: with `lowStockAt` the product says "Kończy się" (`lowStock`) once that many pieces or
  * fewer are left, so the owner orders more in time.
+ *
+ * Task Q3: a product may be the salon's offer in the platform's shop — `catalogProductId` points
+ * to its card in the catalogue (see ../shop), `inSalonShop` shows it to clients on the salon's
+ * page ("Produkty salonu"), `inMarketplace` also in the "Sklep" tab of every client (needs the
+ * card and inSalonShop: 409 MARKETPLACE_NEEDS_CARD / MARKETPLACE_NEEDS_SALON_SHOP).
  *
  * The list: everyone in the salon reads it (to note a sale), owners and managers change it.
  * Sales: whoever may change the visit (own visits with "changeOwnAppointments", others' with
@@ -192,9 +228,15 @@ export class ProductsService {
     input: CreateProductInput,
   ): Promise<ProductResponse> {
     await this.access.writable(m, locationId);
+    checkOffer({
+      catalogProductId: input.catalogProductId ?? null,
+      inSalonShop: input.inSalonShop ?? false,
+      inMarketplace: input.inMarketplace ?? false,
+    });
     return toProduct(
       await this.prisma
         .$transaction(async (tx) => {
+          if (input.catalogProductId) await this.cardExists(tx, input.catalogProductId);
           const product = await tx.product.create({ data: { ...input, locationId } });
           if (product.stockQuantity !== null && product.stockQuantity > 0) {
             await movement(
@@ -227,6 +269,10 @@ export class ProductsService {
         .$transaction(async (tx) => {
           const before = await tx.product.findFirst({ where: { id: productId, locationId } });
           if (!before) throw notFound('Product');
+          checkOffer({ ...before, ...input });
+          if (input.catalogProductId && input.catalogProductId !== before.catalogProductId) {
+            await this.cardExists(tx, input.catalogProductId);
+          }
           const result = await tx.product.updateMany({
             where: { id: productId, locationId },
             data: input,
@@ -250,6 +296,15 @@ export class ProductsService {
           throw isUniqueViolation(error) ? barcodeTaken() : error;
         }),
     );
+  }
+
+  /** Task Q3: the card must exist before a product may point to it. */
+  private async cardExists(tx: Prisma.TransactionClient, catalogProductId: string): Promise<void> {
+    const card = await tx.catalogProduct.findUnique({
+      where: { id: catalogProductId },
+      select: { id: true },
+    });
+    if (!card) throw cardNotFound();
   }
 
   async restock(

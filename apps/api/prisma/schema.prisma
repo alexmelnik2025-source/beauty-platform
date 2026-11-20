@@ -440,54 +440,57 @@ model MembershipLocation {
 
 /// A salon / branch. Booking settings live here.
 model Location {
-  id                          String       @id @default(uuid(7)) @db.Uuid
-  organizationId              String       @map("organization_id") @db.Uuid
+  id                          String            @id @default(uuid(7)) @db.Uuid
+  organizationId              String            @map("organization_id") @db.Uuid
   name                        String
   /// Public booking link: /b/<slug>
-  slug                        String       @unique
-  timezone                    String       @default("Europe/Warsaw")
+  slug                        String            @unique
+  timezone                    String            @default("Europe/Warsaw")
   /// ISO 4217 code of the currency the salon prices its services in; amounts are in hundredths of it.
-  currency                    String       @default("PLN") @db.Char(3)
-  addressLine                 String       @map("address_line")
+  currency                    String            @default("PLN") @db.Char(3)
+  addressLine                 String            @map("address_line")
   city                        String
-  postalCode                  String       @map("postal_code")
+  postalCode                  String            @map("postal_code")
   latitude                    Float?
   longitude                   Float?
   phone                       String?
   email                       String?
-  defaultLocale               Locale       @default(pl) @map("default_locale")
-  slotStepMinutes             Int          @default(15) @map("slot_step_minutes")
-  minLeadMinutes              Int          @default(60) @map("min_lead_minutes")
-  bookingHorizonDays          Int          @default(30) @map("booking_horizon_days")
-  clientCancelDeadlineMinutes Int          @default(120) @map("client_cancel_deadline_minutes")
+  defaultLocale               Locale            @default(pl) @map("default_locale")
+  slotStepMinutes             Int               @default(15) @map("slot_step_minutes")
+  minLeadMinutes              Int               @default(60) @map("min_lead_minutes")
+  bookingHorizonDays          Int               @default(30) @map("booking_horizon_days")
+  clientCancelDeadlineMinutes Int               @default(120) @map("client_cancel_deadline_minutes")
   /// Task 22: the reminder email goes this many hours before the visit; 0 = no reminder.
-  reminderHoursBefore         Int          @default(24) @map("reminder_hours_before")
+  reminderHoursBefore         Int               @default(24) @map("reminder_hours_before")
   /// Task 164: minutes a freed time is held for the first client on the waiting list; 0 = off
   /// (everyone waiting that day gets one email with the free times, as in task 50).
-  waitlistHoldMinutes         Int          @default(0) @map("waitlist_hold_minutes")
+  waitlistHoldMinutes         Int               @default(0) @map("waitlist_hold_minutes")
   /// Task 165c: "time for your next visit" email this many days after the client's last visit; 0 = off.
-  rebookReminderDays          Int          @default(0) @map("rebook_reminder_days")
+  rebookReminderDays          Int               @default(0) @map("rebook_reminder_days")
   /// Task 165c: the salon's own words for that email; null = the platform's text.
-  rebookReminderText          String?      @map("rebook_reminder_text")
-  onlineBookingEnabled        Boolean      @default(false) @map("online_booking_enabled")
+  rebookReminderText          String?           @map("rebook_reminder_text")
+  onlineBookingEnabled        Boolean           @default(false) @map("online_booking_enabled")
+  /// Task Q3: how a client may get a product bought from this salon. At the launch only
+  /// pickup_at_salon is allowed (no online payments, no shipping); shipping is a model only.
+  shopFulfillment             ShopFulfillment[] @default([pickup_at_salon]) @map("shop_fulfillment")
   /// Task 80: questions on the last booking step, each switched on by the salon.
-  askMood                     Boolean      @default(true) @map("ask_mood")
-  askDrink                    Boolean      @default(false) @map("ask_drink")
+  askMood                     Boolean           @default(true) @map("ask_mood")
+  askDrink                    Boolean           @default(false) @map("ask_drink")
   /// Drinks the salon offers (never "none"); the drink question shows only these.
-  drinks                      VisitDrink[] @default([])
-  askNote                     Boolean      @default(true) @map("ask_note")
+  drinks                      VisitDrink[]      @default([])
+  askNote                     Boolean           @default(true) @map("ask_note")
   /// Languages the salon speaks with clients, in the order chosen by the salon.
-  languages                   Language[]   @default([])
+  languages                   Language[]        @default([])
   /// Shown on the booking page under the salon name: what the salon is about.
   description                 String?
   /// Booking terms (regulamin) in Markdown, written by the salon. Required to switch online booking on.
-  bookingTerms                String?      @map("booking_terms")
+  bookingTerms                String?           @map("booking_terms")
   /// Privacy policy in Markdown, written by the salon. Required to switch online booking on.
-  privacyPolicy               String?      @map("privacy_policy")
+  privacyPolicy               String?           @map("privacy_policy")
   /// Optimistic locking: every update must send the version it read.
-  version                     Int          @default(1)
-  createdAt                   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version                     Int               @default(1)
+  createdAt                   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization      Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships       MembershipLocation[]
@@ -509,6 +512,7 @@ model Location {
   tillMovements     TillMovement[]
   products          Product[]
   productSales      ProductSale[]
+  catalogProducts   CatalogProduct[]
   giftVouchers      GiftVoucher[]
 
   @@index([organizationId])
@@ -610,18 +614,22 @@ model StaffMember {
 /// Kept in the database (no paid file storage). Ids are random (UUIDv4): a photo is public to
 /// anyone who has its link, like a picture on the salon's own website.
 model Photo {
-  id          String   @id @default(uuid()) @db.Uuid
-  locationId  String   @map("location_id") @db.Uuid
+  id               String   @id @default(uuid()) @db.Uuid
+  locationId       String   @map("location_id") @db.Uuid
   /// Set for a staff member's portrait (at most one each); null for the salon's photos.
-  staffId     String?  @unique @map("staff_id") @db.Uuid
+  staffId          String?  @unique @map("staff_id") @db.Uuid
+  /// Task Q3: set for the picture of a product card in the platform catalogue (at most one each);
+  /// the salon that uploaded it is `locationId`.
+  catalogProductId String?  @unique @map("catalog_product_id") @db.Uuid
   /// image/jpeg, image/png or image/webp — taken from the file's first bytes, not from the upload.
-  contentType String   @map("content_type")
-  sizeBytes   Int      @map("size_bytes")
-  data        Bytes
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  contentType      String   @map("content_type")
+  sizeBytes        Int      @map("size_bytes")
+  data             Bytes
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  location Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  staff    StaffMember? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location       Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff          StaffMember?    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  catalogProduct CatalogProduct? @relation(fields: [catalogProductId], references: [id], onDelete: Cascade)
 
   @@index([locationId])
   @@map("photo")
@@ -1489,36 +1497,103 @@ model TillMovement {
 /// Task 394: "Produkty" — what the salon sells at the visit (pomade, shampoo…). Only the salon's
 /// own list with a price; no stock and no payment systems.
 model Product {
-  id            String   @id @default(uuid(7)) @db.Uuid
-  locationId    String   @map("location_id") @db.Uuid
-  name          String
-  priceGrosze   Int      @map("price_grosze")
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  locationId          String   @map("location_id") @db.Uuid
+  name                String
+  priceGrosze         Int      @map("price_grosze")
   /// false = no longer sold (kept for the history of sales).
-  active        Boolean  @default(true)
-  sortOrder     Int      @default(0) @map("sort_order")
+  active              Boolean  @default(true)
+  sortOrder           Int      @default(0) @map("sort_order")
   /// Task 429: pieces in stock; null = the salon does not count them. A sale takes them away,
   /// removing the sale puts them back.
-  stockQuantity Int?     @map("stock_quantity")
+  stockQuantity       Int?     @map("stock_quantity")
   /// Task 433: "Kończy się" when stockQuantity ≤ this; null = no warning.
-  lowStockAt    Int?     @map("low_stock_at")
+  lowStockAt          Int?     @map("low_stock_at")
   /// Task 448: "Cena zakupu" — what the salon pays the supplier for one; null = not written.
   /// Seen only by owners and managers.
-  purchasePriceGrosze Int? @map("purchase_price_grosze")
+  purchasePriceGrosze Int?     @map("purchase_price_grosze")
   /// Task 462: "Dostawca" — whom the salon orders it from, in its own words; null = not written.
-  supplier      String?
+  supplier            String?
   /// Task 520: "Kod kreskowy" — the code on the package (EAN or the shop's own), capital letters;
   /// null = not written. At most one product of the salon has the same code.
-  barcode       String?
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  barcode             String?
+  /// Task Q3: the card of this product in the platform catalogue ("Sklep"); the salon's product
+  /// is then that card's offer — its own price and stock. null = not in the catalogue.
+  catalogProductId    String?  @map("catalog_product_id") @db.Uuid
+  /// Task Q3: "Produkty salonu" — shown to clients on the salon's booking page, to buy and pick
+  /// up at a visit. false = only the salon's own stock list.
+  inSalonShop         Boolean  @default(false) @map("in_salon_shop")
+  /// Task Q3: "Sprzedawaj też online w Sklepie" — shown to every client of the platform in the
+  /// "Sklep" tab; needs a catalogue card and inSalonShop.
+  inMarketplace       Boolean  @default(false) @map("in_marketplace")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   location       Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  catalogProduct CatalogProduct? @relation(fields: [catalogProductId], references: [id], onDelete: SetNull)
   sales          ProductSale[]
   stockMovements StockMovement[]
 
   @@unique([locationId, barcode])
   @@index([locationId])
+  @@index([catalogProductId])
   @@map("product")
+}
+
+/// Task Q3: what a product in the catalogue is, for the "Sklep" tab's filter.
+enum ShopCategory {
+  /// Shampoos, conditioners, masks.
+  hair_care
+  /// Pomades, waxes, clays, gels, sprays.
+  styling
+  /// Beard oils, balms, shaving.
+  beard
+  /// Face and skin care.
+  skin_care
+  /// Combs, brushes, clippers, scissors.
+  tools
+  /// Towels, capes, bags and the like.
+  accessories
+  /// Gift sets and vouchers.
+  gifts
+  other
+
+  @@map("shop_category")
+}
+
+/// Task Q3: how a client gets a product bought from a salon.
+enum ShopFulfillment {
+  /// "Odbiór na miejscu": the client takes it at the salon (at a visit) and pays there.
+  pickup_at_salon
+  /// Parcel delivery (InPost, DPD…) — a model only; no salon may switch it on at the launch.
+  shipping
+
+  @@map("shop_fulfillment")
+}
+
+/// Task Q3: one card per product on the whole platform ("Sklep"): the name, brand, EAN, picture,
+/// description and category, the same for every seller. A salon's own Product that points here is
+/// that salon's offer of it (its own price and stock); several salons may offer one card.
+model CatalogProduct {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  name                String
+  brand               String?
+  /// The code on the package (EAN-13, EAN-8 or UPC), digits only; one card per code; null = none.
+  ean                 String?      @unique
+  description         String?
+  category            ShopCategory @default(other)
+  /// The salon that made the card; it may change the card while it is the only one offering it.
+  /// null = made by the platform.
+  createdByLocationId String?      @map("created_by_location_id") @db.Uuid
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdBy Location? @relation(fields: [createdByLocationId], references: [id], onDelete: SetNull)
+  photo     Photo?
+  offers    Product[]
+
+  @@index([name])
+  @@map("catalog_product")
 }
 
 /// Task 440: why the pieces in stock changed.
@@ -1587,23 +1662,23 @@ model ProductSale {
 /// Task 490: "Bon podarunkowy" — a gift voucher the salon sold (at its own till, no payment
 /// systems). The client pays visits or products with it, in parts, until nothing is left.
 model GiftVoucher {
-  id              String    @id @default(uuid(7)) @db.Uuid
-  locationId      String    @map("location_id") @db.Uuid
+  id              String         @id @default(uuid(7)) @db.Uuid
+  locationId      String         @map("location_id") @db.Uuid
   /// What the client shows at the till: 8 letters and digits, unique in the salon.
   code            String
   /// What it was worth when sold, in hundredths of the salon currency.
-  amountGrosze    Int       @map("amount_grosze")
+  amountGrosze    Int            @map("amount_grosze")
   /// What is left to use.
-  balanceGrosze   Int       @map("balance_grosze")
+  balanceGrosze   Int            @map("balance_grosze")
   /// The last day it may be used, in the salon's own time; null = no end.
-  validUntil      DateTime? @map("valid_until") @db.Date
+  validUntil      DateTime?      @map("valid_until") @db.Date
   /// Who it is for or who bought it, in the salon's own words.
   recipient       String?
   note            String?
-  createdByUserId String?   @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdByUserId String?        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   /// Cancelled by the owner or a manager (sold by mistake, money returned); cannot be used then.
-  cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  cancelledAt     DateTime?      @map("cancelled_at") @db.Timestamptz(3)
   /// Task 547: how the client paid for the voucher; cash goes into the till of the day it was sold.
   paymentMethod   PaymentMethod? @map("payment_method")
 
@@ -1617,13 +1692,13 @@ model GiftVoucher {
 
 /// Task 490: one payment with a gift voucher.
 model GiftVoucherUse {
-  id              String   @id @default(uuid(7)) @db.Uuid
-  voucherId       String   @map("voucher_id") @db.Uuid
-  amountGrosze    Int      @map("amount_grosze")
+  id              String    @id @default(uuid(7)) @db.Uuid
+  voucherId       String    @map("voucher_id") @db.Uuid
+  amountGrosze    Int       @map("amount_grosze")
   /// What was paid for, in the salon's own words.
   note            String?
-  createdByUserId String?  @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   /// Task 530: noted by mistake and undone by the owner or a manager — the amount went back to the voucher.
   undoneAt        DateTime? @map("undone_at") @db.Timestamptz(3)
   undoneByUserId  String?   @map("undone_by_user_id") @db.Uuid

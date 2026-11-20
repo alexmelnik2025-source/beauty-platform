@@ -8117,6 +8117,24 @@
                       "string",
                       "null"
                     ]
+                  },
+                  "catalogProductId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "inSalonShop": {
+                    "type": "boolean"
+                  },
+                  "inMarketplace": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -8315,6 +8333,24 @@
                     ]
                   },
                   "active": {
+                    "type": "boolean"
+                  },
+                  "catalogProductId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "inSalonShop": {
+                    "type": "boolean"
+                  },
+                  "inMarketplace": {
                     "type": "boolean"
                   }
                 }
@@ -14151,6 +14187,455 @@
           "public"
         ]
       }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog": {
+      "get": {
+        "description": "Task Q3. Everyone in the salon. `q` — words of the name or brand, or the code on the package (an exact EAN comes first). `offeredHere` says which product of this salon already points to the card.",
+        "operationId": "ShopCatalogController_search",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "pomada",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogSearch"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"Wybierz z katalogu\": cards of the platform catalogue by name, brand or EAN",
+        "tags": [
+          "shop"
+        ]
+      },
+      "post": {
+        "description": "Task Q3. Owners and managers. The name, brand, EAN, description and category are the same for every salon that offers the card. An EAN already in the catalogue → 409 EAN_TAKEN with the existing card’s id in `details[0].message` — offer that card instead.",
+        "operationId": "ShopCatalogController_create",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "brand": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ean": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "category": {
+                    "default": "other",
+                    "type": "string",
+                    "enum": [
+                      "hair_care",
+                      "styling",
+                      "beard",
+                      "skin_care",
+                      "tools",
+                      "accessories",
+                      "gifts",
+                      "other"
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogProduct"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A new card in the platform catalogue",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/organizations/{orgId}/locations/{locationId}/shop/catalog/{cardId}": {
+      "get": {
+        "operationId": "ShopCatalogController_get",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogProduct"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One card of the catalogue",
+        "tags": [
+          "shop"
+        ]
+      },
+      "patch": {
+        "description": "Task Q3. Owners and managers; only the salon that made the card, and only while no other salon offers it (403 CARD_SHARED). A card made by another salon → 404.",
+        "operationId": "ShopCatalogController_update",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "brand": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ean": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "hair_care",
+                      "styling",
+                      "beard",
+                      "skin_care",
+                      "tools",
+                      "accessories",
+                      "gifts",
+                      "other"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogProduct"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a card this salon made",
+        "tags": [
+          "shop"
+        ]
+      }
+    },
+    "/v1/public/locations/{slug}/products": {
+      "get": {
+        "description": "Task Q3. Only salons open for online booking (otherwise 404), only products the salon shows to clients (`inSalonShop`) and still sells. `available` is false when the salon counts its pieces and has none left.",
+        "operationId": "PublicShopController_salonProducts",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSalonProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "\"Produkty salonu\": what the salon sells to its clients, to pick up at a visit",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/shop/products": {
+      "get": {
+        "description": "Task Q3. A card is listed while at least one salon open for online booking sells it in the \"Sklep\" tab and has it (counts no pieces, or has some left). Offers: available first, cheapest first. At the launch every offer is picked up and paid at the salon.",
+        "operationId": "PublicShopController_list",
+        "parameters": [
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "example": 24,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "description": "Only the offers of salons in this city",
+            "schema": {
+              "example": "Warszawa",
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "hair_care",
+                "styling",
+                "beard",
+                "skin_care",
+                "tools",
+                "accessories",
+                "gifts",
+                "other"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "pomada",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicShopList"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The \"Sklep\" tab: every product some salon sells online, with all the salons offering it",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/shop/products/{cardId}": {
+      "get": {
+        "description": "Task Q3. 404 unless some salon open for online booking sells it in the \"Sklep\" tab.",
+        "operationId": "PublicShopController_product",
+        "parameters": [
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicShopProduct"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One product of the \"Sklep\" tab with every salon offering it",
+        "tags": [
+          "public"
+        ]
+      }
     }
   },
   "info": {
@@ -16313,6 +16798,159 @@
           "maxNoShows",
           "action",
           "version"
+        ],
+        "additionalProperties": false
+      },
+      "CatalogProduct": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "brand": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ean": {
+            "nullable": true,
+            "description": "The code on the package, digits only; null = none",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "hair_care",
+              "styling",
+              "beard",
+              "skin_care",
+              "tools",
+              "accessories",
+              "gifts",
+              "other"
+            ]
+          },
+          "photoId": {
+            "nullable": true,
+            "description": "The picture: /v1/public/photos/<id>; null = none yet",
+            "type": "string"
+          },
+          "sellers": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Salons offering this card (sold ones only)"
+          },
+          "editable": {
+            "type": "boolean",
+            "description": "This salon made the card and is the only one offering it, so it may change it"
+          },
+          "offeredHere": {
+            "nullable": true,
+            "description": "The id of this salon’s product that already points to the card; null = none",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "brand",
+          "ean",
+          "description",
+          "category",
+          "photoId",
+          "sellers",
+          "editable",
+          "offeredHere"
+        ],
+        "additionalProperties": false
+      },
+      "CatalogSearch": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "brand": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "ean": {
+                  "nullable": true,
+                  "description": "The code on the package, digits only; null = none",
+                  "type": "string"
+                },
+                "description": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "hair_care",
+                    "styling",
+                    "beard",
+                    "skin_care",
+                    "tools",
+                    "accessories",
+                    "gifts",
+                    "other"
+                  ]
+                },
+                "photoId": {
+                  "nullable": true,
+                  "description": "The picture: /v1/public/photos/<id>; null = none yet",
+                  "type": "string"
+                },
+                "sellers": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Salons offering this card (sold ones only)"
+                },
+                "editable": {
+                  "type": "boolean",
+                  "description": "This salon made the card and is the only one offering it, so it may change it"
+                },
+                "offeredHere": {
+                  "nullable": true,
+                  "description": "The id of this salon’s product that already points to the card; null = none",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "brand",
+                "ean",
+                "description",
+                "category",
+                "photoId",
+                "sellers",
+                "editable",
+                "offeredHere"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Best match first, then by name"
+          }
+        },
+        "required": [
+          "products"
         ],
         "additionalProperties": false
       },
@@ -20367,6 +21005,17 @@
           "onlineBookingEnabled": {
             "type": "boolean"
           },
+          "shopFulfillment": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pickup_at_salon",
+                "shipping"
+              ]
+            },
+            "description": "Task Q3: how a client gets a product bought from the salon; at the launch always [\"pickup_at_salon\"] (not changeable yet)"
+          },
           "askMood": {
             "type": "boolean",
             "description": "Task 80: ask how the client wants to spend the visit"
@@ -20455,6 +21104,7 @@
           "rebookReminderDays",
           "rebookReminderText",
           "onlineBookingEnabled",
+          "shopFulfillment",
           "askMood",
           "askDrink",
           "drinks",
@@ -20576,6 +21226,17 @@
             "onlineBookingEnabled": {
               "type": "boolean"
             },
+            "shopFulfillment": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "pickup_at_salon",
+                  "shipping"
+                ]
+              },
+              "description": "Task Q3: how a client gets a product bought from the salon; at the launch always [\"pickup_at_salon\"] (not changeable yet)"
+            },
             "askMood": {
               "type": "boolean",
               "description": "Task 80: ask how the client wants to spend the visit"
@@ -20664,6 +21325,7 @@
             "rebookReminderDays",
             "rebookReminderText",
             "onlineBookingEnabled",
+            "shopFulfillment",
             "askMood",
             "askDrink",
             "drinks",
@@ -22767,6 +23429,19 @@
             "nullable": true,
             "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
             "type": "string"
+          },
+          "catalogProductId": {
+            "nullable": true,
+            "description": "Task Q3: the card of this product in the platform catalogue (\"Sklep\"); null = not in the catalogue",
+            "type": "string"
+          },
+          "inSalonShop": {
+            "type": "boolean",
+            "description": "Task Q3: \"Produkty salonu\" — clients see it on the salon’s booking page"
+          },
+          "inMarketplace": {
+            "type": "boolean",
+            "description": "Task Q3: \"Sprzedawaj też online w Sklepie\" — every client of the platform sees it in the \"Sklep\" tab"
           }
         },
         "required": [
@@ -22779,7 +23454,10 @@
           "lowStock",
           "purchasePriceGrosze",
           "supplier",
-          "barcode"
+          "barcode",
+          "catalogProductId",
+          "inSalonShop",
+          "inMarketplace"
         ],
         "additionalProperties": false
       },
@@ -22841,6 +23519,19 @@
                   "nullable": true,
                   "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
                   "type": "string"
+                },
+                "catalogProductId": {
+                  "nullable": true,
+                  "description": "Task Q3: the card of this product in the platform catalogue (\"Sklep\"); null = not in the catalogue",
+                  "type": "string"
+                },
+                "inSalonShop": {
+                  "type": "boolean",
+                  "description": "Task Q3: \"Produkty salonu\" — clients see it on the salon’s booking page"
+                },
+                "inMarketplace": {
+                  "type": "boolean",
+                  "description": "Task Q3: \"Sprzedawaj też online w Sklepie\" — every client of the platform sees it in the \"Sklep\" tab"
                 }
               },
               "required": [
@@ -22853,7 +23544,10 @@
                 "lowStock",
                 "purchasePriceGrosze",
                 "supplier",
-                "barcode"
+                "barcode",
+                "catalogProductId",
+                "inSalonShop",
+                "inMarketplace"
               ],
               "additionalProperties": false
             },
@@ -23965,6 +24659,395 @@
           "pageSize",
           "total",
           "pageCount"
+        ],
+        "additionalProperties": false
+      },
+      "PublicSalonProducts": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 code of the salon’s currency"
+          },
+          "fulfillment": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pickup_at_salon",
+                "shipping"
+              ]
+            },
+            "description": "How a client gets a product here; at the launch always [\"pickup_at_salon\"]"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The salon’s product"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "brand": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one, in hundredths of the salon currency"
+                },
+                "available": {
+                  "type": "boolean",
+                  "description": "false = the salon counts its pieces and has none left right now"
+                },
+                "catalogProductId": {
+                  "nullable": true,
+                  "description": "Its card in the platform catalogue; null = the salon’s own product",
+                  "type": "string"
+                },
+                "category": {
+                  "nullable": true,
+                  "type": "string",
+                  "enum": [
+                    "hair_care",
+                    "styling",
+                    "beard",
+                    "skin_care",
+                    "tools",
+                    "accessories",
+                    "gifts",
+                    "other"
+                  ]
+                },
+                "description": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "photoId": {
+                  "nullable": true,
+                  "description": "/v1/public/photos/<id>; null = none",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "brand",
+                "priceGrosze",
+                "available",
+                "catalogProductId",
+                "category",
+                "description",
+                "photoId"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Available ones first, then by name"
+          }
+        },
+        "required": [
+          "currency",
+          "fulfillment",
+          "products"
+        ],
+        "additionalProperties": false
+      },
+      "PublicShopList": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "brand": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "ean": {
+                  "nullable": true,
+                  "description": "The code on the package, digits only; null = none",
+                  "type": "string"
+                },
+                "description": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "hair_care",
+                    "styling",
+                    "beard",
+                    "skin_care",
+                    "tools",
+                    "accessories",
+                    "gifts",
+                    "other"
+                  ]
+                },
+                "photoId": {
+                  "nullable": true,
+                  "description": "The picture: /v1/public/photos/<id>; null = none yet",
+                  "type": "string"
+                },
+                "fromPriceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "The lowest price among the available offers, in hundredths of the salon currency"
+                },
+                "offers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "productId": {
+                        "type": "string",
+                        "description": "The salon’s product: what the client asks to put aside"
+                      },
+                      "priceGrosze": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Price of one at this salon, in hundredths of the salon currency"
+                      },
+                      "currency": {
+                        "type": "string",
+                        "description": "ISO 4217 code of the salon’s currency"
+                      },
+                      "available": {
+                        "type": "boolean",
+                        "description": "false = the salon counts its pieces and has none left right now"
+                      },
+                      "fulfillment": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "pickup_at_salon",
+                            "shipping"
+                          ]
+                        },
+                        "description": "How the client gets it; at the launch always [\"pickup_at_salon\"]"
+                      },
+                      "salon": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "type": "string"
+                          },
+                          "addressLine": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "name",
+                          "city",
+                          "addressLine"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "productId",
+                      "priceGrosze",
+                      "currency",
+                      "available",
+                      "fulfillment",
+                      "salon"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Cheapest first; available ones first"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "brand",
+                "ean",
+                "description",
+                "category",
+                "photoId",
+                "fromPriceGrosze",
+                "offers"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cards matching the filters, all pages"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "products",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "additionalProperties": false
+      },
+      "PublicShopProduct": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "brand": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ean": {
+            "nullable": true,
+            "description": "The code on the package, digits only; null = none",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "hair_care",
+              "styling",
+              "beard",
+              "skin_care",
+              "tools",
+              "accessories",
+              "gifts",
+              "other"
+            ]
+          },
+          "photoId": {
+            "nullable": true,
+            "description": "The picture: /v1/public/photos/<id>; null = none yet",
+            "type": "string"
+          },
+          "fromPriceGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "The lowest price among the available offers, in hundredths of the salon currency"
+          },
+          "offers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string",
+                  "description": "The salon’s product: what the client asks to put aside"
+                },
+                "priceGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Price of one at this salon, in hundredths of the salon currency"
+                },
+                "currency": {
+                  "type": "string",
+                  "description": "ISO 4217 code of the salon’s currency"
+                },
+                "available": {
+                  "type": "boolean",
+                  "description": "false = the salon counts its pieces and has none left right now"
+                },
+                "fulfillment": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "pickup_at_salon",
+                      "shipping"
+                    ]
+                  },
+                  "description": "How the client gets it; at the launch always [\"pickup_at_salon\"]"
+                },
+                "salon": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "addressLine": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "city",
+                    "addressLine"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "productId",
+                "priceGrosze",
+                "currency",
+                "available",
+                "fulfillment",
+                "salon"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Cheapest first; available ones first"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "brand",
+          "ean",
+          "description",
+          "category",
+          "photoId",
+          "fromPriceGrosze",
+          "offers"
         ],
         "additionalProperties": false
       },
@@ -27397,6 +28480,19 @@
                   "nullable": true,
                   "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
                   "type": "string"
+                },
+                "catalogProductId": {
+                  "nullable": true,
+                  "description": "Task Q3: the card of this product in the platform catalogue (\"Sklep\"); null = not in the catalogue",
+                  "type": "string"
+                },
+                "inSalonShop": {
+                  "type": "boolean",
+                  "description": "Task Q3: \"Produkty salonu\" — clients see it on the salon’s booking page"
+                },
+                "inMarketplace": {
+                  "type": "boolean",
+                  "description": "Task Q3: \"Sprzedawaj też online w Sklepie\" — every client of the platform sees it in the \"Sklep\" tab"
                 }
               },
               "required": [
@@ -27409,7 +28505,10 @@
                 "lowStock",
                 "purchasePriceGrosze",
                 "supplier",
-                "barcode"
+                "barcode",
+                "catalogProductId",
+                "inSalonShop",
+                "inMarketplace"
               ],
               "additionalProperties": false
             },
@@ -27580,6 +28679,19 @@
                   "nullable": true,
                   "description": "\"Kod kreskowy\" — the code on the package, capital letters (task 520); null = not written",
                   "type": "string"
+                },
+                "catalogProductId": {
+                  "nullable": true,
+                  "description": "Task Q3: the card of this product in the platform catalogue (\"Sklep\"); null = not in the catalogue",
+                  "type": "string"
+                },
+                "inSalonShop": {
+                  "type": "boolean",
+                  "description": "Task Q3: \"Produkty salonu\" — clients see it on the salon’s booking page"
+                },
+                "inMarketplace": {
+                  "type": "boolean",
+                  "description": "Task Q3: \"Sprzedawaj też online w Sklepie\" — every client of the platform sees it in the \"Sklep\" tab"
                 }
               },
               "required": [
@@ -27592,7 +28704,10 @@
                 "lowStock",
                 "purchasePriceGrosze",
                 "supplier",
-                "barcode"
+                "barcode",
+                "catalogProductId",
+                "inSalonShop",
+                "inMarketplace"
               ],
               "additionalProperties": false
             },

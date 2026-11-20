@@ -37,6 +37,15 @@ export const createProductSchema = z.object({
   supplier: z.string().trim().min(1).max(80).nullable().optional(),
   /** Task 520: "Kod kreskowy"; null (or left out) = not written. */
   barcode: barcode.nullable().optional(),
+  /**
+   * Task Q3: the card of this product in the platform catalogue ("Sklep"); the product is then
+   * the salon's offer of it. null (or left out) = not in the catalogue.
+   */
+  catalogProductId: z.uuid().nullable().optional(),
+  /** Task Q3: "Produkty salonu" — shown to clients on the salon's booking page. */
+  inSalonShop: z.boolean().optional(),
+  /** Task Q3: "Sprzedawaj też online w Sklepie" — needs a catalogue card and inSalonShop. */
+  inMarketplace: z.boolean().optional(),
 });
 
 export const updateProductSchema = z
@@ -49,6 +58,9 @@ export const updateProductSchema = z
     supplier: z.string().trim().min(1).max(80).nullable(),
     barcode: barcode.nullable(),
     active: z.boolean(),
+    catalogProductId: z.uuid().nullable(),
+    inSalonShop: z.boolean(),
+    inMarketplace: z.boolean(),
   })
   .partial();
 
@@ -162,6 +174,20 @@ const product = z.strictObject({
     .nullable()
     .describe(
       '"Kod kreskowy" — the code on the package, capital letters (task 520); null = not written',
+    ),
+  catalogProductId: z
+    .string()
+    .nullable()
+    .describe(
+      'Task Q3: the card of this product in the platform catalogue ("Sklep"); null = not in the catalogue',
+    ),
+  inSalonShop: z
+    .boolean()
+    .describe('Task Q3: "Produkty salonu" — clients see it on the salon’s booking page'),
+  inMarketplace: z
+    .boolean()
+    .describe(
+      'Task Q3: "Sprzedawaj też online w Sklepie" — every client of the platform sees it in the "Sklep" tab',
     ),
 });
 

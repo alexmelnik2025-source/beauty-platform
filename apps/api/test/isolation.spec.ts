@@ -49,7 +49,8 @@ type Ids = Record<
   | 'saleId'
   | 'voucherId'
   | 'useId'
-  | 'code',
+  | 'code'
+  | 'cardId',
   string
 >;
 
@@ -156,6 +157,8 @@ function validBody(route: Route): object {
   if (p.endsWith('/products/:productId/write-off')) return { quantity: 1 };
   if (p.endsWith('/products/:productId')) return { priceGrosze: 1 };
   if (p.endsWith('/products')) return { name: 'Hacked', priceGrosze: 1 };
+  if (p.endsWith('/shop/catalog/:cardId')) return { name: 'Hacked' };
+  if (p.endsWith('/shop/catalog')) return { name: 'Hacked' };
   if (p.endsWith('/reports/till-movements')) {
     return { date: DATE, kind: 'out', amountGrosze: 1000, note: 'Hacked' };
   }
@@ -527,6 +530,14 @@ async function seedLocation(
   const voucherUse = await ctx.prisma.giftVoucherUse.create({
     data: { voucherId: voucher.id, amountGrosze: 2000 },
   });
+  // A card this salon made in the platform catalogue (task Q3); the product is its offer.
+  const card = await ctx.prisma.catalogProduct.create({
+    data: { name: 'Pomada', createdByLocationId: org.locationId },
+  });
+  await ctx.prisma.product.update({
+    where: { id: product.id },
+    data: { catalogProductId: card.id, inSalonShop: true },
+  });
   return {
     orgId: org.orgId,
     locationId: org.locationId,
@@ -553,6 +564,7 @@ async function seedLocation(
     voucherId: voucher.id,
     useId: voucherUse.id,
     code: voucher.code,
+    cardId: card.id,
   };
 }
 
@@ -599,6 +611,9 @@ async function snapshotOf(ids: Ids) {
       where: { locationId: ids.locationId },
     }),
     products: await ctx.prisma.product.findMany({ where: { locationId: ids.locationId } }),
+    catalogCards: await ctx.prisma.catalogProduct.findMany({
+      where: { createdByLocationId: ids.locationId },
+    }),
     productSales: await ctx.prisma.productSale.findMany({ where: { locationId: ids.locationId } }),
     giftVouchers: await ctx.prisma.giftVoucher.findMany({
       where: { locationId: ids.locationId },
