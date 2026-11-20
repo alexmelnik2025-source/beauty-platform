@@ -360,7 +360,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await country.selectOption('PL');
   await expect(client.getByLabel('Telefon')).toHaveValue('+48 50 123 45 67');
   await client.getByLabel('Telefon').fill('600 100 200');
-  await client.getByLabel('E-mail').fill(CLIENT);
+  // Task 608: a typo in the address is noticed on the code step and fixed there.
+  await client.getByLabel('E-mail').fill(CLIENT.replace('@', '.typo@'));
   await client.getByLabel(/Akceptuję regulamin rezerwacji/).check();
   await shot(client, '04-client-details');
   // Launch task L1: the consent links to the salon's own booking terms and privacy policy.
@@ -379,6 +380,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(termsPage, '66-client-booking-terms');
   await termsPage.close();
   await client.getByRole('button', { name: 'Wyślij kod' }).click();
+
+  // Task 608: "Popraw e-mail lub telefon" goes back to the details with everything kept.
+  await expect(
+    client.getByText(`Wysłaliśmy 6 cyfr na ${CLIENT.replace('@', '.typo@')}.`),
+  ).toBeVisible();
+  await shot(client, '608-client-code-fix-contact');
+  await client.getByRole('button', { name: 'Popraw e-mail lub telefon' }).click();
+  await expect(client.getByLabel('E-mail')).toHaveValue(CLIENT.replace('@', '.typo@'));
+  await expect(client.getByLabel('Telefon')).toHaveValue(/600 100 200/);
+  await client.getByLabel('E-mail').fill(CLIENT);
+  await client.getByRole('button', { name: 'Wyślij kod' }).click();
+  await expect(client.getByText(`Wysłaliśmy 6 cyfr na ${CLIENT}.`)).toBeVisible();
 
   const codeMail = await waitForEmail(CLIENT, /Kod potwierdzenia/);
   const code = /\b(\d{6})\b/.exec(codeMail.text)![1]!;

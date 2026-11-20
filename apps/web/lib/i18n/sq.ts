@@ -235,6 +235,8 @@ export const sq: Dict = {
     codeLead: 'Dërguam 6 shifra në {email}.',
     confirm: 'Konfirmo rezervimin',
     resend: 'Dërgo kodin përsëri',
+    /** Task 608: back to the details from the code step (a mistyped address). */
+    fixContact: 'Korrigjo e-mailin ose telefonin',
     doneTitle: 'Shihemi së shpejti!',
     doneLead: 'Rezervimi juaj është konfirmuar. Ju dërguam detajet me email.',
     doneTitleApproval: 'Rezervimi u dërgua',

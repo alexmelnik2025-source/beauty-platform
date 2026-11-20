@@ -1075,6 +1075,19 @@ export function BookingFlow({
             >
               {t.booking.resend}
             </button>
+            {/* Task 608: a mistyped address is fixed here, not by picking the time again. */}
+            <button
+              type="button"
+              className="link-btn small"
+              disabled={busy}
+              onClick={() => {
+                setError('');
+                setCode('');
+                setStep('details');
+              }}
+            >
+              {t.booking.fixContact}
+            </button>
           </form>
         ) : null}
 

@@ -234,6 +234,8 @@ export const tr: Dict = {
     codeLead: '{email} adresine 6 haneli bir kod gönderdik.',
     confirm: 'Randevuyu onayla',
     resend: 'Kodu tekrar gönder',
+    /** Task 608: back to the details from the code step (a mistyped address). */
+    fixContact: 'E-postayı veya telefonu düzelt',
     doneTitle: 'Görüşmek üzere!',
     doneLead: 'Randevunuz onaylandı. Ayrıntıları e-postayla gönderdik.',
     doneTitleApproval: 'Rezervasyon gönderildi',

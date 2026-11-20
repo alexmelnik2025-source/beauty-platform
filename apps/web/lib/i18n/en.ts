@@ -530,6 +530,8 @@ export const en: Dict = {
     codeLead: 'We sent 6 digits to {email}.',
     confirm: 'Confirm booking',
     resend: 'Send the code again',
+    /** Task 608: back to the details from the code step (a mistyped address). */
+    fixContact: 'Fix the e-mail or phone',
     doneTitle: 'See you soon!',
     doneLead: 'Your booking is confirmed. We emailed you the details.',
     doneTitleApproval: 'Booking sent',

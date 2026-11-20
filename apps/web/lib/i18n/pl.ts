@@ -531,6 +531,8 @@ export const pl = {
     codeLead: 'Wysłaliśmy 6 cyfr na {email}.',
     confirm: 'Potwierdź wizytę',
     resend: 'Wyślij kod ponownie',
+    /** Task 608: back to the details from the code step (a mistyped address). */
+    fixContact: 'Popraw e-mail lub telefon',
     doneTitle: 'Do zobaczenia!',
     doneLead: 'Wizyta jest potwierdzona. Szczegóły wysłaliśmy e-mailem.',
     doneTitleApproval: 'Rezerwacja wysłana',

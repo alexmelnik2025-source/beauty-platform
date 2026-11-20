@@ -531,6 +531,8 @@ export const uk: Dict = {
     codeLead: 'Ми надіслали 6 цифр на {email}.',
     confirm: 'Підтвердити запис',
     resend: 'Надіслати код ще раз',
+    /** Task 608: back to the details from the code step (a mistyped address). */
+    fixContact: 'Виправити e-mail або телефон',
     doneTitle: 'До зустрічі!',
     doneLead: 'Запис підтверджено. Деталі надіслали на e-mail.',
     doneTitleApproval: 'Запис надіслано',
