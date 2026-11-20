@@ -39,6 +39,7 @@ import { NearbySalons } from './NearbySalons';
 import { rememberViewed } from '@/lib/recent-salons';
 import { FavoriteButton } from './FavoriteButton';
 import { InstallBanner } from './InstallBanner';
+import { SalonProducts } from './SalonProducts';
 import { NO_STORES, type StoreLinks } from '@/lib/install-banner';
 import { ShareSalon } from './ShareSalon';
 import { VoucherCheck } from './VoucherCheck';
@@ -669,6 +670,9 @@ export function BookingFlow({
             }}
           />
         ) : null}
+
+        {/* Task Q3: "Produkty salonu" — one folded row; nothing when the salon shows no products. */}
+        {step === 'service' ? <SalonProducts slug={salon.slug} /> : null}
 
         {/* Task 537: "Sprawdź bon" — also on the salon's own site. */}
         {step === 'service' ? <VoucherCheck slug={salon.slug} /> : null}
