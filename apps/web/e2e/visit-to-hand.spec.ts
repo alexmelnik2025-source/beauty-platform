@@ -150,7 +150,7 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     );
   }
 
-  // The visit took place two days earlier than booked (visits can't be booked in the past).
+  // The visit took place yesterday (visits can't be booked in the past).
   const booked = await json<{ id: string; version: number }>(
     await request.get(`${salon.base}/appointments/${confirmed.appointment.id}`, {
       headers: salon.auth,
@@ -161,7 +161,7 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     '-v',
     'ON_ERROR_STOP=1',
     '-c',
-    `UPDATE appointment SET start_at = start_at - interval '2 days', end_at = end_at - interval '2 days', blocked_until = blocked_until - interval '2 days' WHERE id = '${booked.id}'`,
+    `UPDATE appointment SET start_at = start_at - interval '3 days', end_at = end_at - interval '3 days', blocked_until = blocked_until - interval '3 days' WHERE id = '${booked.id}'`,
   ]);
   const visit = await json<{ date: string }>(
     await request.post(`${salon.base}/appointments/${booked.id}/status`, {
@@ -231,7 +231,6 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await phone.getByRole('button', { name: 'Poprzedni dzień' }).click();
     await phone.getByRole('button', { name: 'Poprzedni dzień' }).click();
     await phone
       .getByRole('button', { name: /Anna Kowalska/ })
