@@ -7,6 +7,8 @@ import { fill, type Dictionary } from '../i18n';
 import { parseStock } from '../stock';
 import { parseTip as parseAmount } from '../tip';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { canSeeBase } from '../baseStatus';
+import { BaseStatusCard } from './BaseStatusCard';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -15,7 +17,7 @@ import type { SalonChoice } from './SalonsScreen';
  * "Sprzedawaj też w Sklepie" (needs a card in the platform catalogue: "Wybierz z katalogu" finds
  * one by words or EAN, "Nowa karta" makes one from the product's name). A quick "Dodaj produkt"
  * adds a product already shown to clients. Nothing about shipping at the launch. Pictures of the
- * cards are added in the cabinet.
+ * cards are added in the cabinet. Task Q4: owners and managers see the "Base" card on top.
  */
 export function MyShopScreen(props: {
   api: BusinessApi;
@@ -131,6 +133,14 @@ export function MyShopScreen(props: {
       <Heading>{s.title}</Heading>
       <Text style={styles.muted}>{s.hint}</Text>
       <Text style={styles.muted}>{s.pickupOnly}</Text>
+      {canSeeBase(salon.role) ? (
+        <BaseStatusCard
+          api={api}
+          t={t}
+          salon={salon}
+          onSynced={() => void load().catch((e: unknown) => setError(errorText(e, t)))}
+        />
+      ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
       {products ? (
         <Text style={styles.summary}>

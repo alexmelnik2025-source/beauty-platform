@@ -27,7 +27,7 @@
 
 - **20.11.2026, ~03:05 UTC — 582 (ветка `agent/582-integrations-cabinet`, поверх 581): Q4 часть 4 — экран
   «Integracje» в кабинете (Base в 3 шага + «Importuj z pliku», статус, «Synchronizuj teraz», журнал), ссылка из
-  «Produkty»; e2e `shop-integrations.spec.ts` с заглушкой Base. Осталось: статус в бизнес-приложении, ссылка из «Mój
+  «Produkty»; e2e `shop-integrations.spec.ts` с заглушкой Base. Осталось: статус в бизнес-приложении (588 — в main), ссылка из «Mój
   sklep» (после его влития), заказы/брони в Base, фото товаров из Base/файла.
 - **20.11.2026, ~02:50 UTC — 581 (ветка `agent/581-feed-import`, поверх 580): Q4 часть 3 — «Importuj z pliku»:
   CSV / Google Merchant XML / Ceneo XML (`POST …/shop/integrations/feed`, `…/feed/{id}/import`), общий импорт товара
@@ -2153,6 +2153,9 @@
 
 ## Сделано
 
+- [x] 588. Q4: Base в бизнес-приложении — карточка «Base» в «Mój sklep» (владелец/менеджер): товаров из Base, последняя
+      синхронизация и ошибка понятными словами, «Synchronizuj teraz» с итогом; без Base — одна строка «подключишь в
+      панели». Vitest, e2e, скриншот Q4-base-app — 20.11.2026
 - [x] 586. Q3: «Jak długo czekają odłożone produkty» — настройка `shopReservationDays` (1–90 дней) внизу «Mój sklep» в
       кабинете (владелец/менеджер); тест на PostgreSQL, e2e, скриншот Q3-reservation-days — 20.11.2026
 - [x] 587. Q4 часть 5 (API): «Zamówienia do Base» — отложенный к визиту товар из Base уходит заказом в Base, выдача/отмена

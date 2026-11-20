@@ -3878,6 +3878,19 @@ zaznaczone (n)»; затем статус (токен …1234, каталог, �
 `http://127.0.0.1:4790/connector.php`), скриншоты Q4-base-connect, Q4-base-pick, Q4-base-done, Q4-feed (телефон).
 Когда «Mój sklep» (Q3) будет в main, ссылку на «Integracje» стоит поставить и туда.
 
+## Base в бизнес-приложении (задача Q4)
+
+В «Mój sklep» бизнес-приложения (`apps/mobile-business/src/screens/BaseStatusCard.tsx`, логика —
+`src/baseStatus.ts`) владелец и менеджер видят Base без компьютера. Base не подключён — одна тихая строка «Base lub
+plik z produktami podłączysz w panelu na komputerze: Usługi → Produkty → Integracje». Подключён — карточка «Base»:
+«Połączono z Base (…1234) · produktów z Base: N», «Ostatnia synchronizacja: 12 min temu.» (или «…nie udała się:» и
+причина понятными словами), «Ceny i stany odświeżamy co 60 min.» и кнопка «Synchronizuj teraz» с итогом
+(«Sprawdzono: 12 · zmieniono: 2 · brak w Base: 1 (stan 0)»), после неё список товаров обновляется. Токен нужно
+вставить заново или не выбран каталог — одна строка «сделай это в панели: Integracje» без кнопки. Сотрудник карточку
+не видит. Данные — существующие `GET …/shop/integrations/base` и `POST …/base/sync`; подключение и выбор товаров
+остаются в кабинете. Тексты — 4 словаря (`shop.base.*`). Тесты: `test/baseStatus.test.ts` (Vitest), e2e
+`apps/web/e2e/app-base-status.spec.ts` (заглушка Base, скриншот Q4-base-app).
+
 ## Клиентское приложение: вкладка «Sklep» (задача Q3, экран 2)
 
 Тихая ссылка «Sklep — kosmetyki z salonów ›» под «Znajdź salon» на стартовом экране и в «Moje wizyty» открывает

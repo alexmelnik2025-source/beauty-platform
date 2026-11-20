@@ -59,6 +59,9 @@ export type VisitCoupons = components['schemas']['VisitCoupons'];
 export type GiftVoucher = components['schemas']['GiftVoucher'];
 export type GiftVoucherList = components['schemas']['GiftVoucherList'];
 export type GiftVoucherDetails = components['schemas']['GiftVoucherDetails'];
+/** Task Q4: Base (BaseLinker) of the salon — never the token, only its last 4 characters. */
+export type BaseIntegration = components['schemas']['BaseIntegration'];
+export type BaseSyncRun = components['schemas']['BaseSyncRun'];
 /** Task 542: what was paid with gift vouchers for one visit. */
 export type VisitVoucherPayments = components['schemas']['VisitVoucherPayments'];
 export type LoyaltyTiers = components['schemas']['LoyaltyTiers'];
@@ -761,6 +764,22 @@ export class BusinessApi {
       'POST',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/shop/catalog`,
       card,
+    );
+  }
+
+  /** Task Q4: is Base connected, how many products came from it, the last renewal. */
+  baseStatus(orgId: string, locationId: string): Promise<BaseIntegration> {
+    return this.authed<BaseIntegration>(
+      'GET',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/shop/integrations/base`,
+    );
+  }
+
+  /** Task Q4: "Synchronizuj teraz" — renew prices and stock of the products from Base now. */
+  syncBase(orgId: string, locationId: string): Promise<BaseSyncRun> {
+    return this.authed<BaseSyncRun>(
+      'POST',
+      `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/shop/integrations/base/sync`,
     );
   }
 
