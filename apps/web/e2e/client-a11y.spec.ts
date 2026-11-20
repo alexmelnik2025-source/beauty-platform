@@ -8,6 +8,7 @@ import { waitForEmail } from './mailpit';
  * visible button and link has a name. Screenshot 234 (the booking page).
  * Task 599: on a 390 px phone the same pages, every step of booking and the visit link page
  * have no sideways scrolling, and every visible form field has a name.
+ * Task 601: the salon sells a product, so the shop rows of those pages are checked as well.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -84,6 +85,14 @@ async function bookableSalon(baseURL: string): Promise<string> {
           intervals: [{ start: '08:00', end: '20:00' }],
         })),
       },
+    }),
+  );
+  // Task 601: a product in the salon's shop, so the folded "Produkty salonu" row, "Dodać coś do
+  // wizyty?" after booking and the visit link's products are checked too.
+  await json(
+    await api.post(`${base}/products`, {
+      headers: owner,
+      data: { name: 'Pomada matowa', priceGrosze: 4900, stockQuantity: 5, inSalonShop: true },
     }),
   );
   // Online booking ends with the test: the catalogue tests count their own salons.
@@ -214,6 +223,11 @@ test('a 390 px phone: no sideways scrolling, every field has a name (task 599)',
   // Booking step by step: services → times → details → code → booked.
   await page.goto(`/pl/b/${slug}`);
   await phoneCheck(page, 'services');
+  const productsRow = page.getByRole('button', { name: 'Produkty salonu (1)' });
+  await productsRow.click();
+  await expect(page.getByTestId('salon-products').getByText('Pomada matowa')).toBeVisible();
+  await phoneCheck(page, 'services, Produkty salonu open');
+  await productsRow.click();
   await page
     .getByRole('button', { name: /Strzyżenie/ })
     .first()
@@ -242,6 +256,10 @@ test('a 390 px phone: no sideways scrolling, every field has a name (task 599)',
   await page.getByRole('button', { name: 'Potwierdź wizytę' }).click();
   await expect(page.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
   await phoneCheck(page, 'booked');
+  const offer = page.getByTestId('booked-products');
+  await offer.getByRole('button', { name: '+ Dodaj produkt do tej wizyty' }).click();
+  await expect(offer.getByRole('button', { name: /^Odbiorę przy wizycie/ })).toHaveCount(1);
+  await phoneCheck(page, 'booked, Dodać coś do wizyty open');
 
   // The visit link from the email, and its "Zmień termin" with the times.
   const confirmation = await waitForEmail(CLIENT, /Wizyta potwierdzona/);
