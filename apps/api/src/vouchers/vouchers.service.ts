@@ -366,7 +366,8 @@ export class VouchersService {
   /**
    * "Zapłać bonem": takes the amount from what is left, in one step. Cancelled → 409
    * VOUCHER_CANCELLED, past its last day → 409 VOUCHER_EXPIRED, more than is left → 409
-   * VOUCHER_BALANCE; nothing is changed then.
+   * VOUCHER_BALANCE, for a cancelled / no-show / held visit → 409 VISIT_NOT_PAYABLE; nothing is
+   * changed then.
    */
   async redeem(
     m: MembershipContext,
@@ -382,7 +383,16 @@ export class VouchersService {
     if (!voucher) throw notFound('Gift voucher');
     // Task 540: paid in the card of a visit this member may see (another salon's visit → 404).
     if (input.appointmentId) {
-      await this.appointments.visible(m, userId, locationId, input.appointmentId);
+      const visit = await this.appointments.visible(m, userId, locationId, input.appointmentId);
+      // Task 611: only a booked or "came" visit can be paid; a cancelled, no-show or still-held
+      // one would keep the money as income of a visit that did not happen.
+      if (visit.status !== 'confirmed' && visit.status !== 'completed') {
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'VISIT_NOT_PAYABLE',
+          'A gift voucher can pay only a booked or "came" visit',
+        );
+      }
     }
     const today = localToday(Date.now(), location.timezone);
     if (voucher.cancelledAt) {

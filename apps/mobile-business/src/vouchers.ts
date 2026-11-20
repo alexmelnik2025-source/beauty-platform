@@ -14,6 +14,8 @@ export function voucherErrorText(error: unknown, t: Dictionary): string {
         return v.errorExpired;
       case 'VOUCHER_CANCELLED':
         return v.errorCancelled;
+      case 'VISIT_NOT_PAYABLE':
+        return v.errorVisitNotPayable;
       case 'VOUCHER_DATE_PAST':
         return v.errorDatePast;
       case 'NOT_FOUND':

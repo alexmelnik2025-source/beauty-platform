@@ -1141,4 +1141,29 @@ describe('"Zapłać bonem" in the visit card (task 540)', () => {
     const check = await ctx.http().get(`${base}/${voucher.id}`).set(owner.auth).expect(200);
     expect(check.body).toMatchObject({ voucher: { balanceGrosze: 5000 }, uses: [] });
   });
+
+  it('task 611: only a booked or "came" visit can be paid — not a cancelled or missed one', async () => {
+    const voucher = (
+      await ctx.http().post(base).set(owner.auth).send({ amountGrosze: 5000 }).expect(201)
+    ).body as Voucher;
+    const pay = (appointmentId: string) =>
+      ctx
+        .http()
+        .post(`${base}/${voucher.id}/redeem`)
+        .set(owner.auth)
+        .send({ amountGrosze: 1000, appointmentId });
+    for (const status of ['cancelled', 'no_show'] as const) {
+      await ctx.prisma.appointment.update({ where: { id: kasiaVisit }, data: { status } });
+      expectError((await pay(kasiaVisit).expect(409)).body, 'VISIT_NOT_PAYABLE');
+    }
+    const check = await ctx.http().get(`${base}/${voucher.id}`).set(owner.auth).expect(200);
+    expect(check.body).toMatchObject({ voucher: { balanceGrosze: 5000 }, uses: [] });
+    // Marked "came" again: the payment goes through.
+    await ctx.prisma.appointment.update({
+      where: { id: kasiaVisit },
+      data: { status: 'completed' },
+    });
+    const paid = await pay(kasiaVisit).expect(200);
+    expect(paid.body.voucher.balanceGrosze).toBe(4000);
+  });
 });
