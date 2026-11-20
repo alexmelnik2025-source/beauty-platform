@@ -420,6 +420,20 @@ describe('tier discount on a visit', () => {
     await changeProgram({ enabled: false });
     expect((await list(visit).expect(200)).body.tier).toBeNull();
     expectError((await useTier(visit, visit.version).expect(409)).body, 'TIER_NO_DISCOUNT');
+    // Task 613: the client's card in the cabinet says the same — no tier while the program is off.
+    const card = await ctx
+      .http()
+      .get(`${orgUrl()}/accounts/${visit.customerId}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(card.body.tier).toBeNull();
+    await changeProgram({ enabled: true });
+    const again = await ctx
+      .http()
+      .get(`${orgUrl()}/accounts/${visit.customerId}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(again.body.tier).not.toBeNull();
   });
 
   it('a staff member uses it on own visits only', async () => {
