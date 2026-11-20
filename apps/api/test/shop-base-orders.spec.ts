@@ -46,6 +46,8 @@ let calls: [string, Record<string, unknown>][];
 /** Make the next addOrder fail with a Base error. */
 let failOrders: boolean;
 let nextOrderId: number;
+/** What getInventoryProductsList answers (the seller's catalogue in Base). */
+let listed: Record<string, unknown>;
 
 const BASE = {
   getInventories: {
@@ -90,6 +92,7 @@ beforeEach(async () => {
   calls = [];
   failOrders = false;
   nextOrderId = 7001;
+  listed = {};
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     if (!String(input).startsWith('https://api.baselinker.com/')) {
       throw new Error(`Unexpected fetch ${String(input)}`);
@@ -107,7 +110,7 @@ beforeEach(async () => {
         ? json({ status: 'ERROR', error_code: 'ERROR_PRODUCT', error_message: 'Brak produktu' })
         : json({ status: 'SUCCESS', order_id: nextOrderId++ });
     }
-    if (method === 'getInventoryProductsList') return json({ status: 'SUCCESS', products: {} });
+    if (method === 'getInventoryProductsList') return json({ status: 'SUCCESS', products: listed });
     const answer = BASE[method];
     return answer
       ? json({ status: 'SUCCESS', ...answer })
@@ -497,5 +500,39 @@ describe('"Zamówienia do Base" (task Q4, part 5)', () => {
     expect(
       (await ctx.http().get(integrations).set(owner.auth).expect(200)).body.orders.failing,
     ).toBe(0);
+  });
+
+  it('the stock read from Base keeps the pieces of our open orders, which Base already took off', async () => {
+    await turnOn({ enabled: true, newStatusId: '502', handedStatusId: '503' }).expect(200);
+    const visit = await book(10);
+    await putAside(visit.token, pomadeId, 2);
+    expect(await push()).toBe(1);
+
+    // Base lowered its stock 5 → 3 for our order; the salon still has 5 pieces, 2 of them put
+    // aside, so clients see 3 left — not 1.
+    listed = {
+      '9001': {
+        id: 9001,
+        name: 'Reuzel Pink Pomade',
+        prices: { '105': 69.99 },
+        stock: { bl_201: 3 },
+      },
+    };
+    await ctx.http().post(`${integrations}/sync`).set(owner.auth).expect(200);
+    expect(
+      (await ctx.prisma.product.findUniqueOrThrow({ where: { id: pomadeId } })).stockQuantity,
+    ).toBe(5);
+    expect(await ctx.app.get(ReservationsService).availableToReserve(pomadeId, 5)).toBe(3);
+
+    // Handed over: the sale takes one piece off here, the order is closed in Base; Base keeps 3.
+    const reservation = await ctx.prisma.productReservation.findFirstOrThrow();
+    await ctx.prisma.productReservation.update({
+      where: { id: reservation.id },
+      data: { status: 'handed', baseOrderState: 'handed' },
+    });
+    await ctx.http().post(`${integrations}/sync`).set(owner.auth).expect(200);
+    expect(
+      (await ctx.prisma.product.findUniqueOrThrow({ where: { id: pomadeId } })).stockQuantity,
+    ).toBe(3);
   });
 });

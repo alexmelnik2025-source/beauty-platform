@@ -95,6 +95,40 @@ const toStock = (stock: Record<string, number>, warehouseId: string): number | n
   return value === undefined ? null : Math.min(100_000, Math.max(0, Math.floor(value)));
 };
 
+/**
+ * Pieces of each product (by `externalRef`) that Base already took off its own stock for our
+ * orders still open there (task Q4 part 5: a product put aside for a visit becomes an order in
+ * Base, and Base lowers its stock at once). Our stock counts the pieces physically in the salon,
+ * including those put aside, and clients see `stock − put aside`; so these pieces are added back
+ * to the stock read from Base — otherwise they would be taken off twice until the visit.
+ */
+async function inOpenBaseOrders(
+  prisma: PrismaService,
+  locationId: string,
+  prefix: string,
+): Promise<Map<string, number>> {
+  const rows = await prisma.productReservation.findMany({
+    where: {
+      // Still waiting here too: a piece handed over is already off our stock (the sale).
+      status: 'reserved',
+      baseOrderId: { not: null },
+      baseOrderState: 'reserved',
+      product: { locationId, externalRef: { startsWith: prefix } },
+    },
+    select: { quantity: true, product: { select: { externalRef: true } } },
+  });
+  const pieces = new Map<string, number>();
+  for (const r of rows) {
+    const ref = r.product?.externalRef;
+    if (ref) pieces.set(ref, (pieces.get(ref) ?? 0) + r.quantity);
+  }
+  return pieces;
+}
+
+/** Stock read from Base plus the pieces of our open orders in it (see `inOpenBaseOrders`). */
+const withOpenOrders = (stock: number | null, inOrders = 0): number | null =>
+  stock === null ? null : Math.min(100_000, stock + inOrders);
+
 type Configured = ShopIntegration & {
   inventoryId: string;
   priceGroupId: string;
@@ -358,6 +392,12 @@ export class ShopIntegrationsService {
       ? await this.base.manufacturers(token)
       : new Map<string, string>();
 
+    const inOrders = await inOpenBaseOrders(
+      this.prisma,
+      locationId,
+      `base:${integration.inventoryId}:`,
+    );
+
     const result: BaseImportResultResponse = {
       created: 0,
       updated: 0,
@@ -383,8 +423,9 @@ export class ShopIntegrationsService {
         result.skipped.push({ externalId: item.externalId, reason: 'NO_NAME' });
         continue;
       }
+      const externalRef = baseRef(integration.inventoryId, product.id);
       const outcome = await upsertSellerProduct(this.prisma, userId, locationId, {
-        externalRef: baseRef(integration.inventoryId, product.id),
+        externalRef,
         name,
         brand: product.manufacturerId
           ? cut(makers.get(product.manufacturerId) ?? '', 60) || null
@@ -392,7 +433,10 @@ export class ShopIntegrationsService {
         ean: normalEan(product.ean),
         description: plainText(product.description, 2000),
         priceGrosze,
-        stockQuantity: toStock(product.stock, integration.warehouseId),
+        stockQuantity: withOpenOrders(
+          toStock(product.stock, integration.warehouseId),
+          inOrders.get(externalRef),
+        ),
         online: item.online,
         source: 'Base',
       });
@@ -502,6 +546,7 @@ export class ShopIntegrationsService {
         where: { locationId: integration.locationId, externalRef: { startsWith: prefix } },
         select: { id: true, externalRef: true, priceGrosze: true, stockQuantity: true },
       });
+      const inOrders = await inOpenBaseOrders(this.prisma, integration.locationId, prefix);
       const inBase = new Map<string, BaseListedProduct>();
       if (products.length > 0) {
         for (let page = 1; page <= MAX_SYNC_PAGES; page += 1) {
@@ -514,7 +559,12 @@ export class ShopIntegrationsService {
         checked += 1;
         const found = inBase.get(product.externalRef?.slice(prefix.length) ?? '');
         const price = found ? toGrosze(found.prices[integration.priceGroupId]) : null;
-        const stock = found ? toStock(found.stock, integration.warehouseId) : 0;
+        const stock = found
+          ? withOpenOrders(
+              toStock(found.stock, integration.warehouseId),
+              inOrders.get(product.externalRef ?? ''),
+            )
+          : 0;
         if (!found) missing += 1;
         const data: Prisma.ProductUpdateInput = {};
         if (price !== null && price !== product.priceGrosze) data.priceGrosze = price;
