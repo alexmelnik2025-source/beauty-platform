@@ -451,6 +451,21 @@ export class AppointmentsService {
         'The appointment has not started yet',
       );
     }
+    // Task 615b: products sold at a "came" visit took pieces from the shelf and are in the
+    // products report and the client's purchases; a visit that did not take place cannot keep
+    // them, so they are removed first (which puts the pieces back) — on purpose, by hand.
+    if (appointment.status === 'completed' && input.status !== 'completed') {
+      const sold = await this.prisma.productSale.count({
+        where: { appointmentId: appointment.id },
+      });
+      if (sold > 0) {
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'HAS_PRODUCT_SALES',
+          'Remove the products sold at this visit before marking it as not having taken place',
+        );
+      }
+    }
     await this.prisma.$transaction(async (tx) => {
       // A visit that is no longer "came" is no longer paid either: what it earned is taken back.
       const unpay = input.status !== 'completed' && appointment.paidAt !== null;

@@ -118,6 +118,7 @@ export const pl = {
     tillShouldBe:
       'Powinno być w kasie: {sum} (za wizyty gotówką {visits}, wpłaty {in}, wypłaty {out})',
     tillVouchersSold: 'Bony podarunkowe sprzedane za gotówkę: {sum}',
+    tillVisitsProducts: 'W tym produkty sprzedane przy wizytach: {sum}.',
     tillVisitsVouchers:
       'Za wizyty zapłacono bonami: {sum} — tych pieniędzy nie ma w kasie (salon dostał je przy sprzedaży bonu).',
     status: { confirmed: 'Potwierdzona', completed: 'Zakończona', no_show: 'Nie przyszedł' },

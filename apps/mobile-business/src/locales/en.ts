@@ -120,6 +120,7 @@ export const en: Dictionary = {
     tillMoves: 'Cash in and out',
     tillShouldBe: 'Should be in the till: {sum} (cash visits {visits}, in {in}, out {out})',
     tillVouchersSold: 'Gift vouchers sold for cash: {sum}',
+    tillVisitsProducts: 'Including products sold at the visits: {sum}.',
     tillVisitsVouchers:
       'Paid for visits with gift vouchers: {sum} — this money is not in the till (the salon took it when the voucher was sold).',
     status: { confirmed: 'Confirmed', completed: 'Completed', no_show: 'No-show' },

@@ -1444,10 +1444,12 @@ export class ReportsService {
       nonCashGrosze: 0,
     }));
     // Task 553: what each counted day brought not in cash (task 552) — to check with the terminal.
-    for (const d of days) {
-      const rows = await otherPaymentsOfDay(this.prisma, location, d.date);
-      d.nonCashGrosze = rows.reduce((sum, r) => sum + r.totalGrosze, 0);
-    }
+    await Promise.all(
+      days.map(async (d) => {
+        const rows = await otherPaymentsOfDay(this.prisma, location, d.date);
+        d.nonCashGrosze = rows.reduce((sum, r) => sum + r.totalGrosze, 0);
+      }),
+    );
     return { days, differenceGrosze: days.reduce((sum, d) => sum + d.differenceGrosze, 0) };
   }
 

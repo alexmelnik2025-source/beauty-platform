@@ -134,6 +134,11 @@ function ExpectedText({ view, t, locale }: PartProps) {
           {fill(t.day.tillVouchersSold, { sum: money(view.vouchersCashGrosze) })}
         </Text>
       ) : null}
+      {view.visitsProductsGrosze > 0 ? (
+        <Text style={styles.muted}>
+          {fill(t.day.tillVisitsProducts, { sum: money(view.visitsProductsGrosze) })}
+        </Text>
+      ) : null}
       {view.visitsVoucherGrosze > 0 ? (
         <Text style={styles.muted}>
           {fill(t.day.tillVisitsVouchers, { sum: money(view.visitsVoucherGrosze) })}

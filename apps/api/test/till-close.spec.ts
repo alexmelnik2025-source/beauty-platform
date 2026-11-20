@@ -624,6 +624,7 @@ describe('"Inne płatności" — what the day brought not in cash (task 552)', (
         method: 'card',
         visits: 2,
         visitsGrosze: 13_000, // 80,00 − 30,00 + 80,00
+        productsGrosze: 0,
         vouchers: 0,
         vouchersGrosze: 0,
         totalGrosze: 13_000,
@@ -632,6 +633,7 @@ describe('"Inne płatności" — what the day brought not in cash (task 552)', (
         method: 'transfer',
         visits: 1,
         visitsGrosze: 8000,
+        productsGrosze: 0,
         vouchers: 0,
         vouchersGrosze: 0,
         totalGrosze: 8000,
@@ -656,6 +658,7 @@ describe('"Inne płatności" — what the day brought not in cash (task 552)', (
         method: 'card',
         visits: 0,
         visitsGrosze: 0,
+        productsGrosze: 0,
         vouchers: 1,
         vouchersGrosze: 7000,
         totalGrosze: 7000,
@@ -664,6 +667,7 @@ describe('"Inne płatności" — what the day brought not in cash (task 552)', (
         method: 'blik',
         visits: 0,
         visitsGrosze: 0,
+        productsGrosze: 0,
         vouchers: 2,
         vouchersGrosze: 20_000,
         totalGrosze: 20_000,
@@ -691,5 +695,111 @@ describe('"Inne płatności" — what the day brought not in cash (task 552)', (
     const again = (await close({ date: DAY, countedCashGrosze: 0 }).expect(200)).body;
     expect(again.close.nonCashChecked).toBe(false);
     await close({ date: DAY, countedCashGrosze: 0, nonCashChecked: 'yes' }).expect(400);
+  });
+});
+
+describe('products sold at the visits are in the till of their way of paying (task 615)', () => {
+  const product = async (name: string, priceGrosze: number) =>
+    (
+      await ctx
+        .http()
+        .post(`${base}/products`)
+        .set(owner.auth)
+        .send({ name, priceGrosze })
+        .expect(201)
+    ).body.id as string;
+  const sell = (visitId: string, productId: string, quantity = 1) =>
+    ctx
+      .http()
+      .post(`${base}/appointments/${visitId}/products`)
+      .set(owner.auth)
+      .send({ productId, quantity })
+      .expect(201);
+
+  it('a cash visit with products: the till expects the products too; a card one — "Bez gotówki"', async () => {
+    const pomade = await product('Pomada', 4500);
+    const shampoo = await product('Szampon', 3000);
+    const cash = (await walkIn(at(9), { paid: true, paymentMethod: 'cash' }).expect(201)).body;
+    const card = (await walkIn(at(10), { paid: true, paymentMethod: 'card' }).expect(201)).body;
+    const unpaid = (await walkIn(at(11)).expect(201)).body;
+    await sell(cash.id, pomade, 2);
+    await sell(card.id, shampoo);
+    await sell(unpaid.id, shampoo); // not paid — in no till
+
+    const res = await till().expect(200);
+    expect(registeredResponseSchema('TillClose').safeParse(res.body).error?.issues ?? []).toEqual(
+      [],
+    );
+    expect(res.body).toMatchObject({
+      visitsCashGrosze: 17_000, // 80,00 + 2 × 45,00
+      visitsProductsGrosze: 9000,
+      expectedCashGrosze: 17_000,
+    });
+    expect(res.body.otherPayments).toEqual([
+      {
+        method: 'card',
+        visits: 1,
+        visitsGrosze: 11_000, // 80,00 + 30,00
+        productsGrosze: 3000,
+        vouchers: 0,
+        vouchersGrosze: 0,
+        totalGrosze: 11_000,
+      },
+    ]);
+
+    // The counted cash with the products matches — no "surplus" of what the products brought.
+    const closed = (await close({ date: DAY, countedCashGrosze: 17_000 }).expect(200)).body;
+    expect(closed.close.differenceGrosze).toBe(0);
+  });
+
+  it('a gift voucher pays the service, the products are still paid in cash', async () => {
+    const pomade = await product('Pomada', 4500);
+    const visit = (await walkIn(at(9), { paid: true, paymentMethod: 'cash' }).expect(201)).body;
+    await sell(visit.id, pomade);
+    const voucher = (
+      await ctx.http().post(`${base}/gift-vouchers`).set(owner.auth).send({ amountGrosze: 20_000 })
+    ).body;
+    await ctx
+      .http()
+      .post(`${base}/gift-vouchers/${voucher.id}/redeem`)
+      .set(owner.auth)
+      .send({ amountGrosze: 8000, appointmentId: visit.id })
+      .expect(200);
+    expect((await till().expect(200)).body).toMatchObject({
+      visitsCashGrosze: 4500,
+      visitsVoucherGrosze: 8000,
+      visitsProductsGrosze: 4500,
+    });
+  });
+
+  it('a "came" visit with products is not marked "Nie przyszedł" until they are removed (task 615b)', async () => {
+    const pomade = await product('Pomada', 4500);
+    const visit = (await walkIn(at(9), { paid: true, paymentMethod: 'cash' }).expect(201)).body;
+    const sale = (await sell(visit.id, pomade)).body.sales[0].id as string;
+    const status = (version: number) =>
+      ctx
+        .http()
+        .post(`${base}/appointments/${visit.id}/status`)
+        .set(owner.auth)
+        .send({ version, status: 'no_show' });
+    const current = async () =>
+      (await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: visit.id } })).version;
+    expectError((await status(await current()).expect(409)).body, 'HAS_PRODUCT_SALES');
+    // Nothing changed: still "came", paid, the pomade in the till.
+    expect(
+      await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: visit.id } }),
+    ).toMatchObject({ status: 'completed', paymentMethod: 'cash' });
+    expect((await till().expect(200)).body.visitsProductsGrosze).toBe(4500);
+
+    await ctx
+      .http()
+      .delete(`${base}/appointments/${visit.id}/products/${sale}`)
+      .set(owner.auth)
+      .expect(200);
+    await status(await current()).expect(200);
+    expect((await till().expect(200)).body).toMatchObject({
+      visitsCashGrosze: 0,
+      visitsProductsGrosze: 0,
+    });
   });
 });

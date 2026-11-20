@@ -202,7 +202,11 @@ export class AppointmentsController {
 
   @Post(':appointmentId/status')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Mark "came" (completed) or "did not come" (no_show)' })
+  @ApiOperation({
+    summary: 'Mark "came" (completed) or "did not come" (no_show)',
+    description:
+      'Task 615b: a "came" visit with products sold at it cannot become "did not come" until they are removed (409 HAS_PRODUCT_SALES).',
+  })
   @ApiZodBody(setStatusSchema)
   @ApiZodResponse(appointmentDetailSchema)
   setStatus(

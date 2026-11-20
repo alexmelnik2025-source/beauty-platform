@@ -5902,6 +5902,7 @@
     },
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/status": {
       "post": {
+        "description": "Task 615b: a \"came\" visit with products sold at it cannot become \"did not come\" until they are removed (409 HAS_PRODUCT_SALES).",
         "operationId": "AppointmentsController_setStatus",
         "parameters": [
           {
@@ -31160,13 +31161,19 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers), in hundredths of the salon currency"
+            "description": "What the visits of the day paid in cash brought in cash (task 546: without what was paid with gift vouchers; task 615: with the products sold at them), in hundredths of the salon currency"
           },
           "visitsVoucherGrosze": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Task 546: the part of the cash visits paid with gift vouchers — not in the till (the salon took that money when it sold the voucher), in hundredths of the salon currency"
+          },
+          "visitsProductsGrosze": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Task 615: the part of visitsCashGrosze that is products sold at those visits (paid with the visit), in hundredths of the salon currency"
           },
           "vouchersCashGrosze": {
             "type": "integer",
@@ -31198,7 +31205,13 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
-                  "description": "What those visits brought (price minus discounts minus what was paid with gift vouchers), in hundredths of the salon currency"
+                  "description": "What those visits brought (price minus discounts minus what was paid with gift vouchers, plus — task 615 — the products sold at them), in hundredths of the salon currency"
+                },
+                "productsGrosze": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Task 615: the part of visitsGrosze that is products sold at those visits, in hundredths of the salon currency"
                 },
                 "vouchers": {
                   "type": "integer",
@@ -31223,6 +31236,7 @@
                 "method",
                 "visits",
                 "visitsGrosze",
+                "productsGrosze",
                 "vouchers",
                 "vouchersGrosze",
                 "totalGrosze"
@@ -31348,6 +31362,7 @@
           "expectedCashGrosze",
           "visitsCashGrosze",
           "visitsVoucherGrosze",
+          "visitsProductsGrosze",
           "vouchersCashGrosze",
           "otherPayments",
           "cashInGrosze",

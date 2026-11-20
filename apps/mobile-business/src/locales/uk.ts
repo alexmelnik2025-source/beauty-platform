@@ -118,6 +118,7 @@ export const uk: Dictionary = {
     tillShouldBe:
       'Має бути в касі: {sum} (за візити готівкою {visits}, внесення {in}, виплати {out})',
     tillVouchersSold: 'Подарункові сертифікати, продані за готівку: {sum}',
+    tillVisitsProducts: 'У тому числі товари, продані на візитах: {sum}.',
     tillVisitsVouchers:
       'За візити оплачено сертифікатами: {sum} — цих грошей немає в касі (салон отримав їх під час продажу сертифіката).',
     status: { confirmed: 'Підтверджено', completed: 'Завершено', no_show: 'Не прийшов' },
