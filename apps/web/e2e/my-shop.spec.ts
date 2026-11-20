@@ -145,8 +145,9 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   const row = page.getByTestId(`shop-product-${pomade.id}`);
   await expect(row.getByText('Pomada Reuzel różowa')).toBeVisible();
   await expect(row.getByText('4 szt.')).toBeVisible();
-  // Nothing about shipping at the launch.
-  await expect(page.getByText(/wysyłk/i)).toHaveCount(0);
+  // No way to switch shipping on at the launch — only the note that the client pays at the salon.
+  await expect(page.getByRole('checkbox', { name: /wysyłk/i })).toHaveCount(0);
+  await expect(page.getByText('bez płatności online i bez wysyłki')).toBeVisible();
 
   // Shown to clients on the salon page.
   await row.getByLabel('Pokaż klientom na stronie salonu').check();
