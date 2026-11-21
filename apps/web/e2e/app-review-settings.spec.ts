@@ -93,6 +93,7 @@ test('business app: the owner switches reviews on and chooses when clients are a
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Opinie', exact: true }).click();
     await expect(phone.getByText('Ustawienia opinii')).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Nie zbieraj' })).toHaveAttribute(

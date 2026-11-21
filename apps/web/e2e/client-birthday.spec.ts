@@ -567,6 +567,7 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     const appOverdue = app.getByTestId('report-overdue');
     await expect(appOverdue).toContainText('Pora wrócić: 1');

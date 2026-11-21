@@ -168,6 +168,7 @@ test('the owner sends the order for the products to order to each supplier', asy
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Usługi' }).click();
     const appList = app.getByTestId('products');
     await appList.getByRole('button', { name: 'Wyślij zamówienie' }).click();

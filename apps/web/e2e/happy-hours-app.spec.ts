@@ -105,6 +105,23 @@ test('the owner adds and removes happy hours in the business app (task 99)', asy
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    // Task Q6: the menu is a bottom bar, as in the web cabinet on a phone — nothing runs off the
+    // right edge; "Więcej" lists the rest, one under another, all inside the screen.
+    for (const name of ['Kalendarz', 'Klienci', /^Powiadomienia/, 'Więcej']) {
+      const tab = app.getByRole('button', { name, exact: typeof name === 'string' });
+      await expect(tab).toBeVisible();
+      const box = (await tab.boundingBox())!;
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
+    await shot(app, 'q6-business-app-bottom-bar');
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
+    const menu = app.getByTestId('app-menu');
+    await expect(menu.getByRole('button', { name: 'Happy hours' })).toBeVisible();
+    for (const item of await menu.getByRole('button').all()) {
+      const box = (await item.boundingBox())!;
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
+    await shot(app, 'q6-business-app-more');
     await app.getByRole('button', { name: 'Happy hours' }).click();
     await expect(app.getByRole('heading', { name: 'Happy hours' })).toBeVisible();
     await expect(app.getByText('Nie ma jeszcze tańszych godzin.')).toBeVisible();

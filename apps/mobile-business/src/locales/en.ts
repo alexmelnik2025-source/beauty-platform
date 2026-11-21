@@ -71,6 +71,8 @@ export const en: Dictionary = {
     tomorrow: 'tomorrow',
     closedNow: 'Closed',
   },
+  /** Task Q6: the bottom bar of the day screen. */
+  nav: { calendar: 'Calendar', more: 'More' },
   day: {
     today: 'Today',
     previous: 'Previous day',

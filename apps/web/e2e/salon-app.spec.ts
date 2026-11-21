@@ -116,6 +116,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
     }
 
     // ── "Salon": phone without the country code, a description ──────────────
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Salon', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Salon', exact: true })).toBeVisible();
     await expect(app.getByLabel('Nazwa salonu')).toHaveValue('Gestalt Barbershop');

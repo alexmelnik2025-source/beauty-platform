@@ -122,6 +122,7 @@ test('business app: the owner sets and removes a specialist’s special day', as
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Grafik zespołu' }).click();
     await phone.getByRole('button', { name: 'Kasia', exact: true }).click();
     await expect(phone.getByRole('heading', { name: 'Grafik: Kasia' })).toBeVisible();

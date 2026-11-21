@@ -104,6 +104,7 @@ test('business app: the owner sets stamps per service', async ({ browser, reques
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
     await expect(phone.getByText('Wszystkie usługi według zasady ogólnej.')).toBeVisible();
     await phone.getByRole('button', { name: 'Zmień pieczątki i punkty za usługi' }).click();

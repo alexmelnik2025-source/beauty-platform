@@ -175,6 +175,7 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     // ── The price list by category ─────────────────────────────────────
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Usługi' }).click();
     await expect(app.getByRole('heading', { name: 'Usługi', exact: true })).toBeVisible();
     await expect(app.getByRole('heading', { name: 'Włosy' })).toBeVisible();

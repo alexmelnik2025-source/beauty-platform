@@ -301,6 +301,7 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     await shot(phone, '548-business-app-till-with-vouchers');
 
     await phone.getByRole('button', { name: 'Dziś' }).click();
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Bony podarunkowe' }).click();
     await expect(phone.getByRole('heading', { name: 'Bony podarunkowe' })).toBeVisible();
     await expect(phone.getByText('Jak klient zapłacił za bon').first()).toBeVisible();

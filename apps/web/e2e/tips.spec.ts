@@ -244,6 +244,7 @@ test('the owner notes a tip; the till and the report show it apart from the reve
     await shot(app, '229-c-business-app-visit-tip');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(appTill.getByTestId('till-tips')).toHaveText(/Napiwki 20,00\s*zł/);
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appTips = app.getByTestId('report-tips');

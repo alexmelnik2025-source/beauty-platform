@@ -106,6 +106,7 @@ test('business app: a specialist chooses the languages she speaks with clients',
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Mój profil' }).click();
     await expect(phone.getByRole('heading', { name: 'Mój profil' })).toBeVisible();
     await expect(phone.getByText('Kasia Nowak')).toBeVisible();

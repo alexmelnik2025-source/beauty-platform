@@ -107,6 +107,7 @@ test('the owner runs the loyalty program from the business app (task 206)', asyn
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Program lojalnościowy' }).click();
     await expect(app.getByRole('heading', { name: 'Program lojalnościowy' })).toBeVisible();
     await expect(app.getByText('Program wyłączony')).toBeVisible();
@@ -164,6 +165,7 @@ test('the owner runs the loyalty program from the business app (task 206)', asyn
       }),
     );
     await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Program lojalnościowy' }).click();
     await expect(app.getByText('Ręczna zmiana · Anna Kowalska')).toBeVisible();
     await expect(app.getByText(/^\+2 · saldo: 2 · /)).toBeVisible();

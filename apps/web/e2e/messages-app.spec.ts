@@ -94,6 +94,7 @@ test('the owner sets the messages to clients in the business app (task 208)', as
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Wiadomości do klientów' }).click();
     await expect(app.getByRole('heading', { name: 'Wiadomości do klientów' })).toBeVisible();
     // The salon's defaults: a reminder 24 hours before, nothing held, no "next visit" email.
@@ -130,6 +131,7 @@ test('the owner sets the messages to clients in the business app (task 208)', as
 
     // ── Opened again: the saved choices; "next visit" switched off keeps nothing to send ──
     await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Wiadomości do klientów' }).click();
     await expect(app.getByLabel('Ile dni po ostatniej wizycie (7–365)')).toHaveValue('30');
     await shot(app, '208a-business-app-messages-saved');

@@ -122,6 +122,7 @@ test('"Mój sklep" in the business app: shown to clients, a catalogue card, the 
     });
     const app = await context.newPage();
     await signInToApp(app, businessApp.url, OWNER);
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Mój sklep' }).click();
     await expect(app.getByRole('heading', { name: 'Mój sklep' })).toBeVisible();
     await expect(app.getByText('Pokazane klientom: 0 z 1 produktów.')).toBeVisible();

@@ -121,6 +121,7 @@ export function DayScreen(props: {
   const [canReport, setCanReport] = useState(salon.role !== 'staff');
   const [reportsOpen, setReportsOpen] = useState(false);
   const [weekOpen, setWeekOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [salonOpen, setSalonOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [salonName, setSalonName] = useState(salon.locationName);
@@ -571,321 +572,350 @@ export function DayScreen(props: {
     }
   }
 
-  return (
-    <ScrollView
-      contentContainerStyle={styles.screen}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-    >
-      <View style={styles.top}>
-        <Text style={styles.salon}>{salonName}</Text>
-        <View style={styles.row}>
-          {props.canChangeSalon ? (
-            <Button kind="link" label={t.changeSalon} onPress={props.onChangeSalon} />
-          ) : null}
-          <Button
-            kind="link"
-            label={unread > 0 ? `${t.notifications.open} (${badge(unread)})` : t.notifications.open}
-            onPress={() => setBellOpen(true)}
-          />
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.clients.open} onPress={() => setClientsOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.services.open} onPress={() => setServicesOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.happyHours.open} onPress={() => setHappyOpen(true)} />
-          ) : null}
-          {mayManageLoyalty(salon.role) ? (
-            <Button kind="link" label={t.loyalty.open} onPress={() => setLoyaltyOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.team.open} onPress={() => setTeamOpen(true)} />
-          ) : null}
-          {mayManageGuard(salon.role) ? (
-            <Button kind="link" label={t.guard.open} onPress={() => setGuardOpen(true)} />
-          ) : null}
-          {maySeeSalon(salon.role) ? (
-            <Button kind="link" label={t.salon.open} onPress={() => setSalonOpen(true)} />
-          ) : null}
-          {maySeeSalon(salon.role) ? (
-            <Button kind="link" label={t.messages.open} onPress={() => setMessagesOpen(true)} />
-          ) : null}
-          {mineId ? (
-            <Button kind="link" label={t.schedule.open} onPress={() => setScheduleOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button
-              kind="link"
-              label={t.schedule.teamOpen}
-              onPress={() => setTeamHoursOpen(true)}
-            />
-          ) : null}
-          {canReport ? (
-            <Button kind="link" label={t.reports.open} onPress={() => setReportsOpen(true)} />
-          ) : null}
-          {mineId ? (
-            <Button kind="link" label={t.profile.open} onPress={() => setProfileOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.bookingLink.open} onPress={() => setLinkOpen(true)} />
-          ) : null}
-          <Button kind="link" label={t.reviews.open} onPress={() => setReviewsOpen(true)} />
-          <Button kind="link" label={t.vouchers.open} onPress={() => setVouchersOpen(true)} />
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.shop.open} onPress={() => setShopOpen(true)} />
-          ) : null}
-          {mayViewHistory(salon.role) ? (
-            <Button kind="link" label={t.history.open} onPress={() => setHistoryOpen(true)} />
-          ) : null}
-          <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
-        </View>
-      </View>
-
-      <Heading>{dayTitle(date, props.locale)}</Heading>
-      <View style={styles.row}>
-        <Button
-          kind="secondary"
-          label="‹"
-          a11yLabel={t.day.previous}
-          onPress={() => setDate(addDays(date, -1))}
-        />
-        <Button
-          kind="secondary"
-          label={t.day.today}
-          onPress={() => setDate(today)}
-          disabled={date === today}
-        />
-        <Button
-          kind="secondary"
-          label="›"
-          a11yLabel={t.day.next}
-          onPress={() => setDate(addDays(date, 1))}
-        />
-        <Button kind="secondary" label={t.week.open} onPress={() => setWeekOpen(true)} />
-        <Button kind="link" label={t.day.refresh} onPress={load} />
-        {visits ? (
-          <Button kind="link" label={t.day.sharePlan} onPress={() => void sharePlan()} />
-        ) : null}
-      </View>
-      {rights && mayAddVisits(rights, mineId) ? (
-        <Button label={t.newVisit.open} onPress={() => setAdding(true)} />
+  // Task Q6: the menu no longer runs off the right edge — a bottom bar as in the web cabinet on a
+  // phone ("Kalendarz", "Klienci", "Powiadomienia", "Więcej"); everything else is listed under "Więcej".
+  const go = (open: (value: boolean) => void) => {
+    setMenuOpen(false);
+    open(true);
+  };
+  const bottomBar = (
+    <View style={styles.bottomBar}>
+      <BarTab label={t.nav.calendar} selected={!menuOpen} onPress={() => setMenuOpen(false)} />
+      {salon.role !== 'staff' ? (
+        <BarTab label={t.clients.open} selected={false} onPress={() => go(setClientsOpen)} />
       ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
-      {info ? <Text style={styles.info}>{info}</Text> : null}
+      <BarTab
+        label={unread > 0 ? `${t.notifications.open} (${badge(unread)})` : t.notifications.open}
+        selected={false}
+        onPress={() => go(setBellOpen)}
+      />
+      <BarTab label={t.nav.more} selected={menuOpen} onPress={() => setMenuOpen(true)} />
+    </View>
+  );
 
-      {maySeeSalon(salon.role) ? (
-        <SetupCard
-          api={api}
-          t={t}
-          salon={salon}
-          onOpen={(step) => {
-            setInfo('');
-            if (step === 'services') setServicesOpen(true);
-            else if (step === 'team' || step === 'hours') setTeamHoursOpen(true);
-            else setSalonOpen(true);
-          }}
-        />
-      ) : null}
-      {salon.role !== 'staff' && date === today ? (
-        <ClientsNowCard api={api} t={t} locale={props.locale} salon={salon} reloads={reloads} />
-      ) : null}
-      {salon.role !== 'staff' && date === today ? (
-        <TillReminder
-          api={api}
-          t={t}
-          locale={props.locale}
-          salon={salon}
-          today={today}
-          reloads={reloads}
-          onOpen={setDate}
-        />
-      ) : null}
-
-      {visits ? (
-        <>
-          <Text style={styles.section}>{t.day.working}</Text>
-          <Text style={styles.muted}>
-            {working.length === 0
-              ? t.day.nobodyWorks
-              : working.map((w) => `${w.name} ${w.hours}`).join(' · ')}
-          </Text>
-
-          {dayBlocks.length > 0 || targets.length > 0 ? (
-            <View style={[styles.row, styles.sectionRow]}>
-              <Text style={styles.section}>{t.blocks.title}</Text>
-              {targets.length > 0 ? (
-                <Button
-                  kind="link"
-                  label={`+ ${t.blocks.add}`}
-                  onPress={() => {
-                    setInfo('');
-                    setBlockOpen(true);
-                  }}
-                />
-              ) : null}
-            </View>
-          ) : null}
-          {dayBlocks.map((block) => (
-            <View key={block.id} style={styles.block}>
-              <Text style={styles.blockTime}>
-                {block.start}–{block.end} · {block.staff ?? t.blocks.wholeSalon}
-              </Text>
-              {block.reason ? <Text style={styles.muted}>{block.reason}</Text> : null}
-              {block.seriesId ? <Text style={styles.muted}>{t.blocks.weekly}</Text> : null}
-              {canRemoveBlock(block, targets) ? (
-                removeId === block.id ? (
-                  <View style={styles.row}>
-                    <Text style={styles.muted}>{t.blocks.removeAsk}</Text>
-                    <Button label={t.blocks.yes} onPress={() => void unblock(block.id)} />
-                    <Button
-                      kind="secondary"
-                      label={t.blocks.no}
-                      onPress={() => setRemoveId(null)}
-                    />
-                  </View>
-                ) : block.seriesId && removeId === `series:${block.id}` ? (
-                  <View style={styles.row}>
-                    <Text style={styles.muted}>{t.blocks.removeSeriesAsk}</Text>
-                    <Button
-                      label={t.blocks.removeSeriesYes}
-                      onPress={() => void unblock(block.id, block.seriesId ?? undefined)}
-                    />
-                    <Button
-                      kind="secondary"
-                      label={t.blocks.no}
-                      onPress={() => setRemoveId(null)}
-                    />
-                  </View>
-                ) : (
-                  <View style={styles.row}>
-                    <Button
-                      kind="link"
-                      label={t.blocks.remove}
-                      a11yLabel={`${t.blocks.remove} ${block.start}–${block.end}`}
-                      onPress={() => setRemoveId(block.id)}
-                    />
-                    {block.seriesId ? (
-                      <Button
-                        kind="link"
-                        label={t.blocks.removeSeries}
-                        a11yLabel={`${t.blocks.removeSeries} ${block.start}–${block.end}`}
-                        onPress={() => setRemoveId(`series:${block.id}`)}
-                      />
-                    ) : null}
-                  </View>
-                )
-              ) : null}
-            </View>
-          ))}
-
-          <View style={[styles.row, styles.sectionRow]}>
-            <Text style={styles.section}>
-              {t.day.visits} ({visits.length})
-            </Text>
-            {showMineSwitch ? (
+  if (menuOpen) {
+    return (
+      <View style={styles.frame}>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <Text style={styles.salon}>{salonName}</Text>
+          <Heading>{t.nav.more}</Heading>
+          <View style={styles.menu} testID="app-menu">
+            {props.canChangeSalon ? (
+              <Button kind="link" label={t.changeSalon} onPress={props.onChangeSalon} />
+            ) : null}
+            {salon.role !== 'staff' ? (
+              <Button kind="link" label={t.services.open} onPress={() => go(setServicesOpen)} />
+            ) : null}
+            {salon.role !== 'staff' ? (
+              <Button kind="link" label={t.happyHours.open} onPress={() => go(setHappyOpen)} />
+            ) : null}
+            {mayManageLoyalty(salon.role) ? (
+              <Button kind="link" label={t.loyalty.open} onPress={() => go(setLoyaltyOpen)} />
+            ) : null}
+            {salon.role !== 'staff' ? (
+              <Button kind="link" label={t.team.open} onPress={() => go(setTeamOpen)} />
+            ) : null}
+            {mayManageGuard(salon.role) ? (
+              <Button kind="link" label={t.guard.open} onPress={() => go(setGuardOpen)} />
+            ) : null}
+            {maySeeSalon(salon.role) ? (
+              <Button kind="link" label={t.salon.open} onPress={() => go(setSalonOpen)} />
+            ) : null}
+            {maySeeSalon(salon.role) ? (
+              <Button kind="link" label={t.messages.open} onPress={() => go(setMessagesOpen)} />
+            ) : null}
+            {mineId ? (
+              <Button kind="link" label={t.schedule.open} onPress={() => go(setScheduleOpen)} />
+            ) : null}
+            {salon.role !== 'staff' ? (
               <Button
                 kind="link"
-                label={mineOnly ? t.day.everyone : t.day.onlyMine}
-                onPress={() => setMineOnly(!mineOnly)}
+                label={t.schedule.teamOpen}
+                onPress={() => go(setTeamHoursOpen)}
               />
             ) : null}
+            {canReport ? (
+              <Button kind="link" label={t.reports.open} onPress={() => go(setReportsOpen)} />
+            ) : null}
+            {mineId ? (
+              <Button kind="link" label={t.profile.open} onPress={() => go(setProfileOpen)} />
+            ) : null}
+            {salon.role !== 'staff' ? (
+              <Button kind="link" label={t.bookingLink.open} onPress={() => go(setLinkOpen)} />
+            ) : null}
+            <Button kind="link" label={t.reviews.open} onPress={() => go(setReviewsOpen)} />
+            <Button kind="link" label={t.vouchers.open} onPress={() => go(setVouchersOpen)} />
+            {salon.role !== 'staff' ? (
+              <Button kind="link" label={t.shop.open} onPress={() => go(setShopOpen)} />
+            ) : null}
+            {mayViewHistory(salon.role) ? (
+              <Button kind="link" label={t.history.open} onPress={() => go(setHistoryOpen)} />
+            ) : null}
+            <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
           </View>
-          {till ? (
-            <View style={styles.till} testID="till" accessibilityRole="summary">
-              <Text style={styles.tillTotal}>
-                {fill(t.day.till, {
-                  amount: formatPrice(till.revenueGrosze, till.currency, props.locale),
-                })}
-                {till.own ? ` · ${t.day.tillOwn}` : ''}
-              </Text>
-              {till.methods.length > 0 ? (
-                <Text style={styles.muted}>
-                  {till.methods
-                    .map(
-                      (m) =>
-                        `${m.method === 'unknown' ? t.reports.paymentsUnknown : t.visit.paymentMethods[m.method]} ${formatPrice(m.revenueGrosze, till.currency, props.locale)}`,
-                    )
-                    .join(' · ')}
-                </Text>
-              ) : null}
-              {till.tipsGrosze > 0 ? (
-                <Text style={styles.muted} testID="till-tips">
-                  {fill(t.day.tillTips, {
-                    amount: formatPrice(till.tipsGrosze, till.currency, props.locale),
-                  })}
-                </Text>
-              ) : null}
-              {till.unpaid > 0 ? (
-                <Text style={styles.tillUnpaid}>
-                  {fill(t.day.tillUnpaid, { n: String(till.unpaid) })}
-                </Text>
-              ) : null}
-              {till.own ? null : (
-                // Task 232: "Zamknij kasę" — owners and managers (the whole salon's till).
-                <TillCloseSection
-                  api={api}
-                  t={t}
-                  locale={props.locale}
-                  salon={salon}
-                  date={date}
-                  timeZone={props.timeZone}
-                  reloads={reloads}
-                />
-              )}
-            </View>
-          ) : null}
-          {visits.length === 0 ? <Text style={styles.muted}>{t.day.empty}</Text> : null}
-          {visits.map((v) => (
-            <Pressable
-              key={v.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${v.start} ${v.waiting ? '⏳ ' : ''}${v.birthday ? '🎂 ' : ''}${v.customer ?? t.day.walkIn} · ${v.service}`}
-              onPress={() => setOpenId(v.id)}
-              style={({ pressed }) => pressed && { opacity: 0.7 }}
-            >
-              <Card>
-                <View style={styles.cardTop}>
-                  <Text style={styles.time}>
-                    {v.start}–{v.end}
-                  </Text>
-                  <Text style={[styles.badge, v.status === 'no_show' && styles.badgeBad]}>
-                    {t.day.status[v.status as keyof Dictionary['day']['status']] ?? v.status}
-                  </Text>
-                </View>
-                <Text style={styles.customer}>
-                  {v.waiting ? '⏳ ' : ''}
-                  {v.birthday ? '🎂 ' : ''}
-                  {v.customer ?? t.day.walkIn}
-                </Text>
-                <Text style={styles.muted}>
-                  {v.service} · {v.staff}
-                </Text>
-                {v.phone ? <Text style={styles.muted}>{v.phone}</Text> : null}
-              </Card>
-            </Pressable>
-          ))}
+        </ScrollView>
+        {bottomBar}
+      </View>
+    );
+  }
 
-          {salon.role !== 'staff' && rights ? (
-            <WaitlistSection
-              api={api}
-              t={t}
-              salon={salon}
-              date={date}
-              today={today}
-              timeZone={props.timeZone}
-              reload={reloads}
-              onBook={(entry) => {
-                setPreset(presetFromEntry(entry));
-                setAdding(true);
-              }}
-            />
+  return (
+    <View style={styles.frame}>
+      <ScrollView
+        style={styles.frame}
+        contentContainerStyle={styles.screen}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      >
+        <View style={styles.top}>
+          <Text style={styles.salon}>{salonName}</Text>
+        </View>
+
+        <Heading>{dayTitle(date, props.locale)}</Heading>
+        <View style={styles.row}>
+          <Button
+            kind="secondary"
+            label="‹"
+            a11yLabel={t.day.previous}
+            onPress={() => setDate(addDays(date, -1))}
+          />
+          <Button
+            kind="secondary"
+            label={t.day.today}
+            onPress={() => setDate(today)}
+            disabled={date === today}
+          />
+          <Button
+            kind="secondary"
+            label="›"
+            a11yLabel={t.day.next}
+            onPress={() => setDate(addDays(date, 1))}
+          />
+          <Button kind="secondary" label={t.week.open} onPress={() => setWeekOpen(true)} />
+          <Button kind="link" label={t.day.refresh} onPress={load} />
+          {visits ? (
+            <Button kind="link" label={t.day.sharePlan} onPress={() => void sharePlan()} />
           ) : null}
-        </>
-      ) : !error ? (
-        <Text style={styles.muted}>{t.loading}</Text>
-      ) : null}
-    </ScrollView>
+        </View>
+        {rights && mayAddVisits(rights, mineId) ? (
+          <Button label={t.newVisit.open} onPress={() => setAdding(true)} />
+        ) : null}
+        {error ? <ErrorText>{error}</ErrorText> : null}
+        {info ? <Text style={styles.info}>{info}</Text> : null}
+
+        {maySeeSalon(salon.role) ? (
+          <SetupCard
+            api={api}
+            t={t}
+            salon={salon}
+            onOpen={(step) => {
+              setInfo('');
+              if (step === 'services') setServicesOpen(true);
+              else if (step === 'team' || step === 'hours') setTeamHoursOpen(true);
+              else setSalonOpen(true);
+            }}
+          />
+        ) : null}
+        {salon.role !== 'staff' && date === today ? (
+          <ClientsNowCard api={api} t={t} locale={props.locale} salon={salon} reloads={reloads} />
+        ) : null}
+        {salon.role !== 'staff' && date === today ? (
+          <TillReminder
+            api={api}
+            t={t}
+            locale={props.locale}
+            salon={salon}
+            today={today}
+            reloads={reloads}
+            onOpen={setDate}
+          />
+        ) : null}
+
+        {visits ? (
+          <>
+            <Text style={styles.section}>{t.day.working}</Text>
+            <Text style={styles.muted}>
+              {working.length === 0
+                ? t.day.nobodyWorks
+                : working.map((w) => `${w.name} ${w.hours}`).join(' · ')}
+            </Text>
+
+            {dayBlocks.length > 0 || targets.length > 0 ? (
+              <View style={[styles.row, styles.sectionRow]}>
+                <Text style={styles.section}>{t.blocks.title}</Text>
+                {targets.length > 0 ? (
+                  <Button
+                    kind="link"
+                    label={`+ ${t.blocks.add}`}
+                    onPress={() => {
+                      setInfo('');
+                      setBlockOpen(true);
+                    }}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+            {dayBlocks.map((block) => (
+              <View key={block.id} style={styles.block}>
+                <Text style={styles.blockTime}>
+                  {block.start}–{block.end} · {block.staff ?? t.blocks.wholeSalon}
+                </Text>
+                {block.reason ? <Text style={styles.muted}>{block.reason}</Text> : null}
+                {block.seriesId ? <Text style={styles.muted}>{t.blocks.weekly}</Text> : null}
+                {canRemoveBlock(block, targets) ? (
+                  removeId === block.id ? (
+                    <View style={styles.row}>
+                      <Text style={styles.muted}>{t.blocks.removeAsk}</Text>
+                      <Button label={t.blocks.yes} onPress={() => void unblock(block.id)} />
+                      <Button
+                        kind="secondary"
+                        label={t.blocks.no}
+                        onPress={() => setRemoveId(null)}
+                      />
+                    </View>
+                  ) : block.seriesId && removeId === `series:${block.id}` ? (
+                    <View style={styles.row}>
+                      <Text style={styles.muted}>{t.blocks.removeSeriesAsk}</Text>
+                      <Button
+                        label={t.blocks.removeSeriesYes}
+                        onPress={() => void unblock(block.id, block.seriesId ?? undefined)}
+                      />
+                      <Button
+                        kind="secondary"
+                        label={t.blocks.no}
+                        onPress={() => setRemoveId(null)}
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.row}>
+                      <Button
+                        kind="link"
+                        label={t.blocks.remove}
+                        a11yLabel={`${t.blocks.remove} ${block.start}–${block.end}`}
+                        onPress={() => setRemoveId(block.id)}
+                      />
+                      {block.seriesId ? (
+                        <Button
+                          kind="link"
+                          label={t.blocks.removeSeries}
+                          a11yLabel={`${t.blocks.removeSeries} ${block.start}–${block.end}`}
+                          onPress={() => setRemoveId(`series:${block.id}`)}
+                        />
+                      ) : null}
+                    </View>
+                  )
+                ) : null}
+              </View>
+            ))}
+
+            <View style={[styles.row, styles.sectionRow]}>
+              <Text style={styles.section}>
+                {t.day.visits} ({visits.length})
+              </Text>
+              {showMineSwitch ? (
+                <Button
+                  kind="link"
+                  label={mineOnly ? t.day.everyone : t.day.onlyMine}
+                  onPress={() => setMineOnly(!mineOnly)}
+                />
+              ) : null}
+            </View>
+            {till ? (
+              <View style={styles.till} testID="till" accessibilityRole="summary">
+                <Text style={styles.tillTotal}>
+                  {fill(t.day.till, {
+                    amount: formatPrice(till.revenueGrosze, till.currency, props.locale),
+                  })}
+                  {till.own ? ` · ${t.day.tillOwn}` : ''}
+                </Text>
+                {till.methods.length > 0 ? (
+                  <Text style={styles.muted}>
+                    {till.methods
+                      .map(
+                        (m) =>
+                          `${m.method === 'unknown' ? t.reports.paymentsUnknown : t.visit.paymentMethods[m.method]} ${formatPrice(m.revenueGrosze, till.currency, props.locale)}`,
+                      )
+                      .join(' · ')}
+                  </Text>
+                ) : null}
+                {till.tipsGrosze > 0 ? (
+                  <Text style={styles.muted} testID="till-tips">
+                    {fill(t.day.tillTips, {
+                      amount: formatPrice(till.tipsGrosze, till.currency, props.locale),
+                    })}
+                  </Text>
+                ) : null}
+                {till.unpaid > 0 ? (
+                  <Text style={styles.tillUnpaid}>
+                    {fill(t.day.tillUnpaid, { n: String(till.unpaid) })}
+                  </Text>
+                ) : null}
+                {till.own ? null : (
+                  // Task 232: "Zamknij kasę" — owners and managers (the whole salon's till).
+                  <TillCloseSection
+                    api={api}
+                    t={t}
+                    locale={props.locale}
+                    salon={salon}
+                    date={date}
+                    timeZone={props.timeZone}
+                    reloads={reloads}
+                  />
+                )}
+              </View>
+            ) : null}
+            {visits.length === 0 ? <Text style={styles.muted}>{t.day.empty}</Text> : null}
+            {visits.map((v) => (
+              <Pressable
+                key={v.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${v.start} ${v.waiting ? '⏳ ' : ''}${v.birthday ? '🎂 ' : ''}${v.customer ?? t.day.walkIn} · ${v.service}`}
+                onPress={() => setOpenId(v.id)}
+                style={({ pressed }) => pressed && { opacity: 0.7 }}
+              >
+                <Card>
+                  <View style={styles.cardTop}>
+                    <Text style={styles.time}>
+                      {v.start}–{v.end}
+                    </Text>
+                    <Text style={[styles.badge, v.status === 'no_show' && styles.badgeBad]}>
+                      {t.day.status[v.status as keyof Dictionary['day']['status']] ?? v.status}
+                    </Text>
+                  </View>
+                  <Text style={styles.customer}>
+                    {v.waiting ? '⏳ ' : ''}
+                    {v.birthday ? '🎂 ' : ''}
+                    {v.customer ?? t.day.walkIn}
+                  </Text>
+                  <Text style={styles.muted}>
+                    {v.service} · {v.staff}
+                  </Text>
+                  {v.phone ? <Text style={styles.muted}>{v.phone}</Text> : null}
+                </Card>
+              </Pressable>
+            ))}
+
+            {salon.role !== 'staff' && rights ? (
+              <WaitlistSection
+                api={api}
+                t={t}
+                salon={salon}
+                date={date}
+                today={today}
+                timeZone={props.timeZone}
+                reload={reloads}
+                onBook={(entry) => {
+                  setPreset(presetFromEntry(entry));
+                  setAdding(true);
+                }}
+              />
+            ) : null}
+          </>
+        ) : !error ? (
+          <Text style={styles.muted}>{t.loading}</Text>
+        ) : null}
+      </ScrollView>
+      {bottomBar}
+    </View>
   );
 }
 
@@ -901,8 +931,42 @@ function textShareTools(): TextShareTools {
   };
 }
 
+/** Task Q6: one place in the bottom bar. */
+function BarTab(props: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      accessibilityState={{ selected: props.selected }}
+      onPress={props.onPress}
+      style={({ pressed }) => [styles.tab, pressed && { opacity: 0.6 }]}
+    >
+      <Text numberOfLines={1} style={[styles.tabText, props.selected && styles.tabSelected]}>
+        {props.label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  frame: { flex: 1 },
   screen: { padding: 20, gap: 12 },
+  menu: { gap: 4, alignItems: 'flex-start' },
+  bottomBar: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    backgroundColor: colors.card,
+  },
+  tab: {
+    flex: 1,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  tabText: { fontSize: 13, color: colors.muted, fontWeight: '600' },
+  tabSelected: { color: colors.ink },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },

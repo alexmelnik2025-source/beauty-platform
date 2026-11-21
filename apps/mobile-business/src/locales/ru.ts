@@ -69,6 +69,8 @@ export const ru: Dictionary = {
     tomorrow: 'завтра',
     closedNow: 'Закрыто',
   },
+  /** Task Q6: the bottom bar of the day screen. */
+  nav: { calendar: 'Календарь', more: 'Ещё' },
   day: {
     today: 'Сегодня',
     previous: 'Предыдущий день',
