@@ -12,6 +12,11 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **21.11.2026, ~23:55 UTC — Q6, часть 4 (ветка `agent/630-q6-cabinet-groups`, от main): меню кабинета на ПК в
+  группах** (полировка, ничего не удалено). Сверху «Kalendarz», «Klienci», «Powiadomienia», дальше три тихие подписи:
+  «Oferta» (Usługi, Happy hours, Bony, Mój sklep, Program lojalnościowy), «Rezerwacje» (Lista oczekujących, Ochrona,
+  Opinie), «Salon» (Zespół / Mój grafik, Raporty, Ustawienia, Dziennik zmian). На телефоне «Więcej» — тот же порядок.
+  e2e `cabinet-a11y.spec.ts`, скриншот `q6-cabinet-menu-groups`.
 - **21.11.2026, ~23:45 UTC — Q6, часть 3 (ветка `agent/629-q6-app-menu`, от main): меню бизнес-приложения не
   обрезается** (полировка, ничего не удалено). Было: ~20 ссылок в одну строку сверху, видно 3–4, остальное уходило за
   правый край. Стало: нижнее меню как в веб-кабинете на телефоне — «Kalendarz», «Klienci» (не у мастера),
