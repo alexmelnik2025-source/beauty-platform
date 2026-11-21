@@ -1098,6 +1098,9 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await signIn(ownerMobile, OWNER);
   await ownerMobile.goto(`/pl/app/calendar?date=${visit!.date}`);
   await expect(ownerMobile.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
+  // Task Q6: on a phone the calendar header is one row — the short date never wraps over lines.
+  await expect(ownerMobile.getByTestId('cal-date-short')).toBeVisible();
+  expect((await ownerMobile.locator('.cal-toolbar').boundingBox())!.height).toBeLessThan(80);
   await shot(ownerMobile, '12-owner-calendar-phone');
 
   // The cabinet can be installed as an app: manifest in the page's language, service worker.
