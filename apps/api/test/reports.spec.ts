@@ -532,6 +532,35 @@ describe('salon report', () => {
     });
   });
 
+  it('"Co ile dni wracają klienci" of a past period ignores returns after it (task 621)', async () => {
+    // Jan: before the period, in the period 21 days later, again after the period.
+    await visit({ date: addDays(today, -30), status: 'completed' });
+    await visit({ date: addDays(today, -9), status: 'completed' });
+    await visit({ date: addDays(today, -2), staffId: olaId, status: 'completed' });
+    // Ewa: first visit in the period, the return only after it.
+    await visit({
+      date: addDays(today, -6),
+      staffId: olaId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+    await visit({
+      date: addDays(today, -1),
+      staffId: olaId,
+      email: 'ewa@example.com',
+      status: 'completed',
+    });
+
+    const past = { from: addDays(today, -12), to: addDays(today, -5) };
+    const res = await report(owner.auth, past).expect(200);
+    expect(res.body.returnInterval).toEqual({
+      intervals: 1,
+      averageDays: 21,
+      medianDays: 21,
+      staff: [{ id: kasiaId, displayName: 'Kasia', intervals: 1, averageDays: 21, medianDays: 21 }],
+    });
+  });
+
   it('"Pora wrócić": regular clients past their usual break, today whatever the period (task 263)', async () => {
     // Jan: every 20 days, last 30 days ago — due 10 days ago.
     for (const days of [70, 50, 30]) {

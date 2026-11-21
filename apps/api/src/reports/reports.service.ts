@@ -534,7 +534,14 @@ export class ReportsService {
       marketing: await this.marketing(own ? new Set() : clients, rangeStart, rangeEnd),
       busyHours: [...busy.values()].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
       newcomers: await this.newcomers(locationId, staffIds, tz, clients, rangeStart),
-      returnInterval: await this.returnInterval(locationId, staffIds, tz, clients, rangeStart),
+      returnInterval: await this.returnInterval(
+        locationId,
+        staffIds,
+        tz,
+        clients,
+        rangeStart,
+        rangeEnd,
+      ),
       // Task 263: today's count, whatever the period; not in a specialist's own report.
       overdueClients: own
         ? 0
@@ -646,12 +653,20 @@ export class ReportsService {
     tz: string,
     clients: Set<string>,
     rangeStart: Date,
+    rangeEnd: Date,
   ): Promise<SalonReport['returnInterval']> {
     const all: number[] = [];
     const byStaff = new Map<string, { id: string; displayName: string; days: number[] }>();
     if (clients.size > 0) {
       const visits = await this.prisma.appointment.findMany({
-        where: { locationId, customerId: { in: [...clients] }, status: 'completed' },
+        // Task 621: only visits up to the end of the period — a return after it belongs to a
+        // later period (a past month must not grow with the visits made since).
+        where: {
+          locationId,
+          customerId: { in: [...clients] },
+          status: 'completed',
+          startAt: { lt: rangeEnd },
+        },
         orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
         select: {
           customerId: true,
