@@ -231,7 +231,15 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await phone.getByRole('button', { name: 'Poprzedni dzień' }).click();
+    // The app opens on today in Warsaw; between 23:00 and 01:00 UTC the visit (12:00 UTC three days
+    // after "the day after tomorrow" in UTC) is two days back, otherwise one.
+    const warsawToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+      new Date(),
+    );
+    const daysBack = Math.round((Date.parse(warsawToday) - Date.parse(visit.date)) / 86_400_000);
+    for (let i = 0; i < daysBack; i += 1) {
+      await phone.getByRole('button', { name: 'Poprzedni dzień' }).click();
+    }
     await phone
       .getByRole('button', { name: /Anna Kowalska/ })
       .first()
