@@ -4257,3 +4257,20 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 приложения. e2e: `booking.spec.ts` (01-client-services, 00-client-salon-profile, 05-client-code, 05w-client-wishes,
 06-client-done), `install-banner.spec.ts` (Q5-no-banner-on-steps), `languages`, `open-status`, `price-rows`,
 `salon-languages`, `web-favorites`, `wish-photos`.
+## Минимализм кабинета и бизнес-приложения (задача Q6)
+
+Одобрено владельцем 21.11.2026 (спецификация — `docs/projekt/Beauty_Platform_Q6_минимализм_бизнес.md` в gestalt-docs).
+Только полировка существующего, ни один пункт не удалён.
+
+- «Usługi → Produkty»: восемь пояснений открываются кнопкой «?» («Jak to działa?») рядом с заголовком
+  (`ProductsSection.tsx`, ключ `products.helpOpen`).
+- Календарь на телефоне: шапка в одну строку — короткая дата (`shortDate` в `lib/time.ts`, класс `only-mobile`), дата
+  и салон без переносов.
+- Бизнес-приложение: нижнее меню «Kalendarz / Klienci / Powiadomienia / Więcej» (`DayScreen.tsx`, `BarTab`); в
+  «Więcej» (`testID="app-menu"`) — все остальные пункты. e2e открывают такие пункты через «Więcej».
+- Кабинет на ПК: меню в группах «Oferta», «Rezerwacje», «Salon» (`MenuItem.group`, словарь `navGroups`); на телефоне
+  «Więcej» в том же порядке.
+- «UA» вместо «UK» в списках языка клиента и приглашения (`localeCode` в `lib/i18n/locales.ts`).
+
+Скриншоты: `q6-products-help-closed`, `q6-products-help-open`, `12-owner-calendar-phone`, `q6-business-app-bottom-bar`,
+`q6-business-app-more`, `q6-cabinet-menu-groups`, `q6-client-language-ua`.
