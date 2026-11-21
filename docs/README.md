@@ -4257,6 +4257,7 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 приложения. e2e: `booking.spec.ts` (01-client-services, 00-client-salon-profile, 05-client-code, 05w-client-wishes,
 06-client-done), `install-banner.spec.ts` (Q5-no-banner-on-steps), `languages`, `open-status`, `price-rows`,
 `salon-languages`, `web-favorites`, `wish-photos`.
+
 ## Минимализм кабинета и бизнес-приложения (задача Q6)
 
 Одобрено владельцем 21.11.2026 (спецификация — `docs/projekt/Beauty_Platform_Q6_минимализм_бизнес.md` в gestalt-docs).
