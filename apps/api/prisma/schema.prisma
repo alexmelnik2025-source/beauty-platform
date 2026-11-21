@@ -522,9 +522,23 @@ model Location {
   shopIntegrations    ShopIntegration[]
   giftVouchers        GiftVoucher[]
   shopFeedUploads     ShopFeedUpload[]
+  oldSlugs            LocationSlugHistory[]
 
   @@index([organizationId])
   @@map("location")
+}
+
+/// Task 625: a booking link (slug) the salon used before. Kept for that salon only, so a link
+/// already printed on QR codes and flyers cannot be taken by another salon.
+model LocationSlugHistory {
+  slug       String   @id
+  locationId String   @map("location_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@map("location_slug_history")
 }
 
 /// A service of a location. Never deleted (appointments keep referring to it) — deactivated instead.

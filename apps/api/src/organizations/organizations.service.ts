@@ -204,6 +204,8 @@ export class OrganizationsService {
     for (const slug of candidates) {
       try {
         const location = await this.prisma.$transaction(async (tx) => {
+          // Task 625: a link another salon used before stays with it.
+          if (await tx.locationSlugHistory.findUnique({ where: { slug } })) throw slugTaken();
           const created = await tx.location.create({
             data: { ...fields, slug, organizationId: membership.organizationId },
           });
@@ -222,7 +224,10 @@ export class OrganizationsService {
         });
         return toLocation(location);
       } catch (error) {
-        if (!isUniqueViolation(error)) throw error;
+        const taken =
+          isUniqueViolation(error) ||
+          (error instanceof AppException && error.code === 'SLUG_TAKEN');
+        if (!taken) throw error;
       }
     }
     throw slugTaken();
@@ -259,8 +264,19 @@ export class OrganizationsService {
       const location = await this.prisma.$transaction(async (tx) => {
         const before = await tx.location.findUnique({
           where: { id: locationId },
-          select: { onlineBookingEnabled: true },
+          select: { onlineBookingEnabled: true, slug: true },
         });
+        // Task 625: the old link stays reserved for this salon; another salon's old link is taken.
+        if (before && fields.slug !== undefined && fields.slug !== before.slug) {
+          const old = await tx.locationSlugHistory.findUnique({ where: { slug: fields.slug } });
+          if (old && old.locationId !== locationId) throw slugTaken();
+          if (old) await tx.locationSlugHistory.delete({ where: { slug: fields.slug } });
+          await tx.locationSlugHistory.upsert({
+            where: { slug: before.slug },
+            create: { slug: before.slug, locationId },
+            update: {},
+          });
+        }
         const result = await tx.location.updateMany({
           where: { id: locationId, organizationId: membership.organizationId, version },
           data: { ...fields, version: { increment: 1 } },
