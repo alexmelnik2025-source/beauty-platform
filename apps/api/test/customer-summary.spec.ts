@@ -517,6 +517,8 @@ describe('"Haven\'t been for a while" (task 140)', () => {
     expect(await names('inactiveDays=60')).toEqual(['Ewa Dawna', 'Jan Nowak']);
     expect(await names('inactiveDays=90')).toEqual(['Ewa Dawna']);
     expect(await names('inactiveDays=60&search=ewa')).toEqual(['Ewa Dawna']);
+    // Task 622: a phone typed with dashes or brackets is found too.
+    expect(await names(`search=${encodeURIComponent('(600) 000-003')}`)).toEqual(['Ewa Dawna']);
     // Without the filter everyone is listed.
     expect(await names('limit=100')).toHaveLength(4);
     // The manager sees the same in the salon.

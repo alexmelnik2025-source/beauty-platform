@@ -267,6 +267,8 @@ export class ProductsService {
     return toProduct(
       await this.prisma
         .$transaction(async (tx) => {
+          // Task 622: locked, so a sale at the same moment does not make the correction wrong.
+          await tx.$queryRaw`SELECT id FROM product WHERE id = ${productId}::uuid FOR UPDATE`;
           const before = await tx.product.findFirst({ where: { id: productId, locationId } });
           if (!before) throw notFound('Product');
           checkOffer({ ...before, ...input });
@@ -547,18 +549,31 @@ export class ProductsService {
     });
     if (!product) throw notFound('Product');
     await this.prisma.$transaction(async (tx) => {
-      if (product.stockQuantity !== null) {
-        // Only if there are enough pieces at this moment (a parallel sale may have taken some).
+      // Task 622: the visit and the product are read again under row locks, so a parallel
+      // "did not come" or a stocktake that starts counting the product cannot slip in between.
+      const [current] = await tx.$queryRaw<{ status: string }[]>`
+        SELECT status::text AS status FROM appointment WHERE id = ${appointmentId}::uuid FOR UPDATE`;
+      if (current?.status !== 'completed') {
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'NOT_COMPLETED',
+          'Products can be sold only at a visit marked as "came"',
+        );
+      }
+      const [counted] = await tx.$queryRaw<{ stock_quantity: number | null }[]>`
+        SELECT stock_quantity FROM product WHERE id = ${product.id}::uuid FOR UPDATE`;
+      const stockTaken = counted !== undefined && counted.stock_quantity !== null;
+      if (stockTaken) {
+        // Only if there are enough pieces at this moment.
         const taken = await tx.product.updateMany({
           where: { id: product.id, stockQuantity: { gte: input.quantity } },
           data: { stockQuantity: { decrement: input.quantity } },
         });
         if (taken.count !== 1) {
-          const left = await tx.product.findUnique({ where: { id: product.id } });
           throw new AppException(
             HttpStatus.CONFLICT,
             'OUT_OF_STOCK',
-            `Only ${left?.stockQuantity ?? 0} in stock`,
+            `Only ${counted.stock_quantity ?? 0} in stock`,
           );
         }
         const left = await tx.product.findUniqueOrThrow({ where: { id: product.id } });
@@ -573,6 +588,7 @@ export class ProductsService {
           quantity: input.quantity,
           unitPriceGrosze: product.priceGrosze,
           unitCostGrosze: product.purchasePriceGrosze,
+          stockTaken,
           createdByUserId: userId,
         },
       });
@@ -596,8 +612,9 @@ export class ProductsService {
         where: { id: saleId, appointmentId, locationId },
       });
       if (!sale || result.count !== 1) throw notFound('Product sale');
-      // The pieces go back to stock if the product still counts them.
-      if (sale.productId) {
+      // The pieces go back to stock if the sale took them (task 622: not when the product
+      // started counting only after the sale) and the product still counts them.
+      if (sale.productId && sale.stockTaken) {
         const back = await tx.product.updateMany({
           where: { id: sale.productId, stockQuantity: { not: null } },
           data: { stockQuantity: { increment: sale.quantity } },

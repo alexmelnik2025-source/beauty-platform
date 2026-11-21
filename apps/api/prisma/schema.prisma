@@ -1659,6 +1659,9 @@ model ProductSale {
   unitPriceGrosze Int      @map("unit_price_grosze")
   /// Task 448: the product's purchase price at the time of the sale; null = not written then.
   unitCostGrosze  Int?     @map("unit_cost_grosze")
+  /// Task 622: the sale took pieces from stock (the product was counted then); only then
+  /// does removing the sale put them back.
+  stockTaken      Boolean  @default(false) @map("stock_taken")
   createdByUserId String?  @map("created_by_user_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
