@@ -1689,6 +1689,8 @@ export const en: Dict = {
   },
   products: {
     integrationsLink: 'Import products from Base or a file →',
+    /** Task Q6: the explanations of "Produkty" open under one "?". */
+    helpOpen: 'How does it work?',
     title: 'Products',
     hint: 'Products you sell at the visit (pomade, shampoo…). A sale is noted in the card of a visit that took place; it does not change the visit price, points or discounts.',
     empty: 'No products on the list yet.',
