@@ -1728,7 +1728,6 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     // The session is kept on the phone: opening the app again needs no new code.
     await phone.reload();
     await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
-    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Wyloguj się' }).click();
     await expect(phone.getByRole('heading', { name: 'Moje wizyty' })).toBeVisible();
     await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();
