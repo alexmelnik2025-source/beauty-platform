@@ -289,7 +289,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(client.getByRole('button', { name: /Strzyżenie męskie/ }).first()).toBeInViewport();
   await shot(client, '01-client-services');
   // Salon profile: description, map link, opening hours from the team's schedules.
-  await client.getByTestId('salon-more').locator('summary').click();
+  await client.getByTestId('salon-more').locator(':scope > summary').click();
   await expect(client.getByText('Kawa i parking dla klientów.')).toBeVisible();
   await expect(client.getByRole('link', { name: 'Pokaż na mapie' })).toHaveAttribute(
     'href',
@@ -305,7 +305,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(client.locator('.opening-hours tr[data-today] td')).toHaveText('08:00–21:00');
   await shot(client, '00-client-salon-profile');
   await client.locator('.opening-hours summary').click();
-  await client.getByTestId('salon-more').locator('summary').click();
+  await client.getByTestId('salon-more').locator(':scope > summary').click();
 
   await client.getByRole('button', { name: /Strzyżenie męskie/ }).click();
   // Each specialist with their own languages.
@@ -1149,7 +1149,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const ola = await olaPhone.newPage();
   await ola.goto(`/pl/b/${location.slug}`);
   // The salon's photo in "O salonie ▸" (task Q5); a tap opens it full size, Escape closes it.
-  await ola.getByTestId('salon-more').locator('summary').click();
+  await ola.getByTestId('salon-more').locator(':scope > summary').click();
   const salonThumb = ola.getByRole('button', { name: 'Zdjęcie salonu 1' });
   await expect(salonThumb).toBeVisible();
   await expect(ola.getByRole('button', { name: /^Zdjęcie salonu \d+$/ })).toHaveCount(1);

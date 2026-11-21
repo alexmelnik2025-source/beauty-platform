@@ -211,7 +211,7 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
     await expect(status).toHaveText('Zamknięte · otwarcie: jutro, 00:00');
     await expect(status).toHaveAttribute('data-open', 'false');
     // Task Q5: the opening hours are in the folded "O salonie ▸" (the status is on its line).
-    await client.getByTestId('salon-more').locator('summary').click();
+    await client.getByTestId('salon-more').locator(':scope > summary').click();
     await client.locator('.opening-hours summary').click();
     await expect(client.locator('.opening-hours summary')).toContainText('dziś nieczynne');
     await shot(client, '362b-booking-closed-today');
