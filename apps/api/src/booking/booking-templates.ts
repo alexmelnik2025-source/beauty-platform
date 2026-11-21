@@ -60,7 +60,7 @@ const WORDS: Record<Locale, Words> = {
       client_confirmation: 'Wizyta potwierdzona',
       client_rescheduled: 'Termin wizyty zmieniony',
       client_cancelled: 'Wizyta odwołana',
-      client_reminder: 'Przypomnienie o jutrzejszej wizycie',
+      client_reminder: 'Przypomnienie o wizycie',
       salon_new_booking: 'Nowa rezerwacja online',
       salon_client_cancelled: 'Klient odwołał wizytę',
       salon_client_rescheduled: 'Klient zmienił termin wizyty',
@@ -100,7 +100,7 @@ const WORDS: Record<Locale, Words> = {
       client_confirmation: 'Візит підтверджено',
       client_rescheduled: 'Час візиту змінено',
       client_cancelled: 'Візит скасовано',
-      client_reminder: 'Нагадування про завтрашній візит',
+      client_reminder: 'Нагадування про візит',
       salon_new_booking: 'Новий онлайн-запис',
       salon_client_cancelled: 'Клієнт скасував візит',
       salon_client_rescheduled: 'Клієнт переніс візит',
@@ -140,7 +140,7 @@ const WORDS: Record<Locale, Words> = {
       client_confirmation: 'Запись подтверждена',
       client_rescheduled: 'Время записи изменено',
       client_cancelled: 'Запись отменена',
-      client_reminder: 'Напоминание о завтрашнем визите',
+      client_reminder: 'Напоминание о визите',
       salon_new_booking: 'Новая онлайн-запись',
       salon_client_cancelled: 'Клиент отменил запись',
       salon_client_rescheduled: 'Клиент перенёс запись',
@@ -180,7 +180,7 @@ const WORDS: Record<Locale, Words> = {
       client_confirmation: 'Appointment confirmed',
       client_rescheduled: 'Appointment time changed',
       client_cancelled: 'Appointment cancelled',
-      client_reminder: 'Reminder: your appointment tomorrow',
+      client_reminder: 'Reminder: your appointment',
       salon_new_booking: 'New online booking',
       salon_client_cancelled: 'Client cancelled an appointment',
       salon_client_rescheduled: 'Client moved an appointment',
@@ -220,7 +220,7 @@ const WORDS: Record<Locale, Words> = {
       client_confirmation: 'Randevunuz onaylandı',
       client_rescheduled: 'Randevu saati değişti',
       client_cancelled: 'Randevu iptal edildi',
-      client_reminder: 'Hatırlatma: yarınki randevunuz',
+      client_reminder: 'Hatırlatma: randevunuz',
       salon_new_booking: 'Yeni online rezervasyon',
       salon_client_cancelled: 'Müşteri randevuyu iptal etti',
       salon_client_rescheduled: 'Müşteri randevuyu taşıdı',
@@ -260,7 +260,7 @@ const WORDS: Record<Locale, Words> = {
       client_confirmation: 'Takimi u konfirmua',
       client_rescheduled: 'Ora e takimit ndryshoi',
       client_cancelled: 'Takimi u anulua',
-      client_reminder: 'Kujtesë: takimi juaj nesër',
+      client_reminder: 'Kujtesë: takimi juaj',
       salon_new_booking: 'Rezervim i ri online',
       salon_client_cancelled: 'Klienti anuloi takimin',
       salon_client_rescheduled: 'Klienti e zhvendosi takimin',
@@ -347,7 +347,7 @@ export function renderAppointmentEmail(
     `${w.when}: ${d.when}`,
     `${w.price}: ${d.price}`,
     forSalon
-      ? `${w.client}: ${d.customerName}, ${d.customerPhone}`
+      ? `${w.client}: ${[d.customerName, d.customerPhone].filter(Boolean).join(', ')}`
       : `${w.where}: ${d.salonName}, ${d.address}`,
   ];
   if (d.reason) lines.push(`${w.reason}: ${d.reason}`);

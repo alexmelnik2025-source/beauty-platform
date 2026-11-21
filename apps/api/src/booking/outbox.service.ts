@@ -15,6 +15,7 @@ import {
   WAITLIST_OFFER,
   type WaitlistNotification,
 } from '../waitlist/waitlist-outbox';
+import { effectivePermissions, readPermissionMap } from '../organizations/permissions';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   formatPrice,
@@ -35,6 +36,11 @@ export interface AppointmentNotification {
   /** The appointment version the message is about; stale messages are skipped. */
   version: number;
   reason?: string | null;
+  /**
+   * Task 623: reminders only — the visit start (ms) the reminder is for. The reminder stays
+   * valid while the visit is at that time, whatever else changed (a discount, a note).
+   */
+  startAt?: number;
 }
 
 const MAX_ATTEMPTS = 5;
@@ -133,11 +139,16 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     if (location.reminderHoursBefore <= 0) return;
     const remindAt = appointment.startAt.getTime() - location.reminderHoursBefore * 3_600_000;
     if (remindAt <= Date.now()) return;
+    const startAt = appointment.startAt.getTime();
     await this.enqueue(
       tx,
       'client_reminder',
-      { appointmentId: appointment.id, version: appointment.version },
-      { notBefore: new Date(remindAt) },
+      { appointmentId: appointment.id, version: appointment.version, startAt },
+      // One reminder per visit time: changes that keep the time do not queue another.
+      {
+        notBefore: new Date(remindAt),
+        dedupeKey: `client_reminder:${appointment.id}:at:${startAt}`,
+      },
     );
   }
 
@@ -521,12 +532,31 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         appointment.status === 'confirmed' &&
         // Task 161b: no reminder while the salon has yet to accept the visit.
         appointment.approvalRequestedAt === null &&
-        appointment.version === row.payload.version &&
+        // Task 623: still the same time (a discount or a note changes the version, not the
+        // time); reminders queued before this change compare the version.
+        (row.payload.startAt !== undefined
+          ? appointment.startAt.getTime() === row.payload.startAt
+          : appointment.version === row.payload.version) &&
         appointment.startAt.getTime() > Date.now();
       if (!stillValid) return null;
     }
+    // Task 623: a confirmation or new time delayed by retries is not sent for a visit that was
+    // cancelled (or otherwise ended) meanwhile — it would carry a working link to it.
+    if (
+      (kind === 'client_confirmation' ||
+        kind === 'client_rescheduled' ||
+        kind === 'client_awaiting_approval') &&
+      appointment.status !== 'confirmed'
+    ) {
+      return null;
+    }
 
-    const details = (locale: Locale, manageLink?: string, calendarLink?: string) => ({
+    const details = (
+      locale: Locale,
+      manageLink?: string,
+      calendarLink?: string,
+      showPhone = true,
+    ) => ({
       salonName: appointment.location.name,
       address: `${appointment.location.addressLine}, ${appointment.location.postalCode} ${appointment.location.city}`,
       serviceName: appointment.service.name,
@@ -534,7 +564,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       when: formatWhen(appointment.startAt, appointment.location.timezone, locale),
       price: formatPrice(appointment.priceGrosze, appointment.location.currency, locale),
       customerName: appointment.customer?.name ?? '',
-      customerPhone: appointment.customer?.phone ?? '',
+      customerPhone: showPhone ? (appointment.customer?.phone ?? '') : '',
       manageLink,
       calendarLink,
       reason: row.payload.reason ?? null,
@@ -597,8 +627,36 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     );
     const unique = [...new Map(users.map((u) => [u.email, u])).values()];
     if (unique.length === 0) return null;
+    // Task 623: the specialist sees the client's phone only with "Widzi kontakty klientów",
+    // as in the calendar (owners and managers always).
+    const managers = new Set(memberships.map((m) => m.userId));
+    let specialistSeesPhone = true;
+    const specialist = appointment.staff.user;
+    if (specialist && !managers.has(specialist.id)) {
+      const membership = await this.prisma.membership.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: specialist.id,
+            organizationId: appointment.location.organizationId,
+          },
+        },
+        include: { staffCategory: true },
+      });
+      specialistSeesPhone =
+        membership?.status === 'active' &&
+        effectivePermissions(
+          membership.role,
+          membership.staffCategory ? readPermissionMap(membership.staffCategory.permissions) : null,
+          readPermissionMap(membership.permissionOverrides),
+        ).viewClientContacts;
+    }
     return unique.map((user) => {
-      const { subject, text } = renderAppointmentEmail(kind, user.locale, details(user.locale));
+      const showPhone = managers.has(user.id) || specialistSeesPhone;
+      const { subject, text } = renderAppointmentEmail(
+        kind,
+        user.locale,
+        details(user.locale, undefined, undefined, showPhone),
+      );
       return { to: user.email, subject, text, lang: user.locale };
     });
   }
