@@ -156,6 +156,8 @@ export const ru: Dict = {
     vouchers: 'Подарочные сертификаты',
     shop: 'Мой магазин',
   },
+  /** Task Q6: captions of the menu groups in the cabinet's sidebar on a computer. */
+  navGroups: { offer: 'Предложение', bookings: 'Записи', salon: 'Салон' },
   directory: {
     title: 'Найти салон',
     lead: 'Салоны с онлайн-записью. Выберите язык, на котором хотите общаться.',

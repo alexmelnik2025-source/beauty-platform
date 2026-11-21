@@ -351,6 +351,16 @@ fieldset.field > legend {
   color: var(--graphite);
 }
 
+/* Task Q6: a quiet caption over each group of the sidebar menu. */
+.sidebar .menu-group {
+  margin: 14px 10px 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--graphite);
+}
+
 .sidebar .menu a[aria-current='page'] {
   color: var(--ink);
   background: var(--fog);

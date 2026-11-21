@@ -12,6 +12,11 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **21.11.2026, ~23:55 UTC — Q6, часть 4 (ветка `agent/630-q6-cabinet-groups`, от main): меню кабинета на ПК в
+  группах** (полировка, ничего не удалено). Сверху «Kalendarz», «Klienci», «Powiadomienia», дальше три тихие подписи:
+  «Oferta» (Usługi, Happy hours, Bony, Mój sklep, Program lojalnościowy), «Rezerwacje» (Lista oczekujących, Ochrona,
+  Opinie), «Salon» (Zespół / Mój grafik, Raporty, Ustawienia, Dziennik zmian). На телефоне «Więcej» — тот же порядок.
+  e2e `cabinet-a11y.spec.ts`, скриншот `q6-cabinet-menu-groups`.
 - **21.11.2026, ~22:20 UTC — 620 (ветка `agent/620-push-retry`, поверх 619): повтор push не дублирует уведомление**
   (исправление, новых функций нет). Если одно из устройств мастера временно недоступно, повтор отправлялся на все его
   устройства — телефон показывал «Nowa rezerwacja online» второй и третий раз. Теперь уведомление помнит, какие
