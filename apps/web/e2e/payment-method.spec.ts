@@ -204,6 +204,7 @@ test('the owner marks how the client paid; the report shows the payment methods'
     await expect(appTill).toContainText(/Kasa dnia: 90,00\s*zł/);
     await expect(appTill).toContainText(/Gotówka 90,00\s*zł/);
     await shot(app, '228-a-business-app-till');
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appPayments = app.getByTestId('report-payments');

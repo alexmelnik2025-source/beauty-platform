@@ -485,6 +485,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     // Task 397: "Usługi" → "Produkty" — a new product from the phone.
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Usługi' }).click();
     const appList = app.getByTestId('products');
     await appList.getByLabel('Nowy produkt').fill('Wosk');
@@ -606,6 +607,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appSold.scrollIntoViewIfNeeded();
     await shot(app, '524-a-business-app-sale-by-code');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appReport = app.getByTestId('report-products');
@@ -628,6 +630,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     expect(appFile).toContain('Razem;;;;3;;128,50');
     // Task 439: "Dostawa" from the phone — six pomades arrived.
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Usługi' }).click();
     await appList.getByRole('button', { name: 'Dostawa — Pomada matowa' }).click();
     await appList.getByLabel('Dostawa — Pomada matowa').fill('6');
@@ -684,6 +687,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await shot(app, '458-business-app-stocktake');
     // Task 447: "Odpisy z magazynu" in the app's report — the set and the pomade.
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     // Task 472: the sales by supplier in the app — the pomades from Hairgum, the shampoo from nobody.

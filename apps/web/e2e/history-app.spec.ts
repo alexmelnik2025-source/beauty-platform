@@ -115,6 +115,7 @@ test('the owner reads the change log in the business app (task 150)', async ({
     });
     const app = await context.newPage();
     await signInToApp(app, businessApp.url, OWNER);
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Dziennik zmian' }).click();
     await expect(app.getByRole('heading', { name: 'Dziennik zmian' })).toBeVisible();
     // Newest first: the hours, the specialist, the service — each with who did it.

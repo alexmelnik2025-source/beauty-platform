@@ -93,6 +93,7 @@ test('business app: the owner sets the cancellation protection rules', async ({
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Ochrona przed odwołaniami' }).click();
     await expect(phone.getByText('Żadna zasada nie jest ustawiona.')).toBeVisible();
     await phone.getByRole('button', { name: 'Włącz ochronę' }).click();

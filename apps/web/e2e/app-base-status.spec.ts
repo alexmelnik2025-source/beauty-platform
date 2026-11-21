@@ -180,6 +180,7 @@ test('"Base" in "Mój sklep" of the business app: status and "Synchronizuj teraz
     await signInToApp(app, businessApp.url, OWNER);
 
     // No Base yet: one quiet line, no card and no button.
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Mój sklep' }).click();
     await expect(app.getByRole('heading', { name: 'Mój sklep' })).toBeVisible();
     await expect(app.getByText(/podłączysz w panelu na komputerze/)).toBeVisible();
@@ -206,6 +207,7 @@ test('"Base" in "Mój sklep" of the business app: status and "Synchronizuj teraz
       }),
     );
 
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Mój sklep' }).click();
     await expect(app.getByText(/Połączono z Base \(…0000\) · produktów z Base: 1/)).toBeVisible();
     await expect(

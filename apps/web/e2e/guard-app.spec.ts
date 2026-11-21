@@ -155,6 +155,7 @@ test('the owner runs cancellation protection from the business app (task 207)', 
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Ochrona przed odwołaniami' }).click();
     await expect(app.getByRole('heading', { name: 'Ochrona przed odwołaniami' })).toBeVisible();
     await expect(app.getByText('Ochrona wyłączona', { exact: true })).toBeVisible();

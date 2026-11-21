@@ -288,6 +288,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     await expect(appMoves).toHaveCount(0);
 
     // Task 235: "Zamknięcia kasy" in the business app's report.
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appCloses = app.getByTestId('report-till-closes');

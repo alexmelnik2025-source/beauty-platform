@@ -1369,6 +1369,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
     await expect(kasiaApp.getByRole('button', { name: 'Klienci' })).toHaveCount(0);
     // Her own schedule: weekly hours and time off, read only for a specialist.
+    await kasiaApp.getByRole('button', { name: 'Więcej', exact: true }).click();
     await kasiaApp.getByRole('button', { name: 'Mój grafik' }).click();
     await expect(kasiaApp.getByRole('heading', { name: 'Mój grafik' })).toBeVisible();
     await expect(kasiaApp.getByText('poniedziałek', { exact: true })).toBeVisible();
@@ -1392,6 +1393,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     // The refresh token is kept: opening the app again needs no new code.
     await kasiaApp.reload();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await kasiaApp.getByRole('button', { name: 'Więcej', exact: true }).click();
     await kasiaApp.getByRole('button', { name: 'Wyloguj się' }).click();
     await expect(kasiaApp.getByRole('heading', { name: 'Zaloguj się' })).toBeVisible();
 
@@ -1711,6 +1713,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     // The session is kept on the phone: opening the app again needs no new code.
     await phone.reload();
     await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Wyloguj się' }).click();
     await expect(phone.getByRole('heading', { name: 'Moje wizyty' })).toBeVisible();
     await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();

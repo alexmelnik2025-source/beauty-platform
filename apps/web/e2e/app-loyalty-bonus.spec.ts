@@ -96,6 +96,7 @@ test('business app: the owner adds an extra stamps rule', async ({ browser, requ
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
     await expect(phone.getByText(/^Brak zasad — każda wizyta/)).toBeVisible();
     await phone.getByRole('button', { name: 'Zmień zasady dodatkowe' }).click();

@@ -68,6 +68,8 @@ export const pl = {
     tomorrow: 'jutro',
     closedNow: 'Zamknięte',
   },
+  /** Task Q6: the bottom bar of the day screen. */
+  nav: { calendar: 'Kalendarz', more: 'Więcej' },
   day: {
     today: 'Dziś',
     previous: 'Poprzedni dzień',

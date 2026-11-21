@@ -521,6 +521,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await expect(app.getByRole('heading', { name: 'Raporty' })).toBeVisible();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
@@ -680,6 +681,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
           2 * 86_400_000,
       ),
     );
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Raporty' }).click();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const dayRow = app

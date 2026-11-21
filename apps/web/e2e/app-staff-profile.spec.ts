@@ -150,6 +150,7 @@ test('business app: the owner orders, edits, switches off and adds specialists',
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     // ── 329: Kasia first ───────────────────────────────────────────────────
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Grafik zespołu' }).click();
     await expect(phone.getByRole('heading', { name: 'Grafik zespołu' })).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Wyżej: Ilian' })).toBeDisabled();

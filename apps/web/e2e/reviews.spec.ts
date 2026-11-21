@@ -489,6 +489,7 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Opinie' }).click();
     await expect(app.getByRole('heading', { name: 'Opinie', exact: true })).toBeVisible();
     await expect(app.getByText('★ 4,5 · opinie: 4')).toBeVisible();

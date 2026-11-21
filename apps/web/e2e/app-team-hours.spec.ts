@@ -110,6 +110,7 @@ test('business app: the owner changes a specialist’s hours and adds time off',
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     // ── The team → Kasia ───────────────────────────────────────────────────
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Grafik zespołu' }).click();
     await expect(phone.getByRole('heading', { name: 'Grafik zespołu' })).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Ilian', exact: true })).toBeVisible();

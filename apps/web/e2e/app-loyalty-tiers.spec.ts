@@ -89,6 +89,7 @@ test('business app: the owner sets customer tiers', async ({ browser, request })
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
     await expect(phone.getByText('Brak poziomów — klienci nie mają statusu.')).toBeVisible();
     await phone.getByRole('button', { name: 'Zmień poziomy' }).click();

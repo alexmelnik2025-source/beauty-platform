@@ -84,6 +84,7 @@ test('the owner shares the booking link from the business app (task 152)', async
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Link do rezerwacji' }).click();
     await expect(app.getByRole('heading', { name: 'Link do rezerwacji' })).toBeVisible();
     await expect(app.getByText(new RegExp(`/pl/b/${location.slug}$`))).toBeVisible();

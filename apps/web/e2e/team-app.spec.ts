@@ -108,6 +108,7 @@ test('the owner gives access from the business app: invite, cancel, remove (task
     });
     const app = await ownerContext.newPage();
     await signInToApp(app, businessApp.url, OWNER);
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Zespół' }).click();
     await expect(app.getByRole('heading', { name: 'Zespół', exact: true })).toBeVisible();
     await expect(app.getByText('Bez konta')).toHaveCount(2);
@@ -154,6 +155,7 @@ test('the owner gives access from the business app: invite, cancel, remove (task
 
     // ── The owner sees her access and removes her again ───────────────────
     await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await app.getByRole('button', { name: 'Zespół' }).click();
     await expect(app.getByText(`Ma dostęp · ${KASIA}`)).toBeVisible();
     await app.getByRole('button', { name: 'Usuń z zespołu: Kasia Nowak' }).click();

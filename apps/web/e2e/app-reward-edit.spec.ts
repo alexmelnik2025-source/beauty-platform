@@ -106,6 +106,7 @@ test('business app: the owner changes a reward', async ({ browser, request }) =>
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
     await phone.getByRole('button', { name: 'Zmień nagrodę: −25% na strzyżenie' }).click();
     await expect(phone.getByLabel('Nazwa nagrody (np. −25% na strzyżenie)')).toHaveValue(

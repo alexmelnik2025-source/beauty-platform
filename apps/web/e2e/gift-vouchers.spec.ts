@@ -332,6 +332,7 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Bony podarunkowe' }).click();
     await expect(phone.getByRole('heading', { name: 'Bony podarunkowe' })).toBeVisible();
     await phone.getByLabel('Kod bonu').fill(voucher.code.toLowerCase());
@@ -432,6 +433,7 @@ test('business app: check a gift voucher, pay with it and sell a new one', async
       }),
     );
     await phone.getByRole('button', { name: '‹ Wróć' }).click();
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Bony podarunkowe' }).click();
     await expect(
       phone.getByText(/Kończą się w ciągu 30 dni: 1 szt\., do wykorzystania 30,00\s?zł/),
