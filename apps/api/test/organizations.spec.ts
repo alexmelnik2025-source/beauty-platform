@@ -146,6 +146,54 @@ describe('locations', () => {
     expectError(res.body, 'SLUG_TAKEN');
   });
 
+  it('an old booking link stays with its salon after a rename (task 625)', async () => {
+    const owner = await signUp(ctx, 'owner@example.com');
+    const { orgId, locationId, slug } = await createOrgWithLocation(ctx, owner, 'Group');
+    const location = `/v1/organizations/${orgId}/locations/${locationId}`;
+    const rename = async (to: string, expected: number) => {
+      const current = await ctx.http().get(location).set(owner.auth).expect(200);
+      return ctx
+        .http()
+        .patch(location)
+        .set(owner.auth)
+        .send({ version: current.body.version, slug: to })
+        .expect(expected);
+    };
+    await rename('group-new', 200);
+
+    // Another salon cannot take the old link — neither when created nor by a rename.
+    const other = await signUp(ctx, 'other@example.com');
+    const second = await createOrgWithLocation(ctx, other, 'Other');
+    const taken = await ctx
+      .http()
+      .post(`/v1/organizations/${second.orgId}/locations`)
+      .set(other.auth)
+      .send({ ...LOCATION, slug })
+      .expect(409);
+    expectError(taken.body, 'SLUG_TAKEN');
+    const otherLocation = `/v1/organizations/${second.orgId}/locations/${second.locationId}`;
+    const otherCurrent = await ctx.http().get(otherLocation).set(other.auth).expect(200);
+    const renamed = await ctx
+      .http()
+      .patch(otherLocation)
+      .set(other.auth)
+      .send({ version: otherCurrent.body.version, slug })
+      .expect(409);
+    expectError(renamed.body, 'SLUG_TAKEN');
+
+    // The salon itself can go back to it.
+    const back = await rename(slug, 200);
+    expect(back.body.slug).toBe(slug);
+    // ...and then the link it left is kept for it in turn.
+    const again = await ctx
+      .http()
+      .post(`/v1/organizations/${second.orgId}/locations`)
+      .set(other.auth)
+      .send({ ...LOCATION, slug: 'group-new' })
+      .expect(409);
+    expectError(again.body, 'SLUG_TAKEN');
+  });
+
   it('rejects an unknown time zone and a bad slot step', async () => {
     const owner = await signUp(ctx, 'owner@example.com');
     const org = await ctx.http().post('/v1/organizations').set(owner.auth).send({ name: 'Group' });
