@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { OutboxService } from '../src/booking/outbox.service';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
@@ -20,6 +21,7 @@ let base: string;
 let serviceId: string;
 let staffId: string;
 let hour = 9;
+let orgId: string;
 
 beforeAll(async () => {
   ctx = await createTestApp();
@@ -34,6 +36,7 @@ beforeEach(async () => {
   hour = 9;
   owner = await signUp(ctx, 'owner@example.com');
   const created = await createOrgWithLocation(ctx, owner, 'Barber');
+  orgId = created.orgId;
   location = `/v1/organizations/${created.orgId}/locations/${created.locationId}`;
   base = location;
   serviceId = (
@@ -65,7 +68,7 @@ async function setReminder(hours: number, expected = 200) {
 }
 
 /** Books a visit 3 days ahead from the cabinet; returns its start and the queued reminder. */
-async function book(): Promise<{ start: number; reminder: Date | null }> {
+async function book(): Promise<{ id: string; start: number; reminder: Date | null }> {
   const start = zonedToInstant(addDays(localToday(Date.now(), TZ), 3), hour++ * 60, TZ);
   const booked = await ctx
     .http()
@@ -85,7 +88,7 @@ async function book(): Promise<{ start: number; reminder: Date | null }> {
       payload: { path: ['appointmentId'], equals: booked.body.id },
     },
   });
-  return { start, reminder: row?.nextAttemptAt ?? null };
+  return { id: booked.body.id, start, reminder: row?.nextAttemptAt ?? null };
 }
 
 describe('reminder before the visit', () => {
@@ -136,5 +139,84 @@ describe('reminder before the visit', () => {
       },
     });
     expect(queued).toBe(0);
+  });
+});
+
+const makeQueueDue = () =>
+  ctx.prisma
+    .$executeRaw`UPDATE notification_outbox SET next_attempt_at = now() - interval '1 second', locked_until = NULL WHERE status = 'pending'`;
+
+describe('reminder and visit e-mails (task 623)', () => {
+  it('a change that keeps the time (a discount, a note) keeps the reminder; the subject does not say "tomorrow"', async () => {
+    await setReminder(2);
+    const visit = await book();
+    // As a tier discount or coupon does: a new version, the same time.
+    await ctx.prisma.appointment.update({
+      where: { id: visit.id },
+      data: { version: { increment: 1 } },
+    });
+    await makeQueueDue();
+    await ctx.app.get(OutboxService).drain();
+    const reminder = await ctx.prisma.notificationOutbox.findFirstOrThrow({
+      where: { type: 'client_reminder', payload: { path: ['appointmentId'], equals: visit.id } },
+    });
+    expect(reminder.status).toBe('sent');
+    const subjects = ctx.mail.allTo('jan@example.com').map((m) => m.subject);
+    expect(subjects.some((t) => t.includes('Przypomnienie o wizycie'))).toBe(true);
+    expect(subjects.some((t) => t.includes('jutrzejszej'))).toBe(false);
+  });
+
+  it('a confirmation delayed until after the visit was cancelled is not sent', async () => {
+    const visit = await book();
+    await ctx.prisma.appointment.update({
+      where: { id: visit.id },
+      data: { status: 'cancelled' },
+    });
+    await makeQueueDue();
+    await ctx.app.get(OutboxService).drain();
+    const subjects = ctx.mail.allTo('jan@example.com').map((m) => m.subject);
+    expect(subjects.some((t) => t.includes('Wizyta potwierdzona'))).toBe(false);
+    const row = await ctx.prisma.notificationOutbox.findFirstOrThrow({
+      where: {
+        type: 'client_confirmation',
+        payload: { path: ['appointmentId'], equals: visit.id },
+      },
+    });
+    expect(row.status).toBe('skipped');
+  });
+
+  it("the specialist's e-mail has the client's phone only with the contacts permission", async () => {
+    const kasia = await signUp(ctx, 'kasia@example.com', 'Kasia');
+    const membership = await ctx.prisma.membership.create({
+      data: { userId: kasia.userId, organizationId: orgId, role: 'staff' },
+    });
+    await ctx.prisma.staffMember.update({ where: { id: staffId }, data: { userId: kasia.userId } });
+    const visit = await book();
+    const newBooking = async () => {
+      ctx.mail.clear();
+      await ctx.prisma.notificationOutbox.create({
+        data: {
+          type: 'salon_new_booking',
+          payload: { appointmentId: visit.id, version: 1 },
+          nextAttemptAt: new Date(Date.now() - 1000),
+          dedupeKey: `test:${Math.random()}`,
+        },
+      });
+      await ctx.app.get(OutboxService).drain();
+      return {
+        kasia: ctx.mail.lastTo('kasia@example.com')!.text,
+        owner: ctx.mail.lastTo('owner@example.com')!.text,
+      };
+    };
+    const hidden = await newBooking();
+    expect(hidden.owner).toContain('Jan Nowak, +48600000002');
+    expect(hidden.kasia).toContain('Jan Nowak');
+    expect(hidden.kasia).not.toContain('600000002');
+
+    await ctx.prisma.membership.update({
+      where: { id: membership.id },
+      data: { permissionOverrides: { viewClientContacts: true } },
+    });
+    expect((await newBooking()).kasia).toContain('Jan Nowak, +48600000002');
   });
 });
