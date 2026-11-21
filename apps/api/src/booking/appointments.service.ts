@@ -451,21 +451,6 @@ export class AppointmentsService {
         'The appointment has not started yet',
       );
     }
-    // Task 615b: products sold at a "came" visit took pieces from the shelf and are in the
-    // products report and the client's purchases; a visit that did not take place cannot keep
-    // them, so they are removed first (which puts the pieces back) — on purpose, by hand.
-    if (appointment.status === 'completed' && input.status !== 'completed') {
-      const sold = await this.prisma.productSale.count({
-        where: { appointmentId: appointment.id },
-      });
-      if (sold > 0) {
-        throw new AppException(
-          HttpStatus.CONFLICT,
-          'HAS_PRODUCT_SALES',
-          'Remove the products sold at this visit before marking it as not having taken place',
-        );
-      }
-    }
     await this.prisma.$transaction(async (tx) => {
       // A visit that is no longer "came" is no longer paid either: what it earned is taken back.
       const unpay = input.status !== 'completed' && appointment.paidAt !== null;
@@ -482,6 +467,21 @@ export class AppointmentsService {
         },
       });
       if (result.count !== 1) throw versionConflict();
+      // Task 615b: products sold at a "came" visit took pieces from the shelf and are in the
+      // products report and the client's purchases; a visit that did not take place cannot keep
+      // them, so they are removed first (which puts the pieces back) — on purpose, by hand.
+      // Counted after the update holds the visit's row (task 622), so a sale made at the same
+      // moment (it locks the same row) is either seen here or refused there.
+      if (appointment.status === 'completed' && input.status !== 'completed') {
+        const sold = await tx.productSale.count({ where: { appointmentId: appointment.id } });
+        if (sold > 0) {
+          throw new AppException(
+            HttpStatus.CONFLICT,
+            'HAS_PRODUCT_SALES',
+            'Remove the products sold at this visit before marking it as not having taken place',
+          );
+        }
+      }
       const taken = unpay ? await this.ledger.reverseForVisit(tx, appointment.id, userId) : 0;
       // "Did not come": the coupons were not used after all, the client gets them back.
       const couponsReturned =

@@ -2182,6 +2182,54 @@ describe('salon report', () => {
     });
   });
 
+  it('removing a sale gives back only the pieces it took (task 622)', async () => {
+    // Not counted at the sale; the salon starts counting afterwards.
+    const gel = (
+      await ctx
+        .http()
+        .post(`${base}/products`)
+        .set(owner.auth)
+        .send({ name: 'Żel', priceGrosze: 3000 })
+        .expect(201)
+    ).body as { id: string };
+    const sales = `${base}/appointments/${await visit({ date: addDays(today, -1), status: 'completed', paid: true })}/products`;
+    const sold = await ctx
+      .http()
+      .post(sales)
+      .set(owner.auth)
+      .send({ productId: gel.id, quantity: 2 })
+      .expect(201);
+    await ctx
+      .http()
+      .patch(`${base}/products/${gel.id}`)
+      .set(owner.auth)
+      .send({ stockQuantity: 10 })
+      .expect(200);
+    await ctx.http().delete(`${sales}/${sold.body.sales[0].id}`).set(owner.auth).expect(200);
+    const after = await ctx.prisma.product.findUniqueOrThrow({ where: { id: gel.id } });
+    expect(after.stockQuantity).toBe(10);
+    const kinds = await ctx.prisma.stockMovement.findMany({
+      where: { productId: gel.id },
+      select: { kind: true },
+    });
+    expect(kinds.map((k) => k.kind)).toEqual(['correction']);
+
+    // Counted at the sale: the pieces come back.
+    const again = await ctx
+      .http()
+      .post(sales)
+      .set(owner.auth)
+      .send({ productId: gel.id, quantity: 3 })
+      .expect(201);
+    expect(
+      (await ctx.prisma.product.findUniqueOrThrow({ where: { id: gel.id } })).stockQuantity,
+    ).toBe(7);
+    await ctx.http().delete(`${sales}/${again.body.sales[0].id}`).set(owner.auth).expect(200);
+    expect(
+      (await ctx.prisma.product.findUniqueOrThrow({ where: { id: gel.id } })).stockQuantity,
+    ).toBe(10);
+  });
+
   it('"Historia magazynu": every change of the stock with who and when (task 440)', async () => {
     const pomade = (
       await ctx

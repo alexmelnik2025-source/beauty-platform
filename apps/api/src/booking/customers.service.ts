@@ -94,7 +94,8 @@ export class CustomersService {
       ? {
           OR: [
             { name: { contains: query.search, mode: 'insensitive' as const } },
-            { phone: { contains: query.search.replace(/\s/g, '') } },
+            // Task 622: phones are kept without spaces, brackets and dashes.
+            { phone: { contains: query.search.replace(/[\s()-]/g, '') } },
             { email: { contains: query.search.toLowerCase() } },
             { tags: { has: query.search } },
           ],
