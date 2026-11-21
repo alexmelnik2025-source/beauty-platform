@@ -3,7 +3,7 @@
 import { LanguagePicker, type Spoken } from '../Languages';
 import { useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
-import { DASHBOARD_LOCALES, errorText, useI18n } from '@/lib/i18n';
+import { DASHBOARD_LOCALES, errorText, localeCode, useI18n } from '@/lib/i18n';
 import type { Member, PermissionCatalog, PermissionMap, StaffCategory } from '@/lib/types';
 import { ErrorBox, Sheet } from '../ui';
 
@@ -425,7 +425,7 @@ export function InviteSheet({
           >
             {DASHBOARD_LOCALES.map((l) => (
               <option key={l} value={l}>
-                {l.toUpperCase()}
+                {localeCode(l)}
               </option>
             ))}
           </select>

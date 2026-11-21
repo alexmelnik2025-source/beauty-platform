@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **21.11.2026, ~23:20 UTC — Q6, часть 5 (ветка `agent/632-q6-ua-label`, от main): «UA» вместо «UK» в кабинете** —
+  язык сообщений клиента и язык приглашения в команду (переключатель языка сайта меняет Q5, ветка
+  `agent/626-q5-minimal`). e2e `client-birthday.spec.ts`, скриншот `q6-client-language-ua`.
+- **21.11.2026, ~23:15 UTC — 631 (ветка `agent/631-e2e-midnight`, от main): e2e `visit-to-hand` около полуночи UTC**
+  (исправление теста; main упал в 23:14 UTC — в Варшаве уже был следующий день, и бизнес-приложение листало не на тот
+  день).
 - **21.11.2026, ~23:55 UTC — Q6, часть 4 (ветка `agent/630-q6-cabinet-groups`, от main): меню кабинета на ПК в
   группах** (полировка, ничего не удалено). Сверху «Kalendarz», «Klienci», «Powiadomienia», дальше три тихие подписи:
   «Oferta» (Usługi, Happy hours, Bony, Mój sklep, Program lojalnościowy), «Rezerwacje» (Lista oczekujących, Ochrona,

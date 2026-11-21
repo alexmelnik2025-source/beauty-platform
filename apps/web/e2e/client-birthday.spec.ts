@@ -133,6 +133,11 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await card.getByLabel('Miesiąc', { exact: true }).selectOption({ label: 'marzec' });
   await expect(card.getByText('Tylko dzień i miesiąc, bez roku.')).toBeVisible();
   await shot(page, '240-a-client-birthday-card');
+  // Task Q6: the message language says "UA" for Ukrainian, as everywhere else.
+  const language = card.getByLabel('Język wiadomości', { exact: true });
+  await expect(language.locator('option[value="uk"]')).toHaveText('UA');
+  await language.scrollIntoViewIfNeeded();
+  await card.screenshot({ path: 'e2e/screenshots/q6-client-language-ua.png' });
   await card.locator('form.form').getByRole('button', { name: 'Zapisz', exact: true }).click();
   await expect(card).toBeHidden();
   await rows.filter({ hasText: 'Ewa Wiśniewska' }).click();
