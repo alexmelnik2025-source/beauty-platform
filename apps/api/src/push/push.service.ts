@@ -45,6 +45,7 @@ interface ClaimedNotification {
   type: string;
   appointment_id: string | null;
   data: unknown;
+  push_delivered_to: string[] | null;
 }
 
 /**
@@ -160,7 +161,7 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
           LIMIT ${BATCH}
           FOR UPDATE SKIP LOCKED
         )
-        RETURNING id, user_id, type, appointment_id, data`;
+        RETURNING id, user_id, type, appointment_id, data, push_delivered_to`;
       if (rows.length === 0) return handled;
       for (const row of rows) {
         handled += 1;
@@ -188,7 +189,11 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
       data: row.data,
     });
     let failed = 0;
+    const delivered = new Set(row.push_delivered_to ?? []);
+    const before = delivered.size;
     for (const subscription of user.pushSubscriptions) {
+      // Already got it on an earlier attempt (another device failed then).
+      if (delivered.has(subscription.id)) continue;
       // Saved before only push-service addresses were accepted: never called, forgotten.
       if (!isPushServiceEndpoint(subscription.endpoint)) {
         await this.prisma.pushSubscription.deleteMany({ where: { id: subscription.id } });
@@ -196,6 +201,7 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
       }
       try {
         await this.sender.send(subscription, message);
+        delivered.add(subscription.id);
         await this.prisma.pushSubscription.update({
           where: { id: subscription.id },
           data: { lastSuccessAt: new Date() },
@@ -208,7 +214,14 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
         }
       }
     }
-    // Retry later only if some device could not be reached for a temporary reason.
+    // Retry later only if some device could not be reached for a temporary reason; the devices
+    // reached now are remembered, so the retry does not show the message on them a second time.
+    if (failed > 0 && delivered.size > before) {
+      await this.prisma.notification.update({
+        where: { id: row.id },
+        data: { pushDeliveredTo: [...delivered] },
+      });
+    }
     return failed === 0;
   }
 }

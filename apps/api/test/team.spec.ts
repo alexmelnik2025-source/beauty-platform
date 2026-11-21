@@ -605,6 +605,26 @@ describe('notification feed', () => {
       expect(ctx.push.sent.map((m) => m.endpoint)).toEqual([device('laptop')]);
     });
 
+    it('a retry goes only to the device that failed, not again to the others (task 620)', async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      await subscribe(kasia, device('phone'));
+      await subscribe(kasia, device('laptop'));
+      ctx.push.failing.add(device('laptop'));
+
+      await bookOnline(kasiaId, 10);
+      await deliver();
+      expect(ctx.push.sent.map((m) => m.endpoint)).toEqual([device('phone')]);
+
+      ctx.push.failing.clear();
+      await deliver();
+      await deliver();
+      expect(ctx.push.sent.map((m) => m.endpoint).sort()).toEqual(
+        [device('laptop'), device('phone')].sort(),
+      );
+      const [row] = await ctx.prisma.notification.findMany({ where: { userId: kasia.userId } });
+      expect(row?.pushedAt).not.toBeNull();
+    });
+
     it('gives up after 3 attempts', async () => {
       const kasia = await joinAsStaff('kasia@example.com', kasiaId);
       await subscribe(kasia, device('laptop'));
