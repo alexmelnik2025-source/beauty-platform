@@ -1681,6 +1681,8 @@ export const uk: Dict = {
   },
   products: {
     integrationsLink: 'Імпорт товарів із Base або з файлу →',
+    /** Task Q6: the explanations of "Produkty" open under one "?". */
+    helpOpen: 'Як це працює?',
     title: 'Товари',
     hint: 'Товари, які ви продаєте на візиті (помада, шампунь…). Продаж позначається в картці візиту, що відбувся; ціну візиту, бали і знижки не змінює.',
     empty: 'У списку ще немає товарів.',

@@ -151,6 +151,39 @@ h3 {
   font-size: 0.9rem;
 }
 
+/* Task Q6: a title with a small "?" that opens its explanations. */
+.title-help {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-help h2 {
+  margin-bottom: 0;
+}
+
+.help-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 1px solid var(--steel);
+  border-radius: 50%;
+  background: var(--paper);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.help-btn[aria-expanded='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.help-box {
+  margin-top: 8px;
+}
+
 .link-btn {
   padding: 0;
   border: 0;

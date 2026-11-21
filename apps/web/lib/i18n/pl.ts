@@ -1684,6 +1684,8 @@ export const pl = {
   },
   products: {
     integrationsLink: 'Importuj produkty z Base lub z pliku →',
+    /** Task Q6: the explanations of "Produkty" open under one "?". */
+    helpOpen: 'Jak to działa?',
     title: 'Produkty',
     hint: 'Produkty, które sprzedajecie przy wizycie (pomada, szampon…). Sprzedaż zapisuje się w karcie wizyty, która się odbyła; nie zmienia ceny wizyty, punktów ani rabatów.',
     empty: 'Na liście nie ma jeszcze produktów.',
