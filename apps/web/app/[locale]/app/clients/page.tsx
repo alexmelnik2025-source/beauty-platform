@@ -8,7 +8,7 @@ import { PhoneField } from '@/components/PhoneField';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
-import { errorText, fill, LOCALE_TAGS, LOCALES, useI18n } from '@/lib/i18n';
+import { errorText, fill, LOCALE_TAGS, LOCALES, localeCode, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { Customer, CustomerDetail, CustomerSegments, CustomerTags } from '@/lib/types';
 
@@ -712,7 +712,7 @@ function ClientSheet({
           >
             {LOCALES.map((l) => (
               <option key={l} value={l}>
-                {l.toUpperCase()}
+                {localeCode(l)}
               </option>
             ))}
           </select>
