@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { PushService } from '../src/push/push.service';
+import { MAX_DEVICES, PushService } from '../src/push/push.service';
 import { addDays, localToday, zonedToInstant } from '../src/scheduling/time';
 import {
   createOrgWithLocation,
@@ -490,7 +490,7 @@ describe('notification feed', () => {
 
   describe('push messages to installed apps', () => {
     const KEYS = { p256dh: 'BPublicKeyOfTheDevice_123', auth: 'AuthSecret_456' };
-    const device = (name: string) => `https://push.example.com/send/${name}`;
+    const device = (name: string) => `https://fcm.googleapis.com/fcm/send/${name}`;
     const subscribe = (user: SignedInUser, endpoint: string) =>
       ctx
         .http()
@@ -585,6 +585,72 @@ describe('notification feed', () => {
         .send({ endpoint: device('kasia-phone') })
         .expect(204);
       expect(await ctx.prisma.pushSubscription.count()).toBe(0);
+    });
+
+    it('only addresses of browser push services; other hosts are never called', async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      for (const endpoint of [
+        'https://push.example.com/send/x',
+        'https://10.0.0.5/internal',
+        'https://localhost/admin',
+        'https://fcm.googleapis.com.evil.example/x',
+        'https://fcm.googleapis.com:8443/fcm/send/x',
+        'https://user:pass@fcm.googleapis.com/fcm/send/x',
+      ]) {
+        const bad = await ctx
+          .http()
+          .post('/v1/me/push-subscriptions')
+          .set(kasia.auth)
+          .send({ endpoint, keys: KEYS })
+          .expect(400);
+        expectError(bad.body, 'VALIDATION_ERROR');
+      }
+      for (const endpoint of [
+        'https://updates.push.services.mozilla.com/wpush/v2/abc',
+        'https://web.push.apple.com/QAbc',
+        'https://wns2-par02p.notify.windows.com/w/?token=abc',
+      ]) {
+        await subscribe(kasia, endpoint);
+      }
+      expect(await ctx.prisma.pushSubscription.count({ where: { userId: kasia.userId } })).toBe(3);
+
+      // A row saved before the check is dropped instead of being called.
+      await ctx.prisma.pushSubscription.create({
+        data: {
+          userId: kasia.userId,
+          endpoint: 'https://intranet.example/hook',
+          p256dh: KEYS.p256dh,
+          auth: KEYS.auth,
+        },
+      });
+      await bookOnline(kasiaId, 10);
+      await deliver();
+      expect(ctx.push.sent.map((m) => m.endpoint)).not.toContain('https://intranet.example/hook');
+      expect(ctx.push.sent).toHaveLength(3);
+      expect(
+        await ctx.prisma.pushSubscription.count({
+          where: { endpoint: 'https://intranet.example/hook' },
+        }),
+      ).toBe(0);
+    });
+
+    it(`keeps the ${MAX_DEVICES} newest devices of an account`, async () => {
+      const kasia = await joinAsStaff('kasia@example.com', kasiaId);
+      for (let i = 0; i <= MAX_DEVICES; i += 1) await subscribe(kasia, device(`d${i}`));
+      const left = await ctx.prisma.pushSubscription.findMany({ where: { userId: kasia.userId } });
+      expect(left).toHaveLength(MAX_DEVICES);
+      expect(left.map((s) => s.endpoint)).not.toContain(device('d0'));
+
+      // Subscribing an old device again makes it the newest one.
+      await subscribe(kasia, device('d1'));
+      await subscribe(kasia, device('d-new'));
+      const after = (
+        await ctx.prisma.pushSubscription.findMany({ where: { userId: kasia.userId } })
+      ).map((s) => s.endpoint);
+      expect(after).toHaveLength(MAX_DEVICES);
+      expect(after).toContain(device('d1'));
+      expect(after).toContain(device('d-new'));
+      expect(after).not.toContain(device('d2'));
     });
 
     it('no push after leaving the team', async () => {

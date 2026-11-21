@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import type { Locale } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { isPushServiceEndpoint } from './push-hosts';
 import { pushMessage } from './push-texts';
 import { PushGoneError, PushSender } from './push.sender';
 
@@ -19,7 +20,10 @@ const base64url = z
   .max(256);
 
 export const subscribeSchema = z.object({
-  endpoint: z.url({ protocol: /^https$/ }).max(2048),
+  endpoint: z
+    .url({ protocol: /^https$/ })
+    .max(2048)
+    .refine(isPushServiceEndpoint, { message: 'must be an address of a browser push service' }),
   keys: z.object({ p256dh: base64url, auth: base64url }),
 });
 export type SubscribeInput = z.infer<typeof subscribeSchema>;
@@ -32,6 +36,8 @@ const MAX_ATTEMPTS = 3;
 /** Older notifications are not pushed any more (the feed still has them). */
 const PUSH_WINDOW_MINUTES = 60;
 const BATCH = 50;
+/** Devices kept per account; a new one beyond this replaces the one subscribed longest ago. */
+export const MAX_DEVICES = 10;
 
 interface ClaimedNotification {
   id: string;
@@ -80,18 +86,35 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
     return { publicKey: this.sender.publicKey };
   }
 
-  /** Saves this device for push. The same device signed in as someone else moves to them. */
+  /**
+   * Saves this device for push. The same device signed in as someone else moves to them.
+   * At most MAX_DEVICES per account: every message goes to each of them in turn, so an
+   * endless list would slow down push for every salon.
+   */
   async subscribe(userId: string, input: SubscribeInput, userAgent?: string): Promise<void> {
     const data = {
       userId,
       p256dh: input.keys.p256dh,
       auth: input.keys.auth,
       userAgent: userAgent?.slice(0, 300) ?? null,
+      // Subscribing again counts as the newest device.
+      createdAt: new Date(),
     };
-    await this.prisma.pushSubscription.upsert({
-      where: { endpoint: input.endpoint },
-      create: { endpoint: input.endpoint, ...data },
-      update: data,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.pushSubscription.upsert({
+        where: { endpoint: input.endpoint },
+        create: { endpoint: input.endpoint, ...data },
+        update: data,
+      });
+      const older = await tx.pushSubscription.findMany({
+        where: { userId },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: MAX_DEVICES,
+        select: { id: true },
+      });
+      if (older.length > 0) {
+        await tx.pushSubscription.deleteMany({ where: { id: { in: older.map((o) => o.id) } } });
+      }
     });
   }
 
@@ -166,6 +189,11 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
     });
     let failed = 0;
     for (const subscription of user.pushSubscriptions) {
+      // Saved before only push-service addresses were accepted: never called, forgotten.
+      if (!isPushServiceEndpoint(subscription.endpoint)) {
+        await this.prisma.pushSubscription.deleteMany({ where: { id: subscription.id } });
+        continue;
+      }
       try {
         await this.sender.send(subscription, message);
         await this.prisma.pushSubscription.update({
