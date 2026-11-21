@@ -15,6 +15,7 @@ import {
   addDays,
   clockToMinutes,
   formatDay,
+  shortDate,
   minutesToClock,
   toLocal,
   todayIn,
@@ -308,12 +309,21 @@ export function Calendar() {
     <>
       <div className="cal-toolbar">
         <div className="date-title">
+          {/* Task Q6: on a phone the whole header is one row — a short date ("niedz., 22 lis") and
+              the salon on one line each, never wrapping over several lines. */}
           <strong>
-            {mode === 'week'
-              ? `${formatDay(monday, tag)} – ${formatDay(addDays(monday, 6), tag)}`
-              : formatDay(date, tag)}
+            <span className="hide-mobile">
+              {mode === 'week'
+                ? `${formatDay(monday, tag)} – ${formatDay(addDays(monday, 6), tag)}`
+                : formatDay(date, tag)}
+            </span>
+            <span className="only-mobile" data-testid="cal-date-short">
+              {mode === 'week'
+                ? `${shortDate(monday, tag)} – ${shortDate(addDays(monday, 6), tag)}`
+                : formatDay(date, tag, { short: true })}
+            </span>
           </strong>
-          <span className="small muted">{location.name}</span>
+          <span className="small muted cal-location">{location.name}</span>
         </div>
         <div className="tabs cal-mode" role="group" aria-label={t.calendar.viewLabel}>
           <button type="button" aria-pressed={mode === 'day'} onClick={() => setMode('day')}>

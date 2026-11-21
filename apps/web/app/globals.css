@@ -485,6 +485,22 @@ fieldset.field > legend {
   margin-right: auto;
 }
 
+/* Task Q6: the short date and the salon name each stay on one line (cut with "…" if too long). */
+.cal-toolbar .date-title strong,
+.cal-toolbar .cal-location {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cal-toolbar .cal-location {
+  display: block;
+}
+
+.only-mobile {
+  display: none;
+}
+
 .cal-toolbar .date-title strong {
   display: block;
   font-family: var(--font-display), var(--font-body);
@@ -810,7 +826,30 @@ fieldset.field > legend {
 
   .cal-toolbar {
     flex-wrap: nowrap;
+    gap: 8px;
     padding: 10px 12px;
+  }
+
+  .cal-toolbar .date-title {
+    flex: 1 1 auto;
+  }
+
+  .cal-toolbar .cal-mode,
+  .cal-toolbar > button,
+  .cal-toolbar > select {
+    flex: none;
+  }
+
+  .only-mobile {
+    display: inline;
+  }
+
+  .cal-toolbar .cal-mode button {
+    padding: 0 8px;
+  }
+
+  .cal-toolbar .cal-staff-pick {
+    max-width: 96px;
   }
 
   .cal-toolbar .date-title strong {
