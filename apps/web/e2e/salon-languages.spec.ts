@@ -106,6 +106,8 @@ test('the salon page needs no sign-in and shows the specialists’ languages eve
     await expect(page.getByRole('heading', { name: SALON })).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/pl/b/${slug}$`));
     // The price list: "Mówi po: ukraiński" - the line names Taras and Oksana with their languages.
+    // Task Q5: the language filter is folded into "Mówi po ▸".
+    await page.locator('.speaks-fold > summary').click();
     await page.getByRole('button', { name: 'Mówi po: ukraiński' }).click();
     const rows = page.locator('.price-rows li');
     await expect(rows.first()).toContainText('Taras');
@@ -133,6 +135,7 @@ test('the salon page needs no sign-in and shows the specialists’ languages eve
       /ukraiński/,
     );
     await expect(staffButton('Piotr').getByRole('note')).toHaveAttribute('aria-label', /polski/);
+    await page.locator('.speaks-fold > summary').click();
     await page
       .getByRole('group', { name: 'Mówi po' })
       .getByRole('button', { name: 'Mówi po: ukraiński' })

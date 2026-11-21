@@ -173,6 +173,7 @@ export const en: Dictionary = {
   },
   wishStep: {
     title: 'Your wishes',
+    add: '+ Add a wish',
     lead: 'Optional — one tap or “Skip”. The specialist will see them before the visit.',
     moodQ: 'How would you like to spend the visit?',
     mood: { chat: 'Happy to chat', quiet: 'I prefer quiet', relax: 'I want to relax, we will see' },

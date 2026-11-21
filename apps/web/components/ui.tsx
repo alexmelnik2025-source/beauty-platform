@@ -27,7 +27,8 @@ export function LanguageSwitch({ query = '' }: { query?: string }) {
     <nav className="lang" aria-label={t.common.language}>
       {(dashboard ? DASHBOARD_LOCALES : LOCALES).map((l) => (
         <a key={l} href={`/${l}${rest}${query}`} aria-current={l === locale} lang={l}>
-          {l.toUpperCase()}
+          {/* Task Q5: Ukrainian is "UA" everywhere, as on the salon's language badges. */}
+          {l === 'uk' ? 'UA' : l.toUpperCase()}
         </a>
       ))}
     </nav>

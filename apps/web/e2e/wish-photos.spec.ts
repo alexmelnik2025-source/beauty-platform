@@ -283,6 +283,8 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   await client.getByLabel('E-mail').fill(CLIENT2);
   await client.getByLabel(/Akceptuję regulamin rezerwacji/).check();
   await client.getByRole('button', { name: 'Wyślij kod' }).click();
+  // Task Q5: the wishes are folded under "Potwierdź wizytę".
+  await client.getByText('+ Dodaj życzenie').click();
   await expect(client.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toBeVisible();
   await client.locator('input[type=file]').setInputFiles({
     name: 'fade.jpg',
@@ -342,6 +344,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
     await app.getByRole('textbox', { name: 'E-mail', exact: true }).fill(CLIENT3);
     await app.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }).click();
     await app.getByRole('button', { name: 'Wyślij kod' }).click();
+    await app.getByRole('button', { name: '+ Dodaj życzenie' }).click();
     await expect(app.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toBeVisible();
     // The gallery on a phone; in the web preview the picker opens the browser's file chooser
     // (waited for first, so the browser does not cancel it at once).

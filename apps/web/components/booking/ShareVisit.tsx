@@ -11,7 +11,14 @@ import { directionsLink } from './SalonProfile';
  * phone's share sheet (a partner, a friend who drives you); without one, the text is copied.
  * As in the client app (task 411).
  */
-export function ShareVisit({ visit }: { visit: PublicAppointment }) {
+export function ShareVisit({
+  visit,
+  className = 'btn btn--quiet btn--block',
+}: {
+  visit: PublicAppointment;
+  /** Task Q5: a quiet text link on the "Do zobaczenia!" screen. */
+  className?: string;
+}) {
   const { t, locale } = useI18n();
   const [info, setInfo] = useState('');
 
@@ -42,7 +49,7 @@ export function ShareVisit({ visit }: { visit: PublicAppointment }) {
 
   return (
     <>
-      <button type="button" className="btn btn--quiet btn--block" onClick={() => void share()}>
+      <button type="button" className={className} onClick={() => void share()}>
         {t.booking.shareVisit}
       </button>
       {info ? (

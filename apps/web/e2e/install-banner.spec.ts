@@ -108,29 +108,30 @@ test('the booking page offers the app in one row and continues the booking in it
     await expect(page.locator('meta[name="apple-itunes-app"]')).toHaveCount(0);
     await shot(page, 'Q2-banner');
 
-    // The booking goes on under the row: the service is chosen, the row stays small.
-    await page.getByRole('button', { name: /Strzyżenie męskie/ }).click();
-    await expect(page.getByRole('button', { name: /Kasia/ })).toBeVisible();
-    await expect(banner).toBeVisible();
-
     // "Zainstaluj": this browser has no install dialog of its own, so the hints open; where the
-    // client is (salon + service) is kept for the app.
+    // client is (the salon) is kept for the app.
     await banner.getByRole('button', { name: 'Zainstaluj' }).click();
     await expect(page.getByTestId('install-banner-help')).toBeVisible();
     const kept = await page.evaluate(() => window.localStorage.getItem('bp_resume_booking'));
-    expect(JSON.parse(kept ?? '{}')).toMatchObject({ slug, salonName: NAME, serviceId });
+    expect(JSON.parse(kept ?? '{}')).toMatchObject({ slug, salonName: NAME });
 
-    // "My visits" (where the installed app opens) continues exactly there.
+    // Task Q5: the row is only on the first screen — once the service is chosen it is gone, so
+    // nothing stands between the client and the next steps.
+    await page.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+    await expect(page.getByRole('button', { name: /Kasia/ })).toBeVisible();
+    await expect(banner).toHaveCount(0);
+    await shot(page, 'Q5-no-banner-on-steps');
+
+    // "My visits" (where the installed app opens) continues in that salon.
     await page.goto('/pl/c');
     const resume = page.getByTestId('resume-booking');
     await expect(resume.getByText('Dokończ rezerwację')).toBeVisible();
     await expect(resume.getByText(NAME)).toBeVisible();
     await shot(page, 'Q2-resume');
     await resume.getByRole('link', { name: 'Wróć do rezerwacji' }).click();
-    await page.waitForURL(new RegExp(`/pl/b/${slug}\\?service=${serviceId}`));
-    // Straight at "who": the service is already chosen.
-    await expect(page.getByRole('button', { name: /Kasia/ })).toBeVisible();
-    await expect(page.locator('.progress [aria-current="step"]')).toHaveText('Specjalista');
+    await page.waitForURL(new RegExp(`/pl/b/${slug}`));
+    await expect(page.getByRole('button', { name: /Strzyżenie męskie/ })).toBeVisible();
+    expect(serviceId).toBeTruthy();
     await shot(page, 'Q2-resume-back');
     // Used once: "My visits" no longer offers it.
     await page.goto('/pl/c');

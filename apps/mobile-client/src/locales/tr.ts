@@ -175,6 +175,7 @@ export const tr: Dictionary = {
   },
   wishStep: {
     title: 'İstekleriniz',
+    add: '+ İstek ekle',
     lead: 'İsteğe bağlı — tek dokunuş veya “Atla”. Uzman ziyaretten önce görür.',
     moodQ: 'Ziyaretinizi nasıl geçirmek istersiniz?',
     mood: {

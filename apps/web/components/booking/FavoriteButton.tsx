@@ -10,7 +10,14 @@ import { ErrorBox } from '../ui';
  * Task 405: "♡ Dodaj do ulubionych" / "♥ W ulubionych" on a salon page for a client signed in to
  * "Moje wizyty" on this device — the same list as "Ulubione" (site and client app).
  */
-export function FavoriteButton({ slug }: { slug: string }) {
+export function FavoriteButton({
+  slug,
+  className = 'btn btn--quiet btn--small',
+}: {
+  slug: string;
+  /** Task Q5: a quiet text link on the "Do zobaczenia!" screen. */
+  className?: string;
+}) {
   const { t } = useI18n();
   // null = not known yet: no button.
   const [saved, setSaved] = useState<boolean | null>(null);
@@ -53,7 +60,7 @@ export function FavoriteButton({ slug }: { slug: string }) {
     <div className="favorite-button">
       <button
         type="button"
-        className="btn btn--quiet btn--small"
+        className={className}
         aria-label={saved ? t.favorites.remove : t.favorites.add}
         disabled={busy}
         onClick={() => void toggle()}

@@ -283,7 +283,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(
     client.getByRole('note', { name: 'Mówimy po: polski, ukraiński, rosyjski' }),
   ).toBeVisible();
+  // Task Q5 (N36): the salon's details are folded into "O salonie ▸" — on a 390 px phone the
+  // first service is seen without scrolling.
+  await expect(client.getByText('Kawa i parking dla klientów.')).toBeHidden();
+  await expect(client.getByRole('button', { name: /Strzyżenie męskie/ }).first()).toBeInViewport();
+  await shot(client, '01-client-services');
   // Salon profile: description, map link, opening hours from the team's schedules.
+  await client.getByTestId('salon-more').locator('summary').click();
   await expect(client.getByText('Kawa i parking dla klientów.')).toBeVisible();
   await expect(client.getByRole('link', { name: 'Pokaż na mapie' })).toHaveAttribute(
     'href',
@@ -299,7 +305,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(client.locator('.opening-hours tr[data-today] td')).toHaveText('08:00–21:00');
   await shot(client, '00-client-salon-profile');
   await client.locator('.opening-hours summary').click();
-  await shot(client, '01-client-services');
+  await client.getByTestId('salon-more').locator('summary').click();
 
   await client.getByRole('button', { name: /Strzyżenie męskie/ }).click();
   // Each specialist with their own languages.
@@ -320,6 +326,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   ).toHaveText(nearestFree);
   await shot(client, '02-client-staff');
   // Task 81: "Mówi po" — only the specialists who speak the language (PL is spoken by all: no chip).
+  // Task Q5: folded into "Mówi po ▸" — most clients book without it.
+  await client.locator('.speaks-fold > summary').click();
   const speaks = client.getByRole('group', { name: 'Mówi po' });
   await expect(speaks.getByRole('button')).toHaveText(['Wszyscy', 'UA ukraiński', 'EN angielski']);
   await speaks.getByRole('button', { name: 'Mówi po: angielski' }).click();
@@ -397,7 +405,10 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const code = /\b(\d{6})\b/.exec(codeMail.text)![1]!;
   await client.getByLabel('Kod z e-maila').fill(code);
   await shot(client, '05-client-code');
-  // Task 80: the optional wishes above "Potwierdź wizytę" — one tap, a short note.
+  // Task 80: the optional wishes — one tap, a short note. Task Q5: folded under "Potwierdź
+  // wizytę", so the button stands right under the code.
+  await expect(client.getByRole('region', { name: 'Twoje życzenia' })).toBeHidden();
+  await client.getByText('+ Dodaj życzenie').click();
   const wishStep = client.getByRole('region', { name: 'Twoje życzenia' });
   await wishStep.getByRole('button', { name: /Wolę ciszę/ }).click();
   await expect(wishStep.getByRole('button', { name: /Wolę ciszę/ })).toHaveAttribute(
@@ -1137,7 +1148,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   });
   const ola = await olaPhone.newPage();
   await ola.goto(`/pl/b/${location.slug}`);
-  // The salon's photo under its name; a tap opens it full size, Escape closes it.
+  // The salon's photo in "O salonie ▸" (task Q5); a tap opens it full size, Escape closes it.
+  await ola.getByTestId('salon-more').locator('summary').click();
   const salonThumb = ola.getByRole('button', { name: 'Zdjęcie salonu 1' });
   await expect(salonThumb).toBeVisible();
   await expect(ola.getByRole('button', { name: /^Zdjęcie salonu \d+$/ })).toHaveCount(1);
@@ -1807,6 +1819,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText(`Wysłaliśmy 6 cyfr na ${CLIENT4}.`)).toBeVisible();
     const bookCodeMail = await waitForEmail(CLIENT4, /Kod potwierdzenia/);
     // Task 80e: the salon's questions on the code step, one tap each (coffee and tea offered).
+    // Task Q5: folded under "Potwierdź wizytę" behind "+ Dodaj życzenie".
+    await phone.getByRole('button', { name: '+ Dodaj życzenie' }).click();
     await expect(phone.getByRole('heading', { name: 'Twoje życzenia' })).toBeVisible();
     await phone.getByRole('button', { name: '😄 Chętnie pogadam' }).click();
     await expect(phone.getByRole('button', { name: '😄 Chętnie pogadam' })).toHaveAttribute(

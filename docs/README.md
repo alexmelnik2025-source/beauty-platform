@@ -4234,3 +4234,26 @@ Samsung, Brave), Mozilla (Firefox), Apple (Safari и приложения на �
 сообщение, показывали его ещё раз. Теперь в уведомлении хранится список устройств, которые его уже получили
 (`notification.push_delivered_to`, массив id подписок; миграция `20261201050000_push_delivered_to`), и повтор идёт
 только на остальные. Тест: `team.spec.ts`.
+
+## Минимализм клиентской записи на телефоне (задача Q5 / 626)
+
+По принципу владельца «запись в минимум шагов» (ответ «Да» 21.11.2026, 22:28; полировка существующего — ничего не
+удалено, только свёрнуто). **Страница салона** (`BookingFlow.tsx`, `SalonProfile.tsx`): под названием и адресом одна
+строка «O salonie ▸» (`details.salon-more`) со статусом «Otwarte · do 20:00» (`SalonOpenStatus`); внутри — «Pokaż na
+mapie», описание, «Godziny otwarcia», «Poleć salon znajomym» / «Pokaż kod QR» и фото салона. На телефоне 390 px первая
+услуга видна без прокрутки (e2e проверяет `toBeInViewport`). Фильтр «Mówi po» (прайс и шаг «Specjalista») свёрнут в
+строку `details.speaks-fold`, открыт, пока выбран язык; показывается, как и раньше, только если мастера говорят на
+разных языках. **Баннер «Zainstaluj aplikację»** — только на первом экране (до выбора услуги); «Dokończ rezerwację»
+в приложении возвращает в салон. **Шаг кода**: «Potwierdź wizytę» сразу под полем кода; пожелания и фото-примеры —
+свёрнутая строка «+ Dodaj życzenie» под кнопкой (`details.wishes-fold`, отправляются вместе с визитом, как раньше);
+то же у вошедшего клиента на шаге «Dane». **«Do zobaczenia!»**: одна главная кнопка «Dodaj do kalendarza»; «Jak
+dojechać», «Udostępnij wizytę», «Zmień lub odwołaj wizytę», «♡ Dodaj do ulubionych» — тихие ссылки в строку; блок
+аккаунта — две короткие строки («Masz teraz konto… · Wszystkie moje wizyty», «Wizyta jest już w aplikacji ·
+Zainstaluj aplikację»). **Мелочи**: в переключателе языка украинский — «UA» (как в значках языков салона); в
+`apps/api/.env.example` `SMS_TRANSPORT=none` — без SMS-шлюза выбор «SMS» на шаге «Dane» не показывается (сервер
+отдаёт `codeChannels: ['email']`; для проверки SMS локально — `log`, в CI e2e так и остаётся). Клиентское приложение
+(`apps/mobile-client`, `BookingScreen.tsx`): пожелания на шаге кода — под кнопкой за «+ Dodaj życzenie»,
+«Udostępnij wizytę» на экране «Do zobaczenia!» — ссылкой. Новые тексты `wishStep.add` — во всех 6 словарях сайта и
+приложения. e2e: `booking.spec.ts` (01-client-services, 00-client-salon-profile, 05-client-code, 05w-client-wishes,
+06-client-done), `install-banner.spec.ts` (Q5-no-banner-on-steps), `languages`, `open-status`, `price-rows`,
+`salon-languages`, `web-favorites`, `wish-photos`.

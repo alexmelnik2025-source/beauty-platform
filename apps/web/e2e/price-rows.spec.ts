@@ -160,7 +160,8 @@ test('the price list shows a line per price and books the specialists of that li
   await expect(beard.locator('.price-rows li')).toContainText(/60,00\s*zł · 30min/);
   await shot(client, '83-booking-price-rows');
 
-  // "Mówi po: angielski" leaves only Ola's line.
+  // "Mówi po: angielski" leaves only Ola's line (task Q5: the filter is folded).
+  await client.locator('.speaks-fold > summary').click();
   await client.getByRole('button', { name: 'Mówi po: angielski' }).click();
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Ola');

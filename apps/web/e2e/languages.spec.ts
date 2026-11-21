@@ -114,7 +114,7 @@ test('a client books in Turkish and reads the visit in Albanian', async ({ brows
   await expect(client.locator('html')).toHaveAttribute('lang', 'tr');
   await expect(client.getByRole('heading', { name: 'Berber Moda' })).toBeVisible();
   const languages = client.getByRole('navigation', { name: 'Dil' });
-  await expect(languages.getByRole('link')).toHaveText(['PL', 'UK', 'RU', 'EN', 'TR', 'SQ']);
+  await expect(languages.getByRole('link')).toHaveText(['PL', 'UA', 'RU', 'EN', 'TR', 'SQ']);
   await shot(client, '71-booking-turkish');
 
   await client.getByRole('button', { name: /Saç kesimi/ }).click();
@@ -176,5 +176,5 @@ test('a client books in Turkish and reads the visit in Albanian', async ({ brows
 test('the salon dashboard offers only its fully translated languages', async ({ page }) => {
   await page.goto('/tr/login');
   const languages = page.getByRole('navigation', { name: 'Dil' });
-  await expect(languages.getByRole('link')).toHaveText(['PL', 'UK', 'RU', 'EN']);
+  await expect(languages.getByRole('link')).toHaveText(['PL', 'UA', 'RU', 'EN']);
 });

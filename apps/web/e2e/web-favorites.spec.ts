@@ -132,6 +132,8 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
         },
       });
     });
+    // Task Q5: sharing is in the folded "O salonie ▸".
+    await page.getByTestId('salon-more').locator('summary').click();
     await page.getByRole('button', { name: 'Poleć salon znajomym' }).click();
     const shared = await page.evaluate(() => (window as unknown as { shared?: ShareData }).shared);
     expect(shared?.url).toMatch(new RegExp(`/pl/b/${slug}$`));

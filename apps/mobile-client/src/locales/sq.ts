@@ -175,6 +175,7 @@ export const sq: Dictionary = {
   },
   wishStep: {
     title: 'Dëshirat tuaja',
+    add: '+ Shto një dëshirë',
     lead: 'Opsionale — një prekje ose “Kapërce”. Specialisti do t’i shohë para vizitës.',
     moodQ: 'Si dëshironi ta kaloni vizitën?',
     mood: {

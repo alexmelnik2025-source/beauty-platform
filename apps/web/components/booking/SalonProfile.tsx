@@ -31,7 +31,7 @@ function isoWeekday(date: string): number {
   return ((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7) + 1;
 }
 
-/** Description, map link and opening hours under the salon name on the booking page. */
+/** Map link, description and opening hours — inside the folded "O salonie" on the booking page. */
 export function SalonProfile({ salon }: { salon: PublicLocation }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
@@ -52,8 +52,7 @@ export function SalonProfile({ salon }: { salon: PublicLocation }) {
     salon.todayHours && salon.todayHours.date === todayIn(salon.timezone)
       ? { weekday: today, intervals: salon.todayHours.intervals }
       : weeklyToday;
-  const open = days.some((d) => d.intervals.length > 0) || Boolean(todayHours?.intervals.length);
-  const status = useOpenStatus(salon);
+  const open = hasHours(salon);
 
   return (
     <div className="salon-profile">
@@ -61,11 +60,6 @@ export function SalonProfile({ salon }: { salon: PublicLocation }) {
         {t.profile.map}
       </a>
       {salon.description ? <p className="salon-about small">{salon.description}</p> : null}
-      {open && status ? (
-        <p className="open-status small" data-open={status.kind === 'open' ? 'true' : 'false'}>
-          {openStatusText(status, t.profile, dayName)}
-        </p>
-      ) : null}
       {open ? (
         <details className="opening-hours small">
           <summary>
@@ -90,6 +84,34 @@ export function SalonProfile({ salon }: { salon: PublicLocation }) {
         </details>
       ) : null}
     </div>
+  );
+}
+
+/** Whether the salon has any opening hours to show (weekly or today's). */
+function hasHours(salon: PublicLocation): boolean {
+  return (
+    (salon.openingHours ?? []).some((d) => d.intervals.length > 0) ||
+    Boolean(salon.todayHours?.intervals.length)
+  );
+}
+
+/**
+ * Task 362: "Otwarte · do 20:00" / "Zamknięte · otwarcie o 10:00". Task Q5: on the folded
+ * "O salonie" line, so the client sees it without opening the salon's details.
+ */
+export function SalonOpenStatus({ salon }: { salon: PublicLocation }) {
+  const { t, locale } = useI18n();
+  const tag = LOCALE_TAGS[locale];
+  const status = useOpenStatus(salon);
+  if (!hasHours(salon) || !status) return null;
+  const dayName = (weekday: number) =>
+    new Intl.DateTimeFormat(tag, { timeZone: 'UTC', weekday: 'long' }).format(
+      new Date(Date.UTC(2024, 0, weekday)),
+    );
+  return (
+    <span className="open-status small" data-open={status.kind === 'open' ? 'true' : 'false'}>
+      {openStatusText(status, t.profile, dayName)}
+    </span>
   );
 }
 

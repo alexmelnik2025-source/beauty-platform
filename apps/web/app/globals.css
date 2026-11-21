@@ -1033,6 +1033,48 @@ fieldset.field > legend {
   overflow-wrap: anywhere;
 }
 
+/* Task Q5 (N36): "O salonie ▸" — one line under the address; the salon's details open from it. */
+.salon-more summary {
+  cursor: pointer;
+  width: fit-content;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-height: 32px;
+  padding: 4px 0;
+}
+
+.salon-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.salon-more-title::after {
+  content: ' ▸';
+  content: ' ▸' / '';
+}
+
+.salon-more[open] .salon-more-title::after {
+  content: ' ▾';
+  content: ' ▾' / '';
+}
+
+.salon-more-title {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.salon-more summary .open-status {
+  margin: 0;
+}
+
+.salon-more-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
 /* Task 362: "Otwarte · do 20:00" / "Zamknięte · otwarcie o 10:00" above the opening hours. */
 .open-status {
   margin: 4px 0 0;
@@ -3329,4 +3371,54 @@ ul.wish-photos {
 
 .voucher-check-result {
   gap: 4px;
+}
+
+/* Task Q5: optional wishes folded under "Potwierdź wizytę". */
+.wishes-fold > summary {
+  list-style: none;
+  cursor: pointer;
+  width: fit-content;
+  padding: 6px 0;
+}
+
+.wishes-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.wishes-fold[open] > summary {
+  margin-bottom: 8px;
+}
+
+/* Task Q5: "Do zobaczenia!" — quiet links under the one main button. */
+.done-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+}
+
+.done-links .favorite-button {
+  display: contents;
+}
+
+.account-ready {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.account-ready p {
+  margin: 0;
+}
+
+/* Task Q5: "Mówi po ▸" — the language filter folded into one quiet line. */
+.speaks-fold > summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 4px 0;
+}
+
+.speaks-fold[open] > summary {
+  margin-bottom: 6px;
 }

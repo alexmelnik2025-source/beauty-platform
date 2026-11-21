@@ -118,6 +118,8 @@ export function BookingScreen(props: {
   const [fromList, setFromList] = useState(false);
   /** Task 80: the client's wishes, asked on the code step when the salon asks anything. */
   const [wishes, setWishes] = useState<VisitWishes>(NO_WISHES);
+  /** Task Q5: "+ Dodaj życzenie" opens the wishes under "Potwierdź wizytę". */
+  const [wishesOpen, setWishesOpen] = useState(false);
   /** Task 81: "Speaks EN" — only the specialists who speak the chosen language. */
   // Task 192: several languages at once (anyone speaking one of them).
   const [speaks, setSpeaks] = useState<SpokenLanguage[]>([]);
@@ -840,17 +842,6 @@ export function BookingScreen(props: {
             maxLength={6}
             style={[styles.input, styles.code]}
           />
-          {asksWishes(salon.wishQuestions) ? (
-            <WishesPicker
-              t={t}
-              questions={salon.wishQuestions}
-              value={wishes}
-              onChange={setWishes}
-            />
-          ) : null}
-          {service?.wishPhotos ? (
-            <WishPhotosPicker key={hold.holdId} t={t} api={api} hold={hold} />
-          ) : null}
           <Button
             label={b.confirm}
             onPress={() => void confirm()}
@@ -858,6 +849,21 @@ export function BookingScreen(props: {
             disabled={code.length !== 6}
           />
           <Button kind="link" label={b.resend} disabled={busy} onPress={() => void sendCode()} />
+          {/* Task Q5: the optional wishes are folded under the button, sent with the visit. */}
+          {(asksWishes(salon.wishQuestions) || service?.wishPhotos) && !wishesOpen ? (
+            <Button kind="link" label={t.wishStep.add} onPress={() => setWishesOpen(true)} />
+          ) : null}
+          {wishesOpen && asksWishes(salon.wishQuestions) ? (
+            <WishesPicker
+              t={t}
+              questions={salon.wishQuestions}
+              value={wishes}
+              onChange={setWishes}
+            />
+          ) : null}
+          {wishesOpen && service?.wishPhotos ? (
+            <WishPhotosPicker key={hold.holdId} t={t} api={api} hold={hold} />
+          ) : null}
         </View>
       ) : null}
 
@@ -889,7 +895,7 @@ export function BookingScreen(props: {
           ) : null}
           {/* Task 418: tell someone when and where, right after booking (as on the site, 413). */}
           <Button
-            kind="secondary"
+            kind="link"
             label={t.visit.share}
             onPress={() =>
               void shareSalon(

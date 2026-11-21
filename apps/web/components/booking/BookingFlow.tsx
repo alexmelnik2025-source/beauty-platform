@@ -34,7 +34,7 @@ import { ClientNav } from '../client/ClientNav';
 import { downloadIcs } from './ics';
 import { ShareVisit } from './ShareVisit';
 import { SalonGallery } from './SalonGallery';
-import { directionsLink, SalonProfile } from './SalonProfile';
+import { directionsLink, SalonOpenStatus, SalonProfile } from './SalonProfile';
 import { SalonReviews } from '../reviews/SalonReviews';
 import { NearbySalons } from './NearbySalons';
 import { rememberViewed } from '@/lib/recent-salons';
@@ -585,12 +585,33 @@ export function BookingFlow({
     { label: t.booking.evening, slots: daySlots.filter((s) => clockToMinutes(s.time) >= 17 * 60) },
   ].filter((g) => g.slots.length > 0);
 
+  /*
+   * Task Q5: the optional wishes never stand between the code and "Potwierdź wizytę" — one folded
+   * line under the button; they are sent with the visit as before.
+   */
+  const wishesFold =
+    hold && (wishQuestions || service?.wishPhotos) ? (
+      <details className="wishes-fold" data-testid="wishes-fold">
+        <summary className="link-btn small">{t.wishStep.add}</summary>
+        {wishQuestions ? (
+          <section className="wishes-step" aria-labelledby="wishes-step-title">
+            <h3 id="wishes-step-title">{t.wishStep.title}</h3>
+            <p className="muted small">{t.wishStep.lead}</p>
+            {wishesRemembered ? <p className="note small">{t.wishStep.remembered}</p> : null}
+            <WishesPicker questions={wishQuestions} value={wishes} onChange={setWishes} />
+          </section>
+        ) : null}
+        {service?.wishPhotos ? <WishPhotos hold={hold} /> : null}
+      </details>
+    ) : null;
+
   return (
     <div className={embed ? 'booking booking--embed' : 'booking'}>
       {/* In a window on the salon's own site the client stays with this salon. */}
       {embed ? null : <ClientNav />}
       {/* Task Q2: "Install the app" — one small row, closes with one tap; the app continues from here. */}
-      {embed || step === 'done' ? null : (
+      {/* Task Q5: only on the first screen — not between the client and the next steps. */}
+      {embed || step !== 'service' ? null : (
         <InstallBanner
           place={{
             slug: salon.slug,
@@ -614,10 +635,22 @@ export function BookingFlow({
           <LanguageBadges codes={salon.languages ?? []} label={t.languages.speaks} />
           {/* Task 405: a client signed in to "Moje wizyty" saves the salon to "Ulubione". */}
           {signedInAs && !embed ? <FavoriteButton slug={salon.slug} /> : null}
-          {/* Task 406: not in a window on the salon's own site. */}
-          {embed ? null : <ShareSalon name={salon.name} slug={salon.slug} />}
-          <SalonProfile salon={salon} />
-          <SalonGallery photos={salon.photos ?? []} />
+          {/*
+           * Task Q5 (N36): one line "O salonie ▸" with today's status; the map, description,
+           * hours, sharing and photos open from it, so the services are seen without scrolling.
+           */}
+          <details className="salon-more" data-testid="salon-more">
+            <summary>
+              <span className="salon-more-title">{t.profile.description}</span>
+              <SalonOpenStatus salon={salon} />
+            </summary>
+            <div className="salon-more-body">
+              <SalonProfile salon={salon} />
+              {/* Task 406: not in a window on the salon's own site. */}
+              {embed ? null : <ShareSalon name={salon.name} slug={salon.slug} />}
+              <SalonGallery photos={salon.photos ?? []} />
+            </div>
+          </details>
           <SalonReviews slug={salon.slug} />
         </div>
       </header>
@@ -691,29 +724,35 @@ export function BookingFlow({
           <section className="stack">
             <h2>{service.name}</h2>
             {filterLanguages.length > 0 ? (
-              <div className="field">
-                <span id="speaks-filter">{t.languages.filterLabel}</span>
-                <span className="chips" role="group" aria-labelledby="speaks-filter">
-                  <button
-                    type="button"
-                    aria-pressed={activeSpeaks.length === 0}
-                    onClick={() => setSpeaks([])}
-                  >
-                    {t.languages.filterAll}
-                  </button>
-                  {filterLanguages.map((code) => (
+              /* Task Q5: folded — most clients book without it; open while a language is chosen. */
+              <details className="speaks-fold" open={activeSpeaks.length > 0}>
+                <summary className="small">{t.languages.filterLabel}</summary>
+                <div className="field">
+                  <span id="speaks-filter" className="visually-hidden">
+                    {t.languages.filterLabel}
+                  </span>
+                  <span className="chips" role="group" aria-labelledby="speaks-filter">
                     <button
-                      key={code}
                       type="button"
-                      aria-pressed={activeSpeaks.includes(code)}
-                      aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
-                      onClick={() => setSpeaks(toggled(activeSpeaks, code))}
+                      aria-pressed={activeSpeaks.length === 0}
+                      onClick={() => setSpeaks([])}
                     >
-                      <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
+                      {t.languages.filterAll}
                     </button>
-                  ))}
-                </span>
-              </div>
+                    {filterLanguages.map((code) => (
+                      <button
+                        key={code}
+                        type="button"
+                        aria-pressed={activeSpeaks.includes(code)}
+                        aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
+                        onClick={() => setSpeaks(toggled(activeSpeaks, code))}
+                      >
+                        <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+              </details>
             ) : null}
             <ul className="choice-list">
               {/* "Any specialist" could pick someone without the language: hidden while filtering. */}
@@ -1002,15 +1041,6 @@ export function BookingFlow({
                 </span>
               </label>
             )}
-            {signedInAs && wishQuestions ? (
-              <section className="wishes-step" aria-labelledby="wishes-step-title">
-                <h3 id="wishes-step-title">{t.wishStep.title}</h3>
-                <p className="muted small">{t.wishStep.lead}</p>
-                {wishesRemembered ? <p className="note small">{t.wishStep.remembered}</p> : null}
-                <WishesPicker questions={wishQuestions} value={wishes} onChange={setWishes} />
-              </section>
-            ) : null}
-            {signedInAs && service?.wishPhotos ? <WishPhotos hold={hold} /> : null}
             {!signedInAs && salon.codeChannels?.includes('sms') ? (
               <div className="field">
                 <span id="code-via">{t.booking.codeVia}</span>
@@ -1035,6 +1065,7 @@ export function BookingFlow({
             <button className="btn btn--block" disabled={busy}>
               {signedInAs ? t.booking.confirm : t.booking.sendCode}
             </button>
+            {signedInAs ? wishesFold : null}
           </form>
         ) : null}
 
@@ -1057,18 +1088,10 @@ export function BookingFlow({
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             />
-            {wishQuestions ? (
-              <section className="wishes-step" aria-labelledby="wishes-step-title">
-                <h3 id="wishes-step-title">{t.wishStep.title}</h3>
-                <p className="muted small">{t.wishStep.lead}</p>
-                {wishesRemembered ? <p className="note small">{t.wishStep.remembered}</p> : null}
-                <WishesPicker questions={wishQuestions} value={wishes} onChange={setWishes} />
-              </section>
-            ) : null}
-            {service?.wishPhotos ? <WishPhotos hold={hold} /> : null}
             <button className="btn btn--block" disabled={busy || code.length !== 6}>
               {t.booking.confirm}
             </button>
+            {wishesFold}
             <button
               type="button"
               className="link-btn small"
@@ -1121,30 +1144,37 @@ export function BookingFlow({
                 {salon.name}, {salon.addressLine}, {salon.city}
               </span>
             </div>
+            {/* Task Q5: one main button; the rest are quiet links. */}
             <button
               type="button"
-              className="btn btn--quiet btn--block"
+              className="btn btn--block"
               onClick={() => downloadIcs(result.appointment)}
             >
               {t.booking.addToCalendar}
             </button>
-            <a
-              className="btn btn--quiet btn--block"
-              href={directionsLink(salon)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t.booking.directions}
-            </a>
-            {/* Task 413: tell someone when and where, right after booking. */}
-            <ShareVisit visit={result.appointment} />
-            <Link
-              className="btn btn--quiet btn--block"
-              href={`/${locale}/m/${result.manageToken}`}
-              {...newTab}
-            >
-              {t.booking.manage}
-            </Link>
+            <div className="done-links">
+              <a
+                className="link-btn small"
+                href={directionsLink(salon)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t.booking.directions}
+              </a>
+              {/* Task 413: tell someone when and where, right after booking. */}
+              <ShareVisit visit={result.appointment} className="link-btn small" />
+              <Link
+                className="link-btn small"
+                href={`/${locale}/m/${result.manageToken}`}
+                {...newTab}
+              >
+                {t.booking.manage}
+              </Link>
+              {/* Task 417: right after booking, the signed-in client can save the salon. */}
+              {result.signedIn && !signedInAs && !embed ? (
+                <FavoriteButton slug={salon.slug} className="link-btn small" />
+              ) : null}
+            </div>
             {/* Task Q3 (screen A): folded and optional — products picked up at the visit. */}
             {embed ? null : (
               <VisitProductsByLink
@@ -1153,19 +1183,21 @@ export function BookingFlow({
                 bring={bring}
               />
             )}
-            {/* Task 417: right after booking, the signed-in client can save the salon. */}
-            {result.signedIn && !signedInAs && !embed ? <FavoriteButton slug={salon.slug} /> : null}
             {result.signedIn ? (
-              <section className="install-app install-app--card" data-testid="account-ready">
-                <strong>{t.booking.accountReady}</strong>
-                <Link className="btn btn--quiet btn--block" href={`/${locale}/c`}>
-                  {t.visits.allVisits}
-                </Link>
-                <strong>{t.booking.appTitle}</strong>
-                <p className="small muted">{t.booking.appLead}</p>
-                <Link className="btn btn--block" href={`/${locale}/c`}>
-                  {t.booking.installApp}
-                </Link>
+              <section className="account-ready small" data-testid="account-ready">
+                <p>
+                  {t.booking.accountReady}{' '}
+                  <Link className="link-btn" href={`/${locale}/c`}>
+                    {t.visits.allVisits}
+                  </Link>
+                </p>
+                <p className="muted">
+                  {t.booking.appTitle}
+                  {' · '}
+                  <Link className="link-btn" href={`/${locale}/c`}>
+                    {t.booking.installApp}
+                  </Link>
+                </p>
               </section>
             ) : (
               <Link className="link-btn small" href={`/${locale}/c`} {...newTab}>
@@ -1260,25 +1292,31 @@ function ServiceList({
         </p>
       ) : null}
       {filterLanguages.length > 0 ? (
-        <div className="field">
-          <span id="speaks-list-filter">{t.languages.filterLabel}</span>
-          <span className="chips" role="group" aria-labelledby="speaks-list-filter">
-            <button type="button" aria-pressed={active.length === 0} onClick={() => onSpeaks([])}>
-              {t.languages.filterAll}
-            </button>
-            {filterLanguages.map((code) => (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={active.includes(code)}
-                aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
-                onClick={() => onSpeaks(toggled(active, code))}
-              >
-                <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
+        /* Task Q5: folded — most clients book without it; open while a language is chosen. */
+        <details className="speaks-fold" open={active.length > 0}>
+          <summary className="small">{t.languages.filterLabel}</summary>
+          <div className="field">
+            <span id="speaks-list-filter" className="visually-hidden">
+              {t.languages.filterLabel}
+            </span>
+            <span className="chips" role="group" aria-labelledby="speaks-list-filter">
+              <button type="button" aria-pressed={active.length === 0} onClick={() => onSpeaks([])}>
+                {t.languages.filterAll}
               </button>
-            ))}
-          </span>
-        </div>
+              {filterLanguages.map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  aria-pressed={active.includes(code)}
+                  aria-label={`${t.languages.filterLabel}: ${t.languages.names[code]}`}
+                  onClick={() => onSpeaks(toggled(active, code))}
+                >
+                  <b>{SPOKEN_SHORT[code]}</b> {t.languages.names[code]}
+                </button>
+              ))}
+            </span>
+          </div>
+        </details>
       ) : null}
       {groups.map((g) => (
         <div key={g.id}>

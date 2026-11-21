@@ -173,6 +173,7 @@ export const pl = {
   },
   wishStep: {
     title: 'Twoje życzenia',
+    add: '+ Dodaj życzenie',
     lead: 'Nieobowiązkowe — jedno dotknięcie albo „Pomiń”. Specjalista zobaczy je przed wizytą.',
     moodQ: 'Jak chcesz spędzić wizytę?',
     mood: { chat: 'Chętnie pogadam', quiet: 'Wolę ciszę', relax: 'Chcę odpocząć, zobaczymy' },
