@@ -155,6 +155,39 @@ describe('public salon directory', () => {
     expect(none.body.languageCounts).toEqual({ pl: 0, uk: 0, ru: 0, be: 0, en: 0 });
   });
 
+  it('a profile without services (a reception desk) neither lists the salon nor adds its language (task 624)', async () => {
+    const owner = await signUp(ctx, 'reception@example.com');
+    const salon = await createOrgWithLocation(ctx, owner, 'Reception');
+    await makeBookable(owner, salon, ['pl']);
+    await ctx.prisma.location.update({
+      where: { id: salon.locationId },
+      data: { onlineBookingEnabled: true, ...LEGAL_TEXTS, languages: ['pl'] },
+    });
+    await ctx
+      .http()
+      .post(`/v1/organizations/${salon.orgId}/locations/${salon.locationId}/staff`)
+      .set(owner.auth)
+      .send({ displayName: 'Recepcja', serviceIds: [], languages: ['uk'] })
+      .expect(201);
+
+    const ukrainian = await ctx
+      .http()
+      .get('/v1/public/locations')
+      .query({ language: 'uk' })
+      .expect(200);
+    expect(ukrainian.body.total).toBe(0);
+    const all = await ctx.http().get('/v1/public/locations').expect(200);
+    expect(all.body.items.map((s: { slug: string }) => s.slug)).toEqual([salon.slug]);
+    expect(all.body.items[0].languages).toEqual(['pl']);
+
+    // The only specialist doing services leaves: nobody can be booked, so it is not listed.
+    await ctx.prisma.staffMember.updateMany({
+      where: { locationId: salon.locationId, displayName: 'Kasia' },
+      data: { active: false },
+    });
+    expect((await ctx.http().get('/v1/public/locations').expect(200)).body.total).toBe(0);
+  });
+
   it('counts salons per language and kind of place, and specialists speaking the language (task 160)', async () => {
     const owner = await signUp(ctx, 'map-chips@example.com');
     const barber = await createOrgWithLocation(ctx, owner, 'Barber UA');

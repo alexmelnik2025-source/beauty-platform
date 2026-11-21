@@ -45,6 +45,16 @@ export function plain(text: string): string {
     .join('');
 }
 
+/**
+ * Task 624: a specialist a client can book — active and doing at least one active service
+ * (as on the salon page and in the free times). A profile without services (e.g. a reception
+ * desk) does not make a salon listed, nor add its languages or specialties.
+ */
+const BOOKABLE_STAFF = {
+  active: true,
+  services: { some: { service: { active: true } } },
+} satisfies Prisma.StaffMemberWhereInput;
+
 function catalogueWhere(
   languages: Language[],
   specialty?: Kind,
@@ -54,8 +64,7 @@ function catalogueWhere(
   const and: Prisma.LocationWhereInput[] = [
     {
       onlineBookingEnabled: true,
-      services: { some: { active: true } },
-      staffMembers: { some: { active: true } },
+      staffMembers: { some: BOOKABLE_STAFF },
     },
   ];
   // Task 192: several languages - any one of them (OR).
@@ -63,12 +72,12 @@ function catalogueWhere(
     and.push({
       OR: [
         { languages: { hasSome: languages } },
-        { staffMembers: { some: { active: true, languages: { hasSome: languages } } } },
+        { staffMembers: { some: { ...BOOKABLE_STAFF, languages: { hasSome: languages } } } },
       ],
     });
   }
   if (specialty) {
-    and.push({ staffMembers: { some: { active: true, specialties: { has: specialty } } } });
+    and.push({ staffMembers: { some: { ...BOOKABLE_STAFF, specialties: { has: specialty } } } });
   }
   if (ids) and.push({ id: { in: ids } });
   // Task 400: the salon whose neighbours are listed is not one of them.
@@ -224,7 +233,7 @@ export class PublicDirectoryController {
             take: 1,
           },
           staffMembers: {
-            where: { active: true },
+            where: BOOKABLE_STAFF,
             select: {
               id: true,
               languages: true,
@@ -366,7 +375,7 @@ export class PublicDirectoryController {
         id: true,
         timezone: true,
         staffMembers: {
-          where: { active: true, services: { some: { service: { active: true } } } },
+          where: BOOKABLE_STAFF,
           select: {
             id: true,
             workingHours: { select: { weekday: true, startMinute: true, endMinute: true } },
