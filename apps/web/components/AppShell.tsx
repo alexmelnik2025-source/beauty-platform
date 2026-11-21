@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { useI18n, type Locale } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
@@ -17,7 +17,11 @@ interface MenuItem {
   /** Shown in the phone's bottom bar (the rest is under "More"). */
   bottom?: boolean;
   badge?: boolean;
+  /** Task Q6: the computer's sidebar shows the items in small groups under a quiet caption. */
+  group?: MenuGroup;
 }
+
+type MenuGroup = 'offer' | 'bookings' | 'salon';
 
 /** Sections by role: staff see their calendar, notifications and schedule only. */
 export function menuItems(
@@ -35,23 +39,24 @@ export function menuItems(
     { href: at('calendar'), label: t.nav.calendar, bottom: true },
     manager && { href: at('clients'), label: t.nav.clients, bottom: true },
     { href: at('notifications'), label: t.nav.notifications, bottom: true, badge: true },
-    manager && { href: at('services'), label: t.nav.services },
-    manager && { href: at('happy-hours'), label: t.nav.happyHours },
-    manager && { href: at('waitlist'), label: t.nav.waitingList },
-    manager && { href: at('cancellation-guard'), label: t.nav.guard },
-    { href: at('vouchers'), label: t.nav.vouchers },
-    manager && { href: at('shop'), label: t.nav.shop },
-    manager && { href: at('team'), label: t.nav.team },
-    manager && { href: at('loyalty'), label: t.nav.loyalty },
-    { href: at('reviews'), label: t.nav.reviews },
+    manager && { href: at('services'), label: t.nav.services, group: 'offer' },
+    manager && { href: at('happy-hours'), label: t.nav.happyHours, group: 'offer' },
+    { href: at('vouchers'), label: t.nav.vouchers, group: 'offer' },
+    manager && { href: at('shop'), label: t.nav.shop, group: 'offer' },
+    manager && { href: at('loyalty'), label: t.nav.loyalty, group: 'offer' },
+    manager && { href: at('waitlist'), label: t.nav.waitingList, group: 'bookings' },
+    manager && { href: at('cancellation-guard'), label: t.nav.guard, group: 'bookings' },
+    { href: at('reviews'), label: t.nav.reviews, group: 'bookings' },
+    manager && { href: at('team'), label: t.nav.team, group: 'salon' },
+    !manager && { href: at('schedule'), label: t.more.schedule, group: 'salon' },
     (manager || session.permissions.viewOwnEarnings === true) && {
       href: at('reports'),
       label: t.reports.title,
+      group: 'salon',
     },
-    !manager && { href: at('schedule'), label: t.more.schedule },
-    manager && { href: at('settings'), label: t.nav.settings },
-    session.role === 'owner' && { href: at('history'), label: t.nav.history },
-    session.me.isPlatformAdmin && { href: at('admin/outbox'), label: t.more.admin },
+    manager && { href: at('settings'), label: t.nav.settings, group: 'salon' },
+    session.role === 'owner' && { href: at('history'), label: t.nav.history, group: 'salon' },
+    session.me.isPlatformAdmin && { href: at('admin/outbox'), label: t.more.admin, group: 'salon' },
   ];
   return items.filter((i): i is MenuItem => Boolean(i));
 }
@@ -118,11 +123,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
         <nav className="menu">
-          {items.map((item) => (
-            <Link key={item.href} href={item.href} aria-current={current(item.href)}>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {badge(item)}
-            </Link>
+          {items.map((item, i) => (
+            <Fragment key={item.href}>
+              {item.group && item.group !== items[i - 1]?.group ? (
+                <span className="menu-group" data-testid={`menu-group-${item.group}`}>
+                  {t.navGroups[item.group]}
+                </span>
+              ) : null}
+              <Link href={item.href} aria-current={current(item.href)}>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {badge(item)}
+              </Link>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar-foot">

@@ -150,6 +150,20 @@ test('every button and link on the cabinet pages has a name (task 386)', async (
       await page.waitForLoadState('networkidle');
       await page.screenshot({ path: 'e2e/screenshots/386-cabinet-names.png' });
     }
+    if (viewport !== PHONE) {
+      // Task Q6: on a computer the sidebar's long menu is in three small groups — every item stays.
+      await page.goto('/pl/app/calendar');
+      const menu = page.locator('.sidebar .menu');
+      await expect(menu.getByTestId('menu-group-offer')).toHaveText('Oferta');
+      await expect(menu.getByTestId('menu-group-bookings')).toHaveText('Rezerwacje');
+      await expect(menu.getByTestId('menu-group-salon')).toHaveText('Salon');
+      for (const name of ['Kalendarz', 'Klienci', 'Usługi', 'Opinie', 'Zespół', 'Ustawienia']) {
+        await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
+      }
+      await page
+        .locator('.sidebar')
+        .screenshot({ path: 'e2e/screenshots/q6-cabinet-menu-groups.png' });
+    }
     await context.close();
   }
 });
