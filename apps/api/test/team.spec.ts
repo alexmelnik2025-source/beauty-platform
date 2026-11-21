@@ -286,6 +286,62 @@ describe('inviting staff and managers', () => {
     ).expect(403);
   });
 
+  it('managers see and cancel only the invitations they could send (task 619)', async () => {
+    const other = await ctx
+      .http()
+      .post(`/v1/organizations/${orgId}/locations`)
+      .set(owner.auth)
+      .send({ name: 'Wola', addressLine: 'ul. Wolska 1', city: 'Warszawa', postalCode: '01-001' })
+      .expect(201);
+    await invite({ email: 'boss@example.com', role: 'manager', locationIds: [locationId] }).expect(
+      201,
+    );
+    const bossToken = inviteToken('boss@example.com');
+    const manager = await signUp(ctx, 'boss@example.com');
+    await ctx.http().post(`/v1/invitations/${bossToken}/accept`).set(manager.auth).expect(200);
+
+    // The owner invites a second manager and a staff member of both locations.
+    const deputy = await invite({
+      email: 'deputy@example.com',
+      role: 'manager',
+      locationIds: [locationId],
+    }).expect(201);
+    const both = await invite({
+      email: 'both@example.com',
+      role: 'staff',
+      locationIds: [locationId, other.body.id],
+    }).expect(201);
+    const own = await invite(
+      { email: 's1@example.com', role: 'staff', locationIds: [locationId] },
+      manager.auth,
+    ).expect(201);
+
+    const list = await ctx
+      .http()
+      .get(`/v1/organizations/${orgId}/invitations`)
+      .set(manager.auth)
+      .expect(200);
+    expect(list.body.map((i: { email: string }) => i.email)).toEqual(['s1@example.com']);
+
+    for (const id of [deputy.body.id, both.body.id]) {
+      await ctx
+        .http()
+        .delete(`/v1/organizations/${orgId}/invitations/${id}`)
+        .set(manager.auth)
+        .expect(403);
+    }
+    expect(
+      await ctx.prisma.invitation.count({
+        where: { id: { in: [deputy.body.id, both.body.id] }, revokedAt: null },
+      }),
+    ).toBe(2);
+    await ctx
+      .http()
+      .delete(`/v1/organizations/${orgId}/invitations/${own.body.id}`)
+      .set(manager.auth)
+      .expect(204);
+  });
+
   it('someone already in the team cannot be invited; an owner invite is not possible', async () => {
     expectError(
       (

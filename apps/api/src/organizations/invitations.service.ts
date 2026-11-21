@@ -103,6 +103,12 @@ function statusOf(i: Invitation): InvitationResponse['status'] {
   return 'pending';
 }
 
+/** Whether the member may see and cancel this invitation (owners: all of them). */
+function managesAll(m: MembershipContext, i: Invitation): boolean {
+  if (m.role === 'owner') return true;
+  return i.role === 'staff' && i.locationIds.every((id) => m.locationIds.includes(id));
+}
+
 function toResponse(i: Invitation): InvitationResponse {
   return {
     id: i.id,
@@ -258,7 +264,9 @@ export class InvitationsService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map(toResponse);
+    // A manager sees the invitations they could have sent and may cancel: staff, to their own
+    // locations only (one that also names another location is the owner's to manage).
+    return rows.filter((i) => managesAll(m, i)).map(toResponse);
   }
 
   async revoke(m: MembershipContext, actorUserId: string, invitationId: string): Promise<void> {
@@ -266,9 +274,8 @@ export class InvitationsService {
       where: { id: invitationId, organizationId: m.organizationId },
     });
     if (!invitation) throw notFound('Invitation');
-    if (m.role === 'manager' && !invitation.locationIds.every((id) => m.locationIds.includes(id))) {
-      throw forbidden();
-    }
+    // Managers cancel only what they may send: staff invitations to their own locations.
+    if (!managesAll(m, invitation)) throw forbidden();
     await this.prisma.$transaction(async (tx) => {
       await tx.invitation.updateMany({
         where: { id: invitationId, acceptedAt: null, revokedAt: null },
