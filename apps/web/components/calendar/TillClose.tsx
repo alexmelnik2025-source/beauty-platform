@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
-import { api } from '@/lib/api';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { FieldError } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { TillClose as TillCloseView } from '@/lib/types';
@@ -51,6 +52,41 @@ export function TillClose({
       <TillCount base={base} view={view} currency={currency} onChange={setView} />
       <OtherPayments view={view} currency={currency} />
     </>
+  );
+}
+
+/** Task 669: the till forms' fields that can show an error under them. */
+type TillField = 'amount' | 'note';
+
+/**
+ * Task 669: the fields the server's validation answer is about (`amountGrosze` /
+ * `countedCashGrosze` is the amount); empty when it is about something else.
+ */
+function tillFieldsOf(err: unknown): TillField[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  const paths = (err.details as { path?: string }[]).map((d) => String(d.path ?? ''));
+  const fields: TillField[] = [];
+  if (paths.some((p) => p === 'amountGrosze' || p === 'countedCashGrosze')) fields.push('amount');
+  if (paths.includes('note')) fields.push('note');
+  return fields;
+}
+
+/** Task 669: an input and the short error under it, kept together in the till's row. */
+function TillInput({
+  errorId,
+  error,
+  children,
+}: {
+  errorId: string;
+  error?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className="till-close__field">
+      {children}
+      <FieldError id={errorId} text={error} />
+    </span>
   );
 }
 
@@ -151,24 +187,47 @@ function TillMovements({ base, view, currency, onChange }: TillPartProps) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Task 669 (owner's rule: errors at the field): an empty amount or reason when saving, and the
+   * server's answer about a field, are said under that field; editing it takes the error away.
+   */
+  const [problems, setProblems] = useState<TillField[]>([]);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const noteRef = useRef<HTMLInputElement>(null);
   const date = view.date;
 
   useEffect(() => setOpen(false), [date]);
 
   const parsed = amount.trim() === '' ? null : parseTip(amount);
-  const valid = parsed !== null && parsed > 0 && note.trim() !== '';
+  const amountBad = amount.trim() !== '' && (parsed === null || parsed === 0);
 
   const run = async (call: () => Promise<TillCloseView>, after?: () => void) => {
     setBusy(true);
     setError(null);
+    setProblems([]);
     try {
       onChange(await call());
       after?.();
     } catch (e) {
-      setError(errorText(t, e));
+      const fields = tillFieldsOf(e);
+      setProblems(fields);
+      if (fields.length === 0) setError(errorText(t, e));
     } finally {
       setBusy(false);
     }
+  };
+
+  const submit = () => {
+    const wrong: TillField[] = [];
+    if (parsed === null || parsed === 0) wrong.push('amount');
+    if (note.trim() === '') wrong.push('note');
+    if (wrong.length > 0) {
+      setError(null);
+      setProblems(wrong);
+      (wrong[0] === 'amount' ? amountRef : noteRef).current?.focus();
+      return;
+    }
+    void save();
   };
 
   const save = () =>
@@ -186,8 +245,12 @@ function TillMovements({ base, view, currency, onChange }: TillPartProps) {
     setAmount('');
     setNote('');
     setError(null);
+    setProblems([]);
     setOpen(true);
   };
+
+  const amountError = amountBad || problems.includes('amount') ? t.calendar.tillInvalid : undefined;
+  const noteError = problems.includes('note') ? t.onboarding.fieldRequired : undefined;
 
   const rowText = (m: TillCloseView['movements'][number]) =>
     `${fill(m.kind === 'in' ? t.calendar.tillMoveInRow : t.calendar.tillMoveOutRow, {
@@ -236,9 +299,10 @@ function TillMovements({ base, view, currency, onChange }: TillPartProps) {
           className="till-close"
           data-testid="till-move-form"
           aria-label={t.calendar.tillMove}
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
-            if (valid) void save();
+            submit();
           }}
         >
           <fieldset className="till-moves__kind">
@@ -258,29 +322,44 @@ function TillMovements({ base, view, currency, onChange }: TillPartProps) {
           <label className="small" htmlFor={amountId}>
             {t.calendar.tillMoveAmount} ({currency})
           </label>
-          <input
-            id={amountId}
-            inputMode="decimal"
-            autoComplete="off"
-            placeholder="0"
-            value={amount}
-            aria-invalid={amount.trim() !== '' && (parsed === null || parsed === 0)}
-            onChange={(e) => setAmount(e.target.value)}
-            style={{ maxWidth: 120 }}
-            autoFocus
-          />
+          <TillInput errorId={`${amountId}-error`} error={amountError}>
+            <input
+              id={amountId}
+              ref={amountRef}
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0"
+              value={amount}
+              aria-invalid={amountError ? true : undefined}
+              aria-describedby={amountError ? `${amountId}-error` : undefined}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setProblems((p) => p.filter((f) => f !== 'amount'));
+              }}
+              style={{ maxWidth: 120 }}
+              autoFocus
+            />
+          </TillInput>
           <label className="small" htmlFor={noteId}>
             {t.calendar.tillMoveNote}
           </label>
-          <input
-            id={noteId}
-            maxLength={200}
-            placeholder={t.calendar.tillMoveHint}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            style={{ maxWidth: 260 }}
-          />
-          <button type="submit" className="btn btn--small" disabled={busy || !valid}>
+          <TillInput errorId={`${noteId}-error`} error={noteError}>
+            <input
+              id={noteId}
+              ref={noteRef}
+              maxLength={200}
+              placeholder={t.calendar.tillMoveHint}
+              value={note}
+              aria-invalid={noteError ? true : undefined}
+              aria-describedby={noteError ? `${noteId}-error` : undefined}
+              onChange={(e) => {
+                setNote(e.target.value);
+                setProblems((p) => p.filter((f) => f !== 'note'));
+              }}
+              style={{ maxWidth: 260 }}
+            />
+          </TillInput>
+          <button type="submit" className="btn btn--small" disabled={busy}>
             {t.calendar.tillSave}
           </button>
           <button
@@ -290,9 +369,6 @@ function TillMovements({ base, view, currency, onChange }: TillPartProps) {
           >
             {t.calendar.tillCancel}
           </button>
-          {amount.trim() !== '' && (parsed === null || parsed === 0) ? (
-            <span className="small">{t.calendar.tillInvalid}</span>
-          ) : null}
         </form>
       ) : (
         <button
@@ -325,6 +401,9 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Task 669: as in "Wpłata / wypłata" — an empty amount and the server's field answer at the field. */
+  const [problems, setProblems] = useState<TillField[]>([]);
+  const amountRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setOpen(false), [date]);
 
@@ -340,13 +419,20 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
     setNote(close?.note ?? '');
     setChecked(close?.nonCashChecked ?? false);
     setError(null);
+    setProblems([]);
     setOpen(true);
   };
 
   const save = async () => {
-    if (parsed === null) return;
+    if (parsed === null) {
+      setError(null);
+      setProblems(['amount']);
+      amountRef.current?.focus();
+      return;
+    }
     setBusy(true);
     setError(null);
+    setProblems([]);
     try {
       const saved = await api<TillCloseView>(`${base}/reports/till-close`, {
         method: 'PUT',
@@ -360,18 +446,26 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
       onChange(saved);
       setOpen(false);
     } catch (e) {
-      setError(errorText(t, e));
+      const fields = tillFieldsOf(e);
+      setProblems(fields);
+      if (fields.length === 0) setError(errorText(t, e));
     } finally {
       setBusy(false);
     }
   };
 
   if (open) {
+    const amountError =
+      (amount.trim() !== '' && parsed === null) || problems.includes('amount')
+        ? t.calendar.tillInvalid
+        : undefined;
+    const noteError = problems.includes('note') ? t.errors.VALIDATION_ERROR : undefined;
     return (
       <form
         className="till-close"
         data-testid="till-close-form"
         aria-label={t.calendar.tillClose}
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
           void save();
@@ -381,27 +475,41 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
         <label className="small" htmlFor={amountId}>
           {t.calendar.tillCounted} ({currency})
         </label>
-        <input
-          id={amountId}
-          inputMode="decimal"
-          autoComplete="off"
-          placeholder="0"
-          value={amount}
-          aria-invalid={amount.trim() !== '' && parsed === null}
-          onChange={(e) => setAmount(e.target.value)}
-          style={{ maxWidth: 140 }}
-          autoFocus
-        />
+        <TillInput errorId={`${amountId}-error`} error={amountError}>
+          <input
+            id={amountId}
+            ref={amountRef}
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0"
+            value={amount}
+            aria-invalid={amountError ? true : undefined}
+            aria-describedby={amountError ? `${amountId}-error` : undefined}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              setProblems((p) => p.filter((f) => f !== 'amount'));
+            }}
+            style={{ maxWidth: 140 }}
+            autoFocus
+          />
+        </TillInput>
         <label className="small" htmlFor={noteId}>
           {t.calendar.tillNote}
         </label>
-        <input
-          id={noteId}
-          maxLength={500}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          style={{ maxWidth: 260 }}
-        />
+        <TillInput errorId={`${noteId}-error`} error={noteError}>
+          <input
+            id={noteId}
+            maxLength={500}
+            value={note}
+            aria-invalid={noteError ? true : undefined}
+            aria-describedby={noteError ? `${noteId}-error` : undefined}
+            onChange={(e) => {
+              setNote(e.target.value);
+              setProblems((p) => p.filter((f) => f !== 'note'));
+            }}
+            style={{ maxWidth: 260 }}
+          />
+        </TillInput>
         {nonCash ? (
           <label className="small">
             <input
@@ -412,15 +520,12 @@ function TillCount({ base, view, currency, onChange }: TillPartProps) {
             {t.calendar.tillNonCashChecked}
           </label>
         ) : null}
-        <button type="submit" className="btn btn--small" disabled={busy || parsed === null}>
+        <button type="submit" className="btn btn--small" disabled={busy}>
           {t.calendar.tillSave}
         </button>
         <button type="button" className="btn btn--quiet btn--small" onClick={() => setOpen(false)}>
           {t.calendar.tillCancel}
         </button>
-        {amount.trim() !== '' && parsed === null ? (
-          <span className="small">{t.calendar.tillInvalid}</span>
-        ) : null}
         {error ? (
           <span className="small" role="alert">
             {error}

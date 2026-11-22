@@ -17,7 +17,8 @@ import { openBusinessMenu, serveApp } from './mobile-app';
  * then counts again and it matches (232-a). The business app shows the closed till under
  * "Kasa dnia" and counts it again (232-b). Task 233: the report lists the counted day (233),
  * and the business app's report too (235). Task 236: cash taken out of the till (236), put in from the
- * business app (236-a); the report shows it beside the closed day (237).
+ * business app (236-a); the report shows it beside the closed day (237). Task 669: a wrong
+ * amount and a missing reason are said under their fields (669-…).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -146,10 +147,17 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   const form = page.getByTestId('till-close-form');
   await expect(form).toContainText(/Gotówka za wizyty tego dnia: 90,00\s*zł/);
   const save = form.getByRole('button', { name: 'Zapisz' });
-  await form.getByLabel(/Gotówka w kasie/).fill('80x');
-  await expect(form.getByText('Wpisz kwotę, np. 150 lub 150,50.')).toBeVisible();
-  await expect(save).toBeDisabled();
-  await form.getByLabel(/Gotówka w kasie/).fill('80');
+  // Task 669: a wrong or empty amount is said under the field itself (red frame, "!").
+  const counted = form.getByLabel(/Gotówka w kasie/);
+  await save.click();
+  await expect(counted).toHaveAttribute('aria-invalid', 'true');
+  await expect(counted).toBeFocused();
+  await counted.fill('80x');
+  await expect(form.locator('.field-error')).toHaveText('Wpisz kwotę, np. 150 lub 150,50.');
+  await expect(counted).toHaveAccessibleDescription('Wpisz kwotę, np. 150 lub 150,50.');
+  await shot(page, '669-till-close-amount-error');
+  await counted.fill('80');
+  await expect(form.locator('.field-error')).toHaveCount(0);
   await form.getByLabel('Notatka (opcjonalnie)').fill('Reszta wydana z kasy');
   await save.click();
 
@@ -195,8 +203,16 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await expect(moveForm.getByLabel('Wypłata z kasy')).toBeChecked();
   const moveSave = moveForm.getByRole('button', { name: 'Zapisz' });
   await moveForm.getByLabel(/Kwota/).fill('10');
-  await expect(moveSave).toBeDisabled(); // a reason is needed
-  await moveForm.getByLabel('Powód').fill('Ręczniki');
+  // Task 669: a reason is needed — said under "Powód", the cursor goes there.
+  await moveSave.click();
+  const reason = moveForm.getByLabel('Powód');
+  await expect(reason).toHaveAttribute('aria-invalid', 'true');
+  await expect(reason).toBeFocused();
+  await expect(reason).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await expect(moveForm.getByLabel(/Kwota/)).not.toHaveAttribute('aria-invalid', 'true');
+  await shot(page, '669-till-move-reason-error');
+  await reason.fill('Ręczniki');
+  await expect(moveForm.locator('.field-error')).toHaveCount(0);
   await moveSave.click();
   const moves = till.getByTestId('till-moves');
   await expect(moves).toContainText(/wypłata 10,00\s*zł · Ręczniki/);
