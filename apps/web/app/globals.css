@@ -526,9 +526,13 @@ fieldset.field > legend {
   padding: 20px 24px;
 }
 
-/* Task 651: a page's explanation opened with "?" under the title. */
-.page-help {
-  padding-bottom: 16px;
+/* Task 651: a page's explanation opened with "?" under the title (".page" comes later in this file). */
+.page.page-help {
+  padding-bottom: 8px;
+}
+
+.page-help .help-box {
+  margin-top: 0;
 }
 
 .page-head__actions {
