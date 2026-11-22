@@ -193,7 +193,12 @@ jobs:
           git init -q -b shots
           git add .
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Screenshots of $GITHUB_SHA ($GITHUB_REF_NAME)"
-          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/e2e-screenshots
+          # Two runs finishing together race for the branch ("cannot lock ref") — try again (task 652).
+          for try in 1 2 3; do
+            git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/e2e-screenshots && exit 0
+            sleep $((try * 5))
+          done
+          exit 1
 
       - uses: actions/upload-artifact@v4
         if: always()
