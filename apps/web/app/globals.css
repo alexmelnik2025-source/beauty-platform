@@ -3817,7 +3817,24 @@ ul.wish-photos {
   }
 
   .settings-back {
-    display: inline;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .settings:not(.settings--home) {
+    padding-top: 8px;
+  }
+
+  /* Task 655: an open section — the page title stays for screen readers only. */
+  .settings-head--section {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   .settings-card {

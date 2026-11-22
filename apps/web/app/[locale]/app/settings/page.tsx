@@ -204,7 +204,8 @@ export default function SettingsPage() {
 
   return (
     <>
-      <div className="page-head">
+      {/* Task 655: on a phone an open section shows only "‹ Ustawienia" and its own title — not the page title twice. */}
+      <div className={`page-head${section ? ' settings-head--section' : ''}`}>
         <h1>{t.settings.title}</h1>
       </div>
       <form className={`page form settings${section ? '' : ' settings--home'}`} onSubmit={save}>

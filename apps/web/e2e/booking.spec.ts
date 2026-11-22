@@ -1154,6 +1154,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await settingsList.getByRole('button', { name: /^Salon/ }).click();
   await expect(ownerMobile.getByLabel('Waluta cen')).toBeVisible();
   await expect(settingsList).toBeHidden();
+  // Task 655: no second big "Ustawienia" above the section — "‹ Ustawienia" is at the top.
+  expect(
+    (await ownerMobile.getByRole('heading', { name: 'Ustawienia', exact: true }).boundingBox())!
+      .height,
+  ).toBeLessThan(2);
+  expect(
+    (await ownerMobile.getByRole('button', { name: '‹ Ustawienia' }).boundingBox())!.y,
+  ).toBeLessThan(120);
   await shot(ownerMobile, 'q6-settings-card-phone');
   await ownerMobile.getByRole('button', { name: '‹ Ustawienia' }).click();
   await expect(settingsList).toBeVisible();
