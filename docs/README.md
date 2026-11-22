@@ -2201,6 +2201,11 @@ napiwek». В «Kasa dnia» — «Napiwki 15,50 zł» отдельно от де
 `apps/api/test/till-close.spec.ts`, `apps/mobile-business/test/tillClose.test.ts`; e2e `till-close.spec.ts`
 (скриншоты 232, 232-a, 232-b).
 
+Ошибки у поля (669, кабинет): в «Zamknij kasę» пустая или неверная сумма — «Wpisz kwotę, np. 150 lub 150,50.» под
+полем «Gotówka w kasie» (красная рамка, «!»), в «Wpłata / wypłata» пустой «Powód» — «Uzupełnij to pole.» под ним;
+кнопка «Zapisz» больше не выключается молча, курсор — к первому неверному полю; ответ сервера о поле — у поля.
+Скриншоты `669-till-close-amount-error`, `669-till-move-reason-error`.
+
 ## «Zamknięcia kasy» в отчёте (задача 233)
 
 В «Raporty» кабинета — таблица дней периода, когда закрывали кассу: «Za wizyty gotówką», «Policzono», «Różnica»

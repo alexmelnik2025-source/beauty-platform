@@ -3612,6 +3612,18 @@ ul.wish-photos {
   font-weight: 700;
 }
 
+/* Task 669: "Kasa dnia" — the amount and the reason keep their error under them in the row. */
+.till-close__field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.till-close input[aria-invalid='true'] {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 1px var(--signal);
+}
+
 /* Task 666: a commission's error takes the whole width of its row, under the field. */
 .commission-row > .field-error {
   flex-basis: 100%;
