@@ -151,7 +151,7 @@ test('the owner orders and renames the categories of the price list', async ({
   await cabinet.getByRole('button', { name: 'Wszystkie 2' }).click();
   await expect(headings).toHaveText(['Włosy', 'Broda i golenie', 'Dzieci']);
   // The order hint is under "?".
-  await cabinet.getByRole('button', { name: 'Jak to działa?' }).click();
+  await cabinet.locator('[aria-controls="services-help"]').click();
   await expect(cabinet.getByText(/strzałkami ustaw, co pierwsze/)).toBeVisible();
   await desk.close();
 });
