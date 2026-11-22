@@ -14,6 +14,8 @@ export interface WaitlistDetails {
 interface Words {
   joinedSubject: string;
   joined: (what: string, day: string) => string;
+  /** Task Q8: said instead of "we will write" when the list books the time automatically. */
+  joinedAuto: string;
   freeSubject: string;
   free: (what: string, day: string, times: string) => string;
   at: (name: string) => string;
@@ -31,6 +33,8 @@ interface Words {
 const WORDS: Record<Locale, Words> = {
   pl: {
     joinedSubject: 'Jesteś na liście oczekujących',
+    joinedAuto:
+      'Gdy zwolni się termin, od razu go dla Ciebie zarezerwujemy i wyślemy potwierdzenie.',
     joined: (what, day) =>
       `Zapisaliśmy Cię na listę oczekujących: ${what}, ${day}. Gdy zwolni się termin, napiszemy do Ciebie.`,
     freeSubject: 'Zwolnił się termin',
@@ -48,6 +52,8 @@ const WORDS: Record<Locale, Words> = {
   },
   uk: {
     joinedSubject: 'Ви в листі очікування',
+    joinedAuto:
+      'Щойно звільниться час, ми одразу його для вас забронюємо й надішлемо підтвердження.',
     joined: (what, day) =>
       `Ми записали вас у лист очікування: ${what}, ${day}. Щойно звільниться час, ми вам напишемо.`,
     freeSubject: 'Звільнився час',
@@ -65,6 +71,8 @@ const WORDS: Record<Locale, Words> = {
   },
   ru: {
     joinedSubject: 'Вы в листе ожидания',
+    joinedAuto:
+      'Как только освободится время, мы сразу его для вас забронируем и пришлём подтверждение.',
     joined: (what, day) =>
       `Мы записали вас в лист ожидания: ${what}, ${day}. Как только освободится время, мы вам напишем.`,
     freeSubject: 'Освободилось время',
@@ -82,6 +90,7 @@ const WORDS: Record<Locale, Words> = {
   },
   en: {
     joinedSubject: 'You are on the waiting list',
+    joinedAuto: 'When a time frees up, we will book it for you at once and send the confirmation.',
     joined: (what, day) =>
       `You are on the waiting list: ${what}, ${day}. We will write to you when a time becomes free.`,
     freeSubject: 'A time has become free',
@@ -99,6 +108,7 @@ const WORDS: Record<Locale, Words> = {
   },
   tr: {
     joinedSubject: 'Bekleme listesindesiniz',
+    joinedAuto: 'Bir saat boşalınca sizin için hemen ayıracak ve onayı göndereceğiz.',
     joined: (what, day) =>
       `Sizi bekleme listesine ekledik: ${what}, ${day}. Bir saat boşaldığında size yazacağız.`,
     freeSubject: 'Bir saat boşaldı',
@@ -116,6 +126,8 @@ const WORDS: Record<Locale, Words> = {
   },
   sq: {
     joinedSubject: 'Jeni në listën e pritjes',
+    joinedAuto:
+      'Kur të lirohet një orar, do ta rezervojmë menjëherë për ju dhe do t’ju dërgojmë konfirmimin.',
     joined: (what, day) =>
       `Ju shtuam në listën e pritjes: ${what}, ${day}. Kur të lirohet një orar, do t’ju shkruajmë.`,
     freeSubject: 'U lirua një orar',
@@ -151,11 +163,17 @@ export function renderWaitlistJoinedEmail(
   locale: Locale,
   d: WaitlistDetails,
   leaveLink: string,
+  autoBook = false,
 ): { subject: string; text: string } {
   const words = WORDS[locale];
+  const joined = words.joined(what(words, d), dayText(d.date, locale));
+  // Task Q8: the first sentence stays; "we will write" becomes "we will book it at once".
+  const lead = autoBook
+    ? `${joined.slice(0, joined.lastIndexOf('. ') + 1)} ${words.joinedAuto}`
+    : joined;
   return {
     subject: words.joinedSubject,
-    text: `${words.joined(what(words, d), dayText(d.date, locale))}\n\n${words.leave}: ${leaveLink}`,
+    text: `${lead}\n\n${words.leave}: ${leaveLink}`,
   };
 }
 

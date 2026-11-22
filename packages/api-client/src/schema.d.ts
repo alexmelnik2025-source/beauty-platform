@@ -5539,6 +5539,8 @@ export interface components {
                 /** @description When the client was told a time became free */
                 notifiedAt: string | null;
                 createdAt: string;
+                /** @description Task Q8: the first free time is booked automatically */
+                autoBook: boolean;
             }[];
         };
         ClientWaitlistEntry: {
@@ -5563,6 +5565,8 @@ export interface components {
             /** @description When the client was told a time became free */
             notifiedAt: string | null;
             createdAt: string;
+            /** @description Task Q8: the first free time is booked automatically */
+            autoBook: boolean;
         };
         CodeSent: {
             codeExpiresAt: string;
@@ -7813,6 +7817,8 @@ export interface components {
                 createdAt: string;
                 /** @description When the client was told a time became free */
                 notifiedAt: string | null;
+                /** @description Task Q8: the first free time is booked automatically */
+                autoBook: boolean;
             }[];
         };
         SalonWaitlistEntry: {
@@ -7835,6 +7841,8 @@ export interface components {
             createdAt: string;
             /** @description When the client was told a time became free */
             notifiedAt: string | null;
+            /** @description Task Q8: the first free time is booked automatically */
+            autoBook: boolean;
         };
         Service: {
             id: string;
@@ -13682,6 +13690,11 @@ export interface operations {
                     locale?: "pl" | "uk" | "ru" | "en" | "tr" | "sq";
                     /** @constant */
                     acceptTerms: true;
+                    /**
+                     * @description Task Q8: book the first free time automatically (needs a phone)
+                     * @default false
+                     */
+                    autoBook?: boolean;
                 };
             };
         };

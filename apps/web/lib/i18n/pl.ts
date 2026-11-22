@@ -502,6 +502,12 @@ export const pl = {
     waitlistHint: 'Gdy ktoś odwoła wizytę tego dnia, napiszemy do Ciebie e-mail.',
     waitlistSubmit: 'Zapisz mnie na listę',
     waitlistDone: 'Jesteś na liście oczekujących. Gdy zwolni się termin, napiszemy na e-mail.',
+    waitlistAuto: 'Zapisz mnie automatycznie, gdy zwolni się termin',
+    waitlistAutoHint:
+      'Pierwszy wolny termin zarezerwujemy od razu i wyślemy potwierdzenie na e-mail.',
+    waitlistAutoPhone: 'Do automatycznej rezerwacji potrzebny jest telefon.',
+    waitlistAutoDone:
+      'Jesteś na liście. Gdy zwolni się termin, zarezerwujemy go od razu i wyślemy potwierdzenie na e-mail.',
     bookVisit: 'Umów wizytę',
     qrStaff: 'Umawiasz się do: {name}',
     qrStaffChange: 'Inny specjalista',
@@ -1123,6 +1129,7 @@ export const pl = {
     removeYes: 'Tak, usuń',
     removeNo: 'Nie',
     removed: 'Usunięto {name} z listy oczekujących.',
+    auto: 'Auto — zapiszemy od razu',
   },
   guard: {
     /** Task Q9: "Zasady dla klienta" in the client card. */

@@ -501,6 +501,11 @@ export const en: Dict = {
     waitlistHint: 'If someone cancels on this day, we will email you.',
     waitlistSubmit: 'Put me on the list',
     waitlistDone: 'You are on the waiting list. We will email you when a time becomes free.',
+    waitlistAuto: 'Book me automatically when a time frees up',
+    waitlistAutoHint: 'We book the first free time at once and email you the confirmation.',
+    waitlistAutoPhone: 'A phone number is needed to book automatically.',
+    waitlistAutoDone:
+      'You are on the list. When a time frees up, we book it at once and email you the confirmation.',
     bookVisit: 'Book a visit',
     qrStaff: 'Booking with: {name}',
     qrStaffChange: 'Another specialist',
@@ -1127,6 +1132,7 @@ export const en: Dict = {
     removeYes: 'Yes, remove',
     removeNo: 'No',
     removed: '{name} removed from the waiting list.',
+    auto: 'Auto — booked at once',
   },
   guard: {
     /** Task Q9: "Zasady dla klienta" in the client card. */

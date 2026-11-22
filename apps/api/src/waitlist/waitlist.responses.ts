@@ -49,6 +49,7 @@ export const salonWaitlistEntrySchema = responseSchema(
     status: waitlistStatusSchema,
     createdAt: z.string(),
     notifiedAt: z.string().nullable().describe('When the client was told a time became free'),
+    autoBook: z.boolean().describe('Task Q8: the first free time is booked automatically'),
   }),
 );
 export type SalonWaitlistEntryResponse = z.infer<typeof salonWaitlistEntrySchema>;
@@ -76,6 +77,7 @@ export const clientWaitlistEntrySchema = responseSchema(
     status: waitlistStatusSchema,
     notifiedAt: z.string().nullable().describe('When the client was told a time became free'),
     createdAt: z.string(),
+    autoBook: z.boolean().describe('Task Q8: the first free time is booked automatically'),
   }),
 );
 export type ClientWaitlistEntryResponse = z.infer<typeof clientWaitlistEntrySchema>;

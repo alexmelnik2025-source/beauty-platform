@@ -199,6 +199,12 @@ export const sq: Dict = {
     waitlistHint: 'Nëse dikush anulon atë ditë, do t’ju shkruajmë me email.',
     waitlistSubmit: 'Më shtoni në listë',
     waitlistDone: 'Jeni në listën e pritjes. Kur të lirohet një orar, do t’ju shkruajmë me email.',
+    waitlistAuto: 'Më rezervo automatikisht kur të lirohet një orar',
+    waitlistAutoHint:
+      'Orarin e parë të lirë e rezervojmë menjëherë dhe ju dërgojmë konfirmimin me email.',
+    waitlistAutoPhone: 'Për rezervim automatik nevojitet një numër telefoni.',
+    waitlistAutoDone:
+      'Jeni në listë. Kur të lirohet një orar, e rezervojmë menjëherë dhe ju dërgojmë konfirmimin me email.',
     bookVisit: 'Rezervo një takim',
     qrStaff: 'Rezervim te: {name}',
     qrStaffChange: 'Një specialist tjetër',

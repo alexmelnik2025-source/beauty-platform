@@ -942,6 +942,9 @@ export function BookingFlow({
                         date={day}
                         name={contact.name}
                         email={contact.email}
+                        signedInAs={signedInAs}
+                        phone={contact.phone}
+                        dial={dial}
                       />
                     ) : null}
                   </>

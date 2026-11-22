@@ -53,6 +53,15 @@
   и повторите подтверждение с тем же кодом и `payNoticeAccepted: true` (`/v1/public/holds/:id/confirm` и
   `/v1/client/holds/:id/confirm`). Экраны Q9 в мобильных приложениях можно начинать. В `apps/mobile-business/test/guard.test.ts`
   Claude добавил `rule: 'salon'` в пример клиента (иначе не сходились типы).
+- **Q8 лист ожидания — «Zapisz mnie automatycznie»** — готово (Claude, 22.11.2026; влито, когда CI зелёный — ветка
+  `agent/636-q8-auto-waitlist-api`): `POST /v1/client/waitlist/locations/:slug` принимает `autoBook: boolean`
+  (по умолчанию `false`; при `true` нужен `phone`, иначе 400 `VALIDATION_ERROR` с `path: phone`). Только для
+  вошедшего клиента (страница записи без входа это поле не принимает). Когда время освобождается и такой клиент первый
+  в очереди, визит записывается сразу (статус записи в листе — `booked`, клиенту обычное письмо-подтверждение).
+  `autoBook` есть в `GET /v1/client/waitlist` (клиентское приложение) и в `GET …/locations/:id/waitlist` (бизнес:
+  пометка «Auto»). Экраны можно начинать.
+  Claude поправил одну строку в `apps/mobile-business/test/waitlist.test.ts` (в тестовую запись добавлено
+  `autoBook: false`), иначе typecheck падал из-за нового обязательного поля — сами экраны не тронуты.
 
 ## Предложения Codex (ждут решения владельца)
 

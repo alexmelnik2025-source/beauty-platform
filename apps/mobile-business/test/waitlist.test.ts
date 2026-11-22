@@ -27,6 +27,7 @@ const entry = (over: Partial<WaitlistEntry>): WaitlistEntry => ({
   status: 'waiting',
   createdAt: '2026-11-05T08:12:00.000Z',
   notifiedAt: null,
+  autoBook: false,
   ...over,
 });
 

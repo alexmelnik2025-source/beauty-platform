@@ -4115,6 +4115,25 @@ Q4-base-orders. Дальше: статус Base в бизнес-приложен
 зависели от порядка строк в базе; теперь — порядок салона (`sortOrder`, задача 13). Тесты: `booking.spec.ts`
 (400 на даты вне диапазона; перенос после уменьшения буфера), `time.spec.ts`.
 
+## Лист ожидания с автозаписью — «Zapisz mnie automatycznie» (задача Q8, часть 1: API)
+
+- Вошедший клиент (клиентское приложение, `POST /v1/client/waitlist/locations/:slug`) может попросить `autoBook: true`
+  (нужен телефон). Когда время освобождается и он первый в очереди, сервер сам ставит удержание на 2 минуты и сразу
+  подтверждает визит, как «Biorę ten termin» из письма (`WaitlistService.bookAutomatically` →
+  `confirmWaitlistHold`): запись в листе — `booked`, клиенту обычное письмо-подтверждение со ссылкой управления,
+  никаких 15 минут ожидания. Защита от отмен действует: если салон требует звонка или оплаты долга, запись в листе —
+  `missed`, время уходит следующему. Пока первый в очереди — «авто», остальным в этот круг ничего не пишут.
+- Страница записи без входа поле не принимает (адрес там ещё не подтверждён) — запись обычная.
+- Письмо «Jesteś na liście oczekujących» для такого клиента: «Gdy zwolni się termin, od razu go dla Ciebie
+  zarezerwujemy i wyślemy potwierdzenie» (6 языков, `waitlist-templates.ts` → `joinedAuto`).
+- `autoBook` в списке клиента и в списке салона (пометка «Auto»). Колонка `waitlist_entry.auto_book`, миграция
+  `20261202020000_waitlist_auto_book`, тест «Q8» в `test/waitlist.spec.ts`. Мобильные экраны — Codex (`docs/CODEX.md`).
+- Часть 2 (веб): на странице записи вошедший клиент (`/pl/c`, cookie) видит в форме «Powiadom mnie…» свой адрес
+  вместо поля e-mail и галочку «Zapisz mnie automatycznie, gdy zwolni się termin» (под ней — поле «Telefon»; без
+  телефона — ошибка у поля). Запись идёт в `POST /v1/client/waitlist/locations/:slug`. В кабинете «Lista
+  oczekujących» у такого клиента — «Auto — zapiszemy od razu». e2e `e2e/waitlist.spec.ts`, скриншоты
+  `q8-site-waitlist-auto-form`, `q8-site-waitlist-auto-joined`, `q8-owner-waitlist-auto`.
+
 ## Лист ожидания: отказ защиты от отмен и выход «уведомлённого»; любимые салоны (задача 603)
 
 Три исправления после проверки кода листа ожидания, сертификатов и клиентского API (20.11.2026; в сертификатах и

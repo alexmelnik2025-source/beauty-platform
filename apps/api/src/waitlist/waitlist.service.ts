@@ -51,6 +51,8 @@ const offerGone = (): AppException =>
 export const MAX_WAITING_PER_EMAIL = 3;
 const EVERY_MS = 60_000;
 const TIMES_IN_EMAIL = 6;
+/** Task Q8: an automatic booking holds its time only for the moment it takes to confirm it. */
+const AUTO_HOLD_MINUTES = 2;
 
 const toDate = (date: string): Date => new Date(`${date}T00:00:00.000Z`);
 const fromDate = (date: Date): string => date.toISOString().slice(0, 10);
@@ -80,6 +82,7 @@ function toClient(e: ClientRow): ClientWaitlistEntryResponse {
     status: e.status,
     notifiedAt: e.notifiedAt?.toISOString() ?? null,
     createdAt: e.createdAt.toISOString(),
+    autoBook: e.autoBook,
   };
 }
 
@@ -99,6 +102,7 @@ function toSalon(e: SalonRow): SalonWaitlistEntryResponse {
     status: e.status,
     createdAt: e.createdAt.toISOString(),
     notifiedAt: e.notifiedAt?.toISOString() ?? null,
+    autoBook: e.autoBook,
   };
 }
 
@@ -148,7 +152,11 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async join(slug: string, input: JoinWaitlistInput, ip: string): Promise<WaitlistJoinedResponse> {
+  async join(
+    slug: string,
+    input: JoinWaitlistInput & { autoBook?: boolean },
+    ip: string,
+  ): Promise<WaitlistJoinedResponse> {
     this.limiter.hit(`waitlist:ip:${ip}`, 20, 60 * 60_000);
     this.limiter.hit(`waitlist:email:${input.email}`, 10, 60 * 60_000);
     const location = await this.bookable(slug);
@@ -228,6 +236,8 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
           email: input.email,
           phone: input.phone ?? null,
           locale: input.locale,
+          // Task Q8: only from the client app (a signed-in client), see `joinAsClient`.
+          autoBook: input.autoBook === true,
           // The link's token is made when the email is sent (only the email knows it).
           tokenHash: hashToken(generateToken()),
         },
@@ -410,6 +420,13 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       }
       if (slots.length === 0) continue;
       const minutes = first.location.waitlistHoldMinutes;
+      // Task Q8: the first in the queue asked to be booked automatically — the time is theirs
+      // straight away, no offer and no email with free times to others this round.
+      const next = group.find((e) => e.status === 'waiting');
+      if (next?.autoBook) {
+        if (await this.bookAutomatically(next, slots, now)) offered += 1;
+        continue;
+      }
       if (minutes > 0) {
         const entry = group.find((e) => e.status === 'waiting');
         if (entry && (await this.offer(entry, slots, minutes, now))) offered += 1;
@@ -428,7 +445,8 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
   private async tellAll(group: WaitlistEntry[], times: string[], now: number): Promise<number> {
     let told = 0;
     for (const entry of group) {
-      if (entry.status !== 'waiting') continue;
+      // Task Q8: an automatic entry waits for its own turn (it is booked, not told).
+      if (entry.status !== 'waiting' || entry.autoBook) continue;
       await this.prisma.$transaction(async (tx) => {
         const marked = await tx.waitlistEntry.updateMany({
           where: { id: entry.id, status: 'waiting' },
@@ -479,6 +497,57 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       // The client left the list meanwhile: let the time go.
       await this.releaseHold(hold.id);
       return false;
+    }
+    return false;
+  }
+
+  /**
+   * Task Q8: books the earliest of `slots` that is still free for `entry` — held for a moment and
+   * confirmed at once, like taking an offer (the signed-in client's email is confirmed and the
+   * phone was given when joining). The usual confirmation email with the manage link follows.
+   * The salon's cancellation guard still applies: when it refuses the client, the entry is
+   * missed and the next one in the queue gets the time.
+   */
+  private async bookAutomatically(
+    entry: WaitlistEntry & { location: Location },
+    slots: { start: string; time: string }[],
+    now: number,
+  ): Promise<boolean> {
+    for (const slot of slots) {
+      const hold = await this.booking.holdForWaitlist(
+        entry.location,
+        {
+          serviceId: entry.serviceId,
+          staffId: entry.staffId ?? undefined,
+          start: new Date(slot.start).getTime(),
+        },
+        { name: entry.name, email: entry.email, phone: entry.phone, locale: entry.locale },
+        AUTO_HOLD_MINUTES,
+      );
+      if (!hold) continue;
+      try {
+        await this.booking.confirmWaitlistHold(hold.id, undefined, async (tx) => {
+          const marked = await tx.waitlistEntry.updateMany({
+            where: { id: entry.id, status: 'waiting' },
+            data: { status: 'booked', notifiedAt: new Date(now), offerAppointmentId: hold.id },
+          });
+          // The client left the list meanwhile: nothing is booked.
+          if (marked.count !== 1) throw offerGone();
+        });
+        return true;
+      } catch (error) {
+        await this.releaseHold(hold.id);
+        if (!(error instanceof AppException)) throw error;
+        // The client left the list meanwhile: nothing to do.
+        if (error.code === 'OFFER_GONE') return false;
+        // Refused for this client (the salon's cancellation guard: book by phone, pay first; no
+        // phone): the entry is missed, so the next one in the queue is not blocked by it.
+        await this.prisma.waitlistEntry.updateMany({
+          where: { id: entry.id, status: 'waiting' },
+          data: { status: 'missed', notifiedAt: new Date(now) },
+        });
+        return false;
+      }
     }
     return false;
   }
