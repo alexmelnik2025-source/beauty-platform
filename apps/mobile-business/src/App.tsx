@@ -31,6 +31,10 @@ export default function App() {
   const [stage, setStage] = useState<Stage>({ kind: 'loading' });
   const [timeZones, setTimeZones] = useState<Record<string, string>>({});
   const t = DICTIONARIES[locale];
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') document.documentElement.lang = locale;
+  }, [locale]);
   // Read by the loaders below, so that switching the language does not reload the app.
   const localeRef = useRef(locale);
   localeRef.current = locale;

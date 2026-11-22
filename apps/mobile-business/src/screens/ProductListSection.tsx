@@ -689,12 +689,8 @@ export function ProductListSection(props: {
             >
               <ProductPhoto product={x} cards={props.catalogCards} api={api} />
               <View style={styles.productName}>
-                <Text numberOfLines={1} style={styles.name}>
-                  {x.name}
-                </Text>
-                <Text numberOfLines={1} style={styles.muted}>
-                  {x.active ? t.navigation.active : p.notSold}
-                </Text>
+                <Text style={styles.name}>{x.name}</Text>
+                <Text style={styles.muted}>{x.active ? t.navigation.active : p.notSold}</Text>
               </View>
               <Text style={x.lowStock || x.stockQuantity === 0 ? styles.warn : styles.muted}>
                 {x.stockQuantity === null

@@ -18,7 +18,7 @@ import { serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `app-client-add-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 700 };
 // An address of this test only (sign-ups and codes are limited per address).
 const OWNER_IP = { 'x-forwarded-for': '203.0.113.87' };
 
@@ -102,6 +102,13 @@ test('business app: the owner adds a client and changes their details', async ({
 
     // ── 332: a new client; Jan's phone is pointed out ──────────────────────
     await phone.getByRole('tab', { name: 'Klienci', exact: true }).click();
+    await phone
+      .getByRole('textbox', { name: 'Szukaj: imię, telefon, e-mail lub tag' })
+      .fill('Jan Kowalski');
+    const search = phone.getByRole('button', { name: 'Szukaj', exact: true });
+    await expect(search).toBeInViewport({ ratio: 1 });
+    await search.click();
+    await expect(phone.getByRole('button', { name: /Jan Kowalski/ })).toBeVisible();
     await phone.getByRole('button', { name: '+ Dodaj klienta' }).click();
     await phone.getByRole('button', { name: 'Zapisz klienta' }).click();
     await expect(phone.getByText('Wpisz imię klienta.')).toBeVisible();

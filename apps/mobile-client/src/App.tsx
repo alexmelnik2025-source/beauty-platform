@@ -99,6 +99,10 @@ export default function App() {
     [],
   );
   const t = DICTIONARIES[locale];
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') document.documentElement.lang = locale;
+  }, [locale]);
   const localeRef = useRef(locale);
   localeRef.current = locale;
 

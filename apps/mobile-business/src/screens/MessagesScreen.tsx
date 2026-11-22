@@ -223,6 +223,7 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   chip: {
+    maxWidth: '100%',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,

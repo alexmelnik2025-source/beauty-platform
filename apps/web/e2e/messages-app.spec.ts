@@ -18,7 +18,7 @@ import { openBusinessMenu, serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `messages-app-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 700 };
 // An address of its own for sign-up and sign-in (reserved for tests, RFC 2544): the API allows 10 sign-ups an hour from one.
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.19.${n >> 8}.${n & 255}` };
@@ -101,6 +101,11 @@ test('the owner sets the messages to clients in the business app (task 208)', as
       'aria-pressed',
       'true',
     );
+    const noHold = app.getByRole('button', {
+      name: 'Nie trzymaj — e-mail do wszystkich z wolnymi godzinami',
+    });
+    await noHold.scrollIntoViewIfNeeded();
+    await expect(noHold).toBeInViewport({ ratio: 1 });
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Nic się nie zmieniło.')).toBeVisible();
 

@@ -646,6 +646,7 @@ const styles = StyleSheet.create({
   warn: { color: colors.danger, fontSize: 15 },
   input: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
