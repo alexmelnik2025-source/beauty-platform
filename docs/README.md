@@ -694,7 +694,7 @@ pnpm --filter @beauty/api-client generate
 ## Ошибки у поля: «Nowa kategoria» в «Zespół» и срок резерва в «Mój sklep» (задача 683, 23.11.2026)
 
 - «Zespół» → «+ Nowa kategoria» (и правка категории): пустое название (или одни пробелы) — «Uzupełnij to pole.» под
-  «Nazwa kategorii» (красная рамка, «!»), курсор в поле; раньше — всплывающая подсказка браузера. Ответ сервера
+  «Nazwa (np. Starszy barber)» (красная рамка, «!»), курсор в поле; раньше — всплывающая подсказка браузера. Ответ сервера
   `VALIDATION_ERROR` с `details[].path = name` — тоже у поля.
 - «Mój sklep» → «Jak długo czekają odłożone produkty»: число вне 1–90 — «Podaj liczbę dni od 1 do 90.» под полем
   «Dni po wizycie» (раньше — строкой над полем), курсор туда; ответ сервера о `shopReservationDays` — тоже у поля.

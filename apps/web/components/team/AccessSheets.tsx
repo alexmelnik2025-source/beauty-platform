@@ -200,7 +200,7 @@ export function CategorySheet({
   /**
    * Task 683 (owner's rule: errors at the field): an empty name used to get the browser's
    * tooltip, and the server's answer about the name was a line above the form; now
-   * "Uzupełnij to pole." (or the server's words) is said under "Nazwa kategorii".
+   * "Uzupełnij to pole." (or the server's words) is said under the name field.
    */
   const [nameProblem, setNameProblem] = useState('');
 

@@ -85,11 +85,11 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await page.getByRole('button', { name: 'Zaloguj się' }).click();
   await page.waitForURL(/\/pl\/app\/calendar/);
   await page.goto('/pl/app/team');
-  // Task 683: an empty category name is said under "Nazwa kategorii", not by a browser tooltip.
+  // Task 683: an empty category name is said under the category's name, not by a browser tooltip.
   await page.getByRole('button', { name: 'Dostęp i uprawnienia' }).click();
   await page.getByRole('button', { name: '+ Nowa kategoria' }).click();
   const catSheet = page.getByRole('dialog');
-  const catName = catSheet.getByRole('textbox', { name: /^Nazwa kategorii/ });
+  const catName = catSheet.getByRole('textbox', { name: /^Nazwa \(np. Starszy barber\)/ });
   await catName.fill('   ');
   await catSheet.getByRole('button', { name: 'Zapisz', exact: true }).click();
   await expect(catSheet.locator('.field-error')).toHaveText('Uzupełnij to pole.');
