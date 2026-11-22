@@ -1139,7 +1139,7 @@ export const en: Dict = {
   },
   waitingList: {
     title: 'Waiting list',
-    hint: 'Clients who want a visit on a full day. When a time becomes free they get one email and can book it themselves.',
+    hint: 'Clients who want a visit on a full day. When a time becomes free they get one email and can book it themselves. Clients marked “Auto” are booked at once.',
     empty: 'Nobody is waiting for a free time.',
     anyStaff: 'any specialist',
     waiting: 'Waiting',

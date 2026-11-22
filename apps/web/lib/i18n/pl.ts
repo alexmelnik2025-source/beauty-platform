@@ -1136,7 +1136,7 @@ export const pl = {
   },
   waitingList: {
     title: 'Lista oczekujących',
-    hint: 'Klienci, którzy chcą wizyty w pełny dzień. Gdy zwolni się termin, dostają jeden e-mail i mogą się zapisać sami.',
+    hint: 'Klienci, którzy chcą wizyty w pełny dzień. Gdy zwolni się termin, dostają jeden e-mail i mogą się zapisać sami. Klientów z „Auto” zapisujemy od razu.',
     empty: 'Nikt nie czeka na wolny termin.',
     anyStaff: 'dowolny specjalista',
     waiting: 'Czeka',
