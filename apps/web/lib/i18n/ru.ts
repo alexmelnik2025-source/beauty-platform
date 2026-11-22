@@ -15,6 +15,7 @@ export const ru: Dict = {
     optional: 'необязательно',
     or: 'или',
     language: 'Язык',
+    howItWorks: 'Как это работает?',
   },
   errors: {
     BASE_TOKEN_INVALID:

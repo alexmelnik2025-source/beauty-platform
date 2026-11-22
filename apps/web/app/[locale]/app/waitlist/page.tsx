@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { PageTitleHelp } from '@/components/PageTitleHelp';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -70,11 +71,8 @@ export default function WaitingListPage() {
 
   return (
     <>
-      <div className="page-head">
-        <h1>{t.waitingList.title}</h1>
-      </div>
+      <PageTitleHelp id="waitlist-help" title={t.waitingList.title} help={t.waitingList.hint} />
       <div className="page">
-        <p className="small muted">{t.waitingList.hint}</p>
         <ErrorBox>{error}</ErrorBox>
         {info ? (
           <p className="note" role="status">

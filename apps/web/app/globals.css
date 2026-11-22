@@ -521,7 +521,14 @@ fieldset.field > legend {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  /* Task 651: as wide as the page under it — the main button sits above the list's right edge. */
+  max-width: 920px;
   padding: 20px 24px;
+}
+
+/* Task 651: a page's explanation opened with "?" under the title. */
+.page-help {
+  padding-bottom: 16px;
 }
 
 .page-head__actions {

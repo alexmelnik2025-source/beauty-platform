@@ -15,6 +15,7 @@ export const uk: Dict = {
     optional: 'необовʼязково',
     or: 'або',
     language: 'Мова',
+    howItWorks: 'Як це працює?',
   },
   errors: {
     BASE_TOKEN_INVALID:

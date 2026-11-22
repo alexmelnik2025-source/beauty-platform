@@ -21,6 +21,7 @@ export const sq: Dict = {
     optional: 'opsionale',
     or: 'ose',
     language: 'Gjuha',
+    howItWorks: 'Si funksionon?',
   },
   errors: {
     ...en.errors,

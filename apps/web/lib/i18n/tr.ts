@@ -21,6 +21,7 @@ export const tr: Dict = {
     optional: 'isteğe bağlı',
     or: 'veya',
     language: 'Dil',
+    howItWorks: 'Nasıl çalışır?',
   },
   errors: {
     ...en.errors,

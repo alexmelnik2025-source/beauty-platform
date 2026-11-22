@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { PageTitleHelp } from '@/components/PageTitleHelp';
 import { useSession } from '@/components/Session';
 import { ErrorBox, Sheet, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -165,11 +166,8 @@ export default function CancellationGuardPage() {
 
   return (
     <>
-      <div className="page-head">
-        <h1>{t.guard.title}</h1>
-      </div>
+      <PageTitleHelp id="guard-help" title={t.guard.title} help={t.guard.hint} />
       <div className="page">
-        <p className="small muted">{t.guard.hint}</p>
         <ErrorBox>{error}</ErrorBox>
         {info ? (
           <p className="note" role="status">

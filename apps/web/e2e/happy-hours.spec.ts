@@ -197,6 +197,15 @@ test('the client sees happy-hour prices at the free times and on the held visit'
   await expect(lastMinute).toBeVisible();
   await expect(owner.getByText('−20% · Codziennie · 08:00–12:00')).toBeVisible();
   await shot(owner, 'q7-promotions-last-minute');
+  // Task 651: the explanation opens under "?", and "+ Dodaj promocję" sits above the list's right edge.
+  const hint = owner.getByText(/^Niższa cena w spokojne godziny/);
+  await expect(hint).toHaveCount(0);
+  await owner.getByRole('button', { name: 'Jak to działa?' }).click();
+  await expect(hint).toBeVisible();
+  const addBox = await owner.getByRole('button', { name: '+ Dodaj promocję' }).boundingBox();
+  const listBox = await owner.locator('ul.list').first().boundingBox();
+  expect(Math.abs(addBox!.x + addBox!.width - (listBox!.x + listBox!.width))).toBeLessThan(2);
+  await shot(owner, '651-promotions-help');
   // Opened again, it is still a Last Minute of 3 hours.
   await owner.getByRole('button', { name: 'Zmień promocję 2' }).click();
   await expect(sheet.getByRole('radio', { name: /^Last Minute/ })).toBeChecked();

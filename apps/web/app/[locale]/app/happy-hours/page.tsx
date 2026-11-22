@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { PageTitleHelp } from '@/components/PageTitleHelp';
 import { useSession } from '@/components/Session';
 import { ErrorBox, FieldError, Sheet, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -141,21 +142,24 @@ export default function HappyHoursPage() {
 
   return (
     <>
-      <div className="page-head">
-        <h1>{t.happyHours.title}</h1>
-        <button
-          type="button"
-          className="btn btn--small"
-          onClick={() => {
-            setInfo('');
-            setEditing('new');
-          }}
-        >
-          + {t.happyHours.add}
-        </button>
-      </div>
+      <PageTitleHelp
+        id="promotions-help"
+        title={t.happyHours.title}
+        help={t.happyHours.hint}
+        actions={
+          <button
+            type="button"
+            className="btn btn--small"
+            onClick={() => {
+              setInfo('');
+              setEditing('new');
+            }}
+          >
+            + {t.happyHours.add}
+          </button>
+        }
+      />
       <div className="page">
-        <p className="small muted">{t.happyHours.hint}</p>
         <ErrorBox>{error}</ErrorBox>
         {info ? (
           <p className="note" role="status">

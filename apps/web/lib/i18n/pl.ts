@@ -14,6 +14,7 @@ export const pl = {
     optional: 'opcjonalnie',
     or: 'lub',
     language: 'Język',
+    howItWorks: 'Jak to działa?',
   },
   errors: {
     BASE_TOKEN_INVALID:

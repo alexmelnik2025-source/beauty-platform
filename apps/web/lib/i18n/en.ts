@@ -15,6 +15,7 @@ export const en: Dict = {
     optional: 'optional',
     or: 'or',
     language: 'Language',
+    howItWorks: 'How does it work?',
   },
   errors: {
     BASE_TOKEN_INVALID:
