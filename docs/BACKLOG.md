@@ -23,6 +23,11 @@
   «Zapłać bonem» молча не нажимались без кода или без выбранного товара — теперь «Uzupełnij to pole.» (или «Od 3 do 32
   znaków…» для неверного кода) под полем, курсор туда. e2e `products`, `visit-voucher`, скриншоты
   `682-visit-product-code-required`, `682-visit-voucher-code-required`.
+- **23.11.2026 — 683 (ветка `agent/683-category-days-field-errors`, от main): ошибки «Nowa kategoria» и срока резерва у поля**
+  (полировка по правилу владельца «ошибки у поля», новых функций нет). «Zespół → + Nowa kategoria»: пустое название
+  давало подсказку браузера; «Mój sklep → Dni po wizycie»: «Podaj liczbę dni od 1 do 90.» была строкой над полем —
+  теперь под полем, курсор туда. e2e `team-invite`, `shop-reservation-days`, скриншоты `683-team-category-name-error`,
+  `683-reservation-days-error`.
 - **✅ Влито в main 22.11.2026, ~23:30 UTC. 680 (ветка `agent/680-settings-field-errors`, от main): ошибки «Ustawienia» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Пустое название или адрес салона, неверный
   телефон, число вне диапазона давали всплывающую подсказку браузера или общую строку «Sprawdź pola formularza.» над

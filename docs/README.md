@@ -691,6 +691,15 @@ pnpm --filter @beauty/api-client generate
   «Zapłać bonem» без кода — «Uzupełnij to pole.» под «Kod bonu». Кнопки больше не выключаются молча; курсор — в поле,
   правка убирает ошибку. e2e `products`, `visit-voucher`, скриншоты `682-visit-product-code-required`,
   `682-visit-voucher-code-required`.
+## Ошибки у поля: «Nowa kategoria» в «Zespół» и срок резерва в «Mój sklep» (задача 683, 23.11.2026)
+
+- «Zespół» → «+ Nowa kategoria» (и правка категории): пустое название (или одни пробелы) — «Uzupełnij to pole.» под
+  «Nazwa kategorii» (красная рамка, «!»), курсор в поле; раньше — всплывающая подсказка браузера. Ответ сервера
+  `VALIDATION_ERROR` с `details[].path = name` — тоже у поля.
+- «Mój sklep» → «Jak długo czekają odłożone produkty»: число вне 1–90 — «Podaj liczbę dni od 1 do 90.» под полем
+  «Dni po wizycie» (раньше — строкой над полем), курсор туда; ответ сервера о `shopReservationDays` — тоже у поля.
+  Ввод убирает ошибку. e2e `team-invite`, `shop-reservation-days`, скриншоты `683-team-category-name-error`,
+  `683-reservation-days-error`.
 
 ## Ошибки у поля в отзыве клиента и в чаевых (задача 684, 23.11.2026)
 

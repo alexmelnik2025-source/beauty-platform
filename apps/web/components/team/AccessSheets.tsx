@@ -169,6 +169,13 @@ export function MemberSheet({
   );
 }
 
+/** The server said the category's name is wrong (empty after trimming, too long). */
+function namePathOf(err: unknown): boolean {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return false;
+  if (!Array.isArray(err.details)) return false;
+  return (err.details as { path?: string }[]).some((d) => String(d.path ?? '') === 'name');
+}
+
 export function CategorySheet({
   orgId,
   category,
@@ -190,10 +197,24 @@ export function CategorySheet({
   );
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 683 (owner's rule: errors at the field): an empty name used to get the browser's
+   * tooltip, and the server's answer about the name was a line above the form; now
+   * "Uzupełnij to pole." (or the server's words) is said under "Nazwa kategorii".
+   */
+  const [nameProblem, setNameProblem] = useState('');
 
-  async function save(e: FormEvent) {
+  async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!name.trim()) {
+      setError('');
+      setNameProblem(t.onboarding.fieldRequired);
+      e.currentTarget.querySelector<HTMLInputElement>('input[name="category-name"]')?.focus();
+      return;
+    }
     setBusy(true);
+    setError('');
+    setNameProblem('');
     try {
       if (category) {
         await api(`/v1/organizations/${orgId}/staff-categories/${category.id}`, {
@@ -208,7 +229,8 @@ export function CategorySheet({
       }
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      if (namePathOf(err)) setNameProblem(errorText(t, err));
+      else setError(errorText(t, err));
       setBusy(false);
     }
   }
@@ -227,11 +249,23 @@ export function CategorySheet({
 
   return (
     <Sheet title={category?.name ?? t.team.addCategory} onClose={onClose}>
-      <form className="form" onSubmit={save}>
+      <form className="form" noValidate onSubmit={save}>
         <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.team.categoryName}</span>
-          <input required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            name="category-name"
+            required
+            maxLength={60}
+            value={name}
+            aria-invalid={nameProblem ? true : undefined}
+            aria-describedby={nameProblem ? 'category-name-error' : undefined}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameProblem('');
+            }}
+          />
+          <FieldError id="category-name-error" text={nameProblem} />
         </label>
         <div className="perm-grid">
           {defaults.map((p) => (

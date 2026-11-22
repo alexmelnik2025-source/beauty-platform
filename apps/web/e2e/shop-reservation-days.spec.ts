@@ -85,9 +85,14 @@ test('"Mój sklep": how long a product put aside waits after the visit (task Q3)
 
   await field.fill('0');
   await box.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(box.getByText('Podaj liczbę dni od 1 do 90.')).toBeVisible();
+  // Task 683: the wrong number is said under the field (red frame, the cursor there).
+  await expect(box.locator('.field-error')).toHaveText('Podaj liczbę dni od 1 do 90.');
+  await expect(field).toHaveAttribute('aria-invalid', 'true');
+  await expect(field).toBeFocused();
+  await page.screenshot({ path: 'e2e/screenshots/683-reservation-days-error.png' });
 
   await field.fill('7');
+  await expect(box.locator('.field-error')).toHaveCount(0);
   await box.getByRole('button', { name: 'Zapisz' }).click();
   await expect(box.getByRole('status')).toHaveText('Zapisano');
   await box.scrollIntoViewIfNeeded();

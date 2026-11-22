@@ -1,11 +1,20 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { Location } from '@/lib/types';
 import { useSession } from '../Session';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
+
+/** The server said the number of days is wrong. */
+function daysPathOf(err: unknown): boolean {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return false;
+  if (!Array.isArray(err.details)) return false;
+  return (err.details as { path?: string }[]).some(
+    (d) => String(d.path ?? '') === 'shopReservationDays',
+  );
+}
 
 /**
  * Task Q3: how many days a product put aside for a visit waits for the client after the visit
@@ -22,6 +31,12 @@ export function ReservationDays({ base }: { base: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  /**
+   * Task 683 (owner's rule: errors at the field): "Podaj liczbę dni od 1 do 90." used to be a line
+   * above the field; now it is said under "Dni po wizycie" (red frame, the cursor goes there),
+   * and the server's answer about the number, too. Typing takes it away.
+   */
+  const [daysProblem, setDaysProblem] = useState('');
 
   useEffect(() => {
     api<Location>(base)
@@ -34,16 +49,19 @@ export function ReservationDays({ base }: { base: string }) {
 
   if (!loc) return error ? <ErrorBox>{error}</ErrorBox> : null;
 
-  const save = async (e: FormEvent) => {
+  const save = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaved(false);
     const n = Number(days);
     if (!/^\d{1,2}$/.test(days.trim()) || n < 1 || n > 90) {
-      setError(s.reservationDaysInvalid);
+      setError('');
+      setDaysProblem(s.reservationDaysInvalid);
+      e.currentTarget.querySelector<HTMLInputElement>('input[name="reservation-days"]')?.focus();
       return;
     }
     setBusy(true);
     setError('');
+    setDaysProblem('');
     try {
       const next = await api<Location>(base, {
         method: 'PATCH',
@@ -53,7 +71,8 @@ export function ReservationDays({ base }: { base: string }) {
       setDays(String(next.shopReservationDays));
       setSaved(true);
     } catch (err) {
-      setError(errorText(t, err));
+      if (daysPathOf(err)) setDaysProblem(s.reservationDaysInvalid);
+      else setError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -61,6 +80,7 @@ export function ReservationDays({ base }: { base: string }) {
 
   return (
     <form
+      noValidate
       className="card stack"
       onSubmit={(e) => void save(e)}
       aria-labelledby="shop-reservation-days-title"
@@ -81,11 +101,16 @@ export function ReservationDays({ base }: { base: string }) {
                 inputMode="numeric"
                 maxLength={2}
                 required
+                name="reservation-days"
+                aria-invalid={daysProblem ? true : undefined}
+                aria-describedby={daysProblem ? 'reservation-days-error' : undefined}
                 onChange={(e) => {
                   setDays(e.target.value);
                   setSaved(false);
+                  setDaysProblem('');
                 }}
               />
+              <FieldError id="reservation-days-error" text={daysProblem} />
             </label>
             <button type="submit" className="btn" disabled={busy}>
               {t.common.save}
