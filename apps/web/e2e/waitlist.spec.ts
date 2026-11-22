@@ -63,6 +63,8 @@ test('a full day: the client joins the waiting list and leaves it from the email
   browser,
   request,
 }) => {
+  // Task Q8 added a second client and a second cabinet visit: more time than the default.
+  test.slow();
   const owner = await verifiedUser(request, OWNER, 'Aleksander Owner');
   const org = await json<{ id: string }>(
     await request.post('/v1/organizations', { headers: owner, data: { name: 'GESTALT' } }),
