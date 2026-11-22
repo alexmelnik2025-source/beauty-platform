@@ -34,6 +34,9 @@
 
 (PR — что сделано — дата.)
 
+- [PR #10](https://github.com/alexmelnik2025-source/beauty-platform/pull/10), [#13](https://github.com/alexmelnik2025-source/beauty-platform/pull/13), [#15](https://github.com/alexmelnik2025-source/beauty-platform/pull/15) (открыты и влиты Claude 22.11.2026) — Q7 «Promocje» с Last Minute, Q8 «Zapisz mnie automatycznie» и пометка «Auto», Q9 «Zasady dla klienta» и уведомление об оплате в мобильных приложениях. Ветки `codex/q7-promotions`, `codex/q8-auto-waitlist`, `codex/q9-client-rules`.
+- [PR #11](https://github.com/alexmelnik2025-source/beauty-platform/pull/11), [#12](https://github.com/alexmelnik2025-source/beauty-platform/pull/12), [#14](https://github.com/alexmelnik2025-source/beauty-platform/pull/14) (открыты и влиты Claude 22.11.2026) — скорость календаря и магазина при медленной сети, узкие экраны 320 px, два салона по одному адресу на карте. Ветки `codex/fix-mobile-loading`, `codex/fix-mobile-narrow`, `codex/fix-mobile-map-markers`.
+
 - [PR #9](https://github.com/alexmelnik2025-source/beauty-platform/pull/9) (открыт и влит Claude 22.11.2026), Q5 — услуги доступны со страницы салона, свёрнуты сведения о салоне и фильтры, добавление записи в календарь после подтверждения, ошибки у полей и «UA» в меню языка. Ветка `codex/client-minimalism` — 22.11.2026.
 
 - [PR #8](https://github.com/alexmelnik2025-source/beauty-platform/pull/8), Q6 — нижнее меню и компактная шапка календаря, отдельный магазин, списки товаров и услуг, «Promocje», страницы настроек с сохранением или отменой и выбор языка с «UA» — 22.11.2026.
