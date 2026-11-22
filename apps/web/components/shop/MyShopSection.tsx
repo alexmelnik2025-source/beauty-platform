@@ -296,6 +296,7 @@ export function MyShopSection({ base }: { base: string }) {
           <div className="shop-tools">
             <input
               type="search"
+              className="input"
               value={filterText}
               aria-label={s.listSearch}
               placeholder={s.listSearch}

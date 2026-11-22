@@ -221,6 +221,10 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await expect(list).toContainText('Wosk matowy');
   await page.getByLabel('Szukaj produktu').fill('');
   await expect(list.getByRole('listitem')).toHaveCount(2);
+  // Task 650: the search is the same field as the rest of the cabinet, not a bare browser box.
+  const shopSearch = page.getByLabel('Szukaj produktu');
+  await shopSearch.blur();
+  expect((await shopSearch.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(40);
   await shot(page, 'q6-shop-list');
   await page.setViewportSize({ width: 390, height: 844 });
   // The page keeps the cabinet's side margins on a phone — nothing touches the screen's edge.

@@ -498,6 +498,7 @@ export function ProductsSection({ base }: { base: string }) {
         <p className="row" style={{ alignItems: 'center' }}>
           <input
             type="search"
+            className="input"
             aria-label={p.search}
             placeholder={p.search}
             value={search}
