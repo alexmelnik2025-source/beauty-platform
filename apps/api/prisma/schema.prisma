@@ -797,29 +797,31 @@ model HappyHour {
 
 /// A salon's client. Belongs to the organization; no login in the MVP (client accounts come in 2.0).
 model Customer {
-  id             String      @id @default(uuid(7)) @db.Uuid
-  organizationId String      @map("organization_id") @db.Uuid
+  id             String            @id @default(uuid(7)) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
   name           String
   /// E.164, e.g. +48123456789.
   phone          String
   /// Lower-cased. Optional for bookings entered by the salon.
   email          String?
-  locale         Locale      @default(pl)
+  locale         Locale            @default(pl)
   /// The salon's own note (preferences, allergies). Not shown to the client.
   note           String?
   /// Simple labels without any mailing ("regular", "short fade"). At most 10.
-  tags           String[]    @default([])
+  tags           String[]          @default([])
   /// Task 240: day and month only ("MM-DD", no year) — seen with the client's contacts.
-  birthday       String?     @db.Char(5)
+  birthday       String?           @db.Char(5)
   /// Task 80: the client's last wishes, offered again on the next booking.
-  wishMood       VisitMood?  @map("wish_mood")
-  wishDrink      VisitDrink? @map("wish_drink")
-  wishNote       String?     @map("wish_note")
+  wishMood       VisitMood?        @map("wish_mood")
+  wishDrink      VisitDrink?       @map("wish_drink")
+  wishNote       String?           @map("wish_note")
   /// Task 21 (GDPR): the owner erased the client's personal data; visits stay for statistics.
-  anonymizedAt   DateTime?   @map("anonymized_at") @db.Timestamptz(3)
-  version        Int         @default(1)
-  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  anonymizedAt   DateTime?         @map("anonymized_at") @db.Timestamptz(3)
+  /// Task Q9: "Zasady dla klienta" — the salon's own rule for this client (default: the salon's guard).
+  guardRule      CustomerGuardRule @default(salon) @map("guard_rule")
+  version        Int               @default(1)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization    Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   appointments    Appointment[]
@@ -909,6 +911,9 @@ model Appointment {
   /// Task 161b: booked online by a client the cancellation guard marks with "approval": the
   /// time is kept, but the visit waits until the salon accepts it (null = nothing to accept).
   approvalRequestedAt DateTime?         @map("approval_requested_at") @db.Timestamptz(3)
+  /// Task Q9: booked online after the notice "you pay the missed visits and this one in the salon":
+  /// what the missed visits cost then, in hundredths of the currency (null = no such notice).
+  owedGrosze          Int?              @map("owed_grosze")
   /// Task Q2: where an online booking came from — "qr" (the salon's or a specialist's QR code),
   /// "embed" (the button on the salon's own site), "app" (the client app), "catalogue", a
   /// utm_source such as "instagram", or "web" (the booking page itself). Null: not known (older
@@ -1390,6 +1395,22 @@ enum CancellationGuardAction {
   @@map("cancellation_guard_action")
 }
 
+/// Task Q9: "Zasady dla klienta" — what the salon decided for one client.
+enum CustomerGuardRule {
+  /// The salon's cancellation guard decides (the default).
+  salon
+  /// Trusted: the guard never stops this client.
+  trusted
+  /// Books online, told to pay the missed visits in the salon together with the new one.
+  prepay
+  /// Online bookings wait for the salon's confirmation.
+  approval
+  /// Books by phone only.
+  phone_only
+
+  @@map("customer_guard_rule")
+}
+
 /// Task 161: "Ochrona przed odwołaniami" of a location — off unless the salon turns it on.
 /// Counted from the location's visit history; a rule left empty (null) is not used.
 model CancellationGuard {
@@ -1810,34 +1831,34 @@ enum ShopIntegrationProvider {
 
 /// Task Q4: "Mój sklep" → "Integracje" — one connection of a salon to its own system (Base).
 model ShopIntegration {
-  id               String                  @id @default(uuid(7)) @db.Uuid
-  locationId       String                  @map("location_id") @db.Uuid
-  provider         ShopIntegrationProvider
+  id                     String                  @id @default(uuid(7)) @db.Uuid
+  locationId             String                  @map("location_id") @db.Uuid
+  provider               ShopIntegrationProvider
   /// The seller's API token, encrypted (AES-256-GCM, see src/shop/integrations/secret-box.ts).
   /// Never sent back to anyone.
-  tokenCiphertext  String                  @map("token_ciphertext")
+  tokenCiphertext        String                  @map("token_ciphertext")
   /// The last 4 characters of the token, to show which one is connected.
-  tokenHint        String                  @map("token_hint")
+  tokenHint              String                  @map("token_hint")
   /// Base: the catalogue (inventory), price group and warehouse ("bl_123") the seller chose;
   /// null = not chosen yet (step 2 of connecting).
-  inventoryId      String?                 @map("inventory_id")
-  inventoryName    String?                 @map("inventory_name")
-  priceGroupId     String?                 @map("price_group_id")
-  warehouseId      String?                 @map("warehouse_id")
-  lastImportAt     DateTime?               @map("last_import_at") @db.Timestamptz(3)
+  inventoryId            String?                 @map("inventory_id")
+  inventoryName          String?                 @map("inventory_name")
+  priceGroupId           String?                 @map("price_group_id")
+  warehouseId            String?                 @map("warehouse_id")
+  lastImportAt           DateTime?               @map("last_import_at") @db.Timestamptz(3)
   /// Task Q4 (part 2): how often prices and stock of imported products are renewed from Base.
-  syncEveryMinutes Int                     @default(60) @map("sync_every_minutes")
+  syncEveryMinutes       Int                     @default(60) @map("sync_every_minutes")
   /// When the last renewal (by schedule or "Synchronizuj teraz") started; null = never.
-  lastSyncAt       DateTime?               @map("last_sync_at") @db.Timestamptz(3)
+  lastSyncAt             DateTime?               @map("last_sync_at") @db.Timestamptz(3)
   /// Task Q4 (part 5): products put aside for a visit go to Base as orders, in these Base order
   /// statuses (new / handed over / cancelled). Off until the seller turns it on.
-  ordersEnabled          Boolean            @default(false) @map("orders_enabled")
-  orderStatusNewId       String?            @map("order_status_new_id")
-  orderStatusHandedId    String?            @map("order_status_handed_id")
-  orderStatusCancelledId String?            @map("order_status_cancelled_id")
-  createdByUserId  String?                 @map("created_by_user_id") @db.Uuid
-  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  ordersEnabled          Boolean                 @default(false) @map("orders_enabled")
+  orderStatusNewId       String?                 @map("order_status_new_id")
+  orderStatusHandedId    String?                 @map("order_status_handed_id")
+  orderStatusCancelledId String?                 @map("order_status_cancelled_id")
+  createdByUserId        String?                 @map("created_by_user_id") @db.Uuid
+  createdAt              DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   location Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
   runs     ShopSyncRun[]

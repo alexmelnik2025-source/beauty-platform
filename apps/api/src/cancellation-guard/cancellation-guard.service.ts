@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException, notFound } from '../common/app-exception';
 import { AuditService } from '../common/audit.service';
 import type { MembershipContext } from '../common/request-context';
-import type { CancellationGuard } from '../generated/prisma/client';
+import type { CancellationGuard, CustomerGuardRule } from '../generated/prisma/client';
 import { LocationAccessService } from '../organizations/location-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
@@ -13,6 +13,7 @@ import type {
 } from './cancellation-guard.responses';
 import type {
   ReleaseCustomerInput,
+  SetCustomerRuleInput,
   UpdateCancellationGuardInput,
 } from './cancellation-guard.schemas';
 
@@ -38,6 +39,23 @@ export const DEFAULT_GUARD: GuardSettings = {
   maxNoShows: null,
   action: 'approval',
 };
+
+/** Task Q9: a client's own rule that stops them whatever the salon's guard says. */
+const OWN_ACTIONS: ReadonlySet<CustomerGuardRule> = new Set(['approval', 'phone_only', 'prepay']);
+
+/**
+ * Task Q9: what stops the client now — their own rule (approval / phone_only / prepay) always;
+ * with `salon`, the salon's guard when it is on and marks them; `trusted` — nothing.
+ */
+export function guardAction(
+  rule: CustomerGuardRule,
+  settings: GuardSettings,
+  verdict: Pick<GuardVerdict, 'reasons'>,
+): GuardSettings['action'] | null {
+  if (rule === 'trusted') return null;
+  if (rule !== 'salon') return rule;
+  return settings.enabled && verdict.reasons.length > 0 ? settings.action : null;
+}
 
 /** One thing the client did at the salon that the guard counts. */
 export interface GuardIncident {
@@ -176,24 +194,31 @@ export class CancellationGuardService {
       action: settings.action,
       currency: location.currency,
     };
-    if (!settings.enabled) return { ...base, items: [] };
     const { incidents, releases } = await this.load(locationId, null, now);
     const marked = new Map<string, GuardVerdict>();
-    for (const [customerId, list] of incidents) {
-      const verdict = evaluateGuard(settings, list, now);
-      if (verdict.reasons.length > 0) marked.set(customerId, verdict);
+    if (settings.enabled) {
+      for (const [customerId, list] of incidents) {
+        const verdict = evaluateGuard(settings, list, now);
+        if (verdict.reasons.length > 0) marked.set(customerId, verdict);
+      }
     }
-    if (marked.size === 0) return { ...base, items: [] };
+    // Task Q9: clients with their own rule are listed even while the salon's guard is off.
     const customers = await this.prisma.customer.findMany({
       where: {
-        id: { in: [...marked.keys()] },
         organizationId: m.organizationId,
         anonymizedAt: null,
+        OR: [
+          { id: { in: [...marked.keys()] }, guardRule: 'salon' },
+          { guardRule: { in: [...OWN_ACTIONS] } },
+        ],
       },
-      select: { id: true, name: true, phone: true, email: true },
+      select: { id: true, name: true, phone: true, email: true, guardRule: true },
     });
     const items = customers.map((c) => {
-      const v = marked.get(c.id)!;
+      const v = marked.get(c.id) ?? {
+        ...evaluateGuard(settings, incidents.get(c.id) ?? [], now),
+        reasons: [],
+      };
       return {
         customerId: c.id,
         name: c.name,
@@ -201,6 +226,7 @@ export class CancellationGuardService {
         email: c.email,
         ...v,
         releasedAt: releases.get(c.id)?.toISOString() ?? null,
+        rule: c.guardRule,
       };
     });
     items.sort(
@@ -221,7 +247,7 @@ export class CancellationGuardService {
     now = new Date(),
   ): Promise<GuardedClientResponse> {
     const location = await this.access.writable(m, locationId);
-    await this.customerOf(m, customerId);
+    const { guardRule } = await this.customerOf(m, customerId);
     const settings = await this.settings(locationId);
     const { incidents, releases, all } = await this.load(locationId, customerId, now);
     const verdict = evaluateGuard(settings, incidents.get(customerId) ?? [], now);
@@ -259,9 +285,10 @@ export class CancellationGuardService {
       enabled: settings.enabled,
       action: settings.action,
       currency: location.currency,
-      flagged: settings.enabled && verdict.reasons.length > 0,
+      flagged: guardAction(guardRule, settings, verdict) !== null,
       ...verdict,
       releasedAt: releases.get(customerId)?.toISOString() ?? null,
+      rule: guardRule,
       history,
     };
   }
@@ -295,19 +322,61 @@ export class CancellationGuardService {
   }
 
   /**
-   * Whether the guard marks this client at the location now (for bookings, task 161b).
-   * null when the guard is off or the client is not marked.
+   * Task Q9: "Zasady dla klienta" — the salon's own rule for one client (all its locations):
+   * `salon` (the guard decides), `trusted` (never stopped) or approval / phone_only / prepay.
+   */
+  async setRule(
+    m: MembershipContext,
+    actorUserId: string,
+    locationId: string,
+    customerId: string,
+    input: SetCustomerRuleInput,
+  ): Promise<GuardedClientResponse> {
+    await this.access.writable(m, locationId);
+    const current = await this.customerOf(m, customerId);
+    if (current.guardRule !== input.rule) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.customer.update({
+          where: { id: customerId },
+          data: { guardRule: input.rule, version: { increment: 1 } },
+        });
+        await this.audit.record(
+          {
+            organizationId: m.organizationId,
+            actorUserId,
+            action: 'customer.guard_rule_set',
+            entityType: 'customer',
+            entityId: customerId,
+            metadata: { from: current.guardRule, to: input.rule },
+          },
+          tx,
+        );
+      });
+    }
+    return this.client(m, locationId, customerId);
+  }
+
+  /**
+   * Whether the guard stops this client at the location now (for bookings, task 161b): the
+   * salon's rules, or the client's own rule (Q9). null when nothing stops the client.
    */
   async check(
     locationId: string,
     customerId: string,
     now = new Date(),
   ): Promise<(GuardVerdict & { action: GuardSettings['action'] }) | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { guardRule: true },
+    });
+    const rule = customer?.guardRule ?? 'salon';
+    if (rule === 'trusted') return null;
     const settings = await this.settings(locationId);
-    if (!settings.enabled) return null;
+    if (rule === 'salon' && !settings.enabled) return null;
     const { incidents } = await this.load(locationId, customerId, now);
     const verdict = evaluateGuard(settings, incidents.get(customerId) ?? [], now);
-    return verdict.reasons.length > 0 ? { ...verdict, action: settings.action } : null;
+    const action = guardAction(rule, settings, verdict);
+    return action ? { ...verdict, action } : null;
   }
 
   private async settings(locationId: string): Promise<GuardSettings> {
@@ -316,12 +385,16 @@ export class CancellationGuardService {
     );
   }
 
-  private async customerOf(m: MembershipContext, customerId: string): Promise<void> {
+  private async customerOf(
+    m: MembershipContext,
+    customerId: string,
+  ): Promise<{ guardRule: CustomerGuardRule }> {
     const customer = await this.prisma.customer.findFirst({
       where: { id: customerId, organizationId: m.organizationId },
-      select: { id: true },
+      select: { guardRule: true },
     });
     if (!customer) throw notFound('Customer');
+    return customer;
   }
 
   /**

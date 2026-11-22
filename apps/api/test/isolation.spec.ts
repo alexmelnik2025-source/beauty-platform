@@ -216,6 +216,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/review-settings')) return { version: 0, enabled: true, requestHours: 2 };
   if (p.endsWith('/reviews/:reviewId/reply')) return { text: 'Hacked' };
   if (p.endsWith('/cancellation-guard/clients/:customerId/release')) return { note: 'Hacked' };
+  if (p.endsWith('/cancellation-guard/clients/:customerId/rule')) return { rule: 'trusted' };
   if (p.endsWith('/cancellation-guard')) {
     return {
       version: 0,

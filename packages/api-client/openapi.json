@@ -5179,6 +5179,10 @@
                         ]
                       }
                     }
+                  },
+                  "payNoticeAccepted": {
+                    "default": false,
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -10257,6 +10261,77 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}/rule": {
+      "put": {
+        "description": "salon — the salon's cancellation guard decides (default); trusted — never stopped, whatever the history; approval — online bookings wait for the salon; phone_only — books by phone only; prepay — books online after the notice that the missed visits are paid in the salon together with the new one. Applies in every location of the organization, also while the guard is off.",
+        "operationId": "CancellationGuardController_setRule",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rule": {
+                    "type": "string",
+                    "enum": [
+                      "salon",
+                      "trusted",
+                      "approval",
+                      "phone_only",
+                      "prepay"
+                    ]
+                  }
+                },
+                "required": [
+                  "rule"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardedClient"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "'Zasady dla klienta': the salon's own rule for one client (task Q9)",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
     "/v1/client/auth/code": {
       "post": {
         "description": "Always 202, whether or not the address has visits. A new code replaces the previous one.",
@@ -10631,6 +10706,10 @@
                         ]
                       }
                     }
+                  },
+                  "payNoticeAccepted": {
+                    "default": false,
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -22547,7 +22626,7 @@
           },
           "flagged": {
             "type": "boolean",
-            "description": "The guard is on and a rule marks the client now"
+            "description": "The client is stopped now: the salon's guard marks them, or their own rule is approval / phone_only / prepay"
           },
           "reasons": {
             "type": "array",
@@ -22588,6 +22667,17 @@
             "nullable": true,
             "description": "When the salon last lifted the mark",
             "type": "string"
+          },
+          "rule": {
+            "type": "string",
+            "enum": [
+              "salon",
+              "trusted",
+              "approval",
+              "phone_only",
+              "prepay"
+            ],
+            "description": "Task Q9 'Zasady dla klienta': salon = the salon's rules decide; trusted = never stopped; approval / phone_only / prepay = applied to this client always"
           },
           "history": {
             "type": "array",
@@ -22650,6 +22740,7 @@
           "noShows",
           "noShowAmountGrosze",
           "releasedAt",
+          "rule",
           "history"
         ],
         "additionalProperties": false
@@ -22698,7 +22789,8 @@
                       "late_cancel",
                       "no_shows"
                     ]
-                  }
+                  },
+                  "description": "Empty when only the client’s own rule (Q9) puts them on the list"
                 },
                 "changes": {
                   "type": "integer",
@@ -22728,6 +22820,17 @@
                   "nullable": true,
                   "description": "When the salon last lifted the mark",
                   "type": "string"
+                },
+                "rule": {
+                  "type": "string",
+                  "enum": [
+                    "salon",
+                    "trusted",
+                    "approval",
+                    "phone_only",
+                    "prepay"
+                  ],
+                  "description": "Task Q9 'Zasady dla klienta': salon = the salon's rules decide; trusted = never stopped; approval / phone_only / prepay = applied to this client always"
                 }
               },
               "required": [
@@ -22740,7 +22843,8 @@
                 "lateCancellations",
                 "noShows",
                 "noShowAmountGrosze",
-                "releasedAt"
+                "releasedAt",
+                "rule"
               ],
               "additionalProperties": false
             }

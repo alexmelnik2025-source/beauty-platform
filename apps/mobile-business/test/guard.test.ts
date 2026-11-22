@@ -67,6 +67,7 @@ describe('cancellation protection in the business app', () => {
       noShows: 2,
       noShowAmountGrosze: 18000,
       releasedAt: null,
+      rule: 'salon',
     };
     expect(clientReasons(client, 'PLN', pl, 'pl')).toMatch(
       /^nieobecności: 2 · Nieodbyte wizyty: 180,00\s?zł$/,

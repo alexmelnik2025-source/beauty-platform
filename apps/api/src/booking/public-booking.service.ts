@@ -266,7 +266,7 @@ export class PublicBookingService {
       ]);
     }
     // Task 161b: the salon's cancellation guard applies to waiting-list offers too.
-    const needsApproval = await this.checkGuard(hold, contact, true);
+    const { needsApproval } = await this.checkGuard(hold, contact, true, null);
     const manageToken = generateToken();
     const appointment = await this.prisma.$transaction(async (tx) => {
       const confirmed = await this.complete(tx, hold, contact, {
@@ -444,7 +444,12 @@ export class PublicBookingService {
     const contact = hold.holdContact as unknown as HoldContact;
     // An SMS code confirms the phone, not the email address.
     const emailConfirmed = contact.codeChannel !== 'sms';
-    const needsApproval = await this.checkGuard(hold, contact, emailConfirmed);
+    const { needsApproval, owedGrosze } = await this.checkGuard(
+      hold,
+      contact,
+      emailConfirmed,
+      input.payNoticeAccepted,
+    );
     const manageToken = generateToken();
     // Task 80: only answers to questions this salon asks.
     const wishes = acceptedWishes(hold.location, input.wishes);
@@ -455,6 +460,7 @@ export class PublicBookingService {
         wishes,
         manageToken,
         needsApproval,
+        owedGrosze,
       });
       await tx.verificationCode.delete({ where: { id: code.id } });
       // "My visits" is keyed by email: sign in only when the code went to that email.
@@ -497,7 +503,12 @@ export class PublicBookingService {
       ip,
       codeChannel: 'email',
     };
-    const needsApproval = await this.checkGuard(hold, contact, true);
+    const { needsApproval, owedGrosze } = await this.checkGuard(
+      hold,
+      contact,
+      true,
+      input.payNoticeAccepted,
+    );
     const manageToken = generateToken();
     const wishes = acceptedWishes(hold.location, input.wishes);
     const appointment = await this.prisma.$transaction(async (tx) => {
@@ -510,6 +521,7 @@ export class PublicBookingService {
         wishes,
         manageToken,
         needsApproval,
+        owedGrosze,
       });
       // A code asked for earlier (before signing in) is not needed any more.
       await tx.verificationCode.deleteMany({ where: { appointmentId: hold.id } });
@@ -699,9 +711,11 @@ export class PublicBookingService {
       manageToken: string;
       /** Task 161b: the salon's cancellation guard asks the salon to accept this visit first. */
       needsApproval?: boolean;
+      /** Task Q9: the client was told to pay the missed visits (this amount) in the salon. */
+      owedGrosze?: number | null;
     },
   ): Promise<ClientAppointment> {
-    const { emailConfirmed, wishes, manageToken, needsApproval = false } = opts;
+    const { emailConfirmed, wishes, manageToken, needsApproval = false, owedGrosze = null } = opts;
     // Compared with the database clock: a hold that expired a millisecond ago is gone.
     const updated = await tx.$executeRaw`
       UPDATE appointment SET status = 'confirmed', hold_expires_at = NULL, hold_token_hash = NULL,
@@ -765,6 +779,7 @@ export class PublicBookingService {
         customerId: customer.id,
         ...wishes,
         ...(needsApproval ? { approvalRequestedAt: new Date() } : {}),
+        ...(owedGrosze !== null ? { owedGrosze } : {}),
       },
       include: { location: true, service: true, staff: true },
     });
@@ -778,6 +793,7 @@ export class PublicBookingService {
     await this.writer.event(tx, appointment.id, 'confirmed', 'customer', null, {
       source: 'online',
       ...(needsApproval ? { awaitingApproval: true } : {}),
+      ...(owedGrosze !== null ? { payNotice: true, owedGrosze } : {}),
     });
     if (needsApproval) {
       // Task 161b: "the salon will confirm" to the client, "please confirm" to the salon; the
@@ -869,12 +885,18 @@ export class PublicBookingService {
    * Task 612: the client is looked up by the email; when the code came by SMS, the phone is what
    * was proven, so the salon's cards with that phone count too (a marked client with a fresh
    * email and the same phone is still the marked client).
+   * Task Q9: with "pay the missed visits first" the client may book online after the notice
+   * "you pay the missed visits and this one in the salon": without `payNoticeAccepted` the answer
+   * is BOOKING_PAY_FIRST and the held time stays, with it the visit is booked and remembers the
+   * amount. `payNoticeAccepted: null` — no way to show the notice (a waiting-list offer link):
+   * the time is let go as before. A client the salon trusts (Q9) is never stopped.
    */
   private async checkGuard(
     hold: { id: string; locationId: string; location: Location },
     contact: HoldContact,
     emailConfirmed: boolean,
-  ): Promise<boolean> {
+    payNoticeAccepted: boolean | null,
+  ): Promise<{ needsApproval: boolean; owedGrosze: number | null }> {
     const organizationId = hold.location.organizationId;
     const customers = await this.prisma.customer.findMany({
       where: {
@@ -890,8 +912,13 @@ export class PublicBookingService {
       mark = await this.guard.check(hold.locationId, customer.id);
       if (mark) break;
     }
-    if (!mark) return false;
-    if (mark.action === 'approval') return true;
+    if (!mark) return { needsApproval: false, owedGrosze: null };
+    if (mark.action === 'approval') return { needsApproval: true, owedGrosze: null };
+    if (mark.action === 'prepay' && payNoticeAccepted) {
+      return { needsApproval: false, owedGrosze: mark.noShowAmountGrosze };
+    }
+    if (mark.action === 'prepay' && payNoticeAccepted === false)
+      throw payFirst(mark, hold, emailConfirmed);
     await this.prisma.appointment.updateMany({
       where: { id: hold.id, status: 'held' },
       data: { status: 'expired' },
@@ -903,17 +930,7 @@ export class PublicBookingService {
         'The salon asks this client to book by phone',
       );
     }
-    throw new AppException(
-      HttpStatus.FORBIDDEN,
-      'BOOKING_PAY_FIRST',
-      'The salon asks this client to pay for missed visits in the salon first',
-      emailConfirmed
-        ? [
-            { path: 'amountGrosze', message: String(mark.noShowAmountGrosze) },
-            { path: 'currency', message: hold.location.currency },
-          ]
-        : [],
-    );
+    throw payFirst(mark, hold, emailConfirmed);
   }
 
   private async activeHold(holdId: string, holdToken: string) {
@@ -1035,4 +1052,27 @@ export class PublicBookingService {
       canChangeWishes: a.status === 'confirmed' && Date.now() < a.startAt.getTime(),
     };
   }
+}
+
+/**
+ * Task 161b / Q9: "pay the missed visits in the salon". The amount only when the email was
+ * confirmed (an SMS code proves the phone, not who owes); `payNotice` — the client may still book
+ * by repeating the request with `payNoticeAccepted: true` (not for a waiting-list offer link).
+ */
+function payFirst(
+  mark: { noShowAmountGrosze: number },
+  hold: { location: Location },
+  emailConfirmed: boolean,
+): AppException {
+  return new AppException(
+    HttpStatus.FORBIDDEN,
+    'BOOKING_PAY_FIRST',
+    'The salon asks this client to pay for missed visits in the salon (with this visit)',
+    emailConfirmed
+      ? [
+          { path: 'amountGrosze', message: String(mark.noShowAmountGrosze) },
+          { path: 'currency', message: hold.location.currency },
+        ]
+      : [],
+  );
 }

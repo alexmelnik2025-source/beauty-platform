@@ -69,6 +69,13 @@ export const sendCodeSchema = z.object({
   codeChannel: z.enum(['email', 'sms']).default('email'),
 });
 
+/**
+ * Task Q9: the client read "you pay the missed visits and this one in the salon" (the answer
+ * BOOKING_PAY_FIRST) and books anyway. Without it such a client gets that answer and the
+ * held time stays for them.
+ */
+const payNoticeAccepted = z.boolean().default(false);
+
 export const confirmSchema = z.object({
   holdToken: token,
   code: z.string().regex(/^\d{6}$/, 'the code has 6 digits'),
@@ -79,6 +86,7 @@ export const confirmSchema = z.object({
   signIn: z.boolean().default(false),
   /** Task 80: answers from the optional last step; questions the salon does not ask are ignored. */
   wishes: visitWishesInputSchema.optional(),
+  payNoticeAccepted,
 });
 
 /**
@@ -93,6 +101,7 @@ export const signedInConfirmSchema = z.object({
   acceptTerms: z.literal(true, { message: 'the booking terms must be accepted' }),
   marketingConsent: z.boolean().default(false),
   wishes: visitWishesInputSchema.optional(),
+  payNoticeAccepted,
 });
 
 export const releaseHoldSchema = z.object({ holdToken: token });

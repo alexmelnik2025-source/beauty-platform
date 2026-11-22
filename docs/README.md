@@ -1625,6 +1625,20 @@ API пускает не больше 10 регистраций в час с од
 истории блока нет. Скриншот 161g. То же в карточке клиента бизнес-приложения (`ClientScreen`,
 `BusinessApi.guardClient` / `releaseGuard`; 5 последних событий), скриншот 161h.
 
+### Q9 — «Zasady dla klienta» и запись с уведомлением об оплате (часть 1 — API, 22.11.2026)
+
+- У клиента (карточка салона, на всю организацию) правило `guardRule`: `salon` — решают правила салона (по
+  умолчанию), `trusted` — «Zaufany», защита его никогда не останавливает, `prepay` — «Najpierw opłata zaległych»,
+  `approval` — «Tylko z potwierdzeniem», `phone_only` — «Tylko telefonicznie». Своё правило действует, даже когда
+  защита салона выключена. `PUT …/cancellation-guard/clients/:customerId/rule` `{ rule }` (владелец и менеджер,
+  пишется в «Dziennik zmian» — `customer.guard_rule_set`); поле `rule` — в `GET …/cancellation-guard/clients` и
+  `…/clients/:id`; клиенты со своим правилом есть в списке и при выключенной защите (`reasons: []`).
+- «Najpierw opłata zaległych» больше не закрывает онлайн-запись: ответ `BOOKING_PAY_FIRST` (сумма — только при
+  коде по e-mail) теперь оставляет выбранное время; клиент видит «zapłacisz za poprzednią i tę wizytę w salonie» и
+  повторяет подтверждение с `payNoticeAccepted: true` (`/holds/:id/confirm` и `/confirm-signed-in`) — визит
+  записан, сумма пропущенных визитов запомнена в `appointment.owed_grosze`. Ссылка из листа ожидания уведомление
+  показать не может — там как раньше. Миграция `customer_guard_rule`, тесты `cancellation-guard.spec.ts`.
+
 ## CORS: приложения в браузере (задача 170)
 
 - Ручной тест владельца 05.11.2026: `pnpm mobile:client --web` (страница на http://localhost:8081, API на

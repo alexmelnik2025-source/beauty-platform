@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 export const CANCELLATION_GUARD_ACTIONS = ['approval', 'phone_only', 'prepay'] as const;
 
+/**
+ * Task Q9: "Zasady dla klienta" — `salon` (the salon's guard decides), `trusted` (never stopped),
+ * or one of the guard's actions applied to this client always.
+ */
+export const CUSTOMER_GUARD_RULES = ['salon', 'trusted', ...CANCELLATION_GUARD_ACTIONS] as const;
+
 export const updateCancellationGuardSchema = z
   .object({
     version: z.number().int().min(0).describe('0 before the first save, then the returned version'),
@@ -43,3 +49,7 @@ export const releaseCustomerSchema = z
   .strict();
 
 export type ReleaseCustomerInput = z.infer<typeof releaseCustomerSchema>;
+
+export const setCustomerRuleSchema = z.object({ rule: z.enum(CUSTOMER_GUARD_RULES) }).strict();
+
+export type SetCustomerRuleInput = z.infer<typeof setCustomerRuleSchema>;

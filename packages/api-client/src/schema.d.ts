@@ -2398,6 +2398,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/cancellation-guard/clients/{customerId}/rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 'Zasady dla klienta': the salon's own rule for one client (task Q9)
+         * @description salon — the salon's cancellation guard decides (default); trusted — never stopped, whatever the history; approval — online bookings wait for the salon; phone_only — books by phone only; prepay — books online after the notice that the missed visits are paid in the salon together with the new one. Applies in every location of the organization, also while the guard is off.
+         */
+        put: operations["CancellationGuardController_setRule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/auth/code": {
         parameters: {
             query?: never;
@@ -5923,7 +5943,7 @@ export interface components {
             /** @enum {string} */
             action: "approval" | "phone_only" | "prepay";
             currency: string;
-            /** @description The guard is on and a rule marks the client now */
+            /** @description The client is stopped now: the salon's guard marks them, or their own rule is approval / phone_only / prepay */
             flagged: boolean;
             reasons: ("changes" | "late_cancel" | "no_shows")[];
             /** @description Cancellations and reschedules by the client within the window, since the last lift */
@@ -5936,6 +5956,11 @@ export interface components {
             noShowAmountGrosze: number;
             /** @description When the salon last lifted the mark */
             releasedAt: string | null;
+            /**
+             * @description Task Q9 'Zasady dla klienta': salon = the salon's rules decide; trusted = never stopped; approval / phone_only / prepay = applied to this client always
+             * @enum {string}
+             */
+            rule: "salon" | "trusted" | "approval" | "phone_only" | "prepay";
             /** @description Newest first, the last 365 days, at most 50 */
             history: {
                 /** @enum {string} */
@@ -5960,6 +5985,7 @@ export interface components {
                 name: string;
                 phone: string;
                 email: string | null;
+                /** @description Empty when only the client’s own rule (Q9) puts them on the list */
                 reasons: ("changes" | "late_cancel" | "no_shows")[];
                 /** @description Cancellations and reschedules by the client within the window, since the last lift */
                 changes: number;
@@ -5971,6 +5997,11 @@ export interface components {
                 noShowAmountGrosze: number;
                 /** @description When the salon last lifted the mark */
                 releasedAt: string | null;
+                /**
+                 * @description Task Q9 'Zasady dla klienta': salon = the salon's rules decide; trusted = never stopped; approval / phone_only / prepay = applied to this client always
+                 * @enum {string}
+                 */
+                rule: "salon" | "trusted" | "approval" | "phone_only" | "prepay";
             }[];
         };
         HappyHours: {
@@ -10790,6 +10821,8 @@ export interface operations {
                         drink?: ("coffee" | "tea" | "water" | "none") | null;
                         note?: string | null;
                     };
+                    /** @default false */
+                    payNoticeAccepted?: boolean;
                 };
             };
         };
@@ -13005,6 +13038,35 @@ export interface operations {
             };
         };
     };
+    CancellationGuardController_setRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    rule: "salon" | "trusted" | "approval" | "phone_only" | "prepay";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardedClient"];
+                };
+            };
+        };
+    };
     ClientController_requestCode: {
         parameters: {
             query?: never;
@@ -13197,6 +13259,8 @@ export interface operations {
                         drink?: ("coffee" | "tea" | "water" | "none") | null;
                         note?: string | null;
                     };
+                    /** @default false */
+                    payNoticeAccepted?: boolean;
                 };
             };
         };

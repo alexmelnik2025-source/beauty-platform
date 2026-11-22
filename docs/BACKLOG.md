@@ -12,6 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **22.11.2026, ~02:10 UTC — Q9 / 638, часть 1 — сервер (ветка `agent/638-q9-guard-api`, от main).** «Zasady dla
+  klienta» (według zasad salonu / zaufany / najpierw opłata zaległych / tylko z potwierdzeniem / tylko telefonicznie)
+  и запись с уведомлением «zapłacisz za poprzednią i tę wizytę w salonie» (`payNoticeAccepted`). Дальше — часть 2:
+  веб (выбор правила в карточке клиента, уведомление на шаге кода, сумма в карточке визита). Спецификация из
+  gestalt-docs этому запуску была недоступна — сделано по краткому описанию Q9 в `docs/CODEX.md`.
+
 - **22.11.2026, ~01:10 UTC — Q6 «Promocje» + Q7, часть 2 (ветка `agent/635-q7-promocje-web`, от main): кабинет.**
   Пункт меню «Happy hours» → «Promocje»; «+ Dodaj promocję» с выбором «Godziny i dni» / «Last Minute»; специалисты и
   услуги свёрнуты в одну строку; ошибки у поля. Правка правила Last Minute больше не превращает его в обычные часы.

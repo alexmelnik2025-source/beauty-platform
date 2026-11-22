@@ -262,6 +262,7 @@ describe('cancellation guard: marked clients', () => {
         noShows: 0,
         noShowAmountGrosze: 0,
         releasedAt: null,
+        rule: 'salon',
       },
     ]);
   });
@@ -422,31 +423,108 @@ describe('cancellation guard: online booking (161b)', () => {
       .http()
       .post(`/v1/public/holds/${hold.body.holdId}/confirm`)
       .send({ holdToken: hold.body.holdToken, code });
-    return { res, holdId: hold.body.holdId as string };
+    return {
+      res,
+      holdId: hold.body.holdId as string,
+      holdToken: hold.body.holdToken as string,
+      code,
+    };
   }
 
-  it('asks a marked client to pay the missed visits in the salon first, and lets the slot go', async () => {
+  it('task Q9: tells a marked client to pay the missed visits in the salon, keeps the time and books after the notice', async () => {
     await setGuard({ maxNoShows: 1, action: 'prepay' });
     const anna = await noShow(ANNA.email, 5, 500);
-    const { res, holdId } = await bookOnline();
+    const { res, holdId, holdToken, code } = await bookOnline();
     expect(res.status).toBe(403);
     expectError(res.body, 'BOOKING_PAY_FIRST');
     expect(res.body.error.details).toEqual([
       { path: 'amountGrosze', message: '7500' },
       { path: 'currency', message: 'PLN' },
     ]);
+    // The held time waits for the client's answer to the notice.
     expect((await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: holdId } })).status).toBe(
-      'expired',
+      'held',
     );
+    const accepted = await ctx
+      .http()
+      .post(`/v1/public/holds/${holdId}/confirm`)
+      .send({ holdToken, code, payNoticeAccepted: true })
+      .expect(200);
+    expect(accepted.body.appointment.status).toBe('confirmed');
+    const visit = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: holdId } });
+    expect(visit).toMatchObject({ owedGrosze: 7500, approvalRequestedAt: null });
 
-    // Paid in the salon: the owner lifts the mark and the client books again.
+    // Paid in the salon: the owner lifts the mark and the client books without any notice.
     await ctx
       .http()
       .post(`${guardUrl}/clients/${anna}/release`)
       .set(owner.auth)
       .send({})
       .expect(200);
+    const again = await bookOnline();
+    expect(again.res.status).toBe(200);
+    expect(
+      (await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: again.holdId } })).owedGrosze,
+    ).toBeNull();
+  });
+
+  it("task Q9: 'Zasady dla klienta' — trusted clients are never stopped, a client's own rule applies with the guard off", async () => {
+    await setGuard({ maxNoShows: 1, action: 'phone_only' });
+    const anna = await noShow(ANNA.email, 5);
+    const ruleUrl = `${guardUrl}/clients/${anna}/rule`;
+
+    // Only owners and managers; the rule must be one of the five.
+    await ctx.http().put(ruleUrl).set(staffUser.auth).send({ rule: 'trusted' }).expect(403);
+    await ctx.http().put(ruleUrl).set(owner.auth).send({ rule: 'vip' }).expect(400);
+
+    const trusted = await ctx
+      .http()
+      .put(ruleUrl)
+      .set(owner.auth)
+      .send({ rule: 'trusted' })
+      .expect(200);
+    expect(trusted.body).toMatchObject({ rule: 'trusted', flagged: false, noShows: 1 });
+    expect((await ctx.http().get(`${guardUrl}/clients`).set(owner.auth)).body.items).toEqual([]);
     expect((await bookOnline()).res.status).toBe(200);
+    expect(
+      await ctx.prisma.auditLog.count({
+        where: { action: 'customer.guard_rule_set', entityId: anna },
+      }),
+    ).toBe(1);
+
+    // The salon's guard off: Ewa, with no history, books by phone only because of her own rule.
+    await setGuard({ enabled: false, maxNoShows: 1, action: 'phone_only' }, 1);
+    const ewa = (await book('ewa@example.com', 'Ewa')).customerId;
+    const own = await ctx
+      .http()
+      .put(`${guardUrl}/clients/${ewa}/rule`)
+      .set(owner.auth)
+      .send({ rule: 'approval' })
+      .expect(200);
+    expect(own.body).toMatchObject({ rule: 'approval', flagged: true, reasons: [] });
+    const list = await ctx.http().get(`${guardUrl}/clients`).set(owner.auth).expect(200);
+    expect(list.body.items).toEqual([
+      expect.objectContaining({ customerId: ewa, rule: 'approval', reasons: [] }),
+    ]);
+    const { res, holdId } = await bookOnline({ ...ANNA, email: 'ewa@example.com' });
+    expect(res.status).toBe(200);
+    expect(
+      (await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: holdId } }))
+        .approvalRequestedAt,
+    ).not.toBeNull();
+
+    // Back to the salon's rules: the guard is off, so Ewa books as everyone.
+    await ctx
+      .http()
+      .put(`${guardUrl}/clients/${ewa}/rule`)
+      .set(owner.auth)
+      .send({ rule: 'salon' })
+      .expect(200);
+    const back = await bookOnline({ ...ANNA, email: 'ewa@example.com' });
+    expect(
+      (await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: back.holdId } }))
+        .approvalRequestedAt,
+    ).toBeNull();
   });
 
   it('asks a marked client to book by phone', async () => {

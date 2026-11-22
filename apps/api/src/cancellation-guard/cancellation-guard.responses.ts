@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { responseSchema } from '../common/openapi';
-import { CANCELLATION_GUARD_ACTIONS } from './cancellation-guard.schemas';
+import { CANCELLATION_GUARD_ACTIONS, CUSTOMER_GUARD_RULES } from './cancellation-guard.schemas';
 
 export const GUARD_REASONS = ['changes', 'late_cancel', 'no_shows'] as const;
 
@@ -33,6 +33,11 @@ const counters = {
     .int()
     .describe('What the missed visits cost (price after discounts), in hundredths of the currency'),
   releasedAt: z.string().nullable().describe('When the salon last lifted the mark'),
+  rule: z
+    .enum(CUSTOMER_GUARD_RULES)
+    .describe(
+      "Task Q9 'Zasady dla klienta': salon = the salon's rules decide; trusted = never stopped; approval / phone_only / prepay = applied to this client always",
+    ),
 };
 
 export const guardedClientsSchema = responseSchema(
@@ -47,7 +52,9 @@ export const guardedClientsSchema = responseSchema(
         name: z.string(),
         phone: z.string(),
         email: z.string().nullable(),
-        reasons: z.array(z.enum(GUARD_REASONS)),
+        reasons: z
+          .array(z.enum(GUARD_REASONS))
+          .describe('Empty when only the client’s own rule (Q9) puts them on the list'),
         ...counters,
       }),
     ),
@@ -62,7 +69,11 @@ export const guardedClientSchema = responseSchema(
     enabled: z.boolean(),
     action: z.enum(CANCELLATION_GUARD_ACTIONS),
     currency: z.string(),
-    flagged: z.boolean().describe('The guard is on and a rule marks the client now'),
+    flagged: z
+      .boolean()
+      .describe(
+        "The client is stopped now: the salon's guard marks them, or their own rule is approval / phone_only / prepay",
+      ),
     reasons: z.array(z.enum(GUARD_REASONS)),
     ...counters,
     history: z

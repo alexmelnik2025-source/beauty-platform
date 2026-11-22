@@ -31,8 +31,10 @@ import {
 } from './cancellation-guard.responses';
 import {
   releaseCustomerSchema,
+  setCustomerRuleSchema,
   updateCancellationGuardSchema,
   type ReleaseCustomerInput,
+  type SetCustomerRuleInput,
   type UpdateCancellationGuardInput,
 } from './cancellation-guard.schemas';
 import { CancellationGuardService } from './cancellation-guard.service';
@@ -119,5 +121,23 @@ export class CancellationGuardController {
     @Body(new ZodValidationPipe(releaseCustomerSchema)) body: ReleaseCustomerInput,
   ): Promise<GuardedClientResponse> {
     return this.guard.release(m, auth.userId, locationId, customerId, body);
+  }
+
+  @Put('clients/:customerId/rule')
+  @ApiOperation({
+    summary: "'Zasady dla klienta': the salon's own rule for one client (task Q9)",
+    description:
+      "salon — the salon's cancellation guard decides (default); trusted — never stopped, whatever the history; approval — online bookings wait for the salon; phone_only — books by phone only; prepay — books online after the notice that the missed visits are paid in the salon together with the new one. Applies in every location of the organization, also while the guard is off.",
+  })
+  @ApiZodBody(setCustomerRuleSchema)
+  @ApiZodResponse(guardedClientSchema)
+  setRule(
+    @CurrentMembership() m: MembershipContext,
+    @CurrentAuth() auth: AuthContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('customerId', uuid('Customer')) customerId: string,
+    @Body(new ZodValidationPipe(setCustomerRuleSchema)) body: SetCustomerRuleInput,
+  ): Promise<GuardedClientResponse> {
+    return this.guard.setRule(m, auth.userId, locationId, customerId, body);
   }
 }
