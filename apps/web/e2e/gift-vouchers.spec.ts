@@ -114,8 +114,17 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(list.getByText(code!)).toBeVisible();
   await expect(list.getByText(/Do wykorzystania na ważnych bonach: 250,00\s?zł/)).toBeVisible();
 
-  // "Sprawdź bon": the code as a client might say it — small letters with a dash.
+  // Task 662: a code no voucher has is said under "Kod bonu"; typing again takes it away.
   const check = page.getByRole('region', { name: 'Sprawdź bon' });
+  await check.getByLabel('Kod bonu').fill('ZZZZ9999');
+  await check.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(check.locator('#voucher-check-code-error')).toHaveText(
+    'Nie ma bonu z tym kodem w tym salonie.',
+  );
+  await expect(check.getByLabel('Kod bonu')).toHaveAttribute('aria-invalid', 'true');
+  await expect(check.locator('.alert')).toHaveCount(0);
+
+  // "Sprawdź bon": the code as a client might say it — small letters with a dash.
   await check.getByLabel('Kod bonu').fill(`${code!.slice(0, 4).toLowerCase()}-${code!.slice(4)}`);
   await check.getByRole('button', { name: 'Sprawdź' }).click();
   const card = check.getByRole('group', { name: code! });
@@ -153,6 +162,10 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await card.getByLabel('Kwota do zapłaty bonem').fill('250');
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
   await expect(card.getByText('Na bonie zostało mniej', { exact: false })).toBeVisible();
+  // Task 662 (owner's rule: errors at the field): said under the amount, not above the card.
+  await expect(card.getByLabel('Kwota do zapłaty bonem')).toHaveAttribute('aria-invalid', 'true');
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await shot(page, '662-voucher-pay-amount-error');
   await card.getByLabel('Kwota do zapłaty bonem').fill('120');
   await card.getByLabel(/^Za co/).fill('Strzyżenie i broda');
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();

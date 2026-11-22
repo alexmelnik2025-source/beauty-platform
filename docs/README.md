@@ -3492,6 +3492,10 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
 `isolation.spec.ts`, unit `apps/mobile-business/test/vouchers.test.ts`; e2e `gift-vouchers.spec.ts`, скриншоты 491,
 491a, 491b, 492, 492a, 493.
 
+Задача 662 (ошибки у поля): неверная сумма или больше остатка — под «Kwota bonu» / «Kwota do zapłaty bonem»; дата
+«Ważny do» в прошлом — под датой (продажа и «Edytuj»); код без бона — под «Kod bonu». Правка поля убирает ошибку,
+прочие ответы — строкой сверху, как раньше. Скриншот `662-voucher-pay-amount-error`.
+
 ## «CSV bonów», «Drukuj bon», «Wyślij bon» (задачи 494–497)
 
 - `GET …/gift-vouchers/export.csv?locale=pl|uk|ru|en` — владелец/менеджер: все боны салона, старые сверху (код, дата

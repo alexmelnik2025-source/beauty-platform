@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { parseTip as parseAmount } from '@/components/calendar/TipField';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
@@ -17,6 +17,29 @@ import {
   type PaymentMethod,
 } from '@/lib/types';
 import { useSubmitLock } from '@/lib/submit-lock';
+
+/**
+ * Task 662 (owner's rule: errors at the field): which field of a voucher form the server's answer
+ * is about — the amount, the "valid until" date, or none (then it stays a line above the form).
+ */
+function voucherFieldOf(err: unknown): 'amount' | 'validUntil' | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.code === 'VOUCHER_BALANCE') return 'amount';
+  if (err.code === 'VOUCHER_DATE_PAST') return 'validUntil';
+  if (err.code !== 'VALIDATION_ERROR' || !Array.isArray(err.details)) return null;
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  if (paths.includes('amountGrosze')) return 'amount';
+  if (paths.includes('validUntil')) return 'validUntil';
+  return null;
+}
+
+/** The props that tie a field to the error shown under it, for screen readers. */
+function invalidProps(id: string, text: string) {
+  return {
+    'aria-invalid': text ? true : undefined,
+    'aria-describedby': text ? id : undefined,
+  } as const;
+}
 
 const STATUS: Record<GiftVoucher['status'], keyof Dict['vouchers']> = {
   active: 'statusActive',
@@ -194,6 +217,8 @@ function EditVoucher({
   const [note, setNote] = useState(voucher.note ?? '');
   const [payment, setPayment] = useState<PaymentMethod | ''>(voucher.paymentMethod ?? '');
   const [error, setError] = useState('');
+  /** Task 662: a past "valid until" — said under the date. */
+  const [dateError, setDateError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
   // The form takes the place of "Edytuj": the cursor goes to its first field, and back to
@@ -211,6 +236,7 @@ function EditVoucher({
     setNote(voucher.note ?? '');
     setPayment(voucher.paymentMethod ?? '');
     setError('');
+    setDateError('');
     setOpen(true);
   }
 
@@ -218,6 +244,7 @@ function EditVoucher({
     e.preventDefault();
     if (!lock()) return;
     setError('');
+    setDateError('');
     try {
       const updated = await api<GiftVoucher>(`${base}/${voucher.id}`, {
         method: 'PATCH',
@@ -231,7 +258,8 @@ function EditVoucher({
       setOpen(false);
       onSaved(updated);
     } catch (err) {
-      setError(errorText(t, err));
+      if (voucherFieldOf(err) === 'validUntil') setDateError(errorText(t, err));
+      else setError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -260,8 +288,13 @@ function EditVoucher({
             type="date"
             autoFocus
             value={validUntil}
-            onChange={(e) => setValidUntil(e.target.value)}
+            {...invalidProps(`voucher-edit-date-error-${voucher.id}`, dateError)}
+            onChange={(e) => {
+              setValidUntil(e.target.value);
+              setDateError('');
+            }}
           />
+          <FieldError id={`voucher-edit-date-error-${voucher.id}`} text={dateError} />
         </label>
         <label className="field grow">
           <span>{t.vouchers.recipient}</span>
@@ -304,6 +337,8 @@ function VoucherDetails({
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
+  /** Task 662: a wrong amount or one above what is left — said under "Kwota do zapłaty bonem". */
+  const [amountError, setAmountError] = useState('');
   const [info, setInfo] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   const { voucher, uses } = details;
@@ -337,9 +372,10 @@ function VoucherDetails({
   async function pay(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setAmountError('');
     setInfo('');
     const grosze = parseAmount(amount);
-    if (!grosze) return setError(t.vouchers.wrongAmount);
+    if (!grosze) return setAmountError(t.vouchers.wrongAmount);
     if (!lock()) return;
     try {
       const next = await api<GiftVoucherDetails>(`${base}/${voucher.id}/redeem`, {
@@ -356,7 +392,8 @@ function VoucherDetails({
         }),
       );
     } catch (err) {
-      setError(errorText(t, err));
+      if (voucherFieldOf(err) === 'amount') setAmountError(errorText(t, err));
+      else setError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -395,8 +432,13 @@ function VoucherDetails({
                 inputMode="decimal"
                 required
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                {...invalidProps(`voucher-pay-amount-error-${voucher.id}`, amountError)}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setAmountError('');
+                }}
               />
+              <FieldError id={`voucher-pay-amount-error-${voucher.id}`} text={amountError} />
             </label>
             <label className="field grow">
               <span>{t.vouchers.payNote}</span>
@@ -486,6 +528,8 @@ function CheckVoucher({
   const base = `/v1/organizations/${orgId}/locations/${location.id}/gift-vouchers`;
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  /** Task 662: no voucher with this code — said under "Kod bonu". */
+  const [codeError, setCodeError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
   async function check(e: FormEvent) {
@@ -493,13 +537,15 @@ function CheckVoucher({
     const typed = code.trim();
     if (!typed || !lock()) return;
     setError('');
+    setCodeError('');
     onFound(null);
     try {
       onFound(await api<GiftVoucherDetails>(`${base}/code/${encodeURIComponent(typed)}`));
     } catch (err) {
       const missing =
         err instanceof ApiError && (err.code === 'NOT_FOUND' || err.code === 'VALIDATION_ERROR');
-      setError(missing ? t.vouchers.notFound : errorText(t, err));
+      if (missing) setCodeError(t.vouchers.notFound);
+      else setError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -517,13 +563,19 @@ function CheckVoucher({
             spellCheck={false}
             maxLength={20}
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            {...invalidProps('voucher-check-code-error', codeError)}
+            onChange={(e) => {
+              setCode(e.target.value);
+              setCodeError('');
+            }}
           />
         </label>
         <button className="btn" disabled={busy} style={{ alignSelf: 'flex-end' }}>
           {t.vouchers.check}
         </button>
       </form>
+      {/* Under the row, so "Sprawdź" stays level with the field. */}
+      <FieldError id="voucher-check-code-error" text={codeError} />
       <ErrorBox>{error}</ErrorBox>
       {found ? <VoucherDetails details={found} onChange={onFound} /> : null}
     </section>
@@ -541,15 +593,20 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
   const [note, setNote] = useState('');
   const [payment, setPayment] = useState<PaymentMethod | ''>('');
   const [error, setError] = useState('');
+  /** Task 662: a wrong amount and a past "valid until" — said under their fields. */
+  const [amountError, setAmountError] = useState('');
+  const [dateError, setDateError] = useState('');
   const [sold, setSold] = useState<GiftVoucher | null>(null);
   const { busy, lock, unlock } = useSubmitLock();
 
   async function sell(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setAmountError('');
+    setDateError('');
     setSold(null);
     const grosze = parseAmount(amount);
-    if (!grosze || grosze < 100) return setError(t.vouchers.wrongAmount);
+    if (!grosze || grosze < 100) return setAmountError(t.vouchers.wrongAmount);
     if (!lock()) return;
     try {
       const voucher = await api<GiftVoucher>(base, {
@@ -570,7 +627,10 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
       setPayment('');
       onSold(voucher);
     } catch (err) {
-      setError(errorText(t, err));
+      const field = voucherFieldOf(err);
+      if (field === 'amount') setAmountError(errorText(t, err));
+      else if (field === 'validUntil') setDateError(errorText(t, err));
+      else setError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -588,14 +648,28 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
               inputMode="decimal"
               required
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              {...invalidProps('voucher-new-amount-error', amountError)}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setAmountError('');
+              }}
             />
+            <FieldError id="voucher-new-amount-error" text={amountError} />
           </label>
           <label className="field grow">
             <span>
               {t.vouchers.validUntilField} ({t.common.optional})
             </span>
-            <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+            <input
+              type="date"
+              value={validUntil}
+              {...invalidProps('voucher-new-date-error', dateError)}
+              onChange={(e) => {
+                setValidUntil(e.target.value);
+                setDateError('');
+              }}
+            />
+            <FieldError id="voucher-new-date-error" text={dateError} />
           </label>
         </div>
         <div className="row">
