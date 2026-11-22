@@ -151,6 +151,7 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly code?: string,
+    readonly details: unknown = undefined,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -767,11 +768,14 @@ export class ClientApi {
     const data: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       // The API answers errors as { error: { code, message, requestId } }.
-      const error = (data as { error?: { code?: unknown; message?: unknown } } | null)?.error;
+      const error = (
+        data as { error?: { code?: unknown; message?: unknown; details?: unknown } } | null
+      )?.error;
       throw new ApiError(
         res.status,
         typeof error?.message === 'string' ? error.message : `HTTP ${res.status}`,
         typeof error?.code === 'string' ? error.code : undefined,
+        error?.details,
       );
     }
     return data as T;

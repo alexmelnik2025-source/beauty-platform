@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ApiError, todayIn, type ClientApi, type Locale, type PublicLocation } from '../api';
 import { BOOKING_DAYS } from '../booking';
 import { errorText } from '../errors';
 import { dayChip, formatDay } from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { Button, colors, ErrorText } from '../ui';
+import { Button, colors, ErrorText, FieldInput } from '../ui';
 import { waitlistDays } from '../waitlist';
 
 /** The waiting list's words for the API's refusals (task 50 rules). */
@@ -41,6 +41,7 @@ export function WaitlistPanel(props: {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [joined, setJoined] = useState<string | null>(null);
+  const [nameError, setNameError] = useState('');
   const [error, setError] = useState('');
 
   if (!open) return <Button kind="link" label={w.open} onPress={() => setOpen(true)} />;
@@ -50,7 +51,7 @@ export function WaitlistPanel(props: {
 
   const join = async (date: string) => {
     if (!name.trim()) {
-      setError(w.nameNeeded);
+      setNameError(w.nameNeeded);
       return;
     }
     setBusy(date);
@@ -81,11 +82,15 @@ export function WaitlistPanel(props: {
         <Text style={styles.muted}>{w.noFullDays}</Text>
       ) : (
         <>
-          <TextInput
+          <FieldInput
+            error={nameError}
             accessibilityLabel={t.book.name}
             placeholder={t.book.name}
             value={name}
-            onChangeText={setName}
+            onChangeText={(value) => {
+              setName(value);
+              setNameError('');
+            }}
             autoComplete="name"
             style={styles.input}
           />
