@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { parseEmail, type ClientApi, type ClientPerson, type Locale } from '../api';
-import { errorText } from '../errors';
+import { errorText, isCodeError, validationField } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import type { RecentSalon } from '../recent';
 import { RecentSalons } from './RecentSalons';
-import { Button, colors, ErrorText, Heading } from '../ui';
+import { Button, colors, ErrorText, FieldInput, Heading } from '../ui';
 
 /**
  * Sign-in without a password or an account: the email the client books with → 6-digit code.
@@ -39,6 +39,7 @@ export function SignInScreen(props: {
   const [input, setInput] = useState(props.initialEmail ?? '');
   const [sentTo, setSentTo] = useState('');
   const [code, setCode] = useState('');
+  const [fieldError, setFieldError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [what, setWhat] = useState('');
@@ -59,7 +60,10 @@ export function SignInScreen(props: {
   }, [api]);
 
   async function send(email = parseEmail(input)) {
-    if (!email) return setError(t.signIn.badEmail);
+    if (busy) return;
+    setFieldError('');
+    setError('');
+    if (!email) return setFieldError(t.signIn.badEmail);
     setBusy(true);
     setError('');
     try {
@@ -67,20 +71,23 @@ export function SignInScreen(props: {
       setSentTo(email);
       setCode('');
     } catch (e) {
-      setError(errorText(e, t));
+      if (!sentTo && validationField(e, ['email'])) setFieldError(t.signIn.badEmail);
+      else setError(errorText(e, t));
     } finally {
       setBusy(false);
     }
   }
 
   async function confirm() {
-    if (code.length !== 6) return;
+    if (code.length !== 6 || busy) return;
+    setFieldError('');
     setBusy(true);
     setError('');
     try {
       props.onSignedIn(await api.verifyCode(sentTo, code, locale));
     } catch (e) {
-      setError(errorText(e, t));
+      if (isCodeError(e)) setFieldError(errorText(e, t));
+      else setError(errorText(e, t));
       setBusy(false);
     }
   }
@@ -124,12 +131,16 @@ export function SignInScreen(props: {
       {!sentTo ? (
         <>
           <Text style={styles.text}>{t.signIn.subtitle}</Text>
-          <TextInput
+          <FieldInput
+            error={fieldError}
             accessibilityLabel={t.signIn.email}
             placeholder={t.signIn.email}
             placeholderTextColor={colors.placeholder}
             value={input}
-            onChangeText={setInput}
+            onChangeText={(value) => {
+              setInput(value);
+              setFieldError('');
+            }}
             onSubmitEditing={() => void send()}
             autoCapitalize="none"
             autoCorrect={false}
@@ -148,12 +159,16 @@ export function SignInScreen(props: {
       ) : (
         <>
           <Text style={styles.text}>{fill(t.signIn.sent, { email: sentTo })}</Text>
-          <TextInput
+          <FieldInput
+            error={fieldError}
             accessibilityLabel={t.signIn.code}
             placeholder="000000"
             placeholderTextColor={colors.line}
             value={code}
-            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+            onChangeText={(v) => {
+              setFieldError('');
+              setCode(v.replace(/\D/g, '').slice(0, 6));
+            }}
             onSubmitEditing={confirm}
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
@@ -181,6 +196,7 @@ export function SignInScreen(props: {
               disabled={busy}
               onPress={() => {
                 setSentTo('');
+                setFieldError('');
                 setError('');
               }}
             />

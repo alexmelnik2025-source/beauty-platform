@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from 'react-native';
 
 /** Small shared building blocks and colours of the client app (same look as the business app). */
 export const colors = {
@@ -63,6 +71,8 @@ export function Chip(props: {
   /** What a screen reader says when the label is a flag and a code ("🇺🇦 UA (12)"). */
   a11yLabel?: string;
   pressed: boolean;
+  compact?: boolean;
+  expanded?: boolean;
   onPress: () => void;
 }) {
   return (
@@ -70,11 +80,34 @@ export function Chip(props: {
       accessibilityRole="button"
       accessibilityLabel={props.a11yLabel ?? props.label}
       aria-pressed={props.pressed}
+      aria-expanded={props.expanded}
       onPress={props.onPress}
-      style={[styles.chip, props.pressed && styles.chipOn]}
+      style={[styles.chip, props.compact && styles.compactChip, props.pressed && styles.chipOn]}
     >
-      <Text style={[styles.chipText, props.pressed && { color: '#fff' }]}>{props.label}</Text>
+      <Text
+        style={[
+          styles.chipText,
+          props.compact && styles.compactChipText,
+          props.pressed && { color: '#fff' },
+        ]}
+      >
+        {props.label}
+      </Text>
     </Pressable>
+  );
+}
+
+/** Input feedback stays with the field that the client can correct. */
+export function FieldInput({ error, style, ...props }: TextInputProps & { error?: string }) {
+  return (
+    <View style={{ gap: 4 }}>
+      <TextInput
+        {...props}
+        aria-invalid={Boolean(error)}
+        style={[style, error && styles.invalid]}
+      />
+      {error ? <ErrorText>! {error}</ErrorText> : null}
+    </View>
   );
 }
 
@@ -121,6 +154,9 @@ const styles = StyleSheet.create({
     minHeight: 36,
     justifyContent: 'center',
   },
+  compactChip: { paddingHorizontal: 7, paddingVertical: 4, minHeight: 44 },
+  compactChipText: { fontSize: 12 },
+  invalid: { borderColor: colors.danger, borderWidth: 1 },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   chipText: { color: colors.ink, fontSize: 14, fontWeight: '600' },
   heading: { fontSize: 26, fontWeight: '700', color: colors.ink },

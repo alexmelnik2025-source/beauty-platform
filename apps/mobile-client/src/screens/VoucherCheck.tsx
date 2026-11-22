@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { ApiError, type ClientApi, type Locale, type PublicGiftVoucher } from '../api';
 import { errorText } from '../errors';
 import { formatPrice, LOCALE_TAGS } from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText } from '../ui';
+import { Button, Card, colors, ErrorText, FieldInput } from '../ui';
 
 /** "17 lutego 2027": a voucher may be valid into the next year, so the year is shown. */
 function dayWithYear(date: string, tag: string): string {
@@ -32,6 +32,7 @@ export function VoucherCheck(props: {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [invalidCode, setInvalidCode] = useState(false);
   const [error, setError] = useState('');
   const [voucher, setVoucher] = useState<PublicGiftVoucher | null>(null);
 
@@ -39,13 +40,13 @@ export function VoucherCheck(props: {
     if (code.trim().length < 4 || busy) return;
     setBusy(true);
     setError('');
+    setInvalidCode(false);
     setVoucher(null);
     try {
       setVoucher(await api.voucherBalance(slug, code));
     } catch (err) {
-      setError(
-        err instanceof ApiError && err.status === 404 ? t.voucherCheck.notFound : errorText(err, t),
-      );
+      if (err instanceof ApiError && err.status === 404) setInvalidCode(true);
+      else setError(errorText(err, t));
     } finally {
       setBusy(false);
     }
@@ -71,12 +72,16 @@ export function VoucherCheck(props: {
         {t.voucherCheck.title}
       </Text>
       <Text style={styles.small}>{t.voucherCheck.hint}</Text>
-      <TextInput
+      <FieldInput
+        error={invalidCode ? t.voucherCheck.notFound : undefined}
         accessibilityLabel={t.voucherCheck.code}
         placeholder="ABCD-EFGH"
         placeholderTextColor={colors.placeholder}
         value={code}
-        onChangeText={setCode}
+        onChangeText={(value) => {
+          setCode(value);
+          setInvalidCode(false);
+        }}
         onSubmitEditing={() => void check()}
         autoCapitalize="characters"
         autoCorrect={false}
