@@ -674,6 +674,14 @@ pnpm --filter @beauty/api-client generate
   проверка до отправки (форма `noValidate`, без всплывающих подсказок браузера) и по ответу сервера
   (`VALIDATION_ERROR`, `details[].path`). Если поле в другой карточке, «Zapisz» открывает её; курсор — к полю, правка
   убирает ошибку, «Odrzuć» — тоже. e2e `booking`, скриншоты `680-settings-name-error`, `680-settings-horizon-error`.
+## Ошибки у поля в карточке визита: «Produkty» и «Zapłać bonem» (задача 673, 22.11.2026)
+
+- Карточка прошедшего визита → «Produkty»: неизвестный код («Nie ma produktu z kodem …») и «Za mało sztuk w magazynie» —
+  под полем кода (если продажа по коду) или под полем количества (если товар выбран из списка); курсор — туда, правка
+  поля убирает ошибку. «Klient płaci bonem podarunkowym?»: нет бона с таким кодом, бон недействителен или отменён —
+  под «Kod bonu»; неверная сумма или больше остатка («Na bonie zostało mniej…») — под суммой. e2e `products`,
+  `visit-voucher`, скриншоты `673-visit-product-code-error`, `673-visit-voucher-code-error`,
+  `673-visit-voucher-amount-error`.
 
 ## Ошибки у поля в «Nowa wizyta» и «Zablokuj czas» (задача 672, 22.11.2026)
 

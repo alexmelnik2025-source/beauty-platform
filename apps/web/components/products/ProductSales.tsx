@@ -1,12 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api, ApiError } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { Product, ProductList, VisitProductSales } from '@/lib/types';
 import { parseBarcode } from '@/lib/barcode';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
+
+/** Task 673: the fields of a visit's product sale that can show an error under them. */
+type SaleField = 'code' | 'quantity';
 
 /**
  * Task 395: "Produkty" in the card of a visit that took place — what the client bought (pomade,
@@ -36,6 +39,12 @@ export function ProductSales({
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * Task 673 (owner's rule: errors at the field): an unknown code and "not enough in stock" are said
+   * under the field they came from (the code, or the number of pieces); editing it takes them away.
+   */
+  const [problem, setProblem] = useState<{ field: SaleField; text: string } | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const url = `${base}/appointments/${appointmentId}/products`;
   const money = (hundredths: number) => formatPrice(hundredths, currency, tag);
 
@@ -58,9 +67,15 @@ export function ProductSales({
     void load();
   }, [load]);
 
-  async function run(action: () => Promise<VisitProductSales>) {
+  useEffect(() => {
+    if (!problem) return;
+    boxRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [problem]);
+
+  async function run(action: () => Promise<VisitProductSales>, field?: SaleField) {
     setBusy(true);
     setError('');
+    setProblem(null);
     try {
       setSales(await action());
       // Task 430: the pieces left in stock changed with the sale.
@@ -69,7 +84,10 @@ export function ProductSales({
         setProducts(list.products.filter((x) => x.active));
       }
     } catch (err) {
-      setError(errorText(t, err));
+      if (field && err instanceof ApiError && err.code === 'OUT_OF_STOCK') {
+        setProblem({ field, text: errorText(t, err) });
+      } else setError(errorText(t, err));
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -81,21 +99,45 @@ export function ProductSales({
     if (!wanted) return;
     const found = products.find((x) => x.barcode === wanted);
     if (!found) {
-      setError(p.codeUnknown.replace('{code}', wanted));
+      setError('');
+      setProblem({ field: 'code', text: p.codeUnknown.replace('{code}', wanted) });
       return;
     }
-    void run(() =>
-      api<VisitProductSales>(url, { method: 'POST', body: { productId: found.id, quantity: 1 } }),
-    ).then(() => setCode(''));
+    run(
+      () =>
+        api<VisitProductSales>(url, { method: 'POST', body: { productId: found.id, quantity: 1 } }),
+      'code',
+    ).then(
+      () => setCode(''),
+      () => undefined,
+    );
   }
   const withCodes = products.some((x) => x.barcode !== null);
+
+  /** Editing a field takes its error away. */
+  const clear = (field: SaleField) => {
+    if (problem?.field === field) setProblem(null);
+  };
+  const errorId = (field: SaleField) => `visit-products-${field}-error-${appointmentId}`;
+  const invalid = (field: SaleField) => ({
+    'aria-invalid': problem?.field === field || undefined,
+    'aria-describedby': problem?.field === field ? errorId(field) : undefined,
+  });
+  const fieldError = (field: SaleField) => (
+    <FieldError id={errorId(field)} text={problem?.field === field ? problem.text : undefined} />
+  );
 
   if (!sales) return null;
   // Nothing sold and nothing to sell: no section at all.
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
 
   return (
-    <div className="stack" style={{ gap: 6 }} data-testid="visit-products">
+    <div
+      className="stack visit-products"
+      ref={boxRef}
+      style={{ gap: 6 }}
+      data-testid="visit-products"
+    >
       <span className="small muted">
         {p.sold}
         {sales.totalGrosze > 0 ? `: ${money(sales.totalGrosze)}` : null}
@@ -116,7 +158,9 @@ export function ProductSales({
                   aria-label={`${p.removeSale} — ${s.name}`}
                   disabled={busy}
                   onClick={() =>
-                    void run(() => api<VisitProductSales>(`${url}/${s.id}`, { method: 'DELETE' }))
+                    void run(() =>
+                      api<VisitProductSales>(`${url}/${s.id}`, { method: 'DELETE' }),
+                    ).catch(() => undefined)
                   }
                 >
                   {p.removeSale}
@@ -141,7 +185,11 @@ export function ProductSales({
             value={code}
             maxLength={40}
             autoComplete="off"
-            onChange={(e) => setCode(e.target.value)}
+            {...invalid('code')}
+            onChange={(e) => {
+              setCode(e.target.value);
+              clear('code');
+            }}
             style={{ flex: '1 1 12rem' }}
             data-testid="visit-products-code"
           />
@@ -154,6 +202,8 @@ export function ProductSales({
           </button>
         </form>
       ) : null}
+      {/* Under the row, so "+ Dodaj" stays level with the field. */}
+      {fieldError('code')}
       {canChange && products.length > 0 ? (
         <form
           className="row"
@@ -161,18 +211,25 @@ export function ProductSales({
           onSubmit={(e) => {
             e.preventDefault();
             if (!productId) return;
-            void run(() =>
-              api<VisitProductSales>(url, { method: 'POST', body: { productId, quantity } }),
-            ).then(() => {
-              setProductId('');
-              setQuantity(1);
-            });
+            run(
+              () => api<VisitProductSales>(url, { method: 'POST', body: { productId, quantity } }),
+              'quantity',
+            ).then(
+              () => {
+                setProductId('');
+                setQuantity(1);
+              },
+              () => undefined,
+            );
           }}
         >
           <select
             aria-label={p.choose}
             value={productId}
-            onChange={(e) => setProductId(e.target.value)}
+            onChange={(e) => {
+              setProductId(e.target.value);
+              clear('quantity');
+            }}
             style={{ flex: '1 1 12rem' }}
           >
             <option value="">{p.choose}</option>
@@ -200,7 +257,11 @@ export function ProductSales({
             min={1}
             max={99}
             value={quantity}
-            onChange={(e) => setQuantity(Math.min(99, Math.max(1, Number(e.target.value) || 1)))}
+            {...invalid('quantity')}
+            onChange={(e) => {
+              setQuantity(Math.min(99, Math.max(1, Number(e.target.value) || 1)));
+              clear('quantity');
+            }}
             style={{ maxWidth: 70 }}
           />
           <button type="submit" className="btn btn--quiet btn--small" disabled={busy || !productId}>
@@ -208,6 +269,7 @@ export function ProductSales({
           </button>
         </form>
       ) : null}
+      {fieldError('quantity')}
       <span className="small muted">{p.soldHint}</span>
       <ErrorBox>{error}</ErrorBox>
     </div>

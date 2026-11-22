@@ -4031,3 +4031,10 @@ ul.wish-photos {
 .shop-page .stack > p {
   margin: 0;
 }
+
+/* Task 673: the visit card's product sale keeps the red frame on its field with an error. */
+.visit-products input[aria-invalid='true'],
+.visit-products select[aria-invalid='true'] {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 1px var(--signal);
+}
