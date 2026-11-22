@@ -3266,6 +3266,12 @@ ul.wish-photos {
 
 .directory-search {
   width: 100%;
+  /* Task 649: the same field as the rest of the site (it looked like a bare browser box). */
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-s);
+  background: var(--paper);
   font-size: 1rem;
 }
 
@@ -3617,12 +3623,24 @@ ul.wish-photos {
 /* Task Q5: the catalogue's header - the title and the site's language on one line, every filter in
    one row; "Język obsługi ▾" and "Kategoria ▾" open their lists under the row. */
 .directory-top {
-  flex-wrap: wrap;
+  /* Task Q5 / 649: the title and the site's language on one line, also on a 390 px phone. */
+  flex-wrap: nowrap;
   gap: 8px;
 }
 
 .directory-top .salon-name {
   margin: 0;
+  min-width: 0;
+  font-size: clamp(1.2rem, 5vw, 2rem);
+  overflow-wrap: anywhere;
+}
+
+.directory-top .lang {
+  flex-shrink: 0;
+}
+
+.directory-top .lang a {
+  padding: 4px 5px;
 }
 
 .directory .salon-head-inner {

@@ -4333,6 +4333,9 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   `directory.languageMenu`, `directory.kindMenu` — во всех 6 словарях. e2e: `booking.spec.ts`
   (`q5-catalogue-language-menu`, `00a-catalogue`, `192-catalogue-languages-or`), `catalogue-map.spec.ts`
   (`160d-catalogue-kinds`, `q5-catalogue-kind-menu`).
+  Задача 649: на телефоне 390 px заголовок уменьшается (`.directory-top .salon-name`), строка не переносится —
+  «PL UA RU EN TR SQ» остаются справа от заголовка (e2e `booking.spec.ts` сравнивает их положение); поле поиска
+  `.directory-search` оформлено как остальные поля (44 px, рамка, отступы).
 - **Ошибки у поля** на шаге «Dane» и шаге кода (`BookingFlow.tsx`, `fieldProblems`): ответ сервера `VALIDATION_ERROR`
   про имя, телефон или e-mail, `PHONE_REQUIRED` и неверный код (`INVALID_CODE`) показываются у самого поля — красная
   рамка (`aria-invalid`), «!» и короткий текст под полем («Sprawdź numer telefonu.», «Nieprawidłowy kod.»); ввод в
