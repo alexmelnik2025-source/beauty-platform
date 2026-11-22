@@ -1631,6 +1631,7 @@ export const pl = {
     bonusRemove: 'Usuń zasadę',
     bonusSave: 'Zapisz zasady',
     bonusNone: 'Brak zasad — każda wizyta daje zwykłą liczbę pieczątek lub punktów.',
+    bonusNothingExtra: 'Ustaw mnożnik powyżej 1 lub dodatkowe punkty.',
     lead: 'Ty ustalasz zasady: za co klient dostaje pieczątki lub punkty i na jakie nagrody może je wymienić. Zniżki z programu pokrywa salon.',
     settings: 'Ustawienia programu',
     enabled: 'Program włączony',
