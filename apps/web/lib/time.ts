@@ -103,6 +103,19 @@ export function shortDate(date: string, localeTag: string): string {
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
+/** Task Q6: "16–22 lis" — a week with one short month, for one-line headers on a phone. */
+export function shortRange(from: string, to: string, localeTag: string): string {
+  const day = (date: string) => {
+    const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+    return new Date(Date.UTC(y, m - 1, d));
+  };
+  return new Intl.DateTimeFormat(localeTag, {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+  }).formatRange(day(from), day(to));
+}
+
 export function weekdayShort(date: string, localeTag: string): string {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];
   return new Intl.DateTimeFormat(localeTag, { timeZone: 'UTC', weekday: 'short' }).format(

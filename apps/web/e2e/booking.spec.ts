@@ -1100,6 +1100,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerMobile.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
   // Task Q6: on a phone the calendar header is one row — the short date never wraps over lines.
   await expect(ownerMobile.getByTestId('cal-date-short')).toBeVisible();
+  // …and it fits whole, without "…" (the weekday is in the week strip right below).
+  expect(
+    await ownerMobile
+      .locator('.cal-toolbar .date-title strong')
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
   expect((await ownerMobile.locator('.cal-toolbar').boundingBox())!.height).toBeLessThan(80);
   await shot(ownerMobile, '12-owner-calendar-phone');
 

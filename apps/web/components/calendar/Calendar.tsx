@@ -16,6 +16,7 @@ import {
   clockToMinutes,
   formatDay,
   shortDate,
+  shortRange,
   minutesToClock,
   toLocal,
   todayIn,
@@ -309,7 +310,8 @@ export function Calendar() {
     <>
       <div className="cal-toolbar">
         <div className="date-title">
-          {/* Task Q6: on a phone the whole header is one row — a short date ("niedz., 22 lis") and
+          {/* Task Q6: on a phone the whole header is one row — a short date ("22 lis"; the weekday is
+              right below in the week strip) and
               the salon on one line each, never wrapping over several lines. */}
           <strong>
             <span className="hide-mobile">
@@ -318,9 +320,7 @@ export function Calendar() {
                 : formatDay(date, tag)}
             </span>
             <span className="only-mobile" data-testid="cal-date-short">
-              {mode === 'week'
-                ? `${shortDate(monday, tag)} – ${shortDate(addDays(monday, 6), tag)}`
-                : formatDay(date, tag, { short: true })}
+              {mode === 'week' ? shortRange(monday, addDays(monday, 6), tag) : shortDate(date, tag)}
             </span>
           </strong>
           <span className="small muted cal-location">{location.name}</span>
