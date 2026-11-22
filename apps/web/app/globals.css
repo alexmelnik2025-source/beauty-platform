@@ -3796,3 +3796,137 @@ ul.wish-photos {
     display: none;
   }
 }
+
+/* Task Q6: "Mój sklep" as a shop admin list — search, filters, one row per product. */
+.shop-head {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.shop-head h1 {
+  margin-bottom: 0;
+}
+
+.shop-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.shop-tools {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.shop-filters {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.shop-filter {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.shop-filter[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--fog);
+  font-weight: 600;
+}
+
+.shop-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shop-rows > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.shop-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.shop-row:hover,
+.shop-row[aria-expanded='true'] {
+  background: var(--fog);
+}
+
+.shop-row__thumb {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--fog);
+  object-fit: cover;
+  font-weight: 600;
+  color: var(--graphite);
+}
+
+.shop-row__name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.shop-row__name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-row__stock,
+.shop-row__price {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.status-pill {
+  justify-self: start;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background: var(--fog);
+  color: var(--graphite);
+}
+
+.status-pill--salon,
+.status-pill--market {
+  background: #e3f1e6;
+  color: #1f5130;
+}
+
+.shop-row__more {
+  padding: 4px 12px 14px 64px;
+}
+
+@media (max-width: 480px) {
+  .shop-row {
+    gap: 8px;
+  }
+
+  .shop-row__more {
+    padding-left: 12px;
+  }
+}

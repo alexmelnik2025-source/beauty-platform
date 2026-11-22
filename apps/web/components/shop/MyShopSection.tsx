@@ -23,6 +23,13 @@ const SHOP_CATEGORIES = [
   'other',
 ] as const;
 type ShopCategory = (typeof SHOP_CATEGORIES)[number];
+type ShopFilter = 'all' | 'salon' | 'market' | 'hidden';
+
+/** Which filter a product belongs to: in the "Sklep", on the salon page only, or hidden. */
+function statusOf(p: Product): Exclude<ShopFilter, 'all'> {
+  if (p.inSalonShop && p.inMarketplace) return 'market';
+  return p.inSalonShop ? 'salon' : 'hidden';
+}
 
 /**
  * Task Q3 (part 2a): "Mój sklep" — the salon's own shop in the cabinet. Every product of the
@@ -59,6 +66,12 @@ export function MyShopSection({ base }: { base: string }) {
   const [stock, setStock] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /** Task Q6: the list as in a shop admin — search, filters, one row per product, opened in place. */
+  const [filterText, setFilterText] = useState('');
+  const [filter, setFilter] = useState<ShopFilter>('all');
+  const [open, setOpen] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     const list = await api<ProductList>(`${base}/products`);
@@ -164,6 +177,7 @@ export function MyShopSection({ base }: { base: string }) {
       setName('');
       setPrice('');
       setStock('');
+      setAdding(false);
     });
   };
 
@@ -172,11 +186,55 @@ export function MyShopSection({ base }: { base: string }) {
   const shown = products.filter((p) => p.active);
   const inShop = shown.filter((p) => p.inSalonShop).length;
 
+  const counts: Record<ShopFilter, number> = {
+    all: shown.length,
+    salon: shown.filter((p) => statusOf(p) === 'salon').length,
+    market: shown.filter((p) => statusOf(p) === 'market').length,
+    hidden: shown.filter((p) => statusOf(p) === 'hidden').length,
+  };
+  const words = filterText.trim().toLowerCase();
+  const visible = shown.filter(
+    (p) =>
+      (filter === 'all' || statusOf(p) === filter) &&
+      (!words || p.name.toLowerCase().includes(words) || (p.barcode ?? '').includes(words)),
+  );
+  const statusText = (p: Product) =>
+    ({ market: s.filterMarket, salon: s.filterSalon, hidden: s.statusHidden })[statusOf(p)];
+
   return (
     <section className="stack" aria-labelledby="my-shop-title">
-      <h1 id="my-shop-title">{s.title}</h1>
-      <p className="muted">{s.hint}</p>
-      <p className="small muted">{s.pickupOnly}</p>
+      {/* Task Q6: a title, "?" for the explanations and one main button — as in a shop admin. */}
+      <div className="row shop-head">
+        <div className="title-help">
+          <h1 id="my-shop-title">{s.title}</h1>
+          <button
+            type="button"
+            className="help-btn"
+            aria-label={s.helpOpen}
+            title={s.helpOpen}
+            aria-expanded={helpOpen}
+            aria-controls="my-shop-help"
+            onClick={() => setHelpOpen((v) => !v)}
+          >
+            ?
+          </button>
+        </div>
+        <button
+          type="button"
+          className="btn"
+          aria-expanded={adding}
+          aria-controls="shop-add"
+          onClick={() => setAdding((v) => !v)}
+        >
+          {s.addOpen}
+        </button>
+      </div>
+      {helpOpen ? (
+        <div id="my-shop-help" className="help-box">
+          <p className="small muted">{s.hint}</p>
+          <p className="small muted">{s.pickupOnly}</p>
+        </div>
+      ) : null}
       {role !== 'staff' ? (
         <p className="small">
           <Link href={`/${locale}/app/shop/integrations`} data-testid="my-shop-integrations">
@@ -186,249 +244,339 @@ export function MyShopSection({ base }: { base: string }) {
       ) : null}
       {error ? <ErrorBox>{error}</ErrorBox> : null}
 
+      {adding ? (
+        <form
+          className="card stack"
+          id="shop-add"
+          onSubmit={(e) => void add(e)}
+          aria-labelledby="shop-add-title"
+        >
+          <h2 id="shop-add-title" className="h3">
+            {s.add}
+          </h2>
+          <p className="small muted">{s.addHint}</p>
+          <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <label className="field">
+              <span>{t.products.name}</span>
+              <input
+                value={name}
+                maxLength={80}
+                required
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>{t.products.price}</span>
+              <input
+                value={price}
+                inputMode="decimal"
+                required
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>{s.stock}</span>
+              <input value={stock} inputMode="numeric" onChange={(e) => setStock(e.target.value)} />
+            </label>
+            <button type="submit" className="btn" disabled={busy}>
+              {t.common.save}
+            </button>
+          </div>
+        </form>
+      ) : null}
+
       <p className="small">
         {fill(s.summary, { shown: String(inShop), all: String(shown.length) })}
       </p>
 
-      {shown.length === 0 ? <p className="muted">{s.empty}</p> : null}
-      <ul className="list" aria-label={s.title}>
-        {shown.map((x) => {
-          const card = x.catalogProductId ? cards[x.catalogProductId] : undefined;
-          const canMarket = x.inSalonShop && Boolean(x.catalogProductId);
-          return (
-            <li key={x.id} className="card stack" data-testid={`shop-product-${x.id}`}>
-              <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                <strong>{x.name}</strong>
-                <span className="muted">
-                  {formatPrice(x.priceGrosze, location.currency, tag)}
-                  {x.stockQuantity !== null
-                    ? ` · ${fill(s.pieces, { n: String(x.stockQuantity) })}`
-                    : ''}
-                </span>
-              </div>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={x.inSalonShop}
-                  disabled={busy}
-                  onChange={(e) =>
-                    void patch(x.id, {
-                      inSalonShop: e.target.checked,
-                      ...(e.target.checked ? {} : { inMarketplace: false }),
-                    })
-                  }
-                />
-                <span>{s.inSalonShop}</span>
-              </label>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={x.inMarketplace}
-                  disabled={busy || !canMarket}
-                  onChange={(e) => void patch(x.id, { inMarketplace: e.target.checked })}
-                />
-                <span>{s.inMarketplace}</span>
-              </label>
-              {!canMarket ? (
-                <p className="small muted">
-                  {!x.inSalonShop ? s.marketNeedsSalonShop : s.marketNeedsCard}
-                </p>
-              ) : null}
-              {card ? (
-                <div className="row" style={{ alignItems: 'center', gap: 12 }}>
-                  {card.photoId ? (
-                    <img
-                      src={`/v1/public/photos/${card.photoId}`}
-                      alt={fill(s.photoAlt, { name: card.name })}
-                      width={64}
-                      height={64}
-                      style={{ objectFit: 'cover', borderRadius: 8 }}
-                    />
-                  ) : null}
-                  {card.editable || card.photoId === null ? (
-                    <label className={`btn btn--quiet btn--small${busy ? ' is-disabled' : ''}`}>
-                      {card.photoId ? s.photoChange : s.photoAdd}
-                      <input
-                        type="file"
-                        accept={PHOTO_ACCEPT}
-                        className="visually-hidden"
-                        disabled={busy}
-                        aria-label={fill(s.photoFor, { name: card.name })}
-                        onChange={(e) => void setPhoto(card.id, e.target.files?.[0])}
-                      />
-                    </label>
-                  ) : null}
-                  {card.photoId && card.editable ? (
-                    <button
-                      type="button"
-                      className="link-btn small"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(() =>
-                          api(`${base}/shop/catalog/${card.id}/photo`, { method: 'DELETE' }),
-                        )
-                      }
-                    >
-                      {s.photoRemove}
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-              <p className="small">
-                {card ? (
-                  <>
-                    {s.card}: <strong>{card.name}</strong>
-                    {card.brand ? ` · ${card.brand}` : ''}
-                    {card.ean ? ` · EAN ${card.ean}` : ''}
-                    {card.sellers > 1
-                      ? ` · ${fill(s.sellers, { n: String(card.sellers) })}`
-                      : ''}{' '}
-                    <button
-                      type="button"
-                      className="link-btn small"
-                      disabled={busy}
-                      onClick={() =>
-                        void patch(x.id, { catalogProductId: null, inMarketplace: false })
-                      }
-                    >
-                      {s.unlink}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {s.noCard}{' '}
-                    <button
-                      type="button"
-                      className="link-btn small"
-                      aria-expanded={picking === x.id}
-                      disabled={busy}
-                      onClick={() => (picking === x.id ? setPicking(null) : openPicker(x))}
-                    >
-                      {s.pick}
-                    </button>
-                  </>
-                )}
-              </p>
-              {picking === x.id ? (
-                <div className="stack" style={{ gap: 8 }}>
-                  <label className="field">
-                    <span>{s.search}</span>
-                    <input
-                      type="search"
-                      value={query}
-                      autoFocus
-                      onChange={(e) => void search(e.target.value)}
-                    />
-                  </label>
-                  {found && found.length > 0 ? (
-                    <ul className="list" aria-label={s.found}>
-                      {found.map((c) => (
-                        <li key={c.id} className="row" style={{ justifyContent: 'space-between' }}>
-                          <span>
-                            {c.name}
-                            {c.brand ? ` · ${c.brand}` : ''}
-                            {c.ean ? ` · EAN ${c.ean}` : ''}
-                            {c.sellers > 0 ? ` · ${fill(s.sellers, { n: String(c.sellers) })}` : ''}
-                          </span>
-                          <button
-                            type="button"
-                            className="btn btn--small"
-                            disabled={busy}
-                            onClick={() =>
-                              void run(async () => {
-                                await api(`${base}/products/${x.id}`, {
-                                  method: 'PATCH',
-                                  body: { catalogProductId: c.id },
-                                });
-                                setPicking(null);
-                              })
-                            }
-                          >
-                            {s.choose}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : found ? (
-                    <p className="small muted">{s.nothingFound}</p>
-                  ) : null}
-                  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                    <label className="field">
-                      <span>{s.brand}</span>
-                      <input
-                        value={newCard.brand}
-                        maxLength={60}
-                        onChange={(e) => setNewCard({ ...newCard, brand: e.target.value })}
-                      />
-                    </label>
-                    <label className="field">
-                      <span>{s.ean}</span>
-                      <input
-                        value={newCard.ean}
-                        inputMode="numeric"
-                        maxLength={18}
-                        onChange={(e) => setNewCard({ ...newCard, ean: e.target.value })}
-                      />
-                    </label>
-                    <label className="field">
-                      <span>{s.category}</span>
-                      <select
-                        value={newCard.category}
-                        onChange={(e) =>
-                          setNewCard({ ...newCard, category: e.target.value as ShopCategory })
-                        }
-                      >
-                        {SHOP_CATEGORIES.map((c) => (
-                          <option key={c} value={c}>
-                            {s.categories[c]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      className="btn btn--quiet"
-                      disabled={busy}
-                      onClick={() => void makeCard(x)}
-                    >
-                      {fill(s.newCard, { name: x.name })}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-
-      <form className="card stack" onSubmit={(e) => void add(e)} aria-labelledby="shop-add-title">
-        <h2 id="shop-add-title" className="h3">
-          {s.add}
-        </h2>
-        <p className="small muted">{s.addHint}</p>
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field">
-            <span>{t.products.name}</span>
-            <input value={name} maxLength={80} required onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label className="field">
-            <span>{t.products.price}</span>
+      {shown.length === 0 ? (
+        <p className="muted">{s.empty}</p>
+      ) : (
+        <div className="card shop-list">
+          <div className="shop-tools">
             <input
-              value={price}
-              inputMode="decimal"
-              required
-              onChange={(e) => setPrice(e.target.value)}
+              type="search"
+              value={filterText}
+              aria-label={s.listSearch}
+              placeholder={s.listSearch}
+              onChange={(e) => setFilterText(e.target.value)}
             />
-          </label>
-          <label className="field">
-            <span>{s.stock}</span>
-            <input value={stock} inputMode="numeric" onChange={(e) => setStock(e.target.value)} />
-          </label>
-          <button type="submit" className="btn" disabled={busy}>
-            {s.add}
-          </button>
+            <div className="shop-filters" role="group" aria-label={s.listSearch}>
+              {(['all', 'salon', 'market', 'hidden'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className="shop-filter"
+                  aria-pressed={filter === f}
+                  onClick={() => setFilter(f)}
+                >
+                  {
+                    {
+                      all: s.filterAll,
+                      salon: s.filterSalon,
+                      market: s.filterMarket,
+                      hidden: s.filterHidden,
+                    }[f]
+                  }{' '}
+                  <span className="muted">{counts[f]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          {visible.length === 0 ? <p className="small muted">{s.noMatch}</p> : null}
+          <ul className="shop-rows" aria-label={s.title}>
+            {visible.map((x) => {
+              const card = x.catalogProductId ? cards[x.catalogProductId] : undefined;
+              const canMarket = x.inSalonShop && Boolean(x.catalogProductId);
+              const status = statusOf(x);
+              return (
+                <li key={x.id} data-testid={`shop-product-${x.id}`}>
+                  <button
+                    type="button"
+                    className="shop-row"
+                    aria-expanded={open === x.id}
+                    aria-label={fill(s.details, { name: x.name })}
+                    onClick={() => setOpen(open === x.id ? null : x.id)}
+                  >
+                    {card?.photoId ? (
+                      <img
+                        className="shop-row__thumb"
+                        src={`/v1/public/photos/${card.photoId}`}
+                        alt=""
+                        width={40}
+                        height={40}
+                      />
+                    ) : (
+                      <span className="shop-row__thumb" aria-hidden="true">
+                        {x.name.slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="shop-row__name">
+                      <strong>{x.name}</strong>
+                      <span className={`status-pill status-pill--${status}`}>{statusText(x)}</span>
+                    </span>
+                    <span className="shop-row__stock muted">
+                      {x.stockQuantity !== null
+                        ? fill(s.pieces, { n: String(x.stockQuantity) })
+                        : '—'}
+                    </span>
+                    <span className="shop-row__price">
+                      {formatPrice(x.priceGrosze, location.currency, tag)}
+                    </span>
+                  </button>
+                  {open === x.id ? (
+                    <div className="stack shop-row__more">
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={x.inSalonShop}
+                          disabled={busy}
+                          onChange={(e) =>
+                            void patch(x.id, {
+                              inSalonShop: e.target.checked,
+                              ...(e.target.checked ? {} : { inMarketplace: false }),
+                            })
+                          }
+                        />
+                        <span>{s.inSalonShop}</span>
+                      </label>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={x.inMarketplace}
+                          disabled={busy || !canMarket}
+                          onChange={(e) => void patch(x.id, { inMarketplace: e.target.checked })}
+                        />
+                        <span>{s.inMarketplace}</span>
+                      </label>
+                      {!canMarket ? (
+                        <p className="small muted">
+                          {!x.inSalonShop ? s.marketNeedsSalonShop : s.marketNeedsCard}
+                        </p>
+                      ) : null}
+                      {card ? (
+                        <div className="row" style={{ alignItems: 'center', gap: 12 }}>
+                          {card.photoId ? (
+                            <img
+                              src={`/v1/public/photos/${card.photoId}`}
+                              alt={fill(s.photoAlt, { name: card.name })}
+                              width={64}
+                              height={64}
+                              style={{ objectFit: 'cover', borderRadius: 8 }}
+                            />
+                          ) : null}
+                          {card.editable || card.photoId === null ? (
+                            <label
+                              className={`btn btn--quiet btn--small${busy ? ' is-disabled' : ''}`}
+                            >
+                              {card.photoId ? s.photoChange : s.photoAdd}
+                              <input
+                                type="file"
+                                accept={PHOTO_ACCEPT}
+                                className="visually-hidden"
+                                disabled={busy}
+                                aria-label={fill(s.photoFor, { name: card.name })}
+                                onChange={(e) => void setPhoto(card.id, e.target.files?.[0])}
+                              />
+                            </label>
+                          ) : null}
+                          {card.photoId && card.editable ? (
+                            <button
+                              type="button"
+                              className="link-btn small"
+                              disabled={busy}
+                              onClick={() =>
+                                void run(() =>
+                                  api(`${base}/shop/catalog/${card.id}/photo`, {
+                                    method: 'DELETE',
+                                  }),
+                                )
+                              }
+                            >
+                              {s.photoRemove}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <p className="small">
+                        {card ? (
+                          <>
+                            {s.card}: <strong>{card.name}</strong>
+                            {card.brand ? ` · ${card.brand}` : ''}
+                            {card.ean ? ` · EAN ${card.ean}` : ''}
+                            {card.sellers > 1
+                              ? ` · ${fill(s.sellers, { n: String(card.sellers) })}`
+                              : ''}{' '}
+                            <button
+                              type="button"
+                              className="link-btn small"
+                              disabled={busy}
+                              onClick={() =>
+                                void patch(x.id, { catalogProductId: null, inMarketplace: false })
+                              }
+                            >
+                              {s.unlink}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {s.noCard}{' '}
+                            <button
+                              type="button"
+                              className="link-btn small"
+                              aria-expanded={picking === x.id}
+                              disabled={busy}
+                              onClick={() => (picking === x.id ? setPicking(null) : openPicker(x))}
+                            >
+                              {s.pick}
+                            </button>
+                          </>
+                        )}
+                      </p>
+                      {picking === x.id ? (
+                        <div className="stack" style={{ gap: 8 }}>
+                          <label className="field">
+                            <span>{s.search}</span>
+                            <input
+                              type="search"
+                              value={query}
+                              autoFocus
+                              onChange={(e) => void search(e.target.value)}
+                            />
+                          </label>
+                          {found && found.length > 0 ? (
+                            <ul className="list" aria-label={s.found}>
+                              {found.map((c) => (
+                                <li
+                                  key={c.id}
+                                  className="row"
+                                  style={{ justifyContent: 'space-between' }}
+                                >
+                                  <span>
+                                    {c.name}
+                                    {c.brand ? ` · ${c.brand}` : ''}
+                                    {c.ean ? ` · EAN ${c.ean}` : ''}
+                                    {c.sellers > 0
+                                      ? ` · ${fill(s.sellers, { n: String(c.sellers) })}`
+                                      : ''}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="btn btn--small"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      void run(async () => {
+                                        await api(`${base}/products/${x.id}`, {
+                                          method: 'PATCH',
+                                          body: { catalogProductId: c.id },
+                                        });
+                                        setPicking(null);
+                                      })
+                                    }
+                                  >
+                                    {s.choose}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : found ? (
+                            <p className="small muted">{s.nothingFound}</p>
+                          ) : null}
+                          <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <label className="field">
+                              <span>{s.brand}</span>
+                              <input
+                                value={newCard.brand}
+                                maxLength={60}
+                                onChange={(e) => setNewCard({ ...newCard, brand: e.target.value })}
+                              />
+                            </label>
+                            <label className="field">
+                              <span>{s.ean}</span>
+                              <input
+                                value={newCard.ean}
+                                inputMode="numeric"
+                                maxLength={18}
+                                onChange={(e) => setNewCard({ ...newCard, ean: e.target.value })}
+                              />
+                            </label>
+                            <label className="field">
+                              <span>{s.category}</span>
+                              <select
+                                value={newCard.category}
+                                onChange={(e) =>
+                                  setNewCard({
+                                    ...newCard,
+                                    category: e.target.value as ShopCategory,
+                                  })
+                                }
+                              >
+                                {SHOP_CATEGORIES.map((c) => (
+                                  <option key={c} value={c}>
+                                    {s.categories[c]}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <button
+                              type="button"
+                              className="btn btn--quiet"
+                              disabled={busy}
+                              onClick={() => void makeCard(x)}
+                            >
+                              {fill(s.newCard, { name: x.name })}
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
         </div>
-      </form>
+      )}
 
       <ReservationDays base={base} />
     </section>

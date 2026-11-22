@@ -4350,6 +4350,10 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 - «UA» вместо «UK» в списках языка клиента и приглашения (`localeCode` в `lib/i18n/locales.ts`).
 - Язык кабинета — компактный выбор «PL ▾» в шапке (`LanguageMenu` в `components/ui.tsx`): на ПК — рядом с логотипом
   вверху меню (раньше — ряд ссылок в самом низу), на телефоне — в заголовке «Więcej». Открывает PL / UA / RU / EN.
+- «Mój sklep» (`components/shop/MyShopSection.tsx`) — список как в админке магазина: заголовок, «?» с пояснениями и
+  одна кнопка «+ Dodaj produkt» (короткая форма: название, цена, остаток — открывается сверху). Поиск по названию или
+  коду и фильтры «Wszystkie / Na stronie salonu / W Sklepie / Ukryte» с числом товаров. Строка = фото карты (или первая
+  буква), название, статус, остаток, цена; нажатие открывает переключатели, карту каталога и фото — как раньше.
 
 - «Ustawienia» (`app/[locale]/app/settings/page.tsx`): список разделов (значок, название, одна строка —
   `settings.sections`): «Rezerwacje online», «Salon» (с фото), «Pytania przy rezerwacji», «Pora na kolejną wizytę»,
@@ -4361,4 +4365,4 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 
 Скриншоты: `q6-products-help-closed`, `q6-products-help-open`, `12-owner-calendar-phone`, `q6-cabinet-menu-groups`,
 `q6-client-language-ua`., `q6-settings-unsaved`,
-`q6-settings-list-phone`, `q6-settings-card-phone`, `q6-language-menu-phone`.
+`q6-settings-list-phone`, `q6-settings-card-phone`, `q6-language-menu-phone`, `q6-shop-list`, `q6-shop-list-phone`.

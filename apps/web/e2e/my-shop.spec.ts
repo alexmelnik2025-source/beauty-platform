@@ -149,7 +149,16 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await expect(row.getByText('4 szt.')).toBeVisible();
   // No way to switch shipping on at the launch — only the note that the client pays at the salon.
   await expect(page.getByRole('checkbox', { name: /wysyłk/i })).toHaveCount(0);
+  // Task Q6: the explanations are under "?" next to the title; one main button "+ Dodaj produkt".
+  await expect(page.getByText('bez płatności online i bez wysyłki')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Jak to działa?' }).click();
   await expect(page.getByText('bez płatności online i bez wysyłki')).toBeVisible();
+  await page.getByRole('button', { name: 'Jak to działa?' }).click();
+  // Task Q6: one row per product — status, stock, price; the switches open with the row.
+  await expect(row.getByText('Ukryty')).toBeVisible();
+  await expect(row.getByText('59,00 zł')).toBeVisible();
+  await expect(row.getByLabel('Pokaż klientom na stronie salonu')).toHaveCount(0);
+  await row.getByRole('button', { name: 'Szczegóły: Pomada Reuzel różowa' }).click();
 
   // Shown to clients on the salon page.
   await row.getByLabel('Pokaż klientom na stronie salonu').check();
@@ -157,6 +166,7 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   const marketplace = row.getByLabel(/Sprzedawaj też w Sklepie/);
   await expect(marketplace).toBeDisabled();
   await expect(row.getByText(/wybierz kartę produktu z katalogu/)).toBeVisible();
+  await expect(row.getByText('Na stronie salonu', { exact: true })).toBeVisible();
   await shot(page, 'Q3-my-shop');
 
   // The card: found in the catalogue by the EAN, the other salon's one.
@@ -176,6 +186,7 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await expect(marketplace).toBeEnabled();
   await marketplace.check();
   await expect(marketplace).toBeChecked();
+  await expect(row.getByText('W Sklepie', { exact: true })).toBeVisible();
 
   // Part 2b: the shared card has no picture yet — ours is the first.
   await row
@@ -187,13 +198,33 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await expect(row.getByText('Zmień zdjęcie')).toHaveCount(0);
   await shot(page, 'Q3-my-shop-photo');
 
-  // Quick add: a wax, shown to clients at once.
-  await page.getByLabel('Nazwa', { exact: true }).fill('Wosk matowy');
-  await page.getByLabel('Cena', { exact: true }).fill('39,90');
-  await page.getByLabel(/Sztuk w magazynie/).fill('10');
-  await page.getByRole('button', { name: 'Dodaj produkt' }).click();
+  // Quick add: a wax, shown to clients at once — the short form opens from "+ Dodaj produkt".
+  await page.getByRole('button', { name: '+ Dodaj produkt' }).click();
+  const addForm = page.locator('#shop-add');
+  await addForm.getByLabel('Nazwa', { exact: true }).fill('Wosk matowy');
+  await addForm.getByLabel('Cena', { exact: true }).fill('39,90');
+  await addForm.getByLabel(/Sztuk w magazynie/).fill('10');
+  await addForm.getByRole('button', { name: 'Zapisz' }).click();
   await expect(page.getByText('Pokazane klientom: 2 z 2 produktów.')).toBeVisible();
+  await expect(addForm).toHaveCount(0);
   await expect(page.getByText('Wosk matowy')).toBeVisible();
+
+  // Task Q6: search and filters over the list, as in a shop admin.
+  await row.getByRole('button', { name: 'Szczegóły: Pomada Reuzel różowa' }).click();
+  const list = page.getByRole('list', { name: 'Mój sklep' });
+  await page.getByRole('button', { name: /^W Sklepie/ }).click();
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await expect(list).toContainText('Pomada Reuzel różowa');
+  await page.getByRole('button', { name: /^Wszystkie/ }).click();
+  await page.getByLabel('Szukaj produktu').fill('wosk');
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await expect(list).toContainText('Wosk matowy');
+  await page.getByLabel('Szukaj produktu').fill('');
+  await expect(list.getByRole('listitem')).toHaveCount(2);
+  await shot(page, 'q6-shop-list');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await shot(page, 'q6-shop-list-phone');
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   // What clients see.
   const salonProducts = await json<{
