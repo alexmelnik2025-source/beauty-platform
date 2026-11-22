@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useSession } from '@/components/Session';
-import { ErrorBox } from '@/components/ui';
-import { api } from '@/lib/api';
+import { ErrorBox, FieldError } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { SalonReport, StaffCommissions } from '@/lib/types';
 
@@ -47,6 +47,11 @@ export function Commissions({
   const [saving, setSaving] = useState('');
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
+  /**
+   * Task 666 (owner's rule: errors at the field): the specialist whose percent is wrong — the
+   * error is said under that row's field, not above the list; editing the field takes it away.
+   */
+  const [badRow, setBadRow] = useState('');
   const base = `/v1/organizations/${session.orgId}/locations/${session.location.id}/reports/commissions`;
 
   if (!canSet && rows.length === 0) return null;
@@ -86,12 +91,15 @@ export function Commissions({
   async function save(staffId: string) {
     const commissionPercent = parsePercent(drafts[staffId] ?? '');
     if (commissionPercent === undefined) {
-      setError(t.reports.commissionInvalid);
+      setError('');
+      setSaved('');
+      setBadRow(staffId);
       return;
     }
     setSaving(staffId);
     setSaved('');
     setError('');
+    setBadRow('');
     try {
       show(
         await api<StaffCommissions>(`${base}/${staffId}`, {
@@ -102,7 +110,8 @@ export function Commissions({
       setSaved(staffId);
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      if (err instanceof ApiError && err.code === 'VALIDATION_ERROR') setBadRow(staffId);
+      else setError(errorText(t, err));
     } finally {
       setSaving('');
     }
@@ -181,8 +190,13 @@ export function Commissions({
                       inputMode="decimal"
                       placeholder={t.reports.commissionNone}
                       value={drafts[s.staffId] ?? ''}
+                      aria-invalid={badRow === s.staffId || undefined}
+                      aria-describedby={
+                        badRow === s.staffId ? `commission-${s.staffId}-error` : undefined
+                      }
                       onChange={(e) => {
                         setSaved('');
+                        if (badRow === s.staffId) setBadRow('');
                         setDrafts({ ...drafts, [s.staffId]: e.target.value });
                       }}
                     />
@@ -201,6 +215,10 @@ export function Commissions({
                       {t.reports.commissionSaved}
                     </span>
                   ) : null}
+                  <FieldError
+                    id={`commission-${s.staffId}-error`}
+                    text={badRow === s.staffId ? t.reports.commissionInvalid : undefined}
+                  />
                 </li>
               ))}
             </ul>

@@ -3586,7 +3586,8 @@ ul.wish-photos {
 /* Task Q6/Q7: an error at its own field — a red frame, "!" and a short line under the field. */
 .field input[aria-invalid='true'],
 .field select[aria-invalid='true'],
-.field textarea[aria-invalid='true'] {
+.field textarea[aria-invalid='true'],
+.commission-row__input input[aria-invalid='true'] {
   border-color: var(--signal);
   box-shadow: 0 0 0 1px var(--signal);
 }
@@ -3609,6 +3610,11 @@ ul.wish-photos {
   color: var(--paper);
   font-size: 0.7rem;
   font-weight: 700;
+}
+
+/* Task 666: a commission's error takes the whole width of its row, under the field. */
+.commission-row > .field-error {
+  flex-basis: 100%;
 }
 
 /* Task Q7: "Promocje" — the two kinds, and specialists/services folded into one line. */
