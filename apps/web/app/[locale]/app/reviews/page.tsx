@@ -5,8 +5,8 @@ import { useSession } from '@/components/Session';
 import { SalonReply } from '@/components/reviews/SalonReply';
 import { StarFilter } from '@/components/reviews/StarFilter';
 import { Stars } from '@/components/reviews/Stars';
-import { ErrorBox, Spinner } from '@/components/ui';
-import { api, apiResponse } from '@/lib/api';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
+import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import type { ReviewSettings, SalonReviews } from '@/lib/types';
@@ -260,6 +260,13 @@ export default function ReviewsPage() {
   );
 }
 
+/** The server said the answer's text is wrong (empty after trimming, too long). */
+function textPathOf(err: unknown): boolean {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return false;
+  if (!Array.isArray(err.details)) return false;
+  return (err.details as { path?: string }[]).some((d) => String(d.path ?? '') === 'text');
+}
+
 function ReviewReply({
   base,
   review,
@@ -275,11 +282,18 @@ function ReviewReply({
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(review.reply ?? '');
   const [error, setError] = useState('');
+  /**
+   * Task 681 (owner's rule: errors at the field): an empty answer (or only spaces) used to switch
+   * "Opublikuj odpowiedź" off without a word; now "Uzupełnij to pole." is said under the answer,
+   * and the server's answer about the text, too. Typing takes the error away.
+   */
+  const [textProblem, setTextProblem] = useState(false);
   const { busy, lock, unlock } = useSubmitLock();
 
   async function send(method: 'PUT' | 'DELETE') {
     if (!lock()) return;
     setError('');
+    setTextProblem(false);
     try {
       const saved = await api<Review>(`${base}/reviews/${review.id}/reply`, {
         method,
@@ -289,7 +303,8 @@ function ReviewReply({
       setText(saved.reply ?? '');
       onSaved(saved);
     } catch (err) {
-      setError(errorText(t, err));
+      if (method === 'PUT' && textPathOf(err)) setTextProblem(true);
+      else setError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -300,19 +315,39 @@ function ReviewReply({
       <form
         className="review-reply-form"
         aria-label={t.reviewsCabinet.replyLabel}
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          if (text.trim()) void send('PUT');
+          if (text.trim()) {
+            void send('PUT');
+            return;
+          }
+          setError('');
+          setTextProblem(true);
+          e.currentTarget.querySelector('textarea')?.focus();
         }}
       >
         <label className="field">
           <span>{t.reviewsCabinet.replyLabel}</span>
-          <textarea value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} />
+          <textarea
+            value={text}
+            maxLength={1000}
+            aria-invalid={textProblem || undefined}
+            aria-describedby={textProblem ? `review-${review.id}-reply-error` : undefined}
+            onChange={(e) => {
+              setText(e.target.value);
+              setTextProblem(false);
+            }}
+          />
+          <FieldError
+            id={`review-${review.id}-reply-error`}
+            text={textProblem ? t.onboarding.fieldRequired : undefined}
+          />
         </label>
         <p className="small muted">{t.reviewsCabinet.replyHint}</p>
         <ErrorBox>{error}</ErrorBox>
         <div className="review-reply-actions">
-          <button className="btn btn--primary" disabled={busy || !text.trim()}>
+          <button className="btn btn--primary" disabled={busy}>
             {t.reviewsCabinet.replySave}
           </button>
           <button
@@ -322,6 +357,7 @@ function ReviewReply({
               setEditing(false);
               setText(review.reply ?? '');
               setError('');
+              setTextProblem(false);
             }}
           >
             {t.reviewsCabinet.replyCancel}

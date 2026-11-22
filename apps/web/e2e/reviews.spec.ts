@@ -343,7 +343,16 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   const martaRow = list.locator('.list-row').filter({ hasText: 'Marta Nowak' });
   await martaRow.getByRole('button', { name: 'Odpowiedz' }).click();
   const replyForm = martaRow.getByRole('form', { name: 'Odpowiedź salonu' });
-  await replyForm.getByLabel('Odpowiedź salonu').fill('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
+  // Task 681: an answer of only spaces is said under the field (not a silently switched-off button).
+  const replyField = replyForm.getByRole('textbox', { name: /^Odpowiedź salonu/ });
+  await replyField.fill('   ');
+  await replyForm.getByRole('button', { name: 'Opublikuj odpowiedź' }).click();
+  await expect(replyForm.locator('.field-error')).toHaveText('Uzupełnij to pole.');
+  await expect(replyField).toHaveAttribute('aria-invalid', 'true');
+  await expect(replyField).toBeFocused();
+  await shot(cabinet, '681-review-reply-required');
+  await replyField.fill('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
+  await expect(replyForm.locator('.field-error')).toHaveCount(0);
   await shot(cabinet, '211-cabinet-reply-form');
   await replyForm.getByRole('button', { name: 'Opublikuj odpowiedź' }).click();
   const answer = martaRow.locator('.review-reply');

@@ -684,6 +684,13 @@ pnpm --filter @beauty/api-client generate
   `visit-voucher`, скриншоты `673-visit-product-code-error`, `673-visit-voucher-code-error`,
   `673-visit-voucher-amount-error`.
 
+## Ошибка у поля в ответе на отзыв (задача 681, 22.11.2026)
+
+- «Opinie» → «Odpowiedz»: пустой ответ (или одни пробелы) — «Uzupełnij to pole.» под «Odpowiedź salonu» (красная
+  рамка, «!»), курсор в поле; кнопка «Opublikuj odpowiedź» больше не выключается молча. Ответ сервера
+  `VALIDATION_ERROR` с `details[].path = text` — тоже у поля. Ввод текста и «Anuluj» убирают ошибку. e2e `reviews`,
+  скриншот `681-review-reply-required`.
+
 ## Ошибки у поля в «Nowa wizyta» и «Zablokuj czas» (задача 672, 22.11.2026)
 
 - Календарь кабинета → «Nowa wizyta»: имя нового клиента из одних пробелов — «Uzupełnij to pole.» под «Imię i nazwisko»
