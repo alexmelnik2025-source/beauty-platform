@@ -177,6 +177,9 @@ test('every button and link on the cabinet pages has a name (task 386)', async (
       // Task Q6: the language is a compact "PL ▾" next to the wordmark at the top of the sidebar.
       const head = page.locator('.sidebar .sidebar-head');
       await expect(head.locator('.lang-menu summary')).toHaveText(/PL/);
+      // "PL ▾" on one line — the wordmark next to it used to push the arrow onto a second line.
+      const langBox = await head.locator('.lang-menu summary').boundingBox();
+      expect(langBox?.height ?? 0).toBeLessThan(36);
       await head.getByLabel('Język: PL').click();
       await expect(head.getByRole('link', { name: 'UA' })).toBeVisible();
       await page

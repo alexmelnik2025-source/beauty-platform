@@ -353,6 +353,8 @@ fieldset.field > legend {
 /* Task Q6: the cabinet's language — one compact "PL ▾" that opens a short list. */
 .lang-menu {
   position: relative;
+  /* Never squeezed by the wordmark next to it: "PL ▾" stays on one line. */
+  flex-shrink: 0;
 }
 
 .lang-menu summary {
@@ -363,6 +365,7 @@ fieldset.field > legend {
   border-radius: var(--radius-s);
   font-size: 0.8rem;
   color: var(--ink);
+  white-space: nowrap;
 }
 
 .lang-menu summary::-webkit-details-marker {
@@ -421,6 +424,10 @@ fieldset.field > legend {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.sidebar .sidebar-head > :first-child {
+  min-width: 0;
 }
 
 .sidebar .menu {
