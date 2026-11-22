@@ -334,12 +334,23 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await codeSold.getByTestId('visit-products-code').fill('5901234123457');
   await codeSold.getByTestId('visit-products-code').press('Enter');
   await expect(codeSold).toContainText('Za mało sztuk w magazynie');
+  // Task 673: both answers are said under the code field, which keeps the cursor.
+  await expect(codeSold.getByTestId('visit-products-code')).toHaveAccessibleDescription(
+    /Za mało sztuk w magazynie/,
+  );
   await codeSold.getByTestId('visit-products-code').fill('abc 123');
+  await expect(codeSold.locator('.field-error')).toHaveCount(0);
   await codeSold.getByTestId('visit-products-code').press('Enter');
   await expect(codeSold).toContainText('Nie ma produktu z kodem ABC123');
+  await expect(codeSold.getByTestId('visit-products-code')).toHaveAccessibleDescription(
+    /Nie ma produktu z kodem ABC123/,
+  );
+  await expect(codeSold.getByTestId('visit-products-code')).toBeFocused();
+  await expect(codeSold.locator('.alert')).toHaveCount(0);
   await expect(codeSold).toContainText(/Produkty: 98,00\s*zł/);
   await codeSold.scrollIntoViewIfNeeded();
   await shot(page, '524-owner-sale-by-code');
+  await shot(page, '673-visit-product-code-error');
   await page.keyboard.press('Escape');
   await page.goto('/pl/app/services');
   await expect(products.getByLabel('Kod kreskowy — Pomada matowa')).toHaveValue('5901234123457');
