@@ -395,7 +395,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   // Task 670: a wrong number is said under its own field (red frame, "!").
   await stocktake.getByLabel('Na półce — Zestaw').fill('2,5');
   await expect(stocktake.getByLabel('Na półce — Zestaw')).toHaveAccessibleDescription(
-    'Wpisz liczbę od 0 do 100 000.',
+    /Wpisz liczbę od 0 do 100 000\.$/,
   );
   await stocktake.scrollIntoViewIfNeeded();
   await shot(page, '670-stocktake-field-error');

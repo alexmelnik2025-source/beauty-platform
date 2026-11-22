@@ -136,7 +136,7 @@ test('the owner sends the order for the products to order to each supplier', asy
   // Task 670: zero pieces can't come — said under the field itself.
   await delivery.getByLabel('Przyszło — Olejek').fill('0');
   await expect(delivery.getByLabel('Przyszło — Olejek')).toHaveAccessibleDescription(
-    'Wpisz liczbę od 1 do 100 000.',
+    /Wpisz liczbę od 1 do 100 000\.$/,
   );
   await delivery.scrollIntoViewIfNeeded();
   await shot(page, '670-delivery-field-error');
