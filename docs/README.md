@@ -2822,6 +2822,9 @@ wykonuje» (сервер принимает цены только тех, кто
   `PUT …/working-hours/overrides/:date`. «Do» раньше «Od» — подсказка до отправки. Целый выходной — через
   «Nieobecności», как и раньше.
 - «Mój grafik» показывает особые дни специалисту (только чтение).
+- Задача 660 (ошибки у поля): «Do» не позже «Od» — под «Do» в «Dni specjalne» и в «Nieobecności» (красная рамка,
+  `aria-invalid`); имя из пробелов — «Uzupełnij to pole.» под именем; ответ сервера по особому дню или отсутствию —
+  в своём разделе. Скриншот `660-staff-special-time-error`.
 - Код: `apps/web/components/team/StaffSheet.tsx`, `apps/web/app/[locale]/app/schedule/page.tsx`; e2e и скриншоты
   336, 336a — `apps/web/e2e/special-days.spec.ts`.
 
