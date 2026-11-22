@@ -449,7 +449,6 @@ export default function SettingsPage() {
                 />
               </section>
               <SalonPhotos base={url} />
-              <SalonPhotos base={url} />
             </>
           ) : null}
           {shown === 'wishes' ? (
