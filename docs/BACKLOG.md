@@ -12,12 +12,6 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **22.11.2026, ~02:10 UTC — Q9 / 638, часть 1 — сервер (ветка `agent/638-q9-guard-api`, от main).** «Zasady dla
-  klienta» (według zasad salonu / zaufany / najpierw opłata zaległych / tylko z potwierdzeniem / tylko telefonicznie)
-  и запись с уведомлением «zapłacisz za poprzednią i tę wizytę w salonie» (`payNoticeAccepted`). Дальше — часть 2:
-  веб (выбор правила в карточке клиента, уведомление на шаге кода, сумма в карточке визита). Спецификация из
-  gestalt-docs этому запуску была недоступна — сделано по краткому описанию Q9 в `docs/CODEX.md`.
-
 - **22.11.2026, ~01:10 UTC — Q6 «Promocje» + Q7, часть 2 (ветка `agent/635-q7-promocje-web`, от main): кабинет.**
   Пункт меню «Happy hours» → «Promocje»; «+ Dodaj promocję» с выбором «Godziny i dni» / «Last Minute»; специалисты и
   услуги свёрнуты в одну строку; ошибки у поля. Правка правила Last Minute больше не превращает его в обычные часы.
@@ -2354,6 +2348,12 @@ wishNote`) на карточке и визитах и чистит лист ож
 
 ## Сделано
 
+- [x] 638–639. Q9 «Ochrona przed odwołaniami»: «Zasady dla klienta» в карточке клиента (według zasad salonu / zaufany /
+      najpierw opłata zaległych / tylko z potwierdzeniem / tylko telefonicznie; своё правило действует и при
+      выключенной защите); «Najpierw opłata zaległych» больше не закрывает онлайн-запись — клиент видит «Zapłacisz w
+      salonie za poprzednią i tę wizytę» и записывается кнопкой «Rozumiem — potwierdź wizytę», в карточке визита —
+      «Zapłaci też zaległe». Без онлайн-оплаты. Тесты `cancellation-guard.spec.ts`, e2e `q9-client-rules.spec.ts`,
+      скриншоты `q9-client-rules-card`, `q9-pay-notice` — 22.11.2026
 - [x] 625. Ссылка салона: после смены адреса записи (`slug`) старый адрес остаётся закреплён за салоном — другой салон
       не может его взять при создании или переименовании (раньше напечатанные QR-коды и листовки салона A после
       переименования могли вести на страницу записи салона B). Салон может вернуть свою старую ссылку. Миграция
