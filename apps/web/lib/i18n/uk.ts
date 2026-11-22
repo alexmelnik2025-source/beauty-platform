@@ -502,6 +502,11 @@ export const uk: Dict = {
     waitlistHint: 'Якщо хтось скасує візит цього дня, ми напишемо вам на e-mail.',
     waitlistSubmit: 'Записати мене в список',
     waitlistDone: 'Ви в листі очікування. Щойно звільниться час, ми напишемо на e-mail.',
+    waitlistAuto: 'Записати мене автоматично, коли звільниться час',
+    waitlistAutoHint: 'Перший вільний час забронюємо одразу й надішлемо підтвердження на e-mail.',
+    waitlistAutoPhone: 'Для автоматичного запису потрібен телефон.',
+    waitlistAutoDone:
+      'Ви в списку. Щойно звільниться час, ми одразу його забронюємо й надішлемо підтвердження на e-mail.',
     bookVisit: 'Записатися',
     qrStaff: 'Записуєтесь до: {name}',
     qrStaffChange: 'Інший спеціаліст',
@@ -1123,6 +1128,7 @@ export const uk: Dict = {
     removeYes: 'Так, видалити',
     removeNo: 'Ні',
     removed: '{name} видалено з листа очікування.',
+    auto: 'Auto — запишемо одразу',
   },
   guard: {
     /** Task Q9: "Zasady dla klienta" in the client card. */

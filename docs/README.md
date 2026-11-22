@@ -4125,8 +4125,12 @@ Q4-base-orders. Дальше: статус Base в бизнес-приложен
   `missed`, время уходит следующему. Пока первый в очереди — «авто», остальным в этот круг ничего не пишут.
 - Страница записи без входа поле не принимает (адрес там ещё не подтверждён) — запись обычная.
 - `autoBook` в списке клиента и в списке салона (пометка «Auto»). Колонка `waitlist_entry.auto_book`, миграция
-  `20261202020000_waitlist_auto_book`, тест «Q8» в `test/waitlist.spec.ts`. Дальше: переключатель в веб-записи для
-  вошедшего клиента и пометка «Auto» в кабинете; мобильные экраны — Codex (`docs/CODEX.md`).
+  `20261202020000_waitlist_auto_book`, тест «Q8» в `test/waitlist.spec.ts`. Мобильные экраны — Codex (`docs/CODEX.md`).
+- Часть 2 (веб): на странице записи вошедший клиент (`/pl/c`, cookie) видит в форме «Powiadom mnie…» свой адрес
+  вместо поля e-mail и галочку «Zapisz mnie automatycznie, gdy zwolni się termin» (под ней — поле «Telefon»; без
+  телефона — ошибка у поля). Запись идёт в `POST /v1/client/waitlist/locations/:slug`. В кабинете «Lista
+  oczekujących» у такого клиента — «Auto — zapiszemy od razu». e2e `e2e/waitlist.spec.ts`, скриншоты
+  `q8-site-waitlist-auto-form`, `q8-site-waitlist-auto-joined`, `q8-owner-waitlist-auto`.
 
 ## Лист ожидания: отказ защиты от отмен и выход «уведомлённого»; любимые салоны (задача 603)
 

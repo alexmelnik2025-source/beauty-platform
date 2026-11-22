@@ -16,6 +16,8 @@ import { serveApp } from './mobile-app';
  * Task 50c: the owner sees both waiting clients in the cabinet and removes one.
  * Task 51: in the client app a signed-in client joins the list for the full day, sees it in
  * "Moje wizyty" and leaves it.
+ * Task Q8: a client signed in on the site ticks "Zapisz mnie automatycznie, gdy zwolni się termin";
+ * the cabinet marks her "Auto" (screenshots q8-*).
  * Screenshots go to e2e/screenshots (80–80b, 80c–80d, 80g–80h).
  */
 
@@ -25,6 +27,7 @@ const OWNER = `waitlist-owner-${run}@example.com`;
 const ANNA = `waitlist-anna-${run}@example.com`;
 const BOB = `waitlist-bob-${run}@example.com`;
 const CARA = `waitlist-cara-${run}@example.com`;
+const DANA = `waitlist-dana-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
@@ -207,6 +210,71 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await page.getByRole('button', { name: 'Wypisz mnie z listy' }).click();
   await expect(page.getByText('Nie ma Cię już na liście oczekujących.')).toBeVisible();
   await context.close();
+
+  // ── Task Q8: signed in on the site — "book me automatically" ───────────
+  const site = await browser.newContext({ viewport: PHONE, isMobile: true, locale: 'pl-PL' });
+  const dana = await site.newPage();
+  await dana.goto('/pl/c');
+  await dana.getByLabel('E-mail').fill(DANA);
+  await dana.getByRole('button', { name: 'Wyślij kod' }).click();
+  const danaCode = await waitForEmail(DANA, /Kod logowania do Twoich wizyt/);
+  await dana.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(danaCode.text)![1]!);
+  await dana.getByRole('button', { name: 'Zaloguj się' }).click();
+  await expect(dana.getByText(DANA).first()).toBeVisible();
+  await dana.goto(`/pl/b/${location.slug}`);
+  await dana.getByRole('button', { name: /Strzyżenie męskie/ }).click();
+  await dana.getByRole('button', { name: /Kasia/ }).click();
+  await expect(dana.locator('.times button').first()).toBeVisible();
+  await dana
+    .locator('.day-strip button.full', {
+      has: dana.locator('b', { hasText: new RegExp(`^${Number(taken.date.slice(8))}$`) }),
+    })
+    .first()
+    .click();
+  await dana.getByRole('button', { name: 'Powiadom mnie, gdy zwolni się termin' }).click();
+  const autoForm = dana.getByRole('form', { name: 'Powiadom mnie, gdy zwolni się termin' });
+  // Her own email: no field to fill in.
+  await expect(autoForm.getByText(DANA)).toBeVisible();
+  await expect(autoForm.getByLabel('E-mail')).toHaveCount(0);
+  await autoForm.getByLabel('Imię i nazwisko').fill('Dana Lis');
+  await autoForm.getByLabel(/^Zapisz mnie automatycznie, gdy zwolni się termin/).check();
+  await autoForm.getByLabel(/^Akceptuję/).check();
+  const danaPhone = autoForm.getByLabel('Telefon');
+  await danaPhone.fill('');
+  await autoForm.getByRole('button', { name: 'Zapisz mnie na listę' }).click();
+  // The error is at the phone field.
+  await expect(danaPhone).toHaveAttribute('aria-invalid', 'true');
+  await expect(
+    autoForm.getByText('Do automatycznej rezerwacji potrzebny jest telefon.'),
+  ).toBeVisible();
+  await danaPhone.fill('600 444 555');
+  await shot(dana, 'q8-site-waitlist-auto-form');
+  await autoForm.getByRole('button', { name: 'Zapisz mnie na listę' }).click();
+  await expect(
+    dana.getByText('Jesteś na liście. Gdy zwolni się termin, zarezerwujemy go od razu'),
+  ).toBeVisible();
+  await shot(dana, 'q8-site-waitlist-auto-joined');
+  await site.close();
+  // The salon sees her marked "Auto".
+  const listed = await json<{
+    items: { email: string; autoBook: boolean; phone: string | null }[];
+  }>(await request.get(`${base}/waitlist`, { headers: owner }));
+  expect(listed.items.find((e) => e.email === DANA)).toMatchObject({
+    autoBook: true,
+    phone: '+48600444555',
+  });
+  const desk2 = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
+  const cabinet2 = await desk2.newPage();
+  await cabinet2.goto('/pl/login');
+  await cabinet2.getByLabel('E-mail').fill(OWNER);
+  await cabinet2.getByLabel('Hasło').fill(PASSWORD);
+  await cabinet2.getByRole('button', { name: 'Zaloguj się' }).click();
+  await cabinet2.waitForURL(/\/pl\/app\/calendar/);
+  await cabinet2.getByRole('link', { name: 'Lista oczekujących' }).first().click();
+  await expect(cabinet2.getByText('Dana Lis')).toBeVisible();
+  await expect(cabinet2.getByText(/Auto — zapiszemy od razu/)).toHaveCount(1);
+  await shot(cabinet2, 'q8-owner-waitlist-auto');
+  await desk2.close();
 
   // ── Task 51: the client app (web preview of apps/mobile-client) ────────
   // Cara signs in with an emailed code and has the salon in her favourites.

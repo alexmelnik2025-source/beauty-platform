@@ -117,6 +117,8 @@ export default function WaitingListPage() {
                               { time: when(e.notifiedAt, tag, location.timezone) },
                             )
                           : t.waitingList.waiting}
+                        {/* Task Q8: the first free time is booked for this client at once. */}
+                        {e.autoBook ? ` · ${t.waitingList.auto}` : null}
                         {' · '}
                         {fill(t.waitingList.askedAt, {
                           time: when(e.createdAt, tag, location.timezone),
