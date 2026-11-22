@@ -3,7 +3,7 @@
 import { DRINK_ICON, hasWishes, MOOD_ICON } from '@/components/wishes/wishes';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
-import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { calendarErrorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
 import type {
   AppointmentDetail,
@@ -199,6 +199,11 @@ export function AppointmentSheet({
         <span className="chip">{t.appointment.status[a.status]}</span>
         {a.awaitingApproval ? (
           <span className="chip chip--ready">⏳ {t.appointment.awaitingApproval}</span>
+        ) : null}
+        {a.owedGrosze && !a.paidAt ? (
+          <span className="chip chip--ready" data-testid="owed-chip">
+            {fill(t.appointment.owedNotice, { sum: money(a.owedGrosze) })}
+          </span>
         ) : null}
         {a.paidAt ? (
           <span className="chip" data-testid="paid-chip">

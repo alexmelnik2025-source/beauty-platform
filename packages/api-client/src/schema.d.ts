@@ -4389,6 +4389,8 @@ export interface components {
             holdExpiresAt: string | null;
             /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
             awaitingApproval: boolean;
+            /** @description Task Q9: booked online after the notice 'you pay the missed visits and this one in the salon' — what the missed visits cost then; null = no notice */
+            owedGrosze?: number | null;
             cancelledAt: string | null;
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
@@ -4482,6 +4484,8 @@ export interface components {
             holdExpiresAt: string | null;
             /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
             awaitingApproval: boolean;
+            /** @description Task Q9: booked online after the notice 'you pay the missed visits and this one in the salon' — what the missed visits cost then; null = no notice */
+            owedGrosze?: number | null;
             cancelledAt: string | null;
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
@@ -4581,6 +4585,8 @@ export interface components {
             holdExpiresAt: string | null;
             /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
             awaitingApproval: boolean;
+            /** @description Task Q9: booked online after the notice 'you pay the missed visits and this one in the salon' — what the missed visits cost then; null = no notice */
+            owedGrosze?: number | null;
             cancelledAt: string | null;
             /** @enum {string|null} */
             cancelledBy: "customer" | "salon" | null;
@@ -4949,6 +4955,8 @@ export interface components {
                 holdExpiresAt: string | null;
                 /** @description Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it */
                 awaitingApproval: boolean;
+                /** @description Task Q9: booked online after the notice 'you pay the missed visits and this one in the salon' — what the missed visits cost then; null = no notice */
+                owedGrosze?: number | null;
                 cancelledAt: string | null;
                 /** @enum {string|null} */
                 cancelledBy: "customer" | "salon" | null;

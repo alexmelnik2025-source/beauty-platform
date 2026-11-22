@@ -92,6 +92,14 @@ export const appointmentSchema = responseSchema(
       .describe(
         'Task 161b: booked online by a client the cancellation guard marks; the salon accepts (approve) or cancels it',
       ),
+    owedGrosze: z
+      .number()
+      .int()
+      .nullable()
+      .optional()
+      .describe(
+        "Task Q9: booked online after the notice 'you pay the missed visits and this one in the salon' — what the missed visits cost then; null = no notice",
+      ),
     cancelledAt: z.string().nullable(),
     cancelledBy: cancelledBySchema.nullable(),
     cancelReason: z.string().nullable(),

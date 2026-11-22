@@ -453,6 +453,13 @@ describe('cancellation guard: online booking (161b)', () => {
     expect(accepted.body.appointment.status).toBe('confirmed');
     const visit = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: holdId } });
     expect(visit).toMatchObject({ owedGrosze: 7500, approvalRequestedAt: null });
+    // The salon sees it in the visit.
+    const staffView = await ctx
+      .http()
+      .get(`${base}/appointments/${holdId}`)
+      .set(owner.auth)
+      .expect(200);
+    expect(staffView.body.owedGrosze).toBe(7500);
 
     // Paid in the salon: the owner lifts the mark and the client books without any notice.
     await ctx

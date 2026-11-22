@@ -299,6 +299,8 @@ export const en: Dict = {
     tillOtherVouchers: 'vouchers: {n}',
   },
   appointment: {
+    /** Task Q9: booked after the notice to pay the missed visits in the salon. */
+    owedNotice: 'Also pays for missed visits: {sum}',
     title: 'Appointment',
     status: {
       held: 'Booking in progress',

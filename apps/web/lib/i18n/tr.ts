@@ -135,6 +135,8 @@ export const tr: Dict = {
   },
   appointment: {
     ...en.appointment,
+    /** Task Q9: booked after the notice to pay the missed visits in the salon. */
+    owedNotice: 'Gelinmeyen randevuları da öder: {sum}',
     awaitingApproval: 'Onay bekliyor',
     status: {
       held: 'Rezervasyon sürüyor',

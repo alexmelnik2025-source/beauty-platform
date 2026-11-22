@@ -1646,6 +1646,8 @@ API пускает не больше 10 регистраций в час с од
 ответ `BOOKING_PAY_FIRST` — не ошибка, а плашка «Zapłacisz w salonie za poprzednią i tę wizytę» (с суммой, если код
 пришёл на e-mail) прямо над кнопкой, кнопка — «Rozumiem — potwierdź wizytę» (`payNoticeAccepted`). 6 языков. e2e
 `q9-client-rules.spec.ts`, скриншоты `q9-client-rules-card`, `q9-pay-notice`.
+В карточке визита кабинета — метка «Zapłaci też zaległe: 90,00 zł», пока визит не оплачен (поле `owedGrosze` в
+ответе визита для салона).
 
 ## CORS: приложения в браузере (задача 170)
 

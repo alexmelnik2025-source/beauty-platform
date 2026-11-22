@@ -136,6 +136,8 @@ export const sq: Dict = {
   },
   appointment: {
     ...en.appointment,
+    /** Task Q9: booked after the notice to pay the missed visits in the salon. */
+    owedNotice: 'Paguan edhe vizitat e humbura: {sum}',
     awaitingApproval: 'Pret konfirmim',
     status: {
       held: 'Rezervim në proces',

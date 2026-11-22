@@ -1012,6 +1012,7 @@ export class AppointmentsService {
       wishes: toWishes(a),
       holdExpiresAt: a.holdExpiresAt?.toISOString() ?? null,
       awaitingApproval: a.status === 'confirmed' && a.approvalRequestedAt !== null,
+      owedGrosze: a.owedGrosze,
       cancelledAt: a.cancelledAt?.toISOString() ?? null,
       cancelledBy: a.cancelledBy,
       cancelReason: a.cancelReason,

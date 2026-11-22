@@ -302,6 +302,8 @@ export const pl = {
     tillOtherVouchers: 'bony: {n}',
   },
   appointment: {
+    /** Task Q9: booked after the notice to pay the missed visits in the salon. */
+    owedNotice: 'Zapłaci też zaległe: {sum}',
     title: 'Wizyta',
     status: {
       held: 'Rezerwacja w toku',

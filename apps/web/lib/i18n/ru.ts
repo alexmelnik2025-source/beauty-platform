@@ -303,6 +303,8 @@ export const ru: Dict = {
     tillOtherVouchers: 'сертификаты: {n}',
   },
   appointment: {
+    /** Task Q9: booked after the notice to pay the missed visits in the salon. */
+    owedNotice: 'Оплатит и пропущенные: {sum}',
     title: 'Запись',
     status: {
       held: 'Бронирование идёт',

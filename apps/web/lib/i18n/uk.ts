@@ -302,6 +302,8 @@ export const uk: Dict = {
     tillOtherVouchers: 'сертифікати: {n}',
   },
   appointment: {
+    /** Task Q9: booked after the notice to pay the missed visits in the salon. */
+    owedNotice: 'Оплатить і пропущені: {sum}',
     title: 'Запис',
     status: {
       held: 'Бронювання триває',
