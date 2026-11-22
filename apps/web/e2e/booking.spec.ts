@@ -1814,11 +1814,10 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     const salonCard = phone.getByRole('article', { name: 'Gestalt Barbershop' });
     await expect(salonCard).toBeVisible();
     // Only Alex speaks English, and that is enough to find the salon.
-    await phone.getByRole('button', { name: 'angielski' }).click();
-    await expect(phone.getByRole('button', { name: 'angielski' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await phone.getByRole('button', { name: /^Język obsługi/ }).click();
+    const english = phone.getByRole('button', { name: /^angielski \(\d+\)$/ });
+    await english.click();
+    await expect(english).toHaveAttribute('aria-pressed', 'true');
     await expect(salonCard).toBeVisible();
     // The owner added Belarusian above; the catalogue lists the specialists' languages too.
     await expect(salonCard.getByRole('note')).toHaveAttribute(
@@ -1838,6 +1837,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await salonCard.getByRole('button', { name: 'Zobacz salon' }).click();
     await expect(phone.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
     await expect(phone.getByText('Strzyżenie męskie', { exact: true })).toBeVisible();
+    await expect(phone.getByText('Godziny otwarcia')).toHaveCount(0);
+    await phone.getByRole('button', { name: /^O salonie/ }).click();
     await expect(phone.getByText('Godziny otwarcia')).toBeVisible();
     await expect(phone.getByText('Barber · Fryzjer')).toBeVisible();
     await shot(phone, '61-client-app-salon');
@@ -1856,6 +1857,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     );
     await shot(phone, '64d-client-app-book-staff');
     // Task 81c: "Mówi po" in the app too — only the specialists who speak the language.
+    await expect(phone.getByRole('button', { name: 'ukraiński', exact: true })).toHaveCount(0);
+    await phone.getByRole('button', { name: /^Mówi po/ }).click();
     await expect(phone.getByRole('button', { name: 'ukraiński', exact: true })).toBeVisible();
     await phone.getByRole('button', { name: 'angielski', exact: true }).click();
     await expect(phone.getByRole('button', { name: /^Alex/ })).toBeVisible();
@@ -1887,7 +1890,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     // Hidden screens stay mounted (going back keeps what was typed): find only what is shown.
     // The salon's booking rules must be accepted first.
     await phone.getByRole('button', { name: 'Wyślij kod' }).click();
-    await expect(phone.getByText('Zaznacz akceptację zasad rezerwacji.')).toBeVisible();
+    await expect(
+      phone.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }),
+    ).toHaveAttribute('aria-invalid', 'true');
+    await expect(
+      phone.getByRole('alert').filter({ hasText: 'Zaznacz akceptację zasad rezerwacji.' }),
+    ).toBeVisible();
     await phone.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }).click();
     await expect(
       phone.getByRole('checkbox', { name: /Akceptuję regulamin rezerwacji/ }),
@@ -1913,12 +1921,30 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await shot(phone, '64w-client-app-book-wishes');
     await phone.getByRole('textbox', { name: 'Kod z e-maila' }).fill('000000');
     await phone.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+    await expect(phone.getByRole('textbox', { name: 'Kod z e-maila' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
     await expect(phone.getByText('Kod jest nieprawidłowy', { exact: false })).toBeVisible();
     await phone
       .getByRole('textbox', { name: 'Kod z e-maila' })
       .fill(/\b(\d{6})\b/.exec(bookCodeMail.text)![1]!);
     await phone.getByRole('button', { name: 'Potwierdź wizytę' }).click();
     await expect(phone.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
+    const calendarButton = phone.getByRole('button', { name: 'Dodaj do kalendarza', exact: true });
+    await expect(calendarButton).toBeVisible();
+    await phone.evaluate(() => {
+      window.open = (url) => {
+        document.body.dataset.calendarUrl = String(url);
+        return null;
+      };
+    });
+    await calendarButton.click();
+    const calendarUrl = await phone.locator('body').getAttribute('data-calendar-url');
+    expect(calendarUrl).toMatch(/\/calendar\.ics$/);
+    const calendarFile = await phone.request.get(calendarUrl!);
+    expect(calendarFile.ok()).toBeTruthy();
+    expect(await calendarFile.text()).toContain('BEGIN:VCALENDAR');
     await expect(phone.getByText(`${bookedTime} ·`, { exact: false })).toBeVisible();
     await expect(phone.getByText('Strzyżenie męskie · Kasia')).toBeVisible();
     await shot(phone, '64c-client-app-booked');
@@ -1943,18 +1969,22 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await phone.getByRole('button', { name: 'Znajdź salon' }).click();
     await expect(phone.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
     await expect(salonCard).toBeVisible();
-    await phone.getByRole('button', { name: 'Українська' }).click();
+    await phone.getByRole('button', { name: 'Język', exact: true }).click();
+    await phone.getByRole('button', { name: 'UA · Українська' }).click();
     await expect(phone.getByRole('heading', { name: 'Знайти салон' })).toBeVisible();
     await shot(phone, '62-client-app-catalogue-uk');
     // Launch task L5, part 4: Turkish and Albanian in the client app too.
+    await phone.getByRole('button', { name: 'Мова', exact: true }).click();
     await phone.getByRole('button', { name: 'Türkçe' }).click();
     await expect(phone.getByRole('heading', { name: 'Salon bul' })).toBeVisible();
     await expect(salonCard.getByRole('button', { name: 'Salonu gör' })).toBeVisible();
     await shot(phone, '71f-client-app-catalogue-tr');
+    await phone.getByRole('button', { name: 'Dil', exact: true }).click();
     await phone.getByRole('button', { name: 'Shqip' }).click();
     await expect(phone.getByRole('heading', { name: 'Gjeni një sallon' })).toBeVisible();
     await shot(phone, '71g-client-app-catalogue-sq');
-    await phone.getByRole('button', { name: 'Українська' }).click();
+    await phone.getByRole('button', { name: 'Gjuha', exact: true }).click();
+    await phone.getByRole('button', { name: 'UA · Українська' }).click();
     await expect(phone.getByRole('heading', { name: 'Знайти салон' })).toBeVisible();
     await phone.getByRole('button', { name: '‹ Назад' }).click();
     await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();

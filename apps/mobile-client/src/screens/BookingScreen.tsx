@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  BackHandler,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   addDays,
   ApiError,
@@ -39,11 +30,11 @@ import {
   type ContactForm,
   type ContactProblem,
 } from '../booking';
-import { WEB_URL } from '../config';
+import { API_URL, WEB_URL } from '../config';
 import { WishesPicker } from '../WishesPicker';
 import { WishPhotosPicker } from '../WishPhotosPicker';
 import { asksWishes, NO_WISHES, wishesToSend, type VisitWishes } from '../wishes';
-import { errorText } from '../errors';
+import { errorText, isCodeError, validationField } from '../errors';
 import {
   ANY_STAFF,
   dayChip,
@@ -60,7 +51,7 @@ import { dialForTimeZone } from '../phone';
 import { directionsUrl, durationText, serviceGroups, specialtyText } from '../salon';
 import { shareSalon, visitShareMessage } from '../share';
 import { shareTools } from './shareTools';
-import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, Chip, colors, ErrorText, FieldInput, Heading } from '../ui';
 import { DiscountedTime } from './DiscountedTime';
 import { WaitlistPanel } from './WaitlistPanel';
 
@@ -123,6 +114,7 @@ export function BookingScreen(props: {
   const [wishesOpen, setWishesOpen] = useState(false);
   /** Task 81: "Speaks EN" — only the specialists who speak the chosen language. */
   // Task 192: several languages at once (anyone speaking one of them).
+  const [speaksOpen, setSpeaksOpen] = useState(false);
   const [speaks, setSpeaks] = useState<SpokenLanguage[]>([]);
   // Shown until the client picks something: the service or specialist is no longer online.
   const [gone, setGone] = useState(start.gone);
@@ -141,6 +133,8 @@ export function BookingScreen(props: {
   const [done, setDone] = useState<BookingConfirmed | null>(null);
   // Task 418: what "Udostępnij wizytę" says after it ran (copied, failed).
   const [shareInfo, setShareInfo] = useState('');
+  const [invalidContact, setInvalidContact] = useState<ContactProblem | null>(null);
+  const [codeError, setCodeError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [, tick] = useState(0);
@@ -339,10 +333,32 @@ export function BookingScreen(props: {
     setStep('time');
   }
 
+  function updateContact(field: 'name' | 'email' | 'phone', value: string) {
+    if (invalidContact === field) setInvalidContact(null);
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function contactError(e: unknown) {
+    const field = validationField(e, ['name', 'phone', 'email', 'acceptTerms']);
+    if (field) {
+      setInvalidContact(field === 'acceptTerms' ? 'terms' : field);
+      setStep('details');
+    } else {
+      setError(bookingErrorText(e, t));
+    }
+  }
+
   async function sendCode() {
-    if (!hold) return;
+    if (!hold || busy) return;
+    setError('');
+    setCodeError('');
+    setInvalidContact(null);
     const checked = checkContact(form, dialForTimeZone(salon.timezone));
-    if (!checked.ok) return setError(PROBLEM_TEXT[checked.problem](t));
+    if (!checked.ok) {
+      setInvalidContact(checked.problem);
+      setStep('details');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -352,7 +368,7 @@ export function BookingScreen(props: {
       setStep('code');
     } catch (e) {
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
-      else setError(bookingErrorText(e, t));
+      else contactError(e);
     } finally {
       setBusy(false);
     }
@@ -360,9 +376,16 @@ export function BookingScreen(props: {
 
   /** Task 180e: signed in - no code; the visit is booked with the session's email. */
   async function confirmSignedIn() {
-    if (!hold) return;
+    if (!hold || busy) return;
+    setError('');
+    setCodeError('');
+    setInvalidContact(null);
     const checked = checkContact(form, dialForTimeZone(salon.timezone));
-    if (!checked.ok) return setError(PROBLEM_TEXT[checked.problem](t));
+    if (!checked.ok) {
+      setInvalidContact(checked.problem);
+      setStep('details');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -379,14 +402,15 @@ export function BookingScreen(props: {
       setStep('done');
     } catch (e) {
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
-      else setError(bookingErrorText(e, t));
+      else contactError(e);
     } finally {
       setBusy(false);
     }
   }
 
   async function confirm() {
-    if (!hold || code.length !== 6) return;
+    if (!hold || code.length !== 6 || busy) return;
+    setCodeError('');
     setBusy(true);
     setError('');
     try {
@@ -401,6 +425,7 @@ export function BookingScreen(props: {
       setStep('done');
     } catch (e) {
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
+      else if (isCodeError(e)) setCodeError(bookingErrorText(e, t));
       else setError(bookingErrorText(e, t));
     } finally {
       setBusy(false);
@@ -556,8 +581,15 @@ export function BookingScreen(props: {
             {b.pickStaff}
           </Text>
           {languages.length > 0 ? (
+            <Button
+              kind="secondary"
+              label={`${b.speaksFilter} ${speaksOpen ? '▴' : '▾'}${activeSpeaks.length ? ` (${activeSpeaks.length})` : ''}`}
+              expanded={speaksOpen}
+              onPress={() => setSpeaksOpen(!speaksOpen)}
+            />
+          ) : null}
+          {languages.length > 0 && speaksOpen ? (
             <View style={styles.chips} accessibilityLabel={b.speaksFilter}>
-              <Text style={styles.muted}>{b.speaksFilter}</Text>
               <Chip
                 label={b.speaksAll}
                 pressed={activeSpeaks.length === 0}
@@ -772,20 +804,22 @@ export function BookingScreen(props: {
             {b.yourDetails}
           </Text>
           <Field label={b.name}>
-            <TextInput
+            <FieldInput
               accessibilityLabel={b.name}
+              error={invalidContact === 'name' ? PROBLEM_TEXT.name(t) : undefined}
               value={form.name}
-              onChangeText={(name) => setForm({ ...form, name })}
+              onChangeText={(value) => updateContact('name', value)}
               autoComplete="name"
               textContentType="name"
               style={styles.input}
             />
           </Field>
           <Field label={b.phone}>
-            <TextInput
+            <FieldInput
               accessibilityLabel={b.phone}
+              error={invalidContact === 'phone' ? PROBLEM_TEXT.phone(t) : undefined}
               value={form.phone}
-              onChangeText={(phone) => setForm({ ...form, phone })}
+              onChangeText={(value) => updateContact('phone', value)}
               autoComplete="tel"
               textContentType="telephoneNumber"
               inputMode="tel"
@@ -793,12 +827,13 @@ export function BookingScreen(props: {
             />
           </Field>
           <Field label={b.email} hint={props.signedIn ? b.noCodeNeeded : b.emailHint}>
-            <TextInput
+            <FieldInput
               accessibilityLabel={b.email}
+              error={invalidContact === 'email' ? PROBLEM_TEXT.email(t) : undefined}
               // Task 180e: the email of the signed-in client - the visit goes to their account.
               editable={!props.signedIn}
               value={form.email}
-              onChangeText={(email) => setForm({ ...form, email })}
+              onChangeText={(value) => updateContact('email', value)}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="email"
@@ -809,8 +844,13 @@ export function BookingScreen(props: {
           <Check
             label={b.acceptTerms}
             checked={form.acceptTerms}
-            onChange={(acceptTerms) => setForm({ ...form, acceptTerms })}
+            error={invalidContact === 'terms'}
+            onChange={(acceptTerms) => {
+              if (invalidContact === 'terms') setInvalidContact(null);
+              setForm({ ...form, acceptTerms });
+            }}
           />
+          {invalidContact === 'terms' ? <ErrorText>! {b.termsNeeded}</ErrorText> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <Button
               kind="link"
@@ -828,7 +868,17 @@ export function BookingScreen(props: {
             checked={form.marketingConsent}
             onChange={(marketingConsent) => setForm({ ...form, marketingConsent })}
           />
-          {props.signedIn && asksWishes(salon.wishQuestions) ? (
+          {props.signedIn ? (
+            <Button label={b.confirm} onPress={() => void confirmSignedIn()} busy={busy} />
+          ) : (
+            <Button label={b.sendCode} onPress={() => void sendCode()} busy={busy} />
+          )}
+          {props.signedIn &&
+          (asksWishes(salon.wishQuestions) || service?.wishPhotos) &&
+          !wishesOpen ? (
+            <Button kind="link" label={t.wishStep.add} onPress={() => setWishesOpen(true)} />
+          ) : null}
+          {props.signedIn && wishesOpen && asksWishes(salon.wishQuestions) ? (
             <WishesPicker
               t={t}
               questions={salon.wishQuestions}
@@ -836,14 +886,9 @@ export function BookingScreen(props: {
               onChange={setWishes}
             />
           ) : null}
-          {props.signedIn && service?.wishPhotos ? (
+          {props.signedIn && wishesOpen && service?.wishPhotos ? (
             <WishPhotosPicker key={hold.holdId} t={t} api={api} hold={hold} />
           ) : null}
-          {props.signedIn ? (
-            <Button label={b.confirm} onPress={() => void confirmSignedIn()} busy={busy} />
-          ) : (
-            <Button label={b.sendCode} onPress={() => void sendCode()} busy={busy} />
-          )}
         </View>
       ) : null}
 
@@ -853,12 +898,16 @@ export function BookingScreen(props: {
             {b.codeTitle}
           </Text>
           <Text style={styles.text}>{fill(b.codeLead, { email: form.email })}</Text>
-          <TextInput
+          <FieldInput
             accessibilityLabel={b.codeTitle}
+            error={codeError}
             placeholder="000000"
             placeholderTextColor={colors.line}
             value={code}
-            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+            onChangeText={(v) => {
+              setCodeError('');
+              setCode(v.replace(/\D/g, '').slice(0, 6));
+            }}
             onSubmitEditing={() => void confirm()}
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
@@ -917,6 +966,16 @@ export function BookingScreen(props: {
               ✓ {fill(t.visitProducts.brought, { n: String(brought) })}
             </Text>
           ) : null}
+          {!done.appointment.awaitingApproval ? (
+            <Button
+              label={t.visit.addToCalendar}
+              onPress={() =>
+                void Linking.openURL(
+                  `${API_URL}/v1/public/appointments/${encodeURIComponent(done.manageToken)}/calendar.ics`,
+                ).catch(() => setError(t.error.network))
+              }
+            />
+          ) : null}
           {/* Task 418: tell someone when and where, right after booking (as on the site, 413). */}
           <Button
             kind="link"
@@ -956,14 +1015,18 @@ export function BookingScreen(props: {
           {props.signedIn ? (
             <>
               <Text style={styles.text}>{b.inVisits}</Text>
-              <Button label={b.toVisits} onPress={() => props.onFinished(form.email)} />
+              <Button kind="link" label={b.toVisits} onPress={() => props.onFinished(form.email)} />
             </>
           ) : (
             <>
               <Text style={styles.text}>{b.signInLead}</Text>
-              <Button label={b.signInButton} onPress={() => props.onFinished(form.email)} />
               <Button
-                kind="secondary"
+                kind="link"
+                label={b.signInButton}
+                onPress={() => props.onFinished(form.email)}
+              />
+              <Button
+                kind="link"
                 label={b.manage}
                 onPress={() => void Linking.openURL(manageUrl(WEB_URL, locale, done.manageToken))}
               />
@@ -1013,16 +1076,28 @@ function Field(props: { label: string; hint?: string; children: ReactNode }) {
   );
 }
 
-function Check(props: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Check(props: {
+  label: string;
+  checked: boolean;
+  error?: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <Pressable
       role="checkbox"
       aria-checked={props.checked}
+      aria-invalid={props.error}
       accessibilityLabel={props.label}
       onPress={() => props.onChange(!props.checked)}
       style={styles.check}
     >
-      <View style={[styles.box, props.checked && styles.boxOn]}>
+      <View
+        style={[
+          styles.box,
+          props.checked && styles.boxOn,
+          props.error && { borderColor: colors.danger },
+        ]}
+      >
         {props.checked ? <Text style={styles.boxMark}>✓</Text> : null}
       </View>
       <Text style={[styles.text, { flex: 1 }]}>{props.label}</Text>

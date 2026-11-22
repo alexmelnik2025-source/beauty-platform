@@ -134,6 +134,7 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
     );
     await expect(app.getByRole('button', { name: `Salon na mapie: ${BARBER}` })).toBeVisible();
     await expect(app.getByRole('button', { name: `Salon na mapie: ${NAILS}` })).toBeVisible();
+    await app.getByRole('button', { name: /^Język obsługi/ }).click();
     await expect(app.getByRole('button', { name: /^ukraiński \(\d+\)$/ })).toContainText('UA (');
     await shot(app, '160-client-app-catalogue-map');
 
@@ -165,7 +166,7 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
     );
 
     // The kind of place: nails only (with every language).
-    await app.getByRole('button', { name: /^Wszystkie języki/ }).click();
+    await app.getByRole('button', { name: /^Kategoria/ }).click();
     await app.getByRole('button', { name: /^Manicure i pedicure \(\d+\)$/ }).click();
     await expect(app.getByRole('button', { name: `Salon na mapie: ${NAILS}` })).toBeVisible();
     await expect(app.getByRole('button', { name: `Salon na mapie: ${BARBER}` })).toHaveCount(0);
