@@ -127,6 +127,7 @@ test('the app searches from the start screen and lists the nearest salons first'
   try {
     const app = await phone.newPage();
     await app.goto(clientApp.url);
+    await expect(app.locator('html')).toHaveAttribute('lang', 'pl');
     // The start screen: the search comes first, signing in is below it.
     const what = app.getByLabel('Czego szukasz?', { exact: true });
     await expect(what).toBeVisible();

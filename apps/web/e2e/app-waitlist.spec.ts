@@ -21,7 +21,7 @@ const run = Date.now().toString(36);
 const OWNER = `app-waitlist-owner-${run}@example.com`;
 const ANNA = `app-waitlist-anna-${run}@example.com`;
 const BOB = `app-waitlist-bob-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 700 };
 // Addresses of this test only (sign-ups and codes are limited per address).
 const OWNER_IP = { 'x-forwarded-for': '198.51.100.94' };
 const CLIENT_IP = { 'x-forwarded-for': '198.51.100.95' };
@@ -188,7 +188,9 @@ test('business app: the day’s waiting list — remove one client, book the oth
     await expect(phone.getByText('Strzyżenie męskie · Kasia')).toHaveCount(2);
     await expect(phone.getByText('Strzyżenie męskie · dowolny specjalista')).toBeVisible();
     await expect(phone.getByRole('button', { name: '+48600222333' })).toBeVisible();
-    await expect(phone.getByRole('button', { name: ANNA })).toBeVisible();
+    const email = phone.getByRole('button', { name: ANNA });
+    await email.scrollIntoViewIfNeeded();
+    await expect(email).toBeInViewport({ ratio: 1 });
     await phone.getByText('Lista oczekujących (2)').scrollIntoViewIfNeeded();
     await shot(phone, '88-business-app-waitlist');
 

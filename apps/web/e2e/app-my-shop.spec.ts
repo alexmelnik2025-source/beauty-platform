@@ -21,7 +21,7 @@ const run = Date.now().toString(36);
 const OWNER = `shop-app-owner-${run}@example.com`;
 const OTHER = `shop-app-other-${run}@example.com`;
 const EAN = `591${String(Date.now()).slice(-10)}`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 700 };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -125,7 +125,11 @@ test('"Sklep" in the business app: shown to clients, a catalogue card, the Shop 
     await app.getByRole('tab', { name: 'Sklep', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Sklep', exact: true })).toBeVisible();
     await expect(app.getByRole('tab', { name: 'Produkty', selected: true })).toBeVisible();
-    await expect(app.getByText('Pomada Reuzel różowa')).toBeVisible();
+    const productName = app.getByText('Pomada Reuzel różowa');
+    await expect(productName).toBeVisible();
+    expect(await productName.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(
+      1,
+    );
     await expect(app.getByText(/4 szt\./)).toBeVisible();
     await app.getByRole('tab', { name: 'Sprzedaż online', exact: true }).click();
     await expect(app.getByText('Pokazane klientom: 0 z 1 produktów.')).toBeVisible();

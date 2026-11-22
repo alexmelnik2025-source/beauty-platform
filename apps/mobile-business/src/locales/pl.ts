@@ -926,7 +926,7 @@ export const pl = {
     discountKinds: 'Rabaty: {amount}',
     discountCoupon: 'Kupony lojalnościowe',
     discountTier: 'Rabat poziomu klienta',
-    discountHappyHours: 'Happy hours',
+    discountHappyHours: 'Promocje',
     discountRow: '{amount} · wizyty: {n}',
     discountHint:
       'Ile salon oddał w rabatach na opłaconych wizytach z tego okresu. Przychód w raporcie jest już po rabatach.',

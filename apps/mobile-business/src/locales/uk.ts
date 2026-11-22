@@ -927,7 +927,7 @@ export const uk: Dictionary = {
     discountKinds: 'Знижки: {amount}',
     discountCoupon: 'Купони лояльності',
     discountTier: 'Знижка рівня клієнта',
-    discountHappyHours: 'Happy hours',
+    discountHappyHours: 'Акції',
     discountRow: '{amount} · візити: {n}',
     discountHint:
       'Скільки салон віддав у знижках на оплачених візитах цього періоду. Виторг у звіті вже після знижок.',

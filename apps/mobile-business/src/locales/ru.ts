@@ -929,7 +929,7 @@ export const ru: Dictionary = {
     discountKinds: 'Скидки: {amount}',
     discountCoupon: 'Купоны лояльности',
     discountTier: 'Скидка уровня клиента',
-    discountHappyHours: 'Happy hours',
+    discountHappyHours: 'Акции',
     discountRow: '{amount} · визиты: {n}',
     discountHint:
       'Сколько салон отдал в скидках на оплаченных визитах этого периода. Выручка в отчёте уже после скидок.',
