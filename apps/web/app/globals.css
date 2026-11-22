@@ -3826,6 +3826,11 @@ ul.wish-photos {
     padding-top: 8px;
   }
 
+  /* Task 655: on the phone's list no section is open yet — none is marked. */
+  .settings--home .settings-nav .list-row[aria-current='page'] .grow strong {
+    text-decoration: none;
+  }
+
   /* Task 655: an open section — the page title stays for screen readers only. */
   .settings-head--section {
     position: absolute;
