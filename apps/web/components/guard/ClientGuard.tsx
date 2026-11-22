@@ -12,7 +12,9 @@ import type { GuardedClient } from '@/lib/types';
  * Task 161c: "Ochrona przed odwołaniami" in the client card (owners and managers; the server
  * checks it too): whether the client is marked now and why, the cost of missed visits, the
  * history of cancellations, reschedules and no-shows, and "Zdejmij blokadę" with a note.
- * Nothing is shown while the protection is off and the client has no history.
+ * Task Q9: "Zasady dla klienta" — the salon's own rule for this client (the salon's rules, trusted,
+ * pay first, only with confirmation, by phone only); it works also while the protection is off, so
+ * the choice is always there. The rest is shown when the protection is on or there is history.
  */
 export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: string }) {
   const { t, locale } = useI18n();
@@ -31,6 +33,21 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
   useEffect(() => {
     load().catch((err) => setError(errorText(t, err)));
   }, [load, t]);
+
+  async function setRule(rule: GuardedClient['rule']) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      setGuard(await api<GuardedClient>(`${url}/rule`, { method: 'PUT', body: { rule } }));
+      setInfo(t.guard.ruleSaved);
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function release(e: FormEvent) {
     e.preventDefault();
@@ -55,7 +72,15 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
   }
 
   if (!guard) return error ? <ErrorBox>{error}</ErrorBox> : null;
-  if (!guard.enabled && guard.history.length === 0) return null;
+  const ownRule = guard.rule !== 'salon' && guard.rule !== 'trusted';
+  const details = guard.enabled || guard.history.length > 0 || ownRule;
+  const ruleNames: Record<GuardedClient['rule'], string> = {
+    salon: t.guard.ruleSalon,
+    trusted: t.guard.ruleTrusted,
+    prepay: t.guard.rulePrepay,
+    approval: t.guard.ruleApproval,
+    phone_only: t.guard.rulePhoneOnly,
+  };
 
   const day = (iso: string) =>
     new Intl.DateTimeFormat(tag, {
@@ -74,16 +99,31 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
   return (
     <section className="section stack" style={{ gap: 8 }} aria-label={t.guard.title}>
       <h3>{t.guard.title}</h3>
+      <label className="field">
+        <span>{t.guard.ruleTitle}</span>
+        <select
+          value={guard.rule}
+          disabled={busy}
+          onChange={(e) => void setRule(e.target.value as GuardedClient['rule'])}
+        >
+          {(Object.keys(ruleNames) as GuardedClient['rule'][]).map((rule) => (
+            <option key={rule} value={rule}>
+              {ruleNames[rule]}
+            </option>
+          ))}
+        </select>
+      </label>
       <ErrorBox>{error}</ErrorBox>
       {info ? (
         <p className="small" role="status">
           {info}
         </p>
       ) : null}
-      {guard.flagged ? (
+      {!details ? null : guard.flagged ? (
         <div className="summary">
           <strong>{t.guard.cardMarked}</strong>
-          <span className="small muted">{reasons.join(' · ')}</span>
+          {reasons.length > 0 ? <span className="small muted">{reasons.join(' · ')}</span> : null}
+          {ownRule ? <span className="small muted">{t.guard.ownRule}</span> : null}
           {guard.noShowAmountGrosze > 0 ? (
             <span className="small">
               {fill(t.guard.owes, {
@@ -91,7 +131,7 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
               })}
             </span>
           ) : null}
-          {asking ? (
+          {reasons.length === 0 ? null : asking ? (
             <form className="stack" style={{ gap: 8 }} onSubmit={(e) => void release(e)}>
               <p className="small">{t.guard.releaseAsk}</p>
               <label className="field">

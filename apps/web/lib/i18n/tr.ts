@@ -234,6 +234,13 @@ export const tr: Dict = {
     codeTitle: 'E-postadaki kod',
     codeLead: '{email} adresine 6 haneli bir kod gönderdik.',
     confirm: 'Randevuyu onayla',
+    /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
+    payNoticeTitle: 'Salonda önceki ve bu randevuyu ödeyeceksiniz',
+    payNotice:
+      'Salon, gelinmeyen önceki randevuların bu randevuyla birlikte yerinde ödenmesini istiyor. Online hiçbir şey ödemezsiniz.',
+    payNoticeSum:
+      'Gelinmeyen randevular: {sum}. Bunları bu randevuyla birlikte yerinde ödersiniz. Online hiçbir şey ödemezsiniz.',
+    payNoticeConfirm: 'Anladım — randevuyu onayla',
     resend: 'Kodu tekrar gönder',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'E-postayı veya telefonu düzelt',

@@ -537,6 +537,13 @@ export const en: Dict = {
     codeTitle: 'Code from the email',
     codeLead: 'We sent 6 digits to {email}.',
     confirm: 'Confirm booking',
+    /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
+    payNoticeTitle: 'You will pay in the salon for the earlier visit and this one',
+    payNotice:
+      'The salon asks you to pay for earlier missed visits together with this visit — on site. Nothing is paid online.',
+    payNoticeSum:
+      'Missed visits: {sum}. You pay for them together with this visit — on site. Nothing is paid online.',
+    payNoticeConfirm: 'I understand — confirm booking',
     resend: 'Send the code again',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Fix the e-mail or phone',
@@ -1120,6 +1127,15 @@ export const en: Dict = {
     removed: '{name} removed from the waiting list.',
   },
   guard: {
+    /** Task Q9: "Zasady dla klienta" in the client card. */
+    ruleTitle: 'Rules for this client',
+    ruleSalon: 'The salon’s rules',
+    ruleTrusted: 'Trusted — always books online',
+    rulePrepay: 'Pay missed visits first (in the salon)',
+    ruleApproval: 'Only with the salon’s confirmation',
+    rulePhoneOnly: 'By phone only',
+    ruleSaved: 'Rules for this client saved.',
+    ownRule: 'The rules set for this client apply.',
     cardMarked: 'The client is marked',
     cardNotMarked: 'The client is not marked now.',
     historyTitle: 'History of the last year',

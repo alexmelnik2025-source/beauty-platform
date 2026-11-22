@@ -538,6 +538,13 @@ export const pl = {
     codeTitle: 'Kod z e-maila',
     codeLead: 'Wysłaliśmy 6 cyfr na {email}.',
     confirm: 'Potwierdź wizytę',
+    /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
+    payNoticeTitle: 'Zapłacisz w salonie za poprzednią i tę wizytę',
+    payNotice:
+      'Salon prosi o zapłatę za wcześniejsze nieodbyte wizyty razem z tą wizytą — na miejscu. Online nic nie płacisz.',
+    payNoticeSum:
+      'Nieodbyte wizyty: {sum}. Zapłacisz za nie razem z tą wizytą — na miejscu. Online nic nie płacisz.',
+    payNoticeConfirm: 'Rozumiem — potwierdź wizytę',
     resend: 'Wyślij kod ponownie',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Popraw e-mail lub telefon',
@@ -1116,6 +1123,15 @@ export const pl = {
     removed: 'Usunięto {name} z listy oczekujących.',
   },
   guard: {
+    /** Task Q9: "Zasady dla klienta" in the client card. */
+    ruleTitle: 'Zasady dla klienta',
+    ruleSalon: 'Według zasad salonu',
+    ruleTrusted: 'Zaufany — zawsze rezerwuje online',
+    rulePrepay: 'Najpierw opłata zaległych (w salonie)',
+    ruleApproval: 'Tylko z potwierdzeniem salonu',
+    rulePhoneOnly: 'Tylko telefonicznie',
+    ruleSaved: 'Zapisano zasady dla klienta.',
+    ownRule: 'Działają zasady ustawione dla tego klienta.',
     cardMarked: 'Klient jest oznaczony',
     cardNotMarked: 'Klient nie jest teraz oznaczony.',
     historyTitle: 'Historia z ostatniego roku',

@@ -248,6 +248,12 @@ export function BookingFlow({
     setContact((c) => ({ ...c, name: '', phone: `+${dial} `, email: '' }));
   }
   const [error, setError] = useState('');
+  /**
+   * Task Q9: the salon asks this client to pay the missed visits in the salon with this one
+   * (BOOKING_PAY_FIRST): the time stays held and "Potwierdź" books after the notice. `sum` only
+   * when the server tells it (a code by email). Bound to the hold it was shown for.
+   */
+  const [payNotice, setPayNotice] = useState<{ holdId: string; sum: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -432,12 +438,28 @@ export function BookingFlow({
     }
   }
 
+  /** Task Q9: BOOKING_PAY_FIRST shows the notice instead of an error; true when it did. */
+  function showPayNotice(err: unknown, holdId: string): boolean {
+    if (!(err instanceof ApiError) || err.code !== 'BOOKING_PAY_FIRST') return false;
+    const details = Array.isArray(err.details)
+      ? (err.details as { path?: string; message?: string }[])
+      : [];
+    const amount = Number(details.find((d) => d.path === 'amountGrosze')?.message);
+    const currency = details.find((d) => d.path === 'currency')?.message;
+    setPayNotice({
+      holdId,
+      sum: amount > 0 && currency ? formatPrice(amount, currency, tag) : null,
+    });
+    return true;
+  }
+
   /** Task 180e: signed in to "My visits" - the session proved the email, no code is needed. */
   async function confirmSignedIn(e: FormEvent) {
     e.preventDefault();
     if (!hold) return;
     setBusy(true);
     setError('');
+    const payNoticeAccepted = payNotice?.holdId === hold.holdId;
     try {
       const done = await api<{
         appointment: PublicAppointment;
@@ -446,7 +468,7 @@ export function BookingFlow({
       }>(`/v1/client/holds/${hold.holdId}/confirm`, {
         method: 'POST',
         auth: false,
-        idempotencyKey: `confirm-signed-in-${hold.holdId}`,
+        idempotencyKey: `confirm-signed-in-${hold.holdId}${payNoticeAccepted ? '-pay' : ''}`,
         body: {
           holdToken: hold.holdToken,
           name: contact.name,
@@ -455,6 +477,7 @@ export function BookingFlow({
           acceptTerms: contact.acceptTerms,
           marketingConsent: contact.marketingConsent,
           ...(asksWishes(salon?.wishQuestions) ? { wishes } : {}),
+          ...(payNoticeAccepted ? { payNoticeAccepted } : {}),
         },
       });
       if (asksWishes(salon?.wishQuestions)) saveWishes(remember ? wishes : null);
@@ -472,7 +495,7 @@ export function BookingFlow({
         setError(errorText(t, err));
       } else if (err instanceof ApiError && ['HOLD_EXPIRED', 'NOT_FOUND'].includes(err.code)) {
         backToTime(err);
-      } else {
+      } else if (!showPayNotice(err, hold.holdId)) {
         setError(errorText(t, err));
       }
     } finally {
@@ -485,6 +508,7 @@ export function BookingFlow({
     if (!hold) return;
     setBusy(true);
     setError('');
+    const payNoticeAccepted = payNotice?.holdId === hold.holdId;
     try {
       const done = await api<{
         appointment: PublicAppointment;
@@ -493,7 +517,7 @@ export function BookingFlow({
       }>(`/v1/public/holds/${hold.holdId}/confirm`, {
         method: 'POST',
         auth: false,
-        idempotencyKey: `confirm-${hold.holdId}-${code}`,
+        idempotencyKey: `confirm-${hold.holdId}-${code}${payNoticeAccepted ? '-pay' : ''}`,
         // Task 180d: the email code signs the client in to "My visits" on this device — the
         // account makes itself on the first booking. Not in a window on another site (embed).
         body: {
@@ -501,6 +525,7 @@ export function BookingFlow({
           code,
           signIn: !embed,
           ...(asksWishes(salon?.wishQuestions) ? { wishes } : {}),
+          ...(payNoticeAccepted ? { payNoticeAccepted } : {}),
         },
       });
       if (!embed) {
@@ -523,7 +548,7 @@ export function BookingFlow({
         ['HOLD_EXPIRED', 'TOO_MANY_ATTEMPTS', 'TOO_MANY_CODES'].includes(err.code)
       ) {
         backToTime(err);
-      } else {
+      } else if (!showPayNotice(err, hold.holdId)) {
         setError(errorText(t, err));
       }
     } finally {
@@ -541,6 +566,19 @@ export function BookingFlow({
   if (!salon) return <Spinner />;
 
   const stepIndex = { service: 0, staff: 1, time: 2, details: 3, code: 3, done: 4 }[step];
+  const payNoticeShown = !!hold && payNotice?.holdId === hold.holdId;
+  const payNoticeBox =
+    payNoticeShown && payNotice ? (
+      <div className="note stack" style={{ gap: 4 }} role="alert" data-testid="pay-notice">
+        <strong>{t.booking.payNoticeTitle}</strong>
+        <span className="small">
+          {payNotice.sum
+            ? fill(t.booking.payNoticeSum, { sum: payNotice.sum })
+            : t.booking.payNotice}
+        </span>
+      </div>
+    ) : null;
+  const confirmLabel = payNoticeShown ? t.booking.payNoticeConfirm : t.booking.confirm;
   const wishQuestions = asksWishes(salon.wishQuestions) ? salon.wishQuestions : null;
   const stepNames = [
     t.booking.stepService,
@@ -1062,8 +1100,9 @@ export function BookingFlow({
                 </span>
               </div>
             ) : null}
+            {signedInAs ? payNoticeBox : null}
             <button className="btn btn--block" disabled={busy}>
-              {signedInAs ? t.booking.confirm : t.booking.sendCode}
+              {signedInAs ? confirmLabel : t.booking.sendCode}
             </button>
             {signedInAs ? wishesFold : null}
           </form>
@@ -1088,8 +1127,9 @@ export function BookingFlow({
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             />
+            {payNoticeBox}
             <button className="btn btn--block" disabled={busy || code.length !== 6}>
-              {t.booking.confirm}
+              {confirmLabel}
             </button>
             {wishesFold}
             <button

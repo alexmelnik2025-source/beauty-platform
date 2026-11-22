@@ -51,7 +51,7 @@
   `rule` (и в списке `GET …/clients`). Клиентское приложение: ответ `BOOKING_PAY_FIRST` больше не отпускает время —
   покажите «zapłacisz za poprzednią i tę wizytę w salonie» (сумма — `details` `amountGrosze`/`currency`, если есть)
   и повторите подтверждение с тем же кодом и `payNoticeAccepted: true` (`/v1/public/holds/:id/confirm` и
-  `/confirm-signed-in`). Экраны Q9 в мобильных приложениях можно начинать. В `apps/mobile-business/test/guard.test.ts`
+  `/v1/client/holds/:id/confirm`). Экраны Q9 в мобильных приложениях можно начинать. В `apps/mobile-business/test/guard.test.ts`
   Claude добавил `rule: 'salon'` в пример клиента (иначе не сходились типы).
 
 ## Предложения Codex (ждут решения владельца)

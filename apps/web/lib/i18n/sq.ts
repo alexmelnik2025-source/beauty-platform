@@ -235,6 +235,13 @@ export const sq: Dict = {
     codeTitle: 'Kodi nga emaili',
     codeLead: 'Dërguam 6 shifra në {email}.',
     confirm: 'Konfirmo rezervimin',
+    /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
+    payNoticeTitle: 'Në sallon do të paguani vizitën e mëparshme dhe këtë',
+    payNotice:
+      'Salloni kërkon pagesën e vizitave të mëparshme të humbura së bashku me këtë vizitë — në vend. Online nuk paguani asgjë.',
+    payNoticeSum:
+      'Vizita të humbura: {sum}. I paguani së bashku me këtë vizitë — në vend. Online nuk paguani asgjë.',
+    payNoticeConfirm: 'E kuptoj — konfirmo rezervimin',
     resend: 'Dërgo kodin përsëri',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Korrigjo e-mailin ose telefonin',

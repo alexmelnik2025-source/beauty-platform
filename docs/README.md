@@ -1635,9 +1635,17 @@ API пускает не больше 10 регистраций в час с од
   `…/clients/:id`; клиенты со своим правилом есть в списке и при выключенной защите (`reasons: []`).
 - «Najpierw opłata zaległych» больше не закрывает онлайн-запись: ответ `BOOKING_PAY_FIRST` (сумма — только при
   коде по e-mail) теперь оставляет выбранное время; клиент видит «zapłacisz za poprzednią i tę wizytę w salonie» и
-  повторяет подтверждение с `payNoticeAccepted: true` (`/holds/:id/confirm` и `/confirm-signed-in`) — визит
+  повторяет подтверждение с `payNoticeAccepted: true` (`/v1/public/holds/:id/confirm` и `/v1/client/holds/:id/confirm`) — визит
   записан, сумма пропущенных визитов запомнена в `appointment.owed_grosze`. Ссылка из листа ожидания уведомление
   показать не может — там как раньше. Миграция `customer_guard_rule`, тесты `cancellation-guard.spec.ts`.
+
+**Q9, часть 2 — веб.** В карточке клиента кабинета (блок «Ochrona przed odwołaniami», `ClientGuard.tsx`) — строка
+«Zasady dla klienta» с выбором из пяти правил, сохраняется сразу («Zapisano zasady dla klienta.»); блок теперь виден
+всегда (своё правило работает и при выключенной защите), остальное — как раньше. В списке «Oznaczeni klienci»
+клиенты со своим правилом показаны с названием правила, без «Zdejmij blokadę». На странице записи (`BookingFlow`)
+ответ `BOOKING_PAY_FIRST` — не ошибка, а плашка «Zapłacisz w salonie za poprzednią i tę wizytę» (с суммой, если код
+пришёл на e-mail) прямо над кнопкой, кнопка — «Rozumiem — potwierdź wizytę» (`payNoticeAccepted`). 6 языков. e2e
+`q9-client-rules.spec.ts`, скриншоты `q9-client-rules-card`, `q9-pay-notice`.
 
 ## CORS: приложения в браузере (задача 170)
 

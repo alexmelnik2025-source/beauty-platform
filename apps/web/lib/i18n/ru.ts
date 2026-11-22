@@ -544,6 +544,13 @@ export const ru: Dict = {
     codeTitle: 'Код из письма',
     codeLead: 'Мы отправили 6 цифр на {email}.',
     confirm: 'Подтвердить запись',
+    /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
+    payNoticeTitle: 'В салоне вы оплатите прошлый и этот визит',
+    payNotice:
+      'Салон просит оплатить прошлые пропущенные визиты вместе с этим визитом — на месте. Онлайн вы ничего не платите.',
+    payNoticeSum:
+      'Пропущенные визиты: {sum}. Вы оплатите их вместе с этим визитом — на месте. Онлайн вы ничего не платите.',
+    payNoticeConfirm: 'Понятно — подтвердить запись',
     resend: 'Отправить код ещё раз',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Исправить e-mail или телефон',
@@ -1123,6 +1130,15 @@ export const ru: Dict = {
     removed: '{name} убран(а) из листа ожидания.',
   },
   guard: {
+    /** Task Q9: "Zasady dla klienta" in the client card. */
+    ruleTitle: 'Правила для клиента',
+    ruleSalon: 'По правилам салона',
+    ruleTrusted: 'Доверенный — всегда записывается онлайн',
+    rulePrepay: 'Сначала оплата пропущенных (в салоне)',
+    ruleApproval: 'Только с подтверждением салона',
+    rulePhoneOnly: 'Только по телефону',
+    ruleSaved: 'Правила для клиента сохранены.',
+    ownRule: 'Действуют правила, заданные для этого клиента.',
     cardMarked: 'Клиент отмечен',
     cardNotMarked: 'Сейчас клиент не отмечен.',
     historyTitle: 'История за последний год',

@@ -284,7 +284,9 @@ export default function CancellationGuardPage() {
         </form>
 
         <h2 style={{ marginTop: 24 }}>{t.guard.clients}</h2>
-        {!marked.enabled ? <p className="note">{t.guard.off}</p> : null}
+        {!marked.enabled && marked.items.length === 0 ? (
+          <p className="note">{t.guard.off}</p>
+        ) : null}
         {marked.enabled && marked.items.length === 0 ? (
           <p className="note">{t.guard.none}</p>
         ) : null}
@@ -301,6 +303,10 @@ export default function CancellationGuardPage() {
                       fill(t.guard.reasonLate, { n: String(c.lateCancellations) }),
                     c.reasons.includes('no_shows') &&
                       fill(t.guard.reasonNoShows, { n: String(c.noShows) }),
+                    // Task Q9: on the list because of the rule set for this client.
+                    c.rule === 'prepay' && t.guard.rulePrepay,
+                    c.rule === 'approval' && t.guard.ruleApproval,
+                    c.rule === 'phone_only' && t.guard.rulePhoneOnly,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -314,17 +320,19 @@ export default function CancellationGuardPage() {
                 ) : null}
                 <span className="small muted">{c.phone}</span>
               </span>
-              <button
-                type="button"
-                className="btn btn--small btn--quiet"
-                aria-label={fill(t.guard.releaseOne, { name: c.name })}
-                onClick={() => {
-                  setInfo('');
-                  setReleasing(c);
-                }}
-              >
-                {t.guard.release}
-              </button>
+              {c.reasons.length === 0 ? null : (
+                <button
+                  type="button"
+                  className="btn btn--small btn--quiet"
+                  aria-label={fill(t.guard.releaseOne, { name: c.name })}
+                  onClick={() => {
+                    setInfo('');
+                    setReleasing(c);
+                  }}
+                >
+                  {t.guard.release}
+                </button>
+              )}
             </li>
           ))}
         </ul>
