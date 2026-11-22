@@ -7,7 +7,7 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 150: "Dziennik zmian" in the business app (web preview of apps/mobile-business). The
@@ -115,7 +115,7 @@ test('the owner reads the change log in the business app (task 150)', async ({
     });
     const app = await context.newPage();
     await signInToApp(app, businessApp.url, OWNER);
-    await app.getByRole('button', { name: 'Dziennik zmian' }).click();
+    await openBusinessMenu(app, 'Dziennik zmian');
     await expect(app.getByRole('heading', { name: 'Dziennik zmian' })).toBeVisible();
     // Newest first: the hours, the specialist, the service — each with who did it.
     const titles = app.getByText(/^(Zmieniono godziny pracy|Dodano specjalistę|Dodano usługę)/);
@@ -127,6 +127,7 @@ test('the owner reads the change log in the business app (task 150)', async ({
     await expect(app.getByText(/^Aleksander Owner · /).first()).toBeVisible();
     await shot(app, '150-business-app-history');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await app.getByRole('tab', { name: 'Kalendarz', exact: true }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     await context.close();
   } finally {

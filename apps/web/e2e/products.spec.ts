@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { expandBusinessRow, openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 395: "Produkty". The owner keeps the salon's list of products in "Usługi" (screenshot
@@ -501,13 +501,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    // Task 397: "Usługi" → "Produkty" — a new product from the phone.
-    await app.getByRole('button', { name: 'Usługi' }).click();
+    // Task 397: "Sklep" → "Produkty" — a new product from the phone.
+    await app.getByRole('tab', { name: 'Sklep', exact: true }).click();
     const appList = app.getByTestId('products');
+    await appList.getByRole('button', { name: '+ Dodaj produkt', exact: true }).click();
     await appList.getByLabel('Nowy produkt').fill('Wosk');
     await appList.getByLabel('Cena produktu (PLN)').last().fill('25');
     // Task 431: five pieces in stock.
     await appList.getByLabel('W magazynie (szt., puste — nie liczymy)').fill('5');
+    await appList.getByRole('button', { name: 'Więcej ▸', exact: true }).click();
     // Task 435: five waxes are already few for this salon.
     await appList.getByLabel('Kończy się przy (szt., puste — bez ostrzeżenia)').fill('5');
     // Task 448: "Cena zakupu" from the phone.
@@ -516,15 +518,18 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appList.getByLabel('Dostawca (puste — nie wpisujemy)').last().fill('Barber Hurt');
     // Task 522: "Kod kreskowy" from the phone — spaces dropped, capital letters.
     await appList.getByLabel('Kod kreskowy (puste — nie wpisujemy)').last().fill('gst wosk 1');
-    await appList.getByRole('button', { name: '+ Dodaj produkt' }).click();
+    await appList.getByRole('button', { name: 'Zapisz', exact: true }).click();
     await expect(appList.getByText('Wosk', { exact: true })).toBeVisible();
+    await expandBusinessRow(app, 'Wosk');
     await expect(appList.getByText('zostało 5 szt. · Kończy się')).toBeVisible();
     await expect(appList.getByText(/^Cena zakupu: 10,00\s*zł$/)).toBeVisible();
-    await expect(appList.getByText(/^Cena zakupu: 20,00\s*zł$/)).toBeVisible();
     await expect(appList.getByText('Dostawca: Barber Hurt', { exact: true })).toBeVisible();
+    await expandBusinessRow(app, 'Pomada matowa');
+    await expect(appList.getByText(/^Cena zakupu: 20,00\s*zł$/)).toBeVisible();
     await expect(appList.getByText('Dostawca: Hairgum', { exact: true })).toBeVisible();
     // Both pomades were sold in the cabinet: none left.
     await expect(appList.getByText('Brak w magazynie', { exact: true })).toBeVisible();
+    await appList.getByRole('button', { name: 'Magazyn ▸', exact: true }).click();
     // Task 435: what to order — set in the cabinet (Szampon) and here (Wosk).
     await expect(appList.getByTestId('products-to-order')).toHaveText(
       // Task 466: grouped by supplier, as in the cabinet.
@@ -576,14 +581,17 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appList.getByTestId('stock-csv-to-order').scrollIntoViewIfNeeded();
     await shot(app, '470-business-app-stock-csv-to-order');
     // Task 522: "Szukaj" — the pomade by the code written in the cabinet, the wax by its own.
+    await expandBusinessRow(app, 'Wosk');
     await expect(appList.getByText('Kod kreskowy: GSTWOSK1', { exact: true })).toBeVisible();
     await appList.getByTestId('products-search').fill('5901234 123457');
+    await expandBusinessRow(app, 'Pomada matowa');
     await expect(appList.getByTestId('product-barcode')).toHaveCount(1);
     await expect(appList.getByText('Kod kreskowy: 5901234123457', { exact: true })).toBeVisible();
     await expect(appList.getByText('Pomada matowa', { exact: true })).toBeVisible();
     await appList.getByTestId('products-search').scrollIntoViewIfNeeded();
     await shot(app, '522-business-app-barcode-search');
     await appList.getByTestId('products-search').fill('gstwosk');
+    await expandBusinessRow(app, 'Wosk');
     await expect(appList.getByText('Kod kreskowy: GSTWOSK1', { exact: true })).toBeVisible();
     await expect(appList.getByText('Pomada matowa', { exact: true })).toHaveCount(0);
     await appList.getByTestId('products-search').fill('0000');
@@ -623,7 +631,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await appSold.scrollIntoViewIfNeeded();
     await shot(app, '524-a-business-app-sale-by-code');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appReport = app.getByTestId('report-products');
     await appReport.scrollIntoViewIfNeeded();
@@ -645,7 +653,9 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     expect(appFile).toContain('Razem;;;;3;;128,50');
     // Task 439: "Dostawa" from the phone — six pomades arrived.
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
-    await app.getByRole('button', { name: 'Usługi' }).click();
+    await app.getByRole('tab', { name: 'Sklep', exact: true }).click();
+    await appList.getByRole('button', { name: 'Magazyn ▸', exact: true }).click();
+    await expandBusinessRow(app, 'Pomada matowa');
     await appList.getByRole('button', { name: 'Dostawa — Pomada matowa' }).click();
     await appList.getByLabel('Dostawa — Pomada matowa').fill('6');
     await appList.getByRole('button', { name: 'Przyjmij', exact: true }).click();
@@ -656,11 +666,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(
       appList.getByText('Sprzedano w 30 dni: 2 szt. · starczy na ~90 dni', { exact: true }),
     ).toBeVisible();
+    await expandBusinessRow(app, 'Szampon');
     await expect(
       appList.getByText('Sprzedano w 30 dni: 1 szt. · starczy na ~60 dni', { exact: true }),
     ).toBeVisible();
     await shot(app, '461-a-business-app-sold-30-days');
     // Task 441: "Historia" in the app — the cabinet's sale and correction, the delivery.
+    await expandBusinessRow(app, 'Pomada matowa');
     await appList.getByRole('button', { name: 'Historia magazynu — Pomada matowa' }).click();
     const appHistory = appList.getByTestId('stock-history');
     await expect(appHistory).toContainText(/Dostawa · \+6 szt\. → 6/);
@@ -696,12 +708,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
       'Inwentaryzacja zapisana: zmienione produkty: 1, brakuje 0 szt., nadwyżka 1 szt.',
     );
     // Six waxes are no longer few (the salon's "Kończy się przy" is five).
+    await expandBusinessRow(app, 'Wosk');
     await expect(appList.getByText('zostało 6 szt.', { exact: true })).toBeVisible();
     await appList.getByTestId('stocktake-done').scrollIntoViewIfNeeded();
     await shot(app, '458-business-app-stocktake');
     // Task 447: "Odpisy z magazynu" in the app's report — the set and the pomade.
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     // Task 472: the sales by supplier in the app — the pomades from Hairgum, the shampoo from nobody.
     const appSalesBySupplier = app.getByTestId('report-products-suppliers');

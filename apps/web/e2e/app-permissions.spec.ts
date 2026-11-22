@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Tasks 330–331: "Uprawnienia" in the business app (web preview of apps/mobile-business),
@@ -118,7 +118,7 @@ test('business app: the owner sets what a specialist may do', async ({ browser, 
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Zespół' }).click();
+    await openBusinessMenu(phone, 'Zespół');
     await expect(phone.getByRole('heading', { name: 'Zespół', exact: true })).toBeVisible();
     await phone.getByRole('button', { name: 'Uprawnienia', exact: true }).click();
     await expect(phone.getByRole('heading', { name: 'Uprawnienia', exact: true })).toBeVisible();

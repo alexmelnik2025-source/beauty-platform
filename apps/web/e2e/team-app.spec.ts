@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 92: "Zespół" in the business app (web preview of apps/mobile-business). The owner gives
@@ -108,7 +108,7 @@ test('the owner gives access from the business app: invite, cancel, remove (task
     });
     const app = await ownerContext.newPage();
     await signInToApp(app, businessApp.url, OWNER);
-    await app.getByRole('button', { name: 'Zespół' }).click();
+    await openBusinessMenu(app, 'Zespół');
     await expect(app.getByRole('heading', { name: 'Zespół', exact: true })).toBeVisible();
     await expect(app.getByText('Bez konta')).toHaveCount(2);
     await expect(app.getByText(`Właściciel · ${OWNER}`)).toBeVisible();
@@ -149,12 +149,13 @@ test('the owner gives access from the business app: invite, cancel, remove (task
     const kasia = await kasiaContext.newPage();
     await signInToApp(kasia, businessApp.url, KASIA);
     // A specialist does not manage the team.
-    await expect(kasia.getByRole('button', { name: 'Zespół' })).toHaveCount(0);
+    await kasia.getByRole('tab', { name: 'Więcej', exact: true }).click();
+    await expect(kasia.getByRole('button', { name: 'Zespół', exact: true })).toHaveCount(0);
     await kasiaContext.close();
 
     // ── The owner sees her access and removes her again ───────────────────
     await app.getByRole('button', { name: '‹ Wróć' }).click();
-    await app.getByRole('button', { name: 'Zespół' }).click();
+    await openBusinessMenu(app, 'Zespół');
     await expect(app.getByText(`Ma dostęp · ${KASIA}`)).toBeVisible();
     await app.getByRole('button', { name: 'Usuń z zespołu: Kasia Nowak' }).click();
     await expect(app.getByText(/Usunąć: Kasia Nowak\?/)).toBeVisible();

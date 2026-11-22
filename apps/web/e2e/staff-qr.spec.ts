@@ -8,7 +8,7 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task Q2 (part 3): the QR code of each specialist. The owner picks a specialist in the cabinet's
@@ -205,7 +205,7 @@ test('each specialist has a QR code; scanning it books with them (task Q2)', asy
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Link do rezerwacji' }).click();
+    await openBusinessMenu(app, 'Link do rezerwacji');
     await expect(app.getByRole('heading', { name: 'Link do rezerwacji' })).toBeVisible();
     const title = app.getByRole('heading', { name: 'Kod QR specjalisty' });
     await title.scrollIntoViewIfNeeded();

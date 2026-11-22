@@ -180,8 +180,9 @@ test('"Base" in "Mój sklep" of the business app: status and "Synchronizuj teraz
     await signInToApp(app, businessApp.url, OWNER);
 
     // No Base yet: one quiet line, no card and no button.
-    await app.getByRole('button', { name: 'Mój sklep' }).click();
-    await expect(app.getByRole('heading', { name: 'Mój sklep' })).toBeVisible();
+    await app.getByRole('tab', { name: 'Sklep', exact: true }).click();
+    await expect(app.getByRole('heading', { name: 'Sklep', exact: true })).toBeVisible();
+    await app.getByRole('tab', { name: 'Integracje', exact: true }).click();
     await expect(app.getByText(/podłączysz w panelu na komputerze/)).toBeVisible();
     await expect(app.getByRole('button', { name: 'Synchronizuj teraz' })).toHaveCount(0);
     await app.getByRole('button', { name: '‹ Wróć' }).click();
@@ -206,13 +207,14 @@ test('"Base" in "Mój sklep" of the business app: status and "Synchronizuj teraz
       }),
     );
 
-    await app.getByRole('button', { name: 'Mój sklep' }).click();
+    await app.getByRole('tab', { name: 'Sklep', exact: true }).click();
+    await expect(app.getByText('Reuzel Pink Pomade 113 g', { exact: true })).toBeVisible();
+    await app.getByRole('tab', { name: 'Integracje', exact: true }).click();
     await expect(app.getByText(/Połączono z Base \(…0000\) · produktów z Base: 1/)).toBeVisible();
     await expect(
       app.getByText(/Ostatnia synchronizacja: (przed chwilą|\d+ min temu)\./),
     ).toBeVisible();
     await expect(app.getByText('Ceny i stany odświeżamy co 60 min.')).toBeVisible();
-    await expect(app.getByText('Reuzel Pink Pomade 113 g', { exact: true })).toBeVisible();
 
     await app.getByRole('button', { name: 'Synchronizuj teraz' }).click();
     // The regular renewal (every 5 min on the server) may have just run: then wait the minute.

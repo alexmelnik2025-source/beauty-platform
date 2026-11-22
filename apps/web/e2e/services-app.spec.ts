@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { expandBusinessRow, openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 93: "Usługi" in the business app (web preview of apps/mobile-business). The owner sees
@@ -175,17 +175,21 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     // ── The price list by category ─────────────────────────────────────
-    await app.getByRole('button', { name: 'Usługi' }).click();
+    await openBusinessMenu(app, 'Usługi');
     await expect(app.getByRole('heading', { name: 'Usługi', exact: true })).toBeVisible();
     await expect(app.getByRole('heading', { name: 'Włosy' })).toBeVisible();
     await expect(app.getByRole('heading', { name: 'Broda' })).toBeVisible();
-    await expect(app.getByText(/90,00\s*zł · 45 min/)).toBeVisible();
+    const haircutRow = app.getByRole('button').filter({
+      has: app.getByText('Strzyżenie męskie', { exact: true }),
+    });
+    await expect(haircutRow).toContainText(/45 min.*90,00\s*zł/);
     await expect(
       app.getByText('Nikt jej nie wykonuje — klienci nie zarezerwują jej online'),
     ).toBeVisible();
     await shot(app, '93-business-app-services');
 
     // ── Price and duration ─────────────────────────────────────────────
+    await expandBusinessRow(app, 'Strzyżenie męskie');
     await app.getByRole('button', { name: 'Zmień: Strzyżenie męskie' }).click();
     await app.getByLabel('Cena (PLN)').fill('95,50');
     await app.getByLabel('Czas (min)').fill('47');
@@ -195,23 +199,27 @@ test('the owner changes prices, durations and online booking in the business app
     await shot(app, '93b-business-app-service-edit');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano: Strzyżenie męskie.')).toBeVisible();
-    await expect(app.getByText(/95,50\s*zł · 1 g/)).toBeVisible();
+    await expect(haircutRow).toContainText(/1 g.*95,50\s*zł/);
 
     // ── Off online booking ───────────────────────────────────────────────
+    await expandBusinessRow(app, 'Strzyżenie męskie');
     await app.getByRole('button', { name: 'Zmień: Strzyżenie męskie' }).click();
     await app.getByRole('checkbox', { name: 'Dostępna do rezerwacji online' }).click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
-    await expect(app.getByText('Niedostępna online')).toBeVisible();
+    await expect(haircutRow).toContainText('Niedostępna online');
 
     // ── Task 253: the combo goes first in "Włosy" ────────────────────────
     await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie męskie' })).toHaveCount(0);
+    await expandBusinessRow(app, 'Strzyżenie + broda');
     await app.getByRole('button', { name: 'Wyżej: Strzyżenie + broda' }).click();
     await expect(app.getByText('Kolejność zapisana — tak klienci widzą usługi.')).toBeVisible();
-    await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie męskie' })).toBeVisible();
     await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie + broda' })).toHaveCount(0);
+    await expandBusinessRow(app, 'Strzyżenie męskie');
+    await expect(app.getByRole('button', { name: 'Wyżej: Strzyżenie męskie' })).toBeVisible();
     await shot(app, '253-business-app-service-order');
 
     // ── Task 255: "Broda" goes first among the categories ─────────────────
+    await app.getByRole('button', { name: 'Kategorie ▸', exact: true }).click();
     await expect(app.getByRole('button', { name: 'Kategoria wyżej: Włosy' })).toHaveCount(0);
     await app.getByRole('button', { name: 'Kategoria wyżej: Broda' }).click();
     await expect(app.getByRole('button', { name: 'Kategoria wyżej: Włosy' })).toBeVisible();
@@ -219,6 +227,7 @@ test('the owner changes prices, durations and online booking in the business app
     await shot(app, '255-business-app-category-order');
 
     // ── Task 310: "Duplikuj" the combo ──────────────────────────────────
+    await expandBusinessRow(app, 'Strzyżenie + broda');
     await app.getByRole('button', { name: 'Duplikuj: Strzyżenie + broda' }).click();
     await expect(app.getByRole('heading', { name: 'Kopia usługi' })).toBeVisible();
     await expect(app.getByLabel('Nazwa')).toHaveValue('Strzyżenie + broda (kopia)');
@@ -231,6 +240,7 @@ test('the owner changes prices, durations and online booking in the business app
     await shot(app, '310-business-app-service-copy');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Dodano usługę: Strzyżenie + broda junior.')).toBeVisible();
+    await expandBusinessRow(app, 'Strzyżenie + broda junior');
     await expect(
       app.getByRole('button', { name: 'Zmień: Strzyżenie + broda junior' }),
     ).toBeVisible();
@@ -239,6 +249,7 @@ test('the owner changes prices, durations and online booking in the business app
     await app.getByLabel('Nowa kategoria').fill('Koloryzacja');
     await app.getByRole('button', { name: 'Dodaj kategorię' }).click();
     await expect(app.getByText(/^Dodano kategorię: Koloryzacja\./)).toBeVisible();
+    await expandBusinessRow(app, 'Trymowanie brody');
     await app.getByRole('button', { name: 'Zmień: Trymowanie brody' }).click();
     await expect(app.getByRole('radio', { name: 'Broda', exact: true })).toBeChecked();
     await app.getByRole('radio', { name: 'Koloryzacja' }).click();
@@ -254,6 +265,7 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(
       app.getByText('Nikt jej nie wykonuje — klienci nie zarezerwują jej online'),
     ).toBeVisible();
+    await expandBusinessRow(app, 'Trymowanie brody');
     await app.getByRole('button', { name: 'Zmień: Trymowanie brody' }).click();
     await expect(app.getByRole('checkbox', { name: 'Kasia' })).not.toBeChecked();
     await app.getByRole('checkbox', { name: 'Kasia' }).click();
@@ -266,6 +278,7 @@ test('the owner changes prices, durations and online booking in the business app
     ).toHaveCount(0);
 
     // ── Task 314: a new name and a description ──────────────────────────
+    await expandBusinessRow(app, 'Strzyżenie męskie');
     await app.getByRole('button', { name: 'Zmień: Strzyżenie męskie' }).click();
     await expect(app.getByLabel('Nazwa')).toHaveValue('Strzyżenie męskie');
     await app.getByLabel('Nazwa').fill('Strzyżenie klasyczne');
@@ -278,6 +291,7 @@ test('the owner changes prices, durations and online booking in the business app
     // ── Task 313: a new service from scratch ─────────────────────────────
     await app.getByRole('button', { name: 'Dodaj usługę' }).click();
     await expect(app.getByLabel('Czas (min)')).toHaveValue('30');
+    await app.getByRole('button', { name: 'Więcej ▸', exact: true }).click();
     // The first category of the price list, done by everyone who takes visits.
     await expect(app.getByRole('radio', { name: 'Broda', exact: true })).toBeChecked();
     await expect(app.getByRole('checkbox', { name: 'Kasia' })).toBeChecked();
@@ -298,9 +312,11 @@ test('the owner changes prices, durations and online booking in the business app
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Dodano usługę: Golenie brzytwą.')).toBeVisible();
     await expect(app.getByRole('heading', { name: 'Broda', exact: true })).toBeVisible();
+    await expandBusinessRow(app, 'Golenie brzytwą');
     await expect(app.getByRole('button', { name: 'Zmień: Golenie brzytwą' })).toBeVisible();
 
     // ── Task 318: Kasia's own price and duration of the combo ─────────────
+    await expandBusinessRow(app, 'Strzyżenie + broda');
     await app.getByRole('button', { name: 'Zmień: Strzyżenie + broda', exact: true }).click();
     await expect(app.getByLabel('Własna cena — Kasia (PLN)')).toHaveValue('140');
     await expect(app.getByLabel('Własny czas — Kasia (min)')).toHaveValue('');
@@ -331,6 +347,7 @@ test('the owner changes prices, durations and online booking in the business app
     await expect(app.getByRole('heading', { name: 'Bez kategorii' })).toBeVisible();
 
     // ── Task 315: delete a service nobody has booked ─────────────────────
+    await expandBusinessRow(app, 'Masaż głowy');
     await app.getByRole('button', { name: 'Usuń: Masaż głowy' }).click();
     await expect(app.getByText('Usunąć „Masaż głowy”? Tego nie da się cofnąć.')).toBeVisible();
     await shot(app, '315-business-app-service-remove');

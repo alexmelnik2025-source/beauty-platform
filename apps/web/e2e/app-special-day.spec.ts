@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 335: "Dzień specjalny" in a specialist's schedule of the business app (web preview of
@@ -122,7 +122,7 @@ test('business app: the owner sets and removes a specialist’s special day', as
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Grafik zespołu' }).click();
+    await openBusinessMenu(phone, 'Grafik zespołu');
     await phone.getByRole('button', { name: 'Kasia', exact: true }).click();
     await expect(phone.getByRole('heading', { name: 'Grafik: Kasia' })).toBeVisible();
     await expect(phone.getByText('Dni specjalne')).toBeVisible();

@@ -120,7 +120,7 @@ test('the owner opens the next clients with "Pokaż więcej klientów"', async (
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByRole('tab', { name: 'Klienci', exact: true }).click();
     const cards = app.getByRole('button', { name: /^Karta klienta: / });
     await expect(cards).toHaveCount(50);
     const appMore = app.getByRole('button', { name: 'Pokaż więcej klientów' });

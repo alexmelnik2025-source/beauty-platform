@@ -8,7 +8,7 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Tasks 546–548: gift vouchers in "Zamknij kasę". Yesterday Jan paid for a 90 zł haircut in cash,
@@ -301,7 +301,7 @@ test('vouchers in the till: a visit paid partly with a voucher, a voucher sold f
     await shot(phone, '548-business-app-till-with-vouchers');
 
     await phone.getByRole('button', { name: 'Dziś' }).click();
-    await phone.getByRole('button', { name: 'Bony podarunkowe' }).click();
+    await openBusinessMenu(phone, 'Bony podarunkowe');
     await expect(phone.getByRole('heading', { name: 'Bony podarunkowe' })).toBeVisible();
     await expect(phone.getByText('Jak klient zapłacił za bon').first()).toBeVisible();
     await expect(phone.getByText(/Dla: Ewa · zapłacono: Gotówka/)).toBeVisible();

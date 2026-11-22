@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 206: "Program lojalnościowy" in the business app (web preview of apps/mobile-business).
@@ -107,7 +107,7 @@ test('the owner runs the loyalty program from the business app (task 206)', asyn
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await app.getByRole('button', { name: 'Program lojalnościowy' }).click();
+    await openBusinessMenu(app, 'Program lojalnościowy');
     await expect(app.getByRole('heading', { name: 'Program lojalnościowy' })).toBeVisible();
     await expect(app.getByText('Program wyłączony')).toBeVisible();
     await expect(app.getByText('Karta pieczątek: 1 za opłaconą wizytę')).toBeVisible();
@@ -164,7 +164,7 @@ test('the owner runs the loyalty program from the business app (task 206)', asyn
       }),
     );
     await app.getByRole('button', { name: '‹ Wróć' }).click();
-    await app.getByRole('button', { name: 'Program lojalnościowy' }).click();
+    await openBusinessMenu(app, 'Program lojalnościowy');
     await expect(app.getByText('Ręczna zmiana · Anna Kowalska')).toBeVisible();
     await expect(app.getByText(/^\+2 · saldo: 2 · /)).toBeVisible();
     await expect(app.getByText('Papierowa karta')).toBeVisible();

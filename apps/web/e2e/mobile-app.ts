@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer, request, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -51,4 +52,17 @@ export async function serveApp(app: string): Promise<{ url: string; server: Serv
   });
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
   return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, server };
+}
+
+/** Opens a section from the business app's bottom navigation. */
+export async function openBusinessMenu(page: Page, section: string): Promise<void> {
+  const more = page.getByRole('tab', { name: 'Więcej', exact: true });
+  if ((await more.getAttribute('aria-selected')) !== 'true') await more.click();
+  await page.getByRole('button', { name: section, exact: true }).click();
+}
+
+/** Opens the detail actions of a product or service without closing an already open row. */
+export async function expandBusinessRow(page: Page, name: string): Promise<void> {
+  const row = page.getByRole('button').filter({ has: page.getByText(name, { exact: true }) });
+  if ((await row.getAttribute('aria-expanded')) !== 'true') await row.click();
 }

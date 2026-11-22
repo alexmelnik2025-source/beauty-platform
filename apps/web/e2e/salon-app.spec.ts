@@ -1,6 +1,6 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 131: "Salon" in the business app (web preview of apps/mobile-business). The owner changes
@@ -115,10 +115,23 @@ test('the owner changes the salon from the business app (task 131)', async ({
       );
     }
 
-    // ── "Salon": phone without the country code, a description ──────────────
-    await app.getByRole('button', { name: 'Salon', exact: true }).click();
-    await expect(app.getByRole('heading', { name: 'Salon', exact: true })).toBeVisible();
-    await expect(app.getByLabel('Nazwa salonu')).toHaveValue('Gestalt Barbershop');
+    // ── Settings: phone without the country code, a description ──────────────
+    await openBusinessMenu(app, 'Ustawienia');
+    await expect(app.getByRole('heading', { name: 'Ustawienia', exact: true })).toBeVisible();
+    const backToSettings = app.getByRole('button', { name: '‹ Ustawienia', exact: true });
+    async function openSettingsSection(name: string) {
+      if (await backToSettings.isVisible()) await backToSettings.click();
+      await app.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+      await expect(app.getByRole('heading', { name, exact: true })).toBeVisible();
+    }
+
+    await openSettingsSection('Dane salonu');
+    const salonName = app.getByLabel('Nazwa salonu');
+    await expect(salonName).toHaveValue('Gestalt Barbershop');
+    await salonName.fill('Zmiana do odrzucenia');
+    await expect(app.getByText('Niezapisane zmiany')).toBeVisible();
+    await app.getByRole('button', { name: 'Odrzuć', exact: true }).click();
+    await expect(salonName).toHaveValue('Gestalt Barbershop');
     await app.getByLabel('Telefon salonu').fill('22 123 45 67');
     await app.getByLabel('O salonie').fill('Strzyżemy od 2015 roku. Kawa gratis.');
     await shot(app, '131-business-app-salon');
@@ -131,6 +144,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
     expect(saved.description).toBe('Strzyżemy od 2015 roku. Kawa gratis.');
 
     // ── Online booking needs the terms first ────────────────────────────────
+    await openSettingsSection('Rezerwacja online');
     await app.getByLabel('Rezerwacja online').click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText(/potrzebuje regulaminu i polityki prywatności/)).toBeVisible();
@@ -149,6 +163,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
     );
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText(/Ktoś inny właśnie zmienił dane salonu/)).toBeVisible();
+    await openSettingsSection('Rezerwacja online');
     await expect(app.getByText('Wyłączona — strona rezerwacji jest niedostępna.')).toBeVisible();
     await app.getByLabel('Rezerwacja online').click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
@@ -160,10 +175,10 @@ test('the owner changes the salon from the business app (task 131)', async ({
     expect(online).toMatchObject({ onlineBookingEnabled: true, phone: '+48221234567' });
 
     // ── Task 319: booking rules ─────────────────────────────────────────────
-    await expect(app.getByText('Zasady rezerwacji')).toBeVisible();
+    await openSettingsSection('Zasady rezerwacji');
     await app.getByLabel('Najdalej: dni naprzód').fill('400');
     await app.getByRole('button', { name: 'Zapisz' }).click();
-    await expect(app.getByText('Wpisz liczbę dni od 1 do 365.')).toBeVisible();
+    await expect(app.getByRole('alert')).toContainText('Wpisz liczbę dni od 1 do 365.');
     await app.getByLabel('Najwcześniej: minut przed wizytą').fill('30');
     await app.getByLabel('Najdalej: dni naprzód').fill('90');
     await app.getByLabel('Klient może zmienić wizytę do: minut przed').fill('240');
@@ -172,7 +187,9 @@ test('the owner changes the salon from the business app (task 131)', async ({
       'aria-pressed',
       'true',
     );
-    await app.getByText('Zasady rezerwacji').scrollIntoViewIfNeeded();
+    await app
+      .getByRole('heading', { name: 'Zasady rezerwacji', exact: true })
+      .scrollIntoViewIfNeeded();
     await shot(app, '319-business-app-booking-rules');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano.')).toBeVisible();
@@ -190,7 +207,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
     });
 
     // ── Task 320: questions on the last booking step ────────────────────────
-    await expect(app.getByText('Pytania przy rezerwacji')).toBeVisible();
+    await openSettingsSection('Pytania przy rezerwacji');
     await app.getByLabel('Jak klient chce spędzić wizytę (rozmowa, cisza, odpoczynek)').click();
     await app.getByLabel('Coś do picia').click();
     await app.getByRole('button', { name: '☕ Kawa' }).click();
@@ -199,7 +216,9 @@ test('the owner changes the salon from the business app (task 131)', async ({
       'aria-pressed',
       'true',
     );
-    await app.getByText('Pytania przy rezerwacji').scrollIntoViewIfNeeded();
+    await app
+      .getByRole('heading', { name: 'Pytania przy rezerwacji', exact: true })
+      .scrollIntoViewIfNeeded();
     await shot(app, '320-business-app-booking-questions');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano.')).toBeVisible();
@@ -219,12 +238,13 @@ test('the owner changes the salon from the business app (task 131)', async ({
     );
 
     // ── Task 321: the salon's place on the catalogue map ────────────────────
+    await openSettingsSection('Dane salonu');
     await expect(app.getByText(/Salonu nie ma jeszcze na mapie katalogu/)).toBeVisible();
     await app.getByLabel('Miejsce na mapie katalogu').fill('52.23251');
     await app.getByRole('button', { name: 'Zapisz' }).click();
-    await expect(
-      app.getByText('Wpisz dwie liczby oddzielone przecinkiem, np. 52.23251, 20.95634.'),
-    ).toBeVisible();
+    await expect(app.getByRole('alert')).toContainText(
+      'Wpisz dwie liczby oddzielone przecinkiem, np. 52.23251, 20.95634.',
+    );
     await app.getByLabel('Miejsce na mapie katalogu').fill('52.23251, 20.95634');
     await app.getByLabel('Miejsce na mapie katalogu').scrollIntoViewIfNeeded();
     await shot(app, '321-business-app-salon-map');
@@ -237,12 +257,15 @@ test('the owner changes the salon from the business app (task 131)', async ({
     expect(place).toMatchObject({ latitude: 52.23251, longitude: 20.95634 });
 
     // ── Task 322: languages at the salon ────────────────────────────────────
+    await openSettingsSection('Języki w salonie');
     await app.getByRole('checkbox', { name: 'Українська' }).click();
     await expect(app.getByRole('checkbox', { name: 'Українська' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
-    await app.getByText('Języki w salonie').scrollIntoViewIfNeeded();
+    await app
+      .getByRole('heading', { name: 'Języki w salonie', exact: true })
+      .scrollIntoViewIfNeeded();
     await shot(app, '322-business-app-salon-languages');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano.')).toBeVisible();
@@ -250,6 +273,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
     expect(spoken.languages).toContain('uk');
 
     // ── Task 323: country (time zone) and currency ──────────────────────────
+    await openSettingsSection('Kraj i waluta');
     await expect(app.getByLabel('Kraj i strefa czasowa: Polska (Warsaw)')).toBeVisible();
     await app.getByRole('button', { name: 'Zmień: Kraj i strefa czasowa' }).click();
     await app.getByLabel('Szukaj: Kraj i strefa czasowa').fill('czech');
@@ -259,7 +283,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
     await app.getByRole('button', { name: 'Zmień: Waluta cen' }).click();
     await app.getByLabel('Szukaj: Waluta cen').fill('CZK');
     await expect(app.getByRole('radio', { name: /^CZK/ })).toBeVisible();
-    await app.getByText('Kraj i waluta').scrollIntoViewIfNeeded();
+    await app.getByRole('heading', { name: 'Kraj i waluta', exact: true }).scrollIntoViewIfNeeded();
     await shot(app, '323-business-app-salon-country');
     await app.getByRole('radio', { name: /^CZK/ }).click();
     await expect(app.getByLabel(/^Waluta cen: CZK/)).toBeVisible();
@@ -272,6 +296,7 @@ test('the owner changes the salon from the business app (task 131)', async ({
       .toMatchObject({ timezone: 'Europe/Prague', currency: 'CZK' });
 
     // ── Task 324: terms and privacy ─────────────────────────────────────────
+    await openSettingsSection('Regulamin i prywatność');
     await expect(app.getByLabel('Regulamin rezerwacji', { exact: true })).toHaveValue(
       /Wizyta jest bezpłatna/,
     );
@@ -286,7 +311,9 @@ test('the owner changes the salon from the business app (task 131)', async ({
     await app
       .getByLabel('Polityka prywatności', { exact: true })
       .fill('# Prywatność\n\nAdministratorem danych jest GESTALT sp. z o.o.');
-    await app.getByText('Regulamin i prywatność', { exact: true }).scrollIntoViewIfNeeded();
+    await app
+      .getByRole('heading', { name: 'Regulamin i prywatność', exact: true })
+      .scrollIntoViewIfNeeded();
     await shot(app, '324-business-app-salon-legal');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText(/^Wstawiono szablon z danymi salonu/)).toBeHidden();
@@ -303,11 +330,14 @@ test('the owner changes the salon from the business app (task 131)', async ({
       ]);
 
     // ── Task 325: the salon's photos — one removed at once ──────────────────
+    await openSettingsSection('Zdjęcia salonu');
     await expect(app.getByLabel('Zdjęcie 1', { exact: true })).toBeVisible();
     await expect(app.getByLabel('Zdjęcie 2', { exact: true })).toBeVisible();
     await app.getByRole('button', { name: 'Usuń: Zdjęcie 1' }).click();
     await expect(app.getByText('Usunąć to zdjęcie ze strony rezerwacji?')).toBeVisible();
-    await app.getByText('Zdjęcia salonu', { exact: true }).scrollIntoViewIfNeeded();
+    await app
+      .getByRole('heading', { name: 'Zdjęcia salonu', exact: true })
+      .scrollIntoViewIfNeeded();
     await shot(app, '325-business-app-salon-photos');
     await app.getByRole('button', { name: 'Tak, usuń: Zdjęcie 1' }).click();
     await expect(app.getByText('Zdjęcie usunięte.')).toBeVisible();
@@ -330,7 +360,9 @@ test('the owner changes the salon from the business app (task 131)', async ({
     });
     await expect(app.getByText('Zdjęcie dodane', { exact: false })).toBeVisible();
     await expect(app.getByLabel('Zdjęcie 2', { exact: true })).toBeVisible();
-    await app.getByText('Zdjęcia salonu', { exact: true }).scrollIntoViewIfNeeded();
+    await app
+      .getByRole('heading', { name: 'Zdjęcia salonu', exact: true })
+      .scrollIntoViewIfNeeded();
     await shot(app, '337-business-app-salon-photo-added');
     const now = await json<{ contentType: string }[]>(
       await request.get(`${path}/photos`, { headers: owner }),
@@ -339,10 +371,13 @@ test('the owner changes the salon from the business app (task 131)', async ({
     expect(now[1]!.contentType).toBe('image/jpeg');
 
     // ── A new name shows on the calendar at once ────────────────────────────
+    await openSettingsSection('Dane salonu');
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano.')).toBeVisible();
-    await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await backToSettings.click();
+    await app.getByRole('button', { name: '‹ Wróć', exact: true }).click();
+    await app.getByRole('tab', { name: 'Kalendarz', exact: true }).click();
     await expect(app.getByText('Gestalt Barbershop Bema')).toBeVisible();
     await context.close();
   } finally {

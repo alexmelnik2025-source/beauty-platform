@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 344: "Zasady programu" in "Program lojalnościowy" of the business app (web preview of
@@ -92,7 +92,7 @@ test('business app: the owner changes the loyalty program’s rules', async ({
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
+    await openBusinessMenu(phone, 'Program lojalnościowy');
     await expect(phone.getByText('Zasady programu')).toBeVisible();
     await phone.getByRole('button', { name: 'Zmień zasady', exact: true }).click();
     await phone.getByRole('button', { name: 'Punkty za kwotę' }).click();

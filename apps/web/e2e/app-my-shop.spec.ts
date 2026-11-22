@@ -10,7 +10,7 @@ import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
 /**
- * Task Q3 (part 2c): "Mój sklep" in the business app (web preview of apps/mobile-business). The
+ * Task Q3 (part 2c): "Sklep" in the business app (web preview of apps/mobile-business). The
  * owner shows a pomade to clients on the phone, picks its card from the platform catalogue by the
  * EAN and switches "Sprzedawaj też w Sklepie" on; a wax is added already shown to clients.
  * Screenshots Q3-my-shop-app, Q3-my-shop-app-card.
@@ -80,7 +80,7 @@ async function signInToApp(app: Page, url: string, email: string) {
   await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 }
 
-test('"Mój sklep" in the business app: shown to clients, a catalogue card, the Shop (task Q3)', async ({
+test('"Sklep" in the business app: shown to clients, a catalogue card, the Shop (task Q3)', async ({
   browser,
   request,
 }) => {
@@ -122,11 +122,13 @@ test('"Mój sklep" in the business app: shown to clients, a catalogue card, the 
     });
     const app = await context.newPage();
     await signInToApp(app, businessApp.url, OWNER);
-    await app.getByRole('button', { name: 'Mój sklep' }).click();
-    await expect(app.getByRole('heading', { name: 'Mój sklep' })).toBeVisible();
-    await expect(app.getByText('Pokazane klientom: 0 z 1 produktów.')).toBeVisible();
+    await app.getByRole('tab', { name: 'Sklep', exact: true }).click();
+    await expect(app.getByRole('heading', { name: 'Sklep', exact: true })).toBeVisible();
+    await expect(app.getByRole('tab', { name: 'Produkty', selected: true })).toBeVisible();
     await expect(app.getByText('Pomada Reuzel różowa')).toBeVisible();
     await expect(app.getByText(/4 szt\./)).toBeVisible();
+    await app.getByRole('tab', { name: 'Sprzedaż online', exact: true }).click();
+    await expect(app.getByText('Pokazane klientom: 0 z 1 produktów.')).toBeVisible();
 
     await app.getByRole('button', { name: 'Pokaż klientom na stronie salonu' }).click();
     await expect(app.getByText('Pokazane klientom: 1 z 1 produktów.')).toBeVisible();
@@ -149,10 +151,16 @@ test('"Mój sklep" in the business app: shown to clients, a catalogue card, the 
     await expect(app.getByRole('button', { name: 'Nie sprzedawaj w Sklepie' })).toBeVisible();
 
     // A wax, shown to clients at once.
-    await app.getByLabel('Nazwa produktu').fill('Wosk matowy');
+    await app.getByRole('tab', { name: 'Produkty', exact: true }).click();
+    await app.getByRole('button', { name: '+ Dodaj produkt', exact: true }).click();
+    await app.getByLabel('Nowy produkt').fill('Wosk matowy');
     await app.getByLabel(/Cena produktu/).fill('39,90');
-    await app.getByLabel(/Sztuk w magazynie/).fill('10');
-    await app.getByRole('button', { name: 'Dodaj produkt' }).click();
+    await app.getByLabel(/^W magazynie/).fill('10');
+    await app.getByRole('button', { name: 'Więcej ▸', exact: true }).click();
+    await app.getByRole('switch', { name: 'Pokaż klientom na stronie salonu' }).click();
+    await app.getByRole('button', { name: 'Zapisz', exact: true }).click();
+    await expect(app.getByText('Wosk matowy', { exact: true })).toBeVisible();
+    await app.getByRole('tab', { name: 'Sprzedaż online', exact: true }).click();
     await expect(app.getByText('Pokazane klientom: 2 z 2 produktów.')).toBeVisible();
 
     // What the "Sklep" tab answers.

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ProductListSection } from './ProductListSection';
 import {
   BackHandler,
   Pressable,
@@ -108,6 +107,11 @@ export function ServicesScreen(props: {
   /** Task 312: the salon's specialists (who performs a service). */
   const [staff, setStaff] = useState<StaffList>([]);
   /** Task 311: the name of a new category, as typed. */
+  const [query, setQuery] = useState('');
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [options, setOptions] = useState(false);
+  const [serviceOptions, setServiceOptions] = useState(false);
+  const [rowOptions, setRowOptions] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [busy, setBusy] = useState(false);
   /** Task 310: the service being copied, and the copy's name, price, duration, online. */
@@ -338,7 +342,7 @@ export function ServicesScreen(props: {
     }
   }
 
-  /** Task 313: an empty form of a new service at the end of the screen. */
+  /** Task 313: an empty form of a new service. */
   function startNew() {
     setEditId(null);
     setCopyId(null);
@@ -593,6 +597,14 @@ export function ServicesScreen(props: {
     }
   }
 
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visible = (service: NonNullable<typeof groups>[number]['services'][number]) =>
+    service.id === editId ||
+    service.id === copyId ||
+    service.id === removeId ||
+    ((!activeOnly || service.active) && service.name.toLocaleLowerCase().includes(normalizedQuery));
+  const filtering = activeOnly || normalizedQuery !== '';
+
   const price = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
   return (
@@ -601,6 +613,15 @@ export function ServicesScreen(props: {
         <Button kind="link" label={u.back} onPress={onBack} />
       </View>
       <Heading>{u.title}</Heading>
+      {groups && !fresh ? (
+        <Button
+          label={u.addService}
+          onPress={() => {
+            setServiceOptions(false);
+            startNew();
+          }}
+        />
+      ) : null}
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
@@ -608,14 +629,115 @@ export function ServicesScreen(props: {
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
 
+      {fresh ? (
+        <Card>
+          <View style={{ gap: 10 }}>
+            {nameFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
+            <Text style={styles.label}>{fill(u.price, { currency: salon.currency })}</Text>
+            <TextInput
+              accessibilityLabel={fill(u.price, { currency: salon.currency })}
+              value={fresh.price}
+              onChangeText={(price) => setFresh((f) => (f ? { ...f, price } : f))}
+              keyboardType="decimal-pad"
+              placeholder="90"
+              style={styles.input}
+            />
+            <Text style={styles.label}>{u.duration}</Text>
+            <TextInput
+              accessibilityLabel={u.duration}
+              value={fresh.duration}
+              onChangeText={(duration) => setFresh((f) => (f ? { ...f, duration } : f))}
+              keyboardType="number-pad"
+              style={styles.input}
+            />
+            <Button
+              kind="link"
+              label={`${t.navigation.more} ${serviceOptions ? '▾' : '▸'}`}
+              expanded={serviceOptions}
+              onPress={() => setServiceOptions(!serviceOptions)}
+            />
+            {serviceOptions ? (
+              <>
+                {extraFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={u.active}
+                  accessibilityState={{ checked: fresh.active }}
+                  aria-checked={fresh.active}
+                  onPress={() => setFresh((f) => (f ? { ...f, active: !f.active } : f))}
+                  style={styles.check}
+                >
+                  <Text style={[styles.box, fresh.active && styles.boxOn]}>
+                    {fresh.active ? '✓' : ''}
+                  </Text>
+                  <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
+                </Pressable>
+                {categoryPicker(fresh.categoryId, (categoryId) =>
+                  setFresh((f) => (f ? { ...f, categoryId } : f)),
+                )}
+                {performersPicker(fresh.staffIds, (staffIds) =>
+                  setFresh((f) => (f ? { ...f, staffIds } : f)),
+                )}
+                <Text style={styles.muted}>{u.newServiceHint}</Text>
+              </>
+            ) : null}
+            <View style={styles.row}>
+              <Button label={u.save} busy={busy} onPress={() => void saveNew()} />
+              <Button kind="secondary" label={u.cancel} onPress={() => setFresh(null)} />
+            </View>
+          </View>
+        </Card>
+      ) : null}
+      {groups && groups.length > 0 ? (
+        <>
+          <TextInput
+            accessibilityLabel={t.navigation.searchServices}
+            placeholder={t.navigation.searchServices}
+            placeholderTextColor={colors.placeholder}
+            value={query}
+            onChangeText={setQuery}
+            style={styles.input}
+          />
+          <View style={styles.row}>
+            <Button
+              kind="secondary"
+              label={t.navigation.all}
+              compact
+              selected={!activeOnly}
+              onPress={() => setActiveOnly(false)}
+            />
+            <Button
+              kind="secondary"
+              label={t.navigation.active}
+              compact
+              selected={activeOnly}
+              onPress={() => setActiveOnly(true)}
+            />
+          </View>
+        </>
+      ) : null}
+
+      {groups ? (
+        <Button
+          kind="link"
+          label={`${t.navigation.serviceCategories} ${options ? '▾' : '▸'}`}
+          expanded={options}
+          onPress={() => setOptions(!options)}
+        />
+      ) : null}
       {groups === null ? (
         !error ? (
           <Text style={styles.muted}>{t.loading}</Text>
         ) : null
       ) : groups.length === 0 ? (
         <Text style={styles.muted}>{u.none}</Text>
+      ) : filtering && !groups.some((group) => group.services.some(visible)) ? (
+        <Text style={styles.muted} role="status">
+          {t.navigation.noServices}
+        </Text>
       ) : (
         groups.map((group, groupIndex) => {
+          if (filtering && !group.services.some(visible)) return null;
           const id = group.id;
           const named = groups.filter((g) => g.id).length;
           return (
@@ -624,7 +746,7 @@ export function ServicesScreen(props: {
                 <Text role="heading" aria-level={2} style={[styles.section, { flexShrink: 1 }]}>
                   {group.name ?? u.other}
                 </Text>
-                {id && groupIndex > 0 ? (
+                {options && id && groupIndex > 0 ? (
                   <Button
                     kind="link"
                     label="↑"
@@ -632,7 +754,7 @@ export function ServicesScreen(props: {
                     onPress={() => void moveCategory(id, -1)}
                   />
                 ) : null}
-                {id && groupIndex < named - 1 ? (
+                {options && id && groupIndex < named - 1 ? (
                   <Button
                     kind="link"
                     label="↓"
@@ -640,7 +762,7 @@ export function ServicesScreen(props: {
                     onPress={() => void moveCategory(id, 1)}
                   />
                 ) : null}
-                {id && categoryEdit?.id !== id ? (
+                {options && id && categoryEdit?.id !== id ? (
                   <Button
                     kind="link"
                     label={u.edit}
@@ -687,17 +809,38 @@ export function ServicesScreen(props: {
                 </Card>
               ) : null}
               {group.services.map((service, index) => {
+                if (!visible(service)) return null;
                 const problem = bookingProblem(service);
                 const open = editId === service.id;
                 const copying = copyId === service.id;
                 return (
                   <Card key={service.id}>
-                    <Text style={[styles.name, !service.active && { color: colors.muted }]}>
-                      {service.name}
-                    </Text>
-                    <Text style={styles.text}>
-                      {`${price(service.priceGrosze)} · ${durationText(service.durationMinutes, u.units)}`}
-                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: rowOptions === service.id }}
+                      aria-expanded={rowOptions === service.id}
+                      onPress={() => setRowOptions(rowOptions === service.id ? null : service.id)}
+                      style={styles.serviceRow}
+                    >
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.name, !service.active && { color: colors.muted }]}
+                        >
+                          {service.name}
+                        </Text>
+                        <Text numberOfLines={1} style={styles.muted}>
+                          {service.active ? t.navigation.active : u.hidden}
+                        </Text>
+                      </View>
+                      <Text style={styles.text}>
+                        {durationText(service.durationMinutes, u.units)}
+                      </Text>
+                      <Text style={styles.name}>{price(service.priceGrosze)}</Text>
+                      <Text aria-hidden style={styles.muted}>
+                        {rowOptions === service.id ? '▾' : '›'}
+                      </Text>
+                    </Pressable>
                     {problem ? (
                       <Text style={styles.warn}>{problem === 'hidden' ? u.hidden : u.nobody}</Text>
                     ) : null}
@@ -829,7 +972,7 @@ export function ServicesScreen(props: {
                           />
                         </View>
                       </View>
-                    ) : (
+                    ) : rowOptions === service.id ? (
                       <View style={styles.row}>
                         <Button
                           kind="link"
@@ -872,7 +1015,7 @@ export function ServicesScreen(props: {
                           />
                         ) : null}
                       </View>
-                    )}
+                    ) : null}
                   </Card>
                 );
               })}
@@ -882,78 +1025,29 @@ export function ServicesScreen(props: {
       )}
       {groups !== null ? (
         <View style={{ gap: 10 }}>
-          <Text role="heading" aria-level={2} style={styles.section}>
-            {u.newService}
-          </Text>
-          {fresh ? (
-            <Card>
-              <View style={{ gap: 10 }}>
-                {nameFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
-                <Text style={styles.label}>{fill(u.price, { currency: salon.currency })}</Text>
-                <TextInput
-                  accessibilityLabel={fill(u.price, { currency: salon.currency })}
-                  value={fresh.price}
-                  onChangeText={(price) => setFresh((f) => (f ? { ...f, price } : f))}
-                  keyboardType="decimal-pad"
-                  placeholder="90"
-                  style={styles.input}
+          {options ? (
+            <>
+              <Text role="heading" aria-level={2} style={styles.section}>
+                {u.newCategory}
+              </Text>
+              <TextInput
+                accessibilityLabel={u.newCategory}
+                value={newCategory}
+                onChangeText={setNewCategory}
+                maxLength={60}
+                placeholder={u.newCategoryPlaceholder}
+                style={styles.input}
+              />
+              <View style={styles.row}>
+                <Button
+                  kind="secondary"
+                  label={u.addCategory}
+                  busy={busy}
+                  onPress={() => void addCategory()}
                 />
-                <Text style={styles.label}>{u.duration}</Text>
-                <TextInput
-                  accessibilityLabel={u.duration}
-                  value={fresh.duration}
-                  onChangeText={(duration) => setFresh((f) => (f ? { ...f, duration } : f))}
-                  keyboardType="number-pad"
-                  style={styles.input}
-                />
-                {extraFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
-                <Pressable
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={u.active}
-                  accessibilityState={{ checked: fresh.active }}
-                  aria-checked={fresh.active}
-                  onPress={() => setFresh((f) => (f ? { ...f, active: !f.active } : f))}
-                  style={styles.check}
-                >
-                  <Text style={[styles.box, fresh.active && styles.boxOn]}>
-                    {fresh.active ? '✓' : ''}
-                  </Text>
-                  <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
-                </Pressable>
-                {categoryPicker(fresh.categoryId, (categoryId) =>
-                  setFresh((f) => (f ? { ...f, categoryId } : f)),
-                )}
-                {performersPicker(fresh.staffIds, (staffIds) =>
-                  setFresh((f) => (f ? { ...f, staffIds } : f)),
-                )}
-                <Text style={styles.muted}>{u.newServiceHint}</Text>
-                <View style={styles.row}>
-                  <Button label={u.save} busy={busy} onPress={() => void saveNew()} />
-                  <Button kind="secondary" label={u.cancel} onPress={() => setFresh(null)} />
-                </View>
               </View>
-            </Card>
-          ) : (
-            <View style={styles.row}>
-              <Button label={u.addService} onPress={startNew} />
-            </View>
-          )}
-          <Text role="heading" aria-level={2} style={styles.section}>
-            {u.newCategory}
-          </Text>
-          <TextInput
-            accessibilityLabel={u.newCategory}
-            value={newCategory}
-            onChangeText={setNewCategory}
-            maxLength={60}
-            placeholder={u.newCategoryPlaceholder}
-            style={styles.input}
-          />
-          <View style={styles.row}>
-            <Button label={u.addCategory} busy={busy} onPress={() => void addCategory()} />
-          </View>
-          {/* Task 397: the products sold at a visit. */}
-          <ProductListSection api={api} t={t} locale={props.locale} salon={salon} />
+            </>
+          ) : null}
         </View>
       ) : null}
       {groups && groups.length > 0 ? <Text style={styles.muted}>{u.hint}</Text> : null}
@@ -962,6 +1056,7 @@ export function ServicesScreen(props: {
 }
 
 const styles = StyleSheet.create({
+  serviceRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   section: { fontSize: 18, fontWeight: '700', color: colors.ink, marginTop: 8 },

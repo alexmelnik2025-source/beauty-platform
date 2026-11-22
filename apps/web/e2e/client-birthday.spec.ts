@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 240: the client's birthday (day and month, no year) in the cabinet card, and "Urodziny w
@@ -478,7 +478,7 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await expect(app.getByText('Ewa Wiśniewska')).toBeVisible();
     await app.getByRole('switch', { name: /Urodziny w ciągu 7 dni/ }).click();
     await expect(app.getByText('Ewa Wiśniewska')).toHaveCount(0);
@@ -572,7 +572,7 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(app.getByRole('button', { name: 'Karta klienta: Ewa Wiśniewska' })).toBeVisible();
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     const appOverdue = app.getByTestId('report-overdue');
     await expect(appOverdue).toContainText('Pora wrócić: 1');
     await appOverdue.scrollIntoViewIfNeeded();

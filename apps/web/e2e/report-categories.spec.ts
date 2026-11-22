@@ -8,7 +8,7 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 256: "Kategorie usług" in the report — the visits and revenue of the period by price-list
@@ -175,7 +175,7 @@ test('the report groups the visits by price-list category', async ({ browser, re
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const heading = app.getByText('Kategorie usług', { exact: true });
     await heading.scrollIntoViewIfNeeded();

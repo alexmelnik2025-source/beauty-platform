@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 232: "Zamknij kasę". A visit paid in cash (90 zł) yesterday; in "Kasa dnia" the owner
@@ -288,7 +288,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     await expect(appMoves).toHaveCount(0);
 
     // Task 235: "Zamknięcia kasy" in the business app's report.
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appCloses = app.getByTestId('report-till-closes');
     await appCloses.scrollIntoViewIfNeeded();

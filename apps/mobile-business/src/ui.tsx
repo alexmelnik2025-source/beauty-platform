@@ -27,26 +27,43 @@ export function Button(props: {
   kind?: 'primary' | 'secondary' | 'link';
   disabled?: boolean;
   busy?: boolean;
+  compact?: boolean;
+  expanded?: boolean;
+  selected?: boolean;
 }) {
   const kind = props.kind ?? 'primary';
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={props.a11yLabel ?? props.label}
-      accessibilityState={{ disabled: props.disabled || props.busy }}
+      accessibilityState={{
+        disabled: props.disabled || props.busy,
+        expanded: props.expanded,
+        selected: props.selected,
+      }}
+      aria-expanded={props.expanded}
+      aria-selected={props.selected}
       disabled={props.disabled || props.busy}
       onPress={props.onPress}
       style={({ pressed }) => [
         styles.button,
         kind === 'secondary' && styles.secondary,
         kind === 'link' && styles.link,
+        props.compact && styles.compact,
+        props.selected && { backgroundColor: colors.soft },
         (props.disabled || pressed) && { opacity: 0.6 },
       ]}
     >
       {props.busy ? (
         <ActivityIndicator color={kind === 'primary' ? '#fff' : colors.ink} />
       ) : (
-        <Text style={[styles.buttonText, kind !== 'primary' && { color: colors.ink }]}>
+        <Text
+          style={[
+            styles.buttonText,
+            props.compact && styles.compactText,
+            kind !== 'primary' && { color: colors.ink },
+          ]}
+        >
           {props.label}
         </Text>
       )}
@@ -86,6 +103,8 @@ const styles = StyleSheet.create({
   },
   secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   link: { backgroundColor: 'transparent', paddingHorizontal: 8 },
+  compact: { paddingHorizontal: 10, paddingVertical: 7, minHeight: 44 },
+  compactText: { fontSize: 14 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   heading: { fontSize: 26, fontWeight: '700', color: colors.ink },
   error: { color: colors.danger, fontSize: 15 },

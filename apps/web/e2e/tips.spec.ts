@@ -8,7 +8,7 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 229: tips. In the card of a visit that took place the owner notes "Napiwek" 15,50 zł
@@ -244,7 +244,7 @@ test('the owner notes a tip; the till and the report show it apart from the reve
     await shot(app, '229-c-business-app-visit-tip');
     await app.getByRole('button', { name: '‹ Wróć' }).first().click();
     await expect(appTill.getByTestId('till-tips')).toHaveText(/Napiwki 20,00\s*zł/);
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appTips = app.getByTestId('report-tips');
     await appTips.scrollIntoViewIfNeeded();

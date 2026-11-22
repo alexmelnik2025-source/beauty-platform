@@ -31,6 +31,15 @@ export function dayTitle(date: string, locale: DayLocale): string {
   }).format(new Date(Date.UTC(y, m - 1, d, 12)));
 }
 
+/** A numeric date for the narrow calendar toolbar. */
+export function calendarDate(date: string, locale: DayLocale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    timeZone: 'UTC',
+    day: '2-digit',
+    month: '2-digit',
+  }).format(new Date(date));
+}
+
 /** HH:MM of a moment in the salon's time zone. */
 export function timeIn(iso: string, timeZone: string): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -84,8 +93,13 @@ export function visitsOfDay(calendar: Calendar, date: string): DayVisit[] {
 }
 
 /** Who works that day and when, e.g. "Kasia 08:00–21:00". Days off are left out. */
-export function staffOfDay(calendar: Calendar, date: string): { name: string; hours: string }[] {
+export function staffOfDay(
+  calendar: Calendar,
+  date: string,
+  staffId: string | null = null,
+): { name: string; hours: string }[] {
   return calendar.staff.flatMap((s) => {
+    if (staffId && s.id !== staffId) return [];
     const intervals = s.days.find((d) => d.date === date)?.intervals ?? [];
     if (intervals.length === 0) return [];
     return [{ name: s.displayName, hours: intervals.map((i) => `${i.start}–${i.end}`).join(', ') }];

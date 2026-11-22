@@ -686,7 +686,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     const ownerCode = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(ownerCode.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
-    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await app.getByLabel('Szukaj: imię, telefon, e-mail lub tag').fill('Anna');
     await app.getByRole('button', { name: 'Szukaj', exact: true }).click();
     await app.getByRole('button', { name: 'Karta klienta: Anna Kowalska', exact: true }).click();
