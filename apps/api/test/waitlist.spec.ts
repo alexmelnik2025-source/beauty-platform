@@ -793,6 +793,13 @@ describe('waiting list in the client app (51)', () => {
     const mine = await ctx.http().get('/v1/client/waitlist').set(anna).expect(200);
     expect(mine.body.items[0]).toMatchObject({ date: day, status: 'waiting', autoBook: true });
     await outbox.drain();
+    // The "you are on the list" email says the time will be booked at once.
+    const welcome = ctx.mail.lastTo(ANNA)!;
+    expect(welcome.subject).toBe('Jesteś na liście oczekujących');
+    expect(welcome.text).toContain('Strzyżenie u Kasia (Barber Centrum)');
+    expect(welcome.text).toContain('od razu go dla Ciebie zarezerwujemy');
+    expect(welcome.text).not.toContain('napiszemy do Ciebie');
+    expect(ctx.mail.lastTo(BOB)!.text).toContain('napiszemy do Ciebie');
     const before = ctx.mail.allTo(ANNA).length;
 
     // The salon cancels the visit: Anna (first, automatic) gets it booked straight away.

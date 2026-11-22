@@ -447,7 +447,12 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         where: { id: entry.id },
         data: { tokenHash: hashToken(token) },
       });
-      mail = renderWaitlistJoinedEmail(locale, details, `${web}/${locale}/w/${token}`);
+      mail = renderWaitlistJoinedEmail(
+        locale,
+        details,
+        `${web}/${locale}/w/${token}`,
+        entry.autoBook,
+      );
     } else if (row.type === WAITLIST_OFFER) {
       // Task 164: only while the time is still held for this client. The token is made here.
       if (entry.status !== 'offered' || !entry.offerExpiresAt) return null;

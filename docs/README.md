@@ -4124,6 +4124,8 @@ Q4-base-orders. Дальше: статус Base в бизнес-приложен
   никаких 15 минут ожидания. Защита от отмен действует: если салон требует звонка или оплаты долга, запись в листе —
   `missed`, время уходит следующему. Пока первый в очереди — «авто», остальным в этот круг ничего не пишут.
 - Страница записи без входа поле не принимает (адрес там ещё не подтверждён) — запись обычная.
+- Письмо «Jesteś na liście oczekujących» для такого клиента: «Gdy zwolni się termin, od razu go dla Ciebie
+  zarezerwujemy i wyślemy potwierdzenie» (6 языков, `waitlist-templates.ts` → `joinedAuto`).
 - `autoBook` в списке клиента и в списке салона (пометка «Auto»). Колонка `waitlist_entry.auto_book`, миграция
   `20261202020000_waitlist_auto_book`, тест «Q8» в `test/waitlist.spec.ts`. Мобильные экраны — Codex (`docs/CODEX.md`).
 - Часть 2 (веб): на странице записи вошедший клиент (`/pl/c`, cookie) видит в форме «Powiadom mnie…» свой адрес
