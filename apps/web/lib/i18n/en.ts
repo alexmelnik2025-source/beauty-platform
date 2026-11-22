@@ -1197,6 +1197,7 @@ export const en: Dict = {
       'Such a client books online as usual, but the visit waits in the calendar with "⏳" until you accept it ("Accept booking") or cancel it.',
     needRule: 'Tick at least one rule.',
     badNumber: 'Enter a number in the allowed range.',
+    numberRange: 'Enter a number from {min} to {max}.',
     saved: 'Cancellation protection saved.',
     clients: 'Marked clients',
     off: 'Protection is off — nobody is marked.',

@@ -13,7 +13,8 @@ import { serveApp } from './mobile-app';
  * Task 161c: "Ochrona przed odwołaniami" in the cabinet. Jan missed two visits (entered by the
  * salon via the API); the owner turns the protection on with "2 no-shows → pay first", sees Jan
  * with the cost of the missed visits and lifts the block; the client card keeps the history
- * (part 2) and so does the business app (part 3). Screenshots 161e–161h.
+ * (part 2) and so does the business app (part 3). Screenshots 161e–161h; 665 — a number out of
+ * range is said under its field.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -137,8 +138,18 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
   await owner.getByRole('button', { name: 'Zapisz' }).click();
   await expect(owner.getByText('Zaznacz co najmniej jedną zasadę.')).toBeVisible();
 
+  // Task 665: errors at the field — ticking a rule takes "tick a rule" away, and a number out
+  // of range is said under its own field (red frame, "!"), not in a line above the form.
   await owner.getByLabel('Nieobecności („Nie przyszedł”)').check();
-  await owner.getByLabel('Ile razy').fill('2');
+  await expect(owner.getByText('Zaznacz co najmniej jedną zasadę.')).toHaveCount(0);
+  const noShows = owner.getByLabel('Ile razy');
+  await noShows.fill('25');
+  await owner.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(owner.getByText('Wpisz liczbę od 1 do 20.')).toBeVisible();
+  await expect(noShows).toHaveAttribute('aria-invalid', 'true');
+  await shot(owner, '665-guard-number-error');
+  await noShows.fill('2');
+  await expect(owner.getByText('Wpisz liczbę od 1 do 20.')).toHaveCount(0);
   await owner.getByLabel('Najpierw zapłata za nieodbyte wizyty w salonie').check();
   await owner.getByRole('button', { name: 'Zapisz' }).click();
   await expect(owner.getByText('Zapisano ochronę przed odwołaniami.')).toBeVisible();

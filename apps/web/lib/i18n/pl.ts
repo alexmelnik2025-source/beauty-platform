@@ -1193,6 +1193,7 @@ export const pl = {
       'Taki klient rezerwuje online jak zwykle, ale wizyta czeka w kalendarzu z „⏳”, aż ją przyjmiesz („Przyjmij rezerwację”) albo odwołasz.',
     needRule: 'Zaznacz co najmniej jedną zasadę.',
     badNumber: 'Wpisz liczbę w dozwolonym zakresie.',
+    numberRange: 'Wpisz liczbę od {min} do {max}.',
     saved: 'Zapisano ochronę przed odwołaniami.',
     clients: 'Oznaczeni klienci',
     off: 'Ochrona jest wyłączona — nikt nie jest oznaczony.',
