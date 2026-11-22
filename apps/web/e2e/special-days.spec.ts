@@ -123,7 +123,8 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   await special.getByLabel('Do', { exact: true }).fill('10:00');
   await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
   // Task 660: the error is under "Do" in this section, not at the top of the sheet.
-  const specialEnd = special.getByLabel('Do', { exact: true });
+  // (the error text sits inside the field's label, so "Do" is found by its input here)
+  const specialEnd = special.locator('input[type="time"]').last();
   await expect(specialEnd).toHaveAttribute('aria-invalid', 'true');
   await expect(special.locator('#special-end-error')).toHaveText(
     'Godzina „Do” musi być późniejsza niż „Od”.',
@@ -153,9 +154,10 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   await absence.getByLabel('Od', { exact: true }).fill(`${warsawDate(5)}T15:00`);
   await absence.getByLabel('Do', { exact: true }).fill(`${warsawDate(5)}T11:00`);
   await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
-  await expect(absence.getByLabel('Do', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+  const absenceEnd = absence.locator('input[type="datetime-local"]').last();
+  await expect(absenceEnd).toHaveAttribute('aria-invalid', 'true');
   await expect(absence.locator('#absence-end-error')).toBeVisible();
-  await absence.getByLabel('Do', { exact: true }).fill(`${warsawDate(5)}T18:00`);
+  await absenceEnd.fill(`${warsawDate(5)}T18:00`);
   await expect(absence.locator('#absence-end-error')).toHaveCount(0);
   await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
   await expect(absence.getByRole('button', { name: 'Usuń' })).toHaveCount(1);
