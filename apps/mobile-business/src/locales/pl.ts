@@ -254,6 +254,15 @@ export const pl = {
   },
   clients: {
     guard: {
+      rulesTitle: 'Zasady dla klienta',
+      ruleSaved: 'Zapisano zasady dla klienta.',
+      rules: {
+        salon: 'Według zasad salonu',
+        trusted: 'Zaufany',
+        prepay: 'Najpierw opłata zaległych (w salonie)',
+        approval: 'Tylko z potwierdzeniem',
+        phone_only: 'Tylko telefonicznie',
+      },
       title: 'Ochrona przed odwołaniami',
       marked: 'Klient jest oznaczony',
       notMarked: 'Klient nie jest teraz oznaczony.',

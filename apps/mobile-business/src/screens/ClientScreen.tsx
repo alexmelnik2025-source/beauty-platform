@@ -81,6 +81,8 @@ export function ClientScreen(props: {
   /** Task 161c: the cancellation-protection mark (owners and managers). */
   const [guard, setGuard] = useState<GuardedClient | null>(null);
   const [releasing, setReleasing] = useState(false);
+  const [ruleOpen, setRuleOpen] = useState(false);
+  const [ruleFeedback, setRuleFeedback] = useState<{ text: string; bad: boolean } | null>(null);
   const [releaseNote, setReleaseNote] = useState('');
   /** Task 241: the birthday editor (owners and managers), day and month as typed. */
   const [birthdayEdit, setBirthdayEdit] = useState<{ day: string; month: string } | null>(null);
@@ -276,6 +278,25 @@ export function ClientScreen(props: {
   }
 
   const back = <Button kind="link" label={c.back} onPress={onBack} />;
+  async function saveRule(rule: GuardedClient['rule']) {
+    if (!guard || busy) return;
+    if (rule === guard.rule) {
+      setRuleOpen(false);
+      return;
+    }
+    setBusy(true);
+    setRuleFeedback(null);
+    try {
+      setGuard(await api.updateClientRule(salon.orgId, salon.locationId, id, rule));
+      setRuleFeedback({ text: c.guard.ruleSaved, bad: false });
+      setRuleOpen(false);
+    } catch (e) {
+      setRuleFeedback({ text: errorText(e, t), bad: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function releaseGuard() {
     setBusy(true);
     setError('');
@@ -639,9 +660,52 @@ export function ClientScreen(props: {
         />
       ) : null}
 
-      {guard && (guard.enabled || guard.history.length > 0) ? (
+      {guard ? (
         <Card>
           <Text style={styles.label}>{c.guard.title}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={c.guard.rulesTitle}
+            accessibilityState={{ expanded: ruleOpen }}
+            aria-expanded={ruleOpen}
+            disabled={busy}
+            onPress={() => {
+              setRuleOpen(!ruleOpen);
+              setRuleFeedback(null);
+            }}
+            style={styles.ruleOption}
+          >
+            <Text style={styles.label}>
+              {c.guard.rulesTitle} {ruleOpen ? '▾' : '▸'}
+            </Text>
+            <Text style={styles.muted}>{c.guard.rules[guard.rule]}</Text>
+          </Pressable>
+          {ruleOpen ? (
+            <View role="radiogroup" accessibilityLabel={c.guard.rulesTitle}>
+              {(Object.keys(c.guard.rules) as GuardedClient['rule'][]).map((rule) => (
+                <Pressable
+                  key={rule}
+                  accessibilityRole="radio"
+                  accessibilityLabel={c.guard.rules[rule]}
+                  accessibilityState={{ checked: guard.rule === rule }}
+                  aria-checked={guard.rule === rule}
+                  disabled={busy}
+                  onPress={() => void saveRule(rule)}
+                  style={styles.ruleOption}
+                >
+                  <Text style={styles.value}>
+                    {guard.rule === rule ? '◉' : '○'} {c.guard.rules[rule]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          {ruleFeedback?.bad ? <ErrorText>{ruleFeedback.text}</ErrorText> : null}
+          {ruleFeedback && !ruleFeedback.bad ? (
+            <Text style={styles.muted} accessibilityRole="alert">
+              {ruleFeedback.text}
+            </Text>
+          ) : null}
           {guard.flagged ? (
             <>
               <Text style={styles.value}>{c.guard.marked}</Text>
@@ -825,6 +889,7 @@ export function ClientScreen(props: {
 }
 
 const styles = StyleSheet.create({
+  ruleOption: { minHeight: 44, paddingVertical: 7, justifyContent: 'center', gap: 3 },
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   tagChip: {

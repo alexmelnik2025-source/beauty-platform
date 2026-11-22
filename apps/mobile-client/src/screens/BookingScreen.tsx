@@ -44,6 +44,7 @@ import { WishesPicker } from '../WishesPicker';
 import { WishPhotosPicker } from '../WishPhotosPicker';
 import { asksWishes, NO_WISHES, wishesToSend, type VisitWishes } from '../wishes';
 import { errorText } from '../errors';
+import { paymentNoticeAmount } from '../paymentNotice';
 import {
   ANY_STAFF,
   dayChip,
@@ -129,6 +130,11 @@ export function BookingScreen(props: {
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [day, setDay] = useState('');
   const [hold, setHold] = useState<Hold | null>(null);
+  const [payNotice, setPayNotice] = useState<{
+    holdId: string;
+    amount: ReturnType<typeof paymentNoticeAmount>;
+  } | null>(null);
+  const currentNotice = hold && hold.holdId === payNotice?.holdId ? payNotice : null;
   const [form, setForm] = useState<ContactForm>({
     name: '',
     phone: `+${dialForTimeZone(salon.timezone)} `,
@@ -259,13 +265,17 @@ export function BookingScreen(props: {
 
   const goBack = useCallback(() => {
     setError('');
+    if (currentNotice) {
+      setPayNotice(null);
+      return;
+    }
     if (step === presetStep) props.onBack();
     else if (step === 'staff') setStep('service');
     else if (step === 'time') setStep(staffList.length > 1 && !fromList ? 'staff' : 'service');
     else if (step === 'details') setStep('time');
     else if (step === 'code') setStep('details');
     else props.onBack();
-  }, [step, staffList.length, props, presetStep, fromList]);
+  }, [step, staffList.length, props, presetStep, fromList, currentNotice]);
 
   // Android "back" goes one step back.
   useEffect(() => {
@@ -321,6 +331,7 @@ export function BookingScreen(props: {
         start: slot.start,
         ...(hold ? { releaseHoldToken: hold.holdToken } : {}),
       });
+      setPayNotice(null);
       setHold(created);
       setStep('details');
     } catch (e) {
@@ -357,9 +368,19 @@ export function BookingScreen(props: {
     }
   }
 
+  function handleConfirmError(error: unknown, holdId: string) {
+    if (error instanceof ApiError && error.code === 'BOOKING_PAY_FIRST') {
+      setPayNotice({ holdId, amount: paymentNoticeAmount(error.details) });
+    } else {
+      setPayNotice(null);
+      if (afterBookingError(error) === 'pickTimeAgain') backToTimes(error);
+      else setError(bookingErrorText(error, t));
+    }
+  }
+
   /** Task 180e: signed in - no code; the visit is booked with the session's email. */
-  async function confirmSignedIn() {
-    if (!hold) return;
+  async function confirmSignedIn(payNoticeAccepted = false) {
+    if (!hold || busy) return;
     const checked = checkContact(form, dialForTimeZone(salon.timezone));
     if (!checked.ok) return setError(PROBLEM_TEXT[checked.problem](t));
     setBusy(true);
@@ -373,19 +394,19 @@ export function BookingScreen(props: {
           contact,
           locale,
           asksWishes(questions) ? wishesToSend(wishes, questions) : undefined,
+          payNoticeAccepted,
         ),
       );
       setStep('done');
     } catch (e) {
-      if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
-      else setError(bookingErrorText(e, t));
+      handleConfirmError(e, hold.holdId);
     } finally {
       setBusy(false);
     }
   }
 
-  async function confirm() {
-    if (!hold || code.length !== 6) return;
+  async function confirm(payNoticeAccepted = false) {
+    if (!hold || busy || code.length !== 6) return;
     setBusy(true);
     setError('');
     try {
@@ -395,12 +416,12 @@ export function BookingScreen(props: {
           hold,
           code,
           asksWishes(questions) ? wishesToSend(wishes, questions) : undefined,
+          payNoticeAccepted,
         ),
       );
       setStep('done');
     } catch (e) {
-      if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
-      else setError(bookingErrorText(e, t));
+      handleConfirmError(e, hold.holdId);
     } finally {
       setBusy(false);
     }
@@ -735,6 +756,7 @@ export function BookingScreen(props: {
               disabled={busy}
               onPress={() => {
                 setError('');
+                setPayNotice(null);
                 setStep('time');
               }}
             />
@@ -742,7 +764,27 @@ export function BookingScreen(props: {
         </Card>
       ) : null}
 
-      {step === 'details' && hold ? (
+      {currentNotice && (step === 'details' || step === 'code') ? (
+        <Card>
+          <Text style={styles.section} accessibilityRole="alert">
+            {b.payNotice}
+          </Text>
+          {currentNotice.amount ? (
+            <Text style={styles.text}>
+              {fill(b.payNoticeAmount, {
+                sum: formatPrice(currentNotice.amount.value, currentNotice.amount.currency, locale),
+              })}
+            </Text>
+          ) : null}
+          <Button
+            label={b.acceptPayNotice}
+            busy={busy}
+            onPress={() => void (step === 'details' ? confirmSignedIn(true) : confirm(true))}
+          />
+        </Card>
+      ) : null}
+
+      {step === 'details' && hold && !currentNotice ? (
         <View style={{ gap: 12 }}>
           <Text role="heading" aria-level={2} style={styles.section}>
             {b.yourDetails}
@@ -823,7 +865,7 @@ export function BookingScreen(props: {
         </View>
       ) : null}
 
-      {step === 'code' && hold ? (
+      {step === 'code' && hold && !currentNotice ? (
         <View style={{ gap: 12 }}>
           <Text role="heading" aria-level={2} style={styles.section}>
             {b.codeTitle}

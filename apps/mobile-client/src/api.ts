@@ -151,6 +151,7 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly code?: string,
+    readonly details: unknown = undefined,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -510,13 +511,19 @@ export class ClientApi {
     code: string,
     /** Task 80: only when the salon asks (see wishesToSend). */
     wishes?: ClientAppointment['wishes'],
+    payNoticeAccepted = false,
   ): Promise<BookingConfirmed> {
     return this.call<BookingConfirmed>(
       'POST',
       `/v1/public/holds/${encodeURIComponent(hold.holdId)}/confirm`,
-      { holdToken: hold.holdToken, code, ...(wishes ? { wishes } : {}) },
+      {
+        holdToken: hold.holdToken,
+        code,
+        ...(wishes ? { wishes } : {}),
+        ...(payNoticeAccepted ? { payNoticeAccepted } : {}),
+      },
       undefined,
-      { 'idempotency-key': `confirm-${hold.holdId}-${code}` },
+      { 'idempotency-key': `confirm-${hold.holdId}-${code}${payNoticeAccepted ? '-notice' : ''}` },
     );
   }
 
@@ -529,12 +536,21 @@ export class ClientApi {
     contact: Omit<BookingContact, 'email'>,
     locale: Locale,
     wishes?: ClientAppointment['wishes'],
+    payNoticeAccepted = false,
   ): Promise<BookingConfirmed> {
     return this.authed<BookingConfirmed>(
       'POST',
       `/v1/client/holds/${encodeURIComponent(hold.holdId)}/confirm`,
-      { holdToken: hold.holdToken, ...contact, locale, ...(wishes ? { wishes } : {}) },
-      { 'idempotency-key': `confirm-signed-in-${hold.holdId}` },
+      {
+        holdToken: hold.holdToken,
+        ...contact,
+        locale,
+        ...(wishes ? { wishes } : {}),
+        ...(payNoticeAccepted ? { payNoticeAccepted } : {}),
+      },
+      {
+        'idempotency-key': `confirm-signed-in-${hold.holdId}${payNoticeAccepted ? '-notice' : ''}`,
+      },
     );
   }
 
@@ -767,11 +783,14 @@ export class ClientApi {
     const data: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       // The API answers errors as { error: { code, message, requestId } }.
-      const error = (data as { error?: { code?: unknown; message?: unknown } } | null)?.error;
+      const error = (
+        data as { error?: { code?: unknown; message?: unknown; details?: unknown } } | null
+      )?.error;
       throw new ApiError(
         res.status,
         typeof error?.message === 'string' ? error.message : `HTTP ${res.status}`,
         typeof error?.code === 'string' ? error.code : undefined,
+        error?.details,
       );
     }
     return data as T;

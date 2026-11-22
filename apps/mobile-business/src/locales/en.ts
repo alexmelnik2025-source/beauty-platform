@@ -258,6 +258,15 @@ export const en: Dictionary = {
   },
   clients: {
     guard: {
+      rulesTitle: 'Client booking rules',
+      ruleSaved: 'Client booking rules saved.',
+      rules: {
+        salon: 'Follow salon rules',
+        trusted: 'Trusted',
+        prepay: 'Pay for missed visits at the salon',
+        approval: 'Approval required',
+        phone_only: 'By phone only',
+      },
       title: 'Cancellation protection',
       marked: 'The client is marked',
       notMarked: 'The client is not marked now.',
