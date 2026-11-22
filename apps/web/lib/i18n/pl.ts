@@ -164,6 +164,9 @@ export const pl = {
     filterLanguage: 'Język rozmowy',
     allLanguages: 'Wszystkie języki',
     clearLanguages: 'Wyczyść',
+    /** Task Q5: the folded filters of the catalogue, in one row with "Otwarte teraz". */
+    languageMenu: 'Język obsługi',
+    kindMenu: 'Kategoria',
     search: 'Szukaj: nazwa, miasto, ulica lub usługa',
     filterKind: 'Rodzaj salonu',
     allKinds: 'Wszystkie',

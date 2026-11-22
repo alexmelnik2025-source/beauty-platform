@@ -4317,6 +4317,19 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 06-client-done), `install-banner.spec.ts` (Q5-no-banner-on-steps), `languages`, `open-status`, `price-rows`,
 `salon-languages`, `web-favorites`, `wish-photos`.
 
+### Q5, дополнения владельца 22.11.2026 (задача 641): шапка и каталог салонов
+
+- **Шапка клиента в одну строку** на телефоне (до 480 px): «GESTALT · Znajdź salon · Zaloguj się»; подсказка «bez
+  hasła — kod na e-mail» скрыта визуально, но входит в имя ссылки для диктора (`.client-nav-hint` в `globals.css`).
+- **Каталог салонов** (`PublicDirectory.tsx`): заголовок «Znajdź salon» и переключатель языка сайта — в одной строке,
+  под ними одна подсказка. Все фильтры — в одном ряду (на телефоне ряд прокручивается вбок внутри себя, страница — нет):
+  «Język obsługi ▾» (языки мастеров, несколько сразу; на кнопке число выбранных «· 2»), «Kategoria ▾» (вид салона; на
+  кнопке — выбранный вид, после выбора список закрывается), «Otwarte teraz», «W pobliżu», «★ Najlepiej oceniane».
+  Списки открываются под рядом (`details.filter-drop`, открыт только один, тап вне списка закрывает). Ключи словаря
+  `directory.languageMenu`, `directory.kindMenu` — во всех 6 словарях. e2e: `booking.spec.ts`
+  (`q5-catalogue-language-menu`, `00a-catalogue`, `192-catalogue-languages-or`), `catalogue-map.spec.ts`
+  (`160d-catalogue-kinds`, `q5-catalogue-kind-menu`).
+
 ## Минимализм кабинета (задача Q6, веб-часть)
 
 Одобрено владельцем 21.11.2026. Только полировка существующего, ни один пункт не удалён. Бизнес-приложение — у Codex

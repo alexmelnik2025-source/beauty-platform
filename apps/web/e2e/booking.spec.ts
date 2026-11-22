@@ -231,11 +231,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(visitor.getByText('Znalezione salony: 1')).toBeVisible();
   await expect(visitor.getByRole('img', { name: 'Mapa salonów' })).toBeVisible();
   // Only Alex speaks English, and that is enough to find the salon.
+  // Task Q5: the languages are folded into "Język obsługi ▾" in the row of filters.
+  const languageMenu = visitor.getByTestId('filter-language').locator(':scope > summary');
+  await expect(visitor.getByRole('button', { name: 'angielski' })).toBeHidden();
+  await languageMenu.click();
   await visitor.getByRole('button', { name: 'angielski' }).click();
   await expect(visitor.getByRole('button', { name: 'angielski' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
+  await expect(languageMenu).toHaveText('Język obsługi · 1 ▾');
+  await shot(visitor, 'q5-catalogue-language-menu');
+  await languageMenu.click();
+  await expect(visitor.getByRole('button', { name: 'angielski' })).toBeHidden();
   await expect(card.getByRole('note')).toHaveAttribute(
     'aria-label',
     'Mówimy po: polski, ukraiński, rosyjski, angielski',
@@ -243,6 +251,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await card.getByRole('button', { name: 'Pokaż na mapie' }).click();
   await shot(visitor, '00a-catalogue');
   // Task 192: several languages at once - Belarusian or English finds the salon (Alex speaks English).
+  await languageMenu.click();
   await visitor.getByRole('button', { name: 'białoruski' }).click();
   await expect(visitor.getByRole('button', { name: /^białoruski \(\d+\)$/ })).toHaveAttribute(
     'aria-pressed',
@@ -256,6 +265,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(visitor, '192-catalogue-languages-or');
   // The choice stays on this device.
   await visitor.reload();
+  await expect(languageMenu).toHaveText('Język obsługi · 2 ▾');
+  await languageMenu.click();
   await expect(visitor.getByRole('button', { name: /^białoruski/ })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -269,6 +280,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'aria-pressed',
     'true',
   );
+  await expect(languageMenu).toHaveText('Język obsługi ▾');
+  await languageMenu.click();
   await card.getByRole('link', { name: 'Umów wizytę' }).click();
   await expect(visitor).toHaveURL(new RegExp(`/pl/b/${location.slug}$`));
   await expect(visitor.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();

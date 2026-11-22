@@ -164,6 +164,9 @@ export const ru: Dict = {
     filterLanguage: 'Язык общения',
     allLanguages: 'Все языки',
     clearLanguages: 'Очистить',
+    /** Task Q5: the folded filters of the catalogue, in one row with "Otwarte teraz". */
+    languageMenu: 'Язык обслуживания',
+    kindMenu: 'Категория',
     search: 'Поиск: название, город, улица или услуга',
     filterKind: 'Тип заведения',
     allKinds: 'Все',

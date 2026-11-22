@@ -164,6 +164,9 @@ export const en: Dict = {
     filterLanguage: 'Language',
     allLanguages: 'All languages',
     clearLanguages: 'Clear',
+    /** Task Q5: the folded filters of the catalogue, in one row with "Otwarte teraz". */
+    languageMenu: 'Service language',
+    kindMenu: 'Category',
     search: 'Search: name, city, street or service',
     filterKind: 'Kind of place',
     allKinds: 'All',
