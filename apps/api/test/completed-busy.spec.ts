@@ -119,7 +119,8 @@ describe('a visit marked "came" keeps the chair until its planned end', () => {
       .expect(409);
     expectError(res.body, 'SLOT_TAKEN');
 
-    // Right after its planned end the chair is free again.
+    // Right after its planned end the chair is free again. Late in the evening that visit runs
+    // past the salon's midnight, where the day's hours end — outside hours is allowed for it.
     await ctx
       .http()
       .post(`${base}/appointments`)
@@ -128,6 +129,7 @@ describe('a visit marked "came" keeps the chair until its planned end', () => {
         serviceId: shortServiceId,
         staffId,
         start: iso(start + 180 * MINUTE),
+        allowOutsideHours: true,
         customer: { name: 'Jan Kowalski', phone: '+48600000002', email: 'jan@example.com' },
       })
       .expect(201);
