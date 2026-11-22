@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { PageTitleHelp } from '@/components/PageTitleHelp';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Sheet, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { ErrorBox, FieldError, Sheet, Spinner } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { formatPrice } from '@/lib/time';
@@ -48,6 +48,36 @@ function int(value: string, min: number, max: number): number | null {
 
 const ACTIONS: Action[] = ['approval', 'phone_only', 'prepay'];
 
+/** Task 665: the parts of the form that can show an error under them. */
+type GuardField = 'changes' | 'windowDays' | 'lateMinutes' | 'noShows' | 'rules';
+
+/** The allowed range of each number (the server checks the same). */
+const RANGES: Record<Exclude<GuardField, 'rules'>, [number, number]> = {
+  changes: [1, 50],
+  windowDays: [1, 365],
+  lateMinutes: [1, 60 * 24 * 7],
+  noShows: [1, 20],
+};
+
+/** The server's field names → the form's. */
+const SERVER_FIELDS: Record<string, GuardField> = {
+  maxChanges: 'changes',
+  windowHours: 'windowDays',
+  lateCancelMinutes: 'lateMinutes',
+  maxNoShows: 'noShows',
+  enabled: 'rules',
+};
+
+/** The fields the server's validation answer is about; empty when it is about something else. */
+function guardFieldsOf(err: unknown): GuardField[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  const fields = (err.details as { path?: string }[])
+    .map((d) => SERVER_FIELDS[String(d.path ?? '')])
+    .filter((f): f is GuardField => Boolean(f));
+  return [...new Set(fields)];
+}
+
 /**
  * Task 161c: "Ochrona przed odwołaniami" — the salon's rules for clients who often cancel,
  * move or miss visits, and the clients marked now with "Zdejmij blokadę". Owner and manager
@@ -63,6 +93,11 @@ export default function CancellationGuardPage() {
   const [marked, setMarked] = useState<GuardedClients | null>(null);
   const [releasing, setReleasing] = useState<Marked | null>(null);
   const [error, setError] = useState('');
+  /**
+   * Task 665 (owner's rule: errors at the field): a number out of range is said under its own
+   * field, "tick at least one rule" under the rules; editing a field takes its error away.
+   */
+  const [problems, setProblems] = useState<GuardField[]>([]);
   const [info, setInfo] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
@@ -88,22 +123,24 @@ export default function CancellationGuardPage() {
     e.preventDefault();
     if (!form || !guard) return;
     setInfo('');
-    const maxChanges = form.changesOn ? int(form.changes, 1, 50) : null;
-    const days = int(form.windowDays, 1, 365);
-    const lateCancelMinutes = form.lateOn ? int(form.lateMinutes, 1, 60 * 24 * 7) : null;
-    const maxNoShows = form.noShowsOn ? int(form.noShows, 1, 20) : null;
-    if (
-      (form.changesOn && (maxChanges === null || days === null)) ||
-      (form.lateOn && lateCancelMinutes === null) ||
-      (form.noShowsOn && maxNoShows === null)
-    ) {
-      return setError(t.guard.badNumber);
-    }
-    if (form.enabled && !form.changesOn && !form.lateOn && !form.noShowsOn) {
-      return setError(t.guard.needRule);
+    const maxChanges = form.changesOn ? int(form.changes, ...RANGES.changes) : null;
+    const days = int(form.windowDays, ...RANGES.windowDays);
+    const lateCancelMinutes = form.lateOn ? int(form.lateMinutes, ...RANGES.lateMinutes) : null;
+    const maxNoShows = form.noShowsOn ? int(form.noShows, ...RANGES.noShows) : null;
+    const before: GuardField[] = [];
+    if (form.changesOn && maxChanges === null) before.push('changes');
+    if (form.changesOn && days === null) before.push('windowDays');
+    if (form.lateOn && lateCancelMinutes === null) before.push('lateMinutes');
+    if (form.noShowsOn && maxNoShows === null) before.push('noShows');
+    if (form.enabled && !form.changesOn && !form.lateOn && !form.noShowsOn) before.push('rules');
+    if (before.length > 0) {
+      setError('');
+      setProblems(before);
+      return;
     }
     if (!lock()) return;
     setError('');
+    setProblems([]);
     try {
       const saved = await api<CancellationGuard>(url, {
         method: 'PUT',
@@ -122,7 +159,9 @@ export default function CancellationGuardPage() {
       setMarked(await api<GuardedClients>(`${url}/clients`));
       setInfo(t.guard.saved);
     } catch (err) {
-      setError(errorText(t, err));
+      const fields = guardFieldsOf(err);
+      setProblems(fields);
+      if (fields.length === 0) setError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -157,7 +196,21 @@ export default function CancellationGuardPage() {
     );
   }
 
-  const set = (patch: Partial<Form>) => setForm({ ...form, ...patch });
+  /** Editing a field (or ticking a rule) takes its error away. */
+  const set = (patch: Partial<Form>, field?: GuardField) => {
+    setForm({ ...form, ...patch });
+    if (field && problems.includes(field)) setProblems(problems.filter((f) => f !== field));
+  };
+  const problem = (field: GuardField): string | undefined => {
+    if (!problems.includes(field)) return undefined;
+    if (field === 'rules') return t.guard.needRule;
+    const [min, max] = RANGES[field];
+    return fill(t.guard.numberRange, { min: String(min), max: String(max) });
+  };
+  const invalid = (field: GuardField) => ({
+    'aria-invalid': problems.includes(field) || undefined,
+    'aria-describedby': problems.includes(field) ? `guard-${field}-error` : undefined,
+  });
   const actionLabel: Record<Action, string> = {
     approval: t.guard.approval,
     phone_only: t.guard.phoneOnly,
@@ -179,7 +232,7 @@ export default function CancellationGuardPage() {
             <input
               type="checkbox"
               checked={form.enabled}
-              onChange={(e) => set({ enabled: e.target.checked })}
+              onChange={(e) => set({ enabled: e.target.checked }, 'rules')}
             />
             <span>
               <strong>{t.guard.enabled}</strong>
@@ -189,11 +242,12 @@ export default function CancellationGuardPage() {
             <legend>
               <h3>{t.guard.rules}</h3>
             </legend>
+            <FieldError id="guard-rules-error" text={problem('rules')} />
             <label className="check">
               <input
                 type="checkbox"
                 checked={form.changesOn}
-                onChange={(e) => set({ changesOn: e.target.checked })}
+                onChange={(e) => set({ changesOn: e.target.checked }, 'rules')}
               />
               <span>{t.guard.changesOn}</span>
             </label>
@@ -204,16 +258,20 @@ export default function CancellationGuardPage() {
                   <input
                     inputMode="numeric"
                     value={form.changes}
-                    onChange={(e) => set({ changes: e.target.value })}
+                    {...invalid('changes')}
+                    onChange={(e) => set({ changes: e.target.value }, 'changes')}
                   />
+                  <FieldError id="guard-changes-error" text={problem('changes')} />
                 </label>
                 <label className="field grow">
                   <span>{t.guard.changesWindow}</span>
                   <input
                     inputMode="numeric"
                     value={form.windowDays}
-                    onChange={(e) => set({ windowDays: e.target.value })}
+                    {...invalid('windowDays')}
+                    onChange={(e) => set({ windowDays: e.target.value }, 'windowDays')}
                   />
+                  <FieldError id="guard-windowDays-error" text={problem('windowDays')} />
                 </label>
               </div>
             ) : null}
@@ -221,7 +279,7 @@ export default function CancellationGuardPage() {
               <input
                 type="checkbox"
                 checked={form.lateOn}
-                onChange={(e) => set({ lateOn: e.target.checked })}
+                onChange={(e) => set({ lateOn: e.target.checked }, 'rules')}
               />
               <span>{t.guard.lateOn}</span>
             </label>
@@ -231,15 +289,17 @@ export default function CancellationGuardPage() {
                 <input
                   inputMode="numeric"
                   value={form.lateMinutes}
-                  onChange={(e) => set({ lateMinutes: e.target.value })}
+                  {...invalid('lateMinutes')}
+                  onChange={(e) => set({ lateMinutes: e.target.value }, 'lateMinutes')}
                 />
+                <FieldError id="guard-lateMinutes-error" text={problem('lateMinutes')} />
               </label>
             ) : null}
             <label className="check">
               <input
                 type="checkbox"
                 checked={form.noShowsOn}
-                onChange={(e) => set({ noShowsOn: e.target.checked })}
+                onChange={(e) => set({ noShowsOn: e.target.checked }, 'rules')}
               />
               <span>{t.guard.noShowsOn}</span>
             </label>
@@ -249,8 +309,10 @@ export default function CancellationGuardPage() {
                 <input
                   inputMode="numeric"
                   value={form.noShows}
-                  onChange={(e) => set({ noShows: e.target.value })}
+                  {...invalid('noShows')}
+                  onChange={(e) => set({ noShows: e.target.value }, 'noShows')}
                 />
+                <FieldError id="guard-noShows-error" text={problem('noShows')} />
               </label>
             ) : null}
           </fieldset>
