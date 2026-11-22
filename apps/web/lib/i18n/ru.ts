@@ -140,6 +140,7 @@ export const ru: Dict = {
     postalCode: 'Почтовый индекс',
     create: 'Создать салон',
     timeZone: 'Страна и часовой пояс',
+    fieldRequired: 'Заполните это поле.',
   },
   nav: {
     reviews: 'Отзывы',

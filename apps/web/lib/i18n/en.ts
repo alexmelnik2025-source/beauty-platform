@@ -140,6 +140,7 @@ export const en: Dict = {
     postalCode: 'Postal code',
     create: 'Create salon',
     timeZone: 'Country and time zone',
+    fieldRequired: 'Fill in this field.',
   },
   nav: {
     reviews: 'Reviews',

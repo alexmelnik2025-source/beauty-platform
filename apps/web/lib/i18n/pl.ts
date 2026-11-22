@@ -140,6 +140,7 @@ export const pl = {
     postalCode: 'Kod pocztowy',
     create: 'Utwórz salon',
     timeZone: 'Kraj i strefa czasowa',
+    fieldRequired: 'Uzupełnij to pole.',
   },
   nav: {
     reviews: 'Opinie',
