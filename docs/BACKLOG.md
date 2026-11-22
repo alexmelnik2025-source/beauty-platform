@@ -12,7 +12,12 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **22.11.2026, ~20:40 UTC — 672 (ветка `agent/672b-new-visit-field-errors`, от main): ошибки «Nowa wizyta» и «Zablokuj czas» у поля**
+- **✅ Влито в main 22.11.2026. 673 (ветка `agent/673b-visit-card-field-errors`, от main): ошибки «Produkty» и «Zapłać bonem» в карточке визита у поля**
+  (полировка по правилу владельца «ошибки у поля», новых функций нет). Неизвестный код товара, «Za mało sztuk w
+  magazynie», нет бона с таким кодом и «Na bonie zostało mniej» были общей строкой под карточкой — теперь под своим
+  полем, курсор туда. e2e `products`, `visit-voucher`, скриншоты `673-visit-product-code-error`,
+  `673-visit-voucher-code-error`, `673-visit-voucher-amount-error`.
+- **✅ Влито в main 22.11.2026, ~21:05 UTC. 672 (ветка `agent/672b-new-visit-field-errors`, от main): ошибки «Nowa wizyta» и «Zablokuj czas» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Имя из пробелов, неверный телефон или e-mail
   нового клиента и «Do» раньше «Od» были общей строкой над формой (или уходили на сервер) — теперь под своим полем,
   курсор туда. e2e `booking`, скриншоты `672-new-visit-name-error`, `672-new-visit-phone-error`, `672-block-time-to-error`.

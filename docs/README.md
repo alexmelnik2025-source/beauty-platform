@@ -666,6 +666,15 @@ pnpm --filter @beauty/api-client generate
   кто принимает визиты); в списке у доступной услуги без исполнителей — «Nikt jej nie wykonuje — klienci jej
   nie widzą». Тест — `apps/api/test/service-staff.spec.ts`, скриншоты e2e 50–51.
 
+## Ошибки у поля в карточке визита: «Produkty» и «Zapłać bonem» (задача 673, 22.11.2026)
+
+- Карточка прошедшего визита → «Produkty»: неизвестный код («Nie ma produktu z kodem …») и «Za mało sztuk w magazynie» —
+  под полем кода (если продажа по коду) или под полем количества (если товар выбран из списка); курсор — туда, правка
+  поля убирает ошибку. «Klient płaci bonem podarunkowym?»: нет бона с таким кодом, бон недействителен или отменён —
+  под «Kod bonu»; неверная сумма или больше остатка («Na bonie zostało mniej…») — под суммой. e2e `products`,
+  `visit-voucher`, скриншоты `673-visit-product-code-error`, `673-visit-voucher-code-error`,
+  `673-visit-voucher-amount-error`.
+
 ## Ошибки у поля в «Nowa wizyta» и «Zablokuj czas» (задача 672, 22.11.2026)
 
 - Календарь кабинета → «Nowa wizyta»: имя нового клиента из одних пробелов — «Uzupełnij to pole.» под «Imię i nazwisko»
