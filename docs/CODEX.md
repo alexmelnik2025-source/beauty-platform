@@ -17,6 +17,7 @@
    - Q8 лист ожидания: в клиентском переключатель «Zapisz mnie automatycznie, gdy zwolni się termin»; в бизнес-приложении пометка «Auto».
    - Q9 защита от отмен: в карточке клиента бизнес-приложения «Zasady dla klienta» (według zasad salonu / zaufany / najpierw opłata zaległych / tylko z potwierdzeniem / tylko telefonicznie); в клиентском — уведомление «zapłacisz za poprzednią i tę wizytę w salonie» перед подтверждением.
 4. Ошибки, тесты, скорость в обоих мобильных приложениях.
+   - `codex/fix-mobile-map-markers` (22.11.2026) — на карте клиентского приложения можно открыть каждый из двух салонов по одному адресу на экране 320 px.
 
 ## В работе у Codex
 

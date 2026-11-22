@@ -29,8 +29,10 @@ async function json<T>(res: APIResponse): Promise<T> {
   return (res.status() === 204 ? undefined : await res.json()) as T;
 }
 
-async function owner(api: APIRequestContext): Promise<Record<string, string>> {
-  const email = `map-${run}@example.com`;
+async function owner(
+  api: APIRequestContext,
+  email = `map-${run}@example.com`,
+): Promise<Record<string, string>> {
   await json(
     await api.post('/v1/auth/register', {
       headers: freshAddress(),
@@ -223,5 +225,40 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
   } finally {
     await phone.close();
     clientApp.server.close();
+  }
+});
+
+test('both salons at the same address can be selected on the 320px app map', async ({
+  browser,
+  request,
+}) => {
+  const auth = await owner(request, `same-map-address-${run}@example.com`);
+  const place = { latitude: 52.8669, longitude: 18.6958 };
+  const staff = [{ name: 'Kasia', languages: ['pl'], specialties: ['barber'] }];
+  const names = [`Wspólny adres ${run} Parter`, `Wspólny adres ${run} Piętro`];
+  for (const name of names) await salon(request, auth, name, place, staff);
+
+  const preview = await serveApp('mobile-client');
+  const phone = await browser.newContext({
+    viewport: { width: 320, height: 700 },
+    isMobile: true,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+  });
+  try {
+    const app = await phone.newPage();
+    await app.goto(preview.url);
+    await app.getByRole('button', { name: 'Znajdź salon' }).click();
+    await app.getByRole('searchbox').fill(`Wspólny adres ${run}`);
+    await expect(app.getByRole('button', { name: /^Salon na mapie: Wspólny adres/ })).toHaveCount(
+      2,
+    );
+    for (const name of names) {
+      await app.getByRole('button', { name: `Salon na mapie: ${name}`, exact: true }).click();
+      await expect(app.getByRole('region', { name, exact: true })).toBeVisible();
+    }
+  } finally {
+    await phone.close();
+    preview.server.close();
   }
 });

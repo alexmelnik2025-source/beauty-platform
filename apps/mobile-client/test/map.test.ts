@@ -28,6 +28,20 @@ describe('catalogue map (task 160)', () => {
     );
   });
 
+  it('keeps both pins tappable for salons at the same address', () => {
+    const point = { latitude: 52.2297, longitude: 21.0122 };
+    const salons = [
+      { ...point, name: 'Ground floor' },
+      { ...point, name: 'First floor' },
+    ];
+    const { markers } = mapLayout(salons, 280, 300)!;
+    const [first, second] = markers;
+    expect(first).toMatchObject({ item: salons[0], x: 140, y: 150 });
+    expect(second?.item).toEqual(salons[1]);
+    const gap = Math.max(Math.abs(first!.x - second!.x), Math.abs(first!.y - second!.y));
+    expect(gap).toBeGreaterThanOrEqual(30);
+  });
+
   it('one salon: street level, in the middle; none: no map', () => {
     const layout = mapLayout([{ latitude: 50.06, longitude: 19.94 }], 300, 200)!;
     expect(layout.zoom).toBe(16);
