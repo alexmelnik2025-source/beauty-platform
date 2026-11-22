@@ -418,6 +418,13 @@ export const pl = {
     tooMany: 'Masz już 100 ulubionych salonów. Usuń któryś, aby dodać nowy.',
   },
   waitlist: {
+    autoLead:
+      'Wybierz dzień bez wolnych godzin. Jeśli zwolni się dla Ciebie termin, dostaniesz potwierdzenie wizyty.',
+    autoBook: 'Zapisz mnie automatycznie, gdy zwolni się termin',
+    phoneForAuto: 'Do automatycznej rezerwacji potrzebny jest prawidłowy telefon.',
+    joinedAuto:
+      'Zapisano na listę oczekujących: {day}. Gdy zwolni się termin, zarezerwujemy go automatycznie.',
+    autoStatus: 'Zapiszemy Cię automatycznie',
     open: 'Nie ma dogodnego dnia? Powiadom mnie, gdy zwolni się termin',
     title: 'Lista oczekujących',
     lead: 'Wybierz dzień bez wolnych godzin. Gdy ktoś odwoła wizytę, dostaniesz e-mail — kto pierwszy, ten lepszy.',

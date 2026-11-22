@@ -294,6 +294,7 @@ export function VisitsScreen(props: {
                 <Text style={entry.status === 'notified' ? styles.notified : styles.muted}>
                   {entry.status === 'notified' ? t.waitlist.notified : t.waitlist.waiting}
                 </Text>
+                {entry.autoBook ? <Text style={styles.muted}>{t.waitlist.autoStatus}</Text> : null}
                 <View style={styles.waitActions}>
                   {entry.status === 'notified' ? (
                     <Button

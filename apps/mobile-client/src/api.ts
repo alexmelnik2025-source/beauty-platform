@@ -707,7 +707,15 @@ export class ClientApi {
    */
   joinWaitlist(
     slug: string,
-    input: { serviceId: string; staffId?: string; date: string; name: string; locale: Locale },
+    input: {
+      serviceId: string;
+      staffId?: string;
+      date: string;
+      name: string;
+      locale: Locale;
+      autoBook?: boolean;
+      phone?: string;
+    },
   ): Promise<WaitlistJoined> {
     return this.authed<WaitlistJoined>(
       'POST',

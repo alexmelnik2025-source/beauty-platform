@@ -325,10 +325,23 @@ test('a full day: the client joins the waiting list and leaves it from the email
       .getByRole('textbox', { name: 'Imię i nazwisko' })
       .filter({ visible: true })
       .fill('Cara Nowak');
+    await phone
+      .getByRole('switch', { name: 'Zapisz mnie automatycznie, gdy zwolni się termin' })
+      .click();
+    await appFullDay.first().click();
+    const appPhone = phone.getByRole('textbox', { name: 'Telefon', exact: true });
+    await expect(appPhone).toHaveAttribute('aria-invalid', 'true');
+    await expect(
+      phone
+        .getByRole('alert')
+        .filter({ hasText: 'Do automatycznej rezerwacji potrzebny jest prawidłowy telefon.' }),
+    ).toBeVisible();
+    await appPhone.fill('600 321 432');
     await appFullDay.first().click();
     await expect(
       phone.getByText('Zapisano na listę oczekujących:', { exact: false }),
     ).toBeVisible();
+    await expect(phone.getByText(/zarezerwujemy go automatycznie/)).toBeVisible();
     await expect(appFullDay.first()).toHaveAttribute('aria-pressed', 'true');
     await shot(phone, '80g-client-app-waitlist-join');
     const joinedMail = await waitForEmail(CARA, /Jesteś na liście oczekujących/);
@@ -339,6 +352,7 @@ test('a full day: the client joins the waiting list and leaves it from the email
     await expect(phone.getByText(`Zalogowano jako ${CARA}`)).toBeVisible();
     await expect(phone.getByRole('heading', { name: 'Lista oczekujących' })).toBeVisible();
     await expect(phone.getByText('Czekamy na wolny termin')).toBeVisible();
+    await expect(phone.getByText('Zapiszemy Cię automatycznie')).toBeVisible();
     await expect(phone.getByText('Gestalt Barbershop').first()).toBeVisible();
     await shot(phone, '80h-client-app-waitlist-list');
     await phone.getByRole('button', { name: /^Wypisz się: Strzyżenie męskie/ }).click();
@@ -346,6 +360,41 @@ test('a full day: the client joins the waiting list and leaves it from the email
     await phone.reload();
     await expect(phone.getByText(`Zalogowano jako ${CARA}`)).toBeVisible();
     await expect(phone.getByText('Czekamy na wolny termin')).toHaveCount(0);
+    const businessApp = await serveApp('mobile-business');
+    try {
+      const bookingDesk = await browser.newContext({
+        viewport: PHONE,
+        locale: 'pl-PL',
+        isMobile: true,
+        extraHTTPHeaders: freshAddress(),
+      });
+      try {
+        const app = await bookingDesk.newPage();
+        await app.goto(businessApp.url);
+        await app.getByLabel('E-mail lub telefon').fill(OWNER);
+        await app.getByRole('button', { name: 'Wyślij kod' }).click();
+        const signIn = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
+        await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(signIn.text)![1]!);
+        await app.getByRole('button', { name: 'Zaloguj się' }).click();
+        await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+        const now = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Europe/Warsaw',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+        const daysAhead = (Date.parse(taken.date) - Date.parse(now)) / 86400000;
+        for (let i = 0; i < daysAhead; i++) {
+          await app.getByRole('button', { name: 'Następny dzień' }).click();
+        }
+        await expect(app.getByText('Dana Lis', { exact: true })).toBeVisible();
+        await expect(app.getByText('Auto', { exact: true })).toHaveCount(1);
+      } finally {
+        await bookingDesk.close();
+      }
+    } finally {
+      businessApp.server.close();
+    }
     await appContext.close();
   } finally {
     clientApp.server.close();

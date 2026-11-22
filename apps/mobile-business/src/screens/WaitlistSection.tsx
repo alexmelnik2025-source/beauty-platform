@@ -83,7 +83,10 @@ export function WaitlistSection(props: {
       {info ? <Text style={styles.info}>{info}</Text> : null}
       {entries.map((e) => (
         <Card key={e.id}>
-          <Text style={styles.name}>{e.name}</Text>
+          <View style={styles.row}>
+            <Text style={styles.name}>{e.name}</Text>
+            {e.autoBook ? <Text style={styles.autoBadge}>Auto</Text> : null}
+          </View>
           <Text style={styles.muted}>
             {e.serviceName} · {e.staffName ?? w.anyStaff}
           </Text>
@@ -137,6 +140,14 @@ const styles = StyleSheet.create({
   wrap: { gap: 10, marginTop: 8 },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+  autoBadge: {
+    backgroundColor: colors.soft,
+    color: colors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    fontWeight: '600',
+  },
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
   name: { fontSize: 17, fontWeight: '600', color: colors.ink },
