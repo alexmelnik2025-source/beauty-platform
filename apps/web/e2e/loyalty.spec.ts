@@ -539,7 +539,8 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await appCard.getByRole('list', { name: 'Moje kupony' }).scrollIntoViewIfNeeded();
     await shot(app, '63a-client-app-bonus-history');
     // In Ukrainian too.
-    await app.getByRole('button', { name: 'Українська' }).click();
+    await app.getByRole('button', { name: 'Język', exact: true }).click();
+    await app.getByRole('button', { name: 'UA · Українська' }).click();
     await expect(app.getByRole('tab', { name: 'Мої бонуси', selected: true })).toBeVisible();
     await expect(appCard.getByText('Штампів на картці: 2')).toBeVisible();
     await app.getByRole('tab', { name: 'Мої бонуси' }).scrollIntoViewIfNeeded();

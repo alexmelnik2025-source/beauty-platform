@@ -180,10 +180,10 @@ test('the salon page needs no sign-in and shows the specialists’ languages eve
       app.getByText('Mówimy po: ukraiński', { exact: true }).filter({ visible: true }),
     ).toBeVisible();
     await shot(app, '163b-client-app-team-languages');
-    await app.getByRole('button', { name: 'Umów wizytę' }).click();
-    await app.getByRole('button', { name: /^Strzyżenie,/ }).click();
+    await app.getByRole('button', { name: 'Strzyżenie', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Wybierz specjalistę' })).toBeVisible();
     await expect(app.getByRole('button', { name: /^Piotr/ })).toContainText('Mówi po: polski');
+    await app.getByRole('button', { name: /^Mówi po/ }).click();
     await app.getByRole('button', { name: 'ukraiński', exact: true }).click();
     await expect(app.getByRole('button', { name: /^Piotr/ })).toHaveCount(0);
     await expect(app.getByRole('button', { name: /^Oksana/ })).toContainText('Mówi po: ukraiński');

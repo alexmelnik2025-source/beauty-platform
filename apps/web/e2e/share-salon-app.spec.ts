@@ -107,6 +107,7 @@ test('the client recommends a salon: its booking link is copied (task 151)', asy
       .getByRole('button', { name: 'Zobacz salon' })
       .click();
     await expect(app.getByText('Kasia', { exact: true })).toBeVisible();
+    await app.getByRole('button', { name: /^O salonie/ }).click();
     await app.getByRole('button', { name: 'Poleć salon znajomym' }).click();
     await expect(app.getByText('Link skopiowany — wklej go znajomym.')).toBeVisible();
     const copied = await app.evaluate(() => navigator.clipboard.readText());
