@@ -1198,14 +1198,29 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ola.locator('.times button').last().click();
   await expect(ola.getByText(/Termin czeka na Ciebie/)).toBeVisible();
   await ola.getByLabel('Imię i nazwisko').fill('Ola Wiśniewska');
-  await ola.getByLabel('Telefon').fill('600 300 400');
+  // Task Q5: a mistake is shown at its own field (red frame, "!", a short line), not on top.
+  await ola.getByLabel('Telefon').fill('600 3');
   await ola.getByLabel('E-mail').fill(CLIENT2);
   await ola.getByLabel(/Akceptuję regulamin rezerwacji/).check();
+  await ola.getByRole('button', { name: 'Wyślij kod' }).click();
+  await expect(ola.getByLabel('Telefon')).toHaveAttribute('aria-invalid', 'true');
+  await expect(ola.getByText('Sprawdź numer telefonu.')).toBeVisible();
+  await expect(ola.locator('.alert', { hasText: 'Sprawdź' })).toHaveCount(0);
+  await shot(ola, 'q5-client-field-error');
+  await ola.getByLabel('Telefon').fill('600 300 400');
+  await expect(ola.getByText('Sprawdź numer telefonu.')).toHaveCount(0);
   await ola.getByLabel(/Zapamiętaj mnie/).check();
   await shot(ola, '24-client-remember-me');
   await ola.getByRole('button', { name: 'Wyślij kod' }).click();
   const olaMail = await waitForEmail(CLIENT2, /Kod potwierdzenia/);
-  await ola.getByLabel('Kod z e-maila').fill(/\b(\d{6})\b/.exec(olaMail.text)![1]!);
+  const olaCode = /\b(\d{6})\b/.exec(olaMail.text)![1]!;
+  // Task Q5: a wrong code is marked at the code.
+  await ola.getByLabel('Kod z e-maila').fill(olaCode === '000000' ? '111111' : '000000');
+  await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(ola.getByLabel('Kod z e-maila')).toHaveAttribute('aria-invalid', 'true');
+  await expect(ola.getByText('Nieprawidłowy kod.')).toBeVisible();
+  await shot(ola, 'q5-client-code-error');
+  await ola.getByLabel('Kod z e-maila').fill(olaCode);
   await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();
   await expect(ola.getByText('Wizyta jest już w aplikacji')).toBeVisible();
   await shot(ola, '25-client-done-app');

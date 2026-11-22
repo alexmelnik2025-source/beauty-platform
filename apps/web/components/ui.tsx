@@ -45,6 +45,16 @@ export function Spinner({ label }: { label?: string }) {
   );
 }
 
+/** Task Q5/Q6/Q7: an error next to its own field — a red frame, "!" and a short line under it. */
+export function FieldError({ id, text }: { id: string; text?: string }) {
+  if (!text) return null;
+  return (
+    <small id={id} className="field-error" role="alert">
+      {text}
+    </small>
+  );
+}
+
 export function ErrorBox({ children }: { children: ReactNode }) {
   if (!children) return null;
   return (

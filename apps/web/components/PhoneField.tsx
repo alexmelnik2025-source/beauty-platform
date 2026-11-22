@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { LOCALE_TAGS, useI18n } from '@/lib/i18n';
+import { FieldError } from './ui';
 import { DIAL_CODES, dialLabel, dialOf, withDial } from '@/lib/phone';
 
 /**
@@ -15,6 +16,7 @@ export function PhoneField({
   onChange,
   defaultDial,
   required,
+  error,
 }: {
   label: string;
   value: string;
@@ -22,6 +24,8 @@ export function PhoneField({
   /** The salon's country code ("48"): listed first and chosen when the number has none. */
   defaultDial: string;
   required?: boolean;
+  /** Task Q5: the error of this field, shown under it (red frame, "!"). */
+  error?: string;
 }) {
   const { t, locale } = useI18n();
   const id = useId();
@@ -66,10 +70,13 @@ export function PhoneField({
           type="tel"
           autoComplete="tel"
           required={required}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
       </div>
+      <FieldError id={`${id}-error`} text={error} />
     </div>
   );
 }

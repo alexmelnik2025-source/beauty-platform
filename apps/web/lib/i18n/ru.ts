@@ -564,6 +564,10 @@ export const ru: Dict = {
     resend: 'Отправить код ещё раз',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Исправить e-mail или телефон',
+    /** Task Q5: errors at their own field on the "Dane" step. */
+    nameInvalid: 'Укажите имя.',
+    phoneInvalid: 'Проверьте номер телефона.',
+    emailInvalid: 'Проверьте адрес e-mail.',
     doneTitle: 'До встречи!',
     doneLead: 'Запись подтверждена. Детали отправили на e-mail.',
     doneTitleApproval: 'Запись отправлена',

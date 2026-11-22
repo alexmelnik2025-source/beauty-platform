@@ -253,6 +253,10 @@ export const tr: Dict = {
     resend: 'Kodu tekrar gönder',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'E-postayı veya telefonu düzelt',
+    /** Task Q5: errors at their own field on the "Dane" step. */
+    nameInvalid: 'Adınızı yazın.',
+    phoneInvalid: 'Telefon numarasını kontrol edin.',
+    emailInvalid: 'E-posta adresini kontrol edin.',
     doneTitle: 'Görüşmek üzere!',
     doneLead: 'Randevunuz onaylandı. Ayrıntıları e-postayla gönderdik.',
     doneTitleApproval: 'Rezervasyon gönderildi',
