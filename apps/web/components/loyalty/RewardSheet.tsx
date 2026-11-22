@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { ErrorBox, Sheet } from '@/components/ui';
-import { api } from '@/lib/api';
+import { ErrorBox, FieldError, Sheet } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
 import type { LoyaltyProgram, LoyaltyReward, Service } from '@/lib/types';
@@ -25,6 +25,33 @@ export function rewardLabel(
   return reward.kind === 'discount_percent'
     ? fill(t.loyalty.discountLabel, { percent: String(reward.discountPercent ?? 0) })
     : fill(t.loyalty.freeLabel, { service: serviceName(reward.freeServiceId ?? '') });
+}
+
+/** Task 668: the reward's fields that can show an error under them. */
+type RewardField =
+  'name' | 'discountPercent' | 'freeServiceId' | 'cost' | 'serviceIds' | 'couponValidityDays';
+const REWARD_FIELDS: RewardField[] = [
+  'name',
+  'discountPercent',
+  'freeServiceId',
+  'cost',
+  'serviceIds',
+  'couponValidityDays',
+];
+
+/** The allowed range of each number (the server checks the same). */
+const RANGES: Partial<Record<RewardField, [number, number]>> = {
+  discountPercent: [1, 100],
+  cost: [1, 100_000],
+  couponValidityDays: [1, 3650],
+};
+
+/** The fields the server's validation answer is about; empty when it is about something else. */
+function rewardFieldsOf(err: unknown): RewardField[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  const paths = (err.details as { path?: string }[]).map((d) => String(d.path ?? ''));
+  return REWARD_FIELDS.filter((f) => paths.some((p) => p === f || p.startsWith(`${f}.`)));
 }
 
 /**
@@ -57,13 +84,24 @@ export function RewardSheet({
     couponValidityDays: reward?.couponValidityDays ? String(reward.couponValidityDays) : '',
   });
   const [error, setError] = useState('');
+  /**
+   * Task 668 (owner's rule: errors at the field): a name of only spaces before sending, and the
+   * server's answer about a field, are said under that field; editing it takes the error away.
+   */
+  const [problems, setProblems] = useState<RewardField[]>([]);
   const [busy, setBusy] = useState(false);
   const discount = form.kind === 'discount_percent';
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    if (!form.name.trim()) {
+      setError('');
+      setProblems(['name']);
+      return;
+    }
     setBusy(true);
     setError('');
+    setProblems([]);
     const body = {
       name: form.name,
       kind: form.kind,
@@ -85,7 +123,9 @@ export function RewardSheet({
       }
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      const fields = rewardFieldsOf(err);
+      setProblems(fields);
+      if (fields.length === 0) setError(errorText(t, err));
       setBusy(false);
     }
   }
@@ -103,11 +143,29 @@ export function RewardSheet({
     }
   }
 
+  /** Editing a field takes its error away. */
+  const edit = (field: RewardField, change: Partial<typeof form>) => {
+    setForm({ ...form, ...change });
+    if (problems.includes(field)) setProblems(problems.filter((f) => f !== field));
+  };
   const toggleService = (id: string, on: boolean) =>
-    setForm({
-      ...form,
+    edit('serviceIds', {
       serviceIds: on ? [...form.serviceIds, id] : form.serviceIds.filter((s) => s !== id),
     });
+  const problem = (field: RewardField): string | undefined => {
+    if (!problems.includes(field)) return undefined;
+    if (field === 'name') return t.onboarding.fieldRequired;
+    const range = RANGES[field];
+    if (!range) return t.errors.VALIDATION_ERROR;
+    return fill(t.guard.numberRange, { min: String(range[0]), max: String(range[1]) });
+  };
+  const invalid = (field: RewardField) => ({
+    'aria-invalid': problems.includes(field) || undefined,
+    'aria-describedby': problems.includes(field) ? `reward-${field}-error` : undefined,
+  });
+  const fieldError = (field: RewardField) => (
+    <FieldError id={`reward-${field}-error`} text={problem(field)} />
+  );
 
   return (
     <Sheet title={reward ? t.loyalty.editReward : t.loyalty.addReward} onClose={onClose}>
@@ -119,8 +177,10 @@ export function RewardSheet({
             required
             maxLength={80}
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            {...invalid('name')}
+            onChange={(e) => edit('name', { name: e.target.value })}
           />
+          {fieldError('name')}
         </label>
         <label className="field">
           <span>{t.loyalty.kind}</span>
@@ -142,8 +202,12 @@ export function RewardSheet({
                 max={100}
                 required
                 value={form.discountPercent}
-                onChange={(e) => setForm({ ...form, discountPercent: Number(e.target.value) })}
+                {...invalid('discountPercent')}
+                onChange={(e) =>
+                  edit('discountPercent', { discountPercent: Number(e.target.value) })
+                }
               />
+              {fieldError('discountPercent')}
             </label>
           ) : (
             <label className="field">
@@ -151,7 +215,8 @@ export function RewardSheet({
               <select
                 required
                 value={form.freeServiceId}
-                onChange={(e) => setForm({ ...form, freeServiceId: e.target.value })}
+                {...invalid('freeServiceId')}
+                onChange={(e) => edit('freeServiceId', { freeServiceId: e.target.value })}
               >
                 {form.freeServiceId && !services.some((s) => s.id === form.freeServiceId) ? (
                   <option value={form.freeServiceId}>{t.loyalty.otherService}</option>
@@ -162,6 +227,7 @@ export function RewardSheet({
                   </option>
                 ))}
               </select>
+              {fieldError('freeServiceId')}
             </label>
           )}
           <label className="field">
@@ -172,8 +238,10 @@ export function RewardSheet({
               max={100000}
               required
               value={form.cost}
-              onChange={(e) => setForm({ ...form, cost: Number(e.target.value) })}
+              {...invalid('cost')}
+              onChange={(e) => edit('cost', { cost: Number(e.target.value) })}
             />
+            {fieldError('cost')}
           </label>
         </div>
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
@@ -191,6 +259,7 @@ export function RewardSheet({
             ))}
           </div>
           <span className="small muted">{t.loyalty.anyServiceHint}</span>
+          {fieldError('serviceIds')}
         </fieldset>
         <label className="field">
           <span>{t.loyalty.couponValidity}</span>
@@ -199,8 +268,10 @@ export function RewardSheet({
             min={1}
             max={3650}
             value={form.couponValidityDays}
-            onChange={(e) => setForm({ ...form, couponValidityDays: e.target.value })}
+            {...invalid('couponValidityDays')}
+            onChange={(e) => edit('couponValidityDays', { couponValidityDays: e.target.value })}
           />
+          {fieldError('couponValidityDays')}
           <span className="small muted">{t.loyalty.noLimitHint}</span>
         </label>
         <button className="btn btn--block" disabled={busy}>

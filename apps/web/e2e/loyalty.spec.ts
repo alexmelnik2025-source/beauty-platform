@@ -178,7 +178,15 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   // ── Rewards: −25% on a haircut for 3 stamps, a free beard for 6 ───────
   await page.getByRole('button', { name: '+ Dodaj nagrodę' }).click();
   let sheet = page.getByRole('dialog');
-  await sheet.getByLabel('Nazwa nagrody').fill('−25% na strzyżenie');
+  // Task 668: a name of only spaces is said under "Nazwa nagrody" (red frame, "!").
+  const rewardName = sheet.getByLabel('Nazwa nagrody');
+  await rewardName.fill('   ');
+  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(sheet.getByText('Uzupełnij to pole.')).toBeVisible();
+  await expect(rewardName).toHaveAttribute('aria-invalid', 'true');
+  await shot(page, '668-loyalty-reward-name-error');
+  await rewardName.fill('−25% na strzyżenie');
+  await expect(sheet.getByText('Uzupełnij to pole.')).toHaveCount(0);
   await sheet.getByLabel('Zniżka (%)').fill('25');
   await sheet.getByLabel('Cena w pieczątkach').fill('3');
   await sheet.getByLabel('Strzyżenie męskie').check();
