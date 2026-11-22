@@ -12,6 +12,8 @@ import { waitForEmail } from './mailpit';
  * Task 16: the salon's happy hours. The owner sets −20% at Kasia's (via the API); the client
  * sees "−20%" at the free times and the lower price on the held visit. Then the owner manages
  * the rules in the cabinet's "Happy hours" page (part 3). Screenshots 76, 76a, 76b, 76c.
+ * Task Q6/Q7: the page is "Promocje"; "+ Dodaj promocję" also makes a "Last Minute" promotion,
+ * and a wrong value is shown at its own field (screenshots q7-promotions-*).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -147,30 +149,63 @@ test('the client sees happy-hour prices at the free times and on the held visit'
   await owner.getByLabel('Hasło').fill(PASSWORD);
   await owner.getByRole('button', { name: 'Zaloguj się' }).click();
   await owner.waitForURL(/\/pl\/app\/calendar/);
-  await owner.getByRole('link', { name: 'Happy hours' }).first().click();
-  await expect(owner.getByRole('heading', { name: 'Happy hours' })).toBeVisible();
+  await owner.getByRole('link', { name: 'Promocje' }).first().click();
+  await expect(owner.getByRole('heading', { name: 'Promocje' })).toBeVisible();
   await expect(owner.getByText('−20% · Codziennie · 08:00–12:00')).toBeVisible();
   await expect(owner.getByText('Specjaliści: Kasia')).toBeVisible();
   await expect(owner.getByText('Usługi: wszystkie')).toBeVisible();
-  await owner.getByRole('button', { name: '+ Dodaj tańsze godziny' }).click();
+  await owner.getByRole('button', { name: '+ Dodaj promocję' }).click();
   const sheet = owner.getByRole('dialog');
+  await expect(sheet.getByRole('radio', { name: /^Godziny i dni/ })).toBeChecked();
   await sheet.getByRole('button', { name: 'Zapisz' }).click();
   await expect(sheet.getByText('Wybierz co najmniej jeden dzień.')).toBeVisible();
   await sheet.getByLabel('Wtorek').check();
   await sheet.getByLabel('Od', { exact: true }).fill('14:00');
   await sheet.getByLabel(/^Do \(/).fill('16:00');
   await sheet.getByLabel('Rabat, %').fill('15');
+  // Task Q7: specialists and services are folded into one line ("Dla kogo: wszyscy · wszystkie").
+  await sheet.getByText('Dla kogo:').click();
   await sheet.getByLabel('Strzyżenie męskie').check();
   await shot(owner, '76b-owner-happy-hours-form');
   await sheet.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(owner.getByText('Zapisano tańsze godziny.')).toBeVisible();
+  await expect(owner.getByText('Zapisano promocję.')).toBeVisible();
   await expect(owner.getByText('−15% · wt. · 14:00–16:00')).toBeVisible();
   await expect(owner.getByText('Usługi: Strzyżenie męskie')).toBeVisible();
   await shot(owner, '76c-owner-happy-hours');
-  await owner.getByRole('button', { name: 'Usuń tańsze godziny 2' }).click();
+  await owner.getByRole('button', { name: 'Usuń promocję 2' }).click();
   await owner.getByRole('button', { name: 'Tak, usuń' }).click();
-  await expect(owner.getByText('Usunięto tańsze godziny.')).toBeVisible();
+  await expect(owner.getByText('Usunięto promocję.')).toBeVisible();
   await expect(owner.getByText('−15% · wt. · 14:00–16:00')).toHaveCount(0);
   await expect(owner.getByText('−20% · Codziennie · 08:00–12:00')).toBeVisible();
+
+  // Task Q7: "Last Minute" — −30% for visits booked online at most 3 hours before they start.
+  await owner.getByRole('button', { name: '+ Dodaj promocję' }).click();
+  await sheet.getByRole('radio', { name: /^Last Minute/ }).check();
+  await expect(sheet.getByLabel('Wtorek')).toHaveCount(0);
+  await sheet.getByLabel('Rabat, %').fill('30');
+  const ahead = sheet.getByLabel('Najwyżej ile godzin przed wizytą');
+  await ahead.fill('0');
+  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  // The error is at its own field: a red frame and a short line under it.
+  await expect(ahead).toHaveAttribute('aria-invalid', 'true');
+  await expect(sheet.getByText('Wpisz liczbę godzin od 1 do 72.')).toBeVisible();
+  await shot(owner, 'q7-promotions-field-error');
+  await ahead.fill('3');
+  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(owner.getByText('Zapisano promocję.')).toBeVisible();
+  const lastMinute = owner.getByText('−30% · Last Minute · do 3 godz. przed wizytą');
+  await expect(lastMinute).toBeVisible();
+  await expect(owner.getByText('−20% · Codziennie · 08:00–12:00')).toBeVisible();
+  await shot(owner, 'q7-promotions-last-minute');
+  // Opened again, it is still a Last Minute of 3 hours.
+  await owner.getByRole('button', { name: 'Zmień promocję 2' }).click();
+  await expect(sheet.getByRole('radio', { name: /^Last Minute/ })).toBeChecked();
+  await expect(sheet.getByLabel('Najwyżej ile godzin przed wizytą')).toHaveValue('3');
+  await sheet.getByLabel('Najwyżej ile godzin przed wizytą').fill('2');
+  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(owner.getByText('−30% · Last Minute · do 2 godz. przed wizytą')).toBeVisible();
+  await owner.getByRole('button', { name: 'Usuń promocję 2' }).click();
+  await owner.getByRole('button', { name: 'Tak, usuń' }).click();
+  await expect(owner.getByText(/Last Minute/)).toHaveCount(0);
   await desk.close();
 });

@@ -1137,6 +1137,14 @@ pnpm --filter @beauty/api-client generate
   отдают `discountPercent` с учётом Last Minute на момент запроса, бронь (`holds`) фиксирует цену. Свой процент, дни
   и часы уже были (1–90 %). Колонка `happy_hour.last_minute_hours`, миграция `20261202010000_last_minute`, тесты в
   `test/happy-hours.spec.ts`. Приложение бизнеса сохраняет правило Last Minute без изменений (`rulesToSave`).
+- **Q6 + Q7, часть 2 (кабинет): «Promocje»** — пункт меню и страница называются «Promocje» (адрес прежний
+  `/app/happy-hours`; en «Promotions», UA «Акції», ru «Акции»). «+ Dodaj promocję» → «Rodzaj promocji»: «Godziny i dni»
+  (как раньше) или «Last Minute» (только «Rabat, %» и «Najwyżej ile godzin przed wizytą», 1–72; новое правило — каждый
+  день, весь день; при правке сохраняются его дни и часы). Специалисты и услуги свёрнуты в строку «Dla kogo: wszyscy ·
+  wszystkie ▸». Ошибки — у своего поля (красная рамка, «!», строка под полем: общие стили `.field-error` и
+  `[aria-invalid]` в `globals.css`). В списке: «−30% · Last Minute · do 3 godz. przed wizytą». e2e
+  `e2e/happy-hours.spec.ts`, скриншоты `q7-promotions-field-error`, `q7-promotions-last-minute` (и обновлённые `76b`,
+  `76c`).
 
 ## Бизнес-приложение: новый визит (задача 17a)
 

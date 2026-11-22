@@ -34,6 +34,27 @@ function daysText(t: Dict, tag: string, weekdays: number[]): string {
     .join(', ');
 }
 
+/** "00:00–24:00" — the whole day: a Last Minute rule without its own hours. */
+const wholeDay = (r: Draft) => r.start === '00:00' && r.end === '24:00';
+
+/**
+ * Task Q7: one line per promotion — "−20% · wt. · 10:00–13:00" or
+ * "−30% · Last Minute · do 3 godz. przed wizytą" (its own days and hours only when it has them).
+ */
+function ruleTitle(t: Dict, tag: string, rule: Draft): string {
+  if (rule.kind !== 'lastMinute') {
+    return `−${rule.discountPercent}% · ${daysText(t, tag, rule.weekdays)} · ${rule.start}–${rule.end}`;
+  }
+  const parts = [
+    `−${rule.discountPercent}%`,
+    'Last Minute',
+    fill(t.happyHours.lastMinuteAhead, { n: String(rule.lastMinuteHours ?? 0) }),
+  ];
+  if (rule.weekdays.length < 7) parts.push(daysText(t, tag, rule.weekdays));
+  if (!wholeDay(rule)) parts.push(`${rule.start}–${rule.end}`);
+  return parts.join(' · ');
+}
+
 /** Names of the chosen ones; nobody chosen = everyone. */
 function namesText(ids: string[], all: { id: string; name: string }[], everyone: string): string {
   if (ids.length === 0) return everyone;
@@ -45,6 +66,9 @@ function namesText(ids: string[], all: { id: string; name: string }[], everyone:
  * Task 16, part 3: "Happy hours" — a lower price on chosen weekdays and hours, for chosen
  * specialists and services. The server applies it to new visits; clients see "−20%" at the
  * free times. Owner and manager only (the server checks it too).
+ * Task Q6: the menu item and the page are "Promocje". Task Q7: "+ Dodaj promocję" offers two
+ * kinds — "Godziny i dni" (the happy hours above) and "Last Minute" (booked online at most N
+ * hours before the visit). Specialists and services are folded under one line.
  */
 export default function HappyHoursPage() {
   const { t, locale } = useI18n();
@@ -143,10 +167,7 @@ export default function HappyHoursPage() {
           {rules.map((rule, i) => (
             <li key={rule.id} className="list-row">
               <span className="grow">
-                <strong>
-                  −{rule.discountPercent}% · {daysText(t, tag, rule.weekdays)} · {rule.start}–
-                  {rule.end}
-                </strong>
+                <strong>{ruleTitle(t, tag, rule)}</strong>
                 <span className="small muted">
                   {t.happyHours.staff}:{' '}
                   {namesText(rule.staffIds, staffNames, t.happyHours.allStaff)}
@@ -229,6 +250,18 @@ export default function HappyHoursPage() {
   );
 }
 
+type Problems = Partial<Record<'percent' | 'days' | 'hours' | 'ahead', string>>;
+
+/** Task Q6/Q7: an error next to its own field — a red frame, "!" and a short line under it. */
+function FieldError({ id, text }: { id: string; text?: string }) {
+  if (!text) return null;
+  return (
+    <small id={id} className="field-error" role="alert">
+      {text}
+    </small>
+  );
+}
+
 function RuleSheet({
   initial,
   isNew,
@@ -246,10 +279,13 @@ function RuleSheet({
   onClose: () => void;
   onSave: (draft: Draft) => Promise<void>;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const tag = LOCALE_TAGS[locale];
   const [form, setForm] = useState<Draft>(initial);
   const [percent, setPercent] = useState(String(initial.discountPercent));
-  const [problem, setProblem] = useState('');
+  const [ahead, setAhead] = useState(String(initial.lastMinuteHours ?? 3));
+  const [problems, setProblems] = useState<Problems>({});
+  const lastMinute = form.kind === 'lastMinute';
 
   const toggle = (list: string[], id: string, on: boolean) =>
     on ? [...list, id] : list.filter((x) => x !== id);
@@ -257,69 +293,94 @@ function RuleSheet({
   function submit(e: FormEvent) {
     e.preventDefault();
     const discount = Number(percent);
-    if (form.weekdays.length === 0) return setProblem(t.happyHours.pickDays);
-    if (
-      !/^\d{2}:\d{2}$/.test(form.start) ||
-      !/^\d{2}:\d{2}$/.test(form.end) ||
-      form.start >= form.end
-    )
-      return setProblem(t.happyHours.badHours);
-    if (!Number.isInteger(discount) || discount < 1 || discount > 90)
-      return setProblem(t.happyHours.badPercent);
-    setProblem('');
-    void onSave({ ...form, discountPercent: discount });
+    const hours = Number(ahead);
+    const found: Problems = {};
+    if (!Number.isInteger(discount) || discount < 1 || discount > 90) {
+      found.percent = t.happyHours.badPercent;
+    }
+    if (lastMinute) {
+      if (!Number.isInteger(hours) || hours < 1 || hours > 72) found.ahead = t.happyHours.badAhead;
+    } else {
+      if (form.weekdays.length === 0) found.days = t.happyHours.pickDays;
+      if (
+        // "24:00" (until midnight, set before) shows as 23:59 and is kept unless changed.
+        !/^\d{2}:\d{2}$/.test(form.start) ||
+        !/^\d{2}:\d{2}$/.test(form.end) ||
+        form.start >= form.end
+      ) {
+        found.hours = t.happyHours.badHours;
+      }
+    }
+    setProblems(found);
+    if (Object.keys(found).length > 0) return;
+    if (lastMinute) {
+      // A new Last Minute is every day, all day; an edited one keeps the days and hours it has.
+      const keep = initial.kind === 'lastMinute';
+      void onSave({
+        ...form,
+        discountPercent: discount,
+        lastMinuteHours: hours,
+        weekdays: keep ? initial.weekdays : [1, 2, 3, 4, 5, 6, 7],
+        start: keep ? initial.start : '00:00',
+        end: keep ? initial.end : '24:00',
+      });
+    } else {
+      void onSave({
+        ...form,
+        discountPercent: discount,
+        lastMinuteHours: null,
+      });
+    }
   }
+
+  function setKind(kind: Draft['kind']) {
+    setProblems({});
+    if (kind === 'hours' && initial.kind === 'lastMinute') {
+      // From a whole-day Last Minute to ordinary hours: start from the usual example.
+      setForm({ ...form, kind, weekdays: [], start: EMPTY.start, end: EMPTY.end });
+    } else {
+      setForm({ ...form, kind });
+    }
+  }
+
+  const who = `${namesText(form.staffIds, staff, t.happyHours.allStaff)} · ${namesText(
+    form.serviceIds,
+    services,
+    t.happyHours.allServices,
+  )}`;
 
   return (
     <Sheet title={isNew ? t.happyHours.add : t.happyHours.edit} onClose={onClose}>
-      <form className="form" onSubmit={submit}>
-        <ErrorBox>{problem}</ErrorBox>
-        <fieldset className="section" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend>
-            <h3>{t.happyHours.days}</h3>
-          </legend>
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            {t.weekdays.map((name, i) => (
-              <label key={name} className="check">
-                <input
-                  type="checkbox"
-                  checked={form.weekdays.includes(i + 1)}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      weekdays: e.target.checked
-                        ? [...form.weekdays, i + 1].sort((a, b) => a - b)
-                        : form.weekdays.filter((d) => d !== i + 1),
-                    })
-                  }
-                />
-                <span>{name}</span>
-              </label>
-            ))}
+      <form className="form" onSubmit={submit} noValidate>
+        <fieldset className="field">
+          <legend>{t.happyHours.kind}</legend>
+          <div className="kind-choice">
+            <label className="check">
+              <input
+                type="radio"
+                name="kind"
+                checked={!lastMinute}
+                onChange={() => setKind('hours')}
+              />
+              <span>
+                {t.happyHours.kindHours}
+                <small className="muted remember-hint">{t.happyHours.kindHoursHint}</small>
+              </span>
+            </label>
+            <label className="check">
+              <input
+                type="radio"
+                name="kind"
+                checked={lastMinute}
+                onChange={() => setKind('lastMinute')}
+              />
+              <span>
+                Last Minute
+                <small className="muted remember-hint">{t.happyHours.kindLastMinuteHint}</small>
+              </span>
+            </label>
           </div>
         </fieldset>
-        <div className="row">
-          <label className="field grow">
-            <span>{t.happyHours.from}</span>
-            <input
-              type="time"
-              step={300}
-              required
-              value={form.start}
-              onChange={(e) => setForm({ ...form, start: e.target.value })}
-            />
-          </label>
-          <label className="field grow">
-            <span>{t.happyHours.to}</span>
-            <input
-              type="time"
-              step={300}
-              required
-              value={form.end}
-              onChange={(e) => setForm({ ...form, end: e.target.value })}
-            />
-          </label>
-        </div>
         <label className="field">
           <span>{t.happyHours.percent}</span>
           <input
@@ -327,48 +388,139 @@ function RuleSheet({
             pattern="[0-9]{1,2}"
             required
             value={percent}
+            aria-invalid={problems.percent ? true : undefined}
+            aria-describedby={problems.percent ? 'hh-percent-error' : undefined}
             onChange={(e) => setPercent(e.target.value)}
           />
+          <FieldError id="hh-percent-error" text={problems.percent} />
         </label>
-        <fieldset className="section" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend>
-            <h3>{t.happyHours.staff}</h3>
-          </legend>
-          {staff.map((s) => (
-            <label key={s.id} className="check">
-              <input
-                type="checkbox"
-                checked={form.staffIds.includes(s.id)}
-                onChange={(e) =>
-                  setForm({ ...form, staffIds: toggle(form.staffIds, s.id, e.target.checked) })
-                }
-              />
-              <span>{s.name}</span>
-            </label>
-          ))}
-          <small className="muted">{t.happyHours.noneMeansAll}</small>
-        </fieldset>
-        <fieldset className="section" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend>
-            <h3>{t.happyHours.services}</h3>
-          </legend>
-          {services.map((s) => (
-            <label key={s.id} className="check">
-              <input
-                type="checkbox"
-                checked={form.serviceIds.includes(s.id)}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    serviceIds: toggle(form.serviceIds, s.id, e.target.checked),
-                  })
-                }
-              />
-              <span>{s.name}</span>
-            </label>
-          ))}
-          <small className="muted">{t.happyHours.noneMeansAll}</small>
-        </fieldset>
+        {lastMinute ? (
+          <label className="field">
+            <span>{t.happyHours.ahead}</span>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]{1,2}"
+              required
+              value={ahead}
+              aria-invalid={problems.ahead ? true : undefined}
+              aria-describedby={problems.ahead ? 'hh-ahead-error' : 'hh-ahead-hint'}
+              onChange={(e) => setAhead(e.target.value)}
+            />
+            <small id="hh-ahead-hint" className="muted">
+              {t.happyHours.aheadHint}
+            </small>
+            <FieldError id="hh-ahead-error" text={problems.ahead} />
+          </label>
+        ) : (
+          <>
+            <fieldset
+              className="field"
+              aria-describedby={problems.days ? 'hh-days-error' : undefined}
+            >
+              <legend>{t.happyHours.days}</legend>
+              <div className="row" style={{ flexWrap: 'wrap' }}>
+                {t.weekdays.map((name, i) => (
+                  <label key={name} className="check">
+                    <input
+                      type="checkbox"
+                      checked={form.weekdays.includes(i + 1)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          weekdays: e.target.checked
+                            ? [...form.weekdays, i + 1].sort((a, b) => a - b)
+                            : form.weekdays.filter((d) => d !== i + 1),
+                        })
+                      }
+                    />
+                    <span>{name}</span>
+                  </label>
+                ))}
+              </div>
+              <FieldError id="hh-days-error" text={problems.days} />
+            </fieldset>
+            <div>
+              <div className="row">
+                <label className="field grow">
+                  <span>{t.happyHours.from}</span>
+                  <input
+                    type="time"
+                    step={300}
+                    required
+                    value={form.start}
+                    aria-invalid={problems.hours ? true : undefined}
+                    aria-describedby={problems.hours ? 'hh-hours-error' : undefined}
+                    onChange={(e) => setForm({ ...form, start: e.target.value })}
+                  />
+                </label>
+                <label className="field grow">
+                  <span>{t.happyHours.to}</span>
+                  <input
+                    type="time"
+                    step={300}
+                    required
+                    value={form.end === '24:00' ? '23:59' : form.end}
+                    aria-invalid={problems.hours ? true : undefined}
+                    aria-describedby={problems.hours ? 'hh-hours-error' : undefined}
+                    onChange={(e) => setForm({ ...form, end: e.target.value })}
+                  />
+                </label>
+              </div>
+              <FieldError id="hh-hours-error" text={problems.hours} />
+            </div>
+          </>
+        )}
+        <details className="promo-more">
+          <summary>
+            {t.happyHours.whoFor} <span className="muted small">{who}</span> ▸
+          </summary>
+          <fieldset className="section" style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend>
+              <h3>{t.happyHours.staff}</h3>
+            </legend>
+            {staff.map((s) => (
+              <label key={s.id} className="check">
+                <input
+                  type="checkbox"
+                  checked={form.staffIds.includes(s.id)}
+                  onChange={(e) =>
+                    setForm({ ...form, staffIds: toggle(form.staffIds, s.id, e.target.checked) })
+                  }
+                />
+                <span>{s.name}</span>
+              </label>
+            ))}
+            <small className="muted">{t.happyHours.noneMeansAll}</small>
+          </fieldset>
+          <fieldset className="section" style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend>
+              <h3>{t.happyHours.services}</h3>
+            </legend>
+            {services.map((s) => (
+              <label key={s.id} className="check">
+                <input
+                  type="checkbox"
+                  checked={form.serviceIds.includes(s.id)}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      serviceIds: toggle(form.serviceIds, s.id, e.target.checked),
+                    })
+                  }
+                />
+                <span>{s.name}</span>
+              </label>
+            ))}
+            <small className="muted">{t.happyHours.noneMeansAll}</small>
+          </fieldset>
+        </details>
+        {lastMinute &&
+        initial.kind === 'lastMinute' &&
+        (initial.weekdays.length < 7 || !wholeDay(initial)) ? (
+          <p className="small muted">
+            {daysText(t, tag, initial.weekdays)} · {initial.start}–{initial.end}
+          </p>
+        ) : null}
         <p className="small muted">{t.happyHours.onlyNew}</p>
         <button className="btn btn--block" disabled={busy}>
           {t.common.save}

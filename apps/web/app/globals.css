@@ -3504,3 +3504,51 @@ ul.wish-photos {
 .speaks-fold[open] > summary {
   margin-bottom: 6px;
 }
+
+/* Task Q6/Q7: an error at its own field — a red frame, "!" and a short line under the field. */
+.field input[aria-invalid='true'],
+.field select[aria-invalid='true'],
+.field textarea[aria-invalid='true'] {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 1px var(--signal);
+}
+
+.field-error {
+  display: block;
+  color: var(--signal);
+  font-size: 0.85rem;
+}
+
+.field-error::before {
+  content: '!';
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--signal);
+  color: var(--paper);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Task Q7: "Promocje" — the two kinds, and specialists/services folded into one line. */
+.kind-choice {
+  display: grid;
+  gap: 10px;
+}
+
+.promo-more > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.promo-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.promo-more[open] > summary {
+  margin-bottom: 8px;
+}
