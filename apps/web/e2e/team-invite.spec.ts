@@ -92,7 +92,15 @@ test('the owner invites a specialist by email and phone; they join with a code (
   const form = page.getByRole('dialog');
   await expect(form.getByRole('heading', { name: 'Zaproś do zespołu' })).toBeVisible();
   await form.getByLabel('E-mail', { exact: true }).fill(KASIA);
-  await form.getByLabel('Telefon').fill('+48 600 100 200');
+  // Task 667: a number without "+48" is said under "Telefon" (red frame, "!"), not above the form.
+  const phone = form.getByLabel('Telefon');
+  await phone.fill('600 100 200');
+  await form.getByRole('button', { name: 'Zaproś', exact: true }).click();
+  await expect(form.getByText('Sprawdź numer telefonu.')).toBeVisible();
+  await expect(phone).toHaveAttribute('aria-invalid', 'true');
+  await shot(page, '667-invite-phone-error');
+  await phone.fill('+48 600 100 200');
+  await expect(form.getByText('Sprawdź numer telefonu.')).toHaveCount(0);
   // Task 81: the profile's languages right in the invitation.
   const english = form.getByRole('button', { name: 'EN angielski' });
   if ((await english.getAttribute('aria-pressed')) !== 'true') await english.click();

@@ -2,10 +2,10 @@
 
 import { LanguagePicker, type Spoken } from '../Languages';
 import { useState, type FormEvent } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { DASHBOARD_LOCALES, errorText, localeCode, useI18n } from '@/lib/i18n';
 import type { Member, PermissionCatalog, PermissionMap, StaffCategory } from '@/lib/types';
-import { ErrorBox, Sheet } from '../ui';
+import { ErrorBox, FieldError, Sheet } from '../ui';
 
 export type { Member, PermissionMap };
 export type Category = StaffCategory;
@@ -267,6 +267,20 @@ export function CategorySheet({
   );
 }
 
+/** Task 667: the invitation's fields that can show an error under them. */
+type InviteField = 'email' | 'phone' | 'staffMemberId' | 'staffCategoryId';
+
+/** Which field the server's answer is about; null when it is about something else. */
+function inviteFieldOf(err: unknown): InviteField | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.code === 'ALREADY_MEMBER') return 'email';
+  if (err.code === 'STAFF_ALREADY_LINKED') return 'staffMemberId';
+  if (err.code !== 'VALIDATION_ERROR' || !Array.isArray(err.details)) return null;
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  const fields: InviteField[] = ['email', 'phone', 'staffMemberId', 'staffCategoryId'];
+  return fields.find((f) => paths.includes(f)) ?? null;
+}
+
 export function InviteSheet({
   orgId,
   locationId,
@@ -303,11 +317,18 @@ export function InviteSheet({
     languages: staffProfiles.find((s) => s.id === presetStaffId)?.languages ?? ([] as Spoken[]),
   });
   const [error, setError] = useState('');
+  /**
+   * Task 667 (owner's rule: errors at the field): a wrong e-mail or phone, "already in the team"
+   * and "this profile has an account" are said under their own field; editing it takes it away.
+   */
+  const [problem, setProblem] = useState<{ field: InviteField; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function send(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setError('');
+    setProblem(null);
     try {
       await api(`/v1/organizations/${orgId}/invitations`, {
         method: 'POST',
@@ -327,10 +348,36 @@ export function InviteSheet({
       });
       onSent(form.email);
     } catch (err) {
-      setError(errorText(t, err));
+      const field = inviteFieldOf(err);
+      const text: Record<InviteField, string> = {
+        email: t.booking.emailInvalid,
+        phone: t.booking.phoneInvalid,
+        staffMemberId: t.errors.VALIDATION_ERROR,
+        staffCategoryId: t.errors.VALIDATION_ERROR,
+      };
+      if (field) {
+        const known = err instanceof ApiError && err.code !== 'VALIDATION_ERROR';
+        setProblem({ field, text: known ? errorText(t, err) : text[field] });
+      } else setError(errorText(t, err));
       setBusy(false);
     }
   }
+
+  /** Editing a field takes its error away. */
+  const edit = (field: InviteField, change: Partial<typeof form>) => {
+    setForm({ ...form, ...change });
+    if (problem?.field === field) setProblem(null);
+  };
+  const invalid = (field: InviteField) => ({
+    'aria-invalid': problem?.field === field || undefined,
+    'aria-describedby': problem?.field === field ? `invite-${field}-error` : undefined,
+  });
+  const fieldError = (field: InviteField) => (
+    <FieldError
+      id={`invite-${field}-error`}
+      text={problem?.field === field ? problem.text : undefined}
+    />
+  );
 
   return (
     <Sheet title={t.team.inviteTitle} onClose={onClose}>
@@ -342,8 +389,10 @@ export function InviteSheet({
             type="email"
             required
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            {...invalid('email')}
+            onChange={(e) => edit('email', { email: e.target.value })}
           />
+          {fieldError('email')}
         </label>
         <label className="field">
           <span>{t.team.invitePhone}</span>
@@ -353,8 +402,10 @@ export function InviteSheet({
             autoComplete="off"
             placeholder="+48 600 100 200"
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            {...invalid('phone')}
+            onChange={(e) => edit('phone', { phone: e.target.value })}
           />
+          {fieldError('phone')}
           <span className="small muted">{t.team.invitePhoneHint}</span>
         </label>
         {isOwner ? (
@@ -375,9 +426,9 @@ export function InviteSheet({
               <span>{t.team.inviteProfile}</span>
               <select
                 value={form.staffMemberId}
+                {...invalid('staffMemberId')}
                 onChange={(e) =>
-                  setForm({
-                    ...form,
+                  edit('staffMemberId', {
                     staffMemberId: e.target.value,
                     languages: staffProfiles.find((s) => s.id === e.target.value)?.languages ?? [],
                   })
@@ -392,6 +443,7 @@ export function InviteSheet({
                     </option>
                   ))}
               </select>
+              {fieldError('staffMemberId')}
             </label>
             {form.staffMemberId ? (
               <LanguagePicker
@@ -405,7 +457,8 @@ export function InviteSheet({
               <span>{t.team.permCategory}</span>
               <select
                 value={form.staffCategoryId}
-                onChange={(e) => setForm({ ...form, staffCategoryId: e.target.value })}
+                {...invalid('staffCategoryId')}
+                onChange={(e) => edit('staffCategoryId', { staffCategoryId: e.target.value })}
               >
                 <option value="">{t.team.defaultPerms}</option>
                 {categories.map((c) => (
@@ -414,6 +467,7 @@ export function InviteSheet({
                   </option>
                 ))}
               </select>
+              {fieldError('staffCategoryId')}
             </label>
           </>
         ) : null}

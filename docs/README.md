@@ -695,6 +695,9 @@ pnpm --filter @beauty/api-client generate
 - В списке специалистов и в карточке вместо «Bez konta» — «Zaproszenie wysłane, czeka» (e-mail и номер) и кнопка
   «Wyślij zaproszenie ponownie» (старая ссылка перестаёт работать). Тесты — `apps/api/test/phone-login.spec.ts`,
   e2e `apps/web/e2e/team-invite.spec.ts`, скриншоты 54–57.
+- Ошибки у поля (667): номер без кода страны или неверный — «Sprawdź numer telefonu.» под «Telefon»; неверный
+  e-mail и «Ta osoba jest już w zespole.» — под «E-mail»; «Ten profil ma już konto.» — под профилем
+  (`aria-invalid`), а не строкой над формой. Правка поля убирает ошибку. Скриншот `667-invite-phone-error`.
 
 ## Тест-фикс 03.11.2026: перенос клиентом с подтверждением (T11)
 
