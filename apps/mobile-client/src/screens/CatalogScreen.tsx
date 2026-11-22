@@ -51,6 +51,7 @@ export function CatalogScreen(props: {
 }) {
   const { api, t } = props;
   // Task 192: several languages at once (any of them), remembered on the device; null until read.
+  const [filter, setFilter] = useState<'language' | 'kind' | null>(null);
   const [languages, setLanguages] = useState<SpokenLanguage[] | null>(null);
   // Task 160: the catalogue opens on the map; the kind of place is the second filter.
   const [view, setView] = useState<'map' | 'list'>('map');
@@ -173,44 +174,61 @@ export function CatalogScreen(props: {
         onSubmitEditing={() => setSearch(query.trim())}
         style={styles.input}
       />
-      <View style={styles.chips}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+      >
         <Chip
-          label={locating ? t.catalog.locating : `⌖ ${t.catalog.near}`}
-          pressed={near !== null}
-          onPress={() => void toggleNear()}
+          compact
+          label={`${t.catalog.filterLanguage} ${filter === 'language' ? '▴' : '▾'}`}
+          pressed={chosen.length > 0}
+          expanded={filter === 'language'}
+          onPress={() => setFilter(filter === 'language' ? null : 'language')}
         />
         <Chip
+          compact
+          label={`${t.catalog.filterKind} ${filter === 'kind' ? '▴' : '▾'}`}
+          pressed={specialty !== null}
+          expanded={filter === 'kind'}
+          onPress={() => setFilter(filter === 'kind' ? null : 'kind')}
+        />
+        <Chip
+          compact
           label={`${t.catalog.openNow} (${openNowCount})`}
           pressed={openNow}
           onPress={() => setOpenNow(!openNow)}
         />
         <Chip
-          label={t.catalog.bestRated}
-          pressed={bestRated}
-          onPress={() => setBestRated(!bestRated)}
+          compact
+          label={locating ? t.catalog.locating : t.catalog.near}
+          pressed={near !== null}
+          onPress={() => void toggleNear()}
         />
-      </View>
+      </ScrollView>
       {locationFailed ? <Text style={styles.small}>{t.catalog.locationFailed}</Text> : null}
-      <View style={styles.chips} accessibilityLabel={t.catalog.filterLanguage}>
-        <Chip
-          label={t.catalog.allLanguages}
-          pressed={chosen.length === 0}
-          onPress={() => choose([])}
-        />
-        {SPOKEN.map((l) => (
+      {filter === 'language' ? (
+        <View style={styles.chips} accessibilityLabel={t.catalog.filterLanguage}>
           <Chip
-            key={l}
-            label={`${LANGUAGE_CHIP[l]} (${languageCounts[l] ?? 0})`}
-            a11yLabel={`${t.spoken[l]} (${languageCounts[l] ?? 0})`}
-            pressed={chosen.includes(l)}
-            onPress={() => toggle(l)}
+            label={t.catalog.allLanguages}
+            pressed={chosen.length === 0}
+            onPress={() => choose([])}
           />
-        ))}
-        {chosen.length > 0 ? (
-          <Chip label={t.catalog.clearLanguages} pressed={false} onPress={() => choose([])} />
-        ) : null}
-      </View>
-      {KINDS.some((k) => (specialtyCounts[k] ?? 0) > 0) ? (
+          {SPOKEN.map((l) => (
+            <Chip
+              key={l}
+              label={`${LANGUAGE_CHIP[l]} (${languageCounts[l] ?? 0})`}
+              a11yLabel={`${t.spoken[l]} (${languageCounts[l] ?? 0})`}
+              pressed={chosen.includes(l)}
+              onPress={() => toggle(l)}
+            />
+          ))}
+          {chosen.length > 0 ? (
+            <Chip label={t.catalog.clearLanguages} pressed={false} onPress={() => choose([])} />
+          ) : null}
+        </View>
+      ) : null}
+      {filter === 'kind' ? (
         <View style={styles.chips} accessibilityLabel={t.catalog.filterKind}>
           <Chip
             label={t.catalog.allKinds}
@@ -228,6 +246,11 @@ export function CatalogScreen(props: {
         </View>
       ) : null}
       <View style={styles.chips} accessibilityLabel={t.catalog.view}>
+        <Chip
+          label={t.catalog.bestRated}
+          pressed={bestRated}
+          onPress={() => setBestRated(!bestRated)}
+        />
         <Chip label={t.catalog.viewMap} pressed={view === 'map'} onPress={() => setView('map')} />
         <Chip
           label={t.catalog.viewList}
@@ -329,5 +352,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
   },
+  filters: { flexDirection: 'row', gap: 5 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

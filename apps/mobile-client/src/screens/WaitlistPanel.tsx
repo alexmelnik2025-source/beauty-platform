@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ApiError, todayIn, type ClientApi, type Locale, type PublicLocation } from '../api';
 import { BOOKING_DAYS } from '../booking';
 import { errorText } from '../errors';
 import { dayChip, formatDay } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { dialForTimeZone, normalizePhone } from '../phone';
-import { Button, colors, ErrorText } from '../ui';
+import { Button, colors, ErrorText, FieldInput } from '../ui';
 import { waitlistDays } from '../waitlist';
 
 /** The waiting list's words for the API's refusals (task 50 rules). */
@@ -44,6 +44,7 @@ export function WaitlistPanel(props: {
   const [phone, setPhone] = useState('');
   const [invalidPhone, setInvalidPhone] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [nameError, setNameError] = useState('');
   const [joined, setJoined] = useState<{ date: string; auto: boolean } | null>(null);
   const [error, setError] = useState('');
 
@@ -57,7 +58,7 @@ export function WaitlistPanel(props: {
     setError('');
     setInvalidPhone(false);
     if (!name.trim()) {
-      setError(w.nameNeeded);
+      setNameError(w.nameNeeded);
       return;
     }
     const normalized = autoBook ? normalizePhone(phone, dialForTimeZone(salon.timezone)) : '';
@@ -93,11 +94,15 @@ export function WaitlistPanel(props: {
         <Text style={styles.muted}>{w.noFullDays}</Text>
       ) : (
         <>
-          <TextInput
+          <FieldInput
+            error={nameError}
             accessibilityLabel={t.book.name}
             placeholder={t.book.name}
             value={name}
-            onChangeText={setName}
+            onChangeText={(value) => {
+              setName(value);
+              setNameError('');
+            }}
             autoComplete="name"
             style={styles.input}
           />
@@ -113,22 +118,19 @@ export function WaitlistPanel(props: {
             />
           </View>
           {autoBook ? (
-            <View style={{ gap: 4 }}>
-              <TextInput
-                accessibilityLabel={t.book.phone}
-                aria-invalid={invalidPhone}
-                placeholder={t.book.phone}
-                value={phone}
-                onChangeText={(value) => {
-                  setPhone(value);
-                  setInvalidPhone(false);
-                }}
-                autoComplete="tel"
-                inputMode="tel"
-                style={[styles.input, invalidPhone && styles.invalid]}
-              />
-              {invalidPhone ? <ErrorText>! {w.phoneForAuto}</ErrorText> : null}
-            </View>
+            <FieldInput
+              accessibilityLabel={t.book.phone}
+              error={invalidPhone ? w.phoneForAuto : undefined}
+              placeholder={t.book.phone}
+              value={phone}
+              onChangeText={(value) => {
+                setPhone(value);
+                setInvalidPhone(false);
+              }}
+              autoComplete="tel"
+              inputMode="tel"
+              style={styles.input}
+            />
           ) : null}
           <ScrollView
             horizontal
@@ -168,7 +170,6 @@ export function WaitlistPanel(props: {
 
 const styles = StyleSheet.create({
   autoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  invalid: { borderColor: colors.danger },
   panel: {
     gap: 8,
     borderTopWidth: 1,

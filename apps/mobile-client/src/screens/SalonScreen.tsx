@@ -4,6 +4,7 @@ import {
   Image,
   Linking,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -34,6 +35,7 @@ import {
   specialtyText,
 } from '../salon';
 import { QrView } from '../QrView';
+import type { BookingPreset } from '../booking';
 import { shareMessage, shareSalon } from '../share';
 import { shareTools } from './shareTools';
 import { NearbySalons } from './NearbySalons';
@@ -54,7 +56,7 @@ export function SalonScreen(props: {
   slug: string;
   name: string;
   onBack: () => void;
-  onBook: (salon: PublicLocation) => void;
+  onBook: (salon: PublicLocation, preset?: BookingPreset) => void;
   /** Signed in: the "Add to favourites" button is shown. */
   signedIn: boolean;
   /** The salon was saved or removed: "Favourites" in "My visits" reloads. */
@@ -82,6 +84,7 @@ export function SalonScreen(props: {
   const [favoriteError, setFavoriteError] = useState('');
   const [shareInfo, setShareInfo] = useState('');
   // Task 357: the salon's QR code for a friend standing next to you.
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const tRef = useRef(t);
   tRef.current = t;
@@ -176,95 +179,7 @@ export function SalonScreen(props: {
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.top}>{back}</View>
       <Heading>{salon.name}</Heading>
-      <Text style={styles.text}>{addressText(salon)}</Text>
-      {salon.languages.length > 0 ? (
-        <Text style={styles.small}>
-          {t.salon.speaks}: {salon.languages.map((l) => t.spoken[l]).join(', ')}
-        </Text>
-      ) : null}
-      {salon.photos.length > 0 ? (
-        <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
-          {salon.photos.map((p) => (
-            <Image
-              key={p.id}
-              source={{ uri: `${API_URL}${p.url}` }}
-              accessibilityLabel={salon.name}
-              style={styles.photo}
-            />
-          ))}
-        </ScrollView>
-      ) : null}
       <Button label={t.salon.book} onPress={() => props.onBook(salon)} />
-      {saved !== null ? (
-        <Button
-          kind="secondary"
-          label={saved ? t.favorites.saved : t.favorites.add}
-          a11yLabel={saved ? t.favorites.remove : t.favorites.add}
-          busy={saving}
-          onPress={() => void toggleFavorite()}
-        />
-      ) : null}
-      {favoriteError ? <ErrorText>{favoriteError}</ErrorText> : null}
-      <Button kind="secondary" label={t.salon.share} onPress={() => void share()} />
-      {shareInfo ? (
-        <Text role="status" style={styles.small}>
-          {shareInfo}
-        </Text>
-      ) : null}
-      <Button
-        kind="secondary"
-        label={qrOpen ? t.salon.qrHide : t.salon.qrShow}
-        expanded={qrOpen}
-        onPress={() => setQrOpen(!qrOpen)}
-      />
-      {qrOpen ? (
-        <View style={styles.qrCard}>
-          <QrView text={bookingUrl(WEB_URL, locale, salon.slug)} label={t.salon.qrAlt} />
-          <Text style={styles.qrName}>{salon.name}</Text>
-          <Text style={styles.small}>{t.salon.qrHint}</Text>
-        </View>
-      ) : null}
-      <Text style={styles.small}>{t.salon.bookHint}</Text>
-      {salon.phone ? (
-        <Button
-          kind="secondary"
-          label={`${t.salon.call} ${salon.phone}`}
-          onPress={() => void Linking.openURL(`tel:${salon.phone}`)}
-        />
-      ) : null}
-      <Button
-        kind="secondary"
-        label={t.salon.directions}
-        onPress={() => void Linking.openURL(directionsUrl(salon, Platform.OS))}
-      />
-
-      {salon.description ? (
-        <Section title={t.salon.about}>
-          <Text style={styles.body}>{salon.description}</Text>
-        </Section>
-      ) : null}
-
-      <Section title={t.salon.hours}>
-        {status ? (
-          <Text
-            style={[styles.body, styles.openStatus]}
-            testID="salon-open-status"
-            accessibilityLabel={openStatusText(status, t.salon, locale)}
-          >
-            <Text style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>● </Text>
-            {openStatusText(status, t.salon, locale)}
-          </Text>
-        ) : null}
-        {openingRows(salon, locale).map((row) => (
-          <View key={row.weekday} style={styles.row}>
-            <Text style={styles.body}>{row.name}</Text>
-            <Text style={[styles.body, !row.hours && { color: colors.muted }]}>
-              {row.hours ?? t.salon.closed}
-            </Text>
-          </View>
-        ))}
-      </Section>
-
       <Section title={t.salon.services}>
         {groups.length === 0 ? <Text style={styles.text}>{t.salon.noServices}</Text> : null}
         {groups.map((g) => (
@@ -277,7 +192,12 @@ export function SalonScreen(props: {
               const rows = priceRows(salon, s.id);
               return (
                 <View key={s.id} style={{ gap: 2 }}>
-                  <View style={styles.row}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={s.name}
+                    onPress={() => props.onBook(salon, { serviceId: s.id })}
+                    style={[styles.row, { minHeight: 44, gap: 8 }]}
+                  >
                     <View style={{ flex: 1 }}>
                       <Text style={styles.body}>{s.name}</Text>
                       <Text style={styles.small}>{durationText(s.durationMinutes, t.units)}</Text>
@@ -285,7 +205,7 @@ export function SalonScreen(props: {
                     <Text style={styles.price}>
                       {servicePriceText(s, salon.currency, locale, t.book.priceFrom)}
                     </Text>
-                  </View>
+                  </Pressable>
                   {rows.length > 1
                     ? rows.map((r) => (
                         <View key={`${r.priceGrosze}|${r.durationMinutes}`} style={styles.row}>
@@ -305,6 +225,99 @@ export function SalonScreen(props: {
           </View>
         ))}
       </Section>
+
+      {saved !== null ? (
+        <Button
+          kind="secondary"
+          label={saved ? t.favorites.saved : t.favorites.add}
+          a11yLabel={saved ? t.favorites.remove : t.favorites.add}
+          busy={saving}
+          onPress={() => void toggleFavorite()}
+        />
+      ) : null}
+      {favoriteError ? <ErrorText>{favoriteError}</ErrorText> : null}
+      <Button
+        kind="secondary"
+        label={`${t.salon.about} ${aboutOpen ? '▾' : '▸'}`}
+        expanded={aboutOpen}
+        onPress={() => setAboutOpen(!aboutOpen)}
+      />
+      {aboutOpen ? (
+        <View style={{ gap: 10 }}>
+          <Text style={styles.text}>{addressText(salon)}</Text>
+          {salon.languages.length > 0 ? (
+            <Text style={styles.small}>
+              {t.salon.speaks}: {salon.languages.map((l) => t.spoken[l]).join(', ')}
+            </Text>
+          ) : null}
+          {salon.photos.length > 0 ? (
+            <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
+              {salon.photos.map((p) => (
+                <Image
+                  key={p.id}
+                  source={{ uri: `${API_URL}${p.url}` }}
+                  accessibilityLabel={salon.name}
+                  style={styles.photo}
+                />
+              ))}
+            </ScrollView>
+          ) : null}
+          <Button kind="secondary" label={t.salon.share} onPress={() => void share()} />
+          {shareInfo ? (
+            <Text role="status" style={styles.small}>
+              {shareInfo}
+            </Text>
+          ) : null}
+          <Button
+            kind="secondary"
+            label={qrOpen ? t.salon.qrHide : t.salon.qrShow}
+            expanded={qrOpen}
+            onPress={() => setQrOpen(!qrOpen)}
+          />
+          {qrOpen ? (
+            <View style={styles.qrCard}>
+              <QrView text={bookingUrl(WEB_URL, locale, salon.slug)} label={t.salon.qrAlt} />
+              <Text style={styles.qrName}>{salon.name}</Text>
+              <Text style={styles.small}>{t.salon.qrHint}</Text>
+            </View>
+          ) : null}
+          {salon.phone ? (
+            <Button
+              kind="secondary"
+              label={`${t.salon.call} ${salon.phone}`}
+              onPress={() => void Linking.openURL(`tel:${salon.phone}`)}
+            />
+          ) : null}
+          <Button
+            kind="secondary"
+            label={t.salon.directions}
+            onPress={() => void Linking.openURL(directionsUrl(salon, Platform.OS))}
+          />
+
+          {salon.description ? <Text style={styles.body}>{salon.description}</Text> : null}
+
+          <Section title={t.salon.hours}>
+            {status ? (
+              <Text
+                style={[styles.body, styles.openStatus]}
+                testID="salon-open-status"
+                accessibilityLabel={openStatusText(status, t.salon, locale)}
+              >
+                <Text style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>● </Text>
+                {openStatusText(status, t.salon, locale)}
+              </Text>
+            ) : null}
+            {openingRows(salon, locale).map((row) => (
+              <View key={row.weekday} style={styles.row}>
+                <Text style={styles.body}>{row.name}</Text>
+                <Text style={[styles.body, !row.hours && { color: colors.muted }]}>
+                  {row.hours ?? t.salon.closed}
+                </Text>
+              </View>
+            ))}
+          </Section>
+        </View>
+      ) : null}
 
       {salon.staff.length > 0 ? (
         <Section title={t.salon.team}>
