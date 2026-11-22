@@ -1550,6 +1550,7 @@ export const pl = {
   },
   settings: {
     title: 'Ustawienia',
+    postalCodeInvalid: 'Sprawdź kod pocztowy.',
     salon: 'Salon',
     name: 'Nazwa salonu',
     address: 'Ulica i numer',

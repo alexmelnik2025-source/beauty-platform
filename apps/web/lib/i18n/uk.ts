@@ -1545,6 +1545,7 @@ export const uk: Dict = {
   },
   settings: {
     title: 'Налаштування',
+    postalCodeInvalid: 'Перевірте поштовий індекс.',
     salon: 'Салон',
     name: 'Назва салону',
     address: 'Вулиця та номер',

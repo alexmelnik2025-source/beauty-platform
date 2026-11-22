@@ -666,6 +666,15 @@ pnpm --filter @beauty/api-client generate
   кто принимает визиты); в списке у доступной услуги без исполнителей — «Nikt jej nie wykonuje — klienci jej
   nie widzą». Тест — `apps/api/test/service-staff.spec.ts`, скриншоты e2e 50–51.
 
+## Ошибки у поля в «Ustawienia» (задача 680, 22.11.2026)
+
+- «Ustawienia»: пустые «Nazwa salonu», «Ulica i numer», «Miasto» — «Uzupełnij to pole.»; короткий «Kod pocztowy» —
+  «Sprawdź kod pocztowy.»; неверный «Telefon» — «Sprawdź numer telefonu.»; числа «Najwcześniej», «Najdalej: dni
+  naprzód», срок отмены и «przypomnienie po … dniach» вне диапазона — «Wpisz liczbę od … do ….». Всё под своим полем,
+  проверка до отправки (форма `noValidate`, без всплывающих подсказок браузера) и по ответу сервера
+  (`VALIDATION_ERROR`, `details[].path`). Если поле в другой карточке, «Zapisz» открывает её; курсор — к полю, правка
+  убирает ошибку, «Odrzuć» — тоже. e2e `booking`, скриншоты `680-settings-name-error`, `680-settings-horizon-error`.
+
 ## Ошибки у поля в «Nowa wizyta» и «Zablokuj czas» (задача 672, 22.11.2026)
 
 - Календарь кабинета → «Nowa wizyta»: имя нового клиента из одних пробелов — «Uzupełnij to pole.» под «Imię i nazwisko»

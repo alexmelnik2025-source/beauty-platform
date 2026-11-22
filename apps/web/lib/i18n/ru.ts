@@ -1553,6 +1553,7 @@ export const ru: Dict = {
   },
   settings: {
     title: 'Настройки',
+    postalCodeInvalid: 'Проверьте почтовый индекс.',
     salon: 'Салон',
     name: 'Название салона',
     address: 'Улица и номер',

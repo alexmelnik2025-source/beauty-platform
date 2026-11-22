@@ -1,13 +1,13 @@
 'use client';
 
 import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '@/components/wishes/wishes';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
 import { LanguagePicker } from '@/components/Languages';
 import { SalonPhotos } from '@/components/SalonPhotos';
 import { ShareBooking } from '@/components/ShareBooking';
-import { ErrorBox, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { formatCoordinates, parseCoordinates } from '@/lib/coordinates';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
@@ -37,6 +37,39 @@ function sectionFromAddress(): SectionKey | null {
   return SECTIONS.find((key) => key === s) ?? null;
 }
 
+/**
+ * Task 680 (owner's rule: errors at the field): the fields of "Ustawienia" that can show an error
+ * under them, and the card each one is in — saving from another card opens it.
+ */
+const FIELD_SECTION = {
+  name: 'salon',
+  addressLine: 'salon',
+  city: 'salon',
+  postalCode: 'salon',
+  phone: 'salon',
+  minLeadMinutes: 'booking',
+  bookingHorizonDays: 'booking',
+  clientCancelDeadlineMinutes: 'booking',
+  rebookReminderDays: 'rebook',
+} as const satisfies Record<string, SectionKey>;
+type SettingsField = keyof typeof FIELD_SECTION;
+const FIELDS = Object.keys(FIELD_SECTION) as SettingsField[];
+/** The whole numbers each number field takes (as the server checks them). */
+const NUMBER_RANGE: Partial<Record<SettingsField, [number, number]>> = {
+  minLeadMinutes: [0, 10080],
+  bookingHorizonDays: [1, 365],
+  clientCancelDeadlineMinutes: [0, 10080],
+  rebookReminderDays: [7, 365],
+};
+
+/** Which field the server's answer is about; null when it is about something else. */
+function settingsFieldOf(err: unknown): SettingsField | null {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return null;
+  if (!Array.isArray(err.details)) return null;
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  return FIELDS.find((f) => paths.includes(f)) ?? null;
+}
+
 /** Placeholders like {KRS} that the salon still has to replace, each once. */
 function placeholders(...texts: (string | null)[]): string[] {
   return [...new Set(texts.join('\n').match(/\{[A-Z_]+\}/g) ?? [])];
@@ -55,6 +88,8 @@ export default function SettingsPage() {
   const [coordinates, setCoordinates] = useState('');
   const [templateNote, setTemplateNote] = useState(false);
   const [coordinatesError, setCoordinatesError] = useState('');
+  const [problem, setProblem] = useState<{ field: SettingsField; text: string } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   // null: the list of sections (on a computer the first card stays open next to it).
   const [section, setSection] = useState<SectionKey | null>(null);
 
@@ -80,6 +115,12 @@ export default function SettingsPage() {
     window.scrollTo(0, 0);
   }
 
+  // The field with the error gets the cursor once its card is shown.
+  useEffect(() => {
+    if (!problem && !coordinatesError) return;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [problem, coordinatesError, section]);
+
   useEffect(() => {
     api<LocationSettings>(url)
       .then((l) => {
@@ -94,10 +135,58 @@ export default function SettingsPage() {
   // Task 191: a salon without a place is only in the catalogue's list, not on its map.
   const loadedWithoutPlace = loc.latitude === null || loc.longitude === null;
   const link = `${window.location.origin}/${locale}/b/${loc.slug}`;
-  const num = (key: keyof LocationSettings) => (e: { target: { value: string } }) =>
-    setForm({ ...form, [key]: Number(e.target.value) });
-  const text = (key: keyof LocationSettings) => (e: { target: { value: string } }) =>
+  /** Editing a field takes its error away. */
+  const clear = (key: keyof LocationSettings) => {
+    if (problem?.field === key) setProblem(null);
+  };
+  const num = (key: keyof LocationSettings) => (e: { target: { value: string } }) => {
+    // An emptied number field stays empty (NaN) and says so at "Zapisz", not 0.
+    setForm({ ...form, [key]: e.target.value === '' ? Number.NaN : Number(e.target.value) });
+    clear(key);
+  };
+  const text = (key: keyof LocationSettings) => (e: { target: { value: string } }) => {
     setForm({ ...form, [key]: e.target.value });
+    clear(key);
+  };
+  const invalid = (field: SettingsField) => ({
+    'aria-invalid': problem?.field === field || undefined,
+    'aria-describedby': problem?.field === field ? `settings-${field}-error` : undefined,
+  });
+  const fieldError = (field: SettingsField) => (
+    <FieldError
+      id={`settings-${field}-error`}
+      text={problem?.field === field ? problem.text : undefined}
+    />
+  );
+  /** What is wrong with a field, said the same way before saving and after the server's answer. */
+  function fieldText(field: SettingsField): string {
+    const range = NUMBER_RANGE[field];
+    if (range) return fill(t.guard.numberRange, { min: String(range[0]), max: String(range[1]) });
+    if (field === 'phone') return t.booking.phoneInvalid;
+    if (field === 'postalCode' && form?.postalCode.trim()) return t.settings.postalCodeInvalid;
+    return t.onboarding.fieldRequired;
+  }
+  /** The first field the server would refuse, checked here so the error is at the field at once. */
+  function firstProblem(f: LocationSettings): SettingsField | null {
+    for (const field of FIELDS) {
+      if (field === 'rebookReminderDays' && f.rebookReminderDays === 0) continue;
+      const range = NUMBER_RANGE[field];
+      if (range) {
+        const value = f[field] as number;
+        if (!Number.isInteger(value) || value < range[0] || value > range[1]) return field;
+      } else if (field === 'phone') {
+        const phone = f.phone?.trim() ? normalizePhone(f.phone, dialForTimeZone(f.timezone)) : '';
+        if (phone && !/^\+[1-9]\d{6,14}$/.test(phone)) return field;
+      } else if (field === 'postalCode') {
+        if (f.postalCode.trim().length < 3) return field;
+      } else if (!String(f[field] ?? '').trim()) return field;
+    }
+    return null;
+  }
+  function showProblem(field: SettingsField) {
+    setProblem({ field, text: fieldText(field) });
+    if ((section ?? 'booking') !== FIELD_SECTION[field]) openSection(FIELD_SECTION[field]);
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -110,6 +199,12 @@ export default function SettingsPage() {
       return;
     }
     setCoordinatesError('');
+    const wrong = firstProblem(form);
+    if (wrong) {
+      showProblem(wrong);
+      return;
+    }
+    setProblem(null);
     setBusy(true);
     setError('');
     setMessage('');
@@ -159,7 +254,9 @@ export default function SettingsPage() {
       setMessage(t.actions.saved);
       void session.reload();
     } catch (err) {
-      setError(errorText(t, err));
+      const field = settingsFieldOf(err);
+      if (field) showProblem(field);
+      else setError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -198,6 +295,7 @@ export default function SettingsPage() {
     setForm(loc);
     setCoordinates(formatCoordinates(loc.latitude, loc.longitude));
     setCoordinatesError('');
+    setProblem(null);
     setTemplateNote(false);
     setError('');
   }
@@ -208,7 +306,12 @@ export default function SettingsPage() {
       <div className={`page-head${section ? ' settings-head--section' : ''}`}>
         <h1>{t.settings.title}</h1>
       </div>
-      <form className={`page form settings${section ? '' : ' settings--home'}`} onSubmit={save}>
+      <form
+        ref={formRef}
+        className={`page form settings${section ? '' : ' settings--home'}`}
+        onSubmit={save}
+        noValidate
+      >
         {dirty ? (
           <div className="unsaved-bar" role="region" aria-label={t.settings.unsaved}>
             <strong className="grow">{t.settings.unsaved}</strong>
@@ -291,9 +394,11 @@ export default function SettingsPage() {
                     type="number"
                     min={0}
                     max={10080}
-                    value={form.minLeadMinutes}
+                    value={Number.isNaN(form.minLeadMinutes) ? '' : form.minLeadMinutes}
+                    {...invalid('minLeadMinutes')}
                     onChange={num('minLeadMinutes')}
                   />
+                  {fieldError('minLeadMinutes')}
                 </label>
                 <label className="field">
                   <span>{t.settings.horizon}</span>
@@ -301,9 +406,11 @@ export default function SettingsPage() {
                     type="number"
                     min={1}
                     max={365}
-                    value={form.bookingHorizonDays}
+                    value={Number.isNaN(form.bookingHorizonDays) ? '' : form.bookingHorizonDays}
+                    {...invalid('bookingHorizonDays')}
                     onChange={num('bookingHorizonDays')}
                   />
+                  {fieldError('bookingHorizonDays')}
                 </label>
               </div>
               {loadedWithoutPlace ? (
@@ -338,9 +445,15 @@ export default function SettingsPage() {
                     type="number"
                     min={0}
                     max={10080}
-                    value={form.clientCancelDeadlineMinutes}
+                    value={
+                      Number.isNaN(form.clientCancelDeadlineMinutes)
+                        ? ''
+                        : form.clientCancelDeadlineMinutes
+                    }
+                    {...invalid('clientCancelDeadlineMinutes')}
                     onChange={num('clientCancelDeadlineMinutes')}
                   />
+                  {fieldError('clientCancelDeadlineMinutes')}
                 </label>
                 <label className="field">
                   <span>{t.settings.step}</span>
@@ -383,25 +496,50 @@ export default function SettingsPage() {
                 <h2>{t.settings.salon}</h2>
                 <label className="field">
                   <span>{t.settings.name}</span>
-                  <input required value={form.name} onChange={text('name')} />
+                  <input required value={form.name} {...invalid('name')} onChange={text('name')} />
+                  {fieldError('name')}
                 </label>
                 <label className="field">
                   <span>{t.settings.address}</span>
-                  <input required value={form.addressLine} onChange={text('addressLine')} />
+                  <input
+                    required
+                    value={form.addressLine}
+                    {...invalid('addressLine')}
+                    onChange={text('addressLine')}
+                  />
+                  {fieldError('addressLine')}
                 </label>
                 <div className="row">
                   <label className="field">
                     <span>{t.settings.city}</span>
-                    <input required value={form.city} onChange={text('city')} />
+                    <input
+                      required
+                      value={form.city}
+                      {...invalid('city')}
+                      onChange={text('city')}
+                    />
+                    {fieldError('city')}
                   </label>
                   <label className="field">
                     <span>{t.settings.postalCode}</span>
-                    <input required value={form.postalCode} onChange={text('postalCode')} />
+                    <input
+                      required
+                      value={form.postalCode}
+                      {...invalid('postalCode')}
+                      onChange={text('postalCode')}
+                    />
+                    {fieldError('postalCode')}
                   </label>
                 </div>
                 <label className="field">
                   <span>{t.settings.phone}</span>
-                  <input type="tel" value={form.phone ?? ''} onChange={text('phone')} />
+                  <input
+                    type="tel"
+                    value={form.phone ?? ''}
+                    {...invalid('phone')}
+                    onChange={text('phone')}
+                  />
+                  {fieldError('phone')}
                 </label>
                 <label className="field">
                   <span>{t.settings.timeZone}</span>
@@ -519,9 +657,10 @@ export default function SettingsPage() {
                 <input
                   type="checkbox"
                   checked={form.rebookReminderDays > 0}
-                  onChange={(e) =>
-                    setForm({ ...form, rebookReminderDays: e.target.checked ? 28 : 0 })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, rebookReminderDays: e.target.checked ? 28 : 0 });
+                    clear('rebookReminderDays');
+                  }}
                 />
                 <span>{t.settings.rebookOn}</span>
               </label>
@@ -533,9 +672,11 @@ export default function SettingsPage() {
                       type="number"
                       min={7}
                       max={365}
-                      value={form.rebookReminderDays}
+                      value={Number.isNaN(form.rebookReminderDays) ? '' : form.rebookReminderDays}
+                      {...invalid('rebookReminderDays')}
                       onChange={num('rebookReminderDays')}
                     />
+                    {fieldError('rebookReminderDays')}
                   </label>
                   <label className="field">
                     <span>{t.settings.rebookText}</span>

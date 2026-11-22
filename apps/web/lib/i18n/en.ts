@@ -1553,6 +1553,7 @@ export const en: Dict = {
   },
   settings: {
     title: 'Settings',
+    postalCodeInvalid: 'Check the postal code.',
     salon: 'Salon',
     name: 'Salon name',
     address: 'Street and number',

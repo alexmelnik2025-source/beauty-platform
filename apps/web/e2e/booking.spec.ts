@@ -1071,6 +1071,31 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(place).toHaveAttribute('aria-invalid', 'true');
   await expect(ownerPage.getByText('Wpisz dwie liczby oddzielone przecinkiem')).toBeVisible();
   await place.fill(' 52.23251, 20.95634 ');
+  // Task 680: a blank salon name and "0 days ahead" are said under their own fields; saving from
+  // another card opens the card with the field, and the field gets the cursor.
+  const settingsForm = ownerPage.locator('form.page');
+  const horizon = settingsForm.getByLabel('Najdalej: dni naprzód');
+  const horizonDays = await horizon.inputValue();
+  await horizon.fill('0');
+  await openSettingsCard(ownerPage, 'Salon');
+  const salonName = settingsForm.getByLabel('Nazwa salonu', { exact: true });
+  const salonNameValue = await salonName.inputValue();
+  await salonName.fill('   ');
+  await openSettingsCard(ownerPage, 'Pytania przy rezerwacji');
+  await settingsForm.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(salonName).toHaveAttribute('aria-invalid', 'true');
+  await expect(salonName).toBeFocused();
+  await expect(settingsForm.locator('#settings-name-error')).toHaveText('Uzupełnij to pole.');
+  await shot(ownerPage, '680-settings-name-error');
+  await salonName.fill(salonNameValue);
+  await expect(settingsForm.locator('#settings-name-error')).toHaveCount(0);
+  await settingsForm.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(horizon).toHaveAttribute('aria-invalid', 'true');
+  await expect(settingsForm.locator('#settings-bookingHorizonDays-error')).toHaveText(
+    'Wpisz liczbę od 1 do 365.',
+  );
+  await shot(ownerPage, '680-settings-horizon-error');
+  await horizon.fill(horizonDays);
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
   await expect(ownerPage.getByRole('region', { name: 'Niezapisane zmiany' })).toHaveCount(0);
