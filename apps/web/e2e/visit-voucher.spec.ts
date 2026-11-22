@@ -146,11 +146,23 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
   await card.getByTestId('visit-voucher-code').fill('ZZZZ-ZZZZ');
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
   await expect(card).toContainText('Nie ma bonu z tym kodem w tym salonie.');
+  // Task 673: under "Kod bonu", which keeps the cursor.
+  await expect(card.getByTestId('visit-voucher-code')).toHaveAccessibleDescription(
+    /Nie ma bonu z tym kodem w tym salonie\.$/,
+  );
+  await expect(card.getByTestId('visit-voucher-code')).toBeFocused();
+  await shot(page, '673-visit-voucher-code-error');
   // More than is left on the voucher: the server refuses.
   const printed = `${voucher.code.slice(0, 4)}-${voucher.code.slice(4)}`;
   await card.getByTestId('visit-voucher-code').fill(printed.toLowerCase());
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
   await expect(card).toContainText('Na bonie zostało mniej');
+  // Task 673: under the amount.
+  await expect(card.getByTestId('visit-voucher-amount')).toHaveAccessibleDescription(
+    /Na bonie zostało mniej/,
+  );
+  await expect(card.getByTestId('visit-voucher-code')).not.toHaveAttribute('aria-invalid', 'true');
+  await shot(page, '673-visit-voucher-amount-error');
   await card.getByTestId('visit-voucher-amount').fill('50');
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
   await expect(card.getByRole('status')).toHaveText(
