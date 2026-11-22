@@ -71,8 +71,9 @@ test('the new-service card says a blank name and a too-high price at their field
 
   await page.getByRole('button', { name: '+ Dodaj usługę' }).first().click();
   const card = page.getByRole('dialog');
-  const name = card.getByLabel('Nazwa', { exact: true });
-  const price = card.getByLabel('Cena (zł)', { exact: true });
+  // The error under a field is part of its label's text: find the fields by how the label starts.
+  const name = card.getByLabel(/^Nazwa(?! kategorii)/);
+  const price = card.getByLabel(/^Cena \(zł\)/);
   const save = card.locator('form.form').getByRole('button', { name: 'Zapisz', exact: true });
 
   // Only spaces and a price above the limit: both said at their fields, nothing sent.
