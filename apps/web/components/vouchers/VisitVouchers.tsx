@@ -1,13 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { parseTip as parseAmount } from '@/components/calendar/TipField';
 import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { formatPrice } from '@/lib/time';
 import type { GiftVoucherDetails, VisitVoucherPayments } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
 
 /** "ABCDEFGH" → "ABCD-EFGH", as printed on the voucher. */
 const shown = (code: string) => `${code.slice(0, 4)}-${code.slice(4)}`;
@@ -22,6 +22,16 @@ const typed = (grosze: number) =>
  * pay for the visit is filled in). The payment belongs to the visit and is listed here; the
  * voucher keeps its own history ("Bony podarunkowe"). Everyone who sees the visit may do it.
  */
+/** Task 673: which field of "Zapłać bonem" the server's answer is about; null — none of them. */
+function voucherFieldOf(err: unknown): 'code' | 'amount' | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.code === 'VOUCHER_BALANCE') return 'amount';
+  if (err.code === 'VOUCHER_EXPIRED' || err.code === 'VOUCHER_CANCELLED') return 'code';
+  if (err.code !== 'VALIDATION_ERROR' || !Array.isArray(err.details)) return null;
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  return paths.includes('amountGrosze') ? 'amount' : null;
+}
+
 export function VisitVouchers({
   base,
   appointmentId,
@@ -46,6 +56,13 @@ export function VisitVouchers({
   const [code, setCode] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
+  /**
+   * Task 673 (owner's rule: errors at the field): an unknown, expired or cancelled voucher is said
+   * under "Kod bonu", a wrong amount or one above what is left under the amount; the field gets the
+   * cursor and editing it takes the error away.
+   */
+  const [problem, setProblem] = useState<{ field: 'code' | 'amount'; text: string } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [info, setInfo] = useState('');
   const { lock, unlock, busy } = useSubmitLock();
   const url = `${base}/appointments/${appointmentId}/gift-voucher-payments`;
@@ -71,14 +88,20 @@ export function VisitVouchers({
     setAmount(left ? typed(left) : '');
   }
 
+  useEffect(() => {
+    if (!problem) return;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [problem]);
+
   async function pay(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setProblem(null);
     setInfo('');
     const wanted = code.trim().toUpperCase().replace(/[\s-]/g, '');
-    if (wanted.length < 4) return setError(v.notFound);
+    if (wanted.length < 4) return setProblem({ field: 'code', text: v.notFound });
     const grosze = parseAmount(amount);
-    if (!grosze) return setError(v.wrongAmount);
+    if (!grosze) return setProblem({ field: 'amount', text: v.wrongAmount });
     if (!lock()) return;
     try {
       let voucher: GiftVoucherDetails;
@@ -87,7 +110,9 @@ export function VisitVouchers({
           `${base}/gift-vouchers/code/${encodeURIComponent(wanted)}`,
         );
       } catch (err) {
-        if (err instanceof ApiError && err.status === 404) return setError(v.notFound);
+        if (err instanceof ApiError && err.status === 404) {
+          return setProblem({ field: 'code', text: v.notFound });
+        }
         throw err;
       }
       const next = await api<GiftVoucherDetails>(
@@ -102,13 +127,28 @@ export function VisitVouchers({
       setOpen(false);
       await load();
     } catch (err) {
-      setError(errorText(t, err));
+      const field = voucherFieldOf(err);
+      if (field) setProblem({ field, text: errorText(t, err) });
+      else setError(errorText(t, err));
     } finally {
       unlock();
     }
   }
 
   if (!payments) return error ? <ErrorBox>{error}</ErrorBox> : null;
+
+  /** Editing a field takes its error away. */
+  const clear = (field: 'code' | 'amount') => {
+    if (problem?.field === field) setProblem(null);
+  };
+  const errorId = (field: 'code' | 'amount') => `visit-voucher-${field}-error-${appointmentId}`;
+  const invalid = (field: 'code' | 'amount') => ({
+    'aria-invalid': problem?.field === field || undefined,
+    'aria-describedby': problem?.field === field ? errorId(field) : undefined,
+  });
+  const fieldError = (field: 'code' | 'amount') => (
+    <FieldError id={errorId(field)} text={problem?.field === field ? problem.text : undefined} />
+  );
 
   return (
     <div className="stack" style={{ gap: 6 }} data-testid="visit-vouchers">
@@ -154,6 +194,7 @@ export function VisitVouchers({
         <form
           className="row"
           style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}
+          ref={formRef}
           onSubmit={(e) => void pay(e)}
           aria-label={v.pay}
         >
@@ -161,22 +202,32 @@ export function VisitVouchers({
             <span>{v.code}</span>
             <input
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              {...invalid('code')}
+              onChange={(e) => {
+                setCode(e.target.value);
+                clear('code');
+              }}
               maxLength={20}
               autoComplete="off"
               autoCapitalize="characters"
               placeholder="ABCD-EFGH"
               data-testid="visit-voucher-code"
             />
+            {fieldError('code')}
           </label>
           <label className="field" style={{ flex: '0 1 7rem' }}>
             <span>{v.payAmount}</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              {...invalid('amount')}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                clear('amount');
+              }}
               inputMode="decimal"
               data-testid="visit-voucher-amount"
             />
+            {fieldError('amount')}
           </label>
           <button type="submit" className="btn btn--small" disabled={busy || !code.trim()}>
             {v.pay}
@@ -187,6 +238,7 @@ export function VisitVouchers({
             onClick={() => {
               setOpen(false);
               setError('');
+              setProblem(null);
             }}
           >
             {t.common.cancel}
