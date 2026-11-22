@@ -149,6 +149,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(products.getByLabel(`Nazwa — ${name}`)).toBeVisible();
   }
   await expect(products.getByTestId('product-row')).toHaveCount(2);
+  // Task 652 (Q6): the new-product form is short — name, price, stock; the rest under "Więcej ▸".
+  const costNew = products.getByLabel(/^Cena zakupu \(puste/);
+  await expect(costNew).toBeHidden();
+  await products.getByText('Więcej ▸', { exact: true }).click();
+  await expect(costNew).toBeVisible();
+  await expect(products.getByLabel(/^Kod kreskowy \(puste/)).toBeVisible();
+  await products.locator('.product-new').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'e2e/screenshots/652-product-form-more.png' });
+  await products.getByText('Więcej ▸', { exact: true }).click();
   await products.getByLabel('Cena — Pomada matowa').fill('49');
   // Task 430: the salon counts the pomades — two left in stock.
   await products.getByLabel('W magazynie — Pomada matowa').fill('2');

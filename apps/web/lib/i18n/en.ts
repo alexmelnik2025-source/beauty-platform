@@ -1786,6 +1786,7 @@ export const en: Dict = {
     stock: 'In stock',
     pieces: 'pcs',
     stockNew: 'In stock (pcs, empty — not counted)',
+    moreFields: 'More ▸',
     stockLeft: '{n} pcs left',
     sold30: 'Sold in 30 days: {n} pcs',
     lastsDays: 'lasts ~{days} days',

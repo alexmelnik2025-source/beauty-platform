@@ -1777,6 +1777,7 @@ export const uk: Dict = {
     stock: 'На складі',
     pieces: 'шт.',
     stockNew: 'На складі (шт., порожньо — не рахуємо)',
+    moreFields: 'Ще ▸',
     stockLeft: 'залишилось {n} шт.',
     sold30: 'Продано за 30 днів: {n} шт.',
     lastsDays: 'вистачить на ~{days} дн.',

@@ -819,9 +819,9 @@ export function ProductsSection({ base }: { base: string }) {
           })}
         </ul>
       ) : null}
+      {/* Task 652 (Q6): a short form — name, price, stock; the rest under "Więcej ▸". */}
       <form
-        className="row"
-        style={{ alignItems: 'end' }}
+        className="stack product-new"
         onSubmit={(e) => {
           e.preventDefault();
           if (!canAdd) return;
@@ -851,75 +851,82 @@ export function ProductsSection({ base }: { base: string }) {
           });
         }}
       >
-        <label className="field">
-          <span>{p.newName}</span>
-          <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label className="field">
-          <span>
-            {p.price} ({location.currency})
-          </span>
-          <input
-            inputMode="decimal"
-            value={price}
-            aria-invalid={price !== '' && newPrice === null}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>
-            {p.costNew} ({location.currency})
-          </span>
-          <input
-            inputMode="decimal"
-            value={cost}
-            placeholder="—"
-            aria-invalid={newCost === undefined}
-            onChange={(e) => setCost(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>{p.stockNew}</span>
-          <input
-            inputMode="numeric"
-            value={stock}
-            placeholder="—"
-            aria-invalid={newStock === undefined}
-            onChange={(e) => setStock(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>{p.lowNew}</span>
-          <input
-            inputMode="numeric"
-            value={low}
-            placeholder="—"
-            aria-invalid={newLow === undefined}
-            onChange={(e) => setLow(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>{p.supplierNew}</span>
-          <input
-            value={supplier}
-            maxLength={80}
-            placeholder="—"
-            onChange={(e) => setSupplier(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>{p.barcodeNew}</span>
-          <input
-            value={barcode}
-            maxLength={40}
-            placeholder="—"
-            aria-invalid={newBarcode === undefined}
-            onChange={(e) => setBarcode(e.target.value)}
-          />
-        </label>
-        <button type="submit" className="btn btn--small" disabled={!canAdd}>
-          + {p.add}
-        </button>
+        <div className="row" style={{ alignItems: 'end', flexWrap: 'wrap' }}>
+          <label className="field">
+            <span>{p.newName}</span>
+            <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="field">
+            <span>
+              {p.price} ({location.currency})
+            </span>
+            <input
+              inputMode="decimal"
+              value={price}
+              aria-invalid={price !== '' && newPrice === null}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>{p.stockNew}</span>
+            <input
+              inputMode="numeric"
+              value={stock}
+              placeholder="—"
+              aria-invalid={newStock === undefined}
+              onChange={(e) => setStock(e.target.value)}
+            />
+          </label>
+          <button type="submit" className="btn btn--small" disabled={!canAdd}>
+            + {p.add}
+          </button>
+        </div>
+        <details className="promo-more product-new__more">
+          <summary>{p.moreFields}</summary>
+          <div className="row" style={{ alignItems: 'end', flexWrap: 'wrap' }}>
+            <label className="field">
+              <span>
+                {p.costNew} ({location.currency})
+              </span>
+              <input
+                inputMode="decimal"
+                value={cost}
+                placeholder="—"
+                aria-invalid={newCost === undefined}
+                onChange={(e) => setCost(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>{p.lowNew}</span>
+              <input
+                inputMode="numeric"
+                value={low}
+                placeholder="—"
+                aria-invalid={newLow === undefined}
+                onChange={(e) => setLow(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>{p.supplierNew}</span>
+              <input
+                value={supplier}
+                maxLength={80}
+                placeholder="—"
+                onChange={(e) => setSupplier(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>{p.barcodeNew}</span>
+              <input
+                value={barcode}
+                maxLength={40}
+                placeholder="—"
+                aria-invalid={newBarcode === undefined}
+                onChange={(e) => setBarcode(e.target.value)}
+              />
+            </label>
+          </div>
+        </details>
       </form>
     </section>
   );

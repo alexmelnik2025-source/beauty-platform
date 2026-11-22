@@ -4370,6 +4370,9 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   заголовком (`components/PageTitleHelp.tsx`, подпись `common.howItWorks`). Шапка страниц кабинета (`.page-head`) не
   шире самой страницы (920 px) — главная кнопка стоит над правым краем списка. e2e `happy-hours`, скриншот
   `651-promotions-help`.
+- Задача 652: форма «Nowy produkt» в «Usługi → Produkty» короткая — название, цена, остаток и «+ Dodaj produkt»;
+  цена закупки, «Kończy się przy», поставщик и штрихкод — под «Więcej ▸» (`products.moreFields`), как в приложении
+  бизнеса. e2e `products`, скриншот `652-product-form-more`.
 
 - «Ustawienia» (`app/[locale]/app/settings/page.tsx`): список разделов (значок, название, одна строка —
   `settings.sections`): «Rezerwacje online», «Salon» (с фото), «Pytania przy rezerwacji», «Pora na kolejną wizytę»,

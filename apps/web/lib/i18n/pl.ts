@@ -1782,6 +1782,7 @@ export const pl = {
     stock: 'W magazynie',
     pieces: 'szt.',
     stockNew: 'W magazynie (szt., puste — nie liczymy)',
+    moreFields: 'Więcej ▸',
     stockLeft: 'zostało {n} szt.',
     sold30: 'Sprzedano w 30 dni: {n} szt.',
     lastsDays: 'starczy na ~{days} dni',

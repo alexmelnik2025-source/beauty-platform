@@ -1786,6 +1786,7 @@ export const ru: Dict = {
     stock: 'На складе',
     pieces: 'шт.',
     stockNew: 'На складе (шт., пусто — не считаем)',
+    moreFields: 'Ещё ▸',
     stockLeft: 'осталось {n} шт.',
     sold30: 'Продано за 30 дней: {n} шт.',
     lastsDays: 'хватит на ~{days} дн.',
