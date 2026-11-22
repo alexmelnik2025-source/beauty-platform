@@ -11,7 +11,8 @@ import { waitForEmail } from './mailpit';
 /**
  * Task 336: "Dni specjalne" in the cabinet — the owner opens a specialist in "Zespół", sets other
  * hours for one date (a wrong time is pointed out) and removes another special day, which gets
- * the usual hours back. Screenshots 336, 336a.
+ * the usual hours back. Screenshots 336, 336a. Task 660: a wrong time, a wrong absence and a
+ * name of only spaces are pointed out under their field (screenshot 660).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -121,8 +122,17 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   await special.getByLabel('Od', { exact: true }).fill('14:00');
   await special.getByLabel('Do', { exact: true }).fill('10:00');
   await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
-  await expect(page.getByText('Godzina „Do” musi być późniejsza niż „Od”.')).toBeVisible();
+  // Task 660: the error is under "Do" in this section, not at the top of the sheet.
+  const specialEnd = special.getByLabel('Do', { exact: true });
+  await expect(specialEnd).toHaveAttribute('aria-invalid', 'true');
+  await expect(special.locator('#special-end-error')).toHaveText(
+    'Godzina „Do” musi być późniejsza niż „Od”.',
+  );
+  await special.scrollIntoViewIfNeeded();
+  await shot(page, '660-staff-special-time-error');
   await special.getByLabel('Od', { exact: true }).fill('09:00');
+  await expect(specialEnd).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(special.locator('#special-end-error')).toHaveCount(0);
   await special.getByLabel('Do', { exact: true }).fill('13:00');
   await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
   await expect(special.getByText('Dzień specjalny zapisany.')).toBeVisible();
@@ -137,6 +147,30 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   await expect(special.getByText('Przywrócono zwykłe godziny tego dnia.')).toBeVisible();
   await expect(special.getByText(/12:00–16:00/)).toHaveCount(0);
   await shot(page, '336a-cabinet-special-day-removed');
+
+  // ── task 660: an absence whose "Do" is before "Od" — pointed out under "Do" ──
+  const absence = page.getByRole('region', { name: 'Nieobecności' });
+  await absence.getByLabel('Od', { exact: true }).fill(`${warsawDate(5)}T15:00`);
+  await absence.getByLabel('Do', { exact: true }).fill(`${warsawDate(5)}T11:00`);
+  await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
+  await expect(absence.getByLabel('Do', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+  await expect(absence.locator('#absence-end-error')).toBeVisible();
+  await absence.getByLabel('Do', { exact: true }).fill(`${warsawDate(5)}T18:00`);
+  await expect(absence.locator('#absence-end-error')).toHaveCount(0);
+  await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
+  await expect(absence.getByRole('button', { name: 'Usuń' })).toHaveCount(1);
+
+  // ── task 660: a name of only spaces — under "Imię" ─────────────────────
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('button', { name: /Dodaj specjalistę/ })
+    .first()
+    .click();
+  const name = page.getByLabel('Imię widoczne dla klientów');
+  await name.fill('   ');
+  await page.getByRole('dialog').getByRole('button', { name: 'Zapisz', exact: true }).click();
+  await expect(name).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('#staff-name-error')).toHaveText('Uzupełnij to pole.');
   await context.close();
 
   const hours = await json<{

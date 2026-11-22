@@ -8,7 +8,7 @@ import { PHOTO_ACCEPT, shrinkPhoto, STAFF_PHOTO_SIDE } from '@/lib/photos';
 import type { Invitation, Staff, TimeOff as TimeOffEntry } from '@/lib/types';
 import { LanguagePicker, type Spoken } from '../Languages';
 import { SpecialtyPicker, type Specialty } from '../Specialties';
-import { ErrorBox, initials, Sheet, Spinner } from '../ui';
+import { ErrorBox, FieldError, initials, Sheet, Spinner } from '../ui';
 
 export type StaffRow = Staff;
 
@@ -70,6 +70,17 @@ export function StaffSheet({
   const [special, setSpecial] = useState({ date: '', start: '10:00', end: '14:00' });
   const [specialNote, setSpecialNote] = useState('');
   const [error, setError] = useState('');
+  /**
+   * Task 660 (owner's rule: errors at the field): a name of only spaces is pointed out under
+   * "Imię"; a special day or an absence whose "Do" is not after "Od" — under its "Do"; and the
+   * server's answer about a special day or an absence stays in that section instead of the top
+   * of the long sheet. Editing the field takes the error away.
+   */
+  const [nameProblem, setNameProblem] = useState(false);
+  const [specialProblem, setSpecialProblem] = useState(false);
+  const [specialError, setSpecialError] = useState('');
+  const [absenceProblem, setAbsenceProblem] = useState(false);
+  const [absenceError, setAbsenceError] = useState('');
   const [message, setMessage] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a repeated or retried "add" never creates a second specialist (T4).
@@ -102,7 +113,12 @@ export function StaffSheet({
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!week || !lock()) return;
+    if (!week) return;
+    if (!profile.displayName.trim()) {
+      setNameProblem(true);
+      return;
+    }
+    if (!lock()) return;
     setError('');
     setMessage('');
     try {
@@ -159,6 +175,11 @@ export function StaffSheet({
   async function addAbsence(e: FormEvent) {
     e.preventDefault();
     if (!staff) return;
+    setAbsenceError('');
+    if (absence.end <= absence.start) {
+      setAbsenceProblem(true);
+      return;
+    }
     try {
       await api(`${base}/staff/${staff.id}/time-off`, {
         method: 'POST',
@@ -171,7 +192,7 @@ export function StaffSheet({
       setAbsence({ start: '', end: '', note: '' });
       await loadSchedule();
     } catch (err) {
-      setError(errorText(t, err));
+      setAbsenceError(errorText(t, err));
     }
   }
 
@@ -179,10 +200,10 @@ export function StaffSheet({
   async function addSpecial(e: FormEvent) {
     e.preventDefault();
     if (!staff) return;
-    setError('');
+    setSpecialError('');
     setSpecialNote('');
     if (special.end <= special.start) {
-      setError(t.team.specialBadTime);
+      setSpecialProblem(true);
       return;
     }
     try {
@@ -194,14 +215,14 @@ export function StaffSheet({
       setSpecialNote(t.team.specialSaved);
       await loadSchedule();
     } catch (err) {
-      setError(errorText(t, err));
+      setSpecialError(errorText(t, err));
     }
   }
 
   /** Task 336: the date gets the usual weekly hours back. */
   async function removeSpecial(date: string) {
     if (!staff) return;
-    setError('');
+    setSpecialError('');
     setSpecialNote('');
     try {
       await api(`${base}/staff/${staff.id}/working-hours/overrides/${date}`, {
@@ -210,7 +231,7 @@ export function StaffSheet({
       setSpecialNote(t.team.specialRemoved);
       await loadSchedule();
     } catch (err) {
-      setError(errorText(t, err));
+      setSpecialError(errorText(t, err));
     }
   }
 
@@ -220,7 +241,7 @@ export function StaffSheet({
       await api(`${base}/staff/${staff.id}/time-off/${id}`, { method: 'DELETE' });
       await loadSchedule();
     } catch (err) {
-      setError(errorText(t, err));
+      setAbsenceError(errorText(t, err));
     }
   }
 
@@ -315,7 +336,16 @@ export function StaffSheet({
             required
             maxLength={80}
             value={profile.displayName}
-            onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
+            aria-invalid={nameProblem || undefined}
+            aria-describedby={nameProblem ? 'staff-name-error' : undefined}
+            onChange={(e) => {
+              setProfile({ ...profile, displayName: e.target.value });
+              setNameProblem(false);
+            }}
+          />
+          <FieldError
+            id="staff-name-error"
+            text={nameProblem ? t.onboarding.fieldRequired : undefined}
           />
         </label>
         <SpecialtyPicker
@@ -501,7 +531,10 @@ export function StaffSheet({
                   required
                   min={today()}
                   value={special.date}
-                  onChange={(e) => setSpecial({ ...special, date: e.target.value })}
+                  onChange={(e) => {
+                    setSpecial({ ...special, date: e.target.value });
+                    setSpecialError('');
+                  }}
                 />
               </label>
               <label className="field">
@@ -511,7 +544,10 @@ export function StaffSheet({
                   step={300}
                   required
                   value={special.start}
-                  onChange={(e) => setSpecial({ ...special, start: e.target.value })}
+                  onChange={(e) => {
+                    setSpecial({ ...special, start: e.target.value });
+                    setSpecialProblem(false);
+                  }}
                 />
               </label>
               <label className="field">
@@ -521,18 +557,28 @@ export function StaffSheet({
                   step={300}
                   required
                   value={special.end}
-                  onChange={(e) => setSpecial({ ...special, end: e.target.value })}
+                  aria-invalid={specialProblem || undefined}
+                  aria-describedby={specialProblem ? 'special-end-error' : undefined}
+                  onChange={(e) => {
+                    setSpecial({ ...special, end: e.target.value });
+                    setSpecialProblem(false);
+                  }}
+                />
+                <FieldError
+                  id="special-end-error"
+                  text={specialProblem ? t.team.specialBadTime : undefined}
                 />
               </label>
             </div>
+            <ErrorBox>{specialError}</ErrorBox>
             <button className="btn btn--quiet">{t.team.specialSave}</button>
           </form>
         </section>
       ) : null}
 
       {staff ? (
-        <section className="section">
-          <h3>{t.team.timeOff}</h3>
+        <section className="section" aria-labelledby="staff-time-off">
+          <h3 id="staff-time-off">{t.team.timeOff}</h3>
           {timeOff.length === 0 ? <p className="small muted">{t.team.noTimeOff}</p> : null}
           <ul className="history">
             {timeOff.map((o) => (
@@ -560,7 +606,11 @@ export function StaffSheet({
                   step={300}
                   required
                   value={absence.start}
-                  onChange={(e) => setAbsence({ ...absence, start: e.target.value })}
+                  onChange={(e) => {
+                    setAbsence({ ...absence, start: e.target.value });
+                    setAbsenceProblem(false);
+                    setAbsenceError('');
+                  }}
                 />
               </label>
               <label className="field">
@@ -570,7 +620,17 @@ export function StaffSheet({
                   step={300}
                   required
                   value={absence.end}
-                  onChange={(e) => setAbsence({ ...absence, end: e.target.value })}
+                  aria-invalid={absenceProblem || undefined}
+                  aria-describedby={absenceProblem ? 'absence-end-error' : undefined}
+                  onChange={(e) => {
+                    setAbsence({ ...absence, end: e.target.value });
+                    setAbsenceProblem(false);
+                    setAbsenceError('');
+                  }}
+                />
+                <FieldError
+                  id="absence-end-error"
+                  text={absenceProblem ? t.team.specialBadTime : undefined}
                 />
               </label>
             </div>
@@ -584,6 +644,7 @@ export function StaffSheet({
                 onChange={(e) => setAbsence({ ...absence, note: e.target.value })}
               />
             </label>
+            <ErrorBox>{absenceError}</ErrorBox>
             <button className="btn btn--quiet">{t.team.addTimeOff}</button>
           </form>
         </section>
