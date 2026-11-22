@@ -133,6 +133,15 @@ test('the owner sends the order for the products to order to each supplier', asy
   await expect(delivery.getByLabel('Przyszło — Wosk')).toHaveValue('4');
   await expect(delivery.getByLabel('Przyszło — Szampon')).toHaveValue('1');
   await expect(delivery.getByLabel('Przyszło — Olejek')).toHaveValue('');
+  // Task 670: zero pieces can't come — said under the field itself.
+  await delivery.getByLabel('Przyszło — Olejek').fill('0');
+  await expect(delivery.getByLabel('Przyszło — Olejek')).toHaveAccessibleDescription(
+    'Wpisz liczbę od 1 do 100 000.',
+  );
+  await delivery.scrollIntoViewIfNeeded();
+  await shot(page, '670-delivery-field-error');
+  await delivery.getByLabel('Przyszło — Olejek').fill('');
+  await expect(delivery.locator('.field-error')).toHaveCount(0);
   await delivery.getByLabel('Pokaż produkty dostawcy').selectOption('Hairgum');
   await expect(delivery.getByTestId('delivery-row')).toHaveCount(2);
   await delivery.scrollIntoViewIfNeeded();

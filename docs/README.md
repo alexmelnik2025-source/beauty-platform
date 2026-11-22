@@ -3398,6 +3398,9 @@ CSV produktów (451): у владельца и менеджера ещё две 
 `apps/web/components/products/StocktakePanel.tsx`. Бизнес-приложение (458): та же кнопка в «Usługi» → «Produkty»,
 карточка `StocktakeCard.tsx`. e2e `products.spec.ts`, скриншоты 457, 458.
 
+Ошибки у поля (670, кабинет): неверное число (дробь, буквы, больше 100 000) — «Wpisz liczbę od 0 do 100 000.» под
+полем этого товара, а не только красная рамка; ответ сервера о товаре — у его поля. Скриншот `670-stocktake-field-error`.
+
 ## «Różnice inwentaryzacji» в отчёте (задача 459)
 
 `stocktakes` в `GET …/reports` — `{ missingQuantity, missingGrosze, extraQuantity, extraGrosze, items: [{ name, missing,
@@ -3489,6 +3492,9 @@ zamówienia» рядом с кнопкой CSV, в бизнес-приложен
 «Przyjmij dostawę» рядом с «Inwentaryzacja»: поле «Przyszło» у каждого товара, у товаров «Do zamówienia» уже стоят
 предложенные числа из «Tekst zamówienia», можно показать товары одного поставщика; итог — «Dostawa przyjęta: 5 szt.,
 produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
+
+Ошибки у поля (670, кабинет): 0 или неверное число — «Wpisz liczbę od 1 do 100 000.» под полем этого товара; ответ
+сервера о товаре — у его поля. Скриншот `670-delivery-field-error`.
 
 ## «Bony podarunkowe» — подарочные сертификаты (задачи 490–493)
 
