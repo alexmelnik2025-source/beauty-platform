@@ -250,7 +250,7 @@ export default function ServicesPage() {
               placeholder={t.services.listSearch}
               onChange={(e) => setFilterText(e.target.value)}
             />
-            <div className="shop-filters" role="group" aria-label={t.services.listSearch}>
+            <div className="shop-filters" role="group" aria-label={t.shop.filters}>
               {(['all', 'active', 'hidden', 'noOne'] as const)
                 .filter((f) => f === 'all' || counts[f] > 0)
                 .map((f) => (
