@@ -111,6 +111,14 @@ test('business app: the owner shares tomorrow’s day plan', async ({ browser, r
       permissions: ['clipboard-read', 'clipboard-write'],
     });
     const phone = await context.newPage();
+    let releaseNotifications!: () => void;
+    const notificationsReady = new Promise<void>((resolve) => {
+      releaseNotifications = resolve;
+    });
+    await phone.route('**/v1/me/notifications/unread-count', async (route) => {
+      await notificationsReady;
+      await route.continue();
+    });
     // No share menu in this browser: the plan goes to the clipboard.
     await phone.addInitScript(() => {
       Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
@@ -123,8 +131,12 @@ test('business app: the owner shares tomorrow’s day plan', async ({ browser, r
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Następny dzień' }).click();
-    await expect(phone.getByRole('button', { name: /Jan Kowalski/ }).first()).toBeVisible();
+    try {
+      await phone.getByRole('button', { name: 'Następny dzień' }).click();
+      await expect(phone.getByRole('button', { name: /Jan Kowalski/ }).first()).toBeVisible();
+    } finally {
+      releaseNotifications();
+    }
     await phone.getByRole('button', { name: 'Udostępnij plan dnia' }).click();
     await expect(phone.getByText(/^Plan dnia skopiowany/)).toBeVisible();
     await shot(phone, '351-business-app-day-plan');

@@ -50,11 +50,13 @@ export function ShopScreen(props: {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   const [open, setOpen] = useState<ShopProduct | null>(null);
+  const latest = useRef(0);
   const tRef = useRef(t);
   tRef.current = t;
 
   const load = useCallback(
     async (nextPage: number, append: boolean) => {
+      const request = ++latest.current;
       setBusy(true);
       setError('');
       try {
@@ -63,13 +65,14 @@ export function ShopScreen(props: {
           category: category ?? undefined,
           page: nextPage,
         });
+        if (request !== latest.current) return;
         setItems((old) => (append ? [...old, ...res.products] : res.products));
         setPage(res.page);
         setTotal(res.total);
       } catch (e) {
-        setError(errorText(e, tRef.current));
+        if (request === latest.current) setError(errorText(e, tRef.current));
       } finally {
-        setBusy(false);
+        if (request === latest.current) setBusy(false);
       }
     },
     [api, search, category],

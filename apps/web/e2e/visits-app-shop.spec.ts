@@ -114,9 +114,45 @@ test('"Sklep" in the client app lists products from salons, picked up at the sal
     await expect(item).toContainText(NAME);
     await shot(app, 'Q3-app-shop');
 
-    // A category without it: nothing; "Wszystko" brings it back.
-    await app.getByRole('button', { name: 'Broda', exact: true }).click();
-    await expect(app.getByText('Nic nie znaleziono. Zmień wyszukiwanie.')).toBeVisible();
+    // The older search response cannot replace the newest category results.
+    const search = app.getByLabel('Szukaj produktu lub marki');
+    const prefix = PRODUCT.slice(0, -1);
+    const staleSearch = (url: string) => {
+      const params = new URL(url).searchParams;
+      return params.get('q') === prefix && !params.has('category');
+    };
+    let releaseSearch!: () => void;
+    const olderResult = new Promise<void>((resolve) => {
+      releaseSearch = resolve;
+    });
+    await app.route('**/v1/public/shop/products?*', async (route) => {
+      if (!staleSearch(route.request().url())) return route.continue();
+      const response = await route.fetch();
+      await olderResult;
+      await route.fulfill({ response });
+    });
+    const requested = app.waitForRequest((request) => staleSearch(request.url()));
+    await search.fill(prefix);
+    await requested;
+    try {
+      await app.getByRole('button', { name: 'Broda', exact: true }).click();
+      const empty = app.getByText('Nic nie znaleziono. Zmień wyszukiwanie.');
+      await expect(empty).toBeVisible();
+      const finished = app.waitForResponse((response) => staleSearch(response.url()));
+      releaseSearch();
+      expect(await (await finished).finished()).toBeNull();
+      await app.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      );
+      await expect(empty).toBeVisible();
+      await expect(item).toHaveCount(0);
+    } finally {
+      releaseSearch();
+    }
+    await search.fill(PRODUCT);
     await app.getByRole('button', { name: 'Wszystko', exact: true }).click();
     await item.click();
 

@@ -169,15 +169,24 @@ export function DayScreen(props: {
     const request = ++latest.current;
     setLoading(true);
     try {
-      const [day, dayBlocks, bell] = await Promise.all([
-        api.calendar(salon.orgId, salon.locationId, date),
-        api.timeBlocks(salon.orgId, salon.locationId, date).catch(() => null),
-        api.unreadNotifications().catch(() => null),
-      ]);
+      const day = api.calendar(salon.orgId, salon.locationId, date);
+      void api.timeBlocks(salon.orgId, salon.locationId, date).then(
+        (list) => {
+          if (request === latest.current) setBlocks({ date, list });
+        },
+        () => {
+          if (request === latest.current) setBlocks(null);
+        },
+      );
+      void api.unreadNotifications().then(
+        ({ unread }) => {
+          if (request === latest.current) setUnread(unread);
+        },
+        () => undefined,
+      );
+      const currentDay = await day;
       if (request !== latest.current) return;
-      if (bell) setUnread(bell.unread);
-      setCalendar(day);
-      setBlocks(dayBlocks ? { date, list: dayBlocks } : null);
+      setCalendar(currentDay);
       setReloads((n) => n + 1);
       setError('');
     } catch (e) {
@@ -194,9 +203,9 @@ export function DayScreen(props: {
     return () => clearInterval(timer);
   }, [load]);
 
-  // Task 228: "Kasa dnia" for today and past days, again whenever the day is reloaded.
+  // Task 228: "Kasa dnia" for today and past days, once for each loaded calendar.
   useEffect(() => {
-    if (!canReport || date > today) {
+    if (!canReport || calendar?.from !== date || date > today) {
       setDayReport(null);
       return;
     }
@@ -212,7 +221,7 @@ export function DayScreen(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, date, today, canReport, reloads]);
+  }, [api, salon, date, today, canReport, calendar]);
   const till = tillOf(dayReport, date);
 
   const all = calendar && calendar.from === date ? visitsOfDay(calendar, date) : null;
