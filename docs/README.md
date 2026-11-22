@@ -167,6 +167,8 @@
   (см. «Типы API из OpenAPI»); права пока написаны вручную (`apps/web/lib/types.ts`).
 - В шрифте Michroma нет кириллицы: на украинском и русском заголовки показываются основным шрифтом.
 - API за прокси веб-сервера должен знать адрес посетителя: `TRUST_PROXY=1` (иначе лимиты частоты считаются на всех вместе).
+- Сервер держит простаивающее соединение 65 с (`KEEP_ALIVE_MS` в `apps/api/src/main.ts`, задача 653) — дольше, чем веб и
+  балансировщик: иначе запрос, попавший на закрываемое соединение, падал «Failed to proxy … ECONNRESET».
 
 ## Приложение на телефон и компьютер (этап 4, начало)
 
@@ -3580,6 +3582,8 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
   бизнес-приложении добавляет строку «Sprawdź, ile zostało: …» (`voucherCheckLink` в `apps/mobile-business/src/vouchers.ts`).
 - Тесты: `apps/api/test/gift-vouchers.spec.ts`, `apps/mobile-client/test/api.test.ts`,
   `apps/mobile-business/test/vouchers.test.ts`, e2e `voucher-check.spec.ts` (скриншоты 537, 538, 539).
+- Задача 654 (Q5): неверный код — ошибка у поля «Kod bonu» (красная рамка, «!», текст под полем), пропадает при
+  правке кода; скриншот `q5-voucher-code-error`.
 
 ## «Zapłać bonem» в карточке визита (задачи 540–543)
 

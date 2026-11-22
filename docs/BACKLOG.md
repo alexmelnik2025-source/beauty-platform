@@ -12,24 +12,21 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-<<<<<<< HEAD
-
 - **✅ Влито в main 22.11.2026. 652 (ветка `agent/652-product-form-more`, от main): короткая форма нового товара**
   (доводка Q6, новых функций нет; найдено по скриншоту `q6-services-list`). В «Usługi → Produkty» форма «Nowy produkt»
   была в семь полей с длинными подписями — теперь название, цена, остаток; остальное под «Więcej ▸», как в приложении
   бизнеса. e2e `products`, скриншот `652-product-form-more`.
-  \=======
-- **22.11.2026, ~11:25 UTC — 654 (та же ветка `agent/653-api-keepalive`): ошибка «Sprawdź bon» у поля** (доводка Q5,
+- **✅ Влито в main 22.11.2026, ~12:15 UTC. 654 (ветка `agent/654-keepalive-voucher`): ошибка «Sprawdź bon» у поля** (доводка Q5,
   новых функций нет). «Ten salon nie ma bonu z takim kodem» была общей строкой под формой — теперь у поля «Kod bonu»
   (красная рамка, «!», короткий текст) и пропадает, когда клиент правит код. e2e `voucher-check`, скриншот
   `q5-voucher-code-error`.
 
-> > > > > > > cd05d1ad (fix(web): 'Sprawdź bon' shows a wrong code at the code field, not as a line under the form (task 654))
-
-- **22.11.2026, ~11:15 UTC — 653 (ветка `agent/653-api-keepalive`, от main): main покраснел на e2e `voucher-check`**
+- **✅ Влито в main 22.11.2026, ~12:15 UTC. 653 (ветка `agent/654-keepalive-voucher`, от main): main покраснел на e2e `voucher-check`**
   (исправление, новых функций нет). Веб-приложение передаёт запросы `/v1` серверу по «держащимся» соединениям; сервер
   закрывал простаивающее через 5 с, и запрос, попавший ровно в этот момент, падал («Failed to proxy … ECONNRESET» —
   клиент не увидел ответ «Sprawdź bon» по ссылке `?bon=`). Теперь сервер держит соединение 65 с — дольше, чем веб.
+  Ветки `agent/653-api-keepalive` (старая копия) и `agent/654-keepalive-voucher` удалить не удалось (прокси не
+  разрешает удаление веток) — обе уже не нужны.
 - **✅ Влито в main 22.11.2026. 651 (ветка `agent/651-page-help`, от main): пояснения под «?» и кнопка над краем списка**
   (доводка Q6, новых функций нет; найдено по скриншотам `q7-promotions-last-minute`, `q8-owner-waitlist-auto`). На
   «Promocje», «Lista oczekujących», «Ochrona przed odwołaniami» пояснение было абзацем сверху — теперь под «?» у
