@@ -3815,6 +3815,21 @@ ul.wish-photos {
   margin-bottom: 0;
 }
 
+/* The title, "?" and "+ Dodaj produkt" keep their own width — the button is not stretched across the page. */
+.shop-head > * {
+  flex: 0 0 auto;
+}
+
+.shop-page {
+  padding-top: 20px;
+}
+
+@media (max-width: 760px) {
+  .shop-page {
+    padding-top: 14px;
+  }
+}
+
 .shop-list {
   padding: 0;
   overflow: hidden;

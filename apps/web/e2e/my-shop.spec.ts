@@ -223,6 +223,9 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await expect(list.getByRole('listitem')).toHaveCount(2);
   await shot(page, 'q6-shop-list');
   await page.setViewportSize({ width: 390, height: 844 });
+  // The page keeps the cabinet's side margins on a phone — nothing touches the screen's edge.
+  const titleBox = await page.locator('#my-shop-title').boundingBox();
+  expect(titleBox?.x ?? 0).toBeGreaterThanOrEqual(12);
   await shot(page, 'q6-shop-list-phone');
   await page.setViewportSize({ width: 1280, height: 720 });
 
