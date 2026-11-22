@@ -7,6 +7,9 @@ import { configureApp } from './app.setup';
 import { loadConfig } from './config/config';
 import { formatTiming, SLOW_REQUEST_MS } from './common/request-timing';
 
+/** Longer than the idle time of the web app's and a load balancer's kept-alive connections. */
+const KEEP_ALIVE_MS = 65_000;
+
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -33,6 +36,12 @@ async function bootstrap(): Promise<void> {
   // No host: Node listens on every interface (IPv4 and IPv6), so a phone in the same Wi-Fi
   // reaches the API at http://<Mac's address>:4000 (pnpm mobile:client / mobile:business).
   await app.listen(config.PORT);
+  // The web app passes /v1 on to the API over kept-alive connections. Node closes an idle one
+  // after 5 s, and a request sent on it at that very moment fails ("Failed to proxy … ECONNRESET",
+  // seen in CI 22.11.2026 on "Sprawdź bon"). Keep idle connections longer than the proxy does.
+  const server = app.getHttpServer();
+  server.keepAliveTimeout = KEEP_ALIVE_MS;
+  server.headersTimeout = KEEP_ALIVE_MS + 1_000;
   const logger = new Logger('Bootstrap');
   logger.log(`API listening on http://localhost:${config.PORT}/v1`);
   if (config.NODE_ENV !== 'production') {
