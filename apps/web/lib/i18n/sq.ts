@@ -250,6 +250,10 @@ export const sq: Dict = {
     resend: 'Dërgo kodin përsëri',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Korrigjo e-mailin ose telefonin',
+    /** Task Q5: errors at their own field on the "Dane" step. */
+    nameInvalid: 'Shkruani emrin.',
+    phoneInvalid: 'Kontrolloni numrin e telefonit.',
+    emailInvalid: 'Kontrolloni adresën e e-mailit.',
     doneTitle: 'Shihemi së shpejti!',
     doneLead: 'Rezervimi juaj është konfirmuar. Ju dërguam detajet me email.',
     doneTitleApproval: 'Rezervimi u dërgua',

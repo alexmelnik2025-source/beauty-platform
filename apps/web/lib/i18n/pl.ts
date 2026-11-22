@@ -553,6 +553,10 @@ export const pl = {
     resend: 'Wyślij kod ponownie',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Popraw e-mail lub telefon',
+    /** Task Q5: errors at their own field on the "Dane" step. */
+    nameInvalid: 'Podaj imię.',
+    phoneInvalid: 'Sprawdź numer telefonu.',
+    emailInvalid: 'Sprawdź adres e-mail.',
     doneTitle: 'Do zobaczenia!',
     doneLead: 'Wizyta jest potwierdzona. Szczegóły wysłaliśmy e-mailem.',
     doneTitleApproval: 'Rezerwacja wysłana',

@@ -4310,6 +4310,12 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   `directory.languageMenu`, `directory.kindMenu` — во всех 6 словарях. e2e: `booking.spec.ts`
   (`q5-catalogue-language-menu`, `00a-catalogue`, `192-catalogue-languages-or`), `catalogue-map.spec.ts`
   (`160d-catalogue-kinds`, `q5-catalogue-kind-menu`).
+- **Ошибки у поля** на шаге «Dane» и шаге кода (`BookingFlow.tsx`, `fieldProblems`): ответ сервера `VALIDATION_ERROR`
+  про имя, телефон или e-mail, `PHONE_REQUIRED` и неверный код (`INVALID_CODE`) показываются у самого поля — красная
+  рамка (`aria-invalid`), «!» и короткий текст под полем («Sprawdź numer telefonu.», «Nieprawidłowy kod.»); ввод в
+  поле убирает ошибку. Остальные ошибки — как раньше, в строке сверху. Общий компонент `FieldError` (`ui.tsx`),
+  `PhoneField` получил `error`. Ключи `booking.nameInvalid`, `phoneInvalid`, `emailInvalid` — во всех 6 словарях. e2e
+  `booking.spec.ts`: `q5-client-field-error`, `q5-client-code-error`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 

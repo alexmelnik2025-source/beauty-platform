@@ -29,7 +29,7 @@ import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { LanguageBadges, SPOKEN, SPOKEN_SHORT, type Spoken } from '../Languages';
 import { useSpecialtyText } from '../Specialties';
-import { ErrorBox, initials, LanguageSwitch, Spinner } from '../ui';
+import { ErrorBox, FieldError, initials, LanguageSwitch, Spinner } from '../ui';
 import { ClientNav } from '../client/ClientNav';
 import { downloadIcs } from './ics';
 import { ShareVisit } from './ShareVisit';
@@ -128,6 +128,30 @@ function saveRemembered(value: RememberedContact | null): void {
   } catch {
     // Private mode or blocked storage: the form simply is not prefilled next time.
   }
+}
+
+type Problems = Partial<Record<'name' | 'phone' | 'email' | 'code', string>>;
+
+/**
+ * Task Q5: the server's answer about the "Dane" or code fields as errors at those fields; null when
+ * it is about something else (then the box on top says it).
+ */
+function fieldProblems(t: ReturnType<typeof useI18n>['t'], err: unknown): Problems | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.code === 'INVALID_CODE') return { code: errorText(t, err) };
+  if (err.code === 'PHONE_REQUIRED') return { phone: errorText(t, err) };
+  if (err.code !== 'VALIDATION_ERROR' || !Array.isArray(err.details)) return null;
+  const texts = {
+    name: t.booking.nameInvalid,
+    phone: t.booking.phoneInvalid,
+    email: t.booking.emailInvalid,
+  } as const;
+  const found: Problems = {};
+  for (const detail of err.details as { path?: string }[]) {
+    const field = detail.path as keyof typeof texts;
+    if (field in texts) found[field] = texts[field];
+  }
+  return Object.keys(found).length > 0 ? found : null;
 }
 
 export function BookingFlow({
@@ -248,6 +272,8 @@ export function BookingFlow({
     setContact((c) => ({ ...c, name: '', phone: `+${dial} `, email: '' }));
   }
   const [error, setError] = useState('');
+  /** Task Q5: errors shown at their own field (name, phone, e-mail, code), not in the box on top. */
+  const [problems, setProblems] = useState<Problems>({});
   /**
    * Task Q9: the salon asks this client to pay the missed visits in the salon with this one
    * (BOOKING_PAY_FIRST): the time stays held and "Potwierdź" books after the notice. `sum` only
@@ -406,6 +432,7 @@ export function BookingFlow({
     if (!hold) return;
     setBusy(true);
     setError('');
+    setProblems({});
     try {
       const sent = await api<{ channel: 'email' | 'sms' }>(`/v1/public/holds/${hold.holdId}/code`, {
         method: 'POST',
@@ -431,7 +458,10 @@ export function BookingFlow({
         setCodeChannel('email');
         setError(errorText(t, err));
       } else {
-        setError(errorText(t, err));
+        // On the code step ("Wyślij kod ponownie") the fields are not on screen: the box on top.
+        const found = step === 'details' ? fieldProblems(t, err) : null;
+        if (found) setProblems(found);
+        else setError(errorText(t, err));
       }
     } finally {
       setBusy(false);
@@ -459,6 +489,7 @@ export function BookingFlow({
     if (!hold) return;
     setBusy(true);
     setError('');
+    setProblems({});
     const payNoticeAccepted = payNotice?.holdId === hold.holdId;
     try {
       const done = await api<{
@@ -496,7 +527,9 @@ export function BookingFlow({
       } else if (err instanceof ApiError && ['HOLD_EXPIRED', 'NOT_FOUND'].includes(err.code)) {
         backToTime(err);
       } else if (!showPayNotice(err, hold.holdId)) {
-        setError(errorText(t, err));
+        const found = fieldProblems(t, err);
+        if (found) setProblems(found);
+        else setError(errorText(t, err));
       }
     } finally {
       setBusy(false);
@@ -508,6 +541,7 @@ export function BookingFlow({
     if (!hold) return;
     setBusy(true);
     setError('');
+    setProblems({});
     const payNoticeAccepted = payNotice?.holdId === hold.holdId;
     try {
       const done = await api<{
@@ -549,12 +583,22 @@ export function BookingFlow({
       ) {
         backToTime(err);
       } else if (!showPayNotice(err, hold.holdId)) {
-        setError(errorText(t, err));
+        const found = fieldProblems(t, err);
+        if (found) setProblems(found);
+        else setError(errorText(t, err));
       }
     } finally {
       setBusy(false);
     }
   }
+
+  /** Task Q5: typing in a field takes its error away. */
+  const fixed = (field: keyof Problems) =>
+    setProblems((current) => {
+      if (!current[field]) return current;
+      const { [field]: _gone, ...rest } = current;
+      return rest;
+    });
 
   if (closed) {
     return (
@@ -1015,16 +1059,26 @@ export function BookingFlow({
               <input
                 autoComplete="name"
                 required
+                aria-invalid={problems.name ? true : undefined}
+                aria-describedby={problems.name ? 'name-error' : undefined}
                 value={contact.name}
-                onChange={(e) => setContact({ ...contact, name: e.target.value })}
+                onChange={(e) => {
+                  fixed('name');
+                  setContact({ ...contact, name: e.target.value });
+                }}
               />
+              <FieldError id="name-error" text={problems.name} />
             </label>
             <PhoneField
               label={t.booking.phone}
               required
               value={contact.phone}
               defaultDial={dial}
-              onChange={(phone) => setContact({ ...contact, phone })}
+              error={problems.phone}
+              onChange={(phone) => {
+                fixed('phone');
+                setContact({ ...contact, phone });
+              }}
             />
             <label className="field">
               <span>{t.booking.email}</span>
@@ -1034,9 +1088,15 @@ export function BookingFlow({
                 required
                 // Task 180e: the email of the session; another one - "To nie ja".
                 readOnly={!!signedInAs}
+                aria-invalid={problems.email ? true : undefined}
+                aria-describedby={problems.email ? 'email-error' : undefined}
                 value={contact.email}
-                onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                onChange={(e) => {
+                  fixed('email');
+                  setContact({ ...contact, email: e.target.value });
+                }}
               />
+              <FieldError id="email-error" text={problems.email} />
               <small className="muted">{t.booking.emailHint}</small>
             </label>
             <label className="check">
@@ -1124,9 +1184,15 @@ export function BookingFlow({
               maxLength={6}
               required
               aria-label={codeChannel === 'sms' ? t.booking.codeTitleSms : t.booking.codeTitle}
+              aria-invalid={problems.code ? true : undefined}
+              aria-describedby={problems.code ? 'code-error' : undefined}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => {
+                fixed('code');
+                setCode(e.target.value.replace(/\D/g, ''));
+              }}
             />
+            <FieldError id="code-error" text={problems.code} />
             {payNoticeBox}
             <button className="btn btn--block" disabled={busy || code.length !== 6}>
               {confirmLabel}
@@ -1147,6 +1213,7 @@ export function BookingFlow({
               disabled={busy}
               onClick={() => {
                 setError('');
+                setProblems({});
                 setCode('');
                 setStep('details');
               }}

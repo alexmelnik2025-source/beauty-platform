@@ -553,6 +553,10 @@ export const uk: Dict = {
     resend: 'Надіслати код ще раз',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Виправити e-mail або телефон',
+    /** Task Q5: errors at their own field on the "Dane" step. */
+    nameInvalid: 'Вкажіть ім’я.',
+    phoneInvalid: 'Перевірте номер телефону.',
+    emailInvalid: 'Перевірте адресу e-mail.',
     doneTitle: 'До зустрічі!',
     doneLead: 'Запис підтверджено. Деталі надіслали на e-mail.',
     doneTitleApproval: 'Запис надіслано',

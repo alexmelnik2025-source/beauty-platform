@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Sheet, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Sheet, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
@@ -251,16 +251,6 @@ export default function HappyHoursPage() {
 }
 
 type Problems = Partial<Record<'percent' | 'days' | 'hours' | 'ahead', string>>;
-
-/** Task Q6/Q7: an error next to its own field — a red frame, "!" and a short line under it. */
-function FieldError({ id, text }: { id: string; text?: string }) {
-  if (!text) return null;
-  return (
-    <small id={id} className="field-error" role="alert">
-      {text}
-    </small>
-  );
-}
 
 function RuleSheet({
   initial,

@@ -552,6 +552,10 @@ export const en: Dict = {
     resend: 'Send the code again',
     /** Task 608: back to the details from the code step (a mistyped address). */
     fixContact: 'Fix the e-mail or phone',
+    /** Task Q5: errors at their own field on the "Dane" step. */
+    nameInvalid: 'Enter your name.',
+    phoneInvalid: 'Check the phone number.',
+    emailInvalid: 'Check the e-mail address.',
     doneTitle: 'See you soon!',
     doneLead: 'Your booking is confirmed. We emailed you the details.',
     doneTitleApproval: 'Booking sent',
