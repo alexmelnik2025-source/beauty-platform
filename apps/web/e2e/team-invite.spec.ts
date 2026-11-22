@@ -86,6 +86,7 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await page.waitForURL(/\/pl\/app\/calendar/);
   await page.goto('/pl/app/team');
   // Task 683: an empty category name is said under "Nazwa kategorii", not by a browser tooltip.
+  await page.getByRole('button', { name: 'Dostęp i uprawnienia' }).click();
   await page.getByRole('button', { name: '+ Nowa kategoria' }).click();
   const catSheet = page.getByRole('dialog');
   const catName = catSheet.getByRole('textbox', { name: /^Nazwa kategorii/ });
@@ -97,6 +98,7 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await shot(page, '683-team-category-name-error');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Specjaliści', exact: true }).click();
   const kasiaRow = page.getByRole('button', { name: /Kasia Nowak/ });
   await expect(kasiaRow).toContainText('Bez konta');
   await kasiaRow.click();
