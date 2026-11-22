@@ -417,6 +417,12 @@ export const en: Dictionary = {
     tooMany: 'You already have 100 favourite salons. Remove one to add another.',
   },
   waitlist: {
+    autoLead:
+      'Choose a fully booked day. If a time becomes available for you, we’ll send your booking confirmation.',
+    autoBook: 'Book me automatically when a time opens up',
+    phoneForAuto: 'Enter a valid phone number for automatic booking.',
+    joinedAuto: 'You joined the waitlist for {day}. We will book the first available time for you.',
+    autoStatus: 'Automatic booking is on',
     open: 'No day that suits you? Tell me when a time frees up',
     title: 'Waiting list',
     lead: 'Pick a day with no free times. When someone cancels, you get an email — first come, first served.',

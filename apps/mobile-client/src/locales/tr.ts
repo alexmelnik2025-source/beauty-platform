@@ -423,6 +423,13 @@ export const tr: Dictionary = {
     tooMany: 'Zaten 100 favori salonunuz var. Yenisini eklemek için birini çıkarın.',
   },
   waitlist: {
+    autoLead:
+      'Boş saati olmayan bir gün seç. Senin için bir saat boşalırsa randevu onayı göndereceğiz.',
+    autoBook: 'Bir saat boşalınca otomatik olarak randevu al',
+    phoneForAuto: 'Otomatik randevu için geçerli bir telefon numarası gir.',
+    joinedAuto:
+      '{day} için bekleme listesindesin. Bir saat boşalınca otomatik olarak randevu alacağız.',
+    autoStatus: 'Otomatik randevu açık',
     open: 'Uygun gün yok mu? Bir saat boşalınca bana haber ver',
     title: 'Bekleme listesi',
     lead: 'Boş saati olmayan bir gün seçin. Biri randevusunu iptal ettiğinde e-posta alırsınız — ilk gelen alır.',
