@@ -1044,6 +1044,7 @@ export const en: Dict = {
     reservationDaysInvalid: 'Enter a number of days from 1 to 90.',
     reservationDaysNow: 'A product put aside waits {n} days after the visit.',
     listSearch: 'Search products',
+    filters: 'Filters',
     filterAll: 'All',
     filterSalon: 'On the salon page',
     filterMarket: 'In the Shop',

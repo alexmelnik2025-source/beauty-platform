@@ -1040,6 +1040,7 @@ export const uk: Dict = {
     reservationDaysInvalid: 'Вкажіть кількість днів від 1 до 90.',
     reservationDaysNow: 'Відкладений товар чекає {n} дн. після візиту.',
     listSearch: 'Пошук товару',
+    filters: 'Фільтри',
     filterAll: 'Усі',
     filterSalon: 'На сторінці салону',
     filterMarket: 'У Магазині',

@@ -1046,6 +1046,7 @@ export const ru: Dict = {
     reservationDaysInvalid: 'Укажите число дней от 1 до 90.',
     reservationDaysNow: 'Отложенный товар ждёт {n} дн. после визита.',
     listSearch: 'Поиск товара',
+    filters: 'Фильтры',
     filterAll: 'Все',
     filterSalon: 'На странице салона',
     filterMarket: 'В Магазине',

@@ -1041,6 +1041,7 @@ export const pl = {
     reservationDaysInvalid: 'Podaj liczbę dni od 1 do 90.',
     reservationDaysNow: 'Odłożony produkt czeka {n} dni po wizycie.',
     listSearch: 'Szukaj produktu',
+    filters: 'Filtry',
     filterAll: 'Wszystkie',
     filterSalon: 'Na stronie salonu',
     filterMarket: 'W Sklepie',

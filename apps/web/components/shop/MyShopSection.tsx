@@ -301,7 +301,7 @@ export function MyShopSection({ base }: { base: string }) {
               placeholder={s.listSearch}
               onChange={(e) => setFilterText(e.target.value)}
             />
-            <div className="shop-filters" role="group" aria-label={s.listSearch}>
+            <div className="shop-filters" role="group" aria-label={s.filters}>
               {(['all', 'salon', 'market', 'hidden'] as const).map((f) => (
                 <button
                   key={f}
