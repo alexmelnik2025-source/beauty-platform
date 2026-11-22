@@ -392,7 +392,15 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await products.getByRole('button', { name: 'Inwentaryzacja', exact: true }).click();
   const stocktake = products.getByTestId('stocktake');
   await expect(stocktake.getByLabel('Na półce — Zestaw')).toHaveValue('3');
+  // Task 670: a wrong number is said under its own field (red frame, "!").
+  await stocktake.getByLabel('Na półce — Zestaw').fill('2,5');
+  await expect(stocktake.getByLabel('Na półce — Zestaw')).toHaveAccessibleDescription(
+    'Wpisz liczbę od 0 do 100 000.',
+  );
+  await stocktake.scrollIntoViewIfNeeded();
+  await shot(page, '670-stocktake-field-error');
   await stocktake.getByLabel('Na półce — Zestaw').fill('2');
+  await expect(stocktake.locator('.field-error')).toHaveCount(0);
   await expect(stocktake.getByTestId('stocktake-diff')).toHaveText('brakuje 1 szt.');
   await stocktake.scrollIntoViewIfNeeded();
   await shot(page, '457-a-owner-stocktake');

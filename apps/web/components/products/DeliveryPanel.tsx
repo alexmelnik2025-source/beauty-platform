@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
-import { errorText, useI18n } from '@/lib/i18n';
+import { api, ApiError } from '@/lib/api';
+import { errorText, fill, useI18n } from '@/lib/i18n';
 import { orderQuantity } from '@/lib/to-order';
 import type { Product, StockDelivery } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
 
 /** "" → null (nothing came), "12" → 12; anything else (0 too) → undefined (wrong). */
 function parsePieces(value: string): number | null | undefined {
@@ -14,6 +14,17 @@ function parsePieces(value: string): number | null | undefined {
   return /^\d{1,6}$/.test(text) && Number(text) >= 1 && Number(text) <= 100_000
     ? Number(text)
     : undefined;
+}
+
+/** Task 670: the products of the sent list that the server's validation answer is about. */
+function wrongProductsOf(err: unknown, sent: string[]): string[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  return (err.details as { path?: string }[]).flatMap((d) => {
+    const m = /^items\.(\d+)(\.|$)/.exec(String(d.path ?? ''));
+    const id = m ? sent[Number(m[1])] : undefined;
+    return id ? [id] : [];
+  });
 }
 
 /**
@@ -48,6 +59,11 @@ export function DeliveryPanel({
   const [supplier, setSupplier] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * Task 670 (owner's rule: errors at the field): the products whose number the server did not
+   * take; a wrong number typed is said under its field at once. Editing the field clears it.
+   */
+  const [serverWrong, setServerWrong] = useState<string[]>([]);
 
   const suppliers = [
     ...new Map(
@@ -64,11 +80,14 @@ export function DeliveryPanel({
   const items = parsed.flatMap(({ product, n }) =>
     typeof n === 'number' ? [{ productId: product.id, quantity: n }] : [],
   );
+  const bad = (id: string, value: number | null | undefined) =>
+    value === undefined || serverWrong.includes(id);
   const total = items.reduce((sum, i) => sum + i.quantity, 0);
 
   async function save() {
     setBusy(true);
     setError('');
+    setServerWrong([]);
     try {
       onSaved(
         await api<StockDelivery>(`${base}/products/delivery`, {
@@ -77,7 +96,12 @@ export function DeliveryPanel({
         }),
       );
     } catch (err) {
-      setError(errorText(t, err));
+      const ids = wrongProductsOf(
+        err,
+        items.map((i) => i.productId),
+      );
+      setServerWrong(ids);
+      if (ids.length === 0) setError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -125,13 +149,23 @@ export function DeliveryPanel({
               <input
                 inputMode="numeric"
                 aria-label={p.deliveryCame.replace('{name}', x.name)}
-                aria-invalid={n === undefined}
+                aria-invalid={bad(x.id, n) || undefined}
+                aria-describedby={bad(x.id, n) ? `delivery-${x.id}-error` : undefined}
                 placeholder="—"
                 value={pieces[x.id] ?? ''}
-                onChange={(e) => setPieces({ ...pieces, [x.id]: e.target.value })}
+                onChange={(e) => {
+                  setPieces({ ...pieces, [x.id]: e.target.value });
+                  setServerWrong(serverWrong.filter((id) => id !== x.id));
+                }}
               />
               <span aria-hidden="true">{p.pieces}</span>
             </span>
+            <FieldError
+              id={`delivery-${x.id}-error`}
+              text={
+                bad(x.id, n) ? fill(t.guard.numberRange, { min: '1', max: '100 000' }) : undefined
+              }
+            />
           </li>
         ))}
       </ul>

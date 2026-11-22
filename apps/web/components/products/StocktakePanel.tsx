@@ -1,16 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
-import { errorText, useI18n } from '@/lib/i18n';
+import { api, ApiError } from '@/lib/api';
+import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { Product, Stocktake } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
 
 /** "" → null (not counted now), "12" → 12; anything else → undefined (wrong). */
 function parseCount(value: string): number | null | undefined {
   const text = value.trim();
   if (text === '') return null;
   return /^\d{1,6}$/.test(text) && Number(text) <= 100_000 ? Number(text) : undefined;
+}
+
+/** Task 670: the products of the sent list that the server's validation answer is about. */
+function wrongProductsOf(err: unknown, sent: string[]): string[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  return (err.details as { path?: string }[]).flatMap((d) => {
+    const m = /^counts\.(\d+)(\.|$)/.exec(String(d.path ?? ''));
+    const id = m ? sent[Number(m[1])] : undefined;
+    return id ? [id] : [];
+  });
 }
 
 /**
@@ -36,6 +47,11 @@ export function StocktakePanel({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * Task 670 (owner's rule: errors at the field): the products whose number the server did not
+   * take; a wrong number typed is said under its field at once. Editing the field clears it.
+   */
+  const [serverWrong, setServerWrong] = useState<string[]>([]);
 
   const parsed = products.map((x) => ({ product: x, count: parseCount(counts[x.id] ?? '') }));
   const wrong = parsed.some((r) => r.count === undefined);
@@ -45,9 +61,13 @@ export function StocktakePanel({
       : [],
   );
 
+  const bad = (id: string, value: number | null | undefined) =>
+    value === undefined || serverWrong.includes(id);
+
   async function save() {
     setBusy(true);
     setError('');
+    setServerWrong([]);
     try {
       onSaved(
         await api<Stocktake>(`${base}/products/stocktake`, {
@@ -56,7 +76,12 @@ export function StocktakePanel({
         }),
       );
     } catch (err) {
-      setError(errorText(t, err));
+      const ids = wrongProductsOf(
+        err,
+        changes.map((i) => i.productId),
+      );
+      setServerWrong(ids);
+      if (ids.length === 0) setError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -88,10 +113,14 @@ export function StocktakePanel({
               <input
                 inputMode="numeric"
                 aria-label={p.stocktakeCount.replace('{name}', x.name)}
-                aria-invalid={count === undefined}
+                aria-invalid={bad(x.id, count) || undefined}
+                aria-describedby={bad(x.id, count) ? `stocktake-${x.id}-error` : undefined}
                 placeholder="—"
                 value={counts[x.id] ?? ''}
-                onChange={(e) => setCounts({ ...counts, [x.id]: e.target.value })}
+                onChange={(e) => {
+                  setCounts({ ...counts, [x.id]: e.target.value });
+                  setServerWrong(serverWrong.filter((id) => id !== x.id));
+                }}
               />
               <span aria-hidden="true">{p.pieces}</span>
             </span>
@@ -102,6 +131,14 @@ export function StocktakePanel({
                   : p.stocktakeExtra.replace('{n}', String(count - x.stockQuantity))}
               </span>
             ) : null}
+            <FieldError
+              id={`stocktake-${x.id}-error`}
+              text={
+                bad(x.id, count)
+                  ? fill(t.guard.numberRange, { min: '0', max: '100 000' })
+                  : undefined
+              }
+            />
           </li>
         ))}
       </ul>
