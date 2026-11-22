@@ -1603,6 +1603,8 @@ export const uk: Dict = {
     tierAdd: '+ Додати рівень',
     tierRemove: 'Видалити рівень',
     tierSave: 'Зберегти рівні',
+    /** Task 664: under a threshold another tier already has. */
+    tierThresholdTaken: 'Інший рівень уже має такий поріг.',
     tierNone: 'Рівнів немає — клієнти без статусу.',
     tierCurrent: 'Рівень: {name}',
     tierBelow: 'Без рівня',

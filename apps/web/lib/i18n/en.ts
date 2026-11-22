@@ -1611,6 +1611,8 @@ export const en: Dict = {
     tierAdd: '+ Add a tier',
     tierRemove: 'Remove tier',
     tierSave: 'Save tiers',
+    /** Task 664: under a threshold another tier already has. */
+    tierThresholdTaken: 'Another tier already has this threshold.',
     tierNone: 'No tiers — clients have no status.',
     tierCurrent: 'Tier: {name}',
     tierBelow: 'No tier yet',

@@ -1608,6 +1608,8 @@ export const pl = {
     tierAdd: '+ Dodaj poziom',
     tierRemove: 'Usuń poziom',
     tierSave: 'Zapisz poziomy',
+    /** Task 664: under a threshold another tier already has. */
+    tierThresholdTaken: 'Inny poziom ma już ten próg.',
     tierNone: 'Brak poziomów — klienci nie mają statusu.',
     tierCurrent: 'Poziom: {name}',
     tierBelow: 'Bez poziomu',

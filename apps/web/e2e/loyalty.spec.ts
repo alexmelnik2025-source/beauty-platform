@@ -332,6 +332,20 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await tiersForm.getByLabel('Nazwa poziomu').nth(1).fill('Silver');
   await tiersForm.getByLabel('Od (wizyt)').nth(1).fill('1');
   await tiersForm.getByLabel('Rabat (%)').nth(1).fill('5');
+  // Task 664 (errors at the field): the same threshold twice is said under the second one;
+  // nothing is saved until it is changed.
+  const silverFrom = tiersForm.getByLabel(/^Od \(wizyt\)/).nth(1);
+  await silverFrom.fill('0');
+  await tiersForm.getByRole('button', { name: 'Zapisz poziomy' }).click();
+  await expect(tiersForm.locator('#tier-1-threshold-error')).toHaveText(
+    'Inny poziom ma już ten próg.',
+  );
+  await expect(silverFrom).toBeFocused();
+  await expect(silverFrom).toHaveAttribute('aria-invalid', 'true');
+  await tiersForm.scrollIntoViewIfNeeded();
+  await shot(page, '664-loyalty-tier-threshold-error');
+  await silverFrom.fill('1');
+  await expect(tiersForm.locator('#tier-1-threshold-error')).toHaveCount(0);
   await tiersForm.getByRole('button', { name: 'Zapisz poziomy' }).click();
   await expect(tiersForm.getByText('Zapisano')).toBeVisible();
   await tiersForm.scrollIntoViewIfNeeded();

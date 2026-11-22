@@ -1611,6 +1611,8 @@ export const ru: Dict = {
     tierAdd: '+ Добавить уровень',
     tierRemove: 'Удалить уровень',
     tierSave: 'Сохранить уровни',
+    /** Task 664: under a threshold another tier already has. */
+    tierThresholdTaken: 'У другого уровня уже такой порог.',
     tierNone: 'Уровней нет — у клиентов нет статуса.',
     tierCurrent: 'Уровень: {name}',
     tierBelow: 'Без уровня',

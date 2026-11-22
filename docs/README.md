@@ -1049,6 +1049,10 @@ pnpm --filter @beauty/api-client generate
   «Z ostatnich (dni)», строки «Nazwa poziomu», «Od (wizyt)» или «Od (zł)», «Rabat (%)», «+ Dodaj poziom»,
   «Zapisz poziomy». В карточке клиента — «Poziom: Silver · −5%» и сколько не хватает до следующего. Скриншот
   `73-owner-loyalty-tiers`.
+  Задача 664 (ошибки у поля, `TiersForm.tsx`): имя из одних пробелов — «Uzupełnij to pole.» под «Nazwa poziomu», тот
+  же порог у второго уровня — «Inny poziom ma już ten próg.» под его «Od …» ещё до отправки (курсор туда); ответ
+  сервера о поле строки или «Z ostatnich (dni)» — под этим полем. Правка поля убирает ошибку. Скриншот
+  `664-loyalty-tier-threshold-error`.
 - Клиент (часть 4): в «Moje bonusy» на сайте и в приложении — «Twój poziom: Silver» и «Do poziomu „Gold” brakuje
   wizyt: 3» (или суммы); 6 языков. Скидку уровня применяет сотрудник в визите (часть 3, ниже).
 - Скидка уровня в визите (часть 3): в карточке визита в кабинете, в блоке «Kupony klienta», — строка «Poziom klienta:
