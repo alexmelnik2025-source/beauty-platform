@@ -12,19 +12,19 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **22.11.2026, ~19:05 UTC — 668 (ветка `agent/668-reward-field-errors`, поверх 665–667): ошибки окна награды у поля**
+- **✅ Влито в main 22.11.2026, ~19:10 UTC. 668 (ветка `agent/668-reward-field-errors`, от main): ошибки окна награды у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). «Program lojalnościowy → + Dodaj nagrodę»:
   название из пробелов давало общую строку «Sprawdź pola formularza.» над формой — теперь «Uzupełnij to pole.» под
   «Nazwa nagrody»; ответ сервера о поле — у поля. e2e `loyalty`, скриншот `668-loyalty-reward-name-error`.
-- **22.11.2026, ~18:45 UTC — 667 (ветка `agent/667-invite-field-errors`, от main): ошибки окна «Zaproś do zespołu» у поля**
+- **✅ Влито в main 22.11.2026, ~19:05 UTC. 667 (ветка `agent/665-667-field-errors`, от main): ошибки окна «Zaproś do zespołu» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Номер без «+48», неверный e-mail, «Ta osoba
   jest już w zespole» и «Ten profil ma już konto» были общей строкой над формой — теперь под своим полем. e2e
   `team-invite`, скриншот `667-invite-phone-error`.
-- **22.11.2026, ~18:25 UTC — 666 (ветка `agent/666-commission-field-error`, от main): ошибка процента в «Prowizje» у поля**
+- **✅ Влито в main 22.11.2026, ~19:05 UTC. 666 (ветка `agent/665-667-field-errors`, от main): ошибка процента в «Prowizje» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). «Raporty → Ustaw prowizje»: неверный процент
   давал строку над списком — теперь под полем этого специалиста (красная рамка, «!»). e2e `reports`, скриншот
   `666-commission-field-error`.
-- **22.11.2026, ~18:20 UTC — 665 (ветка `agent/665-guard-field-errors`, от main): ошибки «Ochrona przed odwołaniami» у поля**
+- **✅ Влито в main 22.11.2026, ~19:05 UTC. 665 (ветка `agent/665-667-field-errors`, от main): ошибки «Ochrona przed odwołaniami» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Число вне допустимого и «Zaznacz co najmniej
   jedną zasadę» были общей строкой над формой — теперь «Wpisz liczbę od 1 do 20.» (и т. п.) под своим полем, а «zaznacz
   zasadę» — под «Zasady»; ответ сервера — у поля. e2e `cancellation-guard-cabinet`, скриншот `665-guard-number-error`.
