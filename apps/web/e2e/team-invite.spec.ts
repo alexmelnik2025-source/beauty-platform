@@ -127,6 +127,9 @@ test('the owner invites a specialist by email and phone; they join with a code (
     viewport: PHONE,
     locale: 'pl-PL',
     isMobile: true,
+    // Signing in with a code counts as a sign-in of the address (30 in 15 minutes); Kasia's own
+    // address keeps her two tries off the one the rest of the suite signs in from (task 658).
+    extraHTTPHeaders: freshAddress(),
   });
   const kasia = await kasiaContext.newPage();
   await kasia.goto(path);
