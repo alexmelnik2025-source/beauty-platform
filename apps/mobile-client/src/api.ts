@@ -511,13 +511,19 @@ export class ClientApi {
     code: string,
     /** Task 80: only when the salon asks (see wishesToSend). */
     wishes?: ClientAppointment['wishes'],
+    payNoticeAccepted = false,
   ): Promise<BookingConfirmed> {
     return this.call<BookingConfirmed>(
       'POST',
       `/v1/public/holds/${encodeURIComponent(hold.holdId)}/confirm`,
-      { holdToken: hold.holdToken, code, ...(wishes ? { wishes } : {}) },
+      {
+        holdToken: hold.holdToken,
+        code,
+        ...(wishes ? { wishes } : {}),
+        ...(payNoticeAccepted ? { payNoticeAccepted } : {}),
+      },
       undefined,
-      { 'idempotency-key': `confirm-${hold.holdId}-${code}` },
+      { 'idempotency-key': `confirm-${hold.holdId}-${code}${payNoticeAccepted ? '-notice' : ''}` },
     );
   }
 
@@ -530,12 +536,21 @@ export class ClientApi {
     contact: Omit<BookingContact, 'email'>,
     locale: Locale,
     wishes?: ClientAppointment['wishes'],
+    payNoticeAccepted = false,
   ): Promise<BookingConfirmed> {
     return this.authed<BookingConfirmed>(
       'POST',
       `/v1/client/holds/${encodeURIComponent(hold.holdId)}/confirm`,
-      { holdToken: hold.holdToken, ...contact, locale, ...(wishes ? { wishes } : {}) },
-      { 'idempotency-key': `confirm-signed-in-${hold.holdId}` },
+      {
+        holdToken: hold.holdToken,
+        ...contact,
+        locale,
+        ...(wishes ? { wishes } : {}),
+        ...(payNoticeAccepted ? { payNoticeAccepted } : {}),
+      },
+      {
+        'idempotency-key': `confirm-signed-in-${hold.holdId}${payNoticeAccepted ? '-notice' : ''}`,
+      },
     );
   }
 

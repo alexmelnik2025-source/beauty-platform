@@ -58,7 +58,7 @@
   `rule` (и в списке `GET …/clients`). Клиентское приложение: ответ `BOOKING_PAY_FIRST` больше не отпускает время —
   покажите «zapłacisz za poprzednią i tę wizytę w salonie» (сумма — `details` `amountGrosze`/`currency`, если есть)
   и повторите подтверждение с тем же кодом и `payNoticeAccepted: true` (`/v1/public/holds/:id/confirm` и
-  `/v1/client/holds/:id/confirm`). Экраны Q9 в мобильных приложениях можно начинать. В `apps/mobile-business/test/guard.test.ts`
+  `/v1/client/holds/:id/confirm`). Экраны — `codex/q9-client-rules` (22.11.2026). В `apps/mobile-business/test/guard.test.ts`
   Claude добавил `rule: 'salon'` в пример клиента (иначе не сходились типы).
 - **Q8 лист ожидания — «Zapisz mnie automatycznie»** — готово (Claude, 22.11.2026; влито, когда CI зелёный — ветка
   `agent/636-q8-auto-waitlist-api`): `POST /v1/client/waitlist/locations/:slug` принимает `autoBook: boolean`

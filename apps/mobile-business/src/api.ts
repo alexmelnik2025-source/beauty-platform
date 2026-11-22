@@ -1649,6 +1649,19 @@ export class BusinessApi {
     return this.authed<GuardedClient>('GET', guardClientPath(orgId, locationId, customerId));
   }
 
+  updateClientRule(
+    orgId: string,
+    locationId: string,
+    customerId: string,
+    rule: GuardedClient['rule'],
+  ): Promise<GuardedClient> {
+    return this.authed<GuardedClient>(
+      'PUT',
+      `${guardClientPath(orgId, locationId, customerId)}/rule`,
+      { rule },
+    );
+  }
+
   /** "Zdejmij blokadę": counting starts again, the history stays. */
   releaseGuard(
     orgId: string,
