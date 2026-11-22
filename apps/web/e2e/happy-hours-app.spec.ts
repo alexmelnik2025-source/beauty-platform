@@ -62,7 +62,7 @@ test('the owner adds and removes happy hours in the business app (task 99)', asy
   const org = await json<{ id: string }>(
     await request.post('/v1/organizations', { headers: owner, data: { name: 'GESTALT' } }),
   );
-  const location = await json<{ id: string }>(
+  const location = await json<{ id: string; slug: string }>(
     await request.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
       data: {
@@ -70,20 +70,37 @@ test('the owner adds and removes happy hours in the business app (task 99)', asy
         addressLine: 'ul. Józefa Bema 91',
         city: 'Warszawa',
         postalCode: '01-233',
+        onlineBookingEnabled: true,
+        bookingTerms: '# Regulamin\n\nWizyta jest bezpłatna do odwołania.',
+        privacyPolicy: '# Prywatność\n\nAdministratorem danych jest GESTALT.',
       },
     }),
   );
   const base = `/v1/organizations/${org.id}/locations/${location.id}`;
+  const service = await json<{ id: string }>(
+    await request.post(`${base}/services`, {
+      headers: owner,
+      data: { name: 'Strzyżenie męskie', durationMinutes: 45, priceGrosze: 9000 },
+    }),
+  );
   const kasia = await json<{ id: string }>(
-    await request.post(`${base}/staff`, { headers: owner, data: { displayName: 'Kasia' } }),
+    await request.post(`${base}/staff`, {
+      headers: owner,
+      data: { displayName: 'Kasia', serviceIds: [service.id] },
+    }),
   );
   await json(
     await request.post(`${base}/staff`, { headers: owner, data: { displayName: 'Marek' } }),
   );
   await json(
-    await request.post(`${base}/services`, {
+    await request.put(`${base}/staff/${kasia.id}/working-hours`, {
       headers: owner,
-      data: { name: 'Strzyżenie męskie', durationMinutes: 45, priceGrosze: 9000 },
+      data: {
+        days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+          weekday,
+          intervals: [{ start: '08:00', end: '21:00' }],
+        })),
+      },
     }),
   );
 
@@ -110,7 +127,21 @@ test('the owner adds and removes happy hours in the business app (task 99)', asy
     await expect(app.getByText('Nie ma jeszcze tańszych godzin.')).toBeVisible();
 
     // ── Tuesdays and Thursdays 10:00–13:00, −20%, only Kasia ─────────────
-    await app.getByRole('button', { name: '+ Dodaj tańsze godziny' }).click();
+    await app.getByRole('button', { name: '+ Dodaj promocję' }).click();
+    await app.getByRole('button', { name: 'Last Minute', exact: true }).click();
+    await app.getByLabel('Ile godzin przed wizytą?').fill('73');
+    await app.getByLabel('Rabat, %').fill('15');
+    await app.getByRole('button', { name: 'Zapisz', exact: true }).click();
+    await expect(app.getByLabel('Ile godzin przed wizytą?')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+    await app.getByLabel('Ile godzin przed wizytą?').fill('72');
+    await app.getByRole('button', { name: 'Zapisz', exact: true }).click();
+    await expect(app.getByText('Last Minute · do 72 godz. przed wizytą')).toBeVisible();
+
+    await app.getByRole('button', { name: '+ Dodaj promocję' }).click();
+    await app.getByRole('button', { name: 'Godziny / dni', exact: true }).click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Wybierz co najmniej jeden dzień.')).toBeVisible();
     await app.getByRole('button', { name: 'wt.', exact: true }).click();
@@ -125,19 +156,39 @@ test('the owner adds and removes happy hours in the business app (task 99)', asy
     await expect(app.getByText('−20%', { exact: true })).toBeVisible();
     await expect(app.getByText('wt., czw. · 10:00–13:00')).toBeVisible();
     await expect(app.getByText('Specjaliści: Kasia')).toBeVisible();
-    await expect(app.getByText('Usługi: wszystkie')).toBeVisible();
+    await expect(app.getByText('Usługi: wszystkie')).toHaveCount(2);
     await shot(app, '99b-business-app-happy-hours');
 
     const saved = await json<{ rules: { weekdays: number[]; staffIds: string[] }[] }>(
       await request.get(`${base}/happy-hours`, { headers: owner }),
     );
-    expect(saved.rules).toMatchObject([{ weekdays: [2, 4], staffIds: [kasia.id] }]);
+    expect(saved.rules).toMatchObject([
+      { kind: 'lastMinute', lastMinuteHours: 72, discountPercent: 15 },
+      { kind: 'hours', weekdays: [2, 4], staffIds: [kasia.id] },
+    ]);
 
     // ── Removed again ──────────────────────────────────────────────────
     await app.getByRole('button', { name: 'Usuń tańsze godziny: wt., czw. · 10:00–13:00' }).click();
     await expect(app.getByText('Usunąć te tańsze godziny?')).toBeVisible();
     await app.getByRole('button', { name: 'Tak, usuń' }).click();
     await expect(app.getByText('Usunięto tańsze godziny.')).toBeVisible();
+    await expect(app.getByText('Last Minute · do 72 godz. przed wizytą')).toBeVisible();
+    await expect(app.getByText('wt., czw. · 10:00–13:00')).toHaveCount(0);
+    const clientApp = await serveApp('mobile-client');
+    try {
+      const client = await context.newPage();
+      await client.goto(
+        `${clientApp.url}/pl/b/${location.slug}?service=${service.id}&staff=${kasia.id}`,
+      );
+      const offer = client.getByRole('button', { name: /−15%$/ }).first();
+      await expect(offer).toBeVisible();
+      await expect(offer.getByText(/90,00\s*zł/)).toHaveCSS('text-decoration-line', 'line-through');
+      await client.close();
+    } finally {
+      clientApp.server.close();
+    }
+    await app.getByRole('button', { name: /^Usuń tańsze godziny: Last Minute/ }).click();
+    await app.getByRole('button', { name: 'Tak, usuń' }).click();
     await expect(app.getByText('Nie ma jeszcze tańszych godzin.')).toBeVisible();
     await context.close();
   } finally {

@@ -57,10 +57,8 @@ export function newRule(form: {
   const end = parseClock(form.end);
   if (!start || !end) return { ok: false, problem: 'clock' };
   if (start >= end) return { ok: false, problem: 'hours' };
-  const percent = Number(form.percent.trim().replace('%', ''));
-  if (!Number.isInteger(percent) || percent < 1 || percent > 90) {
-    return { ok: false, problem: 'percent' };
-  }
+  const percent = discountPercent(form.percent);
+  if (percent === null) return { ok: false, problem: 'percent' };
   return {
     ok: true,
     rule: {
@@ -72,6 +70,34 @@ export function newRule(form: {
       serviceIds: [],
     },
   };
+}
+
+export function newLastMinuteRule(form: {
+  hours: string;
+  percent: string;
+  staffIds: string[];
+}): { ok: true; rule: HappyHourRule } | { ok: false; problem: 'lastMinuteHours' | 'percent' } {
+  const lastMinuteHours = Number(form.hours.trim());
+  if (!/^\d+$/.test(form.hours.trim()) || lastMinuteHours < 1 || lastMinuteHours > 72) {
+    return { ok: false, problem: 'lastMinuteHours' };
+  }
+  const percent = discountPercent(form.percent);
+  if (percent === null) return { ok: false, problem: 'percent' };
+  return {
+    ok: true,
+    rule: {
+      kind: 'lastMinute',
+      lastMinuteHours,
+      discountPercent: percent,
+      staffIds: form.staffIds,
+      serviceIds: [],
+    },
+  };
+}
+
+function discountPercent(text: string): number | null {
+  const amount = Number(text.trim().replace('%', ''));
+  return Number.isInteger(amount) && amount >= 1 && amount <= 90 ? amount : null;
 }
 
 /** The list to save: what the server has (without its ids), optionally minus one, plus a new one. */

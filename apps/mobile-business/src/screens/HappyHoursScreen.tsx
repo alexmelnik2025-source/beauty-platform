@@ -10,7 +10,15 @@ import {
 } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { errorText } from '../errors';
-import { daysText, namesText, newRule, rulesToSave, shortWeekday, type Rule } from '../happyHours';
+import {
+  daysText,
+  namesText,
+  newLastMinuteRule,
+  newRule,
+  rulesToSave,
+  shortWeekday,
+  type Rule,
+} from '../happyHours';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
@@ -19,6 +27,7 @@ const WEEK = [1, 2, 3, 4, 5, 6, 7];
 const EMPTY_FORM = {
   weekdays: [] as number[],
   start: '',
+  hours: '',
   end: '',
   percent: '',
   staffIds: [] as string[],
@@ -44,6 +53,9 @@ export function HappyHoursScreen(props: {
   const [staffOrder, setStaffOrder] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [choosing, setChoosing] = useState(false);
+  const [kind, setKind] = useState<'hours' | 'lastMinute'>('hours');
+  const [invalidHours, setInvalidHours] = useState(false);
   const [form, setForm] = useState<typeof EMPTY_FORM | null>(null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -98,14 +110,33 @@ export function HappyHoursScreen(props: {
   }
 
   function add() {
-    if (!form || !rules) return;
-    const checked = newRule(form);
-    if (!checked.ok) return setError(h.problem[checked.problem]);
-    void save(rulesToSave(rules, { add: checked.rule }), h.saved);
+    if (!form || !rules || busy) return;
+    setError('');
+    setInvalidHours(false);
+    const checked = kind === 'lastMinute' ? newLastMinuteRule(form) : newRule(form);
+    if (!checked.ok) {
+      if (checked.problem === 'lastMinuteHours') setInvalidHours(true);
+      else setError(h.problem[checked.problem]);
+      return;
+    }
+    void save(
+      rulesToSave(rules, { add: checked.rule }),
+      kind === 'lastMinute' ? h.promotionSaved : h.saved,
+    );
   }
 
   const summary = (rule: Rule) =>
-    `${daysText(rule.weekdays, props.locale, h.everyDay)} · ${rule.start}–${rule.end}`;
+    rule.kind === 'lastMinute' && rule.lastMinuteHours !== null
+      ? fill(h.lastMinuteSummary, { hours: String(rule.lastMinuteHours) })
+      : `${daysText(rule.weekdays, props.locale, h.everyDay)} · ${rule.start}–${rule.end}`;
+
+  function startForm(next: 'hours' | 'lastMinute') {
+    setKind(next);
+    setForm(EMPTY_FORM);
+    setChoosing(false);
+    setInvalidHours(false);
+    setError('');
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -113,7 +144,6 @@ export function HappyHoursScreen(props: {
         <Button kind="link" label={h.back} onPress={onBack} />
       </View>
       <Heading>{h.title}</Heading>
-      <Text style={styles.muted}>{h.hint}</Text>
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
@@ -123,40 +153,62 @@ export function HappyHoursScreen(props: {
 
       {form ? (
         <Card>
-          <Text style={styles.label}>{h.days}</Text>
-          <View style={styles.row}>
-            {WEEK.map((d) => {
-              const on = form.weekdays.includes(d);
-              return (
-                <Chip
-                  key={d}
-                  label={shortWeekday(d, props.locale)}
-                  on={on}
-                  onPress={() => setForm({ ...form, weekdays: toggled(form.weekdays, d) })}
+          <Text style={styles.name}>{kind === 'lastMinute' ? h.lastMinute : h.scheduled}</Text>
+          {kind === 'lastMinute' ? (
+            <>
+              <TextInput
+                accessibilityLabel={h.lastMinuteHours}
+                aria-invalid={invalidHours}
+                placeholder={h.lastMinuteHours}
+                placeholderTextColor={colors.placeholder}
+                value={form.hours}
+                onChangeText={(hours) => {
+                  setInvalidHours(false);
+                  setForm({ ...form, hours });
+                }}
+                keyboardType="number-pad"
+                style={[styles.input, invalidHours && { borderColor: colors.danger }]}
+              />
+              {invalidHours ? <ErrorText>! {h.badLastMinuteHours}</ErrorText> : null}
+            </>
+          ) : (
+            <>
+              <Text style={styles.label}>{h.days}</Text>
+              <View style={styles.row}>
+                {WEEK.map((d) => {
+                  const on = form.weekdays.includes(d);
+                  return (
+                    <Chip
+                      key={d}
+                      label={shortWeekday(d, props.locale)}
+                      on={on}
+                      onPress={() => setForm({ ...form, weekdays: toggled(form.weekdays, d) })}
+                    />
+                  );
+                })}
+              </View>
+              <View style={styles.row}>
+                <TextInput
+                  accessibilityLabel={h.start}
+                  placeholder={h.start}
+                  placeholderTextColor={colors.placeholder}
+                  value={form.start}
+                  onChangeText={(start) => setForm({ ...form, start })}
+                  keyboardType="numbers-and-punctuation"
+                  style={[styles.input, { flex: 1 }]}
                 />
-              );
-            })}
-          </View>
-          <View style={styles.row}>
-            <TextInput
-              accessibilityLabel={h.start}
-              placeholder={h.start}
-              placeholderTextColor={colors.placeholder}
-              value={form.start}
-              onChangeText={(start) => setForm({ ...form, start })}
-              keyboardType="numbers-and-punctuation"
-              style={[styles.input, { flex: 1 }]}
-            />
-            <TextInput
-              accessibilityLabel={h.end}
-              placeholder={h.end}
-              placeholderTextColor={colors.placeholder}
-              value={form.end}
-              onChangeText={(end) => setForm({ ...form, end })}
-              keyboardType="numbers-and-punctuation"
-              style={[styles.input, { flex: 1 }]}
-            />
-          </View>
+                <TextInput
+                  accessibilityLabel={h.end}
+                  placeholder={h.end}
+                  placeholderTextColor={colors.placeholder}
+                  value={form.end}
+                  onChangeText={(end) => setForm({ ...form, end })}
+                  keyboardType="numbers-and-punctuation"
+                  style={[styles.input, { flex: 1 }]}
+                />
+              </View>
+            </>
+          )}
           <TextInput
             accessibilityLabel={h.percent}
             placeholder={h.percent}
@@ -188,12 +240,17 @@ export function HappyHoursScreen(props: {
             <Button kind="secondary" label={h.cancel} onPress={() => setForm(null)} />
           </View>
         </Card>
+      ) : choosing ? (
+        <Card>
+          <Button kind="secondary" label={h.scheduled} onPress={() => startForm('hours')} />
+          <Button kind="secondary" label={h.lastMinute} onPress={() => startForm('lastMinute')} />
+          <Button kind="link" label={h.cancel} onPress={() => setChoosing(false)} />
+        </Card>
       ) : rules ? (
         <Button
-          kind="secondary"
           label={h.add}
           onPress={() => {
-            setForm(EMPTY_FORM);
+            setChoosing(true);
             setInfo('');
             setError('');
           }}

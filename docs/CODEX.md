@@ -44,7 +44,7 @@
   `discountPercent` в `GET /v1/public/locations/:slug/availability` и `happyHourPercent`/`listPriceGrosze` в брони.
   **Важно для экранов:** список сохраняется целиком (PUT) — передавайте `kind` и `lastMinuteHours` каждого правила
   обратно (в `apps/mobile-business/src/happyHours.ts` → `rulesToSave` это уже добавлено, иначе Last Minute
-  превращался бы в скидку на весь день). Экраны «+ Dodaj promocję» в мобильных приложениях можно начинать.
+  превращался бы в скидку на весь день). Экраны «+ Dodaj promocję» и скидка рядом со временем — `codex/q7-promotions` (22.11.2026).
 
 - **Q9 «Ochrona przed odwołaniami» — правила клиента и уведомление об оплате** — готово (Claude, 22.11.2026):
   `PUT /v1/organizations/:org/locations/:loc/cancellation-guard/clients/:customerId/rule` `{ rule }`, где `rule` —
