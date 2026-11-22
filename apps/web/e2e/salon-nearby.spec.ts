@@ -189,6 +189,11 @@ test('a salon page lists the other salons nearby, nearest first', async ({ brows
       await shot(app, '401-client-app-salon-nearby');
       await near.click();
       await expect(app.getByRole('heading', { name: `${PREFIX} Wrzeszcz` })).toBeVisible();
+      // The heading shows the name before the salon has loaded; the salon is remembered only
+      // once it has — wait for that before reloading (the reload raced it on CI).
+      await expect
+        .poll(() => app.evaluate(() => localStorage.getItem('beauty.catalog.recent') ?? ''))
+        .toContain(`${PREFIX} Wrzeszcz`);
 
       // Task 402: the start screen remembers the salons opened on this device, newest first.
       await app.reload();
