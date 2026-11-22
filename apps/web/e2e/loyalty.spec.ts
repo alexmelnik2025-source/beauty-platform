@@ -377,10 +377,10 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await bonusForm.getByRole('button', { name: 'Zapisz zasady' }).click();
   await expect(bonusForm.getByLabel('Nazwa zasady')).toBeFocused();
   await expect(bonusForm.getByLabel('Nazwa zasady')).toHaveAccessibleDescription(
-    'Uzupełnij to pole.',
+    /Uzupełnij to pole\.$/,
   );
   await expect(bonusForm.getByLabel('Mnożnik (×)')).toHaveAccessibleDescription(
-    'Ustaw mnożnik powyżej 1 lub dodatkowe punkty.',
+    /Ustaw mnożnik powyżej 1 lub dodatkowe punkty\.$/,
   );
   await bonusForm.scrollIntoViewIfNeeded();
   await shot(page, '671-loyalty-bonus-field-errors');
