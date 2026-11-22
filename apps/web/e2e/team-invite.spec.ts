@@ -137,7 +137,16 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await expect(kasia.getByRole('status')).toContainText(`Wysłaliśmy kod na ${KASIA}`);
   const codeMail = await waitForEmail(KASIA, /Kod logowania/);
   const code = /Kod: (\d{6})/.exec(codeMail.text)![1]!;
-  await kasia.getByLabel('Kod z e-maila').fill(code);
+  // Task 658: a wrong code is said at the code field (red frame, "!"), not as a line on top.
+  const codeField = kasia.getByLabel('Kod z e-maila');
+  await codeField.fill(code === '000000' ? '111111' : '000000');
+  await kasia.getByRole('button', { name: 'Dołącz do zespołu' }).click();
+  await expect(kasia.locator('#invite-code-error')).toHaveText('Nieprawidłowy kod.');
+  await expect(codeField).toHaveAttribute('aria-invalid', 'true');
+  await expect(kasia.locator('.alert')).toHaveCount(0);
+  await shot(kasia, '658-staff-invite-code-error');
+  await codeField.fill(code);
+  await expect(kasia.locator('#invite-code-error')).toHaveCount(0);
   await shot(kasia, '56-staff-invite-code');
   await kasia.getByRole('button', { name: 'Dołącz do zespołu' }).click();
   await expect(kasia.getByText('Jesteś w zespole.')).toBeVisible();

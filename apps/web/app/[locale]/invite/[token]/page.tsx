@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AuthPage } from '@/components/AuthPage';
-import { ErrorBox, Spinner } from '@/components/ui';
-import { api, refreshSession, setAccessToken } from '@/lib/api';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
+import { api, ApiError, refreshSession, setAccessToken } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { InvitationPreview as Preview, Me } from '@/lib/types';
+
+/** Task 658: answers about the typed code itself, said at the code field (owner's rule). */
+const CODE_ERRORS = new Set(['INVALID_CODE', 'CODE_EXPIRED']);
 
 export default function InvitePage() {
   const { t, locale } = useI18n();
@@ -20,6 +23,8 @@ export default function InvitePage() {
   /** Not signed in: a one-time code to the invited address (no password, no sign-up). */
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState('');
+  /** Task 658: a wrong or expired code, under the code field; typing takes it away. */
+  const [codeError, setCodeError] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -50,6 +55,7 @@ export default function InvitePage() {
     if (!preview) return;
     setBusy(true);
     setError('');
+    setCodeError('');
     try {
       await api('/v1/auth/code', {
         method: 'POST',
@@ -70,6 +76,7 @@ export default function InvitePage() {
     if (!preview) return;
     setBusy(true);
     setError('');
+    setCodeError('');
     try {
       const res = await api<{ accessToken: string }>('/v1/auth/code/verify', {
         method: 'POST',
@@ -79,7 +86,8 @@ export default function InvitePage() {
       setAccessToken(res.accessToken);
       setState('joined');
     } catch (err) {
-      setError(errorText(t, err));
+      if (err instanceof ApiError && CODE_ERRORS.has(err.code)) setCodeError(errorText(t, err));
+      else setError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -132,8 +140,14 @@ export default function InvitePage() {
                   maxLength={6}
                   required
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  aria-invalid={codeError ? true : undefined}
+                  aria-describedby={codeError ? 'invite-code-error' : undefined}
+                  onChange={(e) => {
+                    setCode(e.target.value.replace(/\D/g, ''));
+                    setCodeError('');
+                  }}
                 />
+                <FieldError id="invite-code-error" text={codeError} />
               </label>
               <button className="btn btn--block" disabled={busy}>
                 {t.invite.accept}
