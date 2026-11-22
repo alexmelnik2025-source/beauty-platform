@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
@@ -9,8 +9,20 @@ import type { Customer, PaymentMethod, Service, Staff, TimeBlockSeries } from '@
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { useSession } from '../Session';
-import { ErrorBox, Sheet } from '../ui';
+import { ErrorBox, FieldError, Sheet } from '../ui';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
+
+/** Task 672: the fields of a new visit or a blocked time that can show an error under them. */
+type ItemField = 'endTime' | 'name' | 'phone' | 'email';
+
+/** Which new-client field the server's answer is about; null when it is about something else. */
+function itemFieldOf(err: unknown): ItemField | null {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return null;
+  if (!Array.isArray(err.details)) return null;
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  const fields: ItemField[] = ['name', 'phone', 'email'];
+  return fields.find((f) => paths.includes(`customer.${f}`)) ?? null;
+}
 
 /** The client a new visit is for, when it is known in advance ("Umów ponownie", task 223). */
 export type DraftCustomer = Pick<Customer, 'id' | 'name' | 'phone'>;
@@ -72,7 +84,18 @@ export function NewItemSheet({
   /** Task 227: how the walk-in paid (optional). */
   const [paidWith, setPaidWith] = useState<PaymentMethod | null>(null);
   const [error, setError] = useState('');
+  /**
+   * Task 672 (owner's rule: errors at the field): "Do" before "Od", a blank name, a wrong phone or
+   * e-mail are said under their own field, which gets the cursor; editing it takes the error away.
+   */
+  const [problem, setProblem] = useState<{ field: ItemField; text: string } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const { busy, lock, unlock } = useSubmitLock();
+
+  useEffect(() => {
+    if (!problem) return;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [problem]);
   // One key per form: a retry after a dropped connection does not book twice.
   const [key] = useState(newIdempotencyKey);
 
@@ -102,8 +125,17 @@ export function NewItemSheet({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!lock()) return;
     setError('');
+    setProblem(null);
+    if (kind === 'block' && clockToMinutes(endTime) <= clockToMinutes(time)) {
+      setProblem({ field: 'endTime', text: t.team.specialBadTime });
+      return;
+    }
+    if (kind === 'appointment' && !customer && !fresh.name.trim()) {
+      setProblem({ field: 'name', text: t.onboarding.fieldRequired });
+      return;
+    }
+    if (!lock()) return;
     const start = new Date(zonedToInstant(date, clockToMinutes(time), tz)).toISOString();
     try {
       if (kind === 'block') {
@@ -156,10 +188,33 @@ export function NewItemSheet({
       if (err instanceof ApiError && err.code === 'OUTSIDE_WORKING_HOURS' && canOutside) {
         setAskOutside(true);
       }
-      setError(calendarErrorText(t, err));
+      const field = kind === 'appointment' && !customer ? itemFieldOf(err) : null;
+      const text: Record<ItemField, string> = {
+        endTime: t.team.specialBadTime,
+        name: t.onboarding.fieldRequired,
+        phone: t.booking.phoneInvalid,
+        email: t.booking.emailInvalid,
+      };
+      if (field) setProblem({ field, text: text[field] });
+      else setError(calendarErrorText(t, err));
       unlock();
     }
   }
+
+  /** Editing a field takes its error away. */
+  const clear = (field: ItemField) => {
+    if (problem?.field === field) setProblem(null);
+  };
+  const invalid = (field: ItemField) => ({
+    'aria-invalid': problem?.field === field || undefined,
+    'aria-describedby': problem?.field === field ? `new-item-${field}-error` : undefined,
+  });
+  const fieldError = (field: ItemField) => (
+    <FieldError
+      id={`new-item-${field}-error`}
+      text={problem?.field === field ? problem.text : undefined}
+    />
+  );
 
   return (
     <Sheet
@@ -181,7 +236,7 @@ export function NewItemSheet({
         </div>
       ) : null}
 
-      <form className="form" onSubmit={submit}>
+      <form className="form" ref={formRef} onSubmit={submit}>
         <ErrorBox>{error}</ErrorBox>
 
         {kind === 'appointment' ? (
@@ -237,7 +292,10 @@ export function NewItemSheet({
               step={300}
               required
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              onChange={(e) => {
+                setTime(e.target.value);
+                clear('endTime');
+              }}
             />
           </label>
           {kind === 'block' ? (
@@ -248,8 +306,13 @@ export function NewItemSheet({
                 step={300}
                 required
                 value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                {...invalid('endTime')}
+                onChange={(e) => {
+                  setEndTime(e.target.value);
+                  clear('endTime');
+                }}
               />
+              {fieldError('endTime')}
             </label>
           ) : null}
         </div>
@@ -337,8 +400,13 @@ export function NewItemSheet({
                   <input
                     required
                     value={fresh.name}
-                    onChange={(e) => setFresh({ ...fresh, name: e.target.value })}
+                    {...invalid('name')}
+                    onChange={(e) => {
+                      setFresh({ ...fresh, name: e.target.value });
+                      clear('name');
+                    }}
                   />
+                  {fieldError('name')}
                 </label>
                 <div className="row">
                   <PhoneField
@@ -346,7 +414,11 @@ export function NewItemSheet({
                     required
                     value={fresh.phone}
                     defaultDial={dial}
-                    onChange={(phone) => setFresh({ ...fresh, phone })}
+                    error={problem?.field === 'phone' ? problem.text : undefined}
+                    onChange={(phone) => {
+                      setFresh({ ...fresh, phone });
+                      clear('phone');
+                    }}
                   />
                   <label className="field">
                     <span>
@@ -355,8 +427,13 @@ export function NewItemSheet({
                     <input
                       type="email"
                       value={fresh.email}
-                      onChange={(e) => setFresh({ ...fresh, email: e.target.value })}
+                      {...invalid('email')}
+                      onChange={(e) => {
+                        setFresh({ ...fresh, email: e.target.value });
+                        clear('email');
+                      }}
                     />
+                    {fieldError('email')}
                   </label>
                 </div>
               </fieldset>

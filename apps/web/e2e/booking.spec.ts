@@ -644,8 +644,25 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await dialog.getByLabel('Specjalista').selectOption(staffIds[1]!);
   await dialog.getByLabel('Data').fill(visit!.date);
   await dialog.getByLabel('Godzina').fill('20:00');
+  // Task 672: a blank name and a wrong phone are said under their own fields.
+  await dialog.getByLabel('Imię i nazwisko').fill('   ');
+  await dialog.getByLabel('Telefon').fill('+48 6');
+  await dialog.getByRole('button', { name: 'Zapisz wizytę' }).click();
+  await expect(dialog.getByLabel('Imię i nazwisko')).toBeFocused();
+  await expect(dialog.getByLabel('Imię i nazwisko')).toHaveAccessibleDescription(
+    /Uzupełnij to pole\.$/,
+  );
+  await shot(ownerPage, '672-new-visit-name-error');
   await dialog.getByLabel('Imię i nazwisko').fill('Jan Kowalski');
+  await dialog.getByRole('button', { name: 'Zapisz wizytę' }).click();
+  await expect(dialog.getByLabel('Telefon')).toHaveAccessibleDescription(
+    /Sprawdź numer telefonu\.$/,
+  );
+  await expect(dialog.getByLabel('Telefon')).toBeFocused();
+  await expect(dialog.locator('.alert')).toHaveCount(0);
+  await shot(ownerPage, '672-new-visit-phone-error');
   await dialog.getByLabel('Telefon').fill('+48 600 200 300');
+  await expect(dialog.locator('.field-error')).toHaveCount(0);
   await shot(ownerPage, '10-owner-new-appointment');
   await dialog.getByRole('button', { name: 'Zapisz wizytę' }).click();
   await expect(ownerPage.getByRole('button', { name: /Jan Kowalski/ })).toBeVisible();
@@ -695,7 +712,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await weekly.getByLabel('Specjalista').selectOption(staffIds[1]!);
   await weekly.getByLabel('Data').fill(visit!.date);
   await weekly.getByLabel('Od', { exact: true }).fill('19:30');
+  // Task 672: "Do" before "Od" is said under "Do", before anything is sent.
+  await weekly.getByLabel('Do', { exact: true }).fill('19:00');
+  await weekly.getByRole('button', { name: 'Zablokuj', exact: true }).click();
+  await expect(weekly.getByLabel('Do', { exact: true })).toBeFocused();
+  await expect(weekly.getByLabel('Do', { exact: true })).toHaveAccessibleDescription(
+    /Godzina „Do” musi być późniejsza niż „Od”\.$/,
+  );
+  await shot(ownerPage, '672-block-time-to-error');
   await weekly.getByLabel('Do', { exact: true }).fill('20:15');
+  await expect(weekly.locator('.field-error')).toHaveCount(0);
   await weekly.getByLabel('Powód (np. szkolenie)').fill('Booksy');
   await weekly.getByLabel('Powtarzaj co tydzień').check();
   await weekly.getByLabel('Przez ile tygodni').fill('3');

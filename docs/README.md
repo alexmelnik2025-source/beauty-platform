@@ -666,6 +666,15 @@ pnpm --filter @beauty/api-client generate
   кто принимает визиты); в списке у доступной услуги без исполнителей — «Nikt jej nie wykonuje — klienci jej
   nie widzą». Тест — `apps/api/test/service-staff.spec.ts`, скриншоты e2e 50–51.
 
+## Ошибки у поля в «Nowa wizyta» и «Zablokuj czas» (задача 672, 22.11.2026)
+
+- Календарь кабинета → «Nowa wizyta»: имя нового клиента из одних пробелов — «Uzupełnij to pole.» под «Imię i nazwisko»
+  (до отправки); неверный телефон или e-mail (ответ сервера `VALIDATION_ERROR`, `customer.phone` / `customer.email`) —
+  «Sprawdź numer telefonu.» / «Sprawdź adres e-mail.» под своим полем. «Zablokuj czas»: «Do» не позже «Od» —
+  «Godzina „Do” musi być późniejsza niż „Od”.» под «Do», до отправки. Курсор — к полю с ошибкой, правка поля её убирает;
+  остальные ответы (время занято, вне часов работы) — как раньше, строкой над формой. e2e `booking`, скриншоты
+  `672-new-visit-name-error`, `672-new-visit-phone-error`, `672-block-time-to-error`.
+
 ## Тест-фикс 03.11.2026: визит задним числом (T6)
 
 - Клиент пришёл без записи — администратор вносит визит после (сегодня или вчера по времени салона). В окне
