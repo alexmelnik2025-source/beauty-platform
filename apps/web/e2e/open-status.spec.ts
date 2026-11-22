@@ -196,6 +196,7 @@ test('"Otwarte teraz" on the salon page and in the client app', async ({ browser
       await shot(app, '365a-client-app-open-now-filter');
       await appCard.getByRole('button', { name: 'Zobacz salon' }).click();
       // The catalogue stays under the salon page: the line of the salon page itself.
+      await app.getByRole('button', { name: /^O salonie/ }).click();
       const line = app.getByTestId('salon-open-status');
       await expect(line).toBeVisible();
       await expect(line).toHaveAttribute('aria-label', 'Otwarte · do północy');

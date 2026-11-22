@@ -307,7 +307,7 @@ export default function App() {
                       : { kind: 'catalog' },
                 )
               }
-              onBook={(salon) => setFinder({ kind: 'book', salon })}
+              onBook={(salon, preset) => setFinder({ kind: 'book', salon, preset })}
               signedIn={stage.kind === 'visits'}
               onFavoriteChanged={favoriteChanged}
               onViewed={salonViewed}

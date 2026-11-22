@@ -22,3 +22,33 @@ export function errorText(error: unknown, t: Dictionary): string {
   }
   return t.error.network;
 }
+
+/** The first field named by the server that this form can correct. */
+export function validationField<Field extends string>(
+  error: unknown,
+  fields: readonly Field[],
+): Field | undefined {
+  if (
+    !(error instanceof ApiError) ||
+    error.code !== 'VALIDATION_ERROR' ||
+    !Array.isArray(error.details)
+  ) {
+    return undefined;
+  }
+  const details: unknown[] = error.details;
+  return fields.find((field) =>
+    details.some(
+      (detail) =>
+        typeof detail === 'object' && detail !== null && 'path' in detail && detail.path === field,
+    ),
+  );
+}
+
+export function isCodeError(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    ['INVALID_CODE', 'CODE_EXPIRED', 'CODE_NOT_SENT', 'TOO_MANY_ATTEMPTS'].includes(
+      error.code ?? '',
+    )
+  );
+}
