@@ -67,6 +67,9 @@ export const sq: Dict = {
     filterLanguage: 'Gjuha',
     allLanguages: 'Të gjitha gjuhët',
     clearLanguages: 'Pastro',
+    /** Task Q5: the folded filters of the catalogue, in one row with "Otwarte teraz". */
+    languageMenu: 'Gjuha e shërbimit',
+    kindMenu: 'Kategoria',
     search: 'Kërko: emri, qyteti, rruga ose shërbimi',
     filterKind: 'Lloji i sallonit',
     allKinds: 'Të gjitha',

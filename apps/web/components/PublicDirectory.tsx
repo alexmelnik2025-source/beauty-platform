@@ -122,6 +122,10 @@ export function PublicDirectory() {
   const [openNow, setOpenNow] = useState(false);
   // Task 378: "Najlepiej oceniane" - the salons with the best stars first.
   const [bestRated, setBestRated] = useState(false);
+  // Task Q5: which folded filter ("Język obsługi ▾" or "Kategoria ▾") is open - one at a time.
+  const [dropOpen, setDropOpen] = useState<'language' | 'kind' | null>(null);
+  const fold = (which: 'language' | 'kind') =>
+    setDropOpen((current) => (current === which ? null : which));
 
   useEffect(() => {
     // The home page's search and kinds of place come in the address (?q=…&specialty=…).
@@ -138,6 +142,18 @@ export function PublicDirectory() {
     if (params.get('openNow') === '1') setOpenNow(true);
     if (params.get('sort') === 'rating') setBestRated(true);
   }, []);
+
+  // Task Q5: a tap anywhere outside the open list folds it back.
+  useEffect(() => {
+    if (dropOpen === null) return;
+    const away = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest('.filter-drop')) {
+        setDropOpen(null);
+      }
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [dropOpen]);
 
   useEffect(() => {
     const next = typed.trim();
@@ -206,6 +222,8 @@ export function PublicDirectory() {
   const chooseKind = (next: Specialty | null) => {
     setSpecialty(next);
     setPage(1);
+    // One kind at a time: the list folds back once chosen.
+    setDropOpen(null);
   };
   const kinds = SPECIALTIES.filter((kind) => (kindCounts[kind] ?? 0) > 0 || kind === specialty);
   const toggle = (code: Spoken) =>
@@ -218,12 +236,12 @@ export function PublicDirectory() {
       <ClientNav current="salons" />
       <header className="salon-head">
         <div className="salon-head-inner directory-inner">
-          <div className="top" style={{ justifyContent: 'flex-end' }}>
+          {/* Task Q5: the title and the site's language on one line, one short hint under it. */}
+          <div className="top directory-top">
+            <h1 className="salon-name">{t.directory.title}</h1>
             <LanguageSwitch />
           </div>
-          <h1 className="salon-name">{t.directory.title}</h1>
-          <p className="muted small">{t.directory.lead}</p>
-          <p className="small">{t.clientNav.directoryHint}</p>
+          <p className="small muted">{t.clientNav.directoryHint}</p>
           <input
             type="search"
             className="directory-search"
@@ -232,7 +250,86 @@ export function PublicDirectory() {
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
           />
-          <div className="chips">
+          {/* Task Q5: every filter in one row - "Język obsługi ▾", "Kategoria ▾", "Otwarte teraz",
+              "W pobliżu"; the long lists of languages and kinds of place open under the row. */}
+          <div className="chips directory-filters" data-testid="directory-filters">
+            <details
+              className="filter-drop"
+              data-testid="filter-language"
+              open={dropOpen === 'language'}
+            >
+              <summary
+                data-active={chosen.length > 0 || undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  fold('language');
+                }}
+              >
+                {t.directory.languageMenu}
+                {chosen.length > 0 ? ` · ${chosen.length}` : ''} ▾
+              </summary>
+              <div
+                className="filter-panel chips"
+                role="group"
+                aria-label={t.directory.filterLanguage}
+              >
+                <button type="button" aria-pressed={chosen.length === 0} onClick={() => choose([])}>
+                  {t.directory.allLanguages}
+                </button>
+                {SPOKEN.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={chosen.includes(code)}
+                    onClick={() => toggle(code)}
+                  >
+                    {t.languages.names[code]}
+                    {result ? ` (${result.languageCounts[code] ?? 0})` : ''}
+                  </button>
+                ))}
+                {chosen.length > 0 ? (
+                  <button className="btn--quiet" type="button" onClick={() => choose([])}>
+                    {t.directory.clearLanguages}
+                  </button>
+                ) : null}
+              </div>
+            </details>
+            {kinds.length > 0 ? (
+              <details className="filter-drop" data-testid="filter-kind" open={dropOpen === 'kind'}>
+                <summary
+                  data-active={specialty !== null || undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    fold('kind');
+                  }}
+                >
+                  {specialty ? t.specialties.names[specialty] : t.directory.kindMenu} ▾
+                </summary>
+                <div
+                  className="filter-panel chips"
+                  role="group"
+                  aria-label={t.directory.filterKind}
+                >
+                  <button
+                    type="button"
+                    aria-pressed={specialty === null}
+                    onClick={() => chooseKind(null)}
+                  >
+                    {t.directory.allKinds}
+                  </button>
+                  {kinds.map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      aria-pressed={specialty === kind}
+                      onClick={() => chooseKind(kind)}
+                    >
+                      {t.specialties.names[kind]} ({kindCounts[kind] ?? 0})
+                    </button>
+                  ))}
+                </div>
+              </details>
+            ) : null}
             <button
               type="button"
               aria-pressed={near !== null}
@@ -264,48 +361,6 @@ export function PublicDirectory() {
             </button>
           </div>
           {locationFailed ? <p className="small muted">{t.directory.locationFailed}</p> : null}
-          <div className="chips" role="group" aria-label={t.directory.filterLanguage}>
-            <button type="button" aria-pressed={chosen.length === 0} onClick={() => choose([])}>
-              {t.directory.allLanguages}
-            </button>
-            {SPOKEN.map((code) => (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={chosen.includes(code)}
-                onClick={() => toggle(code)}
-              >
-                {t.languages.names[code]}
-                {result ? ` (${result.languageCounts[code] ?? 0})` : ''}
-              </button>
-            ))}
-            {chosen.length > 0 ? (
-              <button className="btn--quiet" type="button" onClick={() => choose([])}>
-                {t.directory.clearLanguages}
-              </button>
-            ) : null}
-          </div>
-          {kinds.length > 0 ? (
-            <div className="chips" role="group" aria-label={t.directory.filterKind}>
-              <button
-                type="button"
-                aria-pressed={specialty === null}
-                onClick={() => chooseKind(null)}
-              >
-                {t.directory.allKinds}
-              </button>
-              {kinds.map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  aria-pressed={specialty === kind}
-                  onClick={() => chooseKind(kind)}
-                >
-                  {t.specialties.names[kind]} ({kindCounts[kind] ?? 0})
-                </button>
-              ))}
-            </div>
-          ) : null}
         </div>
       </header>
 

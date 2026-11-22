@@ -3552,3 +3552,99 @@ ul.wish-photos {
 .promo-more[open] > summary {
   margin-bottom: 8px;
 }
+
+/* Task Q5: the catalogue's header - the title and the site's language on one line, every filter in
+   one row; "Język obsługi ▾" and "Kategoria ▾" open their lists under the row. */
+.directory-top {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.directory-top .salon-name {
+  margin: 0;
+}
+
+.directory .salon-head-inner {
+  position: relative;
+}
+
+/* One row on a phone too: what does not fit scrolls sideways inside the row. */
+.directory-filters {
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+
+.directory-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.directory-filters > * {
+  flex: none;
+}
+
+.directory .chips button {
+  white-space: nowrap;
+}
+
+.filter-panel button {
+  flex: none;
+}
+
+.filter-drop > summary {
+  list-style: none;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filter-drop > summary::-webkit-details-marker {
+  display: none;
+}
+
+.filter-drop > summary[data-active] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.filter-drop[open] > summary {
+  border-color: var(--ink);
+}
+
+.filter-drop > .filter-panel {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  flex-wrap: wrap;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+/* Task Q5: the client's header in one line on a phone - "bez hasła — kod na e-mail" is still read
+   out with "Zaloguj się", the sign-in page says it again. */
+@media (max-width: 480px) {
+  .client-nav-link {
+    white-space: nowrap;
+  }
+
+  .client-nav-hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

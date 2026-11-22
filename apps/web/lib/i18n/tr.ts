@@ -66,6 +66,9 @@ export const tr: Dict = {
     filterLanguage: 'Dil',
     allLanguages: 'Tüm diller',
     clearLanguages: 'Temizle',
+    /** Task Q5: the folded filters of the catalogue, in one row with "Otwarte teraz". */
+    languageMenu: 'Hizmet dili',
+    kindMenu: 'Kategori',
     search: 'Ara: ad, şehir, sokak veya hizmet',
     filterKind: 'İşletme türü',
     allKinds: 'Tümü',

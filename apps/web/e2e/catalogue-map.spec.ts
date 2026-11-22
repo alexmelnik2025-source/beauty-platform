@@ -187,22 +187,27 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
     // Task 160c: the site's catalogue has the kind-of-place chips too, with their numbers.
     const site = await phone.newPage();
     await site.goto('/pl/salons');
+    // Task Q5: the kinds are folded into "Kategoria ▾" in the one row of filters.
+    const kindMenu = site.getByTestId('filter-kind').locator(':scope > summary');
     const kinds = site.getByRole('group', { name: 'Rodzaj salonu' });
+    await kindMenu.click();
     await kinds.getByRole('button', { name: /^Manicure i pedicure \(\d+\)$/ }).click();
-    await expect(
-      kinds.getByRole('button', { name: /^Manicure i pedicure \(\d+\)$/ }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    // One kind at a time: the list folds back, the row names the chosen kind.
+    await expect(kindMenu).toHaveText('Manicure i pedicure ▾');
     await expect(site.getByRole('article', { name: NAILS })).toBeVisible();
     await expect(site.getByRole('article', { name: BARBER })).toHaveCount(0);
     await shot(site, '160d-catalogue-kinds');
+    await kindMenu.click();
+    await expect(
+      kinds.getByRole('button', { name: /^Manicure i pedicure \(\d+\)$/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await shot(site, 'q5-catalogue-kind-menu');
     await kinds.getByRole('button', { name: 'Wszystkie', exact: true }).click();
-    await expect(kinds.getByRole('button', { name: 'Wszystkie', exact: true })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await expect(kindMenu).toHaveText('Kategoria ▾');
 
     // Task 160c: Polish chosen in the catalogue - on the salon's page Polish speakers come first
     // (the salon's order is Taras, Oksana, Piotr; Oksana speaks only Ukrainian).
+    await site.getByTestId('filter-language').locator(':scope > summary').click();
     await site.getByRole('button', { name: /^polski \(\d+\)$/ }).click();
     await site.goto(`/pl/b/${barberSlug}`);
     await site

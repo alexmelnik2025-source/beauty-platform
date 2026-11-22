@@ -2348,6 +2348,11 @@ wishNote`) на карточке и визитах и чистит лист ож
 
 ## Сделано
 
+- [x] 641. Q5, дополнения владельца 22.11: шапка клиента на телефоне в одну строку («GESTALT · Znajdź salon · Zaloguj
+      się»); каталог салонов — заголовок и язык сайта в одной строке, все фильтры в одном ряду: «Język obsługi ▾»,
+      «Kategoria ▾», «Otwarte teraz», «W pobliżu», «★ Najlepiej oceniane» (списки открываются под рядом). Ничего не
+      удалено. e2e `booking`, `catalogue-map`, скриншоты `q5-catalogue-language-menu`, `q5-catalogue-kind-menu` —
+      22.11.2026
 - [x] 638–639. Q9 «Ochrona przed odwołaniami»: «Zasady dla klienta» в карточке клиента (według zasad salonu / zaufany /
       najpierw opłata zaległych / tylko z potwierdzeniem / tylko telefonicznie; своё правило действует и при
       выключенной защите); «Najpierw opłata zaległych» больше не закрывает онлайн-запись — клиент видит «Zapłacisz w
