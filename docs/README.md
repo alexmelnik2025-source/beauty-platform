@@ -4346,6 +4346,15 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   поле убирает ошибку. Остальные ошибки — как раньше, в строке сверху. Общий компонент `FieldError` (`ui.tsx`),
   `PhoneField` получил `error`. Ключи `booking.nameInvalid`, `phoneInvalid`, `emailInvalid` — во всех 6 словарях. e2e
   `booking.spec.ts`: `q5-client-field-error`, `q5-client-code-error`.
+- **Ошибки у поля во входе, регистрации, «Twój salon» и приглашении** (задачи 656–658, по правилу владельца):
+  вход (`login/page.tsx`, `fieldOf`) — `INVALID_CREDENTIALS` под «Hasło», `EMAIL_NOT_VERIFIED` под «E-mail»;
+  регистрация — `VALIDATION_ERROR` по `name`/`email`/`password` у своего поля; «Twój salon» (`onboarding/page.tsx`) —
+  поле из одних пробелов («Uzupełnij to pole.», ключ `onboarding.fieldRequired`) и ответ сервера о полях салона у
+  своего поля; уже созданная фирма запоминается (`created`), повтор добавляет салон к ней, а не создаёт вторую;
+  приглашение (`invite/[token]/page.tsx`) — `INVALID_CODE`/`CODE_EXPIRED` под «Kod z e-maila». Остальное (много
+  попыток, нет сети) — строкой сверху. Текст ошибки внутри `<label>` входит в имя поля, поэтому e2e ищут поля входа
+  по типу. Вход по коду тоже считается входом с адреса (30 за 15 мин) — e2e с лишними попытками входят со своего
+  адреса (`freshAddress`). e2e `auth-field-errors`, `onboarding-retry`, `team-invite`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 
