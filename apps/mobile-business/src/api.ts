@@ -102,9 +102,11 @@ export type ServiceList = components['schemas']['ServiceList'];
 export type HappyHours = components['schemas']['HappyHours'];
 /** One rule as the server takes it (the whole list is saved at once). */
 export interface HappyHourRule {
-  weekdays: number[];
-  start: string;
-  end: string;
+  kind?: HappyHours['rules'][number]['kind'];
+  lastMinuteHours?: number | null;
+  weekdays?: number[];
+  start?: string;
+  end?: string;
   discountPercent: number;
   staffIds: string[];
   serviceIds: string[];

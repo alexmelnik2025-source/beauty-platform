@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   BackHandler,
   Linking,
@@ -61,6 +61,7 @@ import { directionsUrl, durationText, serviceGroups, specialtyText } from '../sa
 import { shareSalon, visitShareMessage } from '../share';
 import { shareTools } from './shareTools';
 import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
+import { DiscountedTime } from './DiscountedTime';
 import { WaitlistPanel } from './WaitlistPanel';
 
 /** A booking error in the client's words (the same texts as the web booking page). */
@@ -406,6 +407,15 @@ export function BookingScreen(props: {
     }
   }
 
+  const slotPrices = useMemo(
+    () =>
+      new Map(
+        priceRows(salon, serviceId).flatMap((row) =>
+          row.staff.map((person) => [person.id, row.priceGrosze] as const),
+        ),
+      ),
+    [salon, serviceId],
+  );
   const stepNames = [b.stepService, b.stepStaff, b.stepTime, b.stepDetails];
   const stepIndex = { service: 0, staff: 1, time: 2, details: 3, code: 3, done: 4 }[step];
   const days = slotsByDay(slots ?? []);
@@ -673,21 +683,35 @@ export function BookingScreen(props: {
                 <View key={p.part} style={{ gap: 6 }}>
                   <Text style={styles.muted}>{b[p.part]}</Text>
                   <View style={styles.times}>
-                    {p.slots.map((slot) => (
-                      <Chip
-                        key={slot.start}
-                        // The salon's happy hours (task 16): at least this much off.
-                        label={
-                          slot.discountPercent
-                            ? `${slot.time}  −${slot.discountPercent}%`
-                            : slot.time
-                        }
-                        pressed={false}
-                        onPress={() => {
-                          if (!busy) void pickTime(slot);
-                        }}
-                      />
-                    ))}
+                    {p.slots.map((slot) => {
+                      const select = () => {
+                        if (!busy) void pickTime(slot);
+                      };
+                      if (!slot.discountPercent) {
+                        return (
+                          <Chip
+                            key={slot.start}
+                            label={slot.time}
+                            pressed={false}
+                            onPress={select}
+                          />
+                        );
+                      }
+                      const prices = new Set(slot.staffIds.map((id) => slotPrices.get(id)));
+                      const listPrice =
+                        prices.size === 1 ? prices.values().next().value : undefined;
+                      return (
+                        <DiscountedTime
+                          key={slot.start}
+                          time={slot.time}
+                          percent={slot.discountPercent}
+                          listPrice={
+                            listPrice ? formatPrice(listPrice, salon.currency, locale) : undefined
+                          }
+                          onPress={select}
+                        />
+                      );
+                    })}
                   </View>
                 </View>
               ))}
