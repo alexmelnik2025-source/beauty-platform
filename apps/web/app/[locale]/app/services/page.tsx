@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { ProductsSection } from '@/components/products/ProductsSection';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Sheet, Spinner } from '@/components/ui';
-import { api, newIdempotencyKey } from '@/lib/api';
+import { ErrorBox, FieldError, Sheet, Spinner } from '@/components/ui';
+import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { currencySymbol, formatPrice } from '@/lib/time';
@@ -465,6 +465,27 @@ export default function ServicesPage() {
   );
 }
 
+/** Task 661: the service form's fields that can show an error under them. */
+type ServiceField = 'name' | 'durationMinutes' | 'priceGrosze' | 'bufferMinutes' | 'description';
+const SERVICE_FIELDS: ServiceField[] = [
+  'name',
+  'durationMinutes',
+  'priceGrosze',
+  'bufferMinutes',
+  'description',
+];
+
+/** The fields the server's validation answer is about; empty when it is about something else. */
+function serviceFieldsOf(err: unknown): ServiceField[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  return SERVICE_FIELDS.filter((f) => paths.includes(f));
+}
+
+/** The highest price the server takes: 100 000.00 in the location currency. */
+const MAX_PRICE_GROSZE = 10_000_000;
+
 function ServiceSheet({
   base,
   service,
@@ -532,6 +553,12 @@ function ServiceSheet({
   // Specialists who take visits, and anyone inactive still linked (so they can be unticked).
   const choices = staff.filter((m) => m.active || form.staffIds.includes(m.id));
   const [error, setError] = useState('');
+  /**
+   * Task 661 (owner's rule: errors at the field): the fields with an error shown under them —
+   * a name of only spaces or a price above the limit before sending, and the server's answer
+   * about the name, duration, price, break or description. Editing a field takes its error away.
+   */
+  const [problems, setProblems] = useState<ServiceField[]>([]);
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a repeated or retried "add" never creates a second service (T4).
   const [key] = useState(newIdempotencyKey);
@@ -553,14 +580,24 @@ function ServiceSheet({
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    const priceGrosze = Math.round(Number(form.price.replace(',', '.')) * 100);
+    const before: ServiceField[] = [];
+    if (!form.name.trim()) before.push('name');
+    if (!Number.isFinite(priceGrosze) || priceGrosze > MAX_PRICE_GROSZE) before.push('priceGrosze');
+    if (before.length > 0) {
+      setError('');
+      setProblems(before);
+      return;
+    }
     if (!lock()) return;
     setError('');
+    setProblems([]);
     const body = {
       name: form.name,
       description: form.description || null,
       durationMinutes: Number(form.durationMinutes),
       bufferMinutes: Number(form.bufferMinutes),
-      priceGrosze: Math.round(Number(form.price.replace(',', '.')) * 100),
+      priceGrosze,
       categoryId: form.categoryId || null,
       color: form.color,
       active: form.active,
@@ -611,10 +648,31 @@ function ServiceSheet({
       }
       onSaved(saved);
     } catch (err) {
-      setError(errorText(t, err));
+      const fields = serviceFieldsOf(err);
+      setProblems(fields);
+      if (fields.length === 0) setError(errorText(t, err));
       unlock();
     }
   }
+
+  const problemText: Record<ServiceField, string> = {
+    name: t.onboarding.fieldRequired,
+    durationMinutes: t.services.durationInvalid,
+    priceGrosze: t.services.priceInvalid,
+    bufferMinutes: t.services.bufferInvalid,
+    description: t.errors.VALIDATION_ERROR,
+  };
+  const problem = (field: ServiceField) =>
+    problems.includes(field) ? problemText[field] : undefined;
+  /** Editing a field takes its error away. */
+  const edit = (field: ServiceField, change: Partial<typeof form>) => {
+    setForm({ ...form, ...change });
+    if (problems.includes(field)) setProblems(problems.filter((f) => f !== field));
+  };
+  const invalid = (field: ServiceField) => ({
+    'aria-invalid': problems.includes(field) || undefined,
+    'aria-describedby': problems.includes(field) ? `service-${field}-error` : undefined,
+  });
 
   return (
     <Sheet
@@ -634,8 +692,10 @@ function ServiceSheet({
             required
             maxLength={100}
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            {...invalid('name')}
+            onChange={(e) => edit('name', { name: e.target.value })}
           />
+          <FieldError id="service-name-error" text={problem('name')} />
         </label>
         <div className="row">
           <label className="field">
@@ -647,8 +707,10 @@ function ServiceSheet({
               step={5}
               required
               value={form.durationMinutes}
-              onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
+              {...invalid('durationMinutes')}
+              onChange={(e) => edit('durationMinutes', { durationMinutes: Number(e.target.value) })}
             />
+            <FieldError id="service-durationMinutes-error" text={problem('durationMinutes')} />
           </label>
           <label className="field">
             <span>
@@ -661,8 +723,10 @@ function ServiceSheet({
               required
               pattern="\d+([.,]\d{1,2})?"
               value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              {...invalid('priceGrosze')}
+              onChange={(e) => edit('priceGrosze', { price: e.target.value })}
             />
+            <FieldError id="service-priceGrosze-error" text={problem('priceGrosze')} />
           </label>
         </div>
         <label className="field">
@@ -673,8 +737,10 @@ function ServiceSheet({
             max={120}
             step={5}
             value={form.bufferMinutes}
-            onChange={(e) => setForm({ ...form, bufferMinutes: Number(e.target.value) })}
+            {...invalid('bufferMinutes')}
+            onChange={(e) => edit('bufferMinutes', { bufferMinutes: Number(e.target.value) })}
           />
+          <FieldError id="service-bufferMinutes-error" text={problem('bufferMinutes')} />
           <small className="muted">{t.services.bufferHint}</small>
         </label>
         <label className="field">
@@ -713,8 +779,10 @@ function ServiceSheet({
           <textarea
             maxLength={500}
             value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            {...invalid('description')}
+            onChange={(e) => edit('description', { description: e.target.value })}
           />
+          <FieldError id="service-description-error" text={problem('description')} />
         </label>
         <label className="check">
           <input

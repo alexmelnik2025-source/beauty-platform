@@ -1280,6 +1280,9 @@ export const en: Dict = {
     copyTitle: 'Copy of a service',
     copyName: '{name} (copy)',
     copyHint: 'Check and save — the copy is created only after “Save”.',
+    durationInvalid: 'From 5 to 480 minutes, in steps of 5.',
+    bufferInvalid: 'From 0 to 120 minutes, in steps of 5.',
+    priceInvalid: 'Enter a price from 0 to 100,000, e.g. 50 or 49.99.',
     orderHint:
       'The order clients see on the booking page and in the app — use the arrows to set what comes first.',
     listSearch: 'Search services',
