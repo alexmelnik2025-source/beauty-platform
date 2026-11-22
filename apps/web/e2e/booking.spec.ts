@@ -712,15 +712,15 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await weekly.getByLabel('Specjalista').selectOption(staffIds[1]!);
   await weekly.getByLabel('Data').fill(visit!.date);
   await weekly.getByLabel('Od', { exact: true }).fill('19:30');
-  // Task 672: "Do" before "Od" is said under "Do", before anything is sent.
-  await weekly.getByLabel('Do', { exact: true }).fill('19:00');
+  // Task 672: "Do" before "Od" is said under "Do", before anything is sent (the error under it
+  // becomes part of its label, so the field is found by its place).
+  const blockTo = weekly.locator('input[type="time"]').nth(1);
+  await blockTo.fill('19:00');
   await weekly.getByRole('button', { name: 'Zablokuj', exact: true }).click();
-  await expect(weekly.getByLabel('Do', { exact: true })).toBeFocused();
-  await expect(weekly.getByLabel('Do', { exact: true })).toHaveAccessibleDescription(
-    /Godzina „Do” musi być późniejsza niż „Od”\.$/,
-  );
+  await expect(blockTo).toBeFocused();
+  await expect(blockTo).toHaveAccessibleDescription(/Godzina „Do” musi być późniejsza niż „Od”\.$/);
   await shot(ownerPage, '672-block-time-to-error');
-  await weekly.getByLabel('Do', { exact: true }).fill('20:15');
+  await blockTo.fill('20:15');
   await expect(weekly.locator('.field-error')).toHaveCount(0);
   await weekly.getByLabel('Powód (np. szkolenie)').fill('Booksy');
   await weekly.getByLabel('Powtarzaj co tydzień').check();
