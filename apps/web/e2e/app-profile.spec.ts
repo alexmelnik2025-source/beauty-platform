@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 96: "Mój profil" in the business app (web preview of apps/mobile-business). A specialist
@@ -106,7 +106,7 @@ test('business app: a specialist chooses the languages she speaks with clients',
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Mój profil' }).click();
+    await openBusinessMenu(phone, 'Mój profil');
     await expect(phone.getByRole('heading', { name: 'Mój profil' })).toBeVisible();
     await expect(phone.getByText('Kasia Nowak')).toBeVisible();
     const polish = phone.getByRole('checkbox', { name: 'Polski' });

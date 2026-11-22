@@ -253,7 +253,7 @@ test('the owner sorts the clients by the latest visit and by the number of visit
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByRole('tab', { name: 'Klienci', exact: true }).click();
     const cards = app.getByRole('button', { name: /^Karta klienta: / });
     await expect(cards).toHaveCount(3);
     await expect(cards.nth(0)).toContainText('Adam Świeży');

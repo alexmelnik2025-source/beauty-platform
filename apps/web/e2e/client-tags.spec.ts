@@ -159,7 +159,7 @@ test('the owner filters the client list by a label (cabinet and business app)', 
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Klienci' })).toBeVisible();
     await expect(app.getByText('Ewa Wiśniewska')).toBeVisible();
     // Ewa got "broda" in the cabinet above: "broda" now has 3 clients.

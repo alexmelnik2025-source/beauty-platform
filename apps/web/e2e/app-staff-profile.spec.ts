@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Tasks 326–329: specialists in "Grafik zespołu" of the business app (web preview of
@@ -150,7 +150,7 @@ test('business app: the owner orders, edits, switches off and adds specialists',
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     // ── 329: Kasia first ───────────────────────────────────────────────────
-    await phone.getByRole('button', { name: 'Grafik zespołu' }).click();
+    await openBusinessMenu(phone, 'Grafik zespołu');
     await expect(phone.getByRole('heading', { name: 'Grafik zespołu' })).toBeVisible();
     await expect(phone.getByRole('button', { name: 'Wyżej: Ilian' })).toBeDisabled();
     await phone.getByRole('button', { name: 'Niżej: Ilian' }).click();

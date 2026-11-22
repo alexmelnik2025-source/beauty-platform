@@ -1,7 +1,7 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 152: "Link do rezerwacji" in the business app (web preview of apps/mobile-business).
@@ -84,7 +84,7 @@ test('the owner shares the booking link from the business app (task 152)', async
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await app.getByRole('button', { name: 'Link do rezerwacji' }).click();
+    await openBusinessMenu(app, 'Link do rezerwacji');
     await expect(app.getByRole('heading', { name: 'Link do rezerwacji' })).toBeVisible();
     await expect(app.getByText(new RegExp(`/pl/b/${location.slug}$`))).toBeVisible();
     await expect(app.getByText(/Rezerwacja online jest wyłączona/)).toBeVisible();

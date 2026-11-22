@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 208: "Wiadomości do klientów" in the business app (web preview of apps/mobile-business).
@@ -94,7 +94,7 @@ test('the owner sets the messages to clients in the business app (task 208)', as
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await app.getByRole('button', { name: 'Wiadomości do klientów' }).click();
+    await openBusinessMenu(app, 'Wiadomości do klientów');
     await expect(app.getByRole('heading', { name: 'Wiadomości do klientów' })).toBeVisible();
     // The salon's defaults: a reminder 24 hours before, nothing held, no "next visit" email.
     await expect(app.getByRole('button', { name: '24 godz. przed', exact: true })).toHaveAttribute(
@@ -130,7 +130,7 @@ test('the owner sets the messages to clients in the business app (task 208)', as
 
     // ── Opened again: the saved choices; "next visit" switched off keeps nothing to send ──
     await app.getByRole('button', { name: '‹ Wróć' }).click();
-    await app.getByRole('button', { name: 'Wiadomości do klientów' }).click();
+    await openBusinessMenu(app, 'Wiadomości do klientów');
     await expect(app.getByLabel('Ile dni po ostatniej wizycie (7–365)')).toHaveValue('30');
     await shot(app, '208a-business-app-messages-saved');
     await app.getByLabel('Wysyłaj klientom przypomnienie „Pora na kolejną wizytę?”').click();

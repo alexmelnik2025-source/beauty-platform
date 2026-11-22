@@ -683,6 +683,7 @@ export function ProductListSection(props: {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ expanded: expandedId === x.id }}
+              aria-expanded={expandedId === x.id}
               onPress={() => setExpandedId(expandedId === x.id ? null : x.id)}
               style={styles.productRow}
             >

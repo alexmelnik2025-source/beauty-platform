@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 349: "Zmień zasady" in "Ochrona przed odwołaniami" of the business app (web preview of
@@ -93,7 +93,7 @@ test('business app: the owner sets the cancellation protection rules', async ({
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Ochrona przed odwołaniami' }).click();
+    await openBusinessMenu(phone, 'Ochrona przed odwołaniami');
     await expect(phone.getByText('Żadna zasada nie jest ustawiona.')).toBeVisible();
     await phone.getByRole('button', { name: 'Włącz ochronę' }).click();
     await expect(

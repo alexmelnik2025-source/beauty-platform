@@ -253,6 +253,7 @@ export function DayScreen(props: {
               accessibilityRole="tab"
               accessibilityLabel={label}
               accessibilityState={{ selected: tab === id }}
+              aria-selected={tab === id}
               onPress={() => {
                 setStaffPicker(false);
                 setTab(id);
@@ -303,6 +304,7 @@ export function DayScreen(props: {
         onOpenDay={(day) => {
           setDate(day);
           setReportsOpen(false);
+          setTab('calendar');
         }}
       />
     );
@@ -761,6 +763,7 @@ export function DayScreen(props: {
             accessibilityRole="button"
             accessibilityLabel={`${t.navigation.specialist}: ${staffLabel}`}
             accessibilityState={{ expanded: staffPicker }}
+            aria-expanded={staffPicker}
             onPress={() => setStaffPicker(!staffPicker)}
             style={[styles.compactButton, styles.staffButton]}
           >

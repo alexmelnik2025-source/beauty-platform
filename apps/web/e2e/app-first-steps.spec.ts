@@ -128,7 +128,9 @@ test('business app: the owner sees what the salon still needs for online booking
     await phone
       .getByRole('button', { name: 'Zrób to: Dodaj regulamin i politykę prywatności' })
       .click();
-    await expect(phone.getByText('Regulamin i prywatność')).toBeVisible();
+    await expect(phone.getByRole('heading', { name: 'Ustawienia', exact: true })).toBeVisible();
+    await phone.getByRole('button', { name: /^Regulamin i prywatność/ }).click();
+    await expect(phone.getByRole('heading', { name: 'Regulamin i prywatność' })).toBeVisible();
     // The salon adds its texts and switches online booking on (here through the API).
     const online = await json<{ version: number }>(
       await request.patch(base, {
@@ -141,7 +143,8 @@ test('business app: the owner sees what the salon still needs for online booking
         },
       }),
     );
-    await phone.getByRole('button', { name: '‹ Wróć' }).first().click();
+    await phone.getByRole('button', { name: '‹ Ustawienia', exact: true }).click();
+    await phone.getByRole('button', { name: '‹ Wróć', exact: true }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
     await phone.waitForLoadState('networkidle');
     await expect(phone.getByText('Pierwsze kroki')).toHaveCount(0);

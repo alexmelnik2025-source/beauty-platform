@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 348: "Zmień nagrodę" in "Program lojalnościowy" of the business app (web preview of
@@ -106,7 +106,7 @@ test('business app: the owner changes a reward', async ({ browser, request }) =>
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
+    await openBusinessMenu(phone, 'Program lojalnościowy');
     await phone.getByRole('button', { name: 'Zmień nagrodę: −25% na strzyżenie' }).click();
     await expect(phone.getByLabel('Nazwa nagrody (np. −25% na strzyżenie)')).toHaveValue(
       '−25% na strzyżenie',

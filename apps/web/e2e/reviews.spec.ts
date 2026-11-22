@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 165b: reviews after the visit. The salon switches reviews on; a client whose visit took
@@ -489,7 +489,7 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Opinie' }).click();
+    await openBusinessMenu(app, 'Opinie');
     await expect(app.getByRole('heading', { name: 'Opinie', exact: true })).toBeVisible();
     await expect(app.getByText('★ 4,5 · opinie: 4')).toBeVisible();
     await expect(app.getByText('Dobra broda, polecam.')).toBeVisible();

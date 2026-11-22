@@ -7,7 +7,7 @@ import {
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 207: "Ochrona przed odwołaniami" in the business app (web preview of
@@ -155,7 +155,7 @@ test('the owner runs cancellation protection from the business app (task 207)', 
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await app.getByRole('button', { name: 'Ochrona przed odwołaniami' }).click();
+    await openBusinessMenu(app, 'Ochrona przed odwołaniami');
     await expect(app.getByRole('heading', { name: 'Ochrona przed odwołaniami' })).toBeVisible();
     await expect(app.getByText('Ochrona wyłączona', { exact: true })).toBeVisible();
     await expect(app.getByText('• Nieobecności: 2')).toBeVisible();

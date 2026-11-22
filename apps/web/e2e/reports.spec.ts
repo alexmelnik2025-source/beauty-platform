@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * "Raporty" in the cabinet (task 14): the owner sees revenue, the average ticket, visits that
@@ -521,7 +521,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await expect(app.getByRole('heading', { name: 'Raporty' })).toBeVisible();
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     await expect(app.getByText('opłacone wizyty: 3')).toBeVisible();
@@ -637,6 +637,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(app.getByText('Najlepsi klienci')).toBeVisible();
     await app.getByRole('button', { name: '‹ Wróć' }).click();
+    await app.getByRole('tab', { name: 'Kalendarz', exact: true }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     // "Tydzień" (task 214): the visits' day shows 4 visits and both specialists at work.
@@ -680,7 +681,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
           2 * 86_400_000,
       ),
     );
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const dayRow = app
       .getByTestId('report-days')

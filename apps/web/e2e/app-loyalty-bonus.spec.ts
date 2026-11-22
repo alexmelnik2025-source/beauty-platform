@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 346: "Dodatkowe pieczątki i punkty" in "Program lojalnościowy" of the business app (web
@@ -96,7 +96,7 @@ test('business app: the owner adds an extra stamps rule', async ({ browser, requ
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
+    await openBusinessMenu(phone, 'Program lojalnościowy');
     await expect(phone.getByText(/^Brak zasad — każda wizyta/)).toBeVisible();
     await phone.getByRole('button', { name: 'Zmień zasady dodatkowe' }).click();
     await phone.getByRole('button', { name: '+ Dodaj zasadę' }).click();

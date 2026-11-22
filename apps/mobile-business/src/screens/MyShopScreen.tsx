@@ -111,6 +111,7 @@ export function MyShopScreen(props: {
             key={item}
             accessibilityRole="tab"
             accessibilityState={{ selected: tab === item, disabled: busy }}
+            aria-selected={tab === item}
             disabled={busy}
             onPress={() => {
               setError('');

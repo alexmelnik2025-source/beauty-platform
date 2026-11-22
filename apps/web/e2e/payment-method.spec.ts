@@ -8,7 +8,7 @@ import {
 import { execFileSync } from 'node:child_process';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 227: how the client paid. In the visit card the owner picks "Karta" and marks
@@ -204,7 +204,7 @@ test('the owner marks how the client paid; the report shows the payment methods'
     await expect(appTill).toContainText(/Kasa dnia: 90,00\s*zł/);
     await expect(appTill).toContainText(/Gotówka 90,00\s*zł/);
     await shot(app, '228-a-business-app-till');
-    await app.getByRole('button', { name: 'Raporty' }).click();
+    await openBusinessMenu(app, 'Raporty');
     await app.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
     const appPayments = app.getByTestId('report-payments');
     await appPayments.scrollIntoViewIfNeeded();

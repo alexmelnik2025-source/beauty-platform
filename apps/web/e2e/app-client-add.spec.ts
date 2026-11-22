@@ -101,7 +101,7 @@ test('business app: the owner adds a client and changes their details', async ({
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     // ── 332: a new client; Jan's phone is pointed out ──────────────────────
-    await phone.getByRole('button', { name: 'Klienci' }).click();
+    await phone.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await phone.getByRole('button', { name: '+ Dodaj klienta' }).click();
     await phone.getByRole('button', { name: 'Zapisz klienta' }).click();
     await expect(phone.getByText('Wpisz imię klienta.')).toBeVisible();

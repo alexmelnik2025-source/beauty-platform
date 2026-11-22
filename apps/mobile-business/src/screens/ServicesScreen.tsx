@@ -818,6 +818,7 @@ export function ServicesScreen(props: {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityState={{ expanded: rowOptions === service.id }}
+                      aria-expanded={rowOptions === service.id}
                       onPress={() => setRowOptions(rowOptions === service.id ? null : service.id)}
                       style={styles.serviceRow}
                     >

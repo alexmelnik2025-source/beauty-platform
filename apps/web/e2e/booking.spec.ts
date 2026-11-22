@@ -11,7 +11,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { freshAddress } from './addresses';
 import { clearMailbox, listTo, waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 import { waitForSmsCode } from './sms-log';
 
 /**
@@ -1374,7 +1374,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(kasiaApp.getByRole('heading', { name: 'Anna Kowalska' })).toBeVisible();
     await expect(kasiaApp.getByText('Najbliższe wizyty')).toBeVisible();
     await expect(kasiaApp.getByText(annaVisit.customer!.phone!)).toHaveCount(0);
-    await expect(kasiaApp.getByRole('button', { name: 'Klienci' })).toHaveCount(0);
+    await expect(kasiaApp.getByRole('tab', { name: 'Klienci', exact: true })).toHaveCount(0);
     await shot(kasiaApp, '32c-business-app-staff-client');
     await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(
@@ -1382,9 +1382,9 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     ).toBeVisible();
     await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await expect(kasiaApp.getByRole('button', { name: 'Klienci' })).toHaveCount(0);
+    await expect(kasiaApp.getByRole('tab', { name: 'Klienci', exact: true })).toHaveCount(0);
     // Her own schedule: weekly hours and time off, read only for a specialist.
-    await kasiaApp.getByRole('button', { name: 'Mój grafik' }).click();
+    await openBusinessMenu(kasiaApp, 'Mój grafik');
     await expect(kasiaApp.getByRole('heading', { name: 'Mój grafik' })).toBeVisible();
     await expect(kasiaApp.getByText('poniedziałek', { exact: true })).toBeVisible();
     await expect(
@@ -1393,6 +1393,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(kasiaApp.getByRole('button', { name: 'Dodaj wolne' })).toHaveCount(0);
     await shot(kasiaApp, '32b-business-app-staff-schedule');
     await kasiaApp.getByRole('button', { name: '‹ Wróć' }).click();
+    await kasiaApp.getByRole('tab', { name: 'Kalendarz', exact: true }).click();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
     // "New visit" for a specialist: only herself, and no search in the salon's clients.
     await kasiaApp.getByRole('button', { name: '+ Nowa wizyta' }).click();
@@ -1407,7 +1408,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     // The refresh token is kept: opening the app again needs no new code.
     await kasiaApp.reload();
     await expect(kasiaApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
-    await kasiaApp.getByRole('button', { name: 'Wyloguj się' }).click();
+    await openBusinessMenu(kasiaApp, 'Wyloguj się');
     await expect(kasiaApp.getByRole('heading', { name: 'Zaloguj się' })).toBeVisible();
 
     // The owner sees the whole salon, with the client's phone.
@@ -1429,7 +1430,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await ownerApp.getByRole('button', { name: '‹ Wróć' }).click();
     await expect(ownerApp.getByRole('button', { name: 'Dziś' })).toBeVisible();
     // Clients: search, the card with contacts, the note and tags saved from the phone.
-    await ownerApp.getByRole('button', { name: 'Klienci' }).click();
+    await ownerApp.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await expect(ownerApp.getByRole('heading', { name: 'Klienci' })).toBeVisible();
     await ownerApp.getByLabel('Szukaj: imię, telefon, e-mail lub tag').fill('Kowalska');
     await ownerApp.getByRole('button', { name: 'Szukaj', exact: true }).click();

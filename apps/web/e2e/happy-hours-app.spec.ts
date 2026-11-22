@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 99: "Happy hours" in the business app (web preview of apps/mobile-business). The owner
@@ -105,8 +105,8 @@ test('the owner adds and removes happy hours in the business app (task 99)', asy
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await app.getByRole('button', { name: 'Happy hours' }).click();
-    await expect(app.getByRole('heading', { name: 'Happy hours' })).toBeVisible();
+    await openBusinessMenu(app, 'Promocje');
+    await expect(app.getByRole('heading', { name: 'Promocje', exact: true })).toBeVisible();
     await expect(app.getByText('Nie ma jeszcze tańszych godzin.')).toBeVisible();
 
     // ── Tuesdays and Thursdays 10:00–13:00, −20%, only Kasia ─────────────

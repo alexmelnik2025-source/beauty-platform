@@ -6,7 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { waitForEmail } from './mailpit';
-import { serveApp } from './mobile-app';
+import { openBusinessMenu, serveApp } from './mobile-app';
 
 /**
  * Task 347: "Pieczątki i punkty za usługi" in "Program lojalnościowy" of the business app (web
@@ -104,7 +104,7 @@ test('business app: the owner sets stamps per service', async ({ browser, reques
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Program lojalnościowy' }).click();
+    await openBusinessMenu(phone, 'Program lojalnościowy');
     await expect(phone.getByText('Wszystkie usługi według zasady ogólnej.')).toBeVisible();
     await phone.getByRole('button', { name: 'Zmień pieczątki i punkty za usługi' }).click();
     await phone.getByLabel('Broda: pieczątki (puste — zasada ogólna)').fill('2,5');

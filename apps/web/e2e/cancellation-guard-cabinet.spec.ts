@@ -182,7 +182,7 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
     const mail = await waitForEmail(OWNER, /Kod logowania do aplikacji salonu/);
     await app.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
-    await app.getByRole('button', { name: 'Klienci' }).click();
+    await app.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await app.getByRole('button', { name: 'Karta klienta: Jan Nowak', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Jan Nowak' })).toBeVisible();
     await expect(app.getByText('Ochrona przed odwołaniami')).toBeVisible();

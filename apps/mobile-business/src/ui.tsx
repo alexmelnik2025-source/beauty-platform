@@ -41,6 +41,8 @@ export function Button(props: {
         expanded: props.expanded,
         selected: props.selected,
       }}
+      aria-expanded={props.expanded}
+      aria-selected={props.selected}
       disabled={props.disabled || props.busy}
       onPress={props.onPress}
       style={({ pressed }) => [

@@ -135,7 +135,7 @@ test('business app: stamps by hand, a reward and a cancelled coupon in the clien
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await phone.getByRole('button', { name: 'Klienci' }).click();
+    await phone.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await phone.getByRole('button', { name: 'Karta klienta: Anna Kowalska', exact: true }).click();
     await expect(phone.getByText('Pieczątki: 3', { exact: true })).toBeVisible();
     const redeem = phone.getByRole('button', {
