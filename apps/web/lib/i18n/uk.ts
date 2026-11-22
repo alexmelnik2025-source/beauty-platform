@@ -156,6 +156,8 @@ export const uk: Dict = {
     vouchers: 'Подарункові сертифікати',
     shop: 'Мій магазин',
   },
+  /** Task Q6: captions of the menu groups in the cabinet's sidebar on a computer. */
+  navGroups: { offer: 'Пропозиція', bookings: 'Записи', salon: 'Салон' },
   directory: {
     title: 'Знайти салон',
     lead: 'Салони з онлайн-записом. Оберіть мову, якою хочете спілкуватися.',
@@ -1681,6 +1683,8 @@ export const uk: Dict = {
   },
   products: {
     integrationsLink: 'Імпорт товарів із Base або з файлу →',
+    /** Task Q6: the explanations of "Produkty" open under one "?". */
+    helpOpen: 'Як це працює?',
     title: 'Товари',
     hint: 'Товари, які ви продаєте на візиті (помада, шампунь…). Продаж позначається в картці візиту, що відбувся; ціну візиту, бали і знижки не змінює.',
     empty: 'У списку ще немає товарів.',

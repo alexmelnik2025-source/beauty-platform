@@ -156,6 +156,8 @@ export const pl = {
     vouchers: 'Bony podarunkowe',
     shop: 'Mój sklep',
   },
+  /** Task Q6: captions of the menu groups in the cabinet's sidebar on a computer. */
+  navGroups: { offer: 'Oferta', bookings: 'Rezerwacje', salon: 'Salon' },
   directory: {
     title: 'Znajdź salon',
     lead: 'Salony, w których umówisz się online. Wybierz język, w którym chcesz rozmawiać.',
@@ -1684,6 +1686,8 @@ export const pl = {
   },
   products: {
     integrationsLink: 'Importuj produkty z Base lub z pliku →',
+    /** Task Q6: the explanations of "Produkty" open under one "?". */
+    helpOpen: 'Jak to działa?',
     title: 'Produkty',
     hint: 'Produkty, które sprzedajecie przy wizycie (pomada, szampon…). Sprzedaż zapisuje się w karcie wizyty, która się odbyła; nie zmienia ceny wizyty, punktów ani rabatów.',
     empty: 'Na liście nie ma jeszcze produktów.',

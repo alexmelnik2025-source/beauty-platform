@@ -65,6 +65,7 @@ export function ProductsSection({ base }: { base: string }) {
   const p = t.products;
   const { location, role } = useSession();
   const [products, setProducts] = useState<Product[] | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   /** Task 461: pieces sold at the visits of the last 30 days, by product. */
   const [sold30, setSold30] = useState<Map<string, number>>(new Map());
   const [drafts, setDrafts] = useState<
@@ -260,15 +261,34 @@ export function ProductsSection({ base }: { base: string }) {
 
   return (
     <section className="page" data-testid="products">
-      <h2>{p.title}</h2>
-      <p className="small muted">{p.hint}</p>
-      <p className="small muted">{p.stockHint}</p>
-      <p className="small muted">{p.lowHint}</p>
-      <p className="small muted">{p.restockHint}</p>
-      <p className="small muted">{p.writeOffHint}</p>
-      <p className="small muted">{p.costHint}</p>
-      <p className="small muted">{p.supplierHint}</p>
-      <p className="small muted">{p.barcodeHint}</p>
+      {/* Task Q6: the eight explanations stay one tap away under "?" — the list itself comes first. */}
+      <div className="title-help">
+        <h2>{p.title}</h2>
+        <button
+          type="button"
+          className="help-btn"
+          aria-label={p.helpOpen}
+          title={p.helpOpen}
+          aria-expanded={helpOpen}
+          aria-controls="products-help"
+          data-testid="products-help-open"
+          onClick={() => setHelpOpen((v) => !v)}
+        >
+          ?
+        </button>
+      </div>
+      {helpOpen ? (
+        <div id="products-help" className="help-box" data-testid="products-help">
+          <p className="small muted">{p.hint}</p>
+          <p className="small muted">{p.stockHint}</p>
+          <p className="small muted">{p.lowHint}</p>
+          <p className="small muted">{p.restockHint}</p>
+          <p className="small muted">{p.writeOffHint}</p>
+          <p className="small muted">{p.costHint}</p>
+          <p className="small muted">{p.supplierHint}</p>
+          <p className="small muted">{p.barcodeHint}</p>
+        </div>
+      ) : null}
       {role !== 'staff' ? (
         <p className="small">
           <Link href={`/${locale}/app/shop/integrations`} data-testid="products-integrations">

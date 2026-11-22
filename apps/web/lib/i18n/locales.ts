@@ -12,6 +12,11 @@ export type Locale = (typeof LOCALES)[number];
 /** Languages with the whole salon dashboard translated (its language switch offers these). */
 export const DASHBOARD_LOCALES: readonly Locale[] = ['pl', 'uk', 'ru', 'en'];
 
+/** Task Q6: the short name of a language on buttons and lists — Ukrainian is "UA" everywhere. */
+export function localeCode(locale: string): string {
+  return locale === 'uk' ? 'UA' : locale.toUpperCase();
+}
+
 export const DICTIONARIES: Record<Locale, Dict> = { pl, uk, ru, en, tr, sq };
 
 /** BCP 47 tags for dates, numbers and money. */

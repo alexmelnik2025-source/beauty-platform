@@ -151,6 +151,39 @@ h3 {
   font-size: 0.9rem;
 }
 
+/* Task Q6: a title with a small "?" that opens its explanations. */
+.title-help {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-help h2 {
+  margin-bottom: 0;
+}
+
+.help-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 1px solid var(--steel);
+  border-radius: 50%;
+  background: var(--paper);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.help-btn[aria-expanded='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.help-box {
+  margin-top: 8px;
+}
+
 .link-btn {
   padding: 0;
   border: 0;
@@ -351,6 +384,16 @@ fieldset.field > legend {
   color: var(--graphite);
 }
 
+/* Task Q6: a quiet caption over each group of the sidebar menu. */
+.sidebar .menu-group {
+  margin: 14px 10px 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--graphite);
+}
+
 .sidebar .menu a[aria-current='page'] {
   color: var(--ink);
   background: var(--fog);
@@ -450,6 +493,22 @@ fieldset.field > legend {
 .cal-toolbar .date-title {
   min-width: 0;
   margin-right: auto;
+}
+
+/* Task Q6: the short date and the salon name each stay on one line (cut with "…" if too long). */
+.cal-toolbar .date-title strong,
+.cal-toolbar .cal-location {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cal-toolbar .cal-location {
+  display: block;
+}
+
+.only-mobile {
+  display: none;
 }
 
 .cal-toolbar .date-title strong {
@@ -777,7 +836,30 @@ fieldset.field > legend {
 
   .cal-toolbar {
     flex-wrap: nowrap;
+    gap: 8px;
     padding: 10px 12px;
+  }
+
+  .cal-toolbar .date-title {
+    flex: 1 1 auto;
+  }
+
+  .cal-toolbar .cal-mode,
+  .cal-toolbar > button,
+  .cal-toolbar > select {
+    flex: none;
+  }
+
+  .only-mobile {
+    display: inline;
+  }
+
+  .cal-toolbar .cal-mode button {
+    padding: 0 8px;
+  }
+
+  .cal-toolbar .cal-staff-pick {
+    max-width: 96px;
   }
 
   .cal-toolbar .date-title strong {

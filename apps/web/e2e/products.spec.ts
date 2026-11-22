@@ -167,6 +167,23 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await shot(page, '395-owner-products');
   await shot(page, '448-owner-purchase-price');
 
+  // Task Q6: the explanations wait under "?" — the list comes first; one tap opens them, another closes.
+  await expect(products.getByText(/Cena zakupu: ile salon płaci/)).toBeHidden();
+  const help = products.getByRole('button', { name: 'Jak to działa?' });
+  await expect(help).toHaveAttribute('aria-expanded', 'false');
+  await products.scrollIntoViewIfNeeded();
+  await shot(page, 'q6-products-help-closed');
+  await help.click();
+  await expect(help).toHaveAttribute('aria-expanded', 'true');
+  await expect(
+    products.getByTestId('products-help').getByText(/Cena zakupu: ile salon płaci/),
+  ).toBeVisible();
+  await products
+    .getByTestId('products-help')
+    .screenshot({ path: 'e2e/screenshots/q6-products-help-open.png' });
+  await help.click();
+  await expect(products.getByTestId('products-help')).toHaveCount(0);
+
   // The visit card: the client buys two pomades and a shampoo; one shampoo was a mistake.
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
