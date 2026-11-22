@@ -183,7 +183,7 @@ test('the owner marks how the client paid; the report shows the payment methods'
   try {
     const app = await (
       await browser.newContext({
-        viewport: { width: 390, height: 844 },
+        viewport: { width: 320, height: 700 },
         locale: 'pl-PL',
         isMobile: true,
       })
@@ -197,9 +197,12 @@ test('the owner marks how the client paid; the report shows the payment methods'
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
     // "Kasa dnia" on the visit's day (yesterday; the day before around midnight UTC), task 228.
     const appTill = app.getByTestId('till');
-    for (let back = 0; back < 3 && !(await appTill.isVisible()); back++) {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+      new Date(),
+    );
+    const daysBack = (Date.parse(today) - Date.parse(visit.date)) / 86_400_000;
+    for (let back = 0; back < daysBack; back++) {
       await app.getByRole('button', { name: 'Poprzedni dzień' }).click();
-      await app.waitForTimeout(800);
     }
     await expect(appTill).toContainText(/Kasa dnia: 90,00\s*zł/);
     await expect(appTill).toContainText(/Gotówka 90,00\s*zł/);
