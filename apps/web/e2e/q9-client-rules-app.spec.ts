@@ -5,11 +5,12 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
-const PASSWORD = 'e2e-password-123';
+const password = randomUUID();
 const run = Date.now().toString(36);
 const OWNER = `q9-app-owner-${run}@example.com`;
 const OLA = `q9-app-ola-${run}@example.com`;
@@ -26,7 +27,7 @@ async function verifiedUser(api: APIRequestContext, email: string, name: string)
   await json(
     await api.post('/v1/auth/register', {
       headers: freshAddress(),
-      data: { email, password: PASSWORD, name },
+      data: { email, password, name },
     }),
   );
   const mail = await waitForEmail(email, /Potwierdź adres/);
@@ -38,7 +39,7 @@ async function verifiedUser(api: APIRequestContext, email: string, name: string)
   const login = await json<{ accessToken: string }>(
     await api.post('/v1/auth/login', {
       headers: freshAddress(),
-      data: { email, password: PASSWORD, clientType: 'mobile' },
+      data: { email, password, clientType: 'mobile' },
     }),
   );
   return { Authorization: `Bearer ${login.accessToken}` };
