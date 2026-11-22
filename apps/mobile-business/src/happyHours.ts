@@ -86,6 +86,9 @@ export function rulesToSave(
       start: r.start,
       end: r.end,
       discountPercent: r.discountPercent,
+      // Task Q7: a "Last Minute" rule stays one when the list is saved again.
+      kind: r.kind,
+      lastMinuteHours: r.lastMinuteHours,
       staffIds: r.staffIds,
       serviceIds: r.serviceIds,
     }));

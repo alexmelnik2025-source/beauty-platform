@@ -811,12 +811,14 @@ export class PublicBookingService {
     // The specialist's own price and duration of the service, if any (tasks 62, 70).
     const offer = await offerFor(this.prisma, staffId, service);
     const times = timesFor(start, { ...service, durationMinutes: offer.durationMinutes });
-    // The salon's happy hours (task 16) set the price for this staff member and time.
+    // The salon's happy hours (task 16) set the price for this staff member and time; booked
+    // online now, so "Last Minute" rules count too (task Q7).
     const price = await this.happyHours.priceFor(this.prisma, location, {
       staffId,
       serviceId: service.id,
       start,
       listPriceGrosze: offer.priceGrosze,
+      bookedOnlineAt: Date.now(),
     });
     const created = await this.writer.write(staffId, times, (tx) =>
       tx.appointment.create({
