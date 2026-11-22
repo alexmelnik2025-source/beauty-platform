@@ -1781,6 +1781,10 @@ export const uk: Dict = {
     stock: 'На складі',
     pieces: 'шт.',
     stockNew: 'На складі (шт., порожньо — не рахуємо)',
+    /** Task 663: under a wrong field of the new-product form. */
+    wrongPrice: 'Введіть суму, наприклад 45 або 45,50.',
+    wrongStock: 'Введіть кількість штук від 0 до 100 000 або залиште порожнім.',
+    wrongBarcode: 'Від 3 до 32 символів: цифри, літери та «-».',
     moreFields: 'Ще ▸',
     stockLeft: 'залишилось {n} шт.',
     sold30: 'Продано за 30 днів: {n} шт.',

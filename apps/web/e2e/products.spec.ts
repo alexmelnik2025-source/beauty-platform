@@ -157,6 +157,29 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByLabel(/^Kod kreskowy \(puste/)).toBeVisible();
   await products.locator('.product-new').scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'e2e/screenshots/652-product-form-more.png' });
+  // Task 663 (errors at the field): a wrong price says why under "Cena" once the field is left,
+  // a wrong barcode under "Kod kreskowy" when "+ Dodaj produkt" is pressed; nothing is added.
+  const newForm = products.locator('.product-new');
+  await newForm.getByLabel('Nowy produkt').fill('Próba');
+  const newPrice = newForm.getByLabel(/^Cena \(/);
+  await newPrice.fill('4,5,0');
+  await expect(newForm.getByText('Wpisz kwotę, np. 45 lub 45,50.')).toBeHidden();
+  await newPrice.blur();
+  await expect(newPrice).toHaveAttribute('aria-invalid', 'true');
+  await expect(newForm.getByText('Wpisz kwotę, np. 45 lub 45,50.')).toBeVisible();
+  await newPrice.fill('45');
+  await expect(newForm.getByText('Wpisz kwotę, np. 45 lub 45,50.')).toBeHidden();
+  const newBarcode = newForm.getByLabel(/^Kod kreskowy \(puste/);
+  await newBarcode.fill('a');
+  await newForm.getByRole('button', { name: '+ Dodaj produkt' }).click();
+  await expect(newForm.getByText('Od 3 do 32 znaków: cyfry, litery i „-”.')).toBeVisible();
+  await expect(newBarcode).toBeFocused();
+  await expect(products.getByTestId('product-row')).toHaveCount(2);
+  await newForm.scrollIntoViewIfNeeded();
+  await shot(page, '663-product-new-field-error');
+  await newBarcode.fill('');
+  await newForm.getByLabel('Nowy produkt').fill('');
+  await newPrice.fill('');
   await products.getByText('Więcej ▸', { exact: true }).click();
   await products.getByLabel('Cena — Pomada matowa').fill('49');
   // Task 430: the salon counts the pomades — two left in stock.
@@ -323,6 +346,21 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   // Task 438: "Dostawa" — a new set without a count gets four pieces delivered.
   await products.getByLabel('Nowy produkt').fill('Zestaw');
   await products.getByLabel(/^Cena \(/).fill('80');
+  // Task 663: the pomade's barcode again — the server's answer is said under "Kod kreskowy"
+  // ("Więcej ▸" opens by itself); a new code lets the set in.
+  await products.getByText('Więcej ▸', { exact: true }).click();
+  const zestawCode = products.getByLabel(/^Kod kreskowy \(puste/);
+  await zestawCode.fill('5901234123457');
+  await products.getByText('Więcej ▸', { exact: true }).click();
+  await products.getByRole('button', { name: '+ Dodaj produkt' }).click();
+  await expect(zestawCode).toBeVisible();
+  await expect(zestawCode).toHaveAttribute('aria-invalid', 'true');
+  await expect(products.locator('#product-new-barcode-error')).toHaveText(
+    'Ten kod kreskowy ma już inny produkt salonu.',
+  );
+  await zestawCode.fill('');
+  await expect(products.locator('#product-new-barcode-error')).toHaveCount(0);
+  await products.getByText('Więcej ▸', { exact: true }).click();
   await products.getByRole('button', { name: '+ Dodaj produkt' }).click();
   await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('');
   await products.getByLabel('Dostawa — Zestaw').fill('4');

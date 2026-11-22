@@ -1,15 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
-import { api, apiResponse } from '@/lib/api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import { orderText, toOrderNames } from '@/lib/to-order';
 import { matchesProductSearch, parseBarcode } from '@/lib/barcode';
 import type { Product, ProductList, StockHistory } from '@/lib/types';
 import { useSession } from '../Session';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
 import { parseTip as parseAmount } from '../calendar/TipField';
 import { DeliveryPanel } from './DeliveryPanel';
 import { StocktakePanel } from './StocktakePanel';
@@ -27,6 +27,29 @@ const stockInput = (n: number | null) => (n === null ? '' : String(n));
 function parseCost(value: string): number | null | undefined {
   if (value.trim() === '') return null;
   return parseAmount(value) ?? undefined;
+}
+
+/** Task 663: the fields of the new-product form that can be wrong. */
+type NewField = 'price' | 'stock' | 'cost' | 'low' | 'barcode';
+
+/**
+ * Task 663 (owner's rule: errors at the field): which field of the new-product form the server's
+ * answer is about, or null (then it stays a line under the form).
+ */
+function newProductFieldOf(err: unknown): NewField | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.code === 'BARCODE_TAKEN') return 'barcode';
+  if (err.code === 'STOCK_LIMIT') return 'stock';
+  if (err.code !== 'VALIDATION_ERROR' || !Array.isArray(err.details)) return null;
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  const byPath: [string, NewField][] = [
+    ['priceGrosze', 'price'],
+    ['stockQuantity', 'stock'],
+    ['purchasePriceGrosze', 'cost'],
+    ['lowStockAt', 'low'],
+    ['barcode', 'barcode'],
+  ];
+  return byPath.find(([path]) => paths.includes(path))?.[1] ?? null;
 }
 
 const costInput = (n: number | null) => (n === null ? '' : amountInput(n));
@@ -91,6 +114,16 @@ export function ProductsSection({ base }: { base: string }) {
   /** Task 521: "Kod kreskowy" of the new product, and "Szukaj" over the list. */
   const [barcode, setBarcode] = useState('');
   const [search, setSearch] = useState('');
+  /**
+   * Task 663: the new-product fields already left (blur) — a wrong one says why under it then,
+   * not while it is being typed; "+ Dodaj produkt" shows them all. The server's answer about one
+   * field, the other answers under the form, and "Więcej ▸" opened when a wrong field is inside.
+   */
+  const [left, setLeft] = useState<Set<NewField>>(new Set());
+  const [serverError, setServerError] = useState<{ field: NewField; text: string } | null>(null);
+  const [addError, setAddError] = useState('');
+  const [moreOpen, setMoreOpen] = useState(false);
+  const newForm = useRef<HTMLFormElement>(null);
   /** Task 463: "" = the stock CSV of all suppliers. */
   const [csvSupplier, setCsvSupplier] = useState('');
   /** Task 470: the stock CSV with only the products to order. */
@@ -249,15 +282,83 @@ export function ProductsSection({ base }: { base: string }) {
   ].sort((a, b) => a.localeCompare(b));
   const csvFor = suppliers.includes(csvSupplier) ? csvSupplier : '';
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
-  const canAdd =
-    name.trim() !== '' &&
-    price.trim() !== '' &&
-    newPrice !== null &&
-    newCost !== undefined &&
-    newStock !== undefined &&
-    newLow !== undefined &&
-    newBarcode !== undefined &&
-    !busy;
+  /** Task 663: what is wrong in each field of the new-product form ('' = fine). */
+  const wrongNow: Record<NewField, string> = {
+    price: price.trim() !== '' && newPrice === null ? p.wrongPrice : '',
+    stock: newStock === undefined ? p.wrongStock : '',
+    cost: newCost === undefined ? p.wrongPrice : '',
+    low: newLow === undefined ? p.wrongStock : '',
+    barcode: newBarcode === undefined ? p.wrongBarcode : '',
+  };
+  const newFieldError = (field: NewField): string =>
+    (left.has(field) ? wrongNow[field] : '') ||
+    (serverError?.field === field ? serverError.text : '');
+  /** Props of a new-product field: its error under it, said to screen readers too. */
+  const newFieldProps = (field: NewField) => {
+    const text = newFieldError(field);
+    return {
+      'aria-invalid': text ? true : undefined,
+      'aria-describedby': text ? `product-new-${field}-error` : undefined,
+      onBlur: () => setLeft((s) => (s.has(field) ? s : new Set(s).add(field))),
+    } as const;
+  };
+  const clearServer = (field: NewField) => {
+    if (serverError?.field === field) setServerError(null);
+  };
+  // Task 663: the button works once there is a name and a price; a wrong field then says why.
+  const canAdd = name.trim() !== '' && price.trim() !== '' && !busy;
+
+  async function addProduct() {
+    const fields = Object.keys(wrongNow) as NewField[];
+    const wrong = fields.filter((field) => wrongNow[field]);
+    if (wrong.length > 0) {
+      setLeft(new Set(fields));
+      if (wrong.some((field) => field === 'cost' || field === 'low' || field === 'barcode')) {
+        setMoreOpen(true);
+      }
+      // The cursor goes to the first wrong field (after "Więcej ▸" opens).
+      window.setTimeout(() => {
+        newForm.current?.querySelector<HTMLInputElement>('input[aria-invalid="true"]')?.focus();
+      }, 0);
+      return;
+    }
+    setBusy(true);
+    setAddError('');
+    setServerError(null);
+    try {
+      await api(`${base}/products`, {
+        method: 'POST',
+        body: {
+          name: name.trim(),
+          priceGrosze: newPrice,
+          purchasePriceGrosze: newCost,
+          stockQuantity: newStock,
+          lowStockAt: newLow,
+          supplier: supplier.trim() || null,
+          barcode: newBarcode,
+        },
+      });
+      setName('');
+      setPrice('');
+      setCost('');
+      setStock('');
+      setLow('');
+      setSupplier('');
+      setBarcode('');
+      setLeft(new Set());
+      await load();
+    } catch (err) {
+      const field = newProductFieldOf(err);
+      if (field) {
+        setServerError({ field, text: errorText(t, err) });
+        if (field === 'cost' || field === 'low' || field === 'barcode') setMoreOpen(true);
+      } else {
+        setAddError(errorText(t, err));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <section className="page" data-testid="products">
@@ -821,34 +922,13 @@ export function ProductsSection({ base }: { base: string }) {
       ) : null}
       {/* Task 652 (Q6): a short form — name, price, stock; the rest under "Więcej ▸". */}
       <form
+        ref={newForm}
         className="stack product-new"
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
           if (!canAdd) return;
-          void run(() =>
-            api(`${base}/products`, {
-              method: 'POST',
-              body: {
-                name: name.trim(),
-                priceGrosze: newPrice,
-                purchasePriceGrosze: newCost,
-                stockQuantity: newStock,
-                lowStockAt: newLow,
-                supplier: supplier.trim() || null,
-                barcode: newBarcode,
-              },
-            }),
-          ).then((ok) => {
-            if (ok) {
-              setName('');
-              setPrice('');
-              setCost('');
-              setStock('');
-              setLow('');
-              setSupplier('');
-              setBarcode('');
-            }
-          });
+          void addProduct();
         }}
       >
         <div className="row" style={{ alignItems: 'end', flexWrap: 'wrap' }}>
@@ -863,9 +943,13 @@ export function ProductsSection({ base }: { base: string }) {
             <input
               inputMode="decimal"
               value={price}
-              aria-invalid={price !== '' && newPrice === null}
-              onChange={(e) => setPrice(e.target.value)}
+              {...newFieldProps('price')}
+              onChange={(e) => {
+                setPrice(e.target.value);
+                clearServer('price');
+              }}
             />
+            <FieldError id="product-new-price-error" text={newFieldError('price')} />
           </label>
           <label className="field">
             <span>{p.stockNew}</span>
@@ -873,15 +957,23 @@ export function ProductsSection({ base }: { base: string }) {
               inputMode="numeric"
               value={stock}
               placeholder="—"
-              aria-invalid={newStock === undefined}
-              onChange={(e) => setStock(e.target.value)}
+              {...newFieldProps('stock')}
+              onChange={(e) => {
+                setStock(e.target.value);
+                clearServer('stock');
+              }}
             />
+            <FieldError id="product-new-stock-error" text={newFieldError('stock')} />
           </label>
           <button type="submit" className="btn btn--small" disabled={!canAdd}>
             + {p.add}
           </button>
         </div>
-        <details className="promo-more product-new__more">
+        <details
+          className="promo-more product-new__more"
+          open={moreOpen}
+          onToggle={(e) => setMoreOpen(e.currentTarget.open)}
+        >
           <summary>{p.moreFields}</summary>
           <div className="row" style={{ alignItems: 'end', flexWrap: 'wrap' }}>
             <label className="field">
@@ -892,9 +984,13 @@ export function ProductsSection({ base }: { base: string }) {
                 inputMode="decimal"
                 value={cost}
                 placeholder="—"
-                aria-invalid={newCost === undefined}
-                onChange={(e) => setCost(e.target.value)}
+                {...newFieldProps('cost')}
+                onChange={(e) => {
+                  setCost(e.target.value);
+                  clearServer('cost');
+                }}
               />
+              <FieldError id="product-new-cost-error" text={newFieldError('cost')} />
             </label>
             <label className="field">
               <span>{p.lowNew}</span>
@@ -902,9 +998,13 @@ export function ProductsSection({ base }: { base: string }) {
                 inputMode="numeric"
                 value={low}
                 placeholder="—"
-                aria-invalid={newLow === undefined}
-                onChange={(e) => setLow(e.target.value)}
+                {...newFieldProps('low')}
+                onChange={(e) => {
+                  setLow(e.target.value);
+                  clearServer('low');
+                }}
               />
+              <FieldError id="product-new-low-error" text={newFieldError('low')} />
             </label>
             <label className="field">
               <span>{p.supplierNew}</span>
@@ -921,12 +1021,17 @@ export function ProductsSection({ base }: { base: string }) {
                 value={barcode}
                 maxLength={40}
                 placeholder="—"
-                aria-invalid={newBarcode === undefined}
-                onChange={(e) => setBarcode(e.target.value)}
+                {...newFieldProps('barcode')}
+                onChange={(e) => {
+                  setBarcode(e.target.value);
+                  clearServer('barcode');
+                }}
               />
+              <FieldError id="product-new-barcode-error" text={newFieldError('barcode')} />
             </label>
           </div>
         </details>
+        <ErrorBox>{addError}</ErrorBox>
       </form>
     </section>
   );

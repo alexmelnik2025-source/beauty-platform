@@ -1790,6 +1790,10 @@ export const en: Dict = {
     stock: 'In stock',
     pieces: 'pcs',
     stockNew: 'In stock (pcs, empty — not counted)',
+    /** Task 663: under a wrong field of the new-product form. */
+    wrongPrice: 'Enter an amount, e.g. 45 or 45.50.',
+    wrongStock: 'Enter a number of pieces from 0 to 100,000 or leave it empty.',
+    wrongBarcode: '3 to 32 characters: digits, letters and “-”.',
     moreFields: 'More ▸',
     stockLeft: '{n} pcs left',
     sold30: 'Sold in 30 days: {n} pcs',

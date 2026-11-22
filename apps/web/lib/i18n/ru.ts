@@ -1790,6 +1790,10 @@ export const ru: Dict = {
     stock: 'На складе',
     pieces: 'шт.',
     stockNew: 'На складе (шт., пусто — не считаем)',
+    /** Task 663: under a wrong field of the new-product form. */
+    wrongPrice: 'Введите сумму, например 45 или 45,50.',
+    wrongStock: 'Введите число штук от 0 до 100 000 или оставьте пустым.',
+    wrongBarcode: 'От 3 до 32 символов: цифры, буквы и «-».',
     moreFields: 'Ещё ▸',
     stockLeft: 'осталось {n} шт.',
     sold30: 'Продано за 30 дней: {n} шт.',

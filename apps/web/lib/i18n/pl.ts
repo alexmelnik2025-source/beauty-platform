@@ -1786,6 +1786,10 @@ export const pl = {
     stock: 'W magazynie',
     pieces: 'szt.',
     stockNew: 'W magazynie (szt., puste — nie liczymy)',
+    /** Task 663: under a wrong field of the new-product form. */
+    wrongPrice: 'Wpisz kwotę, np. 45 lub 45,50.',
+    wrongStock: 'Wpisz liczbę sztuk od 0 do 100 000 albo zostaw puste.',
+    wrongBarcode: 'Od 3 do 32 znaków: cyfry, litery i „-”.',
     moreFields: 'Więcej ▸',
     stockLeft: 'zostało {n} szt.',
     sold30: 'Sprzedano w 30 dni: {n} szt.',

@@ -3552,6 +3552,12 @@ produktów: 1.». e2e `products-order.spec.ts`, скриншоты 476, 477.
 - Тесты: `apps/api/test/reports.spec.ts` («Kod kreskowy»), `apps/mobile-business/test/barcode.test.ts`, e2e
   `products.spec.ts` (скриншоты 521, 522, 524, 524-a).
 
+Задача 663 (ошибки у поля): в форме «+ Dodaj produkt» кабинета (`ProductsSection.tsx`) неверная цена, остаток, цена
+закупки, «Kończy się przy» или код говорят, что не так, под своим полем — когда поле покинули или нажали «+ Dodaj
+produkt» (кнопка работает, как только есть название и цена; курсор идёт к первому неверному полю, «Więcej ▸»
+открывается сам). Ответ сервера `BARCODE_TAKEN` — под «Kod kreskowy», `STOCK_LIMIT` и ошибки полей — под своим полем,
+прочие — строкой под формой. Скриншот `663-product-new-field-error`.
+
 ## «Cofnij płatność» — отменить оплату бонем (задачи 530–532)
 
 - `POST …/gift-vouchers/:voucherId/uses/:useId/undo` — владелец/менеджер (мастер — 403): оплата, внесённая по ошибке
