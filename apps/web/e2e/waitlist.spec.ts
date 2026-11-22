@@ -249,7 +249,13 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await expect(
     autoForm.getByText('Do automatycznej rezerwacji potrzebny jest telefon.'),
   ).toBeVisible();
+  await shot(dana, 'q8-site-waitlist-auto-phone-error');
   await danaPhone.fill('600 444 555');
+  // Typing the phone takes its error away (task Q5: errors at the field).
+  await expect(danaPhone).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(
+    autoForm.getByText('Do automatycznej rezerwacji potrzebny jest telefon.'),
+  ).toHaveCount(0);
   await shot(dana, 'q8-site-waitlist-auto-form');
   await autoForm.getByRole('button', { name: 'Zapisz mnie na listę' }).click();
   await expect(

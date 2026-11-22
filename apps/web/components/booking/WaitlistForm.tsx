@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import { normalizePhone } from '@/lib/phone';
 import type { WaitlistJoined } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
 
 /**
  * Task 50: on a full day — "Powiadom mnie, gdy zwolni się termin". Name and email (prefilled
@@ -13,6 +13,28 @@ import { ErrorBox } from '../ui';
  * Task Q8: a client signed in to "My visits" can tick "Zapisz mnie automatycznie, gdy zwolni się
  * termin" (with a phone): the first time that frees up is booked for them at once.
  */
+type Problems = Partial<Record<'name' | 'phone' | 'email', string>>;
+
+/**
+ * Task Q5 (errors at the field): the server's answer about the name, phone or e-mail as errors at
+ * those fields; null when it is about something else (then the box on top says it).
+ */
+function fieldProblems(t: ReturnType<typeof useI18n>['t'], err: unknown): Problems | null {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return null;
+  if (!Array.isArray(err.details)) return null;
+  const texts = {
+    name: t.booking.nameInvalid,
+    phone: t.booking.phoneInvalid,
+    email: t.booking.emailInvalid,
+  } as const;
+  const found: Problems = {};
+  for (const detail of err.details as { path?: string }[]) {
+    const field = detail.path as keyof typeof texts;
+    if (field in texts) found[field] = texts[field];
+  }
+  return Object.keys(found).length > 0 ? found : null;
+}
+
 export function WaitlistForm(props: {
   slug: string;
   serviceId: string;
@@ -33,7 +55,8 @@ export function WaitlistForm(props: {
   const [accept, setAccept] = useState(false);
   const [auto, setAuto] = useState(false);
   const [phone, setPhone] = useState(props.phone ?? '');
-  const [phoneProblem, setPhoneProblem] = useState('');
+  /** Errors shown at their own field (task Q5); typing in the field takes its error away. */
+  const [problems, setProblems] = useState<Problems>({});
   const [doneAuto, setDoneAuto] = useState(false);
   const signedIn = Boolean(props.signedInAs);
   const [busy, setBusy] = useState(false);
@@ -44,6 +67,7 @@ export function WaitlistForm(props: {
     e.preventDefault();
     setBusy(true);
     setError('');
+    setProblems({});
     const common = {
       serviceId: props.serviceId,
       ...(props.staffId ? { staffId: props.staffId } : {}),
@@ -55,10 +79,9 @@ export function WaitlistForm(props: {
     const typedPhone = phone.trim() ? normalizePhone(phone, props.dial) : '';
     if (signedIn && auto && !typedPhone) {
       setBusy(false);
-      setPhoneProblem(t.booking.waitlistAutoPhone);
+      setProblems({ phone: t.booking.waitlistAutoPhone });
       return;
     }
-    setPhoneProblem('');
     try {
       if (signedIn) {
         // Task Q8: the signed-in client's own list (the email is theirs, confirmed already).
@@ -81,11 +104,20 @@ export function WaitlistForm(props: {
       setDoneAuto(signedIn && auto);
       setDone(true);
     } catch (err) {
-      setError(errorText(t, err));
+      const found = fieldProblems(t, err);
+      if (found) setProblems(found);
+      else setError(errorText(t, err));
     } finally {
       setBusy(false);
     }
   }
+
+  const fixed = (field: keyof Problems) =>
+    setProblems((current) => {
+      if (!current[field]) return current;
+      const { [field]: _gone, ...rest } = current;
+      return rest;
+    });
 
   if (done) {
     return (
@@ -114,8 +146,14 @@ export function WaitlistForm(props: {
           autoFocus
           autoComplete="name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          aria-invalid={problems.name ? true : undefined}
+          aria-describedby={problems.name ? 'waitlist-name-error' : undefined}
+          onChange={(e) => {
+            fixed('name');
+            setName(e.target.value);
+          }}
         />
+        <FieldError id="waitlist-name-error" text={problems.name} />
       </label>
       {signedIn ? (
         <p className="small muted">{props.signedInAs}</p>
@@ -127,13 +165,26 @@ export function WaitlistForm(props: {
             required
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={problems.email ? true : undefined}
+            aria-describedby={problems.email ? 'waitlist-email-error' : undefined}
+            onChange={(e) => {
+              fixed('email');
+              setEmail(e.target.value);
+            }}
           />
+          <FieldError id="waitlist-email-error" text={problems.email} />
         </label>
       )}
       {signedIn ? (
         <label className="check">
-          <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={auto}
+            onChange={(e) => {
+              fixed('phone');
+              setAuto(e.target.checked);
+            }}
+          />
           <span>
             {t.booking.waitlistAuto}
             <small className="muted remember-hint">{t.booking.waitlistAutoHint}</small>
@@ -147,15 +198,14 @@ export function WaitlistForm(props: {
             type="tel"
             autoComplete="tel"
             value={phone}
-            aria-invalid={phoneProblem ? true : undefined}
-            aria-describedby={phoneProblem ? 'waitlist-phone-error' : undefined}
-            onChange={(e) => setPhone(e.target.value)}
+            aria-invalid={problems.phone ? true : undefined}
+            aria-describedby={problems.phone ? 'waitlist-phone-error' : undefined}
+            onChange={(e) => {
+              fixed('phone');
+              setPhone(e.target.value);
+            }}
           />
-          {phoneProblem ? (
-            <small id="waitlist-phone-error" className="field-error" role="alert">
-              {phoneProblem}
-            </small>
-          ) : null}
+          <FieldError id="waitlist-phone-error" text={problems.phone} />
         </label>
       ) : null}
       <label className="check">

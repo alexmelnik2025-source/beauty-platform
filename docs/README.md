@@ -4133,6 +4133,10 @@ Q4-base-orders. Дальше: статус Base в бизнес-приложен
   телефона — ошибка у поля). Запись идёт в `POST /v1/client/waitlist/locations/:slug`. В кабинете «Lista
   oczekujących» у такого клиента — «Auto — zapiszemy od razu». e2e `e2e/waitlist.spec.ts`, скриншоты
   `q8-site-waitlist-auto-form`, `q8-site-waitlist-auto-joined`, `q8-owner-waitlist-auto`.
+- Задача 648 (исправление): в форме «Powiadom mnie…» ошибка у поля пропадает, как только клиент исправляет поле
+  (раньше «Do automatycznej rezerwacji potrzebny jest telefon.» оставалась под уже введённым номером); ответ сервера о
+  неверном имени, телефоне или e-mail тоже показывается у своего поля, а не общей строкой сверху. Скриншоты
+  `q8-site-waitlist-auto-phone-error`, `q8-site-waitlist-auto-form`.
 
 ## Лист ожидания: отказ защиты от отмен и выход «уведомлённого»; любимые салоны (задача 603)
 
