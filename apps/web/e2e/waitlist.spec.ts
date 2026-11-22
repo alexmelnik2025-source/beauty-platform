@@ -198,7 +198,7 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await expect(cabinet.getByText('Usunięto Bob Brown z listy oczekujących.')).toBeVisible();
   await expect(cabinet.getByText('Bob Brown', { exact: true })).toHaveCount(0);
   await expect(cabinet.getByText('Anna Kowalska')).toBeVisible();
-  await desk.close();
+  // The cabinet stays open: the Q8 part below looks at the list again.
 
   // ── The email's link: what she waits for, and leaving the list ─────────
   const mail = await waitForEmail(ANNA, /Jesteś na liście oczekujących/);
@@ -265,18 +265,11 @@ test('a full day: the client joins the waiting list and leaves it from the email
     autoBook: true,
     phone: '+48600444555',
   });
-  const desk2 = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
-  const cabinet2 = await desk2.newPage();
-  await cabinet2.goto('/pl/login');
-  await cabinet2.getByLabel('E-mail').fill(OWNER);
-  await cabinet2.getByLabel('Hasło').fill(PASSWORD);
-  await cabinet2.getByRole('button', { name: 'Zaloguj się' }).click();
-  await cabinet2.waitForURL(/\/pl\/app\/calendar/);
-  await cabinet2.getByRole('link', { name: 'Lista oczekujących' }).first().click();
-  await expect(cabinet2.getByText('Dana Lis')).toBeVisible();
-  await expect(cabinet2.getByText(/Auto — zapiszemy od razu/)).toHaveCount(1);
-  await shot(cabinet2, 'q8-owner-waitlist-auto');
-  await desk2.close();
+  await cabinet.reload();
+  await expect(cabinet.getByText('Dana Lis')).toBeVisible();
+  await expect(cabinet.getByText(/Auto — zapiszemy od razu/)).toHaveCount(1);
+  await shot(cabinet, 'q8-owner-waitlist-auto');
+  await desk.close();
 
   // ── Task 51: the client app (web preview of apps/mobile-client) ────────
   // Cara signs in with an emailed code and has the salon in her favourites.
