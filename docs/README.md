@@ -4354,6 +4354,9 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   одна кнопка «+ Dodaj produkt» (короткая форма: название, цена, остаток — открывается сверху). Поиск по названию или
   коду и фильтры «Wszystkie / Na stronie salonu / W Sklepie / Ukryte» с числом товаров. Строка = фото карты (или первая
   буква), название, статус, остаток, цена; нажатие открывает переключатели, карту каталога и фото — как раньше.
+- «Usługi» в том же стиле: подсказка о порядке — под «?», поиск по названию и фильтры «Wszystkie / Widoczne / Ukryte /
+  Bez specjalisty» (пустые фильтры не показываются); «Ukryta» — значок-статус в строке. Пока фильтр или поиск включены,
+  стрелки порядка скрыты (порядок меняется на полном списке).
 
 - «Ustawienia» (`app/[locale]/app/settings/page.tsx`): список разделов (значок, название, одна строка —
   `settings.sections`): «Rezerwacje online», «Salon» (с фото), «Pytania przy rezerwacji», «Pora na kolejną wizytę»,
@@ -4365,4 +4368,4 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 
 Скриншоты: `q6-products-help-closed`, `q6-products-help-open`, `12-owner-calendar-phone`, `q6-cabinet-menu-groups`,
 `q6-client-language-ua`., `q6-settings-unsaved`,
-`q6-settings-list-phone`, `q6-settings-card-phone`, `q6-language-menu-phone`, `q6-shop-list`, `q6-shop-list-phone`.
+`q6-settings-list-phone`, `q6-settings-card-phone`, `q6-language-menu-phone`, `q6-shop-list`, `q6-shop-list-phone`, `q6-services-list`.

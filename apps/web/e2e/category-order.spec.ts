@@ -135,5 +135,23 @@ test('the owner orders and renames the categories of the price list', async ({
   await expect(headings).toHaveText(['Włosy', 'Broda i golenie', 'Dzieci']);
   await shot(cabinet, '254-category-order');
   await expect.poll(categories).toEqual(['Włosy', 'Broda i golenie', 'Dzieci']);
+
+  // Task Q6: search and filters over the services, as in "Mój sklep"; the arrows wait meanwhile.
+  await cabinet.getByLabel('Szukaj usługi').fill('bro');
+  await expect(headings).toHaveText(['Broda i golenie']);
+  await expect(cabinet.getByText('Trymowanie brody')).toBeVisible();
+  await expect(cabinet.getByText('Strzyżenie męskie')).toHaveCount(0);
+  await expect(cabinet.getByRole('button', { name: /^Wyżej:/ })).toHaveCount(0);
+  await cabinet.getByLabel('Szukaj usługi').fill('');
+  // Nobody performs them yet — the filter shows both.
+  await cabinet.getByRole('button', { name: 'Bez specjalisty 2' }).click();
+  await expect(headings).toHaveText(['Włosy', 'Broda i golenie']);
+  await expect(cabinet.getByRole('button', { name: 'Ukryte' })).toHaveCount(0);
+  await shot(cabinet, 'q6-services-list');
+  await cabinet.getByRole('button', { name: 'Wszystkie 2' }).click();
+  await expect(headings).toHaveText(['Włosy', 'Broda i golenie', 'Dzieci']);
+  // The order hint is under "?".
+  await cabinet.getByRole('button', { name: 'Jak to działa?' }).click();
+  await expect(cabinet.getByText(/strzałkami ustaw, co pierwsze/)).toBeVisible();
   await desk.close();
 });

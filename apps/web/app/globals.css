@@ -3820,6 +3820,11 @@ ul.wish-photos {
   border-bottom: 1px solid var(--line);
 }
 
+.shop-tools--plain {
+  padding: 0;
+  border-bottom: 0;
+}
+
 .shop-filters {
   display: flex;
   gap: 6px;

@@ -1280,6 +1280,13 @@ export const en: Dict = {
     copyHint: 'Check and save — the copy is created only after “Save”.',
     orderHint:
       'The order clients see on the booking page and in the app — use the arrows to set what comes first.',
+    listSearch: 'Search services',
+    filterAll: 'All',
+    filterActive: 'Visible',
+    filterHidden: 'Hidden',
+    filterNoOne: 'No specialist',
+    noMatch: 'Nothing matches.',
+    helpOpen: 'How does it work?',
     whoPerforms: 'Who performs this service?',
     whoPerformsHint: 'Clients can book the service only with the specialists ticked here.',
     staffPrice: 'Price with {name}',

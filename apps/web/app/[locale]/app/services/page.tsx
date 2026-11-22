@@ -35,6 +35,10 @@ export default function ServicesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [editing, setEditing] = useState<ServiceRow | 'new' | null>(null);
+  /** Task Q6: search and filters over the list, as in "Mój sklep"; "?" opens the order hint. */
+  const [filterText, setFilterText] = useState('');
+  const [filter, setFilter] = useState<'all' | 'active' | 'hidden' | 'noOne'>('all');
+  const [helpOpen, setHelpOpen] = useState(false);
   /** Task 251: "Duplikuj" — the new-service window filled in from this service. */
   const [copyOf, setCopyOf] = useState<ServiceRow | null>(null);
   const [newCategory, setNewCategory] = useState('');
@@ -143,13 +147,33 @@ export default function ServicesPage() {
   const working = new Set(staff.filter((m) => m.active).map((m) => m.id));
   const unstaffed = (s: ServiceRow) => s.active && !s.staffIds.some((id) => working.has(id));
 
-  const groups = [
+  const allGroups = [
     ...categories.map((c) => ({
       category: c,
       items: services.filter((s) => s.categoryId === c.id),
     })),
     { category: null, items: services.filter((s) => !s.categoryId) },
   ];
+  const words = filterText.trim().toLowerCase();
+  const filtering = filter !== 'all' || words !== '';
+  const matches = (s: ServiceRow) =>
+    (filter === 'all' ||
+      (filter === 'active' && s.active) ||
+      (filter === 'hidden' && !s.active) ||
+      (filter === 'noOne' && unstaffed(s))) &&
+    (!words || s.name.toLowerCase().includes(words));
+  const counts = {
+    all: services.length,
+    active: services.filter((s) => s.active).length,
+    hidden: services.filter((s) => !s.active).length,
+    noOne: services.filter(unstaffed).length,
+  };
+  // While a filter or search is on, only matching services show and the arrows are hidden.
+  const groups = filtering
+    ? allGroups
+        .map((g) => ({ ...g, items: g.items.filter(matches) }))
+        .filter((g) => g.items.length > 0)
+    : allGroups;
 
   /**
    * Task 252: a place up or down within the category. The server takes every service once,
@@ -159,7 +183,7 @@ export default function ServicesPage() {
     const row = items[index];
     const other = items[index + by];
     if (!row || !other || moving) return;
-    const next = groups
+    const next = allGroups
       .flatMap((g) => g.items)
       .map((s) => (s.id === row.id ? other : s.id === other.id ? row : s));
     setServices(next);
@@ -183,7 +207,20 @@ export default function ServicesPage() {
   return (
     <>
       <div className="page-head">
-        <h1>{t.services.title}</h1>
+        <div className="title-help">
+          <h1>{t.services.title}</h1>
+          <button
+            type="button"
+            className="help-btn"
+            aria-label={t.services.helpOpen}
+            title={t.services.helpOpen}
+            aria-expanded={helpOpen}
+            aria-controls="services-help"
+            onClick={() => setHelpOpen((v) => !v)}
+          >
+            ?
+          </button>
+        </div>
         <button
           type="button"
           className="btn btn--small"
@@ -198,8 +235,48 @@ export default function ServicesPage() {
       <div className="page">
         <ErrorBox>{error}</ErrorBox>
         {services.length === 0 ? <p className="note">{t.services.empty}</p> : null}
-        {categories.length > 1 || groups.some((g) => g.items.length > 1) ? (
-          <p className="small muted">{t.services.orderHint}</p>
+        {helpOpen ? (
+          <p id="services-help" className="small muted help-box">
+            {t.services.orderHint}
+          </p>
+        ) : null}
+        {services.length > 0 ? (
+          <div className="shop-tools shop-tools--plain">
+            <input
+              type="search"
+              className="input"
+              value={filterText}
+              aria-label={t.services.listSearch}
+              placeholder={t.services.listSearch}
+              onChange={(e) => setFilterText(e.target.value)}
+            />
+            <div className="shop-filters" role="group" aria-label={t.services.listSearch}>
+              {(['all', 'active', 'hidden', 'noOne'] as const)
+                .filter((f) => f === 'all' || counts[f] > 0)
+                .map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    className="shop-filter"
+                    aria-pressed={filter === f}
+                    onClick={() => setFilter(f)}
+                  >
+                    {
+                      {
+                        all: t.services.filterAll,
+                        active: t.services.filterActive,
+                        hidden: t.services.filterHidden,
+                        noOne: t.services.filterNoOne,
+                      }[f]
+                    }{' '}
+                    <span className="muted">{counts[f]}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        ) : null}
+        {filtering && groups.length === 0 ? (
+          <p className="small muted">{t.services.noMatch}</p>
         ) : null}
         {groups.map((g, categoryIndex) =>
           g.items.length === 0 && !g.category ? null : (
@@ -250,7 +327,7 @@ export default function ServicesPage() {
                       </button>
                     </>
                   ) : null}
-                  {g.category && categories.length > 1 ? (
+                  {g.category && categories.length > 1 && !filtering ? (
                     <span className="order-btns">
                       <button
                         type="button"
@@ -274,7 +351,10 @@ export default function ServicesPage() {
               )}
               <ul className="list">
                 {g.items.map((s, index) => (
-                  <li key={s.id} className={g.items.length > 1 ? 'orderable' : undefined}>
+                  <li
+                    key={s.id}
+                    className={g.items.length > 1 && !filtering ? 'orderable' : undefined}
+                  >
                     <button
                       type="button"
                       className="list-row"
@@ -292,15 +372,19 @@ export default function ServicesPage() {
                         <strong>{s.name}</strong>
                         <span className="small muted">
                           {s.durationMinutes} {t.common.minutes}
-                          {s.active ? '' : ` · ${t.services.hidden}`}
                         </span>
+                        {s.active ? null : (
+                          <span className="status-pill status-pill--hidden">
+                            {t.services.hidden}
+                          </span>
+                        )}
                         {unstaffed(s) ? (
                           <span className="small warn-text">{t.services.noOnePerforms}</span>
                         ) : null}
                       </span>
                       <span>{formatPrice(s.priceGrosze, location.currency, tag)}</span>
                     </button>
-                    {g.items.length > 1 ? (
+                    {g.items.length > 1 && !filtering ? (
                       <span className="order-btns">
                         <button
                           type="button"
