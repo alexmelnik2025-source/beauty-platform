@@ -12,19 +12,21 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **22.11.2026, ~19:40 UTC — 671 (ветка `agent/671-bonus-field-errors`, от main): ошибки «Dodatkowe pieczątki i punkty» у поля**
+- **✅ Влито в main 22.11.2026, ~20:15 UTC. 671 (ветка `agent/671-bonus-field-errors`, от main): ошибки «Dodatkowe pieczątki i punkty» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Пустое название давало всплывающую подсказку
   браузера, а правило «×1 +0» — общую строку «Sprawdź pola formularza.» над формой; теперь текст под нужным полем
-  нужной строки, курсор туда. e2e `loyalty`, скриншот `671-loyalty-bonus-field-errors`. Ждёт CI.
-- **22.11.2026, ~19:30 UTC — 670 (ветка `agent/670-stock-field-errors`, от main): ошибки «Inwentaryzacja» и «Przyjmij dostawę» у поля**
+  нужной строки, курсор туда. e2e `loyalty`, скриншот `671-loyalty-bonus-field-errors`. Влито одной веткой
+  `agent/669-671-field-errors` вместе с 669–670; там же исправлен тест API `completed-busy`, который падал вечером
+  (визит после 23:30 по Варшаве переходил за полночь, где у мастера кончались часы).
+- **✅ Влито в main 22.11.2026, ~20:15 UTC. 670 (ветка `agent/670-stock-field-errors`, от main): ошибки «Inwentaryzacja» и «Przyjmij dostawę» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Неверное число только красило поле и выключало
   кнопку без объяснения — теперь «Wpisz liczbę od … do 100 000.» под полем этого товара; ответ сервера — у поля.
-  e2e `products`, `products-order`, скриншоты `670-stocktake-field-error`, `670-delivery-field-error`. Ждёт CI.
-- **22.11.2026, ~19:20 UTC — 669 (ветка `agent/669-till-field-errors`, от main): ошибки «Kasa dnia» у поля**
+  e2e `products`, `products-order`, скриншоты `670-stocktake-field-error`, `670-delivery-field-error`.
+- **✅ Влито в main 22.11.2026, ~20:15 UTC. 669 (ветка `agent/669-till-field-errors`, от main): ошибки «Kasa dnia» у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). «Zamknij kasę»: неверная сумма была строкой в
   конце ряда, пустая — молча выключала «Zapisz»; «Wpłata / wypłata»: без «Powód» кнопка просто не нажималась. Теперь
   текст под самим полем, курсор туда. e2e `till-close`, скриншоты `669-till-close-amount-error`,
-  `669-till-move-reason-error`. Ждёт CI.
+  `669-till-move-reason-error`.
 - **✅ Влито в main 22.11.2026, ~19:10 UTC. 668 (ветка `agent/668-reward-field-errors`, от main): ошибки окна награды у поля**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). «Program lojalnościowy → + Dodaj nagrodę»:
   название из пробелов давало общую строку «Sprawdź pola formularza.» над формой — теперь «Uzupełnij to pole.» под
