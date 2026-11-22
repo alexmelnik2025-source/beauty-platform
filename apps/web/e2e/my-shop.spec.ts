@@ -230,6 +230,8 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   // The page keeps the cabinet's side margins on a phone — nothing touches the screen's edge.
   const titleBox = await page.locator('#my-shop-title').boundingBox();
   expect(titleBox?.x ?? 0).toBeGreaterThanOrEqual(12);
+  // Task 655: no extra empty lines between the button, the import link and the list — the search starts high.
+  expect((await shopSearch.boundingBox())!.y).toBeLessThan(260);
   await shot(page, 'q6-shop-list-phone');
   await page.setViewportSize({ width: 1280, height: 720 });
 

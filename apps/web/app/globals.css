@@ -4008,3 +4008,8 @@ ul.wish-photos {
     padding-left: 12px;
   }
 }
+
+/* Task 655: "Mój sklep" — the lines between blocks keep only the list's own gap, no extra empty space. */
+.shop-page .stack > p {
+  margin: 0;
+}
