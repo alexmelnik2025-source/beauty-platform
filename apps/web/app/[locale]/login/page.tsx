@@ -4,9 +4,28 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { AuthPage } from '@/components/AuthPage';
-import { ErrorBox } from '@/components/ui';
-import { api, setAccessToken } from '@/lib/api';
+import { ErrorBox, FieldError } from '@/components/ui';
+import { api, ApiError, setAccessToken } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
+
+type Field = 'email' | 'password';
+
+/**
+ * Task 656 (owner's rule: errors at the field): which field an answer of the server is about —
+ * a wrong e-mail or password under the password, an unconfirmed address under the e-mail.
+ * Null when it is about neither (too many tries, no network): then the box on top says it.
+ */
+function fieldOf(err: unknown): Field | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.code === 'INVALID_CREDENTIALS') return 'password';
+  if (err.code === 'EMAIL_NOT_VERIFIED') return 'email';
+  if (err.code === 'VALIDATION_ERROR' && Array.isArray(err.details)) {
+    const paths = (err.details as { path?: string }[]).map((d) => d.path);
+    if (paths.includes('email')) return 'email';
+    if (paths.includes('password')) return 'password';
+  }
+  return null;
+}
 
 export default function LoginPage() {
   const { t, locale } = useI18n();
@@ -14,12 +33,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  /** An error shown at its own field; typing in that field takes it away. */
+  const [problem, setProblem] = useState<{ field: Field; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError('');
+    setProblem(null);
     try {
       const res = await api<{ accessToken: string }>('/v1/auth/login', {
         method: 'POST',
@@ -32,7 +54,9 @@ export default function LoginPage() {
       const next = new URLSearchParams(window.location.search).get('next');
       router.push(next && /^\/[a-z]{2}\//.test(next) ? next : `/${locale}/app/calendar`);
     } catch (err) {
-      setError(errorText(t, err));
+      const field = fieldOf(err);
+      if (field) setProblem({ field, text: errorText(t, err) });
+      else setError(errorText(t, err));
       setBusy(false);
     }
   }
@@ -52,7 +76,16 @@ export default function LoginPage() {
             autoComplete="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={problem?.field === 'email' || undefined}
+            aria-describedby={problem?.field === 'email' ? 'login-email-error' : undefined}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (problem?.field === 'email') setProblem(null);
+            }}
+          />
+          <FieldError
+            id="login-email-error"
+            text={problem?.field === 'email' ? problem.text : undefined}
           />
         </label>
         <label className="field">
@@ -62,7 +95,16 @@ export default function LoginPage() {
             autoComplete="current-password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={problem?.field === 'password' || undefined}
+            aria-describedby={problem?.field === 'password' ? 'login-password-error' : undefined}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (problem?.field === 'password') setProblem(null);
+            }}
+          />
+          <FieldError
+            id="login-password-error"
+            text={problem?.field === 'password' ? problem.text : undefined}
           />
         </label>
         <button className="btn btn--block" disabled={busy}>
