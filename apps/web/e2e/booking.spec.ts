@@ -1078,7 +1078,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const horizonDays = await horizon.inputValue();
   await horizon.fill('0');
   await openSettingsCard(ownerPage, 'Salon');
-  const salonName = settingsForm.getByLabel('Nazwa salonu', { exact: true });
+  // Found by the start of its label: the error under the field joins the label's text.
+  const salonName = settingsForm.getByLabel(/^Nazwa salonu/);
   const salonNameValue = await salonName.inputValue();
   await salonName.fill('   ');
   await openSettingsCard(ownerPage, 'Pytania przy rezerwacji');
