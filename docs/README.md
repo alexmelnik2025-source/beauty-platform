@@ -4366,6 +4366,10 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 - «Usługi» в том же стиле: подсказка о порядке — под «?», поиск по названию и фильтры «Wszystkie / Widoczne / Ukryte /
   Bez specjalisty» (пустые фильтры не показываются); «Ukryta» — значок-статус в строке. Пока фильтр или поиск включены,
   стрелки порядка скрыты (порядок меняется на полном списке).
+- Задача 651: «Promocje», «Lista oczekujących» и «Ochrona przed odwołaniami» — пояснение страницы под «?» рядом с
+  заголовком (`components/PageTitleHelp.tsx`, подпись `common.howItWorks`). Шапка страниц кабинета (`.page-head`) не
+  шире самой страницы (920 px) — главная кнопка стоит над правым краем списка. e2e `happy-hours`, скриншот
+  `651-promotions-help`.
 
 - «Ustawienia» (`app/[locale]/app/settings/page.tsx`): список разделов (значок, название, одна строка —
   `settings.sections`): «Rezerwacje online», «Salon» (с фото), «Pytania przy rezerwacji», «Pora na kolejną wizytę»,
